@@ -1,4 +1,3 @@
-
 export interface SyntaxNode {
   label: string;
   children?: SyntaxNode[];
@@ -10,4 +9,5 @@ export interface ParseResult {
   tree: SyntaxNode;
   explanation: string;
   partsOfSpeech: Array<{ word: string; pos: string }>;
+  bracketedNotation?: string;
 }
