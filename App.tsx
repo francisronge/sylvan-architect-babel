@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
-import { ParseResult, SyntaxNode } from './types';
+import { ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import { 
   BookOpen, 
@@ -22,25 +22,68 @@ import {
   Triangle,
   EyeOff,
   Maximize2,
+  Minimize2,
   Copy,
   Check,
   ExternalLink,
-  Cpu
+  Cpu,
+  GitBranch
 } from 'lucide-react';
 
+type AppTab = 'tree' | 'growth' | 'pos' | 'notes' | 'stats';
+
+const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
+  { id: 'tree', icon: Layers, label: 'Canopy' },
+  { id: 'growth', icon: FlameKindling, label: 'Growth Simulation' },
+  { id: 'pos', icon: BookOpen, label: 'Catalog' },
+  { id: 'notes', icon: FileText, label: 'Notes' },
+  { id: 'stats', icon: BarChart3, label: 'Stats' },
+];
+
+const KEY_ERROR_CODES = new Set(['API_KEY_EXPIRED', 'API_KEY_MISSING', 'API_KEY_INVALID']);
+
+const resolveUiError = (err: unknown): { needsKey: boolean; message: string } => {
+  const message = err instanceof Error ? err.message : String(err || '');
+  if (KEY_ERROR_CODES.has(message)) {
+    return {
+      needsKey: true,
+      message: 'Your API key is missing or invalid. Please update it below.'
+    };
+  }
+
+  return {
+    needsKey: false,
+    message: message || 'Linguistic growth interrupted.'
+  };
+};
+
 const App: React.FC = () => {
-  const [input, setInput] = useState('The farmer eats the pig in the house');
+  const appContainerRef = useRef<HTMLDivElement>(null);
+  const spores = useMemo(
+    () =>
+      Array.from({ length: 12 }, () => ({
+        left: Math.random() * 100,
+        delay: Math.random() * 24,
+        duration: 20 + Math.random() * 16,
+        drift: 40 + Math.random() * 120
+      })),
+    []
+  );
+  const [input, setInput] = useState('The farmer eats the pig');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ParseResult | null>(null);
-  const [lastInput, setLastInput] = useState('');
+  const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
+  const [activeParseIndex, setActiveParseIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'tree' | 'growth' | 'pos' | 'notes' | 'stats'>('tree');
+  const [activeTab, setActiveTab] = useState<AppTab>('tree');
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(true);
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [copied, setCopied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
+  const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
 
   useEffect(() => {
     const checkKeyStatus = async () => {
@@ -51,6 +94,18 @@ const App: React.FC = () => {
       }
     };
     checkKeyStatus();
+  }, []);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    syncFullscreenState();
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+    };
   }, []);
 
   const handleOpenKeySelection = async () => {
@@ -76,45 +131,73 @@ const App: React.FC = () => {
 
     try {
       const data = await parseSentence(input, framework);
-      setResult(data);
-      setLastInput(input);
+      setAnalysisBundle(data);
+      setActiveParseIndex(0);
       setActiveTab('tree');
+      setCopied(false);
       setNeedsKey(false);
-    } catch (err: any) {
-      if (err.message === 'API_KEY_EXPIRED' || err.message === 'API_KEY_MISSING' || err.message === 'API_KEY_INVALID') {
-        setNeedsKey(true);
-        setError("Your API credentials have expired or are missing. Please renew them below.");
-      } else {
-        setError(err.message || 'Linguistic growth interrupted.');
-      }
+    } catch (err: unknown) {
+      const uiError = resolveUiError(err);
+      setNeedsKey(uiError.needsKey);
+      setError(uiError.message);
     } finally {
       setLoading(false);
     }
   };
 
   const copyBracketed = () => {
-    if (result?.bracketedNotation) {
-      navigator.clipboard.writeText(result.bracketedNotation);
+    if (activeParse?.bracketedNotation) {
+      navigator.clipboard.writeText(activeParse.bracketedNotation);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const toggleFullscreen = async () => {
+    const appContainer = appContainerRef.current;
+    if (!appContainer) return;
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await appContainer.requestFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen toggle failed', err);
+    }
+  };
+
   const stats = useMemo(() => {
-    if (!result) return { depth: 0, nodes: 0, complexity: 'N/A' };
+    if (!activeParse) return { depth: 0, nodes: 0, complexity: 'N/A' };
     let maxDepth = 0, nodeCount = 0;
     const traverse = (node: SyntaxNode, depth: number) => {
       nodeCount++;
       maxDepth = Math.max(maxDepth, depth);
       if (node.children) node.children.forEach(child => traverse(child, depth + 1));
     };
-    traverse(result.tree, 1);
+    traverse(activeParse.tree, 1);
     let complexity = maxDepth > 8 ? 'High-Density' : maxDepth > 5 ? 'Moderate' : 'Low';
     return { depth: maxDepth, nodes: nodeCount, complexity };
-  }, [result]);
+  }, [activeParse]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
+    <div ref={appContainerRef} className="app-shell h-screen flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
+      <div className="god-rays"></div>
+      <div className="spore-layer" aria-hidden="true">
+        {spores.map((spore, idx) => (
+          <div
+            key={idx}
+            className="spore"
+            style={{
+              left: `${spore.left}vw`,
+              animationDelay: `-${spore.delay}s`,
+              animationDuration: `${spore.duration}s`,
+              ['--spore-drift' as any]: `${spore.drift}px`
+            }}
+          />
+        ))}
+      </div>
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-8 py-4 shrink-0 shadow-2xl">
         <div className="max-w-[2000px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -139,7 +222,7 @@ const App: React.FC = () => {
                   : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 }`}
               >
-                {framework === 'xbar' ? <Triangle size={12} className="fill-emerald-400" /> : <Cpu size={12} className="text-purple-400" />}
+                {framework === 'xbar' ? <GitBranch size={12} className="text-emerald-400" /> : <Cpu size={12} className="text-purple-400" />}
                 {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
               </button>
 
@@ -162,11 +245,46 @@ const App: React.FC = () => {
               <Zap size={10} className="fill-emerald-400" />
               Gemini 3 Pro
             </div>
+            <button
+              onClick={toggleFullscreen}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[9px] font-black uppercase tracking-widest"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            </button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 relative flex flex-col overflow-hidden">
+        {hasAmbiguity && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 p-1 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-lg shadow-2xl">
+              <button
+                onClick={() => setActiveParseIndex(0)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeParseIndex === 0
+                    ? 'moss-gradient text-white border border-emerald-400/50'
+                    : 'text-white/60 hover:text-emerald-300'
+                }`}
+              >
+                Parse 1
+              </button>
+              <button
+                onClick={() => setActiveParseIndex(1)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeParseIndex === 1
+                    ? 'moss-gradient text-white border border-emerald-400/50'
+                    : 'text-white/60 hover:text-emerald-300'
+                }`}
+              >
+                Parse 2
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="absolute inset-0 z-0">
           {loading && (
             <div className="absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-3xl flex flex-col items-center justify-center gap-8 animate-in fade-in duration-700">
@@ -181,17 +299,18 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {result && (activeTab === 'tree' || activeTab === 'growth') ? (
+          {activeParse && (activeTab === 'tree' || activeTab === 'growth') ? (
             <TreeVisualizer 
-              data={result.tree} 
+              data={activeParse.tree} 
               animated={activeTab === 'growth'} 
+              derivationSteps={activeParse.derivationSteps}
               abstractionMode={abstractionMode}
             />
-          ) : result && (activeTab === 'pos' || activeTab === 'notes' || activeTab === 'stats') ? (
+          ) : activeParse && (activeTab === 'pos' || activeTab === 'notes' || activeTab === 'stats') ? (
             <div className="w-full h-full flex items-center justify-center p-12 overflow-y-auto bg-[#020806]/60 backdrop-blur-md animate-in fade-in duration-500">
               {activeTab === 'pos' && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-6xl w-full">
-                  {result.partsOfSpeech.map((item, idx) => (
+                  {(activeParse.partsOfSpeech ?? []).map((item, idx) => (
                     <div key={idx} className="p-8 bg-black/60 border border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 hover:border-emerald-500/40 transition-all shadow-2xl group hover:-translate-y-1">
                       <span className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.5em]">{item.pos}</span>
                       <span className="font-bold text-white serif italic text-2xl tracking-tight">{item.word}</span>
@@ -208,10 +327,13 @@ const App: React.FC = () => {
                         </div>
                         <h2 className="text-3xl font-bold text-white serif tracking-tight">Structural Geneology ({framework === 'xbar' ? 'X-Bar' : 'Minimalism'})</h2>
                       </div>
-                      <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{result.explanation}"</p>
+                      {activeParse.interpretation && (
+                        <p className="text-xs uppercase tracking-[0.2em] text-emerald-400/70 mb-4">{activeParse.interpretation}</p>
+                      )}
+                      <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{activeParse.explanation}"</p>
                   </div>
 
-                  {result.bracketedNotation && (
+                  {activeParse.bracketedNotation && (
                     <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
                        <div className="flex items-center justify-between mb-8">
                           <div className="flex items-center gap-5">
@@ -248,7 +370,7 @@ const App: React.FC = () => {
                         </div>
                         <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
                           <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                            {result.bracketedNotation}
+                            {activeParse.bracketedNotation}
                           </code>
                         </div>
                     </div>
@@ -304,17 +426,11 @@ const App: React.FC = () => {
 
         {/* Navigation Sidebar */}
         <div className="absolute right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4">
-          {[
-            { id: 'tree', icon: Layers, label: 'Canopy' },
-            { id: 'growth', icon: FlameKindling, label: 'Growth Simulation' },
-            { id: 'pos', icon: BookOpen, label: 'Catalog' },
-            { id: 'notes', icon: FileText, label: 'Notes' },
-            { id: 'stats', icon: BarChart3, label: 'Stats' },
-          ].map((tab) => (
+          {NAV_TABS.map((tab) => (
             <button
               key={tab.id}
-              disabled={!result}
-              onClick={() => setActiveTab(tab.id as any)}
+              disabled={!activeParse}
+              onClick={() => setActiveTab(tab.id)}
               className={`group relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
                 activeTab === tab.id 
                 ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110' 
@@ -417,6 +533,7 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {!isFullscreen && (
       <footer className="bg-black/80 border-t border-white/10 py-4 px-10 shrink-0 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
         <div className="max-w-[2000px] mx-auto flex items-center justify-between text-[8px] font-black text-emerald-900/50 uppercase tracking-[0.5em]">
           <div className="flex items-center gap-8">
@@ -430,7 +547,7 @@ const App: React.FC = () => {
                 onClick={handleOpenKeySelection}
                 className="flex items-center gap-2 text-rose-500/80 hover:text-rose-400 transition-colors"
               >
-                <Key size={10} /> Key Expired - Renew
+                <Key size={10} /> Key Missing/Invalid - Update
               </button>
             )}
             <div className="italic serif lowercase text-[10px] tracking-normal opacity-40">
@@ -439,6 +556,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 };

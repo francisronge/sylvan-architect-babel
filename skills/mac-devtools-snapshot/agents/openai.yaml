@@ -1,0 +1,4 @@
+skill:
+  display_name: Mac DevTools Snapshot
+  short_description: Capture and inspect browser DevTools on macOS.
+  default_prompt: Capture a DevTools screenshot on macOS, inspect it, and report concrete findings.
