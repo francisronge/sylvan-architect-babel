@@ -72,13 +72,13 @@ When you submit a sentence, Babel shows:
 
 If Babel detects clear syntactic ambiguity, it can return two analyses.
 
-You can toggle `Parse 1` and `Parse 2`, and the active parse updates across the entire app state (tree view, growth simulation, catalog, notes, stats).
+You can toggle `Parse 1` and `Parse 2`, and the active parse updates across the entire app state (tree view, growth simulation, catalog, notes).
 
 ### 6) Canopy view
 
 `Canopy` is the clean final-tree view.
 
-It is optimized for readability of the resulting structure and aesthetic presentation.
+It is optimized for readability of the resulting structure.
 
 ### 7) Growth Simulation view
 
@@ -112,30 +112,7 @@ This helps users cross-check lexical categorization against the generated tree.
 - One-click copy for bracketed notation
 - Direct external link support for notation tooling
 
-### 10) Stats view
-
-`Stats` gives structural metrics for the active parse, including:
-
-- Tree depth
-- Node count
-- Overall complexity indicator
-
-### 11) Fullscreen mode
-
-Fullscreen is designed to maximize analysis space for the app itself while reducing surrounding interface clutter.
-
-### 12) Visual language and motion
-
-Babel includes:
-
-- Atmospheric background rendering
-- Spore/pollen field motion
-- Gradient and glass UI styling
-- Distinctive mode badges and iconography
-
-These are aesthetic by design, but they also support cognitive focus by visually separating analysis states.
-
-### 13) Output artifacts
+### 10) Output artifacts
 
 Each parse can include structured outputs such as:
 
