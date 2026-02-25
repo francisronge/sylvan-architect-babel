@@ -28,7 +28,7 @@ Babel is designed to make the model's structural decisions inspectable:
 
 ### Students
 
-- Generate trees quickly for assignments and practice.
+- Generate trees quickly for study and practice.
 - Learn how framework choice changes structure.
 - Move from final tree reading to derivation-level understanding.
 - Use visual + textual explanations together.
@@ -111,6 +111,7 @@ This helps users cross-check lexical categorization against the generated tree.
 - Bracketed notation block
 - One-click copy for bracketed notation
 - Direct external link support for notation tooling
+- Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
 
 ### 10) Output artifacts
 
