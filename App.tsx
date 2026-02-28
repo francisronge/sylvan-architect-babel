@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
-import { ParseBundle, ParseResult, SyntaxNode } from './types';
+import { MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import { 
   BookOpen, 
@@ -16,7 +16,6 @@ import {
   FileText,
   ChevronUp,
   ChevronDown,
-  BarChart3,
   FlameKindling,
   Key,
   Triangle,
@@ -25,19 +24,16 @@ import {
   Minimize2,
   Copy,
   Check,
-  ExternalLink,
-  Cpu,
-  GitBranch
+  ExternalLink
 } from 'lucide-react';
 
-type AppTab = 'tree' | 'growth' | 'pos' | 'notes' | 'stats';
+type AppTab = 'tree' | 'growth' | 'pos' | 'notes';
 
 const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
   { id: 'growth', icon: FlameKindling, label: 'Growth Simulation' },
   { id: 'pos', icon: BookOpen, label: 'Catalog' },
   { id: 'notes', icon: FileText, label: 'Notes' },
-  { id: 'stats', icon: BarChart3, label: 'Stats' },
 ];
 
 const KEY_ERROR_CODES = new Set(['API_KEY_EXPIRED', 'API_KEY_MISSING', 'API_KEY_INVALID']);
@@ -55,6 +51,288 @@ const resolveUiError = (err: unknown): { needsKey: boolean; message: string } =>
     needsKey: false,
     message: message || 'Linguistic growth interrupted.'
   };
+};
+
+const formatModelLabel = (modelUsed?: string): string => {
+  const model = String(modelUsed || '').trim();
+  if (!model) return 'Gemini 3.1 Pro';
+  if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
+  if (model === 'gemini-3-pro-preview') return 'Gemini 3 Pro';
+  return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
+};
+
+type MilesMode = 'canopy' | 'growth';
+type CopyCodeKey = 'canopy' | 'growth';
+
+interface MovementIndexMaps {
+  movedByNodeId: Map<string, string>;
+  traceByNodeId: Map<string, string>;
+}
+
+const EMPTY_MOVEMENT_INDEX_MAPS: MovementIndexMaps = {
+  movedByNodeId: new Map(),
+  traceByNodeId: new Map()
+};
+
+const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
+const TRACE_SURFACE_RE = /^(t(?:race)?(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const KNOWN_CATEGORY_LABELS = new Set([
+  'A',
+  "A'",
+  'ADJ',
+  'ADJP',
+  'ADVP',
+  'ASP',
+  "ASP'",
+  'ASPP',
+  'C',
+  "C'",
+  'CP',
+  'D',
+  "D'",
+  'DP',
+  'I',
+  "I'",
+  'IP',
+  'INFL',
+  "INFL'",
+  'INFLP',
+  'N',
+  "N'",
+  'NEG',
+  "NEG'",
+  'NEGP',
+  'NP',
+  'P',
+  "P'",
+  'PP',
+  'PRT',
+  'PRTP',
+  'T',
+  "T'",
+  'TP',
+  'V',
+  "V'",
+  'VP'
+]);
+
+const indexToLetter = (index: number): string => {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  if (index < alphabet.length) return alphabet[index];
+  const base = alphabet[index % alphabet.length];
+  const cycle = Math.floor(index / alphabet.length);
+  return `${base}${cycle}`;
+};
+
+const normalizeCategoryToken = (token: string): string =>
+  token
+    .trim()
+    .replace(/’/g, "'")
+    .replace(/\s+/g, '')
+    .toUpperCase();
+
+const isLikelySyntacticCategory = (label: string): boolean => {
+  const raw = label.trim();
+  if (!raw) return false;
+  const normalized = normalizeCategoryToken(raw);
+  if (KNOWN_CATEGORY_LABELS.has(normalized)) return true;
+  return /^[A-Z][A-Z0-9]*(?:P|')?$/.test(raw);
+};
+
+const sanitizeMilesToken = (token: string): string =>
+  token
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/\[/g, '(')
+    .replace(/\]/g, ')');
+
+const appendMovementIndex = (token: string, movementIndex?: string): string => {
+  const base = String(token || '').trim();
+  if (!base || !movementIndex) return base;
+  if (/_([a-z0-9]+)$/i.test(base)) return base;
+  return `${base}_${movementIndex}`;
+};
+
+const collectLeafNodes = (root: SyntaxNode): SyntaxNode[] => {
+  const leaves: SyntaxNode[] = [];
+  const visit = (node: SyntaxNode) => {
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      leaves.push(node);
+      return;
+    }
+    children.forEach(visit);
+  };
+  visit(root);
+  return leaves;
+};
+
+const resolveLeafSurface = (node: SyntaxNode): string =>
+  String(node.word || node.label || '').trim();
+
+const pickLexicalAnchor = (node: SyntaxNode): SyntaxNode | null => {
+  const leaves = collectLeafNodes(node);
+  if (leaves.length === 0) return null;
+
+  return (
+    leaves.find((leaf) => {
+      const surface = resolveLeafSurface(leaf);
+      return surface.length > 0 && !NULL_SURFACE_RE.test(surface) && !TRACE_SURFACE_RE.test(surface);
+    }) ||
+    leaves.find((leaf) => {
+      const surface = resolveLeafSurface(leaf);
+      return surface.length > 0 && !NULL_SURFACE_RE.test(surface);
+    }) ||
+    leaves[0]
+  );
+};
+
+const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
+  const leaves = collectLeafNodes(node);
+  if (leaves.length === 0) return null;
+
+  return (
+    leaves.find((leaf) => TRACE_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
+    leaves.find((leaf) => NULL_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
+    leaves[0]
+  );
+};
+
+const buildNodeIndex = (root: SyntaxNode): Map<string, SyntaxNode> => {
+  const byId = new Map<string, SyntaxNode>();
+  const visit = (node: SyntaxNode) => {
+    const id = String(node.id || '').trim();
+    if (id) byId.set(id, node);
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(root);
+  return byId;
+};
+
+const buildMovementIndexMaps = (
+  tree: SyntaxNode,
+  movementEvents?: MovementEvent[]
+): MovementIndexMaps => {
+  if (!movementEvents || movementEvents.length === 0) return EMPTY_MOVEMENT_INDEX_MAPS;
+
+  const nodeById = buildNodeIndex(tree);
+  const movedByNodeId = new Map<string, string>();
+  const traceByNodeId = new Map<string, string>();
+  const seenPairs = new Set<string>();
+  let nextIndex = 0;
+
+  movementEvents.forEach((event) => {
+    const toNode = nodeById.get(String(event.toNodeId || '').trim());
+    const fromNode = nodeById.get(String(event.fromNodeId || '').trim());
+    if (!toNode || !fromNode) return;
+
+    const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
+    const movedAnchor = pickLexicalAnchor(toNode) || pickLexicalAnchor(fromNode);
+    const traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
+    if (!movedAnchor?.id) return;
+
+    const pairKey = `${traceAnchor?.id || event.fromNodeId}->${movedAnchor.id}`;
+    if (seenPairs.has(pairKey)) return;
+    seenPairs.add(pairKey);
+
+    const movementIndex = indexToLetter(nextIndex);
+    nextIndex += 1;
+
+    movedByNodeId.set(movedAnchor.id, movementIndex);
+    if (traceAnchor?.id) {
+      traceByNodeId.set(traceAnchor.id, movementIndex);
+    }
+  });
+
+  return { movedByNodeId, traceByNodeId };
+};
+
+const applyGrowthMovementNotation = (
+  node: SyntaxNode,
+  surface: string,
+  movementMaps: MovementIndexMaps
+): string => {
+  const nodeId = String(node.id || '').trim();
+  if (!nodeId || !surface) return surface;
+
+  const movedIndex = movementMaps.movedByNodeId.get(nodeId);
+  if (movedIndex) {
+    return appendMovementIndex(surface, movedIndex);
+  }
+
+  const traceIndex = movementMaps.traceByNodeId.get(nodeId);
+  if (traceIndex) {
+    if (/^<[^>]+>$/.test(surface) || /^⟨[^⟩]+⟩$/.test(surface)) return surface;
+    return `<${traceIndex}>`;
+  }
+
+  return surface;
+};
+
+const serializeMilesNode = (
+  node: SyntaxNode,
+  mode: MilesMode,
+  movementMaps: MovementIndexMaps
+): string => {
+  const label = String(node.label || '').trim();
+  const word = String(node.word || '').trim();
+  const children = Array.isArray(node.children) ? node.children : [];
+
+  if (children.length === 0) {
+    const rawSurface = (word || label || '∅').trim();
+    const nodeId = String(node.id || '').trim();
+    const movedIndex = mode === 'growth' && nodeId
+      ? movementMaps.movedByNodeId.get(nodeId)
+      : undefined;
+    const attachMovementToLabel = Boolean(
+      mode === 'growth' &&
+      movedIndex &&
+      word &&
+      label &&
+      label !== word &&
+      isLikelySyntacticCategory(label)
+    );
+    const surfaced = mode === 'growth'
+      ? (attachMovementToLabel ? rawSurface : applyGrowthMovementNotation(node, rawSurface, movementMaps))
+      : rawSurface;
+    const token = sanitizeMilesToken(surfaced || '∅');
+
+    if (word) {
+      if (label && label !== word && isLikelySyntacticCategory(label)) {
+        const categoryToken = attachMovementToLabel
+          ? sanitizeMilesToken(appendMovementIndex(label, movedIndex))
+          : sanitizeMilesToken(label);
+        return `[${categoryToken} ${token}]`;
+      }
+      return token;
+    }
+
+    if (label && isLikelySyntacticCategory(label)) {
+      return `[${sanitizeMilesToken(label)} ${token === sanitizeMilesToken(label) ? '∅' : token}]`;
+    }
+
+    return token;
+  }
+
+  const serializedChildren = children
+    .map((child) => serializeMilesNode(child, mode, movementMaps))
+    .filter((value) => value.length > 0);
+
+  const nodeLabel = sanitizeMilesToken(label || word || 'X');
+  if (serializedChildren.length === 0) return `[${nodeLabel}]`;
+  return `[${nodeLabel} ${serializedChildren.join(' ')}]`;
+};
+
+const buildMilesNotation = (
+  tree: SyntaxNode,
+  mode: MilesMode,
+  movementEvents?: MovementEvent[]
+): string => {
+  const movementMaps = mode === 'growth'
+    ? buildMovementIndexMaps(tree, movementEvents)
+    : EMPTY_MOVEMENT_INDEX_MAPS;
+  return serializeMilesNode(tree, mode, movementMaps).trim();
 };
 
 const App: React.FC = () => {
@@ -80,10 +358,23 @@ const App: React.FC = () => {
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
-  const [copied, setCopied] = useState(false);
+  const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
+  const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
+  const isFallbackModel = Boolean(analysisBundle?.fallbackUsed);
+  const canopyMilesNotation = useMemo(() => {
+    if (!activeParse) return '';
+    const modelProvided = String(activeParse.bracketedNotation || '').trim();
+    if (modelProvided) return modelProvided;
+    return buildMilesNotation(activeParse.tree, 'canopy', activeParse.movementEvents);
+  }, [activeParse]);
+  const growthMilesNotation = useMemo(() => {
+    if (!activeParse) return '';
+    return buildMilesNotation(activeParse.tree, 'growth', activeParse.movementEvents);
+  }, [activeParse]);
 
   useEffect(() => {
     const checkKeyStatus = async () => {
@@ -124,6 +415,7 @@ const App: React.FC = () => {
 
   const handleParse = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (loading) return;
     if (!input.trim()) return;
 
     setLoading(true);
@@ -132,9 +424,10 @@ const App: React.FC = () => {
     try {
       const data = await parseSentence(input, framework);
       setAnalysisBundle(data);
+      setParsedSentence(input.trim());
       setActiveParseIndex(0);
       setActiveTab('tree');
-      setCopied(false);
+      setCopiedCodeKey(null);
       setNeedsKey(false);
     } catch (err: unknown) {
       const uiError = resolveUiError(err);
@@ -145,12 +438,13 @@ const App: React.FC = () => {
     }
   };
 
-  const copyBracketed = () => {
-    if (activeParse?.bracketedNotation) {
-      navigator.clipboard.writeText(activeParse.bracketedNotation);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const copyMilesCode = (text: string, key: CopyCodeKey) => {
+    if (!text.trim()) return;
+    navigator.clipboard.writeText(text);
+    setCopiedCodeKey(key);
+    setTimeout(() => {
+      setCopiedCodeKey((current) => (current === key ? null : current));
+    }, 2000);
   };
 
   const toggleFullscreen = async () => {
@@ -167,19 +461,6 @@ const App: React.FC = () => {
       console.error('Fullscreen toggle failed', err);
     }
   };
-
-  const stats = useMemo(() => {
-    if (!activeParse) return { depth: 0, nodes: 0, complexity: 'N/A' };
-    let maxDepth = 0, nodeCount = 0;
-    const traverse = (node: SyntaxNode, depth: number) => {
-      nodeCount++;
-      maxDepth = Math.max(maxDepth, depth);
-      if (node.children) node.children.forEach(child => traverse(child, depth + 1));
-    };
-    traverse(activeParse.tree, 1);
-    let complexity = maxDepth > 8 ? 'High-Density' : maxDepth > 5 ? 'Moderate' : 'Low';
-    return { depth: maxDepth, nodes: nodeCount, complexity };
-  }, [activeParse]);
 
   return (
     <div ref={appContainerRef} className="app-shell h-screen flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
@@ -222,7 +503,14 @@ const App: React.FC = () => {
                   : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 }`}
               >
-                {framework === 'xbar' ? <GitBranch size={12} className="text-emerald-400" /> : <Cpu size={12} className="text-purple-400" />}
+                <span
+                  className={`inline-flex items-center justify-center min-w-4 text-[11px] font-black tracking-normal leading-none normal-case ${
+                    framework === 'xbar' ? 'text-emerald-400' : 'text-purple-300'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {framework === 'xbar' ? 'X̄' : 'vP'}
+                </span>
                 {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
               </button>
 
@@ -241,9 +529,16 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 text-[9px] font-black text-emerald-400 bg-emerald-950/40 px-5 py-2.5 rounded-full border border-emerald-900/30 tracking-widest uppercase shadow-inner">
-              <Zap size={10} className="fill-emerald-400" />
-              Gemini 3 Pro
+            <div
+              className={`hidden md:flex items-center gap-2 text-[9px] font-black px-5 py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
+                isFallbackModel
+                  ? 'text-amber-300 bg-amber-950/30 border-amber-800/40'
+                  : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
+              }`}
+              title={analysisBundle?.modelUsed ? `Model route: ${analysisBundle.modelUsed}` : 'Model route'}
+            >
+              <Zap size={10} className={isFallbackModel ? 'fill-amber-300' : 'fill-emerald-400'} />
+              {isFallbackModel ? `Fallback · ${modelLabel}` : modelLabel}
             </div>
             <button
               onClick={toggleFullscreen}
@@ -304,10 +599,18 @@ const App: React.FC = () => {
               data={activeParse.tree} 
               animated={activeTab === 'growth'} 
               derivationSteps={activeParse.derivationSteps}
+              movementEvents={activeParse.movementEvents}
               abstractionMode={abstractionMode}
+              sentence={parsedSentence}
             />
-          ) : activeParse && (activeTab === 'pos' || activeTab === 'notes' || activeTab === 'stats') ? (
-            <div className="w-full h-full flex items-center justify-center p-12 overflow-y-auto bg-[#020806]/60 backdrop-blur-md animate-in fade-in duration-500">
+          ) : activeParse && (activeTab === 'pos' || activeTab === 'notes') ? (
+            <div
+              className={`w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md ${
+                activeTab === 'notes'
+                  ? 'items-start px-12 pt-20 pb-44'
+                  : 'items-center p-12'
+              }`}
+            >
               {activeTab === 'pos' && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-6xl w-full">
                   {(activeParse.partsOfSpeech ?? []).map((item, idx) => (
@@ -319,7 +622,7 @@ const App: React.FC = () => {
                 </div>
               )}
               {activeTab === 'notes' && (
-                <div className="max-w-4xl w-full space-y-8 animate-in slide-in-from-bottom-8">
+                <div className="max-w-4xl w-full space-y-8">
                   <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
                      <div className="flex items-center gap-5 mb-8">
                         <div className="w-12 h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
@@ -333,7 +636,7 @@ const App: React.FC = () => {
                       <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{activeParse.explanation}"</p>
                   </div>
 
-                  {activeParse.bracketedNotation && (
+                  {(canopyMilesNotation || growthMilesNotation) && (
                     <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
                        <div className="flex items-center justify-between mb-8">
                           <div className="flex items-center gap-5">
@@ -342,69 +645,66 @@ const App: React.FC = () => {
                             </div>
                             <div>
                               <h2 className="text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Syntax Tree String Formalism</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Growth Miles Shang Formalism</p>
                             </div>
                           </div>
-                          <div className="flex gap-4">
-                            <button 
-                              onClick={copyBracketed}
-                              className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all text-[11px] font-black uppercase tracking-widest ${
-                                copied 
-                                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                                : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
-                              }`}
-                            >
-                              {copied ? <Check size={14} /> : <Copy size={14} />}
-                              {copied ? 'Copied to Soil' : 'Copy Code'}
-                            </button>
-                            <a 
-                              href="https://mshang.ca/syntree/" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[11px] font-black uppercase tracking-widest"
-                            >
-                              <ExternalLink size={14} />
-                              Miles Shang
-                            </a>
-                          </div>
+                          <a 
+                            href="https://mshang.ca/syntree/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[11px] font-black uppercase tracking-widest"
+                          >
+                            <ExternalLink size={14} />
+                            Miles Shang
+                          </a>
                         </div>
-                        <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
-                          <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                            {activeParse.bracketedNotation}
-                          </code>
+                        <div className="space-y-6">
+                          {canopyMilesNotation && (
+                            <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
+                              <div className="flex items-center justify-between mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Canopy Code</p>
+                                <button 
+                                  onClick={() => copyMilesCode(canopyMilesNotation, 'canopy')}
+                                  className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
+                                    copiedCodeKey === 'canopy'
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                                  }`}
+                                >
+                                  {copiedCodeKey === 'canopy' ? <Check size={13} /> : <Copy size={13} />}
+                                  {copiedCodeKey === 'canopy' ? 'Copied to Soil' : 'Copy Canopy'}
+                                </button>
+                              </div>
+                              <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+                                {canopyMilesNotation}
+                              </code>
+                            </div>
+                          )}
+
+                          {growthMilesNotation && (
+                            <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
+                              <div className="flex items-center justify-between mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Growth Code (Movement Indexed)</p>
+                                <button 
+                                  onClick={() => copyMilesCode(growthMilesNotation, 'growth')}
+                                  className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
+                                    copiedCodeKey === 'growth'
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                                  }`}
+                                >
+                                  {copiedCodeKey === 'growth' ? <Check size={13} /> : <Copy size={13} />}
+                                  {copiedCodeKey === 'growth' ? 'Copied to Soil' : 'Copy Growth'}
+                                </button>
+                              </div>
+                              <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+                                {growthMilesNotation}
+                              </code>
+                            </div>
+                          )}
                         </div>
                     </div>
                   )}
-                </div>
-              )}
-              {activeTab === 'stats' && (
-                <div className="max-w-xl w-full glass-dark p-12 rounded-[3rem] shadow-2xl animate-in zoom-in-95">
-                  <div className="flex items-center gap-5 mb-10">
-                    <BarChart3 className="text-emerald-500" size={32} />
-                    <h2 className="text-3xl font-bold text-white serif">Arboretum Metrics</h2>
-                  </div>
-                  <div className="space-y-8">
-                    <div className="flex justify-between items-end">
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500/60">Syntactic Depth</span>
-                      <span className="text-4xl font-bold text-white serif tracking-tighter">{stats.depth} <span className="text-base font-normal text-white/30">layers</span></span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500/60">Node Population</span>
-                      <span className="text-4xl font-bold text-white serif tracking-tighter">{stats.nodes} <span className="text-base font-normal text-white/30">entities</span></span>
-                    </div>
-                    <div className="pt-6 border-t border-white/10">
-                      <div className="flex justify-between mb-3">
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500/60">Structural Complexity</span>
-                        <span className="text-sm font-bold text-emerald-400">{stats.complexity}</span>
-                      </div>
-                      <div className="h-3 bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
-                        <div 
-                          className="h-full moss-gradient rounded-full transition-all duration-1000" 
-                          style={{ width: `${Math.min(100, (stats.depth / 15) * 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

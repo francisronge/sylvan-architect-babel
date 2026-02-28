@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Sprout } from 'lucide-react';
-import { DerivationStep, SyntaxNode } from '../types';
+import { DerivationStep, FeatureCheckEvent, MovementEvent, SyntaxNode } from '../types';
 
 interface TreeVisualizerProps {
   data: SyntaxNode;
   animated?: boolean;
   derivationSteps?: DerivationStep[];
+  movementEvents?: MovementEvent[];
   abstractionMode?: boolean;
+  sentence?: string;
 }
 
 type HierNode = d3.HierarchyNode<SyntaxNode>;
@@ -17,25 +19,203 @@ interface PlaybackStep {
   operation: DerivationStep['operation'];
   targetNodeId: string;
   targetLabel: string;
+  sourceNodeIds?: string[];
   sourceLabels: string[];
   recipe?: string;
   workspaceAfter?: string[];
+  featureChecking?: FeatureCheckEvent[];
   note?: string;
+}
+
+interface MovementArrow {
+  source: HierNode;
+  target: HierNode;
+  traceNode?: HierNode;
+  step: number;
+  index?: string | null;
 }
 
 const getNodeId = (node: HierNode): string => (node as any).__vizId as string;
 const STEP_DELAY_MS = 1000;
+const MOVEMENT_ARROW_COLOR = '#10b981';
+const MOVEMENT_ARC_STROKE = 2.6;
 
-const buildFallbackSequence = (node: HierNode, visibleIds: Set<string>, out: HierNode[]) => {
-  if (node.children) {
-    node.children.forEach((child) => buildFallbackSequence(child, visibleIds, out));
-  }
-  if (visibleIds.has(getNodeId(node))) {
-    out.push(node);
-  }
+const applyVizIds = (root: HierNode) => {
+  const used = new Set<string>();
+  let generated = 1;
+  root.eachBefore((node) => {
+    const raw = typeof node.data.id === 'string' ? node.data.id.trim() : '';
+    let id = raw;
+    if (!id || used.has(id)) {
+      while (used.has(`n${generated}`)) generated += 1;
+      id = `n${generated}`;
+      generated += 1;
+    }
+    used.add(id);
+    (node as any).__vizId = id;
+  });
 };
 
 const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
+const resolveLeafSurface = (node: HierNode): string => (node.data.word || node.data.label || '').trim();
+const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
+const HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'V', 'D', 'N', 'A', 'P']);
+const NULLABLE_HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'I', 'D', 'NEG', 'ASP']);
+const EXPLICIT_NULL_TERMINAL = '∅';
+const SUBSCRIPT_MAP: Record<string, string> = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  'ᵢ': 'i', 'ⱼ': 'j', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm',
+  'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't'
+};
+
+const isTraceLike = (label: string): boolean => {
+  const text = label.trim();
+  if (!text) return false;
+  const normalized = [...text].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
+  const unwrapped = normalized.replace(/^[\s([{<⟨"']+|[\s)\]}>⟩"']+$/g, '');
+  return (
+    /^t\d*$/i.test(unwrapped) ||
+    /^t(?:[_-](?:\{?[A-Za-z0-9]+\}?|\[[A-Za-z0-9]+\]|\([A-Za-z0-9]+\)))+$/i.test(unwrapped) ||
+    /^trace\b/i.test(unwrapped) ||
+    /^copy$/i.test(unwrapped) ||
+    /^<[^>]+>$/.test(normalized) ||
+    /^⟨[^⟩]+⟩$/.test(normalized)
+  );
+};
+
+const normalizeToken = (value: string): string => {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^<|>$/g, '')
+    .replace(/^⟨|⟩$/g, '')
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+};
+
+const extractTraceToken = (label: string): string | null => {
+  const text = label.trim();
+  if (!text) return null;
+
+  const angleMatch = text.match(/^<([^>]+)>$/) || text.match(/^⟨([^⟩]+)⟩$/);
+  if (angleMatch?.[1]) return normalizeToken(angleMatch[1]);
+
+  const traceLabelMatch = text.match(/^trace[:\s-]*(.+)$/i);
+  if (traceLabelMatch?.[1]) return normalizeToken(traceLabelMatch[1]);
+
+  return null;
+};
+
+const extractMovementIndex = (label: string): string | null => {
+  const text = [...label.trim()].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
+  const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
+  if (braced?.[1]) return braced[1].toLowerCase();
+  const plain = text.match(/_([A-Za-z0-9]+)$/);
+  if (plain?.[1]) return plain[1].toLowerCase();
+  const danglingSubscript = text.match(/([A-Za-z0-9]+)$/);
+  return danglingSubscript?.[1] && /[₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜ]/.test(label) ? danglingSubscript[1].toLowerCase() : null;
+};
+
+const extractMovementIndicesFromText = (value?: string): string[] => {
+  if (!value) return [];
+  const text = [...value].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
+  const out = new Set<string>();
+  const pattern = /_(?:\{|\[|\()?\s*([A-Za-z0-9]+)\s*(?:\}|\]|\))?/gi;
+  let match: RegExpExecArray | null = pattern.exec(text);
+  while (match) {
+    if (match[1]) out.add(match[1].toLowerCase());
+    match = pattern.exec(text);
+  }
+  return Array.from(out);
+};
+
+const normalizeCategory = (label: string): string => {
+  return label.trim().replace(/[{}\[\]()]/g, '').replace(/\s+/g, '').toUpperCase();
+};
+
+const getNearestHeadCategory = (node: HierNode): string | null => {
+  let current: HierNode | null = node.parent || null;
+  while (current) {
+    const category = normalizeCategory(resolveNodeLabel(current));
+    if (HEAD_CATEGORIES.has(category)) return category;
+    current = current.parent || null;
+  }
+  return null;
+};
+
+const getClauseAnchorId = (node: HierNode): string => {
+  let current: HierNode | null = node.parent || null;
+  while (current) {
+    const label = normalizeCategory(resolveNodeLabel(current));
+    if (label === 'CP' || label === 'TP' || label === 'INFLP' || label === 'IP') {
+      return getNodeId(current);
+    }
+    current = current.parent || null;
+  }
+  return node.ancestors().length > 0 ? getNodeId(node.ancestors()[node.ancestors().length - 1]) : getNodeId(node);
+};
+
+const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
+const isIndexedSurface = (label: string): boolean => {
+  const trimmed = label.trim();
+  return Boolean(trimmed) && !isTraceLike(trimmed) && !isNullLike(trimmed) && Boolean(extractMovementIndex(trimmed));
+};
+
+const getReadyNodePriority = (node: HierNode): number => {
+  const hasChildren = Boolean(node.children && node.children.length > 0);
+  if (hasChildren) return 1;
+  const leaf = resolveLeafSurface(node);
+  if (!leaf) return 2;
+  if (isIndexedSurface(leaf)) return 2;
+  if (isTraceLike(leaf)) return 3;
+  if (isNullLike(leaf)) return 4;
+  return 0;
+};
+
+const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
+  const visibleNodes = root.descendants().filter((node) => visibleIds.has(getNodeId(node)));
+  if (visibleNodes.length <= 1) return visibleNodes;
+
+  const orderByTraversal = new Map<string, number>();
+  visibleNodes.forEach((node, index) => orderByTraversal.set(getNodeId(node), index));
+
+  const pendingChildren = new Map<string, number>();
+  visibleNodes.forEach((node) => {
+    const visibleChildCount = (node.children || []).filter((child) => visibleIds.has(getNodeId(child))).length;
+    pendingChildren.set(getNodeId(node), visibleChildCount);
+  });
+
+  const ready: HierNode[] = visibleNodes.filter((node) => (pendingChildren.get(getNodeId(node)) ?? 0) === 0);
+  const sequence: HierNode[] = [];
+
+  const compareReady = (a: HierNode, b: HierNode): number => {
+    const priorityDelta = getReadyNodePriority(a) - getReadyNodePriority(b);
+    if (priorityDelta !== 0) return priorityDelta;
+
+    const depthDelta = b.depth - a.depth;
+    if (depthDelta !== 0) return depthDelta;
+
+    return (orderByTraversal.get(getNodeId(a)) ?? 0) - (orderByTraversal.get(getNodeId(b)) ?? 0);
+  };
+
+  while (ready.length > 0) {
+    ready.sort(compareReady);
+    const current = ready.shift();
+    if (!current) break;
+    sequence.push(current);
+
+    const parent = current.parent;
+    if (!parent || !visibleIds.has(getNodeId(parent))) continue;
+
+    const parentId = getNodeId(parent);
+    const nextPending = (pendingChildren.get(parentId) ?? 0) - 1;
+    pendingChildren.set(parentId, nextPending);
+    if (nextPending === 0) {
+      ready.push(parent);
+    }
+  }
+
+  return sequence;
+};
 
 const mapProvidedStepsToNodes = (
   visibleNodes: HierNode[],
@@ -44,35 +224,12 @@ const mapProvidedStepsToNodes = (
   if (!derivationSteps || derivationSteps.length === 0) return new Map();
 
   const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
-  const nodesByLabel = new Map<string, HierNode[]>();
-  visibleNodes.forEach((node) => {
-    const labelKey = resolveNodeLabel(node).trim().toUpperCase();
-    if (!labelKey) return;
-    const bucket = nodesByLabel.get(labelKey);
-    if (bucket) {
-      bucket.push(node);
-    } else {
-      nodesByLabel.set(labelKey, [node]);
-    }
-  });
-
   const used = new Set<string>();
   const mapped = new Map<string, DerivationStep>();
 
   for (const step of derivationSteps) {
-    let chosen: HierNode | undefined;
-    if (step.targetNodeId) {
-      const explicit = nodeById.get(step.targetNodeId);
-      if (explicit && !used.has(getNodeId(explicit))) {
-        chosen = explicit;
-      }
-    }
-
-    if (!chosen && step.targetLabel) {
-      const bucket = nodesByLabel.get(step.targetLabel.trim().toUpperCase()) || [];
-      chosen = bucket.find((node) => !used.has(getNodeId(node)));
-    }
-
+    if (!step.targetNodeId) continue;
+    const chosen = nodeById.get(step.targetNodeId);
     if (!chosen) continue;
     const targetNodeId = getNodeId(chosen);
     if (used.has(targetNodeId)) continue;
@@ -102,6 +259,7 @@ const createInferredPlaybackSteps = (
         operation: 'LexicalSelect',
         targetNodeId: nodeId,
         targetLabel,
+        sourceNodeIds: [],
         sourceLabels: [node.data.word || targetLabel],
         recipe: `Select ${node.data.word || targetLabel}`,
         workspaceAfter: Array.from(workspace.values())
@@ -115,6 +273,7 @@ const createInferredPlaybackSteps = (
       operation: childNodes.length === 1 ? 'Project' : 'ExternalMerge',
       targetNodeId: nodeId,
       targetLabel,
+      sourceNodeIds: childNodes.map((child) => getNodeId(child)),
       sourceLabels,
       recipe: `${sourceLabels.join(' + ')} -> ${targetLabel}`,
       workspaceAfter: Array.from(workspace.values())
@@ -124,41 +283,473 @@ const createInferredPlaybackSteps = (
   return inferred;
 };
 
+const normalizeLabelKey = (label?: string): string => (label || "").trim().toUpperCase();
+const isMoveLikeOperation = (operation?: DerivationStep['operation']): boolean =>
+  operation === 'Move' || operation === 'InternalMerge';
+
+const stepMatchesSourceLabel = (step: PlaybackStep, sourceLabel: string): boolean => {
+  const normalizedSource = normalizeLabelKey(sourceLabel);
+  if (!normalizedSource) return false;
+  if (normalizeLabelKey(step.targetLabel) === normalizedSource) return true;
+
+  const recipe = (step.recipe || "").trim().toUpperCase();
+  if (!recipe) return false;
+  return recipe.startsWith(`SELECT ${normalizedSource}`);
+};
+
+const getMovementDependencyIndex = (steps: PlaybackStep[], stepIndex: number): number => {
+  const step = steps[stepIndex];
+  if (!step) return stepIndex;
+  if (!isMoveLikeOperation(step.operation)) return stepIndex;
+
+  const sourceNodeIds = (step.sourceNodeIds || []).filter((id) => id && id !== step.targetNodeId);
+  if (sourceNodeIds.length > 0) {
+    let dependencyById = -1;
+    sourceNodeIds.forEach((sourceId) => {
+      steps.forEach((candidate, idx) => {
+        if (idx === stepIndex) return;
+        if (candidate.targetNodeId !== sourceId) return;
+        dependencyById = Math.max(dependencyById, idx);
+      });
+    });
+    if (dependencyById >= 0) return dependencyById;
+  }
+
+  const normalizedTarget = normalizeLabelKey(step.targetLabel);
+  const sourceLabels = (step.sourceLabels || [])
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0)
+    .filter((label) => normalizeLabelKey(label) !== normalizedTarget);
+
+  if (sourceLabels.length === 0) return stepIndex;
+
+  let dependencyIndex = -1;
+  sourceLabels.forEach((sourceLabel) => {
+    steps.forEach((candidate, idx) => {
+      if (idx === stepIndex) return;
+      if (!stepMatchesSourceLabel(candidate, sourceLabel)) return;
+      dependencyIndex = Math.max(dependencyIndex, idx);
+    });
+  });
+
+  return dependencyIndex;
+};
+
+const getTraceDependencyIndex = (steps: PlaybackStep[], stepIndex: number): number => {
+  const step = steps[stepIndex];
+  if (!step) return stepIndex;
+  if (step.operation !== 'LexicalSelect') return stepIndex;
+  if (!isTraceLike(step.targetLabel)) return stepIndex;
+
+  const traceIndex = extractMovementIndex(step.targetLabel);
+  if (!traceIndex) return stepIndex;
+
+  let dependencyIndex = -1;
+
+  steps.forEach((candidate, idx) => {
+    if (idx === stepIndex) return;
+    if (!isMoveLikeOperation(candidate.operation)) return;
+
+    const sourceMentionsIndex = (candidate.sourceLabels || []).some((label) => extractMovementIndex(label) === traceIndex);
+    const targetMentionsIndex = extractMovementIndex(candidate.targetLabel) === traceIndex;
+    const recipeMentionsIndex = (candidate.recipe || '').toLowerCase().includes(`_${traceIndex}`);
+
+    if (sourceMentionsIndex || targetMentionsIndex || recipeMentionsIndex) {
+      dependencyIndex = Math.max(dependencyIndex, idx);
+    }
+  });
+
+  if (dependencyIndex >= 0) return dependencyIndex;
+
+  steps.forEach((candidate, idx) => {
+    if (idx === stepIndex) return;
+    if (candidate.operation !== 'LexicalSelect') return;
+    const labelIndex = extractMovementIndex(candidate.targetLabel);
+    if (!labelIndex || labelIndex !== traceIndex) return;
+    if (isTraceLike(candidate.targetLabel)) return;
+    dependencyIndex = Math.max(dependencyIndex, idx);
+  });
+
+  return dependencyIndex;
+};
+
+const reorderMovementSteps = (steps: PlaybackStep[]): PlaybackStep[] => {
+  if (steps.length < 2) return steps;
+  const reordered = [...steps];
+
+  let changed = true;
+  let safety = 0;
+  while (changed && safety < reordered.length * reordered.length) {
+    changed = false;
+    safety += 1;
+
+    for (let idx = 0; idx < reordered.length; idx += 1) {
+      const step = reordered[idx];
+      if (isMoveLikeOperation(step.operation)) {
+        const dependencyIndex = getMovementDependencyIndex(reordered, idx);
+        if (dependencyIndex >= idx) {
+          const [current] = reordered.splice(idx, 1);
+          const insertAt = Math.min(dependencyIndex, reordered.length - 1) + 1;
+          reordered.splice(insertAt, 0, current);
+          changed = true;
+          break;
+        }
+      }
+
+      if (step.operation === 'LexicalSelect' && isTraceLike(step.targetLabel)) {
+        const traceDependencyIndex = getTraceDependencyIndex(reordered, idx);
+        if (traceDependencyIndex >= idx) {
+          const [current] = reordered.splice(idx, 1);
+          const insertAt = Math.min(traceDependencyIndex, reordered.length - 1) + 1;
+          reordered.splice(insertAt, 0, current);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return reordered;
+};
+
 const buildPlaybackSteps = (
   root: HierNode,
   visibleNodes: HierNode[],
   derivationSteps?: DerivationStep[]
 ): PlaybackStep[] => {
   const visibleIds = new Set(visibleNodes.map((node) => getNodeId(node)));
-  const fallbackSequence: HierNode[] = [];
-  buildFallbackSequence(root, visibleIds, fallbackSequence);
+  const fallbackSequence = buildBottomUpSequence(root, visibleIds);
   const inferred = createInferredPlaybackSteps(fallbackSequence, visibleIds);
 
-  if (!derivationSteps || derivationSteps.length === 0) return inferred;
+  if (!derivationSteps || derivationSteps.length === 0) return reorderMovementSteps(inferred);
 
   const mappedProvidedSteps = mapProvidedStepsToNodes(visibleNodes, derivationSteps);
-  return inferred.map((step) => {
+  const withProvided = inferred.map((step) => {
     const provided = mappedProvidedSteps.get(step.targetNodeId);
     if (!provided) return step;
     return {
       ...step,
       operation: provided.operation || step.operation,
+      sourceNodeIds: provided.sourceNodeIds && provided.sourceNodeIds.length > 0 ? provided.sourceNodeIds : step.sourceNodeIds,
       sourceLabels: provided.sourceLabels && provided.sourceLabels.length > 0 ? provided.sourceLabels : step.sourceLabels,
       recipe: provided.recipe || step.recipe,
       workspaceAfter: provided.workspaceAfter && provided.workspaceAfter.length > 0 ? provided.workspaceAfter : step.workspaceAfter,
+      featureChecking: provided.featureChecking && provided.featureChecking.length > 0
+        ? provided.featureChecking
+        : step.featureChecking,
       note: provided.note || step.note
     };
   });
+
+  return reorderMovementSteps(withProvided);
 };
 
 const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
   return new Map(steps.map((step, idx) => [step.targetNodeId, idx]));
 };
 
+const getTerminalDescendants = (node: HierNode): HierNode[] => {
+  return node.descendants().filter((desc) => !desc.children || desc.children.length === 0);
+};
+
+const pickTerminalAnchor = (node: HierNode, mode: 'trace' | 'lexical' | 'any'): HierNode | null => {
+  const terminals = getTerminalDescendants(node);
+  if (terminals.length === 0) return null;
+
+  const filtered = terminals.filter((leaf) => {
+    const surface = resolveLeafSurface(leaf);
+    if (mode === 'trace') return isTraceLike(surface);
+    if (mode === 'lexical') return !isTraceLike(surface) && !isNullLike(surface);
+    return true;
+  });
+  const pool = filtered.length > 0 ? filtered : terminals;
+  return [...pool].sort((a, b) => (b.depth - a.depth) || (b.y - a.y))[0] || null;
+};
+
+const buildMovementArrowsFromEvents = (
+  visibleNodes: HierNode[],
+  movementEvents: MovementEvent[] | undefined,
+  nodeStepIndex: Map<string, number>,
+  playbackSteps: PlaybackStep[]
+): MovementArrow[] => {
+  if (!movementEvents || movementEvents.length === 0) return [];
+
+  const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
+  const arrows: MovementArrow[] = [];
+  const seen = new Set<string>();
+  const lastStep = playbackSteps.length > 0 ? playbackSteps.length - 1 : 0;
+
+  movementEvents.forEach((event) => {
+    const rawFrom = nodeById.get(event.fromNodeId);
+    const rawTo = nodeById.get(event.toNodeId);
+    if (!rawFrom || !rawTo) return;
+
+    const rawTrace = event.traceNodeId ? nodeById.get(event.traceNodeId) : undefined;
+    const source = rawTrace
+      ? pickTerminalAnchor(rawTrace, 'trace') || pickTerminalAnchor(rawFrom, 'trace') || pickTerminalAnchor(rawFrom, 'any')
+      : pickTerminalAnchor(rawFrom, 'any');
+    const target = pickTerminalAnchor(rawTo, 'lexical') || pickTerminalAnchor(rawTo, 'any');
+    const traceNode = rawTrace
+      ? pickTerminalAnchor(rawTrace, 'trace') || pickTerminalAnchor(rawTrace, 'any')
+      : (source && isTraceLike(resolveLeafSurface(source)) ? source : null);
+
+    if (!source || !target) return;
+    const sourceId = getNodeId(source);
+    const targetId = getNodeId(target);
+    if (sourceId === targetId) return;
+
+    const key = `${sourceId}->${targetId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const derivedStep = Math.max(
+      nodeStepIndex.get(sourceId) ?? 0,
+      nodeStepIndex.get(targetId) ?? 0,
+      traceNode ? (nodeStepIndex.get(getNodeId(traceNode)) ?? 0) : 0
+    );
+
+    const rawStep = Number(event.stepIndex);
+    const explicitStep = Number.isInteger(rawStep) && rawStep >= 0 ? rawStep : undefined;
+    const step = explicitStep !== undefined ? Math.min(explicitStep, lastStep) : derivedStep;
+    const index =
+      extractMovementIndex(resolveLeafSurface(traceNode || source)) ||
+      extractMovementIndex(resolveLeafSurface(target)) ||
+      null;
+
+    arrows.push({
+      source,
+      target,
+      traceNode: traceNode || undefined,
+      step,
+      index
+    });
+  });
+
+  return arrows;
+};
+
+const getMoveStepForIndex = (playbackSteps: PlaybackStep[], movementIndex: string): number | null => {
+  const needle = movementIndex.toLowerCase();
+  for (let idx = 0; idx < playbackSteps.length; idx += 1) {
+    const step = playbackSteps[idx];
+    if (!isMoveLikeOperation(step.operation)) continue;
+
+    const sourceMatch = (step.sourceLabels || []).some((label) => extractMovementIndex(label) === needle);
+    const targetMatch = extractMovementIndex(step.targetLabel) === needle;
+    const recipeMatch = extractMovementIndicesFromText(step.recipe).includes(needle);
+    if (sourceMatch || targetMatch || recipeMatch) return idx;
+  }
+  return null;
+};
+
+const buildTraceMovementPairs = (
+  visibleNodes: HierNode[],
+  nodeStepIndex: Map<string, number>,
+  playbackSteps: PlaybackStep[]
+): MovementArrow[] => {
+  const leaves = visibleNodes.filter((node) => !node.children || node.children.length === 0);
+  const traceLeaves = leaves.filter((leaf) => isTraceLike(resolveLeafSurface(leaf)));
+  const lexicalLeaves = leaves.filter((leaf) => !isTraceLike(resolveLeafSurface(leaf)));
+  const seen = new Set<string>();
+  const arrows: MovementArrow[] = [];
+
+  for (const trace of traceLeaves) {
+    const traceSurface = resolveLeafSurface(trace);
+    const token = extractTraceToken(traceSurface);
+    const index = extractMovementIndex(traceSurface);
+    const candidates = lexicalLeaves.filter((leaf) => {
+      const leafSurface = resolveLeafSurface(leaf);
+      const tokenMatch = token ? normalizeToken(leafSurface) === token : false;
+      const indexMatch = index ? extractMovementIndex(leafSurface) === index : false;
+      return tokenMatch || indexMatch;
+    });
+    if (candidates.length === 0) continue;
+
+    const sorted = [...candidates].sort((a, b) => {
+      const aScore = Math.abs(a.x - trace.x) + Math.abs(a.y - trace.y) * 0.65;
+      const bScore = Math.abs(b.x - trace.x) + Math.abs(b.y - trace.y) * 0.65;
+      return aScore - bScore;
+    });
+
+    const moved = sorted[0];
+    const key = `${getNodeId(trace)}->${getNodeId(moved)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const moveStep = index ? getMoveStepForIndex(playbackSteps, index) : null;
+    const step = moveStep ?? Math.max(
+      nodeStepIndex.get(getNodeId(trace)) ?? 0,
+      nodeStepIndex.get(getNodeId(moved)) ?? 0
+    );
+    arrows.push({ source: trace, target: moved, step, index });
+  }
+
+  const byIndex = new Map<string, { traces: HierNode[]; lexicals: HierNode[] }>();
+  leaves.forEach((leaf) => {
+    const index = extractMovementIndex(resolveLeafSurface(leaf));
+    if (!index) return;
+    const bucket = byIndex.get(index) || { traces: [], lexicals: [] };
+    if (isTraceLike(resolveLeafSurface(leaf))) {
+      bucket.traces.push(leaf);
+    } else {
+      bucket.lexicals.push(leaf);
+    }
+    byIndex.set(index, bucket);
+  });
+
+  byIndex.forEach((bucket, index) => {
+    const moveStep = getMoveStepForIndex(playbackSteps, index);
+    if (bucket.traces.length > 0 && bucket.lexicals.length > 0) {
+      const trace = [...bucket.traces].sort((a, b) => b.y - a.y)[0];
+      const lexical = [...bucket.lexicals].sort((a, b) => a.y - b.y)[0];
+      const key = `${getNodeId(trace)}->${getNodeId(lexical)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        arrows.push({
+          source: trace,
+          target: lexical,
+          step: moveStep ?? Math.max(
+            nodeStepIndex.get(getNodeId(trace)) ?? 0,
+            nodeStepIndex.get(getNodeId(lexical)) ?? 0
+          ),
+          index
+        });
+      }
+      return;
+    }
+
+    if (bucket.lexicals.length >= 2) {
+      const source = [...bucket.lexicals].sort((a, b) => b.y - a.y)[0];
+      const target = [...bucket.lexicals].sort((a, b) => a.y - b.y)[0];
+      const key = `${getNodeId(source)}->${getNodeId(target)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        arrows.push({
+          source,
+          target,
+          step: moveStep ?? Math.max(
+            nodeStepIndex.get(getNodeId(source)) ?? 0,
+            nodeStepIndex.get(getNodeId(target)) ?? 0
+          ),
+          index
+        });
+      }
+    }
+  });
+
+  return arrows;
+};
+
+const buildStepMovementPairs = (
+  visibleNodes: HierNode[],
+  playbackSteps: PlaybackStep[],
+  nodeStepIndex: Map<string, number>,
+  existingKeys: Set<string>
+): MovementArrow[] => {
+  const leaves = visibleNodes.filter((node) => !node.children || node.children.length === 0);
+  const traceLeaves = leaves.filter((node) => isTraceLike(resolveLeafSurface(node)));
+  const lexicalLeaves = leaves.filter((node) => !isTraceLike(resolveLeafSurface(node)) && !isNullLike(resolveLeafSurface(node)));
+  const arrows: MovementArrow[] = [];
+  const seen = new Set<string>(existingKeys);
+  const usedTrace = new Set<string>();
+
+  const parseSourceCategories = (step: PlaybackStep): Set<string> => {
+    const out = new Set<string>();
+    (step.sourceLabels || []).forEach((label) => {
+      const normalized = normalizeCategory(label);
+      if (HEAD_CATEGORIES.has(normalized)) out.add(normalized);
+    });
+    const recipe = (step.recipe || '').toUpperCase();
+    const recipeMatch = recipe.match(/([A-Z][A-Z0-9']*)\s*->/);
+    if (recipeMatch?.[1]) {
+      const normalized = normalizeCategory(recipeMatch[1]);
+      if (HEAD_CATEGORIES.has(normalized)) out.add(normalized);
+    }
+    return out;
+  };
+
+  const parseTargetCategory = (step: PlaybackStep): string | null => {
+    const fromLabel = normalizeCategory(step.targetLabel || '');
+    if (HEAD_CATEGORIES.has(fromLabel)) return fromLabel;
+    const recipe = (step.recipe || '').toUpperCase();
+    const recipeMatch = recipe.match(/->\s*([A-Z][A-Z0-9']*)/);
+    if (recipeMatch?.[1]) {
+      const normalized = normalizeCategory(recipeMatch[1]);
+      if (HEAD_CATEGORIES.has(normalized)) return normalized;
+    }
+    return null;
+  };
+
+  playbackSteps.forEach((step, idx) => {
+    if (step.operation !== 'Move' && step.operation !== 'InternalMerge') return;
+    const sourceCategories = parseSourceCategories(step);
+    const targetCategory = parseTargetCategory(step);
+
+    const traceCandidates = traceLeaves
+      .filter((trace) => !usedTrace.has(getNodeId(trace)))
+      .filter((trace) => {
+        if (sourceCategories.size === 0) return true;
+        const traceHead = getNearestHeadCategory(trace);
+        return traceHead ? sourceCategories.has(traceHead) : false;
+      });
+
+    if (traceCandidates.length === 0) return;
+
+    let best: { source: HierNode; target: HierNode; score: number } | null = null;
+
+    traceCandidates.forEach((trace) => {
+      const traceHead = getNearestHeadCategory(trace);
+      const traceClause = getClauseAnchorId(trace);
+
+      lexicalLeaves.forEach((lexical) => {
+        const lexicalId = getNodeId(lexical);
+        if (lexicalId === getNodeId(trace)) return;
+
+        const lexicalHead = getNearestHeadCategory(lexical);
+        const lexicalClause = getClauseAnchorId(lexical);
+        const distanceScore = Math.abs(lexical.x - trace.x) + Math.abs(lexical.y - trace.y) * 0.45;
+        const clausePenalty = lexicalClause === traceClause ? 0 : 900;
+        const targetPenalty = targetCategory && lexicalHead !== targetCategory ? 650 : 0;
+        const selfHeadPenalty = traceHead && lexicalHead === traceHead ? 180 : 0;
+        const total = distanceScore + clausePenalty + targetPenalty + selfHeadPenalty;
+
+        if (!best || total < best.score) {
+          best = { source: trace, target: lexical, score: total };
+        }
+      });
+    });
+
+    if (!best) return;
+    const key = `${getNodeId(best.source)}->${getNodeId(best.target)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    usedTrace.add(getNodeId(best.source));
+
+    const stepGate = Math.max(
+      idx,
+      nodeStepIndex.get(getNodeId(best.source)) ?? 0,
+      nodeStepIndex.get(getNodeId(best.target)) ?? 0
+    );
+    arrows.push({ source: best.source, target: best.target, step: stepGate });
+  });
+
+  return arrows;
+};
+
 const formatOperationLabel = (operation?: DerivationStep['operation']): string => {
   if (!operation) return 'Derivation';
   if (operation === 'LexicalSelect') return 'Select';
   return operation.replace(/([a-z])([A-Z])/g, '$1 $2');
+};
+
+const formatFeatureCheckingEntry = (entry: FeatureCheckEvent): string => {
+  const probe = entry.probeLabel || entry.probeNodeId || '';
+  const goal = entry.goalLabel || entry.goalNodeId || '';
+  const status = entry.status ? `[${entry.status}]` : '';
+  const value = entry.value ? `=${entry.value}` : '';
+  const relation = probe && goal ? `${probe} -> ${goal}` : (probe || goal || '');
+  const core = `${entry.feature}${value}`;
+  const base = relation ? `${core} @ ${relation}` : core;
+  return status ? `${base} ${status}` : base;
 };
 
 const getTerminalWords = (node: SyntaxNode): string[] => {
@@ -203,25 +794,168 @@ const isUnderTriangulation = (d: HierNode) => {
   return false;
 };
 
-const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false, derivationSteps, abstractionMode = false }) => {
+const isAbstractCanopyLeaf = (rawLabel: string, overtSurfaceSet: Set<string> | null): boolean => {
+  const raw = rawLabel.trim();
+  if (!raw) return true;
+  const normalized = normalizeToken(raw);
+  if (normalized && overtSurfaceSet?.has(normalized)) {
+    return false;
+  }
+
+  if (isTraceLike(raw)) return true;
+  if (/^\[[^\]]+\]$/.test(raw)) return true;
+  if (/^[+-][A-Za-z][A-Za-z0-9,_\-]*$/i.test(raw)) return true;
+  if (/^-[A-Za-z]+$/i.test(raw)) return true;
+  if (/^(pres|past|fut|tense|agr|agreement|phi|case|infl|cp|tp|ip)$/i.test(normalized)) return true;
+  if (/^t(?:race)?_?[a-z0-9]+$/i.test(normalized)) return true;
+
+  return false;
+};
+
+const pruneTracesForCanopy = (node: SyntaxNode, overtSurfaceSet: Set<string> | null): SyntaxNode => {
+  const walk = (current: SyntaxNode, isRoot: boolean): SyntaxNode | null => {
+    const rawLabel = (current.word || current.label || '').trim();
+    const prunedChildren = (current.children || [])
+      .map((child) => walk(child, false))
+      .filter((child): child is SyntaxNode => Boolean(child));
+
+    if (!isRoot && prunedChildren.length === 0 && isAbstractCanopyLeaf(rawLabel, overtSurfaceSet)) {
+      return null;
+    }
+
+    if (!isRoot && current.children && prunedChildren.length === 0) {
+      return null;
+    }
+
+    const next: SyntaxNode = { label: current.label };
+    if (prunedChildren.length > 0) next.children = prunedChildren;
+    if (prunedChildren.length === 0 && typeof current.word === 'string') next.word = current.word;
+    return next;
+  };
+
+  return walk(node, true) || node;
+};
+
+const shouldExpandCanopyPreterminal = (node: SyntaxNode): boolean => {
+  if (Array.isArray(node.children) && node.children.length > 0) return false;
+  const label = String(node.label || '').trim();
+  const word = typeof node.word === 'string' ? node.word.trim() : '';
+  if (!label || !word) return false;
+  if (normalizeToken(label) === normalizeToken(word)) return false;
+  const normalizedCategory = label.replace(/['\s]/g, '').toUpperCase();
+  return HEAD_CATEGORIES.has(normalizedCategory);
+};
+
+const materializeCanopyPreterminals = (node: SyntaxNode): SyntaxNode => {
+  const walk = (current: SyntaxNode): SyntaxNode => {
+    const children = Array.isArray(current.children) ? current.children.map(walk) : [];
+    const next: SyntaxNode = { label: current.label };
+    if (typeof current.id === 'string' && current.id.trim()) {
+      next.id = current.id;
+    }
+
+    if (children.length > 0) {
+      next.children = children;
+      return next;
+    }
+
+    const word = typeof current.word === 'string' ? current.word.trim() : '';
+    const normalizedCategory = String(current.label || '').replace(/['\s]/g, '').toUpperCase();
+
+    if (!word && NULLABLE_HEAD_CATEGORIES.has(normalizedCategory)) {
+      next.children = [{ label: EXPLICIT_NULL_TERMINAL, word: EXPLICIT_NULL_TERMINAL }];
+      return next;
+    }
+    if (!word) return next;
+
+    if (shouldExpandCanopyPreterminal(current)) {
+      next.children = [{ label: word, word }];
+      return next;
+    }
+
+    next.word = word;
+    return next;
+  };
+
+  return walk(node);
+};
+
+const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
+  data,
+  animated = false,
+  derivationSteps,
+  movementEvents,
+  abstractionMode = false,
+  sentence = ''
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const derivationStepsSignature = useMemo(() => {
+    const steps = derivationSteps || [];
+    return steps
+      .map((step, idx) => [
+        idx,
+        step.operation || '',
+        step.targetNodeId || '',
+        step.targetLabel || '',
+        (step.sourceNodeIds || []).join(','),
+        (step.sourceLabels || []).join(','),
+        step.recipe || '',
+        (step.featureChecking || [])
+          .map((entry) => [
+            entry.feature || '',
+            entry.value || '',
+            entry.status || '',
+            entry.probeNodeId || '',
+            entry.goalNodeId || '',
+            entry.probeLabel || '',
+            entry.goalLabel || '',
+            entry.note || ''
+          ].join(','))
+          .join(';')
+      ].join(':'))
+      .join('|');
+  }, [derivationSteps]);
+  const movementEventsSignature = useMemo(() => {
+    const events = movementEvents || [];
+    return events
+      .map((event, idx) => [
+        idx,
+        event.operation || '',
+        event.fromNodeId || '',
+        event.toNodeId || '',
+        event.traceNodeId || '',
+        event.stepIndex ?? ''
+      ].join(':'))
+      .join('|');
+  }, [movementEvents]);
   const playbackSteps = useMemo(() => {
     if (!animated) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
-    hierarchy.eachBefore((node, idx) => {
-      (node as any).__vizId = `n${idx + 1}`;
-    });
+    applyVizIds(hierarchy);
     if (abstractionMode) {
       markTriangulatedNodes(hierarchy);
     }
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
     return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps);
   }, [animated, data, derivationSteps, abstractionMode]);
+  const overtSurfaceSet = useMemo(() => {
+    const tokens = String(sentence || '')
+      .split(/\s+/)
+      .map((token) => normalizeToken(token))
+      .filter(Boolean);
+    return tokens.length > 0 ? new Set(tokens) : null;
+  }, [sentence]);
+  const canvasData = useMemo(() => {
+    if (animated) return data;
+    const pruned = pruneTracesForCanopy(data, overtSurfaceSet);
+    return materializeCanopyPreterminals(pruned);
+  }, [animated, data, overtSurfaceSet]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -280,22 +1014,38 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
         const step = Number((this as SVGGElement).getAttribute('data-step') || 0);
         return step <= revealThreshold ? '1' : '0';
       });
+
+    svg.selectAll<SVGPathElement, unknown>('.movement-arrow')
+      .style('opacity', function () {
+        const step = Number((this as SVGPathElement).getAttribute('data-step') || 0);
+        return step <= revealThreshold ? '0.95' : '0';
+      });
+
+    svg.selectAll<SVGTextElement, unknown>('.terminal-label')
+      .text(function () {
+        const element = this as SVGTextElement;
+        const nodeId = element.getAttribute('data-node-id') || '';
+        const fallback = element.getAttribute('data-default-label') || '';
+        const morph = terminalMorphRef.current.get(nodeId);
+        if (!morph) return fallback;
+        if (revealThreshold < morph.step) {
+          return morph.hideBefore ? '' : morph.preText;
+        }
+        return morph.postText;
+      });
   }, [activeStepIndex, animated, data, dimensions, abstractionMode]);
 
   useEffect(() => {
-    if (!data || !svgRef.current || dimensions.width === 0) return;
+    if (!canvasData || !svgRef.current || dimensions.width === 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
     const { width: containerWidth, height: containerHeight } = dimensions;
 
-    const rootHierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
+    const rootHierarchy = d3.hierarchy(JSON.parse(JSON.stringify(canvasData)));
     const maxDepth = rootHierarchy.height;
-    
-    rootHierarchy.eachBefore((node, idx) => {
-      (node as any).__vizId = `n${idx + 1}`;
-    });
+    applyVizIds(rootHierarchy);
 
     // Logic for Triangulation (Abstraction Mode)
     if (abstractionMode) {
@@ -335,6 +1085,56 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
     const timeline = animated && playbackSteps.length > 0 ? playbackSteps : inferredTimeline;
     const nodeStepIndex = buildNodeStepIndex(timeline);
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
+    const movementArrows = animated && !abstractionMode
+      ? buildMovementArrowsFromEvents(visibleNodes, movementEvents, nodeStepIndex, timeline)
+      : [];
+    const nodeRevealStepIndex = new Map(nodeStepIndex);
+    const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
+    const buildTraceLabel = (index?: string | null): string => (index ? `t_{${index}}` : 't');
+
+    movementArrows.forEach((arrow) => {
+      const sourceId = getNodeId(arrow.source);
+      const targetId = getNodeId(arrow.target);
+      const sourceStep = nodeRevealStepIndex.get(sourceId) ?? 0;
+      const targetStep = nodeRevealStepIndex.get(targetId) ?? 0;
+      nodeRevealStepIndex.set(sourceId, Math.min(sourceStep, targetStep, arrow.step));
+      nodeRevealStepIndex.set(targetId, Math.max(targetStep, arrow.step));
+      if (arrow.traceNode) {
+        const traceId = getNodeId(arrow.traceNode);
+        const traceStep = nodeRevealStepIndex.get(traceId) ?? 0;
+        nodeRevealStepIndex.set(traceId, Math.min(traceStep, arrow.step));
+      }
+
+      if ((arrow.source.children && arrow.source.children.length > 0) || (arrow.target.children && arrow.target.children.length > 0)) {
+        return;
+      }
+
+      const sourceSurface = resolveLeafSurface(arrow.source);
+      const targetSurface = resolveLeafSurface(arrow.target);
+      if (!targetSurface) return;
+
+      const traceAnchor = arrow.traceNode || (isTraceLike(sourceSurface) ? arrow.source : null);
+      if (traceAnchor) {
+        const traceId = getNodeId(traceAnchor);
+        const traceSurface = resolveLeafSurface(traceAnchor);
+        const movementIndex = arrow.index || extractMovementIndex(traceSurface) || extractMovementIndex(targetSurface) || null;
+        terminalMorph.set(traceId, {
+          preText: targetSurface,
+          postText: isTraceLike(traceSurface) ? traceSurface : buildTraceLabel(movementIndex),
+          step: arrow.step,
+          hideBefore: false
+        });
+      }
+
+      terminalMorph.set(targetId, {
+        preText: '',
+        postText: targetSurface,
+        step: arrow.step,
+        hideBefore: true
+      });
+    });
+
+    terminalMorphRef.current = terminalMorph;
 
     const link = g.selectAll('.branch')
       .data(visibleLinks)
@@ -344,13 +1144,53 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
       .attr('fill', 'none')
       .attr('stroke', BRANCH_COLOR)
       .attr('stroke-width', 4)
-      .attr('data-step', (d: any) => String(nodeStepIndex.get(getNodeId(d.target)) ?? 0))
+      .attr('data-step', (d: any) => String(nodeRevealStepIndex.get(getNodeId(d.target)) ?? 0))
       .attr('opacity', (d: any) => {
-        const step = nodeStepIndex.get(getNodeId(d.target)) ?? 0;
+        const step = nodeRevealStepIndex.get(getNodeId(d.target)) ?? 0;
         return step <= revealThreshold ? 0.6 : 0;
       })
       .style('transition', 'opacity 280ms ease')
       .attr('d', d3.linkVertical().x((d: any) => d.x).y((d: any) => d.y) as any);
+
+    if (movementArrows.length > 0) {
+      const defs = g.append('defs');
+      defs.append('marker')
+        .attr('id', 'movement-arrowhead')
+        .attr('viewBox', '0 0 10 10')
+        .attr('refX', 9)
+        .attr('refY', 5)
+        .attr('markerWidth', 7)
+        .attr('markerHeight', 7)
+        .attr('orient', 'auto-start-reverse')
+        .append('path')
+        .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+        .attr('fill', MOVEMENT_ARROW_COLOR);
+
+      g.selectAll('.movement-arrow')
+        .data(movementArrows)
+        .enter()
+        .append('path')
+        .attr('class', 'movement-arrow')
+        .attr('fill', 'none')
+        .attr('stroke', MOVEMENT_ARROW_COLOR)
+        .attr('stroke-width', MOVEMENT_ARC_STROKE)
+        .attr('stroke-linecap', 'round')
+        .attr('marker-end', 'url(#movement-arrowhead)')
+        .attr('data-step', (arrow) => String(arrow.step))
+        .style('transition', 'opacity 260ms ease')
+        .attr('opacity', (arrow) => (arrow.step <= revealThreshold ? 0.9 : 0))
+        .style('filter', 'drop-shadow(0 0 4px rgba(16,185,129,0.35))')
+        .attr('d', (arrow) => {
+          const direction = Math.sign(arrow.target.x - arrow.source.x) || 1;
+          const sx = arrow.source.x + 8 * direction;
+          const sy = arrow.source.y + 24;
+          const tx = arrow.target.x - 8 * direction;
+          const ty = arrow.target.y + 24;
+          const controlX = (sx + tx) / 2;
+          const controlY = Math.max(sy, ty) + Math.max(42, Math.abs(tx - sx) * 0.2);
+          return `M ${sx} ${sy} Q ${controlX} ${controlY}, ${tx} ${ty}`;
+        });
+    }
 
     // 2. RENDER NODE GROUPS
     const nodeGroups = g.selectAll('.node-group')
@@ -359,9 +1199,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
       .append('g')
       .attr('class', 'node-group')
       .attr('transform', (d) => `translate(${d.x},${d.y})`)
-      .attr('data-step', (d) => String(nodeStepIndex.get(getNodeId(d)) ?? 0))
+      .attr('data-step', (d) => String(nodeRevealStepIndex.get(getNodeId(d)) ?? 0))
       .attr('opacity', (d) => {
-        const step = nodeStepIndex.get(getNodeId(d)) ?? 0;
+        const step = nodeRevealStepIndex.get(getNodeId(d)) ?? 0;
         return step <= revealThreshold ? 1 : 0;
       })
       .style('transition', 'opacity 260ms ease');
@@ -386,6 +1226,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
 
     // Render leaf node text in Emerald - Reduced Font Size
     terminals.append('text')
+      .attr('class', 'terminal-label')
+      .attr('data-node-id', (d) => getNodeId(d))
+      .attr('data-default-label', (d) => d.data.word || d.data.label || '')
       .attr('y', 115) // Adjusted vertical offset for smaller font
       .attr('text-anchor', 'middle')
       .attr('font-size', '56px') // Reduced from 84px to be more proportional
@@ -393,7 +1236,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
       .attr('fill', TARGET_EMERALD)
       .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
       .style('fill', TARGET_EMERALD, 'important')
-      .text(d => d.data.word || d.data.label);
+      .text(d => {
+        const nodeId = getNodeId(d);
+        const fallback = d.data.word || d.data.label || '';
+        const morph = terminalMorphRef.current.get(nodeId);
+        if (!morph) return fallback;
+        if (revealThreshold < morph.step) {
+          return morph.hideBefore ? '' : morph.preText;
+        }
+        return morph.postText;
+      });
 
     // Vertical dashed connection for leaf nodes
     terminals.append('line')
@@ -415,6 +1267,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
       .attr('stroke-width', 3);
 
     triangles.append('text')
+      .attr('y', 8)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '38px')
+      .attr('font-weight', '900')
+      .attr('fill', PURE_WHITE)
+      .style('fill', PURE_WHITE, 'important')
+      .style('font-family', 'Quicksand, sans-serif')
+      .style('paint-order', 'stroke')
+      .style('stroke', '#020806')
+      .style('stroke-width', '9px')
+      .text((d) => d.data.label || '');
+
+    triangles.append('text')
       .attr('y', 155)
       .attr('text-anchor', 'middle')
       .attr('font-size', '52px') // Reduced for consistency
@@ -423,13 +1288,58 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
       .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
       .text((d: any) => (d as any).triangulatedWords);
 
-    // Initial Viewport Setting
-    const initialScale = Math.min(1, containerWidth / (innerWidth + margin.left + margin.right)) * 0.82;
-    const initialX = containerWidth / 2 - (treeData as any).x * initialScale;
-    const initialY = 160;
-    svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+    // Initial viewport fit:
+    // Use actual rendered bounds so terminal labels are not clipped/off-canvas.
+    const fitToRenderedBounds = () => {
+      const rendered = g.node() as SVGGElement | null;
+      if (!rendered) return false;
 
-  }, [data, dimensions, animated, abstractionMode, derivationSteps]);
+      const bbox = rendered.getBBox();
+      if (!Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
+        return false;
+      }
+
+      const viewportPadX = 28;
+      const viewportPadTop = 34;
+      // Reserve space for bottom overlays (input tray / growth controls) so terminals remain visible.
+      const viewportPadBottom = animated ? 170 : 250;
+      const availableWidth = Math.max(120, containerWidth - viewportPadX * 2);
+      const availableHeight = Math.max(120, containerHeight - viewportPadTop - viewportPadBottom);
+
+      const scaleX = availableWidth / bbox.width;
+      const scaleY = availableHeight / bbox.height;
+      const initialScale = Math.max(0.06, Math.min(scaleX, scaleY, 1));
+
+      const bboxCenterX = bbox.x + bbox.width / 2;
+      const bboxCenterY = bbox.y + bbox.height / 2;
+      const targetCenterX = containerWidth / 2;
+      const targetCenterY = viewportPadTop + availableHeight / 2;
+      const initialX = targetCenterX - bboxCenterX * initialScale;
+      const initialY = targetCenterY - bboxCenterY * initialScale;
+
+      svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+      return true;
+    };
+
+    if (!fitToRenderedBounds() && visibleNodes.length > 0) {
+      // Fallback fit in case getBBox is unavailable.
+      const minNodeX = d3.min(visibleNodes, (node) => node.x) ?? 0;
+      const maxNodeX = d3.max(visibleNodes, (node) => node.x) ?? 0;
+      const minNodeY = d3.min(visibleNodes, (node) => node.y) ?? 0;
+      const maxNodeY = d3.max(visibleNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0;
+      const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
+      const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
+      const scaleX = Math.max(0.01, (containerWidth - 56) / contentWidth);
+      const scaleY = Math.max(0.01, (containerHeight - 220) / contentHeight);
+      const initialScale = Math.max(0.06, Math.min(scaleX, scaleY, 1));
+      const centerX = (minNodeX + maxNodeX) / 2;
+      const centerY = (minNodeY + maxNodeY) / 2;
+      const initialX = containerWidth / 2 - centerX * initialScale;
+      const initialY = (containerHeight - 140) / 2 - centerY * initialScale;
+      svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+    }
+
+  }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementEventsSignature]);
 
   const activeStep = animated && playbackSteps.length > 0
     ? playbackSteps[Math.min(activeStepIndex, playbackSteps.length - 1)]
@@ -544,7 +1454,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({ data, animated = false,
             </div>
             {activeStep?.workspaceAfter && activeStep.workspaceAfter.length > 0 && (
               <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-400/65">
-                Workspace: {activeStep.workspaceAfter.join(' | ')}
+                Derivation Set: {activeStep.workspaceAfter.join(' | ')}
+              </div>
+            )}
+            {activeStep?.featureChecking && activeStep.featureChecking.length > 0 && (
+              <div className="pt-1">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/75 mb-1">
+                  Feature Checking
+                </div>
+                <div className="space-y-0.5">
+                  {activeStep.featureChecking.map((entry, idx) => (
+                    <div key={`${entry.feature}-${idx}`} className="text-[11px] text-emerald-100/75">
+                      {formatFeatureCheckingEntry(entry)}
+                      {entry.note ? ` - ${entry.note}` : ''}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {activeStep?.note && (

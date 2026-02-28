@@ -1,0 +1,163 @@
+{
+  "summary": {
+    "startedAt": "2026-02-27T23:43:02.354Z",
+    "finishedAt": "2026-02-27T23:53:32.121Z",
+    "totalRuns": 10,
+    "okRuns": 10,
+    "failRuns": 0,
+    "fallbackRuns": 1,
+    "successRate": 100,
+    "latencyMs": {
+      "min": 39882,
+      "p50": 53181,
+      "p95": 133019,
+      "max": 133019,
+      "avg": 62975
+    },
+    "errorBreakdown": {},
+    "elapsedTotalMs": 629754
+  },
+  "results": [
+    {
+      "run": 1,
+      "sentence": "The farmer eats the pig",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 62107,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 2,
+      "sentence": "The farmer did not eat the pig",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 45298,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 3,
+      "sentence": "If the teacher arrives, the class starts",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 43455,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 4,
+      "sentence": "El granjero come el cerdo",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 53181,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 5,
+      "sentence": "Le fermier mange le cochon",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 39882,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 6,
+      "sentence": "Der Bauer isst das Schwein",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 58993,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 7,
+      "sentence": "Il contadino mangia il maiale",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 40526,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 8,
+      "sentence": "The child that the teacher praised smiled",
+      "framework": "xbar",
+      "ok": true,
+      "elapsedMs": 61921,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 9,
+      "sentence": "The farmer eats the pig",
+      "framework": "minimalism",
+      "ok": true,
+      "elapsedMs": 133019,
+      "modelUsed": "gemini-3-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview",
+        "gemini-3-pro-preview"
+      ],
+      "fallbackUsed": true,
+      "analyses": 1,
+      "firstRoot": "CP"
+    },
+    {
+      "run": 10,
+      "sentence": "The farmer did not eat the pig",
+      "framework": "minimalism",
+      "ok": true,
+      "elapsedMs": 91372,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "modelsTried": [
+        "gemini-3.1-pro-preview"
+      ],
+      "fallbackUsed": false,
+      "analyses": 1,
+      "firstRoot": "TP"
+    }
+  ]
+}
