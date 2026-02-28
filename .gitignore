@@ -12,6 +12,7 @@ dist
 dist-ssr
 .artifacts/
 test-results/
+skills/
 *.local
 .env
 .env.*
