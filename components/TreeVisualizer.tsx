@@ -999,6 +999,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, [activeStepIndex, animated, isAutoPlaying, isScrubbing, playbackSteps]);
 
   useEffect(() => {
+    if (!isScrubbing) return;
+
+    const clearScrubState = () => setIsScrubbing(false);
+    window.addEventListener('pointerup', clearScrubState);
+    window.addEventListener('pointercancel', clearScrubState);
+    window.addEventListener('mouseup', clearScrubState);
+    window.addEventListener('touchend', clearScrubState);
+    window.addEventListener('touchcancel', clearScrubState);
+
+    return () => {
+      window.removeEventListener('pointerup', clearScrubState);
+      window.removeEventListener('pointercancel', clearScrubState);
+      window.removeEventListener('mouseup', clearScrubState);
+      window.removeEventListener('touchend', clearScrubState);
+      window.removeEventListener('touchcancel', clearScrubState);
+    };
+  }, [isScrubbing]);
+
+  useEffect(() => {
     if (!svgRef.current) return;
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
     const svg = d3.select(svgRef.current);
@@ -1352,17 +1371,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const canStepForward = animated && playbackSteps.length > 0 && activeStepIndex < playbackSteps.length - 1;
 
   const handlePrevStep = () => {
+    setIsScrubbing(false);
     setIsAutoPlaying(false);
     setActiveStepIndex((index) => Math.max(0, index - 1));
   };
 
   const handleNextStep = () => {
+    setIsScrubbing(false);
     setIsAutoPlaying(false);
     setActiveStepIndex((index) => Math.min(playbackSteps.length - 1, index + 1));
   };
 
   const handleTogglePlayback = () => {
     if (!animated || playbackSteps.length === 0) return;
+    setIsScrubbing(false);
     if (activeStepIndex >= playbackSteps.length - 1) {
       setActiveStepIndex(0);
       setIsAutoPlaying(true);
@@ -1432,6 +1454,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               }}
               onPointerUp={() => setIsScrubbing(false)}
               onPointerCancel={() => setIsScrubbing(false)}
+              onMouseUp={() => setIsScrubbing(false)}
+              onTouchEnd={() => setIsScrubbing(false)}
               onBlur={() => setIsScrubbing(false)}
               onChange={(event) => {
                 setIsAutoPlaying(false);
