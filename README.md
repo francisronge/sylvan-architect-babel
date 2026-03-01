@@ -90,6 +90,7 @@ It includes:
 - Playback controls (`Prev`, `Play/Replay`, `Next`)
 - Timeline scrubber with sprout slider
 - Operation labels per step
+- Feature-checking visibility during derivation steps
 - Workspace/derivation-set style state updates
 - Movement visualization with arrows
 - Trace visibility for derivation inspection
@@ -125,6 +126,18 @@ Each parse can include structured outputs such as:
 - Movement events
 
 These outputs are intended for both human reading and downstream inspection workflows.
+
+### 11) Tree Bank
+
+`Tree Bank` is Babel's local save-and-reopen workspace.
+
+It includes:
+
+- Save current parse state from the header (`Save to Tree Bank`)
+- Reopen saved analyses with their active framework and parse selection
+- Store rendered tree snapshot previews for quick browsing
+- Delete saved entries directly from the Tree Bank panel
+- Keep data local to the current browser/device (IndexedDB-backed)
 
 ## Practical research workflow
 

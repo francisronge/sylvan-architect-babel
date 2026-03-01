@@ -1474,15 +1474,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               </div>
             </div>
           </div>
-          <div className="mt-3 space-y-1.5">
-            <div className="text-[11px] text-emerald-100/80 font-semibold">
-              {activeStep?.recipe || `${activeStep?.targetLabel || 'Node'} created`}
-            </div>
-            {activeStep?.workspaceAfter && activeStep.workspaceAfter.length > 0 && (
-              <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-400/65">
-                Derivation Set: {activeStep.workspaceAfter.join(' | ')}
-              </div>
-            )}
+	          <div className="mt-3 space-y-1.5">
+	            <div className="text-[11px] text-emerald-100/80 font-semibold">
+	              {activeStep?.recipe || `${activeStep?.targetLabel || 'Node'} created`}
+	            </div>
+	            {activeStep?.workspaceAfter && activeStep.workspaceAfter.length > 0 && (
+	              <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-400/65">
+	                Derivation Set: {activeStep.workspaceAfter.join(' | ')}
+	              </div>
+	            )}
             {activeStep?.featureChecking && activeStep.featureChecking.length > 0 && (
               <div className="pt-1">
                 <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/75 mb-1">
