@@ -87,6 +87,15 @@ body,
   animation: float-spore linear infinite;
 }
 
+.spore-layer.paused .spore {
+  animation-play-state: paused;
+}
+
+.loading-overlay {
+  contain: paint;
+  will-change: opacity;
+}
+
 @keyframes float-spore {
   0% {
     transform: translate3d(0, 0, 0) scale(1);

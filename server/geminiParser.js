@@ -110,8 +110,9 @@ const MODEL_CALL_TIMEOUT_RAW = String(process.env.GEMINI_MODEL_TIMEOUT_MS || '')
 const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT_RAW) : NaN;
 const PRIMARY_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRIMARY_TIMEOUT_MS || 90000));
 const FALLBACK_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_FALLBACK_TIMEOUT_MS || 120000));
-const MODEL_COOLDOWN_MS = Math.max(0, Number(process.env.GEMINI_MODEL_COOLDOWN_MS || 0));
+const MODEL_COOLDOWN_MS = Math.max(0, Number(process.env.GEMINI_MODEL_COOLDOWN_MS || 45000));
 const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 90000));
+const MIN_ATTEMPT_TIMEOUT_MS = Math.max(1200, Number(process.env.GEMINI_MIN_ATTEMPT_TIMEOUT_MS || 4000));
 const USE_RESPONSE_JSON_SCHEMA = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_RESPONSE_JSON_SCHEMA || '').trim());
 const FORBIDDEN_STRING_LEAF_TOKENS = new Set([
   'id',
@@ -300,6 +301,36 @@ const getRemainingRequestBudgetMs = (requestStartedAt) => {
     return Number.POSITIVE_INFINITY;
   }
   return Math.max(0, REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));
+};
+
+const resolveAttemptTimeoutMs = ({
+  baseTimeoutMs,
+  remainingBudgetMs,
+  hasNextModel,
+  attempt
+}) => {
+  const attemptFloor = MIN_ATTEMPT_TIMEOUT_MS;
+  const budgetCap = Number.isFinite(remainingBudgetMs)
+    ? Math.max(1200, remainingBudgetMs - 250)
+    : Number.POSITIVE_INFINITY;
+
+  let attemptCap = budgetCap;
+  if (Number.isFinite(remainingBudgetMs)) {
+    if (hasNextModel) {
+      // Keep enough budget reserved so fallback gets a meaningful attempt window.
+      const reserveForFallbackMs = Math.max(attemptFloor + 250, Math.floor(remainingBudgetMs * 0.4));
+      attemptCap = Math.max(1200, Math.min(attemptCap, remainingBudgetMs - reserveForFallbackMs));
+    } else if (attempt < PRO_RETRY_MAX_ATTEMPTS) {
+      // Preserve room for at least one retry on the final route.
+      const reserveForRetryMs = Math.max(PRO_RETRY_BASE_DELAY_MS + attemptFloor, attemptFloor + 250);
+      attemptCap = Math.max(1200, Math.min(attemptCap, remainingBudgetMs - reserveForRetryMs));
+    }
+  }
+
+  if (!Number.isFinite(baseTimeoutMs) || baseTimeoutMs <= 0) {
+    return Math.max(1200, Math.min(attemptCap, budgetCap));
+  }
+  return Math.max(1200, Math.min(baseTimeoutMs, attemptCap));
 };
 
 const getModelCooldownRemainingMs = (model) => {
@@ -925,9 +956,12 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar') => {
         }
         try {
           const baseTimeoutMs = resolveModelTimeoutMs(currentModel);
-          const boundedTimeoutMs = Number.isFinite(remainingBudgetMs)
-            ? Math.max(1200, Math.min(baseTimeoutMs, Math.max(1200, remainingBudgetMs - 250)))
-            : baseTimeoutMs;
+          const boundedTimeoutMs = resolveAttemptTimeoutMs({
+            baseTimeoutMs,
+            remainingBudgetMs,
+            hasNextModel,
+            attempt
+          });
           const generation = await withTimeout(
             (abortSignal) => generateStructuredContent({
               ai,

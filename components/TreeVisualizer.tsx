@@ -836,7 +836,7 @@ const pruneTracesForCanopy = (node: SyntaxNode, overtSurfaceSet: Set<string> | n
   return walk(node, true) || node;
 };
 
-const shouldExpandCanopyPreterminal = (node: SyntaxNode): boolean => {
+const shouldExpandPreterminalLeaf = (node: SyntaxNode): boolean => {
   if (Array.isArray(node.children) && node.children.length > 0) return false;
   const label = String(node.label || '').trim();
   const word = typeof node.word === 'string' ? node.word.trim() : '';
@@ -868,7 +868,7 @@ const materializeCanopyPreterminals = (node: SyntaxNode): SyntaxNode => {
     }
     if (!word) return next;
 
-    if (shouldExpandCanopyPreterminal(current)) {
+    if (shouldExpandPreterminalLeaf(current)) {
       next.children = [{ label: word, word }];
       return next;
     }
@@ -1226,7 +1226,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .style('transition', 'opacity 260ms ease');
 
     // 3. CATEGORY LABELS (Internal Nodes) - PURE WHITE
-    const categories = nodeGroups.filter(d => !!d.children && d.children.length > 0);
+    const categories = nodeGroups.filter((d) =>
+      (Boolean(d.children) && d.children.length > 0) || shouldExpandPreterminalLeaf(d.data)
+    );
     categories.append('text')
       .attr('y', -10)
       .attr('text-anchor', 'middle')
