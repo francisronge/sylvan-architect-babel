@@ -14,7 +14,8 @@ Output conventions:
 - For overt lexical items, keep full X-bar projections explicit (e.g., DP -> D' -> D -> "the", VP -> V' -> V -> "eat").
 - Do not attach overt words directly under X' or XP nodes.
 
-In the explanation, justify major choices in framework terms, not language-specific heuristics.`;
+In the explanation, justify major choices in framework terms, not language-specific heuristics.
+Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.`;
 
 const MINIMALISM_INSTRUCTION = `You are a world-class syntactician specializing in Generative syntax, with a focus on the Minimalist Program and Bare Phrase Structure.
 
@@ -27,7 +28,8 @@ Output conventions:
 - Use labels consistently.
 - If clear syntactic ambiguity exists, return two analyses; otherwise return one.
 
-In the explanation, justify major choices in framework terms, not language-specific heuristics.`;
+In the explanation, justify major choices in framework terms, not language-specific heuristics.
+Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.`;
 
 const BASE_INSTRUCTION = `Output MUST be a single, valid JSON object.
 The JSON structure must be:
@@ -39,10 +41,14 @@ The JSON structure must be:
         "label": "Label",
         "children": [ ... ]
       },
-      "explanation": "A concise linguistic derivation note specific to the chosen framework.",
+      "explanation": "A developed but natural linguistic explanation specific to the chosen framework.",
       "partsOfSpeech": [ {"word": "word", "pos": "POS"}, ... ],
       "bracketedNotation": "[Label [Child1] [Child2]]",
       "interpretation": "One short line describing this interpretation.",
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "One short sentence committing to whether movement occurs in this analysis."
+      },
       "derivationSteps": [
         {
           "operation": "LexicalSelect|ExternalMerge|InternalMerge|Project|Move|Agree|SpellOut|Other",
@@ -87,6 +93,19 @@ For "derivationSteps":
 - Include "featureChecking" entries whenever a step performs feature valuation/checking/licensing (especially Agree, Move, or SpellOut relevant steps).
 - Keep each featureChecking entry short and explicit (feature, optional value/status, probe/goal labels when available).
 
+For movement commitment and consistency (per analysis):
+- First decide movement and encode it in "movementDecision.hasMovement" (true/false).
+- "movementDecision.rationale" must be one short sentence that commits to the chosen derivation (no alternatives).
+- If hasMovement is true:
+  - Include at least one movement event in "movementEvents".
+  - Include at least one derivation step with operation "Move" or "InternalMerge".
+  - In explanation, describe movement as occurring in this analysis.
+- If hasMovement is false:
+  - Return "movementEvents": [].
+  - Do not include derivation steps with operation "Move" or "InternalMerge".
+  - In explanation, state that no movement is posited in this analysis.
+- Do not hedge between alternatives inside one analysis. Avoid wording like "or", "may be", "can be", "possibly" for movement status.
+
 For "tree":
 - Every node MUST include a unique "id" string.
 - Do NOT use bare string leaves; represent every terminal as an object with id/label (and optional word).
@@ -99,8 +118,8 @@ For "tree":
 
 The "bracketedNotation" field should contain a Labeled Bracketing string compatible with Miles Shang's syntax tree generator.`;
 
-const PRIMARY_MODEL = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-pro-preview';
-const FALLBACK_MODEL = String(process.env.GEMINI_FALLBACK_MODEL || '').trim() || 'gemini-3-pro-preview';
+const PRIMARY_MODEL = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-flash-lite-preview';
+const FALLBACK_MODEL = String(process.env.GEMINI_FALLBACK_MODEL || '').trim() || 'gemini-3.1-pro-preview';
 const PRO_RETRY_MAX_ATTEMPTS = Math.max(1, Number(process.env.GEMINI_RETRY_MAX_ATTEMPTS || 2));
 const BAD_MODEL_RETRY_MAX_ATTEMPTS = Math.max(1, Number(process.env.GEMINI_BAD_MODEL_RETRY_MAX_ATTEMPTS || 1));
 const PRO_RETRY_BASE_DELAY_MS = Math.max(100, Number(process.env.GEMINI_RETRY_BASE_DELAY_MS || 600));
@@ -108,10 +127,12 @@ const PRO_RETRY_MAX_DELAY_MS = Math.max(PRO_RETRY_BASE_DELAY_MS, Number(process.
 const MODEL_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16384);
 const MODEL_CALL_TIMEOUT_RAW = String(process.env.GEMINI_MODEL_TIMEOUT_MS || '').trim();
 const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT_RAW) : NaN;
-const PRIMARY_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRIMARY_TIMEOUT_MS || 90000));
-const FALLBACK_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_FALLBACK_TIMEOUT_MS || 120000));
+// Default to no hard cutoff. Set env vars to enforce explicit timeouts if needed.
+const PRIMARY_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRIMARY_TIMEOUT_MS || 0));
+const FALLBACK_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_FALLBACK_TIMEOUT_MS || 0));
 const MODEL_COOLDOWN_MS = Math.max(0, Number(process.env.GEMINI_MODEL_COOLDOWN_MS || 45000));
-const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 90000));
+// Default to unlimited request budget. Set GEMINI_REQUEST_BUDGET_MS to enforce a cap.
+const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 0));
 const MIN_ATTEMPT_TIMEOUT_MS = Math.max(1200, Number(process.env.GEMINI_MIN_ATTEMPT_TIMEOUT_MS || 4000));
 const USE_RESPONSE_JSON_SCHEMA = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_RESPONSE_JSON_SCHEMA || '').trim());
 const FORBIDDEN_STRING_LEAF_TOKENS = new Set([
@@ -157,6 +178,14 @@ const PARSE_RESPONSE_JSON_SCHEMA = {
           partsOfSpeech: { type: 'array', items: { type: 'object' } },
           bracketedNotation: { type: 'string' },
           interpretation: { type: 'string' },
+          movementDecision: {
+            type: 'object',
+            properties: {
+              hasMovement: { type: 'boolean' },
+              rationale: { type: 'string' }
+            },
+            required: ['hasMovement', 'rationale']
+          },
           derivationSteps: { type: 'array', items: { type: 'object' } },
           movementEvents: { type: 'array', items: { type: 'object' } }
         },

@@ -2,6 +2,12 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
 import { MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
+import {
+  buildMovementIndexMaps,
+  resolveMovementEventLinks,
+  MovementIndexMaps,
+  EMPTY_MOVEMENT_INDEX_MAPS
+} from './movementEvents';
 import { 
   BookOpen, 
   RotateCcw, 
@@ -59,7 +65,8 @@ const resolveUiError = (err: unknown): { needsKey: boolean; message: string } =>
 
 const formatModelLabel = (modelUsed?: string): string => {
   const model = String(modelUsed || '').trim();
-  if (!model) return 'Gemini 3.1 Pro';
+  if (!model) return 'Gemini 3.1 Flash Lite';
+  if (model === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash Lite';
   if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
   if (model === 'gemini-3-pro-preview') return 'Gemini 3 Pro';
   return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
@@ -262,17 +269,6 @@ const removeTreeBankEntry = async (id: string): Promise<void> => {
   });
 };
 
-interface MovementIndexMaps {
-  movedByNodeId: Map<string, string>;
-  traceByNodeId: Map<string, string>;
-}
-
-const EMPTY_MOVEMENT_INDEX_MAPS: MovementIndexMaps = {
-  movedByNodeId: new Map(),
-  traceByNodeId: new Map()
-};
-
-const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
 const TRACE_SURFACE_RE = /^(t(?:race)?(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
@@ -314,14 +310,6 @@ const KNOWN_CATEGORY_LABELS = new Set([
   'VP'
 ]);
 
-const indexToLetter = (index: number): string => {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-  if (index < alphabet.length) return alphabet[index];
-  const base = alphabet[index % alphabet.length];
-  const cycle = Math.floor(index / alphabet.length);
-  return `${base}${cycle}`;
-};
-
 const normalizeCategoryToken = (token: string): string =>
   token
     .trim()
@@ -351,99 +339,32 @@ const appendMovementIndex = (token: string, movementIndex?: string): string => {
   return `${base}_${movementIndex}`;
 };
 
-const collectLeafNodes = (root: SyntaxNode): SyntaxNode[] => {
-  const leaves: SyntaxNode[] = [];
-  const visit = (node: SyntaxNode) => {
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length === 0) {
-      leaves.push(node);
-      return;
-    }
-    children.forEach(visit);
-  };
-  visit(root);
-  return leaves;
-};
-
 const resolveLeafSurface = (node: SyntaxNode): string =>
   String(node.word || node.label || '').trim();
 
-const pickLexicalAnchor = (node: SyntaxNode): SyntaxNode | null => {
-  const leaves = collectLeafNodes(node);
-  if (leaves.length === 0) return null;
+const pruneCanopyMovementArtifacts = (node: SyntaxNode, isRoot = true): SyntaxNode | null => {
+  const children = Array.isArray(node.children) ? node.children : [];
+  const prunedChildren = children
+    .map((child) => pruneCanopyMovementArtifacts(child, false))
+    .filter((child): child is SyntaxNode => Boolean(child));
 
-  return (
-    leaves.find((leaf) => {
-      const surface = resolveLeafSurface(leaf);
-      return surface.length > 0 && !NULL_SURFACE_RE.test(surface) && !TRACE_SURFACE_RE.test(surface);
-    }) ||
-    leaves.find((leaf) => {
-      const surface = resolveLeafSurface(leaf);
-      return surface.length > 0 && !NULL_SURFACE_RE.test(surface);
-    }) ||
-    leaves[0]
-  );
-};
-
-const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
-  const leaves = collectLeafNodes(node);
-  if (leaves.length === 0) return null;
-
-  return (
-    leaves.find((leaf) => TRACE_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
-    leaves.find((leaf) => NULL_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
-    leaves[0]
-  );
-};
-
-const buildNodeIndex = (root: SyntaxNode): Map<string, SyntaxNode> => {
-  const byId = new Map<string, SyntaxNode>();
-  const visit = (node: SyntaxNode) => {
-    const id = String(node.id || '').trim();
-    if (id) byId.set(id, node);
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(visit);
-  };
-  visit(root);
-  return byId;
-};
-
-const buildMovementIndexMaps = (
-  tree: SyntaxNode,
-  movementEvents?: MovementEvent[]
-): MovementIndexMaps => {
-  if (!movementEvents || movementEvents.length === 0) return EMPTY_MOVEMENT_INDEX_MAPS;
-
-  const nodeById = buildNodeIndex(tree);
-  const movedByNodeId = new Map<string, string>();
-  const traceByNodeId = new Map<string, string>();
-  const seenPairs = new Set<string>();
-  let nextIndex = 0;
-
-  movementEvents.forEach((event) => {
-    const toNode = nodeById.get(String(event.toNodeId || '').trim());
-    const fromNode = nodeById.get(String(event.fromNodeId || '').trim());
-    if (!toNode || !fromNode) return;
-
-    const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
-    const movedAnchor = pickLexicalAnchor(toNode) || pickLexicalAnchor(fromNode);
-    const traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
-    if (!movedAnchor?.id) return;
-
-    const pairKey = `${traceAnchor?.id || event.fromNodeId}->${movedAnchor.id}`;
-    if (seenPairs.has(pairKey)) return;
-    seenPairs.add(pairKey);
-
-    const movementIndex = indexToLetter(nextIndex);
-    nextIndex += 1;
-
-    movedByNodeId.set(movedAnchor.id, movementIndex);
-    if (traceAnchor?.id) {
-      traceByNodeId.set(traceAnchor.id, movementIndex);
+  if (prunedChildren.length === 0) {
+    const surface = resolveLeafSurface(node);
+    if (!isRoot && TRACE_SURFACE_RE.test(surface)) {
+      return null;
     }
-  });
+    return {
+      label: node.label,
+      id: node.id,
+      word: node.word
+    };
+  }
 
-  return { movedByNodeId, traceByNodeId };
+  return {
+    label: node.label,
+    id: node.id,
+    children: prunedChildren
+  };
 };
 
 const applyGrowthMovementNotation = (
@@ -525,10 +446,11 @@ const serializeMilesNode = (
 const buildMilesNotation = (
   tree: SyntaxNode,
   mode: MilesMode,
-  movementEvents?: MovementEvent[]
+  movementEvents?: MovementEvent[],
+  precomputedMovementMaps?: MovementIndexMaps
 ): string => {
   const movementMaps = mode === 'growth'
-    ? buildMovementIndexMaps(tree, movementEvents)
+    ? (precomputedMovementMaps || buildMovementIndexMaps(tree, movementEvents))
     : EMPTY_MOVEMENT_INDEX_MAPS;
   return serializeMilesNode(tree, mode, movementMaps).trim();
 };
@@ -573,16 +495,23 @@ const App: React.FC = () => {
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
   const isFallbackModel = Boolean(analysisBundle?.fallbackUsed);
   const isTreeBankView = workspaceView === 'treeBank';
+  const resolvedMovementLinks = useMemo(() => {
+    if (!activeParse) return [];
+    return resolveMovementEventLinks(activeParse.tree, activeParse.movementEvents);
+  }, [activeParse]);
+  const growthMovementMaps = useMemo(() => {
+    if (!activeParse) return EMPTY_MOVEMENT_INDEX_MAPS;
+    return buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents);
+  }, [activeParse]);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    const modelProvided = String(activeParse.bracketedNotation || '').trim();
-    if (modelProvided) return modelProvided;
-    return buildMilesNotation(activeParse.tree, 'canopy', activeParse.movementEvents);
+    const tracePrunedTree = pruneCanopyMovementArtifacts(activeParse.tree) || activeParse.tree;
+    return buildMilesNotation(tracePrunedTree, 'canopy');
   }, [activeParse]);
   const growthMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeParse.tree, 'growth', activeParse.movementEvents);
-  }, [activeParse]);
+    return buildMilesNotation(activeParse.tree, 'growth', activeParse.movementEvents, growthMovementMaps);
+  }, [activeParse, growthMovementMaps]);
 
   useEffect(() => {
     const checkKeyStatus = async () => {
@@ -1082,10 +1011,10 @@ const App: React.FC = () => {
 
           {!loading && activeParse && (activeTab === 'tree' || activeTab === 'growth') ? (
             <TreeVisualizer 
-              data={activeParse.tree} 
+              data={activeParse.tree}
               animated={activeTab === 'growth'} 
               derivationSteps={activeParse.derivationSteps}
-              movementEvents={activeParse.movementEvents}
+              resolvedMovementLinks={resolvedMovementLinks}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
             />

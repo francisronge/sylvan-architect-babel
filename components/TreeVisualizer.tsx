@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Sprout } from 'lucide-react';
-import { DerivationStep, FeatureCheckEvent, MovementEvent, SyntaxNode } from '../types';
+import { DerivationStep, FeatureCheckEvent, SyntaxNode } from '../types';
+import { ResolvedMovementEventLink } from '../movementEvents';
 
 interface TreeVisualizerProps {
   data: SyntaxNode;
   animated?: boolean;
   derivationSteps?: DerivationStep[];
-  movementEvents?: MovementEvent[];
+  resolvedMovementLinks?: ResolvedMovementEventLink[];
   abstractionMode?: boolean;
   sentence?: string;
 }
@@ -92,19 +93,6 @@ const normalizeToken = (value: string): string => {
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 };
 
-const extractTraceToken = (label: string): string | null => {
-  const text = label.trim();
-  if (!text) return null;
-
-  const angleMatch = text.match(/^<([^>]+)>$/) || text.match(/^⟨([^⟩]+)⟩$/);
-  if (angleMatch?.[1]) return normalizeToken(angleMatch[1]);
-
-  const traceLabelMatch = text.match(/^trace[:\s-]*(.+)$/i);
-  if (traceLabelMatch?.[1]) return normalizeToken(traceLabelMatch[1]);
-
-  return null;
-};
-
 const extractMovementIndex = (label: string): string | null => {
   const text = [...label.trim()].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
   const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
@@ -113,45 +101,6 @@ const extractMovementIndex = (label: string): string | null => {
   if (plain?.[1]) return plain[1].toLowerCase();
   const danglingSubscript = text.match(/([A-Za-z0-9]+)$/);
   return danglingSubscript?.[1] && /[₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜ]/.test(label) ? danglingSubscript[1].toLowerCase() : null;
-};
-
-const extractMovementIndicesFromText = (value?: string): string[] => {
-  if (!value) return [];
-  const text = [...value].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
-  const out = new Set<string>();
-  const pattern = /_(?:\{|\[|\()?\s*([A-Za-z0-9]+)\s*(?:\}|\]|\))?/gi;
-  let match: RegExpExecArray | null = pattern.exec(text);
-  while (match) {
-    if (match[1]) out.add(match[1].toLowerCase());
-    match = pattern.exec(text);
-  }
-  return Array.from(out);
-};
-
-const normalizeCategory = (label: string): string => {
-  return label.trim().replace(/[{}\[\]()]/g, '').replace(/\s+/g, '').toUpperCase();
-};
-
-const getNearestHeadCategory = (node: HierNode): string | null => {
-  let current: HierNode | null = node.parent || null;
-  while (current) {
-    const category = normalizeCategory(resolveNodeLabel(current));
-    if (HEAD_CATEGORIES.has(category)) return category;
-    current = current.parent || null;
-  }
-  return null;
-};
-
-const getClauseAnchorId = (node: HierNode): string => {
-  let current: HierNode | null = node.parent || null;
-  while (current) {
-    const label = normalizeCategory(resolveNodeLabel(current));
-    if (label === 'CP' || label === 'TP' || label === 'INFLP' || label === 'IP') {
-      return getNodeId(current);
-    }
-    current = current.parent || null;
-  }
-  return node.ancestors().length > 0 ? getNodeId(node.ancestors()[node.ancestors().length - 1]) : getNodeId(node);
 };
 
 const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
@@ -448,51 +397,25 @@ const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
   return new Map(steps.map((step, idx) => [step.targetNodeId, idx]));
 };
 
-const getTerminalDescendants = (node: HierNode): HierNode[] => {
-  return node.descendants().filter((desc) => !desc.children || desc.children.length === 0);
-};
-
-const pickTerminalAnchor = (node: HierNode, mode: 'trace' | 'lexical' | 'any'): HierNode | null => {
-  const terminals = getTerminalDescendants(node);
-  if (terminals.length === 0) return null;
-
-  const filtered = terminals.filter((leaf) => {
-    const surface = resolveLeafSurface(leaf);
-    if (mode === 'trace') return isTraceLike(surface);
-    if (mode === 'lexical') return !isTraceLike(surface) && !isNullLike(surface);
-    return true;
-  });
-  const pool = filtered.length > 0 ? filtered : terminals;
-  return [...pool].sort((a, b) => (b.depth - a.depth) || (b.y - a.y))[0] || null;
-};
-
-const buildMovementArrowsFromEvents = (
+const buildMovementArrowsFromLinks = (
   visibleNodes: HierNode[],
-  movementEvents: MovementEvent[] | undefined,
+  resolvedMovementLinks: ResolvedMovementEventLink[] | undefined,
   nodeStepIndex: Map<string, number>,
   playbackSteps: PlaybackStep[]
 ): MovementArrow[] => {
-  if (!movementEvents || movementEvents.length === 0) return [];
+  if (!resolvedMovementLinks || resolvedMovementLinks.length === 0) return [];
 
   const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
   const arrows: MovementArrow[] = [];
   const seen = new Set<string>();
   const lastStep = playbackSteps.length > 0 ? playbackSteps.length - 1 : 0;
 
-  movementEvents.forEach((event) => {
-    const rawFrom = nodeById.get(event.fromNodeId);
-    const rawTo = nodeById.get(event.toNodeId);
-    if (!rawFrom || !rawTo) return;
-
-    const rawTrace = event.traceNodeId ? nodeById.get(event.traceNodeId) : undefined;
-    const source = rawTrace
-      ? pickTerminalAnchor(rawTrace, 'trace') || pickTerminalAnchor(rawFrom, 'trace') || pickTerminalAnchor(rawFrom, 'any')
-      : pickTerminalAnchor(rawFrom, 'any');
-    const target = pickTerminalAnchor(rawTo, 'lexical') || pickTerminalAnchor(rawTo, 'any');
-    const traceNode = rawTrace
-      ? pickTerminalAnchor(rawTrace, 'trace') || pickTerminalAnchor(rawTrace, 'any')
-      : (source && isTraceLike(resolveLeafSurface(source)) ? source : null);
-
+  resolvedMovementLinks.forEach((link) => {
+    const source = nodeById.get(String(link.sourceAnchorId || '').trim());
+    const target = nodeById.get(String(link.movedAnchorId || '').trim());
+    const traceNode = link.traceAnchorId
+      ? nodeById.get(String(link.traceAnchorId).trim()) || undefined
+      : undefined;
     if (!source || !target) return;
     const sourceId = getNodeId(source);
     const targetId = getNodeId(target);
@@ -508,13 +431,10 @@ const buildMovementArrowsFromEvents = (
       traceNode ? (nodeStepIndex.get(getNodeId(traceNode)) ?? 0) : 0
     );
 
-    const rawStep = Number(event.stepIndex);
+    const rawStep = Number(link.stepIndex);
     const explicitStep = Number.isInteger(rawStep) && rawStep >= 0 ? rawStep : undefined;
     const step = explicitStep !== undefined ? Math.min(explicitStep, lastStep) : derivedStep;
-    const index =
-      extractMovementIndex(resolveLeafSurface(traceNode || source)) ||
-      extractMovementIndex(resolveLeafSurface(target)) ||
-      null;
+    const index = String(link.movementIndex || '').trim().toLowerCase() || null;
 
     arrows.push({
       source,
@@ -523,213 +443,6 @@ const buildMovementArrowsFromEvents = (
       step,
       index
     });
-  });
-
-  return arrows;
-};
-
-const getMoveStepForIndex = (playbackSteps: PlaybackStep[], movementIndex: string): number | null => {
-  const needle = movementIndex.toLowerCase();
-  for (let idx = 0; idx < playbackSteps.length; idx += 1) {
-    const step = playbackSteps[idx];
-    if (!isMoveLikeOperation(step.operation)) continue;
-
-    const sourceMatch = (step.sourceLabels || []).some((label) => extractMovementIndex(label) === needle);
-    const targetMatch = extractMovementIndex(step.targetLabel) === needle;
-    const recipeMatch = extractMovementIndicesFromText(step.recipe).includes(needle);
-    if (sourceMatch || targetMatch || recipeMatch) return idx;
-  }
-  return null;
-};
-
-const buildTraceMovementPairs = (
-  visibleNodes: HierNode[],
-  nodeStepIndex: Map<string, number>,
-  playbackSteps: PlaybackStep[]
-): MovementArrow[] => {
-  const leaves = visibleNodes.filter((node) => !node.children || node.children.length === 0);
-  const traceLeaves = leaves.filter((leaf) => isTraceLike(resolveLeafSurface(leaf)));
-  const lexicalLeaves = leaves.filter((leaf) => !isTraceLike(resolveLeafSurface(leaf)));
-  const seen = new Set<string>();
-  const arrows: MovementArrow[] = [];
-
-  for (const trace of traceLeaves) {
-    const traceSurface = resolveLeafSurface(trace);
-    const token = extractTraceToken(traceSurface);
-    const index = extractMovementIndex(traceSurface);
-    const candidates = lexicalLeaves.filter((leaf) => {
-      const leafSurface = resolveLeafSurface(leaf);
-      const tokenMatch = token ? normalizeToken(leafSurface) === token : false;
-      const indexMatch = index ? extractMovementIndex(leafSurface) === index : false;
-      return tokenMatch || indexMatch;
-    });
-    if (candidates.length === 0) continue;
-
-    const sorted = [...candidates].sort((a, b) => {
-      const aScore = Math.abs(a.x - trace.x) + Math.abs(a.y - trace.y) * 0.65;
-      const bScore = Math.abs(b.x - trace.x) + Math.abs(b.y - trace.y) * 0.65;
-      return aScore - bScore;
-    });
-
-    const moved = sorted[0];
-    const key = `${getNodeId(trace)}->${getNodeId(moved)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const moveStep = index ? getMoveStepForIndex(playbackSteps, index) : null;
-    const step = moveStep ?? Math.max(
-      nodeStepIndex.get(getNodeId(trace)) ?? 0,
-      nodeStepIndex.get(getNodeId(moved)) ?? 0
-    );
-    arrows.push({ source: trace, target: moved, step, index });
-  }
-
-  const byIndex = new Map<string, { traces: HierNode[]; lexicals: HierNode[] }>();
-  leaves.forEach((leaf) => {
-    const index = extractMovementIndex(resolveLeafSurface(leaf));
-    if (!index) return;
-    const bucket = byIndex.get(index) || { traces: [], lexicals: [] };
-    if (isTraceLike(resolveLeafSurface(leaf))) {
-      bucket.traces.push(leaf);
-    } else {
-      bucket.lexicals.push(leaf);
-    }
-    byIndex.set(index, bucket);
-  });
-
-  byIndex.forEach((bucket, index) => {
-    const moveStep = getMoveStepForIndex(playbackSteps, index);
-    if (bucket.traces.length > 0 && bucket.lexicals.length > 0) {
-      const trace = [...bucket.traces].sort((a, b) => b.y - a.y)[0];
-      const lexical = [...bucket.lexicals].sort((a, b) => a.y - b.y)[0];
-      const key = `${getNodeId(trace)}->${getNodeId(lexical)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        arrows.push({
-          source: trace,
-          target: lexical,
-          step: moveStep ?? Math.max(
-            nodeStepIndex.get(getNodeId(trace)) ?? 0,
-            nodeStepIndex.get(getNodeId(lexical)) ?? 0
-          ),
-          index
-        });
-      }
-      return;
-    }
-
-    if (bucket.lexicals.length >= 2) {
-      const source = [...bucket.lexicals].sort((a, b) => b.y - a.y)[0];
-      const target = [...bucket.lexicals].sort((a, b) => a.y - b.y)[0];
-      const key = `${getNodeId(source)}->${getNodeId(target)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        arrows.push({
-          source,
-          target,
-          step: moveStep ?? Math.max(
-            nodeStepIndex.get(getNodeId(source)) ?? 0,
-            nodeStepIndex.get(getNodeId(target)) ?? 0
-          ),
-          index
-        });
-      }
-    }
-  });
-
-  return arrows;
-};
-
-const buildStepMovementPairs = (
-  visibleNodes: HierNode[],
-  playbackSteps: PlaybackStep[],
-  nodeStepIndex: Map<string, number>,
-  existingKeys: Set<string>
-): MovementArrow[] => {
-  const leaves = visibleNodes.filter((node) => !node.children || node.children.length === 0);
-  const traceLeaves = leaves.filter((node) => isTraceLike(resolveLeafSurface(node)));
-  const lexicalLeaves = leaves.filter((node) => !isTraceLike(resolveLeafSurface(node)) && !isNullLike(resolveLeafSurface(node)));
-  const arrows: MovementArrow[] = [];
-  const seen = new Set<string>(existingKeys);
-  const usedTrace = new Set<string>();
-
-  const parseSourceCategories = (step: PlaybackStep): Set<string> => {
-    const out = new Set<string>();
-    (step.sourceLabels || []).forEach((label) => {
-      const normalized = normalizeCategory(label);
-      if (HEAD_CATEGORIES.has(normalized)) out.add(normalized);
-    });
-    const recipe = (step.recipe || '').toUpperCase();
-    const recipeMatch = recipe.match(/([A-Z][A-Z0-9']*)\s*->/);
-    if (recipeMatch?.[1]) {
-      const normalized = normalizeCategory(recipeMatch[1]);
-      if (HEAD_CATEGORIES.has(normalized)) out.add(normalized);
-    }
-    return out;
-  };
-
-  const parseTargetCategory = (step: PlaybackStep): string | null => {
-    const fromLabel = normalizeCategory(step.targetLabel || '');
-    if (HEAD_CATEGORIES.has(fromLabel)) return fromLabel;
-    const recipe = (step.recipe || '').toUpperCase();
-    const recipeMatch = recipe.match(/->\s*([A-Z][A-Z0-9']*)/);
-    if (recipeMatch?.[1]) {
-      const normalized = normalizeCategory(recipeMatch[1]);
-      if (HEAD_CATEGORIES.has(normalized)) return normalized;
-    }
-    return null;
-  };
-
-  playbackSteps.forEach((step, idx) => {
-    if (step.operation !== 'Move' && step.operation !== 'InternalMerge') return;
-    const sourceCategories = parseSourceCategories(step);
-    const targetCategory = parseTargetCategory(step);
-
-    const traceCandidates = traceLeaves
-      .filter((trace) => !usedTrace.has(getNodeId(trace)))
-      .filter((trace) => {
-        if (sourceCategories.size === 0) return true;
-        const traceHead = getNearestHeadCategory(trace);
-        return traceHead ? sourceCategories.has(traceHead) : false;
-      });
-
-    if (traceCandidates.length === 0) return;
-
-    let best: { source: HierNode; target: HierNode; score: number } | null = null;
-
-    traceCandidates.forEach((trace) => {
-      const traceHead = getNearestHeadCategory(trace);
-      const traceClause = getClauseAnchorId(trace);
-
-      lexicalLeaves.forEach((lexical) => {
-        const lexicalId = getNodeId(lexical);
-        if (lexicalId === getNodeId(trace)) return;
-
-        const lexicalHead = getNearestHeadCategory(lexical);
-        const lexicalClause = getClauseAnchorId(lexical);
-        const distanceScore = Math.abs(lexical.x - trace.x) + Math.abs(lexical.y - trace.y) * 0.45;
-        const clausePenalty = lexicalClause === traceClause ? 0 : 900;
-        const targetPenalty = targetCategory && lexicalHead !== targetCategory ? 650 : 0;
-        const selfHeadPenalty = traceHead && lexicalHead === traceHead ? 180 : 0;
-        const total = distanceScore + clausePenalty + targetPenalty + selfHeadPenalty;
-
-        if (!best || total < best.score) {
-          best = { source: trace, target: lexical, score: total };
-        }
-      });
-    });
-
-    if (!best) return;
-    const key = `${getNodeId(best.source)}->${getNodeId(best.target)}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    usedTrace.add(getNodeId(best.source));
-
-    const stepGate = Math.max(
-      idx,
-      nodeStepIndex.get(getNodeId(best.source)) ?? 0,
-      nodeStepIndex.get(getNodeId(best.target)) ?? 0
-    );
-    arrows.push({ source: best.source, target: best.target, step: stepGate });
   });
 
   return arrows;
@@ -884,7 +597,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   data,
   animated = false,
   derivationSteps,
-  movementEvents,
+  resolvedMovementLinks,
   abstractionMode = false,
   sentence = ''
 }) => {
@@ -921,19 +634,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ].join(':'))
       .join('|');
   }, [derivationSteps]);
-  const movementEventsSignature = useMemo(() => {
-    const events = movementEvents || [];
-    return events
-      .map((event, idx) => [
+  const movementLinksSignature = useMemo(() => {
+    const links = resolvedMovementLinks || [];
+    return links
+      .map((link, idx) => [
         idx,
-        event.operation || '',
-        event.fromNodeId || '',
-        event.toNodeId || '',
-        event.traceNodeId || '',
-        event.stepIndex ?? ''
+        link.movementIndex || '',
+        link.sourceAnchorId || '',
+        link.movedAnchorId || '',
+        link.traceAnchorId || '',
+        link.stepIndex ?? ''
       ].join(':'))
       .join('|');
-  }, [movementEvents]);
+  }, [resolvedMovementLinks]);
   const playbackSteps = useMemo(() => {
     if (!animated) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
@@ -1105,7 +818,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const nodeStepIndex = buildNodeStepIndex(timeline);
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
     const movementArrows = animated && !abstractionMode
-      ? buildMovementArrowsFromEvents(visibleNodes, movementEvents, nodeStepIndex, timeline)
+      ? buildMovementArrowsFromLinks(visibleNodes, resolvedMovementLinks, nodeStepIndex, timeline)
       : [];
     const nodeRevealStepIndex = new Map(nodeStepIndex);
     const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
@@ -1360,7 +1073,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
     }
 
-  }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementEventsSignature]);
+  }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementLinksSignature]);
 
   const activeStep = animated && playbackSteps.length > 0
     ? playbackSteps[Math.min(activeStepIndex, playbackSteps.length - 1)]

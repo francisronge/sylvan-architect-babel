@@ -119,7 +119,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5177,
     strictPort: true,
-    host: '127.0.0.1'
+    host: '127.0.0.1',
+    allowedHosts: ['.trycloudflare.com']
   },
   plugins: [react(), secureParseApiPlugin(mode)],
   resolve: {
