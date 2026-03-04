@@ -13,6 +13,7 @@ dist-ssr
 .artifacts/
 test-results/
 skills/
+.vercel/
 *.local
 .env
 .env.*
