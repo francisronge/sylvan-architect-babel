@@ -8,6 +8,8 @@ Babel is not a general chatbot. Its core purpose is syntactic analysis and struc
 
 Babel is generative syntax, implemented as an interactive derivation and structure analysis environment.
 
+Babel is the world's first AI syntax tree generator and the fastest syntax tree generator in its class.
+
 ## Why Babel exists
 
 Many tree tools either use rigid templates or return black-box output with little transparency.
@@ -48,13 +50,20 @@ Babel includes two theory modes:
 
 Switching mode changes the analysis behavior and explanatory framing.
 
-### 2) Constituent Glyphing toggle
+### 2) Model route switch (default: Flash Lite)
+
+Babel includes a model switch in the header:
+
+- `Gemini 3.1 Flash Lite` (default): extremely fast and lighter-weight.
+- `Gemini 3.1 Pro`: slower, but typically more thorough.
+
+### 3) Constituent Glyphing toggle
 
 Babel includes a `Constituent Glyphing` abstraction toggle.
 
 This gives an alternate visual layer for reading structure at a higher level of abstraction, while preserving the underlying parse output.
 
-### 3) Input console (Arboretum Link)
+### 4) Input console (Arboretum Link)
 
 The bottom control panel supports:
 
@@ -64,7 +73,7 @@ The bottom control panel supports:
 - Framework-sensitive placeholder guidance
 - In-panel error/status feedback
 
-### 4) Parse execution flow
+### 5) Parse execution flow
 
 When you submit a sentence, Babel shows:
 
@@ -72,19 +81,19 @@ When you submit a sentence, Babel shows:
 - Parse success state (tree + supporting views)
 - Parse error state with user-readable messages
 
-### 5) Ambiguity handling (Parse 1 / Parse 2)
+### 6) Ambiguity handling (Parse 1 / Parse 2)
 
 If Babel detects clear syntactic ambiguity, it can return two analyses.
 
 You can toggle `Parse 1` and `Parse 2`, and the active parse updates across the entire app state (tree view, growth simulation, catalog, notes).
 
-### 6) Canopy view
+### 7) Canopy view
 
 `Canopy` is the clean final-tree view.
 
 It is optimized for readability of the resulting structure.
 
-### 7) Growth Simulation view
+### 8) Growth Simulation view
 
 `Growth Simulation` is the derivation playback environment.
 
@@ -101,13 +110,13 @@ It includes:
 
 This view is designed to expose process, not just endpoint.
 
-### 8) Catalog view
+### 9) Catalog view
 
 `Catalog` displays token-level parts-of-speech output from the active parse.
 
 This helps users cross-check lexical categorization against the generated tree.
 
-### 9) Notes view
+### 10) Notes view
 
 `Notes` includes:
 
@@ -118,7 +127,7 @@ This helps users cross-check lexical categorization against the generated tree.
 - Direct external link support for notation tooling
 - Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
 
-### 10) Output artifacts
+### 11) Output artifacts
 
 Each parse can include structured outputs such as:
 
@@ -131,7 +140,7 @@ Each parse can include structured outputs such as:
 
 These outputs are intended for both human reading and downstream inspection workflows.
 
-### 11) Tree Bank
+### 12) Tree Bank
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 
