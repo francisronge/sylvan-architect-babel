@@ -6,6 +6,8 @@ It helps you test how large language models reason about syntax under explicit t
 
 Babel is not a general chatbot. Its core purpose is syntactic analysis and structure visualization.
 
+Babel is generative syntax, implemented as an interactive derivation and structure analysis environment.
+
 ## Why Babel exists
 
 Many tree tools either use rigid templates or return black-box output with little transparency.
@@ -21,6 +23,8 @@ Babel is designed to make the model's structural decisions inspectable:
 
 ### Researchers
 
+- A structural reasoning benchmark for language models.
+- Can large language models construct syntactic derivations that obey formal grammatical constraints?
 - Evaluate whether output reflects framework constraints vs shallow pattern matching.
 - Run prompt-level comparisons between X-bar and Minimalist settings.
 - Inspect movement, derivational order, and structural alternatives.
