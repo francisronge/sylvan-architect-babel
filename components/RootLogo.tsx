@@ -4,51 +4,65 @@ interface RootLogoProps {
   size?: number;
   className?: string;
   strokeWidth?: number;
+  shape?: 'square' | 'circle';
+  blend?: boolean;
+  zoom?: number;
+  inset?: number;
 }
 
 const RootLogo: React.FC<RootLogoProps> = ({
   size = 24,
   className,
-  strokeWidth = 7
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 128 128"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-    aria-hidden="true"
-  >
-    <g
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+  shape = 'square',
+  blend = true,
+  zoom = 1.12,
+  inset
+}) => {
+  const radiusClass = shape === 'circle' ? 'rounded-full' : 'rounded-[22%]';
+  const imageInset = inset ?? 0;
+  const isCircle = shape === 'circle';
+  const shellBackground = blend
+    ? 'linear-gradient(145deg, #053a2d 0%, #065f46 55%, #064e3b 100%)'
+    : 'transparent';
+
+  return (
+    <span
+      className={`relative inline-flex shrink-0 overflow-hidden isolate ${radiusClass} ${className ?? ''}`}
+      style={{
+        width: size,
+        height: size,
+        background: shellBackground
+      }}
     >
-      <path d="M38 12H90" />
-      <path d="M64 12V46" />
-      <path d="M64 46L56 64" />
-      <path d="M64 46L74 62" />
-      <path d="M56 64L40 76" />
-      <path d="M56 64L60 88" />
-      <path d="M74 62L92 74" />
-      <path d="M74 62L68 90" />
-      <path d="M40 76L24 88" />
-      <path d="M40 76L34 112" />
-      <path d="M60 88L56 114" />
-      <path d="M60 88L68 114" />
-      <path d="M92 74L108 88" />
-      <path d="M92 74L102 108" />
-      <path d="M68 90L84 104" />
-      <path d="M84 104L92 118" />
-      <path d="M56 64L46 66" />
-      <path d="M74 62L84 64" />
-      <path d="M34 112L26 124" />
-      <path d="M68 114L80 124" />
-      <path d="M102 108L114 118" />
-    </g>
-  </svg>
-);
+      <img
+        src="/babellogo.png"
+        alt="Babel logo"
+        className="absolute h-full w-full select-none pointer-events-none"
+        style={{
+          top: `${imageInset}%`,
+          left: `${imageInset}%`,
+          width: `${100 - imageInset * 2}%`,
+          height: `${100 - imageInset * 2}%`,
+          borderRadius: isCircle ? '9999px' : 0,
+          objectFit: 'cover',
+          transform: `scale(${zoom})`,
+          transformOrigin: 'center',
+          mixBlendMode: blend ? 'screen' : 'normal',
+          opacity: blend ? 0.95 : 1,
+          filter: blend ? 'saturate(1.12) contrast(1.04) brightness(1.08)' : 'none'
+        }}
+        draggable={false}
+      />
+      {blend && (
+        <span
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 30% 24%, rgba(16,185,129,0.2) 0%, rgba(16,185,129,0.08) 45%, rgba(16,185,129,0) 100%)'
+          }}
+        />
+      )}
+    </span>
+  );
+};
 
 export default RootLogo;

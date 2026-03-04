@@ -1183,7 +1183,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               style={{ left: `${stepPercent}%`, transform: 'translate(-50%, -50%)' }}
             >
               <div className="w-5 h-5 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shadow-[0_0_12px_rgba(167,243,208,0.75)]">
-                <RootLogo size={12} className="text-emerald-700" />
+                <RootLogo size={12} blend={false} zoom={1.12} />
               </div>
             </div>
           </div>

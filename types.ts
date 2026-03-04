@@ -62,6 +62,7 @@ export interface ParseBundle {
   analyses: ParseResult[];
   ambiguityDetected: boolean;
   ambiguityNote?: string;
+  requestedModelRoute?: 'flash-lite' | 'pro';
   modelUsed?: string;
   modelsTried?: string[];
   fallbackUsed?: boolean;

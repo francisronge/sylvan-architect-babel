@@ -28,14 +28,15 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
 
 export const parseSentence = async (
   sentence: string,
-  framework: 'xbar' | 'minimalism' = 'xbar'
+  framework: 'xbar' | 'minimalism' = 'xbar',
+  modelRoute: 'flash-lite' | 'pro' = 'flash-lite'
 ): Promise<ParseBundle> => {
   const response = await fetch('/api/parse', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ sentence, framework })
+    body: JSON.stringify({ sentence, framework, modelRoute })
   });
 
   if (!response.ok) {

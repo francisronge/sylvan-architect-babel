@@ -71,6 +71,14 @@ const formatModelLabel = (modelUsed?: string): string => {
   return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
 };
 
+type ModelRoute = 'flash-lite' | 'pro';
+
+const inferModelRouteFromModel = (modelUsed?: string): ModelRoute => {
+  const model = String(modelUsed || '').trim().toLowerCase();
+  if (!model) return 'flash-lite';
+  return model.includes('pro') ? 'pro' : 'flash-lite';
+};
+
 type MilesMode = 'canopy' | 'growth';
 type CopyCodeKey = 'canopy' | 'growth';
 type WorkspaceView = 'arboretum' | 'treeBank';
@@ -479,6 +487,7 @@ const App: React.FC = () => {
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
+  const [modelRoute, setModelRoute] = useState<ModelRoute>('flash-lite');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -491,6 +500,7 @@ const App: React.FC = () => {
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
+  const selectedModelLabel = modelRoute === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.1 Flash Lite';
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
   const isFallbackModel = Boolean(analysisBundle?.fallbackUsed);
   const isTreeBankView = workspaceView === 'treeBank';
@@ -598,8 +608,9 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const data = await parseSentence(input, framework);
+      const data = await parseSentence(input, framework, modelRoute);
       setAnalysisBundle(data);
+      setModelRoute(data.requestedModelRoute || modelRoute);
       setParsedSentence(input.trim());
       setActiveParseIndex(0);
       setActiveTab('tree');
@@ -666,6 +677,7 @@ const App: React.FC = () => {
     setParsedSentence(entry.sentence);
     setInput(entry.sentence);
     setFramework(entry.framework);
+    setModelRoute(entry.bundle.requestedModelRoute || inferModelRouteFromModel(entry.bundle.modelUsed));
     setActiveParseIndex(nextParseIndex);
     setActiveTab('tree');
     setError(null);
@@ -738,8 +750,8 @@ const App: React.FC = () => {
         <div className="max-w-[2000px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 moss-gradient rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,78,59,0.5)] rotate-3">
-                <RootLogo size={20} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)] rotate-3">
+                <RootLogo size={40} shape="square" blend={true} zoom={1.12} />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
@@ -821,17 +833,22 @@ const App: React.FC = () => {
             </button>
 
             {!isTreeBankView && (
-              <div
+              <button
+                onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
                 className={`hidden md:flex items-center gap-2 text-[9px] font-black px-5 py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
-                  isFallbackModel
-                    ? 'text-amber-300 bg-amber-950/30 border-amber-800/40'
+                  modelRoute === 'pro'
+                    ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
                     : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
                 }`}
-                title={analysisBundle?.modelUsed ? `Model route: ${analysisBundle.modelUsed}` : 'Model route'}
+                title={
+                  analysisBundle?.modelUsed
+                    ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}${isFallbackModel ? ' (fallback).' : '.'}`
+                    : 'Toggle parsing model route'
+                }
               >
-                <Zap size={10} className={isFallbackModel ? 'fill-amber-300' : 'fill-emerald-400'} />
-                {isFallbackModel ? `Fallback · ${modelLabel}` : modelLabel}
-              </div>
+                <Zap size={10} className={modelRoute === 'pro' ? 'fill-purple-300' : 'fill-emerald-400'} />
+                {selectedModelLabel}
+              </button>
             )}
             <button
               onClick={toggleFullscreen}
@@ -1127,7 +1144,7 @@ const App: React.FC = () => {
               <div className="relative">
                 <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
                 <div className="relative z-10 w-32 h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <RootLogo size={64} className="text-emerald-500/40 animate-pulse" />
+                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="animate-pulse" />
                 </div>
               </div>
               <div className="text-center z-10">
@@ -1251,7 +1268,7 @@ const App: React.FC = () => {
                 className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-14 h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
                 title="Restore Arboretum Link"
               >
-                <RootLogo size={28} className="animate-pulse" />
+                <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="animate-pulse" />
               </button>
             )}
           </>

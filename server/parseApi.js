@@ -1,6 +1,7 @@
 import { ParseApiError, parseSentenceWithGemini } from './geminiParser.js';
 
 const FRAMEWORKS = new Set(['xbar', 'minimalism']);
+const MODEL_ROUTES = new Set(['flash-lite', 'pro']);
 const MAX_SENTENCE_LENGTH = 600;
 
 export const validateParseBody = (body) => {
@@ -10,6 +11,7 @@ export const validateParseBody = (body) => {
 
   const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : '';
   const framework = typeof body.framework === 'string' ? body.framework.trim() : 'xbar';
+  const modelRoute = typeof body.modelRoute === 'string' ? body.modelRoute.trim().toLowerCase() : 'flash-lite';
 
   if (!sentence) {
     throw new ParseApiError('INVALID_REQUEST', 'Sentence is required.', 400);
@@ -23,12 +25,16 @@ export const validateParseBody = (body) => {
     throw new ParseApiError('INVALID_REQUEST', 'Framework must be "xbar" or "minimalism".', 400);
   }
 
-  return { sentence, framework };
+  if (!MODEL_ROUTES.has(modelRoute)) {
+    throw new ParseApiError('INVALID_REQUEST', 'Model route must be "flash-lite" or "pro".', 400);
+  }
+
+  return { sentence, framework, modelRoute };
 };
 
 export const parseFromBody = async (body) => {
-  const { sentence, framework } = validateParseBody(body);
-  return parseSentenceWithGemini(sentence, framework);
+  const { sentence, framework, modelRoute } = validateParseBody(body);
+  return parseSentenceWithGemini(sentence, framework, modelRoute);
 };
 
 export const formatApiError = (error) => {

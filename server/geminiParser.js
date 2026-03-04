@@ -929,21 +929,24 @@ const generateStructuredContent = async ({ ai, model, contents, systemInstructio
   }
 };
 
-export const parseSentenceWithGemini = async (sentence, framework = 'xbar') => {
+export const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) {
     throw new ParseApiError('API_KEY_MISSING', 'Gemini API key is not configured on the server.', 500);
   }
 
   const ai = new GoogleGenAI({ apiKey });
+  const normalizedModelRoute = modelRoute === 'pro' ? 'pro' : 'flash-lite';
   const systemInstruction = (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) + '\n\n' + BASE_INSTRUCTION;
   const contents =
     `Analyze the sentence: "${sentence}" and return a complete syntactic tree analysis using ` +
     `${framework === 'xbar' ? 'X-Bar Theory' : 'The Minimalist Program (Bare Phrase Structure)'} in the specified JSON format. ` +
     `Return the complete analysis in one pass.`;
+  const preferredModel = normalizedModelRoute === 'pro' ? FALLBACK_MODEL : PRIMARY_MODEL;
+  const secondaryModel = normalizedModelRoute === 'pro' ? PRIMARY_MODEL : FALLBACK_MODEL;
   const baseModelCandidates = Array.from(
     new Set(
-      [PRIMARY_MODEL, FALLBACK_MODEL]
+      [preferredModel, secondaryModel]
         .map((model) => String(model || '').trim())
         .filter(Boolean)
     )
@@ -1160,6 +1163,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar') => {
     const fallbackUsed = Boolean(usedModel && attemptedModels.length > 0 && usedModel !== attemptedModels[0]);
     return {
       ...normalized,
+      requestedModelRoute: normalizedModelRoute,
       modelUsed: usedModel || undefined,
       modelsTried: attemptedModels,
       fallbackUsed
