@@ -76,6 +76,30 @@ const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
   );
 };
 
+const isHeadTargetNode = (node: SyntaxNode): boolean => {
+  const label = String(node.label || '').trim().toLowerCase();
+  return label === 'c' || label === 't' || label === 'infl' || label === 'i';
+};
+
+const pickDistinctLeafAnchor = (node: SyntaxNode, avoidNodeId?: string): SyntaxNode | null => {
+  const leaves = collectLeafNodes(node);
+  if (leaves.length === 0) return null;
+  const avoid = String(avoidNodeId || '').trim();
+
+  const preferred = leaves.find((leaf) => {
+    const id = String(leaf.id || '').trim();
+    if (!id || (avoid && id === avoid)) return false;
+    const surface = resolveLeafSurface(leaf);
+    return surface.length > 0 && !NULL_SURFACE_RE.test(surface) && !TRACE_SURFACE_RE.test(surface);
+  });
+  if (preferred) return preferred;
+
+  return leaves.find((leaf) => {
+    const id = String(leaf.id || '').trim();
+    return Boolean(id) && (!avoid || id !== avoid);
+  }) || null;
+};
+
 const buildNodeIndex = (root: SyntaxNode): Map<string, SyntaxNode> => {
   const byId = new Map<string, SyntaxNode>();
   const visit = (node: SyntaxNode) => {
@@ -105,9 +129,39 @@ export const resolveMovementEventLinks = (
     if (!toNode || !fromNode) return;
 
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
-    const movedAnchor = pickLexicalAnchor(toNode) || pickLexicalAnchor(fromNode);
+    const fromLexicalAnchor = pickLexicalAnchor(fromNode);
+    let movedAnchor = pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode;
     const traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
-    const sourceAnchor = traceAnchor || pickLexicalAnchor(fromNode) || movedAnchor;
+    const preferLexicalSource = isHeadTargetNode(toNode);
+    let sourceAnchor = preferLexicalSource
+      ? (fromLexicalAnchor || traceAnchor || movedAnchor)
+      : (traceAnchor || fromLexicalAnchor || movedAnchor);
+
+    // If both sides collapse to the same lexical leaf, widen anchors to preserve a drawable arc.
+    if (sourceAnchor?.id && movedAnchor?.id && sourceAnchor.id === movedAnchor.id) {
+      const sourceDistinct =
+        pickDistinctLeafAnchor(fromNode, movedAnchor.id) ||
+        (traceNode ? pickDistinctLeafAnchor(traceNode, movedAnchor.id) : null) ||
+        (fromNode.id && fromNode.id !== movedAnchor.id ? fromNode : null);
+      if (sourceDistinct) {
+        sourceAnchor = sourceDistinct;
+      }
+
+      const movedDistinct =
+        pickDistinctLeafAnchor(toNode, sourceAnchor?.id) ||
+        (toNode.id && toNode.id !== sourceAnchor?.id ? toNode : null);
+      if (movedDistinct) {
+        movedAnchor = movedDistinct;
+      }
+
+      if (sourceAnchor?.id && movedAnchor?.id && sourceAnchor.id === movedAnchor.id) {
+        if (fromNode.id && toNode.id && fromNode.id !== toNode.id) {
+          sourceAnchor = fromNode;
+          movedAnchor = toNode;
+        }
+      }
+    }
+
     if (!movedAnchor?.id || !sourceAnchor?.id) return;
 
     const pairKey = `${sourceAnchor.id}->${movedAnchor.id}`;
@@ -153,4 +207,3 @@ export const buildMovementIndexMaps = (
 
   return { movedByNodeId, traceByNodeId };
 };
-

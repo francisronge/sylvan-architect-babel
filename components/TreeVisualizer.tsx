@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { DerivationStep, FeatureCheckEvent, SyntaxNode } from '../types';
 import { ResolvedMovementEventLink } from '../movementEvents';
@@ -233,8 +233,8 @@ const createInferredPlaybackSteps = (
 };
 
 const normalizeLabelKey = (label?: string): string => (label || "").trim().toUpperCase();
-const isMoveLikeOperation = (operation?: DerivationStep['operation']): boolean =>
-  operation === 'Move' || operation === 'InternalMerge';
+const isMoveLikeOperation = (operation?: DerivationStep['operation'] | string): boolean =>
+  /^(move|internal[\s-]*merge)$/i.test(String(operation || '').trim());
 
 const stepMatchesSourceLabel = (step: PlaybackStep, sourceLabel: string): boolean => {
   const normalizedSource = normalizeLabelKey(sourceLabel);
@@ -397,6 +397,32 @@ const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
   return new Map(steps.map((step, idx) => [step.targetNodeId, idx]));
 };
 
+const resolveMovementStepForLink = (
+  link: ResolvedMovementEventLink,
+  nodeStepIndex: Map<string, number>,
+  lastStep: number
+): number | undefined => {
+  const sourceNodeId = String(link.sourceAnchorId || '').trim();
+  const targetNodeId = String(link.movedAnchorId || '').trim();
+  const traceNodeId = String(link.traceAnchorId || '').trim();
+  const sourceStep = sourceNodeId ? nodeStepIndex.get(sourceNodeId) : undefined;
+  const targetStep = targetNodeId ? nodeStepIndex.get(targetNodeId) : undefined;
+  const traceStep = traceNodeId ? nodeStepIndex.get(traceNodeId) : undefined;
+
+  const rawStep = Number(link.stepIndex);
+  const explicitStep = Number.isInteger(rawStep) && rawStep >= 0 ? Math.min(rawStep, lastStep) : undefined;
+  const anchoredCandidates = [sourceStep, targetStep, traceStep].filter((step): step is number => step !== undefined);
+  const anchoredStep = anchoredCandidates.length > 0 ? Math.max(...anchoredCandidates) : undefined;
+
+  if (anchoredStep !== undefined && explicitStep !== undefined) {
+    return Math.max(explicitStep, anchoredStep);
+  }
+  if (anchoredStep !== undefined) return anchoredStep;
+  if (explicitStep !== undefined) return explicitStep;
+
+  return undefined;
+};
+
 const buildMovementArrowsFromLinks = (
   visibleNodes: HierNode[],
   resolvedMovementLinks: ResolvedMovementEventLink[] | undefined,
@@ -425,15 +451,17 @@ const buildMovementArrowsFromLinks = (
     if (seen.has(key)) return;
     seen.add(key);
 
-    const derivedStep = Math.max(
-      nodeStepIndex.get(sourceId) ?? 0,
-      nodeStepIndex.get(targetId) ?? 0,
-      traceNode ? (nodeStepIndex.get(getNodeId(traceNode)) ?? 0) : 0
+    const step = resolveMovementStepForLink(
+      {
+        ...link,
+        sourceAnchorId: sourceId,
+        movedAnchorId: targetId,
+        traceAnchorId: traceNode ? getNodeId(traceNode) : undefined
+      },
+      nodeStepIndex,
+      lastStep
     );
-
-    const rawStep = Number(link.stepIndex);
-    const explicitStep = Number.isInteger(rawStep) && rawStep >= 0 ? rawStep : undefined;
-    const step = explicitStep !== undefined ? Math.min(explicitStep, lastStep) : derivedStep;
+    if (step === undefined) return;
     const index = String(link.movementIndex || '').trim().toLowerCase() || null;
 
     arrows.push({
@@ -450,6 +478,7 @@ const buildMovementArrowsFromLinks = (
 
 const formatOperationLabel = (operation?: DerivationStep['operation']): string => {
   if (!operation) return 'Derivation';
+  if (operation === 'Other') return 'Derivation';
   if (operation === 'LexicalSelect') return 'Select';
   return operation.replace(/([a-z])([A-Z])/g, '$1 $2');
 };
@@ -463,6 +492,83 @@ const formatFeatureCheckingEntry = (entry: FeatureCheckEvent): string => {
   const core = `${entry.feature}${value}`;
   const base = relation ? `${core} @ ${relation}` : core;
   return status ? `${base} ${status}` : base;
+};
+
+const MOVEMENT_TEXT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head\s*move|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
+
+const mentionsMovement = (text?: string): boolean => MOVEMENT_TEXT_RE.test(String(text || '').trim());
+
+const buildReplayMovementStepMap = (
+  arrows: MovementArrow[] | undefined
+): Map<number, MovementArrow[]> => {
+  const byStep = new Map<number, MovementArrow[]>();
+  if (!arrows || arrows.length === 0) return byStep;
+
+  arrows.forEach((arrow) => {
+    const bucket = byStep.get(arrow.step) || [];
+    bucket.push(arrow);
+    byStep.set(arrow.step, bucket);
+  });
+
+  return byStep;
+};
+
+const sanitizeStepForReplay = (
+  step: PlaybackStep | null,
+  movementArrowsAtStep: MovementArrow[]
+): PlaybackStep | null => {
+  if (!step) return null;
+  const hasMovementEvent = movementArrowsAtStep.length > 0;
+  if (hasMovementEvent) {
+    const stepAlreadyMentionsMovement =
+      isMoveLikeOperation(step.operation) ||
+      mentionsMovement(step.recipe) ||
+      mentionsMovement(step.note) ||
+      (step.featureChecking || []).some((entry) => {
+        const coreText = formatFeatureCheckingEntry(entry);
+        return mentionsMovement(coreText) || mentionsMovement(entry.note);
+      });
+    const movementIndices = movementArrowsAtStep
+      .map((arrow) => String(arrow.index || '').trim())
+      .filter((value) => value.length > 0);
+    const movementSuffix = movementIndices.length > 0
+      ? `Movement event active (${movementIndices.join(', ')}).`
+      : 'Movement event active.';
+    const multiMovementSuffix = movementIndices.length > 1
+      ? `Movement events on this step (${movementIndices.join(', ')}).`
+      : movementSuffix;
+
+    if (stepAlreadyMentionsMovement) {
+      if (movementIndices.length <= 1) return step;
+      const existingNote = String(step.note || '').trim();
+      if (/movement events?\s+on this step/i.test(existingNote)) return step;
+      return {
+        ...step,
+        note: existingNote ? `${existingNote} ${multiMovementSuffix}` : multiMovementSuffix
+      };
+    }
+
+    return {
+      ...step,
+      note: step.note ? `${step.note} ${movementSuffix}` : movementSuffix
+    };
+  }
+
+  const moveLikeOp = isMoveLikeOperation(step.operation);
+  const recipeMentionsMovement = mentionsMovement(step.recipe);
+  const noteMentionsMovement = mentionsMovement(step.note);
+  const filteredFeatureChecking = (step.featureChecking || []).filter((entry) => {
+    const coreText = formatFeatureCheckingEntry(entry);
+    return !mentionsMovement(coreText) && !mentionsMovement(entry.note);
+  });
+
+  return {
+    ...step,
+    operation: moveLikeOp ? 'Other' : step.operation,
+    recipe: moveLikeOp || recipeMentionsMovement ? undefined : step.recipe,
+    featureChecking: filteredFeatureChecking.length > 0 ? filteredFeatureChecking : undefined,
+    note: noteMentionsMovement ? undefined : step.note
+  };
 };
 
 const getTerminalWords = (node: SyntaxNode): string[] => {
@@ -657,6 +763,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
     return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps);
   }, [animated, data, derivationSteps, abstractionMode]);
+  const replayMovementArrows = useMemo(() => {
+    if (!animated || abstractionMode || playbackSteps.length === 0) return [];
+    const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
+    applyVizIds(hierarchy);
+    if (abstractionMode) {
+      markTriangulatedNodes(hierarchy);
+    }
+    const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
+    const nodeStepIndex = buildNodeStepIndex(playbackSteps);
+    return buildMovementArrowsFromLinks(visibleNodes, resolvedMovementLinks, nodeStepIndex, playbackSteps);
+  }, [animated, abstractionMode, data, playbackSteps, resolvedMovementLinks]);
+  const replayMovementStepMap = useMemo(() => {
+    if (!animated || replayMovementArrows.length === 0) return new Map<number, MovementArrow[]>();
+    return buildReplayMovementStepMap(replayMovementArrows);
+  }, [animated, replayMovementArrows]);
   const overtSurfaceSet = useMemo(() => {
     const tokens = String(sentence || '')
       .split(/\s+/)
@@ -730,7 +851,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     };
   }, [isScrubbing]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!svgRef.current) return;
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
     const svg = d3.select(svgRef.current);
@@ -909,7 +1030,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         .attr('stroke-linecap', 'round')
         .attr('marker-end', 'url(#movement-arrowhead)')
         .attr('data-step', (arrow) => String(arrow.step))
-        .style('transition', 'opacity 260ms ease')
+        // Keep replay text and movement visuals synchronized per step.
+        .style('transition', 'opacity 80ms linear')
         .attr('opacity', (arrow) => (arrow.step <= revealThreshold ? 0.9 : 0))
         .style('filter', 'drop-shadow(0 0 4px rgba(16,185,129,0.35))')
         .attr('d', (arrow) => {
@@ -1075,9 +1197,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
   }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementLinksSignature]);
 
-  const activeStep = animated && playbackSteps.length > 0
-    ? playbackSteps[Math.min(activeStepIndex, playbackSteps.length - 1)]
-    : null;
+  const currentStepIndex = animated && playbackSteps.length > 0
+    ? Math.min(activeStepIndex, playbackSteps.length - 1)
+    : -1;
+  const activeStepRaw = currentStepIndex >= 0 ? playbackSteps[currentStepIndex] : null;
+  const activeStep = sanitizeStepForReplay(
+    activeStepRaw,
+    currentStepIndex >= 0 ? (replayMovementStepMap.get(currentStepIndex) || []) : []
+  );
   const stepPercent = playbackSteps.length > 1
     ? (activeStepIndex / (playbackSteps.length - 1)) * 100
     : 0;

@@ -602,12 +602,41 @@ const normalizeFeatureChecking = (value, nodeIds) => {
   return entries.length > 0 ? entries : undefined;
 };
 
+const normalizeKey = (value) => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+const normalizeDerivationOperation = (value) => {
+  const key = normalizeKey(value);
+  if (!key) return undefined;
+  if (key === 'lexicalselect' || key === 'select' || key === 'lexicalitemselect') return 'LexicalSelect';
+  if (key === 'externalmerge' || key === 'merge') return 'ExternalMerge';
+  if (key === 'internalmerge' || key === 'internalmove') return 'InternalMerge';
+  if (key === 'project' || key === 'projection') return 'Project';
+  if (key === 'label' || key === 'labelling' || key === 'labeling') return 'Label';
+  if (key === 'move' || key === 'movement') return 'Move';
+  if (key === 'agree') return 'Agree';
+  if (key === 'spellout' || key === 'spelloutphase') return 'SpellOut';
+  if (key === 'other') return 'Other';
+  return 'Other';
+};
+
+const normalizeMovementOperation = (value) => {
+  const key = normalizeKey(value);
+  if (!key) return undefined;
+  if (key === 'move' || key === 'movement') return 'Move';
+  if (key === 'internalmerge' || key === 'internalmove') return 'InternalMerge';
+  if (key === 'headmove' || key === 'headmovement') return 'HeadMove';
+  if (key === 'amove' || key === 'amovement') return 'A-Move';
+  if (key === 'abarmove' || key === 'abarmovement' || key === 'whmove') return 'AbarMove';
+  if (key === 'other') return 'Other';
+  return 'Other';
+};
+
 const normalizeDerivationSteps = (value, nodeIds) => {
   if (!Array.isArray(value)) return undefined;
   const steps = value
     .map((item) => {
       if (!item || typeof item !== 'object') return null;
-      const operation = String(item.operation || '').trim();
+      const operation = normalizeDerivationOperation(item.operation);
       if (!operation) return null;
       return {
         operation,
@@ -641,7 +670,55 @@ const normalizeDerivationSteps = (value, nodeIds) => {
   return steps.length > 0 ? steps : undefined;
 };
 
-const normalizeMovementEvents = (value, nodeIds) => {
+const MOVE_LIKE_OPERATION_RE = /^(move|internal[\s-]*merge|head[\s-]*move|a[\s-]*move|a(?:bar)?[\s-]*move)$/i;
+
+const isMoveLikeOperation = (operation) => MOVE_LIKE_OPERATION_RE.test(String(operation || '').trim());
+
+const resolveMovementEventStepIndex = (event, derivationSteps) => {
+  if (!Array.isArray(derivationSteps) || derivationSteps.length === 0) return undefined;
+
+  const explicitStep = Number(event.stepIndex);
+  if (Number.isInteger(explicitStep) && explicitStep >= 0 && explicitStep < derivationSteps.length) {
+    return explicitStep;
+  }
+
+  const fromNodeId = String(event.fromNodeId || '').trim();
+  const toNodeId = String(event.toNodeId || '').trim();
+  const traceNodeId = String(event.traceNodeId || '').trim();
+
+  let bestIndex = -1;
+  let bestScore = -1;
+
+  derivationSteps.forEach((step, index) => {
+    if (!step || typeof step !== 'object') return;
+    const stepTarget = String(step.targetNodeId || '').trim();
+    const stepSources = Array.isArray(step.sourceNodeIds)
+      ? step.sourceNodeIds.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+
+    let score = 0;
+    if (stepTarget && stepTarget === toNodeId) score += 6;
+    if (stepSources.includes(fromNodeId)) score += 5;
+    if (stepTarget && stepTarget === fromNodeId) score += 2;
+    if (stepSources.includes(toNodeId)) score += 1;
+    if (traceNodeId && (stepTarget === traceNodeId || stepSources.includes(traceNodeId))) score += 2;
+    if (isMoveLikeOperation(step.operation)) score += 3;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  if (bestIndex >= 0 && bestScore > 0) return bestIndex;
+
+  const fallbackMoveIndex = derivationSteps.findIndex((step) => isMoveLikeOperation(step?.operation));
+  if (fallbackMoveIndex >= 0) return fallbackMoveIndex;
+
+  return undefined;
+};
+
+const normalizeMovementEvents = (value, nodeIds, derivationSteps) => {
   if (!Array.isArray(value)) return undefined;
 
   const events = value
@@ -654,21 +731,84 @@ const normalizeMovementEvents = (value, nodeIds) => {
 
       const traceNodeId = String(item.traceNodeId || '').trim();
       const stepIndexRaw = Number(item.stepIndex);
-      const stepIndex = Number.isInteger(stepIndexRaw) && stepIndexRaw >= 0 ? stepIndexRaw : undefined;
-      const operation = String(item.operation || '').trim();
+      const hasDerivationTimeline = Array.isArray(derivationSteps) && derivationSteps.length > 0;
+      const stepIndex = Number.isInteger(stepIndexRaw) &&
+        stepIndexRaw >= 0 &&
+        (!hasDerivationTimeline || stepIndexRaw < derivationSteps.length)
+        ? stepIndexRaw
+        : undefined;
+      const operation = normalizeMovementOperation(item.operation);
 
       return {
-        operation: operation || undefined,
+        operation,
         fromNodeId,
         toNodeId,
         traceNodeId: traceNodeId && nodeIds.has(traceNodeId) ? traceNodeId : undefined,
-        stepIndex,
+        stepIndex: stepIndex ?? resolveMovementEventStepIndex({
+          fromNodeId,
+          toNodeId,
+          traceNodeId: traceNodeId && nodeIds.has(traceNodeId) ? traceNodeId : undefined
+        }, derivationSteps),
         note: typeof item.note === 'string' ? item.note : undefined
       };
     })
     .filter(Boolean);
 
   return events.length > 0 ? events : undefined;
+};
+
+const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head\s*move|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
+const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
+
+const splitExplanationSentences = (text) => String(text || '')
+  .split(/(?<=[.!?])\s+/)
+  .map((segment) => segment.trim())
+  .filter((segment) => segment.length > 0);
+
+const cleanExplanationWhitespace = (text) => String(text || '')
+  .replace(/\s+/g, ' ')
+  .replace(/\s+([,.;:!?])/g, '$1')
+  .trim();
+
+const ensureExplanationTerminator = (text) => {
+  const value = cleanExplanationWhitespace(text);
+  if (!value) return '';
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+};
+
+const removeWeakHedging = (text) => cleanExplanationWhitespace(
+  String(text || '')
+    .replace(EXPLANATION_HEDGE_RE, '')
+);
+
+const hasMovementOperationEvidence = (derivationSteps) =>
+  Array.isArray(derivationSteps) && derivationSteps.some((step) => isMoveLikeOperation(step?.operation));
+
+const harmonizeExplanationWithDerivation = (explanation, derivationSteps, movementEvents) => {
+  const base = ensureExplanationTerminator(removeWeakHedging(explanation));
+  const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
+  const hasMovement = hasMovementEvents || hasMovementOperationEvidence(derivationSteps);
+
+  if (hasMovement) {
+    const cleanedSentences = splitExplanationSentences(base)
+      .map((sentence) => removeWeakHedging(sentence))
+      .filter((sentence) => {
+        const mentionsMovement = EXPLANATION_MOVEMENT_RE.test(sentence);
+        const containsAlternative = /\bor\b/i.test(sentence);
+        return !(mentionsMovement && containsAlternative);
+      });
+
+    const cleaned = ensureExplanationTerminator(cleanExplanationWhitespace(cleanedSentences.join(' ')));
+    if (EXPLANATION_MOVEMENT_RE.test(cleaned)) {
+      return cleaned;
+    }
+    return `${cleaned} Movement is represented in this derivation.`.trim();
+  }
+
+  const kept = splitExplanationSentences(base).filter((sentence) => !EXPLANATION_MOVEMENT_RE.test(sentence));
+  const cleaned = cleanExplanationWhitespace(kept.join(' '));
+  if (cleaned) return ensureExplanationTerminator(cleaned);
+  return 'No movement is posited in this analysis.';
 };
 
 const normalizeParseResult = (value) => {
@@ -683,15 +823,18 @@ const normalizeParseResult = (value) => {
 
   const nodeReferences = collectNodeReferencesById(parsed);
   const { tree, nodeIds } = normalizeSyntaxTreeWithIds(parsed.tree, nodeReferences);
+  const derivationSteps = normalizeDerivationSteps(parsed.derivationSteps, nodeIds);
+  const movementEvents = normalizeMovementEvents(parsed.movementEvents, nodeIds, derivationSteps);
+  const coherentExplanation = harmonizeExplanationWithDerivation(explanation, derivationSteps, movementEvents);
 
   return {
     tree,
-    explanation,
+    explanation: coherentExplanation,
     partsOfSpeech: normalizePartsOfSpeech(parsed.partsOfSpeech),
     bracketedNotation: typeof parsed.bracketedNotation === 'string' ? parsed.bracketedNotation : undefined,
     interpretation: typeof parsed.interpretation === 'string' ? parsed.interpretation : undefined,
-    derivationSteps: normalizeDerivationSteps(parsed.derivationSteps, nodeIds),
-    movementEvents: normalizeMovementEvents(parsed.movementEvents, nodeIds)
+    derivationSteps,
+    movementEvents
   };
 };
 

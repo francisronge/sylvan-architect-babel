@@ -32,6 +32,39 @@ Babel is designed to make the model's structural decisions inspectable:
 - Inspect movement, derivational order, and structural alternatives.
 - Export bracketed notation for external workflows.
 
+#### Babel as a benchmark framework
+
+With Babel's model routes (currently `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro`, with additional models planned), you can realistically run large syntax sweeps, for example:
+
+- hundreds of syntactic test sentences in a short evaluation window.
+- Multi-phenomenon suites covering `wh-movement`, `island constraints`, `agreement`, `control`, `raising`, and `attachment ambiguity`.
+- Cross-linguistic evaluation across all human languages, not only high-resource benchmark languages.
+
+You can then score explicit structural outcomes, such as:
+
+- `valid derivations / total`
+- movement-chain and trace placement consistency
+- cross-view agreement between derivation, growth replay, and notes
+
+This shifts Babel from only a tree tool into an evaluation framework for LLM structural reasoning.
+
+#### Why this is different from standard syntax benchmarks
+
+Many established benchmarks evaluate syntactic recognition behavior:
+
+- `BLiMP`: grammatical vs ungrammatical preference.
+- `SyntaxGym`: surprisal-based sentence processing effects.
+- `CoLA`: acceptability classification.
+
+Those are valuable, but they usually do not require explicit derivation construction.
+
+Babel asks a different question:
+
+- Not only: "Does the model behave like it knows syntax?"
+- But: "Can the model explicitly produce syntactic structure?"
+
+In Babel, the model must commit to a concrete tree and derivation, including hierarchy, projection, movement, and trace placement.
+
 ### Students
 
 - Generate trees quickly for study and practice.
