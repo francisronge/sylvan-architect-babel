@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
 import { MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
+import RootLogo from './components/RootLogo';
 import {
   buildMovementIndexMaps,
   resolveMovementEventLinks,
@@ -13,12 +14,10 @@ import {
   RotateCcw, 
   Sparkles,
   TreeDeciduous,
-  Sprout,
   AlertTriangle,
   Layers,
   Zap,
   Info,
-  Leaf,
   FileText,
   ChevronUp,
   ChevronDown,
@@ -740,7 +739,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 moss-gradient rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,78,59,0.5)] rotate-3">
-                <Sprout size={20} />
+                <RootLogo size={20} />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
@@ -1000,7 +999,7 @@ const App: React.FC = () => {
             <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-8 animate-in fade-in duration-700">
               <div className="relative">
                 <div className="w-28 h-28 border-[6px] border-emerald-950/50 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_100px_rgba(16,185,129,0.2)]"></div>
-                <Leaf className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-500 animate-pulse" size={38} />
+                <RootLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-500 animate-pulse" size={38} />
               </div>
               <div className="text-center">
                 <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
@@ -1128,7 +1127,7 @@ const App: React.FC = () => {
               <div className="relative">
                 <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
                 <div className="relative z-10 w-32 h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <Sprout size={64} className="text-emerald-500/40 animate-pulse" />
+                  <RootLogo size={64} className="text-emerald-500/40 animate-pulse" />
                 </div>
               </div>
               <div className="text-center z-10">
@@ -1245,14 +1244,14 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Restore Sprout Trigger */}
+            {/* Restore Logo Trigger */}
             {!isInputVisible && (
               <button
                 onClick={() => setIsInputVisible(true)}
                 className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-14 h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
                 title="Restore Arboretum Link"
               >
-                <Sprout size={28} className="animate-pulse" />
+                <RootLogo size={28} className="animate-pulse" />
               </button>
             )}
           </>
