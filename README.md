@@ -2,7 +2,7 @@
 
 Sylvan Architect Babel is a syntax tree generator built for research and learning.
 
-It helps you test how large language models reason about syntax under explicit theoretical prompts, while also giving students a clean and practical way to generate, inspect, and compare syntactic trees.
+It helps researchers test how large language models reason about syntax under explicit theoretical prompts, while also giving students a clean and practical way to generate, inspect, and compare syntactic trees.
 
 Babel is not a general chatbot. Its core purpose is syntactic analysis and structure visualization.
 
