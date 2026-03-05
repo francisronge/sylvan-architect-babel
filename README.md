@@ -40,11 +40,7 @@ With Babel's model routes (currently `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro
 - Multi-phenomenon suites covering `wh-movement`, `island constraints`, `agreement`, `control`, `raising`, and `attachment ambiguity`.
 - Cross-linguistic evaluation across all human languages, not only high-resource benchmark languages.
 
-You can then score explicit structural outcomes, such as:
-
-- `valid derivations / total`
-- movement-chain and trace placement consistency
-- cross-view agreement between derivation, growth replay, and notes
+Researchers can use Babel to build hypothesis-driven syntax studies: run controlled sentence suites, compare analyses across frameworks and model routes, trace how movement and feature-checking decisions vary across languages, and document where models converge or diverge from formal grammatical expectations.
 
 This shifts Babel from only a tree tool into an evaluation framework for LLM structural reasoning.
 
@@ -205,7 +201,7 @@ Babel is being built as an open resource for linguistics and AI interpretability
 
 Current direction includes:
 
-- Stronger derivation fidelity
-- Better movement grounding
-- Better experimental reproducibility
-- Better support for classroom and research use
+- Expanding model routes so researchers can benchmark multiple LLMs inside the same syntax environment
+- Running large cross-model gauntlets (for example, 100+ tree/derivation suites) across many languages
+- Publishing comparable structural-reasoning results across frameworks, models, and sentence phenomena
+- Evolving Babel into a public benchmark standard for explicit syntactic derivation generation
