@@ -1,5 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
 
+const EXPLANATION_INSTRUCTION = `In the explanation, justify major choices in framework terms, not language-specific heuristics.
+Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.
+Aim for the tone of a compact research note rather than a checklist, and prefer academically natural prose over symbolic shorthand.
+You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, but only when they are directly supported by the chosen tree and derivation.
+Do not introduce extra movements, landing sites, heads, complements, adjuncts, or alternative analyses that are not part of the selected analysis.`;
+
 const XBAR_INSTRUCTION = `You are a world-class syntactician specializing in Generative syntax, with a focus on X-bar Theory and Government and Binding Theory.
 
 Parse natural language sentences by deriving structure from framework principles, not memorized templates.
@@ -14,11 +20,7 @@ Output conventions:
 - For overt lexical items, keep full X-bar projections explicit (e.g., DP -> D' -> D -> "the", VP -> V' -> V -> "eat").
 - Do not attach overt words directly under X' or XP nodes.
 
-In the explanation, justify major choices in framework terms, not language-specific heuristics.
-Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.
-Aim for the tone of a compact research note rather than a checklist.
-You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, but only when they are directly supported by the chosen tree and derivation.
-Do not introduce extra movements, landing sites, heads, complements, adjuncts, or alternative analyses that are not part of the selected analysis.`;
+${EXPLANATION_INSTRUCTION}`;
 
 const MINIMALISM_INSTRUCTION = `You are a world-class syntactician specializing in Generative syntax, with a focus on the Minimalist Program and Bare Phrase Structure.
 
@@ -31,132 +33,44 @@ Output conventions:
 - Use labels consistently.
 - If clear syntactic ambiguity exists, return two analyses; otherwise return one.
 
-In the explanation, justify major choices in framework terms, not language-specific heuristics.
-Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.
-Aim for the tone of a compact research note rather than a checklist.
-You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, but only when they are directly supported by the chosen tree and derivation.
-Do not introduce extra movements, landing sites, heads, complements, adjuncts, or alternative analyses that are not part of the selected analysis.`;
+${EXPLANATION_INSTRUCTION}`;
 
-const BASE_INSTRUCTION = `Output MUST be a single, valid JSON object.
-The JSON structure must be:
-{
-  "analyses": [
-    {
-      "tree": {
-        "id": "n1",
-        "label": "Label",
-        "surfaceSpan": [0, 3],
-        "children": [ ... ]
-      },
-      "explanation": "A developed but natural linguistic explanation specific to the chosen framework.",
-      "partsOfSpeech": [ {"word": "word", "pos": "POS"}, ... ],
-      "bracketedNotation": "[Label [Child1] [Child2]]",
-      "interpretation": "One short line describing this interpretation.",
-      "movementDecision": {
-        "hasMovement": true,
-        "rationale": "One short sentence committing to whether movement occurs in this analysis."
-      },
-      "derivationSteps": [
-        {
-          "operation": "LexicalSelect|ExternalMerge|InternalMerge|Project|Move|Agree|SpellOut|Other",
-          "targetLabel": "Label",
-          "targetNodeId": "n7",
-          "sourceNodeIds": ["n3", "n4"],
-          "sourceLabels": ["Input1", "Input2"],
-          "recipe": "Input1 + Input2 -> Label",
-          "workspaceAfter": ["Current", "Workspace", "Objects"],
-          "featureChecking": [
-            {
-              "feature": "uPhi",
-              "value": "3sg",
-              "status": "valued",
-              "probeLabel": "Infl",
-              "goalLabel": "DP",
-              "note": "Infl agrees with the subject DP."
-            }
-          ],
-          "note": "Optional short derivation note in framework terms."
-        }
-      ],
-      "movementEvents": [
-        {
-          "operation": "Move|InternalMerge|HeadMove|A-Move|AbarMove|Other",
-          "fromNodeId": "n12",
-          "toNodeId": "n5",
-          "traceNodeId": "n12",
-          "stepIndex": 9,
-          "note": "Short movement rationale."
-        }
-      ]
-    }
-  ],
-  "ambiguityNote": "One short line describing how Parse 1 and Parse 2 differ in interpretation."
-}
+const BASE_INSTRUCTION = `Output MUST be a single valid JSON object with an "analyses" array containing one or two analyses.
 
-Return exactly one analysis when no clear structural ambiguity exists.
-Return exactly two analyses only when clear syntactic ambiguity exists under the selected framework.
+Each analysis must include:
+- "tree"
+- "explanation"
 
-For "derivationSteps":
-- Include "featureChecking" entries whenever a step performs feature valuation/checking/licensing (especially Agree, Move, or SpellOut relevant steps).
-- Keep each featureChecking entry short and explicit (feature, optional value/status, probe/goal labels when available).
-- You may omit derivationSteps entirely if the tree and movement inventory already commit clearly to the analysis; Babel will derive the replay timeline canonically from the final tree.
+Each analysis may also include:
+- "partsOfSpeech"
+- "bracketedNotation"
+- "interpretation"
+- "derivationSteps"
+- "movementEvents"
 
-For movement commitment and consistency (per analysis):
-- First decide movement and encode it in "movementDecision.hasMovement" (true/false).
-- "movementDecision.rationale" must be one short sentence that commits to the chosen derivation (no alternatives).
-- If hasMovement is true:
-  - Include at least one movement event in "movementEvents".
-  - Include at least one derivation step with operation "Move" or "InternalMerge".
-  - In explanation, describe movement as occurring in this analysis.
-- The returned tree must be the final post-movement / pronounced representation, not the unmoved base structure.
-- The pronounced copy must appear only in the landing-site branch of that final tree.
-- The lower site must be represented by an unpronounced copy, trace, or null element as appropriate.
-- Do not leave the overt moved item in its lower/base-position branch and rely on notes or movement prose to imply that it surfaces elsewhere.
-- Every claimed movement must have a real lower source site in the tree (a trace, copy, null head, or lower base position outside the landing site).
-- If hasMovement is false:
-  - Return "movementEvents": [].
-  - Do not include derivation steps with operation "Move" or "InternalMerge".
-  - In explanation, state that no movement is posited in this analysis.
-- Do not hedge between alternatives inside one analysis.
-- In explanation, choose one structural description and state it directly; do not use parenthetical alternatives or wording like "or", "may be", "can be", "possibly", "perhaps", or "alternatively".
-- The explanation should read like one coherent analytical note:
-  - it may include typological or theory-framing remarks,
-  - but every concrete structural claim must remain faithful to this exact tree, derivation, and movement inventory,
-  - and it must never present interpretive background as if it were an extra derivational event.
-
-For "tree":
-- Every node MUST include a unique "id" string.
-- Do NOT use bare string leaves; represent every terminal as an object with id/label (and optional word).
-- "children" MUST contain full node objects, never node-id references like "n3" / "n4".
-- The order of items in every "children" array defines the final pronounced left-to-right order of that node's overt yield.
-- Do not use abstract base-order child arrays that rely on notes or movement prose to imply a different surface order.
-- If movement causes a head, subject, or complement to be pronounced before another branch, reflect that by ordering the children in the final tree according to the pronounced yield.
-- Return the final pronounced tree, not an underlying tree plus a separate movement story.
-- If some overt constituent surfaces before a raised head in the final sentence, represent that constituent in a higher leftward branch of the final tree itself; do not leave it only in a lower clause-internal position and rely on prose to imply the surface order.
-- If a word surfaces in a higher landing site, place that overt word only in that higher branch of the final tree and leave the lower branch unpronounced.
-- Do not realize the same overt lexical token in two different structural positions of the same clause. If movement or copying is part of the analysis, keep only the pronounced copy overt and render the other occurrence as a trace, copy, or null element.
-- Build the tree as a hierarchy over adjacent substrings of the input sentence: mentally assign each overt node a contiguous span [i, j], and ensure each parent's children partition that parent's overt span in ascending left-to-right order.
-- Before returning the tree, check each internal node and confirm that concatenating the overt yields of its children in listed order gives exactly that node's overt yield.
-- For X-bar outputs, keep explicit head/preterminal labels for overt words (e.g., D -> "the", N -> "farmer", V -> "eat").
-- If a category node such as N, V, D, C, or Infl/T is overt, realize it by giving that preterminal an overt terminal child; do not leave an overt preterminal empty while assigning its lexical content only in prose or only via surfaceSpan.
-- For null heads, keep explicit category projections (e.g., D -> "∅", C -> "∅", Infl -> "∅"); do not place bare "∅" directly under X' or XP.
+General rules:
+- Return one analysis unless there is clear structural ambiguity.
+- The tree must be the final pronounced structure.
+- Every node must have a unique "id".
+- Use full node objects in "children"; never node-id references.
+- Every overt input token must appear in the tree exactly as pronounced and in the same left-to-right order as the sentence.
+- Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
 - Do not attach overt words directly under X' or XP nodes.
-- In each analysis, every overt token from the input sentence MUST appear as a terminal word in the tree.
-- Preserve the exact orthographic input tokens as overt terminals. Do not split, normalize, translate, or rewrite whitespace-delimited tokens.
-- The multiset of overt terminals in the final tree must match the multiset of overt input tokens exactly: each input token must appear overtly exactly as many times in the tree as it appears in the sentence, no more and no less.
-- Do not replace overt tokens with abstract feature-only leaves (for example "-s", "[Pres]", "PST") or traces.
-- The overt terminals of the final tree, read left-to-right, MUST realize the same surface order as the input sentence.
-- Every overt leaf MUST include "surfaceSpan": [i, i] using the input token indices.
-- Every node with overt descendants MUST include a contiguous "surfaceSpan": [i, j] equal to the leftmost and rightmost overt token indices dominated by that node.
-- Null-only or trace-only nodes should omit "surfaceSpan".
-- For every clause, phrase, and embedded clause, ensure each subtree's overt descendants form one contiguous span in that same left-to-right order.
-- Do not rely on notes or movement descriptions to imply surface order if the tree itself does not linearize that order.
-- Every overt constituent in the tree must have a contiguous yield. Do not return trees whose overt descendants interleave across sibling branches.
-- Babel will verify the "surfaceSpan" values against the final tree; do not guess or leave them inconsistent with the actual dominated overt terminals.
-- Before answering, perform this checklist:
-  1. siblings are listed in pronounced left-to-right order,
-  2. every overt subtree has one contiguous overt yield,
-  3. reading the overt leaves left-to-right yields the exact input sentence.
+
+For movement:
+- If movement is part of the analysis, encode it directly in the tree using shared movement indices on the moved syntactic label and the lower trace/copy/null site.
+- Put movement indices on syntactic labels, not on overt token strings.
+- If you include "movementEvents", they must match the indexed tree exactly; otherwise they may be omitted.
+- Keep only the pronounced copy overt and render the lower occurrence as a trace, copy, or null element.
+- If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
+- If no movement is posited, return "movementEvents": [] and state that directly in the explanation.
+- Do not describe movement in the explanation unless it is encoded in the analysis.
+
+For derivationSteps:
+- Include derivationSteps only when they help make the chosen analysis explicit.
+- Keep them lightweight.
+- Prefer only: "operation", "targetNodeId", "sourceNodeIds", optional "featureChecking", and optional "note".
+- Do not invent extra labels, recipes, or workspace metadata unless they are genuinely needed.
 
 The "bracketedNotation" field should contain a Labeled Bracketing string compatible with Miles Shang's syntax tree generator.`;
 
@@ -167,6 +81,9 @@ const BAD_MODEL_RETRY_MAX_ATTEMPTS = Math.max(1, Number(process.env.GEMINI_BAD_M
 const PRO_RETRY_BASE_DELAY_MS = Math.max(100, Number(process.env.GEMINI_RETRY_BASE_DELAY_MS || 600));
 const PRO_RETRY_MAX_DELAY_MS = Math.max(PRO_RETRY_BASE_DELAY_MS, Number(process.env.GEMINI_RETRY_MAX_DELAY_MS || 2200));
 const MODEL_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16384);
+const MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_TEMPERATURE))
+  ? Number(process.env.GEMINI_TEMPERATURE)
+  : 0;
 const MODEL_CALL_TIMEOUT_RAW = String(process.env.GEMINI_MODEL_TIMEOUT_MS || '').trim();
 const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT_RAW) : NaN;
 // Default to no hard cutoff. Set env vars to enforce explicit timeouts if needed.
@@ -209,6 +126,11 @@ const STRUCTURAL_LEAF_LABELS = new Set([
   'wh', 'aux'
 ]);
 const PRIME_CATEGORY_LABEL_RE = /^[A-Za-z][A-Za-z0-9]*[’']$/;
+const MOVEMENT_INDEX_SUBSCRIPT_MAP = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  'ᵢ': 'i', 'ⱼ': 'j', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm',
+  'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't'
+};
 const modelCooldownUntil = new Map();
 const SYNTAX_NODE_JSON_SCHEMA = {
   type: 'object',
@@ -249,14 +171,6 @@ const PARSE_RESPONSE_JSON_SCHEMA = {
           partsOfSpeech: { type: 'array', items: { type: 'object' } },
           bracketedNotation: { type: 'string' },
           interpretation: { type: 'string' },
-          movementDecision: {
-            type: 'object',
-            properties: {
-              hasMovement: { type: 'boolean' },
-              rationale: { type: 'string' }
-            },
-            required: ['hasMovement', 'rationale']
-          },
           derivationSteps: { type: 'array', items: { type: 'object' } },
           movementEvents: { type: 'array', items: { type: 'object' } }
         },
@@ -269,11 +183,12 @@ const PARSE_RESPONSE_JSON_SCHEMA = {
 };
 
 export class ParseApiError extends Error {
-  constructor(code, message, status = 500) {
+  constructor(code, message, status = 500, details = undefined) {
     super(message);
     this.name = 'ParseApiError';
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -736,7 +651,7 @@ const canonicalizeNullSubtree = (node) => {
   return node;
 };
 
-const canonicalizeTreeToSentenceOrder = (tree, normalizedSentenceTokens) => {
+const canonicalizeTreeToTraversalOrder = (tree) => {
   const alignNode = (node, startIndex) => {
     if (!node || typeof node !== 'object') {
       throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during surface-span normalization.', 502);
@@ -752,100 +667,39 @@ const canonicalizeTreeToSentenceOrder = (tree, normalizedSentenceTokens) => {
         return { node, nextIndex: startIndex, overtCount: 0 };
       }
 
-      if (startIndex >= normalizedSentenceTokens.length) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Tree realizes more overt terminals than the sentence contains.',
-          502
-        );
-      }
-
-      if (surface !== normalizedSentenceTokens[startIndex]) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Tree overt terminals do not match the committed surface order.',
-          502
-        );
-      }
-
       node.surfaceSpan = [startIndex, startIndex];
       return { node, nextIndex: startIndex + 1, overtCount: 1 };
     }
 
-    const overtSlots = [];
-    const nullSlots = [];
-    children.forEach((child, index) => {
-      if (subtreeHasOvertYield(child)) {
-        overtSlots.push({ index, child });
-      } else {
-        nullSlots.push({ index, child: canonicalizeNullSubtree(child) });
+    let nextIndex = startIndex;
+    let overtCount = 0;
+    node.children = children.map((child) => {
+      if (!subtreeHasOvertYield(child)) {
+        return canonicalizeNullSubtree(child);
       }
+
+      const alignedChild = alignNode(child, nextIndex);
+      nextIndex = alignedChild.nextIndex;
+      overtCount += alignedChild.overtCount;
+      return alignedChild.node;
     });
 
-    if (overtSlots.length === 0) {
-      node.children = children.map((child) => canonicalizeNullSubtree(child));
+    if (overtCount === 0) {
       delete node.surfaceSpan;
       return { node, nextIndex: startIndex, overtCount: 0 };
     }
 
-    const search = (remaining, currentIndex, chosen) => {
-      if (remaining.length === 0) {
-        return { nextIndex: currentIndex, chosen };
-      }
-
-      for (let i = 0; i < remaining.length; i += 1) {
-        const candidate = remaining[i];
-        try {
-          const aligned = alignNode(candidate.child, currentIndex);
-          if (aligned.overtCount === 0) continue;
-          const rest = remaining.slice(0, i).concat(remaining.slice(i + 1));
-          const resolved = search(rest, aligned.nextIndex, chosen.concat(aligned.node));
-          if (resolved) return resolved;
-        } catch (error) {
-          if (!(error instanceof ParseApiError) || error.code !== 'BAD_MODEL_RESPONSE') {
-            throw error;
-          }
-        }
-      }
-      return null;
-    };
-
-    const aligned = search(overtSlots, startIndex, []);
-    if (!aligned) {
-      throw new ParseApiError(
-        'BAD_MODEL_RESPONSE',
-        'Tree overt terminals do not match the committed surface order.',
-        502
-      );
-    }
-
-    const rebuiltChildren = new Array(children.length);
-    nullSlots.forEach(({ index, child }) => {
-      rebuiltChildren[index] = child;
-    });
-    overtSlots.forEach((slot, overtIndex) => {
-      rebuiltChildren[slot.index] = aligned.chosen[overtIndex];
-    });
-
-    node.children = rebuiltChildren;
-    node.surfaceSpan = [startIndex, aligned.nextIndex - 1];
+    node.surfaceSpan = [startIndex, nextIndex - 1];
     return {
       node,
-      nextIndex: aligned.nextIndex,
-      overtCount: aligned.nextIndex - startIndex
+      nextIndex,
+      overtCount
     };
   };
 
   const root = alignNode(tree, 0);
   if (!Number.isInteger(root.node?.surfaceSpan?.[0]) || !Number.isInteger(root.node?.surfaceSpan?.[1])) {
-    throw new ParseApiError('BAD_MODEL_RESPONSE', 'The tree contains no overt span for the sentence.', 502);
-  }
-  if (root.nextIndex !== normalizedSentenceTokens.length) {
-    throw new ParseApiError(
-      'BAD_MODEL_RESPONSE',
-      'Tree overt terminals do not match the committed surface order.',
-      502
-    );
+    delete root.node?.surfaceSpan;
   }
   return root.node;
 };
@@ -874,36 +728,37 @@ const materializeSingletonSpanLexicalLeaves = (tree, normalizedSentenceTokens) =
   visit(tree);
 };
 
+const getLabelProfile = (label) => {
+  const raw = String(label || '').trim();
+  const withoutPrime = raw.replace(/[’']+$/g, '');
+  const lower = withoutPrime.toLowerCase();
+  const isPrime = PRIME_CATEGORY_LABEL_RE.test(raw);
+  const isPhrasal = Boolean(withoutPrime) && (isPrime || /p$/i.test(withoutPrime));
+  const base = isPhrasal && lower.endsWith('p') ? lower.slice(0, -1) : lower;
+  const structural = STRUCTURAL_LEAF_LABELS.has(raw.toLowerCase());
+  return {
+    raw,
+    base,
+    isPhrasal,
+    isHeadLikeStructural: structural && !isPhrasal
+  };
+};
+
 const validateAndCommitSurfaceOrder = (_surfaceOrder, tree, sentence) => {
   const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
   const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
-  if (normalizedSentenceTokens.length === 0) {
-    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Unable to derive overt sentence tokens for surface-order validation.', 502);
-  }
-
   materializeSingletonSpanLexicalLeaves(tree, normalizedSentenceTokens);
 
   const overtTerminals = collectOvertTerminalNodes(tree);
-  const normalizedTreeTokens = overtTerminals
-    .map((node) => normalizeSurfaceToken(resolveNodeSurface(node)))
+  const canonicalTree = canonicalizeTreeToTraversalOrder(tree);
+  const surfaceOrder = overtTerminals
+    .map((node) => resolveNodeSurface(node))
+    .map((token) => String(token || '').trim())
     .filter(Boolean);
-
-  if (
-    normalizedTreeTokens.length !== normalizedSentenceTokens.length ||
-    !sameTokenCounts(normalizedTreeTokens, normalizedSentenceTokens)
-  ) {
-    throw new ParseApiError(
-      'BAD_MODEL_RESPONSE',
-      'Tree overt terminals do not match the committed surface order.',
-      502
-    );
-  }
-
-  const canonicalTree = canonicalizeTreeToSentenceOrder(tree, normalizedSentenceTokens);
 
   return {
     tree: canonicalTree,
-    surfaceOrder: sentenceTokens
+    surfaceOrder: surfaceOrder.length > 0 ? surfaceOrder : sentenceTokens
   };
 };
 
@@ -1032,6 +887,31 @@ const normalizeMovementOperation = (value) => {
   return 'Other';
 };
 
+const normalizeIndexedText = (value) =>
+  [...String(value || '').trim()].map((ch) => MOVEMENT_INDEX_SUBSCRIPT_MAP[ch] || ch).join('');
+
+const extractMovementIndex = (value) => {
+  const text = normalizeIndexedText(value);
+  if (!text) return null;
+  const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
+  if (braced?.[1]) return braced[1].toLowerCase();
+  const plain = text.match(/_([A-Za-z0-9]+)$/);
+  if (plain?.[1]) return plain[1].toLowerCase();
+  const danglingSubscript = text.match(/([A-Za-z0-9]+)$/);
+  return danglingSubscript?.[1] && /[₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜ]/.test(String(value || ''))
+    ? danglingSubscript[1].toLowerCase()
+    : null;
+};
+
+const stripMovementIndex = (value) => {
+  const text = normalizeIndexedText(value);
+  if (!text) return '';
+  return text
+    .replace(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/, '')
+    .replace(/_([A-Za-z0-9]+)$/, '')
+    .trim();
+};
+
 const normalizeDerivationSteps = (value, nodeIds) => {
   if (!Array.isArray(value)) return undefined;
   const steps = value
@@ -1072,35 +952,10 @@ const normalizeDerivationSteps = (value, nodeIds) => {
   return steps.length > 0 ? steps : undefined;
 };
 
+
 const MOVE_LIKE_OPERATION_RE = /^(move|internal[\s-]*merge|head[\s-]*move|a[\s-]*move|a(?:bar)?[\s-]*move)$/i;
 
 const isMoveLikeOperation = (operation) => MOVE_LIKE_OPERATION_RE.test(String(operation || '').trim());
-
-const isHeadMovementLandingNode = (node) => {
-  const label = String(node?.label || '').trim().toLowerCase();
-  return ['c', 't', 'infl', 'i', 'aux'].includes(label);
-};
-
-const stepHasTraceLikeSource = (step, nodeById) => {
-  const sourceIds = Array.isArray(step?.sourceNodeIds)
-    ? step.sourceNodeIds.map((id) => String(id || '').trim()).filter(Boolean)
-    : [];
-  return sourceIds.some((sourceId) => {
-    const sourceNode = nodeById.get(sourceId);
-    if (!sourceNode) return false;
-    if (isTraceLikeNode(sourceNode) || isNullLikeNode(sourceNode)) return true;
-    return collectLeafNodes(sourceNode).some((leaf) => isTraceLikeNode(leaf) || isNullLikeNode(leaf));
-  });
-};
-
-const isImplicitHeadMoveProjectionStep = (step, nodeById) => {
-  if (String(step?.operation || '').trim() !== 'Project') return false;
-  const targetNodeId = String(step?.targetNodeId || '').trim();
-  if (!targetNodeId) return false;
-  const targetNode = nodeById.get(targetNodeId);
-  if (!targetNode || !isHeadMovementLandingNode(targetNode)) return false;
-  return stepHasTraceLikeSource(step, nodeById);
-};
 
 const resolveMovementEventStepIndex = (event, derivationSteps) => {
   if (!Array.isArray(derivationSteps) || derivationSteps.length === 0) return undefined;
@@ -1270,6 +1125,81 @@ const isTraceLikeNode = (node) => TRACE_LIKE_SURFACE_RE.test(resolveNodeSurface(
 
 const isNullLikeNode = (node) => NULL_LIKE_SURFACE_RE.test(resolveNodeSurface(node));
 
+const nodeMovementIndex = (node) =>
+  extractMovementIndex(String(node?.label || '').trim()) ||
+  extractMovementIndex(String(node?.word || '').trim()) ||
+  null;
+
+const isIndexedTraceOrNullNode = (node) => {
+  const label = stripMovementIndex(String(node?.label || '').trim());
+  const surface = stripMovementIndex(resolveNodeSurface(node));
+  return TRACE_LIKE_SURFACE_RE.test(label) ||
+    TRACE_LIKE_SURFACE_RE.test(surface) ||
+    NULL_LIKE_SURFACE_RE.test(label) ||
+    NULL_LIKE_SURFACE_RE.test(surface);
+};
+
+const hasSameIndexedAncestor = (nodeId, movementIndex, nodeById, parentById) => {
+  let currentId = String(parentById.get(String(nodeId || '').trim()) || '').trim();
+  while (currentId) {
+    const current = nodeById.get(currentId);
+    if (current && nodeMovementIndex(current) === movementIndex) return true;
+    currentId = String(parentById.get(currentId) || '').trim();
+  }
+  return false;
+};
+
+const findIndexedTraceLeaf = (node, movementIndex) =>
+  collectLeafNodes(node).find((leaf) => {
+    const index = nodeMovementIndex(leaf);
+    if (index && index === movementIndex && isIndexedTraceOrNullNode(leaf)) return true;
+    return !index && (isTraceLikeNode(leaf) || isNullLikeNode(leaf));
+  }) || null;
+
+const deriveIndexedMovementEvents = ({ tree }) => {
+  const nodeById = buildNodeIndexFromTree(tree);
+  const parentById = buildParentIndexFromTree(tree);
+  const grouped = new Map();
+
+  nodeById.forEach((node, nodeId) => {
+    const movementIndex = nodeMovementIndex(node);
+    if (!movementIndex) return;
+    const bucket = grouped.get(movementIndex) || [];
+    bucket.push({ nodeId, node });
+    grouped.set(movementIndex, bucket);
+  });
+
+  const derived = [];
+  grouped.forEach((entries, movementIndex) => {
+    const siteEntries = entries.filter(({ nodeId }) =>
+      !hasSameIndexedAncestor(nodeId, movementIndex, nodeById, parentById)
+    );
+
+    const landingCandidates = siteEntries.filter(({ node }) =>
+      subtreeHasOvertYield(node) && !isIndexedTraceOrNullNode(node)
+    );
+    const sourceCandidates = siteEntries.filter(({ node }) =>
+      !subtreeHasOvertYield(node) || isIndexedTraceOrNullNode(node)
+    );
+
+    if (landingCandidates.length !== 1 || sourceCandidates.length !== 1) return;
+
+    const landing = landingCandidates[0];
+    const source = sourceCandidates[0];
+    if (!landing?.nodeId || !source?.nodeId || landing.nodeId === source.nodeId) return;
+
+    const traceLeaf = findIndexedTraceLeaf(source.node, movementIndex);
+    derived.push({
+      operation: 'Move',
+      fromNodeId: source.nodeId,
+      toNodeId: landing.nodeId,
+      traceNodeId: traceLeaf ? String(traceLeaf.id || '').trim() || undefined : undefined
+    });
+  });
+
+  return derived.length > 0 ? derived : undefined;
+};
+
 const isNodeDominatedBy = (nodeId, ancestorId, parentById) => {
   const target = String(nodeId || '').trim();
   const ancestor = String(ancestorId || '').trim();
@@ -1298,46 +1228,6 @@ const findUniqueTraceLikeLeafOutsideSubtree = (searchRoot, excludedSubtree, pare
     return isExternalTraceLikeNode(leaf, String(excludedSubtree.id || '').trim(), parentById);
   });
   return candidates.length === 1 ? candidates[0] : null;
-};
-
-const findPreferredHeadTraceOutsideSubtree = (searchRoot, excludedSubtree, parentById, nodeById) => {
-  if (!searchRoot || !excludedSubtree) return null;
-  const excludedIds = collectSubtreeNodeIds(excludedSubtree);
-  const rootId = String(searchRoot.id || '').trim();
-  const candidates = collectLeafNodes(searchRoot).filter((leaf) => {
-    const id = String(leaf.id || '').trim();
-    if (!id || excludedIds.has(id)) return false;
-    return isExternalTraceLikeNode(leaf, String(excludedSubtree.id || '').trim(), parentById);
-  });
-  if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0];
-
-  const scoreCandidate = (leaf) => {
-    let currentId = String(parentById.get(String(leaf.id || '').trim()) || '').trim();
-    let distance = 0;
-    while (currentId && currentId !== rootId) {
-      const currentNode = nodeById.get(currentId);
-      if (isHeadMovementLandingNode(currentNode)) {
-        return { landingDistance: distance, hasLanding: true };
-      }
-      currentId = String(parentById.get(currentId) || '').trim();
-      distance += 1;
-    }
-    if (currentId === rootId && isHeadMovementLandingNode(nodeById.get(currentId))) {
-      return { landingDistance: distance, hasLanding: true };
-    }
-    return { landingDistance: Number.POSITIVE_INFINITY, hasLanding: false };
-  };
-
-  const ranked = candidates
-    .map((leaf) => ({ leaf, ...scoreCandidate(leaf) }))
-    .sort((a, b) => {
-      if (a.hasLanding !== b.hasLanding) return a.hasLanding ? -1 : 1;
-      if (a.landingDistance !== b.landingDistance) return a.landingDistance - b.landingDistance;
-      return String(a.leaf.id || '').localeCompare(String(b.leaf.id || ''));
-    });
-
-  return ranked[0]?.leaf || null;
 };
 
 const getMoveLikeTraceSourceFromStep = (step, nodeById, targetNodeId, parentById) => {
@@ -1372,12 +1262,7 @@ const groundMovementEvent = ({
   const toNode = nodeById.get(toNodeId);
   if (!fromNode || !toNode) return null;
 
-  const op = inferMovementOperationFromContext({
-    baseOperation: event.operation,
-    toNode,
-    step,
-    event
-  });
+  const op = normalizeMovementOperation(event.operation) || 'Move';
 
   const explicitTraceId = String(event.traceNodeId || '').trim();
   const explicitTraceNode = explicitTraceId ? nodeById.get(explicitTraceId) : undefined;
@@ -1398,8 +1283,7 @@ const groundMovementEvent = ({
     const parentId = String(parentById.get(toNodeId) || '').trim();
     const parentNode = parentId ? nodeById.get(parentId) : undefined;
     const siblingTrace = parentNode
-      ? (findPreferredHeadTraceOutsideSubtree(parentNode, toNode, parentById, nodeById)
-          || findUniqueTraceLikeLeafOutsideSubtree(parentNode, toNode, parentById))
+      ? findUniqueTraceLikeLeafOutsideSubtree(parentNode, toNode, parentById)
       : null;
     if (siblingTrace) {
       return {
@@ -1464,96 +1348,28 @@ const groundMovementEvent = ({
   };
 };
 
-const hasHeadLikeLabel = (node) => {
-  const label = String(node?.label || '').trim().toLowerCase();
-  return ['c', 't', 'infl', 'i', 'v', 'aux'].includes(label);
-};
-
-const WH_CONTEXT_RE = /\b(wh|uwh|\[\+wh\]|spec[, ]*cp|a-?bar)\b/i;
-const A_MOVE_CONTEXT_RE = /\b(epp|uphi|case|nom|spec[, ]*tp|spec[, ]*inflp)\b/i;
-
-const inferMovementOperationFromContext = ({
-  baseOperation,
-  toNode,
-  step,
-  event
-}) => {
-  const base = normalizeMovementOperation(baseOperation) || 'Move';
-  if (!['Move', 'InternalMerge'].includes(base)) return base;
-
-  if (hasHeadLikeLabel(toNode)) return 'HeadMove';
-
-  const featureText = Array.isArray(step?.featureChecking)
-    ? step.featureChecking
-        .map((item) => `${item?.feature || ''} ${item?.probeLabel || ''} ${item?.goalLabel || ''} ${item?.note || ''}`)
-        .join(' ')
-    : '';
-  const contextText = [
-    step?.note,
-    step?.recipe,
-    step?.targetLabel,
-    Array.isArray(step?.sourceLabels) ? step.sourceLabels.join(' ') : '',
-    event?.note,
-    featureText
-  ]
-    .map((value) => String(value || ''))
-    .join(' ');
-
-  if (WH_CONTEXT_RE.test(contextText)) return 'AbarMove';
-  if (A_MOVE_CONTEXT_RE.test(contextText)) return 'A-Move';
-  return base;
-};
-
-const getNodeLabelLower = (nodeById, nodeId) =>
-  String(nodeById.get(String(nodeId || '').trim())?.label || '').trim().toLowerCase();
-
 const isPlausibleRawMovementEvent = (event, nodeById) => {
   const fromNodeId = String(event?.fromNodeId || '').trim();
   const toNodeId = String(event?.toNodeId || '').trim();
   if (!fromNodeId || !toNodeId) return false;
   if (!nodeById.has(fromNodeId) || !nodeById.has(toNodeId)) return false;
-
-  const op = normalizeMovementOperation(event?.operation) || 'Move';
-  const fromLabel = getNodeLabelLower(nodeById, fromNodeId);
-  const toLabel = getNodeLabelLower(nodeById, toNodeId);
-
-  if (op === 'AbarMove') {
-    if (['vp', 'tp', 'inflp', 'ip'].includes(fromLabel)) return false;
-    if (!['dp', 'cp', 'spec', 'speccp'].some((candidate) => toLabel.includes(candidate))) return false;
-  }
-
-  if (op === 'HeadMove') {
-    if (!['c', 't', 'infl', 'i', 'v', 'aux'].includes(toLabel)) return false;
-  }
-
-  return true;
+  return fromNodeId !== toNodeId;
 };
 
 const buildCanonicalMovementEvents = ({
   tree,
   derivationSteps,
-  rawMovementEvents
+  rawMovementEvents,
+  indexedMovementEvents
 }) => {
   const nodeById = buildNodeIndexFromTree(tree);
   const parentById = buildParentIndexFromTree(tree);
   const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
-  const rawEvents = Array.isArray(rawMovementEvents) ? rawMovementEvents : [];
-  const explicitMoveTargets = new Set(
-    steps
-      .filter((step) => isMoveLikeOperation(step?.operation))
-      .map((step) => String(step?.targetNodeId || '').trim())
-      .filter(Boolean)
-  );
-  const moveStepIndexes = steps
-    .map((step, index) => ({ step, index }))
-    .filter(({ step }) => {
-      if (isMoveLikeOperation(step?.operation)) return true;
-      const targetNodeId = String(step?.targetNodeId || '').trim();
-      if (!targetNodeId || explicitMoveTargets.has(targetNodeId)) return false;
-      return isImplicitHeadMoveProjectionStep(step, nodeById);
-    })
-    .map(({ index }) => index);
-
+  const rawEvents = Array.isArray(indexedMovementEvents) && indexedMovementEvents.length > 0
+    ? indexedMovementEvents
+    : Array.isArray(rawMovementEvents)
+      ? rawMovementEvents
+      : [];
   const canonical = [];
   const seen = new Set();
 
@@ -1595,55 +1411,15 @@ const buildCanonicalMovementEvents = ({
     });
   };
 
-  if (moveStepIndexes.length > 0) {
-    moveStepIndexes.forEach((stepIndex) => {
-      const step = steps[stepIndex] || {};
-      const matchedRaw = rawEvents
-        .filter((event) => Number(event?.stepIndex) === stepIndex)
-        .filter((event) => isPlausibleRawMovementEvent(event, nodeById));
-      if (matchedRaw.length > 0) {
-        matchedRaw.forEach((event) => pushEvent({ ...event, stepIndex }, step));
-        return;
-      }
-
-      const targetNodeId = String(step.targetNodeId || '').trim();
-      const sourceNodeIds = Array.isArray(step.sourceNodeIds)
-        ? step.sourceNodeIds.map((id) => String(id || '').trim()).filter(Boolean)
-        : [];
-      if (!targetNodeId || !nodeById.has(targetNodeId) || sourceNodeIds.length === 0) return;
-
-      const targetNode = nodeById.get(targetNodeId);
-      const orderedSources = sourceNodeIds
-        .filter((id) => id !== targetNodeId && nodeById.has(id))
-        .map((id) => ({ id, node: nodeById.get(id) }));
-      if (orderedSources.length === 0) return;
-
-      const traceSource = orderedSources.find(({ node }) => isTraceLikeNode(node) || isNullLikeNode(node));
-      const headPreferred = hasHeadLikeLabel(targetNode);
-      const lexicalSource = orderedSources.find(({ node }) => !isTraceLikeNode(node));
-      const chosenSource = headPreferred
-        ? (traceSource || lexicalSource || orderedSources[0])
-        : (lexicalSource || traceSource || orderedSources[0]);
-
-      pushEvent({
-        operation: isImplicitHeadMoveProjectionStep(step, nodeById)
-          ? 'HeadMove'
-          : (normalizeMovementOperation(step.operation) || 'Move'),
-        fromNodeId: chosenSource.id,
-        toNodeId: targetNodeId,
-        traceNodeId: traceSource?.id || undefined,
-        stepIndex,
-        note: typeof step.note === 'string' ? step.note : undefined
-      }, step);
+  rawEvents
+    .filter((event) => isPlausibleRawMovementEvent(event, nodeById))
+    .forEach((event) => {
+      const stepIndex = Number(event?.stepIndex);
+      const step = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
+        ? steps[stepIndex]
+        : undefined;
+      pushEvent(event, step);
     });
-  }
-
-  // Backward compatibility: if no derivation move steps survived, keep model-provided events.
-  if (canonical.length === 0 && rawEvents.length > 0) {
-    rawEvents
-      .filter((event) => isPlausibleRawMovementEvent(event, nodeById))
-      .forEach((event) => pushEvent(event));
-  }
 
   return canonical.length > 0 ? canonical : undefined;
 };
@@ -1693,6 +1469,7 @@ const reconcileDerivationStepOperations = (derivationSteps, movementEvents) => {
 const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
 const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
 const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c)\b/i;
+const EXPLANATION_SUCCESSIVE_HEADMOVE_RE = /\b(v\s*-?to\s*-?(?:infl|i|t)|verb raises? to (?:infl|i|t)|infl\s*-?to\s*-?c|(?:infl|i|t) (?:raises?|moves?) to c|finally to c|subsequently to c)\b/i;
 const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
 const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
 const EXPLANATION_INTERNALMERGE_RE = /\binternal\s*merge\b/i;
@@ -1757,6 +1534,11 @@ const extractMovementEventKinds = (movementEvents) => {
   });
   return kinds;
 };
+
+const countMovementEventsByOperation = (movementEvents, wantedOperation) =>
+  Array.isArray(movementEvents)
+    ? movementEvents.filter((event) => normalizeMovementOperation(event?.operation) === wantedOperation).length
+    : 0;
 
 const movementKindFromOperation = (operation) => {
   const op = normalizeMovementOperation(operation);
@@ -1832,117 +1614,336 @@ const dedupeMovementSentences = (sentences) => {
   return output;
 };
 
-const isCompatibleMovementSentence = (sentence, movementEventKinds) => {
+const isCompatibleMovementSentence = (sentence, movementEventKinds, movementEvents) => {
   const claims = extractMovementClaimsFromSentence(sentence);
   if (!claims.mentionsMovement) return true;
   if (/\bor\b/i.test(sentence)) return false;
   if (claims.claimsHeadMove && !movementEventKinds.has('head')) return false;
+  if ((claims.claimsHeadMove || EXPLANATION_SUCCESSIVE_HEADMOVE_RE.test(sentence))) {
+    if (countMovementEventsByOperation(movementEvents, 'HeadMove') < 2) return false;
+  }
   if (claims.claimsWhMove && !movementEventKinds.has('wh')) return false;
   if (claims.claimsAMove && !movementEventKinds.has('a')) return false;
   if (claims.claimsInternalMerge && !movementEventKinds.has('internal')) return false;
   return true;
 };
 
-const summarizeGroundedMovement = (movementEvents) => {
+const removeUnsupportedSuccessiveHeadMoveSentences = (text, movementEvents) => {
+  const groundedHeadMoves = countMovementEventsByOperation(movementEvents, 'HeadMove');
+  if (groundedHeadMoves >= 2) return ensureExplanationTerminator(text);
+  const kept = splitExplanationSentences(text).filter((sentence) => !EXPLANATION_SUCCESSIVE_HEADMOVE_RE.test(sentence));
+  return ensureExplanationTerminator(cleanExplanationWhitespace(kept.join(' ')));
+};
+
+const resolveMovementSiteNode = (nodeById, parentById, nodeId) => {
+  const rawId = String(nodeId || '').trim();
+  if (!rawId) return null;
+  let current = nodeById.get(rawId) || null;
+  if (!current) return null;
+  if (!isTraceLikeNode(current) && !isNullLikeNode(current)) {
+    return current;
+  }
+  let currentId = rawId;
+  while (currentId) {
+    const parentId = String(parentById.get(currentId) || '').trim();
+    if (!parentId) break;
+    const parent = nodeById.get(parentId) || null;
+    if (!parent) break;
+    const profile = getLabelProfile(parent?.label);
+    if (profile.isHeadLikeStructural || profile.isPhrasal) {
+      return parent;
+    }
+    currentId = parentId;
+  }
+  return current;
+};
+
+const summarizeGroundedMovement = (movementEvents, tree = null) => {
   if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
 
-  const operationOrder = [];
-  movementEvents.forEach((event) => {
-    const operation = normalizeMovementOperation(event?.operation) || 'Other';
-    if (!operationOrder.includes(operation)) operationOrder.push(operation);
-  });
-  const operationPhrases = operationOrder
-    .map((operation) => MOVEMENT_OPERATION_PHRASE[operation] || 'movement')
-    .filter(Boolean);
+  const nodeById = tree ? buildNodeIndexFromTree(tree) : null;
+  const parentById = tree ? buildParentIndexFromTree(tree) : null;
   const eventDetails = movementEvents
     .slice(0, 3)
     .map((event) => {
       const operation = normalizeMovementOperation(event?.operation) || 'Other';
       const phrase = MOVEMENT_OPERATION_PHRASE[operation] || 'movement';
+      const fromNode = nodeById && parentById
+        ? resolveMovementSiteNode(nodeById, parentById, event?.fromNodeId || event?.traceNodeId)
+        : null;
+      const toNode = nodeById && parentById
+        ? resolveMovementSiteNode(nodeById, parentById, event?.toNodeId)
+        : null;
+      const fromLabel = String(fromNode?.label || event?.fromLabel || event?.fromNodeLabel || '').trim();
+      const toLabel = String(toNode?.label || event?.toLabel || event?.toNodeLabel || '').trim();
       const note = cleanExplanationWhitespace(String(event?.note || ''));
-      return note ? `${phrase} (${note})` : phrase;
+      if (fromLabel && toLabel) {
+        return `${phrase} from ${fromLabel} to ${toLabel}`;
+      }
+      if (note) {
+        return `${phrase} (${note})`;
+      }
+      return phrase;
     })
     .filter(Boolean);
-  const movementSummary = operationPhrases.length > 0
-    ? `Movement in this derivation includes ${joinWithAnd(operationPhrases)}.`
-    : 'Movement is present in this derivation.';
-  const detailsSuffix = eventDetails.length > 0
-    ? ` Grounded in the tree as: ${eventDetails.join('; ')}.`
-    : '';
-  return `${movementSummary}${detailsSuffix}`;
+  if (eventDetails.length > 0) {
+    return `The derivation explicitly records ${eventDetails.join('; ')}.`;
+  }
+  return 'The derivation explicitly records movement.';
 };
 
-const collectOvertTreeWords = (tree) => {
-  const words = [];
-  const visit = (node) => {
-    if (!node || typeof node !== 'object') return;
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length === 0) {
-      const surface = String(resolveOvertLeafSurface(node) || '').trim();
-      if (surface && !isTraceLikeNode(node) && !isNullLikeNode(node)) {
-        words.push(surface);
-      }
-      return;
-    }
-    children.forEach(visit);
-  };
-  visit(tree);
-  return words;
+const formatFeatureCheckingSummary = (item) => {
+  const feature = String(item?.feature || '').trim();
+  if (!feature) return '';
+  const value = String(item?.value || '').trim();
+  const status = String(item?.status || '').trim();
+  const probe = String(item?.probeLabel || item?.probeNodeId || '').trim();
+  const goal = String(item?.goalLabel || item?.goalNodeId || '').trim();
+
+  const featureText = value ? `${feature}=${value}` : feature;
+  const statusText = status ? ` (${status})` : '';
+
+  if (probe && goal) {
+    return `${featureText}${statusText} with ${probe} probing ${goal}`;
+  }
+  if (probe) {
+    return `${featureText}${statusText} on ${probe}`;
+  }
+  if (goal) {
+    return `${featureText}${statusText} targeting ${goal}`;
+  }
+  return `${featureText}${statusText}`;
 };
 
-const summarizeDerivationFacts = ({ framework, tree, derivationSteps }) => {
+const summarizeDerivationFacts = ({ derivationSteps }) => {
   const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
   if (steps.length === 0) return '';
-
-  const rootLabel = String(tree?.label || (framework === 'xbar' ? 'CP' : 'TP')).trim() || 'clause';
-  const words = collectOvertTreeWords(tree);
-  const wordSummary = words.length === 0
-    ? ''
-    : words.length <= 12
-      ? ` over lexical material (${words.join(', ')})`
-      : ` over the full overt string "${words.join(' ')}"`;
-
-  const hasMergeLikeOps = steps.some((step) => {
-    const op = String(step?.operation || '').trim();
-    return op === 'LexicalSelect' || op === 'ExternalMerge' || op === 'Project' || op === 'Label';
-  });
-  const hasMovementOps = steps.some((step) => {
-    const op = normalizeMovementOperation(step?.operation);
-    return op === 'Move' || op === 'InternalMerge' || op === 'HeadMove' || op === 'A-Move' || op === 'AbarMove';
-  });
-  const hasFeatureOps = steps.some((step) => {
-    const op = String(step?.operation || '').trim();
-    const featureItems = Array.isArray(step?.featureChecking) ? step.featureChecking : [];
-    return op === 'Agree' || featureItems.length > 0;
-  });
-  const processClauses = [];
-  if (hasMergeLikeOps) processClauses.push('merge/projection');
-  if (hasFeatureOps) processClauses.push('feature checking');
-  if (hasMovementOps) processClauses.push('displacement operations');
-  const processSummary = processClauses.length > 0
-    ? ` The derivation proceeds through ${joinWithAnd(processClauses)}.`
-    : '';
 
   const featureEvents = [];
   steps.forEach((step) => {
     const items = Array.isArray(step?.featureChecking) ? step.featureChecking : [];
     items.forEach((item) => {
       if (featureEvents.length >= 3) return;
-      const feature = String(item?.feature || '').trim();
-      if (!feature) return;
-      const probe = String(item?.probeLabel || item?.probeNodeId || '').trim();
-      const goal = String(item?.goalLabel || item?.goalNodeId || '').trim();
-      const status = String(item?.status || '').trim();
-      const relation = probe && goal ? `${probe} -> ${goal}` : (probe || goal || '');
-      const statusText = status ? ` (${status})` : '';
-      featureEvents.push(`${feature}${statusText}${relation ? ` at ${relation}` : ''}`);
+      const summary = formatFeatureCheckingSummary(item);
+      if (summary) featureEvents.push(summary);
     });
   });
   const featureSummary = featureEvents.length > 0
-    ? ` Feature checking includes ${featureEvents.join('; ')}.`
+    ? `The derivation also records feature valuation involving ${featureEvents.join('; ')}.`
     : '';
+  return featureSummary;
+};
 
-  return `This ${framework === 'xbar' ? 'X-bar' : 'Minimalist'} analysis projects a ${rootLabel}${wordSummary}.${processSummary}${featureSummary}`.trim();
+const collectOvertYieldWords = (node, words = []) => {
+  if (!node || typeof node !== 'object') return words;
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length === 0) {
+    const surface = String(resolveOvertLeafSurface(node) || '').trim();
+    if (surface && !isTraceLikeNode(node) && !isNullLikeNode(node)) {
+      words.push(surface);
+    }
+    return words;
+  }
+  children.forEach((child) => collectOvertYieldWords(child, words));
+  return words;
+};
+
+const getNodeOvertYield = (node) => collectOvertYieldWords(node, []).join(' ').trim();
+
+const findNearestOvertDescendant = (node, predicate) => {
+  const queue = Array.isArray(node?.children) ? [...node.children] : [];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object') continue;
+    if (predicate(current) && subtreeHasOvertYield(current)) return current;
+    const children = Array.isArray(current.children) ? current.children : [];
+    queue.push(...children);
+  }
+  return null;
+};
+
+const collectDescendantNodes = (node, out = []) => {
+  if (!node || typeof node !== 'object') return out;
+  const children = Array.isArray(node.children) ? node.children : [];
+  children.forEach((child) => {
+    out.push(child);
+    collectDescendantNodes(child, out);
+  });
+  return out;
+};
+
+const getMatrixClauseNode = (tree) => {
+  const rootProfile = getLabelProfile(tree?.label);
+  if (rootProfile.base === 'c' && rootProfile.isPhrasal) {
+    return findNearestOvertDescendant(tree, (node) => {
+      const profile = getLabelProfile(node?.label);
+      return profile.isPhrasal && ['infl', 't', 'ip', 'v'].includes(profile.base);
+    }) || tree;
+  }
+  return tree;
+};
+
+const getFrameworkLead = (framework) =>
+  framework === 'minimalism'
+    ? 'On the committed Minimalist analysis'
+    : 'On the committed X-bar analysis';
+
+const labelRoleForExplanation = (profile) => {
+  if (profile.base === 'q') return 'question element';
+  if (profile.base === 'wh') return 'wh-element';
+  if (profile.base === 'c') return 'left-peripheral head';
+  if (profile.base === 'infl' || profile.base === 't' || profile.base === 'aux') return 'inflectional head';
+  if (profile.base === 'v') return 'verbal head';
+  if (profile.base === 'd') return 'determiner head';
+  return 'head';
+};
+
+const buildClausalEdgeSentence = (tree) => {
+  const rootProfile = getLabelProfile(tree?.label);
+  if (!(rootProfile.base === 'c' && rootProfile.isPhrasal)) return '';
+
+  const children = Array.isArray(tree?.children) ? tree.children : [];
+  if (children.length < 2) return '';
+
+  const leftChild = children[0];
+  if (!subtreeHasOvertYield(leftChild)) return '';
+
+  const leftProfile = getLabelProfile(leftChild?.label);
+  if (!leftProfile.isPhrasal) return '';
+
+  const leftYield = getNodeOvertYield(leftChild);
+  const leftLabel = String(leftChild?.label || '').trim() || 'constituent';
+  if (!leftYield) return '';
+
+  if (leftProfile.base === 'd') {
+    return `At the left edge of the ${String(tree?.label || 'CP').trim() || 'CP'}, the ${leftLabel} "${leftYield}" occupies the initial peripheral position.`;
+  }
+
+  return `At the left edge of the ${String(tree?.label || 'CP').trim() || 'CP'}, the ${leftLabel} "${leftYield}" occupies the initial peripheral position.`;
+};
+
+const buildRootArchitectureSentence = (tree, framework = 'xbar') => {
+  const rootLabel = String(tree?.label || 'clause').trim() || 'clause';
+  const rootProfile = getLabelProfile(rootLabel);
+  const frameworkLead = getFrameworkLead(framework);
+  const rootYield = getNodeOvertYield(tree);
+
+  if (rootProfile.base === 'c' && rootProfile.isPhrasal) {
+    const leftHead = findNearestOvertDescendant(tree, (node) => {
+      const profile = getLabelProfile(node?.label);
+      return profile.isHeadLikeStructural && ['c', 'q', 'wh'].includes(profile.base);
+    });
+    const complement = findNearestOvertDescendant(tree, (node) => {
+        const profile = getLabelProfile(node?.label);
+        return profile.isPhrasal && ['infl', 't', 'ip', 'v'].includes(profile.base);
+      });
+    const headYield = getNodeOvertYield(leftHead);
+    const headProfile = getLabelProfile(leftHead?.label);
+    const complementLabel = String(complement?.label || '').trim();
+    const interrogative = headProfile.base === 'q' || /[?؟]$/.test(rootYield);
+    if (headYield && complementLabel) {
+      const role = labelRoleForExplanation(headProfile);
+      const clauseDescriptor = interrogative ? `an interrogative ${rootLabel}` : `a ${rootLabel}`;
+      return `${frameworkLead}, the sentence is analyzed as ${clauseDescriptor}, with the overt ${role} "${headYield}" and a ${complementLabel} clausal core.`;
+    }
+    if (headYield) {
+      const role = labelRoleForExplanation(headProfile);
+      return `${frameworkLead}, the sentence is analyzed as a ${rootLabel} whose left periphery is overtly realized by the ${role} "${headYield}".`;
+    }
+    if (complementLabel) {
+      return `${frameworkLead}, the sentence is analyzed as a ${rootLabel} dominating a ${complementLabel} as its finite core.`;
+    }
+  }
+
+  if (rootProfile.isPhrasal) {
+    return `${frameworkLead}, the clause is rooted in a ${rootLabel}.`;
+  }
+
+  return `${frameworkLead}, the committed structure is rooted in ${rootLabel}.`;
+};
+
+const buildMatrixOrganizationSentence = (tree) => {
+  const clauseNode = getMatrixClauseNode(tree);
+
+  if (!clauseNode || typeof clauseNode !== 'object') return '';
+
+  const overtChildren = (Array.isArray(clauseNode.children) ? clauseNode.children : [])
+    .filter((child) => subtreeHasOvertYield(child));
+  const clauseLabel = String(clauseNode.label || '').trim() || 'clause';
+  if (overtChildren.length === 0) return '';
+
+  if (overtChildren.length === 1) {
+    const onlyYield = getNodeOvertYield(overtChildren[0]);
+    return onlyYield ? `Within the ${clauseLabel}, the overt material is confined to "${onlyYield}".` : '';
+  }
+
+  const leftChild = overtChildren[0];
+  const leftYield = getNodeOvertYield(leftChild);
+  const rightYield = overtChildren.slice(1).map(getNodeOvertYield).filter(Boolean).join(' ');
+  if (!leftYield || !rightYield) return '';
+
+  const leftLabel = String(leftChild.label || '').trim() || 'constituent';
+  const leftBase = getLabelProfile(leftLabel).base;
+  if (leftBase === 'd') {
+    return `Within the ${clauseLabel}, the left clausal position is occupied by the ${leftLabel} "${leftYield}", while the predicate domain is realized by "${rightYield}".`;
+  }
+
+  if (['c', 'q', 'wh'].includes(leftBase)) {
+    return `Within the ${clauseLabel}, the left periphery is overtly filled by "${leftYield}", while the remaining clause spells out "${rightYield}".`;
+  }
+
+  return `Within the ${clauseLabel}, the overt material divides into the left branch "${leftYield}" and the remainder "${rightYield}".`;
+};
+
+const buildEmbeddedClauseSentence = (tree) => {
+  const nodeById = buildNodeIndexFromTree(tree);
+  const parentById = buildParentIndexFromTree(tree);
+  const embeddedClauses = collectDescendantNodes(tree)
+    .filter((node) => {
+      const profile = getLabelProfile(node?.label);
+      return profile.base === 'c' && profile.isPhrasal && /p$/i.test(String(node?.label || '').trim()) && subtreeHasOvertYield(node);
+    });
+  if (embeddedClauses.length === 0) return '';
+
+  const embedded = embeddedClauses[0];
+  const head = findNearestOvertDescendant(embedded, (node) => {
+    const profile = getLabelProfile(node?.label);
+    return profile.isHeadLikeStructural && ['c', 'q', 'wh'].includes(profile.base);
+  });
+  const headYield = getNodeOvertYield(head);
+  const clauseYield = getNodeOvertYield(embedded);
+  const embeddedLabel = String(embedded.label || 'CP').trim() || 'CP';
+  const parent = nodeById.get(String(parentById.get(String(embedded?.id || '')) || ''));
+  const parentProfile = getLabelProfile(parent?.label);
+  if (headYield && clauseYield) {
+    if (parentProfile.base === 'v') {
+      return `The matrix predicate selects an embedded ${embeddedLabel} introduced by "${headYield}", yielding "${clauseYield}".`;
+    }
+    return `The analysis also contains an embedded ${embeddedLabel} introduced by "${headYield}", with overt yield "${clauseYield}".`;
+  }
+  if (clauseYield) {
+    return `The analysis also contains an embedded ${embeddedLabel} with the overt yield "${clauseYield}".`;
+  }
+  return '';
+};
+
+const buildNoMovementSentence = () => 'No displacement operation is encoded in the derivation, so the surface order is read directly from the final tree.';
+
+const buildGroundedExplanation = ({ tree, derivationSteps, movementEvents, framework = 'xbar' }) => {
+  const parts = [
+    buildRootArchitectureSentence(tree, framework),
+    buildClausalEdgeSentence(tree),
+    buildMatrixOrganizationSentence(tree),
+    buildEmbeddedClauseSentence(tree),
+    summarizeDerivationFacts({ derivationSteps }),
+    Array.isArray(movementEvents) && movementEvents.length > 0
+      ? summarizeGroundedMovement(movementEvents, tree)
+      : buildNoMovementSentence()
+  ]
+    .map((part) => ensureExplanationTerminator(part))
+    .filter(Boolean);
+
+  return ensureExplanationTerminator(parts.join(' '));
 };
 
 const buildCanonicalDerivationFromTree = ({
@@ -2108,31 +2109,12 @@ const buildCanonicalDerivationFromTree = ({
 };
 
 const harmonizeExplanationWithDerivation = (explanation, derivationSteps, movementEvents, tree, framework = 'xbar') => {
-  const base = ensureExplanationTerminator(removeWeakHedging(explanation));
-  const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
-  const derivationFactsSummary = summarizeDerivationFacts({ framework, tree, derivationSteps });
-
-  if (hasMovementEvents) {
-    const movementKinds = extractMovementEventKinds(movementEvents);
-    const compatibleSentences = dedupeMovementSentences(splitExplanationSentences(base)
-      .map((sentence) => removeWeakHedging(sentence))
-      .filter((sentence) => isCompatibleMovementSentence(sentence, movementKinds)));
-
-    const cleanedCompatible = ensureExplanationTerminator(cleanExplanationWhitespace(compatibleSentences.join(' ')));
-    const supplementalMovementSummary = buildSupplementalMovementSummary(cleanedCompatible, movementEvents);
-    const parts = [cleanedCompatible, derivationFactsSummary, supplementalMovementSummary]
-      .map((part) => cleanExplanationWhitespace(part))
-      .filter(Boolean);
-    return ensureExplanationTerminator(parts.join(' '));
-  }
-
-  const kept = splitExplanationSentences(base).filter((sentence) => !EXPLANATION_MOVEMENT_RE.test(sentence));
-  const cleaned = cleanExplanationWhitespace(kept.join(' '));
-  const parts = [cleaned, derivationFactsSummary]
-    .map((part) => cleanExplanationWhitespace(part))
-    .filter(Boolean);
-  if (parts.length > 0) return ensureExplanationTerminator(parts.join(' '));
-  return ensureExplanationTerminator(`No movement is posited in this analysis. ${derivationFactsSummary}`.trim());
+  return buildGroundedExplanation({
+    tree,
+    derivationSteps,
+    movementEvents,
+    framework
+  });
 };
 
 const harmonizeInterpretationWithDerivation = (interpretation, movementEvents) => {
@@ -2145,9 +2127,12 @@ const harmonizeInterpretationWithDerivation = (interpretation, movementEvents) =
   }
 
   const kept = splitExplanationSentences(raw).filter((sentence) =>
-    isCompatibleMovementSentence(sentence, movementKinds)
+    isCompatibleMovementSentence(sentence, movementKinds, movementEvents)
   );
-  const cleaned = cleanExplanationWhitespace(kept.join(' '));
+  const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
+    cleanExplanationWhitespace(kept.join(' ')),
+    movementEvents
+  );
   return cleaned || undefined;
 };
 
@@ -2167,10 +2152,12 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
   const { tree, surfaceOrder } = validateAndCommitSurfaceOrder(parsed.surfaceOrder, rawTree, sentence);
   validateSpelloutConsistency(derivationSteps, tokenizeSentenceSurfaceOrder(sentence), surfaceOrder);
   const rawMovementEvents = normalizeMovementEvents(parsed.movementEvents, nodeIds, derivationSteps);
+  const indexedMovementEvents = deriveIndexedMovementEvents({ tree });
   const movementEvents = buildCanonicalMovementEvents({
     tree,
     derivationSteps,
-    rawMovementEvents
+    rawMovementEvents,
+    indexedMovementEvents
   });
   const canonicalTimeline = buildCanonicalDerivationFromTree({
     tree,
@@ -2401,7 +2388,7 @@ const parseModelJson = (rawText) => {
   throw new ParseApiError('BAD_MODEL_RESPONSE', 'Model returned malformed JSON.', 502);
 };
 
-const generateStructuredContent = async ({ ai, model, contents, systemInstruction, temperature = 0.2, abortSignal }) => {
+const generateStructuredContent = async ({ ai, model, contents, systemInstruction, temperature = MODEL_TEMPERATURE, abortSignal }) => {
   const baseConfig = {
     systemInstruction,
     responseMimeType: 'application/json',
@@ -2448,15 +2435,14 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `${framework === 'xbar' ? 'X-Bar Theory' : 'The Minimalist Program (Bare Phrase Structure)'} in the specified JSON format. ` +
   `Return the complete analysis in one pass. ` +
   `Use these exact overt input tokens as your pronounced terminals: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
-  `The input token indices are: ${tokenizeSentenceSurfaceOrder(sentence).map((token, index) => `${index}:${token}`).join(' ; ')}. ` +
   `Do not split or rewrite those overt tokens. ` +
-  `Return surfaceSpan on every overt leaf and every overt projection using those token indices. ` +
-  `The order of children in your final tree must itself encode the pronounced left-to-right order at every node. ` +
-  `Ensure sibling children partition their parent's overt surfaceSpan in ascending left-to-right order. ` +
-  `For every internal node, concatenating the overt yields of its listed children must reproduce that node's overt yield exactly. ` +
+  `The order of children in your final tree must encode the pronounced left-to-right order. ` +
   `Use each overt input token exactly once in the final tree unless that token occurs multiple times in the sentence itself. ` +
-  `Before answering, read the overt terminals of your final tree from left to right and ensure they spell out the exact sentence order: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
-  `Do not return a tree unless its own overt leaves realize that exact sequence and every overt parent yield is the contiguous union of its overt children.`;
+  `If you claim movement, encode it directly in the tree with shared movement indices on syntactic labels, and encode the lower source/copy explicitly there as well. ` +
+  `Put movement indices on syntactic labels rather than on overt token strings. ` +
+  `If you include a silent or null terminal, use exactly "∅". ` +
+  `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
+  `Before answering, read the overt terminals of your final tree from left to right and ensure they spell out the exact sentence order: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}.`;
 
 export const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
@@ -2519,7 +2505,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
               model: currentModel,
               contents,
               systemInstruction,
-              temperature: 0.2,
+              temperature: MODEL_TEMPERATURE,
               abortSignal
             }),
             boundedTimeoutMs,
@@ -2541,6 +2527,20 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
                 `(attempt ${attempt}/${PRO_RETRY_MAX_ATTEMPTS}, finishReason=${generationMeta.finishReason}, textLength=${generationMeta.textLength}). ` +
                 `Preview: ${generationMeta.preview || '<empty>'}`
               );
+              throw new ParseApiError(
+                error.code,
+                error.message,
+                422,
+                {
+                  stage: 'json-parse',
+                  model: currentModel,
+                  attempt,
+                  finishReason: generationMeta.finishReason || null,
+                  textLength: generationMeta.textLength,
+                  preview: generationMeta.preview || '',
+                  modelsTried: [...attemptedModels, currentModel]
+                }
+              );
             }
             throw error;
           }
@@ -2560,6 +2560,21 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
                 `[gemini] normalization failure on ${currentModel} ` +
                 `(attempt ${attempt}/${PRO_RETRY_MAX_ATTEMPTS}, finishReason=${generationMeta.finishReason}, textLength=${generationMeta.textLength}). ` +
                 `Error: ${error.message}. Payload preview: ${payloadPreview}`
+              );
+              throw new ParseApiError(
+                error.code,
+                error.message,
+                422,
+                {
+                  stage: 'normalization',
+                  model: currentModel,
+                  attempt,
+                  finishReason: generationMeta.finishReason || null,
+                  textLength: generationMeta.textLength,
+                  preview: generationMeta.preview || '',
+                  payloadPreview,
+                  modelsTried: [...attemptedModels, currentModel]
+                }
               );
             }
             throw error;
@@ -2667,11 +2682,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
         }
       }
       if (lastError instanceof ParseApiError && lastError.code === 'BAD_MODEL_RESPONSE') {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'The canopy tangled while shaping structure. Please plant your sentence again.',
-          502
-        );
+        throw lastError;
       }
       throw lastError || new Error('Empty model response.');
     }
