@@ -24,6 +24,7 @@ interface PlaybackStep {
   sourceLabels: string[];
   recipe?: string;
   workspaceAfter?: string[];
+  spelloutOrder?: string[];
   featureChecking?: FeatureCheckEvent[];
   note?: string;
 }
@@ -177,6 +178,7 @@ const mapProvidedStepsToNodes = (
   const mapped = new Map<string, DerivationStep>();
 
   for (const step of derivationSteps) {
+    if (step.operation === 'SpellOut' || isMoveLikeOperation(step.operation)) continue;
     if (!step.targetNodeId) continue;
     const chosen = nodeById.get(step.targetNodeId);
     if (!chosen) continue;
@@ -234,7 +236,7 @@ const createInferredPlaybackSteps = (
 
 const normalizeLabelKey = (label?: string): string => (label || "").trim().toUpperCase();
 const isMoveLikeOperation = (operation?: DerivationStep['operation'] | string): boolean =>
-  /^(move|internal[\s-]*merge)$/i.test(String(operation || '').trim());
+  /^(move|internal[\s-]*merge|head[\s-]*move|a[\s-]*move|a(?:bar)?[\s-]*move)$/i.test(String(operation || '').trim());
 
 const stepMatchesSourceLabel = (step: PlaybackStep, sourceLabel: string): boolean => {
   const normalizedSource = normalizeLabelKey(sourceLabel);
@@ -383,14 +385,31 @@ const buildPlaybackSteps = (
       sourceLabels: provided.sourceLabels && provided.sourceLabels.length > 0 ? provided.sourceLabels : step.sourceLabels,
       recipe: provided.recipe || step.recipe,
       workspaceAfter: provided.workspaceAfter && provided.workspaceAfter.length > 0 ? provided.workspaceAfter : step.workspaceAfter,
+      spelloutOrder: provided.spelloutOrder && provided.spelloutOrder.length > 0 ? provided.spelloutOrder : step.spelloutOrder,
       featureChecking: provided.featureChecking && provided.featureChecking.length > 0
         ? provided.featureChecking
         : step.featureChecking,
       note: provided.note || step.note
     };
   });
+  const mappedIds = new Set(withProvided.map((step) => step.targetNodeId));
+  const supplementalProvided = derivationSteps
+    .filter((step) => step.operation === 'SpellOut' || isMoveLikeOperation(step.operation))
+    .filter((step) => step.operation === 'SpellOut' || !step.targetNodeId || mappedIds.has(step.targetNodeId))
+    .map((step, index) => ({
+      operation: step.operation || 'SpellOut',
+      targetNodeId: step.targetNodeId || `__spellout_${index}`,
+      targetLabel: step.targetLabel || 'SpellOut',
+      sourceNodeIds: step.sourceNodeIds,
+      sourceLabels: step.sourceLabels || [],
+      recipe: step.recipe || 'SpellOut',
+      workspaceAfter: step.workspaceAfter,
+      spelloutOrder: step.spelloutOrder,
+      featureChecking: step.featureChecking,
+      note: step.note
+    }));
 
-  return reorderMovementSteps(withProvided);
+  return reorderMovementSteps([...withProvided, ...supplementalProvided]);
 };
 
 const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
@@ -494,7 +513,7 @@ const formatFeatureCheckingEntry = (entry: FeatureCheckEvent): string => {
   return status ? `${base} ${status}` : base;
 };
 
-const MOVEMENT_TEXT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head\s*move|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
+const MOVEMENT_TEXT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head\s*move|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
 
 const mentionsMovement = (text?: string): boolean => MOVEMENT_TEXT_RE.test(String(text || '').trim());
 
@@ -725,6 +744,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         (step.sourceNodeIds || []).join(','),
         (step.sourceLabels || []).join(','),
         step.recipe || '',
+        (step.spelloutOrder || []).join(','),
         (step.featureChecking || [])
           .map((entry) => [
             entry.feature || '',
@@ -1318,6 +1338,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 	            <div className="text-[11px] text-emerald-100/80 font-semibold">
 	              {activeStep?.recipe || `${activeStep?.targetLabel || 'Node'} created`}
 	            </div>
+              {activeStep?.spelloutOrder && activeStep.spelloutOrder.length > 0 && (
+                <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/75">
+                  Spellout: {activeStep.spelloutOrder.join(' | ')}
+                </div>
+              )}
 	            {activeStep?.workspaceAfter && activeStep.workspaceAfter.length > 0 && (
 	              <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-400/65">
 	                Derivation Set: {activeStep.workspaceAfter.join(' | ')}

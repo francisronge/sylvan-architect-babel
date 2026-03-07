@@ -21,7 +21,11 @@ export const EMPTY_MOVEMENT_INDEX_MAPS: MovementIndexMaps = {
 };
 
 const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
-const TRACE_SURFACE_RE = /^(t(?:race)?(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const TRACE_SURFACE_RE = /^(?:t|trace|t\\d+|trace\\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\\(t\\)|\\{t\\})$/i;
+const HEAD_MOVE_OPERATION_RE = /^head[\s-]*move$/i;
+
+const normalizeMovementOperation = (operation?: MovementEvent['operation']): string =>
+  String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
 
 const indexToLetter = (index: number): string => {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz';
@@ -48,6 +52,9 @@ const collectLeafNodes = (root: SyntaxNode): SyntaxNode[] => {
 const resolveLeafSurface = (node: SyntaxNode): string =>
   String(node.word || node.label || '').trim();
 
+const isTraceLikeSurface = (surface: string): boolean => TRACE_SURFACE_RE.test(surface);
+const isNullLikeSurface = (surface: string): boolean => NULL_SURFACE_RE.test(surface);
+
 const pickLexicalAnchor = (node: SyntaxNode): SyntaxNode | null => {
   const leaves = collectLeafNodes(node);
   if (leaves.length === 0) return null;
@@ -55,11 +62,11 @@ const pickLexicalAnchor = (node: SyntaxNode): SyntaxNode | null => {
   return (
     leaves.find((leaf) => {
       const surface = resolveLeafSurface(leaf);
-      return surface.length > 0 && !NULL_SURFACE_RE.test(surface) && !TRACE_SURFACE_RE.test(surface);
+      return surface.length > 0 && !isNullLikeSurface(surface) && !isTraceLikeSurface(surface);
     }) ||
     leaves.find((leaf) => {
       const surface = resolveLeafSurface(leaf);
-      return surface.length > 0 && !NULL_SURFACE_RE.test(surface);
+      return surface.length > 0 && !isNullLikeSurface(surface);
     }) ||
     leaves[0]
   );
@@ -70,8 +77,8 @@ const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
   if (leaves.length === 0) return null;
 
   return (
-    leaves.find((leaf) => TRACE_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
-    leaves.find((leaf) => NULL_SURFACE_RE.test(resolveLeafSurface(leaf))) ||
+    leaves.find((leaf) => isTraceLikeSurface(resolveLeafSurface(leaf))) ||
+    leaves.find((leaf) => isNullLikeSurface(resolveLeafSurface(leaf))) ||
     leaves[0]
   );
 };
@@ -90,7 +97,7 @@ const pickDistinctLeafAnchor = (node: SyntaxNode, avoidNodeId?: string): SyntaxN
     const id = String(leaf.id || '').trim();
     if (!id || (avoid && id === avoid)) return false;
     const surface = resolveLeafSurface(leaf);
-    return surface.length > 0 && !NULL_SURFACE_RE.test(surface) && !TRACE_SURFACE_RE.test(surface);
+    return surface.length > 0 && !isNullLikeSurface(surface) && !isTraceLikeSurface(surface);
   });
   if (preferred) return preferred;
 
@@ -112,6 +119,56 @@ const buildNodeIndex = (root: SyntaxNode): Map<string, SyntaxNode> => {
   return byId;
 };
 
+const collectSubtreeNodeIds = (root: SyntaxNode): Set<string> => {
+  const ids = new Set<string>();
+  const visit = (node: SyntaxNode) => {
+    const id = String(node.id || '').trim();
+    if (id) ids.add(id);
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(root);
+  return ids;
+};
+
+const subtreeContainsNodeId = (root: SyntaxNode, targetNodeId: string): boolean => {
+  const target = String(targetNodeId || '').trim();
+  if (!target) return false;
+  let found = false;
+  const visit = (node: SyntaxNode) => {
+    if (found) return;
+    const id = String(node.id || '').trim();
+    if (id && id === target) {
+      found = true;
+      return;
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(root);
+  return found;
+};
+
+const pickTraceAnchorOutsideSubtree = (root: SyntaxNode, excludedSubtree: SyntaxNode): SyntaxNode | null => {
+  const excludedIds = collectSubtreeNodeIds(excludedSubtree);
+  const leaves = collectLeafNodes(root).filter((leaf) => {
+    const id = String(leaf.id || '').trim();
+    return id && !excludedIds.has(id);
+  });
+  if (leaves.length === 0) return null;
+  return (
+    leaves.find((leaf) => isTraceLikeSurface(resolveLeafSurface(leaf))) ||
+    leaves.find((leaf) => isNullLikeSurface(resolveLeafSurface(leaf))) ||
+    null
+  );
+};
+
+const isTraceOrNullAnchor = (node?: SyntaxNode | null): boolean => {
+  if (!node) return false;
+  const surface = resolveLeafSurface(node);
+  return isTraceLikeSurface(surface) || isNullLikeSurface(surface);
+};
+
 export const resolveMovementEventLinks = (
   tree: SyntaxNode,
   movementEvents?: MovementEvent[]
@@ -128,14 +185,34 @@ export const resolveMovementEventLinks = (
     const fromNode = nodeById.get(String(event.fromNodeId || '').trim());
     if (!toNode || !fromNode) return;
 
+    const normalizedOperation = normalizeMovementOperation(event.operation);
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
     const fromLexicalAnchor = pickLexicalAnchor(fromNode);
     let movedAnchor = pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode;
-    const traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
-    const preferLexicalSource = isHeadTargetNode(toNode);
-    let sourceAnchor = preferLexicalSource
-      ? (fromLexicalAnchor || traceAnchor || movedAnchor)
-      : (traceAnchor || fromLexicalAnchor || movedAnchor);
+    let traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
+    let sourceAnchor = traceAnchor || fromLexicalAnchor || movedAnchor;
+    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation) || isHeadTargetNode(toNode);
+
+    // For phrase movement where the target dominates the moved phrase, prefer an external trace-like
+    // anchor when the model omitted explicit traceNodeId; this avoids spurious N->D arcs inside Spec-DP.
+    if (!traceNode && !isHeadMove && !isTraceOrNullAnchor(traceAnchor)) {
+      const fromId = String(fromNode.id || '').trim();
+      const toDominatesFrom = fromId ? subtreeContainsNodeId(toNode, fromId) : false;
+      if (toDominatesFrom) {
+        const externalTrace = pickTraceAnchorOutsideSubtree(tree, fromNode);
+        if (externalTrace) {
+          traceAnchor = externalTrace;
+          sourceAnchor = externalTrace;
+        }
+      }
+    }
+
+    if (isHeadMove) {
+      // Head movement is only drawable when the analysis contains a real lower launch site.
+      if (!traceAnchor || !isTraceOrNullAnchor(traceAnchor)) return;
+      sourceAnchor = traceAnchor;
+      movedAnchor = pickLexicalAnchor(toNode) || toNode;
+    }
 
     // If both sides collapse to the same lexical leaf, widen anchors to preserve a drawable arc.
     if (sourceAnchor?.id && movedAnchor?.id && sourceAnchor.id === movedAnchor.id) {

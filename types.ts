@@ -2,6 +2,7 @@ export interface SyntaxNode {
   label: string;
   children?: SyntaxNode[];
   word?: string;
+  surfaceSpan?: [number, number];
   id?: string; // Optional ID for D3 indexing
 }
 
@@ -9,6 +10,9 @@ export type DerivationOperation =
   | 'LexicalSelect'
   | 'ExternalMerge'
   | 'InternalMerge'
+  | 'HeadMove'
+  | 'A-Move'
+  | 'AbarMove'
   | 'Project'
   | 'Label'
   | 'Move'
@@ -35,6 +39,7 @@ export interface DerivationStep {
   sourceLabels?: string[];
   recipe?: string;
   workspaceAfter?: string[];
+  spelloutOrder?: string[];
   featureChecking?: FeatureCheckEvent[];
   note?: string;
 }
@@ -52,6 +57,7 @@ export interface ParseResult {
   tree: SyntaxNode;
   explanation: string;
   partsOfSpeech: Array<{ word: string; pos: string }>;
+  surfaceOrder?: string[];
   bracketedNotation?: string;
   interpretation?: string;
   derivationSteps?: DerivationStep[];

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
-import { MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
+import { DerivationStep, MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import RootLogo from './components/RootLogo';
 import {
@@ -276,7 +276,7 @@ const removeTreeBankEntry = async (id: string): Promise<void> => {
   });
 };
 
-const TRACE_SURFACE_RE = /^(t(?:race)?(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
   "A'",
@@ -411,13 +411,19 @@ const serializeMilesNode = (
     const movedIndex = mode === 'growth' && nodeId
       ? movementMaps.movedByNodeId.get(nodeId)
       : undefined;
+    const hasRenderableLabelToken = Boolean(
+      label &&
+      word &&
+      label !== word &&
+      (
+        isLikelySyntacticCategory(label) ||
+        (mode === 'growth' && Boolean(movedIndex))
+      )
+    );
     const attachMovementToLabel = Boolean(
       mode === 'growth' &&
       movedIndex &&
-      word &&
-      label &&
-      label !== word &&
-      isLikelySyntacticCategory(label)
+      hasRenderableLabelToken
     );
     const surfaced = mode === 'growth'
       ? (attachMovementToLabel ? rawSurface : applyGrowthMovementNotation(node, rawSurface, movementMaps))
@@ -425,7 +431,7 @@ const serializeMilesNode = (
     const token = sanitizeMilesToken(surfaced || '∅');
 
     if (word) {
-      if (label && label !== word && isLikelySyntacticCategory(label)) {
+      if (hasRenderableLabelToken) {
         const categoryToken = attachMovementToLabel
           ? sanitizeMilesToken(appendMovementIndex(label, movedIndex))
           : sanitizeMilesToken(label);
@@ -439,6 +445,27 @@ const serializeMilesNode = (
     }
 
     return token;
+  }
+
+  const promotedMovementIndex = (() => {
+    if (mode !== 'growth' || children.length !== 1) return undefined;
+    const parentLabel = String(label || word || '').trim();
+    if (!parentLabel) return undefined;
+    const onlyChild = children[0];
+    const childChildren = Array.isArray(onlyChild.children) ? onlyChild.children : [];
+    if (childChildren.length > 0) return undefined;
+    const parentId = String(node.id || '').trim();
+    if (parentId && movementMaps.movedByNodeId.has(parentId)) return undefined;
+    const childId = String(onlyChild.id || '').trim();
+    if (!childId) return undefined;
+    return movementMaps.movedByNodeId.get(childId);
+  })();
+
+  if (promotedMovementIndex) {
+    const onlyChild = children[0];
+    const childSurface = sanitizeMilesToken(String(onlyChild.word || onlyChild.label || '∅').trim() || '∅');
+    const promotedLabel = sanitizeMilesToken(appendMovementIndex(label || word || 'X', promotedMovementIndex));
+    return `[${promotedLabel} ${childSurface}]`;
   }
 
   const serializedChildren = children
@@ -460,6 +487,244 @@ const buildMilesNotation = (
     ? (precomputedMovementMaps || buildMovementIndexMaps(tree, movementEvents))
     : EMPTY_MOVEMENT_INDEX_MAPS;
   return serializeMilesNode(tree, mode, movementMaps).trim();
+};
+
+const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
+const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
+const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c)\b/i;
+const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
+const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
+const EXPLANATION_INTERNALMERGE_RE = /\binternal\s*merge\b/i;
+
+const splitExplanationSentences = (text: string): string[] =>
+  String(text || '')
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+
+const cleanExplanationWhitespace = (text: string): string =>
+  String(text || '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+
+const ensureExplanationTerminator = (text: string): string => {
+  const value = cleanExplanationWhitespace(text);
+  if (!value) return '';
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+};
+
+const removeWeakHedging = (text: string): string =>
+  cleanExplanationWhitespace(String(text || '').replace(EXPLANATION_HEDGE_RE, ''));
+
+const extractMovementClaimsFromSentence = (sentence: string): {
+  mentionsMovement: boolean;
+  claimsHeadMove: boolean;
+  claimsWhMove: boolean;
+  claimsAMove: boolean;
+  claimsInternalMerge: boolean;
+} => {
+  const text = String(sentence || '');
+  return {
+    mentionsMovement: EXPLANATION_MOVEMENT_RE.test(text),
+    claimsHeadMove: EXPLANATION_HEADMOVE_RE.test(text),
+    claimsWhMove: EXPLANATION_WHMOVE_RE.test(text),
+    claimsAMove: EXPLANATION_AMOVE_RE.test(text),
+    claimsInternalMerge: EXPLANATION_INTERNALMERGE_RE.test(text)
+  };
+};
+
+const normalizeMovementOperationForSummary = (operation?: MovementEvent['operation']): string =>
+  String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+
+const extractMovementEventKinds = (movementEvents?: MovementEvent[]): Set<string> => {
+  const kinds = new Set<string>();
+  (Array.isArray(movementEvents) ? movementEvents : []).forEach((event) => {
+    const op = normalizeMovementOperationForSummary(event.operation);
+    if (op === 'headmove') kinds.add('head');
+    if (op === 'abarmove') kinds.add('wh');
+    if (op === 'amove') kinds.add('a');
+    if (op === 'internalmerge') kinds.add('internal');
+  });
+  return kinds;
+};
+
+const movementKindFromOperation = (operation?: MovementEvent['operation']): string | null => {
+  const op = normalizeMovementOperationForSummary(operation);
+  if (op === 'headmove') return 'head';
+  if (op === 'abarmove') return 'wh';
+  if (op === 'amove') return 'a';
+  if (op === 'internalmerge') return 'internal';
+  return null;
+};
+
+const extractClaimedMovementKindsFromText = (text: string): Set<string> => {
+  const kinds = new Set<string>();
+  splitExplanationSentences(text).forEach((sentence) => {
+    const claims = extractMovementClaimsFromSentence(sentence);
+    if (claims.claimsHeadMove) kinds.add('head');
+    if (claims.claimsWhMove) kinds.add('wh');
+    if (claims.claimsAMove) kinds.add('a');
+    if (claims.claimsInternalMerge) kinds.add('internal');
+    if (
+      claims.mentionsMovement
+      && !claims.claimsHeadMove
+      && !claims.claimsWhMove
+      && !claims.claimsAMove
+      && !claims.claimsInternalMerge
+    ) {
+      kinds.add('generic');
+    }
+  });
+  return kinds;
+};
+
+const isCompatibleMovementSentence = (sentence: string, movementKinds: Set<string>): boolean => {
+  const claims = extractMovementClaimsFromSentence(sentence);
+  if (!claims.mentionsMovement) return true;
+  if (/\bor\b/i.test(sentence)) return false;
+  if (claims.claimsHeadMove && !movementKinds.has('head')) return false;
+  if (claims.claimsWhMove && !movementKinds.has('wh')) return false;
+  if (claims.claimsAMove && !movementKinds.has('a')) return false;
+  if (claims.claimsInternalMerge && !movementKinds.has('internal')) return false;
+  return true;
+};
+
+const joinWithAnd = (items: string[]): string => {
+  const values = items.filter(Boolean);
+  if (values.length === 0) return '';
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
+};
+
+const summarizeMovementFromEvents = (movementEvents?: MovementEvent[]): string => {
+  if (!Array.isArray(movementEvents) || movementEvents.length === 0) return 'No movement is posited in this analysis.';
+
+  const operationOrder: string[] = [];
+  movementEvents.forEach((event) => {
+    const op = normalizeMovementOperationForSummary(event.operation);
+    const key = op || 'move';
+    if (!operationOrder.includes(key)) operationOrder.push(key);
+  });
+
+  const labelForOperation = (op: string): string => {
+    if (op === 'headmove') return 'head movement';
+    if (op === 'internalmerge') return 'internal merge';
+    if (op === 'amove') return 'A-movement';
+    if (op === 'abarmove') return 'A-bar movement';
+    return 'movement';
+  };
+
+  const parts = operationOrder.map((op) => labelForOperation(op));
+  const details = movementEvents
+    .slice(0, 3)
+    .map((event) => {
+      const op = normalizeMovementOperationForSummary(event.operation);
+      const phrase = labelForOperation(op || 'move');
+      const note = cleanExplanationWhitespace(String(event.note || ''));
+      return note ? `${phrase} (${note})` : phrase;
+    })
+    .filter(Boolean);
+  const detailsSuffix = details.length > 0 ? ` Grounded in the tree as: ${details.join('; ')}.` : '';
+  const summary = parts.length > 0
+    ? `Movement in this derivation includes ${joinWithAnd(parts)}.`
+    : 'Movement is present in this derivation.';
+  return `${summary}${detailsSuffix}`;
+};
+
+const buildSupplementalMovementSummary = (compatibleText: string, movementEvents?: MovementEvent[]): string => {
+  if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
+  const claimedKinds = extractClaimedMovementKindsFromText(compatibleText);
+  if (claimedKinds.size === 0) {
+    return summarizeMovementFromEvents(movementEvents);
+  }
+
+  const missingEvents = movementEvents.filter((event) => {
+    const kind = movementKindFromOperation(event.operation);
+    if (!kind) return false;
+    return !claimedKinds.has(kind);
+  });
+  if (missingEvents.length === 0) return '';
+  return summarizeMovementFromEvents(missingEvents);
+};
+
+const movementSignatureForSentence = (sentence: string): string => {
+  const claims = extractMovementClaimsFromSentence(sentence);
+  if (!claims.mentionsMovement) return '';
+  const tags: string[] = [];
+  if (claims.claimsHeadMove) tags.push('head');
+  if (claims.claimsWhMove) tags.push('wh');
+  if (claims.claimsAMove) tags.push('a');
+  if (claims.claimsInternalMerge) tags.push('internal');
+  if (tags.length === 0) tags.push('generic');
+  return tags.sort().join('+');
+};
+
+const dedupeMovementSentences = (sentences: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  sentences.forEach((sentence) => {
+    const signature = movementSignatureForSentence(sentence);
+    if (!signature) {
+      out.push(sentence);
+      return;
+    }
+    if (seen.has(signature)) return;
+    seen.add(signature);
+    out.push(sentence);
+  });
+  return out;
+};
+
+const normalizeExplanationForDisplay = (explanation: string, movementEvents?: MovementEvent[]): string => {
+  const base = ensureExplanationTerminator(removeWeakHedging(explanation));
+  const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
+
+  const movementKinds = extractMovementEventKinds(movementEvents);
+  const compatible = dedupeMovementSentences(
+    splitExplanationSentences(base)
+      .filter((sentence) => isCompatibleMovementSentence(sentence, movementKinds))
+  ).join(' ');
+  const compatibleText = ensureExplanationTerminator(compatible);
+
+  if (hasMovementEvents) {
+    const summary = buildSupplementalMovementSummary(compatibleText, movementEvents);
+    if (!compatibleText) return summary || summarizeMovementFromEvents(movementEvents);
+    if (!summary) return compatibleText;
+    return `${compatibleText} ${summary}`.trim();
+  }
+
+  if (compatibleText) return compatibleText;
+  return 'No movement is posited in this analysis.';
+};
+
+const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] | undefined => {
+  if (!parse) return undefined;
+  const existing = Array.isArray(parse.derivationSteps) ? parse.derivationSteps : [];
+  const surfaceOrder = Array.isArray(parse.surfaceOrder)
+    ? parse.surfaceOrder.map((token) => String(token || '').trim()).filter(Boolean)
+    : [];
+  if (surfaceOrder.length === 0) return existing.length > 0 ? existing : undefined;
+  const hasSpellout = existing.some((step) => String(step?.operation || '').trim() === 'SpellOut');
+  if (hasSpellout) return existing;
+
+  const rootId = String(parse.tree?.id || '').trim() || undefined;
+  const rootLabel = String(parse.tree?.label || '').trim() || 'Tree';
+  return [
+    ...existing,
+    {
+      operation: 'SpellOut',
+      targetNodeId: rootId,
+      targetLabel: rootLabel,
+      sourceNodeIds: rootId ? [rootId] : undefined,
+      sourceLabels: [rootLabel],
+      recipe: 'SpellOut',
+      workspaceAfter: [rootLabel],
+      spelloutOrder: surfaceOrder,
+      note: 'Final spellout of the committed surface order.'
+    }
+  ];
 };
 
 const App: React.FC = () => {
@@ -512,6 +777,7 @@ const App: React.FC = () => {
     if (!activeParse) return EMPTY_MOVEMENT_INDEX_MAPS;
     return buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents);
   }, [activeParse]);
+  const replayDerivationSteps = useMemo(() => ensureReplaySpelloutStep(activeParse), [activeParse]);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
     const tracePrunedTree = pruneCanopyMovementArtifacts(activeParse.tree) || activeParse.tree;
@@ -521,6 +787,10 @@ const App: React.FC = () => {
     if (!activeParse) return '';
     return buildMilesNotation(activeParse.tree, 'growth', activeParse.movementEvents, growthMovementMaps);
   }, [activeParse, growthMovementMaps]);
+  const normalizedExplanation = useMemo(() => {
+    if (!activeParse) return '';
+    return normalizeExplanationForDisplay(activeParse.explanation, activeParse.movementEvents);
+  }, [activeParse]);
 
   useEffect(() => {
     const checkKeyStatus = async () => {
@@ -1027,9 +1297,9 @@ const App: React.FC = () => {
 
           {!loading && activeParse && (activeTab === 'tree' || activeTab === 'growth') ? (
             <TreeVisualizer 
-              data={activeParse.tree}
+              data={activeParse.tree} 
               animated={activeTab === 'growth'} 
-              derivationSteps={activeParse.derivationSteps}
+              derivationSteps={replayDerivationSteps}
               resolvedMovementLinks={resolvedMovementLinks}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
@@ -1064,7 +1334,7 @@ const App: React.FC = () => {
                       {activeParse.interpretation && (
                         <p className="text-xs uppercase tracking-[0.2em] text-emerald-400/70 mb-4">{activeParse.interpretation}</p>
                       )}
-                      <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{activeParse.explanation}"</p>
+                      <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{normalizedExplanation}"</p>
                   </div>
 
                   {(canopyMilesNotation || growthMilesNotation) && (
