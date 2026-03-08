@@ -23,6 +23,7 @@ export const EMPTY_MOVEMENT_INDEX_MAPS: MovementIndexMaps = {
 const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
 const TRACE_SURFACE_RE = /^(?:t|trace|t\\d+|trace\\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\\(t\\)|\\{t\\})$/i;
 const HEAD_MOVE_OPERATION_RE = /^head[\s-]*move$/i;
+const STRUCTURAL_HEAD_LABEL_RE = /^(?:c|q|wh|t|infl|i|v|d|n|a|p|aux)$/i;
 
 const normalizeMovementOperation = (operation?: MovementEvent['operation']): string =>
   String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
@@ -72,6 +73,25 @@ const pickLexicalAnchor = (node: SyntaxNode): SyntaxNode | null => {
   );
 };
 
+const hasOvertLexicalDescendant = (node: SyntaxNode): boolean => Boolean(pickLexicalAnchor(node));
+
+const pickStructuralPhraseAnchor = (node: SyntaxNode): SyntaxNode | null => {
+  const queue: SyntaxNode[] = [node];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) continue;
+    const label = String(current.label || '').trim();
+    if (STRUCTURAL_HEAD_LABEL_RE.test(label) && hasOvertLexicalDescendant(current)) {
+      return current;
+    }
+    const children = Array.isArray(current.children) ? current.children : [];
+    queue.push(...children);
+  }
+
+  return node;
+};
+
 const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
   const leaves = collectLeafNodes(node);
   if (leaves.length === 0) return null;
@@ -81,11 +101,6 @@ const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
     leaves.find((leaf) => isNullLikeSurface(resolveLeafSurface(leaf))) ||
     leaves[0]
   );
-};
-
-const isHeadTargetNode = (node: SyntaxNode): boolean => {
-  const label = String(node.label || '').trim().toLowerCase();
-  return label === 'c' || label === 't' || label === 'infl' || label === 'i';
 };
 
 const pickDistinctLeafAnchor = (node: SyntaxNode, avoidNodeId?: string): SyntaxNode | null => {
@@ -119,50 +134,6 @@ const buildNodeIndex = (root: SyntaxNode): Map<string, SyntaxNode> => {
   return byId;
 };
 
-const collectSubtreeNodeIds = (root: SyntaxNode): Set<string> => {
-  const ids = new Set<string>();
-  const visit = (node: SyntaxNode) => {
-    const id = String(node.id || '').trim();
-    if (id) ids.add(id);
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(visit);
-  };
-  visit(root);
-  return ids;
-};
-
-const subtreeContainsNodeId = (root: SyntaxNode, targetNodeId: string): boolean => {
-  const target = String(targetNodeId || '').trim();
-  if (!target) return false;
-  let found = false;
-  const visit = (node: SyntaxNode) => {
-    if (found) return;
-    const id = String(node.id || '').trim();
-    if (id && id === target) {
-      found = true;
-      return;
-    }
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(visit);
-  };
-  visit(root);
-  return found;
-};
-
-const pickTraceAnchorOutsideSubtree = (root: SyntaxNode, excludedSubtree: SyntaxNode): SyntaxNode | null => {
-  const excludedIds = collectSubtreeNodeIds(excludedSubtree);
-  const leaves = collectLeafNodes(root).filter((leaf) => {
-    const id = String(leaf.id || '').trim();
-    return id && !excludedIds.has(id);
-  });
-  if (leaves.length === 0) return null;
-  return (
-    leaves.find((leaf) => isTraceLikeSurface(resolveLeafSurface(leaf))) ||
-    leaves.find((leaf) => isNullLikeSurface(resolveLeafSurface(leaf))) ||
-    null
-  );
-};
-
 const isTraceOrNullAnchor = (node?: SyntaxNode | null): boolean => {
   if (!node) return false;
   const surface = resolveLeafSurface(node);
@@ -188,24 +159,10 @@ export const resolveMovementEventLinks = (
     const normalizedOperation = normalizeMovementOperation(event.operation);
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
     const fromLexicalAnchor = pickLexicalAnchor(fromNode);
-    let movedAnchor = pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode;
+    let movedAnchor = pickStructuralPhraseAnchor(toNode) || pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode;
     let traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
     let sourceAnchor = traceAnchor || fromLexicalAnchor || movedAnchor;
-    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation) || isHeadTargetNode(toNode);
-
-    // For phrase movement where the target dominates the moved phrase, prefer an external trace-like
-    // anchor when the model omitted explicit traceNodeId; this avoids spurious N->D arcs inside Spec-DP.
-    if (!traceNode && !isHeadMove && !isTraceOrNullAnchor(traceAnchor)) {
-      const fromId = String(fromNode.id || '').trim();
-      const toDominatesFrom = fromId ? subtreeContainsNodeId(toNode, fromId) : false;
-      if (toDominatesFrom) {
-        const externalTrace = pickTraceAnchorOutsideSubtree(tree, fromNode);
-        if (externalTrace) {
-          traceAnchor = externalTrace;
-          sourceAnchor = externalTrace;
-        }
-      }
-    }
+    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
 
     if (isHeadMove) {
       // Head movement is only drawable when the analysis contains a real lower launch site.

@@ -8,7 +8,8 @@ const {
   harmonizeExplanationWithDerivation,
   buildCanonicalMovementEvents,
   buildSystemInstruction,
-  buildParseContentsPrompt
+  buildParseContentsPrompt,
+  buildFinalizationPrompt
 } = __test__;
 
 const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
@@ -163,8 +164,9 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   const instruction = buildSystemInstruction('xbar');
 
   assert.match(instruction, /The tree must be the final pronounced structure/i);
-  assert.match(instruction, /encode it directly in the tree using shared movement indices/i);
-  assert.match(instruction, /If no movement is posited, return "movementEvents": \[\]/i);
+  assert.match(instruction, /First decide movement and encode it in "movementDecision\.hasMovement"/i);
+  assert.match(instruction, /For every apparent dependency, choose exactly one analysis: direct merge or movement/i);
+  assert.match(instruction, /Return "movementEvents": \[\]/i);
   assert.match(instruction, /Every overt input token must appear in the tree exactly as pronounced/i);
   assert.match(instruction, /Keep only the pronounced copy overt and render the lower occurrence as a trace, copy, or null element/i);
   assert.match(instruction, /represent it only as "∅"/i);
@@ -173,14 +175,38 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
 test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lower copies', () => {
   const prompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar');
 
-  assert.match(prompt, /encode it directly in the tree with shared movement indices on syntactic labels/i);
-  assert.match(prompt, /Put movement indices on syntactic labels rather than on overt token strings/i);
-  assert.match(prompt, /The order of children in your final tree must encode the pronounced left-to-right order/i);
+  assert.match(prompt, /Return the complete analysis in one pass/i);
+  assert.match(prompt, /Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice/i);
+  assert.match(prompt, /If movement occurs, make it explicit\. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise/i);
+  assert.match(prompt, /The order of children in your final tree must encode the pronounced left-to-right order|CRITICAL LINEARIZATION RULE.*children array must be ordered/i);
   assert.match(prompt, /Use each overt input token exactly once in the final tree/i);
   assert.match(prompt, /use exactly "∅"/i);
 });
 
-test('normalizeParseBundle derives movement from indexed tree labels when movementEvents are omitted', () => {
+test('buildFinalizationPrompt asks the model to finalize movement and linearization coherently', () => {
+  const prompt = buildFinalizationPrompt(
+    {
+      analyses: [
+        {
+          tree: { id: 'n1', label: 'CP', children: [] },
+          explanation: 'Draft explanation.'
+        }
+      ]
+    },
+    'Which article did Nora publish?',
+    'xbar'
+  );
+
+  assert.match(prompt, /draft tree bundle from pass 1/i);
+  assert.match(prompt, /Return a finalized JSON analysis bundle/i);
+  assert.match(prompt, /If movement is intended, encode it explicitly in the tree/i);
+  assert.match(prompt, /either encode that head movement explicitly or revise the draft/i);
+  assert.match(prompt, /Return movementEvents, derivationSteps, and surfaceOrder in every finalized analysis/i);
+  assert.match(prompt, /Left-to-right DFS of the final tree must spell exactly/i);
+  assert.doesNotMatch(prompt, /Draft explanation/);
+});
+
+test('normalizeParseBundle does not infer movement from indexed tree labels when movementEvents are omitted', () => {
   const sentence = 'Which book did Anna buy?';
   const payload = {
     analyses: [
@@ -272,12 +298,9 @@ test('normalizeParseBundle derives movement from indexed tree labels when moveme
   const normalized = normalizeParseBundle(payload, 'xbar', sentence);
   const analysis = normalized.analyses[0];
 
-  assert.ok(Array.isArray(analysis.movementEvents));
-  assert.equal(analysis.movementEvents.length, 1);
-  assert.equal(analysis.movementEvents[0].operation, 'Move');
-  assert.equal(analysis.movementEvents[0].toNodeId, 'n2');
-  assert.match(analysis.explanation, /explicitly records movement/i);
-  assert.doesNotMatch(analysis.explanation, /No displacement operation is encoded/i);
+  assert.deepStrictEqual(analysis.movementEvents, []);
+  assert.doesNotMatch(analysis.explanation, /explicitly records movement/i);
+  assert.match(analysis.explanation, /No displacement operation is encoded/i);
 });
 
 test('normalizeParseBundle preserves tree yield when sibling order drifts from the input sentence', () => {
@@ -377,7 +400,7 @@ test('normalizeParseBundle preserves tree yield when sibling order drifts from t
   const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
   assert.deepEqual(
     normalized.analyses[0].surfaceOrder,
-    ['The', 'student', 'that', 'the', 'lecture', 'ended', 'early', 'said']
+    ['The', 'student', 'said', 'that', 'the', 'lecture', 'ended', 'early']
   );
 });
 
@@ -474,7 +497,7 @@ test('normalizeParseBundle preserves tree yield when overt tokens are duplicated
   );
 });
 
-test('buildCanonicalMovementEvents drops head movement without a real lower launch trace', () => {
+test('buildCanonicalMovementEvents preserves explicit head movement without inferring a lower launch trace', () => {
   const tree = {
     id: 'n1',
     label: 'TP',
@@ -521,7 +544,11 @@ test('buildCanonicalMovementEvents drops head movement without a real lower laun
     ]
   });
 
-  assert.equal(movementEvents, undefined);
+  assert.ok(Array.isArray(movementEvents));
+  assert.equal(movementEvents.length, 1);
+  assert.equal(movementEvents[0].operation, 'HeadMove');
+  assert.equal(movementEvents[0].fromNodeId, 'n4');
+  assert.equal(movementEvents[0].toNodeId, 'n2');
 });
 
 test('buildCanonicalMovementEvents preserves only the explicit successive head-movement hops the model encoded', () => {
@@ -844,7 +871,7 @@ test('normalizeParseBundle preserves tree yield for misordered TP siblings in mi
   const normalized = normalizeParseBundle(withMovementDecision(payload), 'minimalism', sentence);
   assert.deepEqual(
     normalized.analyses[0].surfaceOrder,
-    ['Quale', 'poema', 'ha', 'Elisa', 'scritto']
+    ['Quale', 'poema', 'ha', 'scritto', 'Elisa']
   );
 });
 
@@ -928,7 +955,11 @@ test('normalizeParseBundle ignores model-provided spans on null heads and derive
   assert.deepEqual(normalized.analyses[0].tree.surfaceSpan, [0, 2]);
 });
 
-test('normalizeParseBundle preserves tree yield for V-initial question trees whose child order mis-spells the sentence', () => {
+test('normalizeParseBundle sorts siblings by sentence position but does not restructure tree depth (V-initial with misplaced DP)', () => {
+  // When the model places DP(Ana) as sibling of VP at InflP level instead of
+  // inside VP, the simple sibling sort cannot fix the interleaving because
+  // Ana (pos 2) falls between comprado (pos 1) and el (pos 3) which are both
+  // inside VP.  The sort honestly surfaces this structural error.
   const sentence = 'Ha comprado Ana el libro?';
   const payload = {
     analyses: [
@@ -999,9 +1030,11 @@ test('normalizeParseBundle preserves tree yield for V-initial question trees who
   };
 
   const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
+  // With DP(Ana) outside VP, sibling sort places VP (min=1) before DP(Ana) (min=2),
+  // so DFS reads: Ha, comprado, el, libro, Ana — the model's structural error is visible.
   assert.deepEqual(
     normalized.analyses[0].surfaceOrder,
-    ['Ha', 'Ana', 'comprado', 'el', 'libro']
+    ['Ha', 'comprado', 'el', 'libro', 'Ana']
   );
 });
 
@@ -1119,6 +1152,198 @@ test('harmonizeExplanationWithDerivation renders feature checking in prose inste
 
   assert.match(normalizedExplanation, /uFeature \(valued\) with ProbeHead probing GoalHead/i);
   assert.doesNotMatch(normalizedExplanation, /->/i);
+});
+
+test('harmonizeExplanationWithDerivation keeps embedded complementizers out of the matrix architecture summary', () => {
+  const explanation = 'A finite declarative clause.';
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: 'DP',
+        children: [
+          {
+            id: 'n3',
+            label: 'D',
+            children: [{ id: 'n4', label: 'I', word: 'I' }]
+          },
+          {
+            id: 'n5',
+            label: 'NP',
+            children: [{ id: 'n6', label: 'Anna', word: 'Anna' }]
+          }
+        ]
+      },
+      {
+        id: 'n7',
+        label: "C'",
+        children: [
+          {
+            id: 'n8',
+            label: 'C',
+            children: [{ id: 'n9', label: '∅', word: '∅' }]
+          },
+          {
+            id: 'n10',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n11',
+                label: 'DP',
+                children: [{ id: 'n12', label: 'nomizei', word: 'nomizei' }]
+              },
+              {
+                id: 'n13',
+                label: "Infl'",
+                children: [
+                  {
+                    id: 'n14',
+                    label: 'Infl',
+                    children: [{ id: 'n15', label: '∅', word: '∅' }]
+                  },
+                  {
+                    id: 'n16',
+                    label: 'CP',
+                    children: [
+                      {
+                        id: 'n17',
+                        label: 'C',
+                        children: [{ id: 'n18', label: 'oti', word: 'oti' }]
+                      },
+                      {
+                        id: 'n19',
+                        label: 'InflP',
+                        children: [
+                          {
+                            id: 'n20',
+                            label: 'DP',
+                            children: [{ id: 'n21', label: 'Nikos', word: 'Nikos' }]
+                          },
+                          {
+                            id: 'n22',
+                            label: 'VP',
+                            children: [{ id: 'n23', label: 'efyge', word: 'efyge' }]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    [],
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /dominating a InflP as its finite core/i);
+  assert.match(normalizedExplanation, /embedded CP introduced by "oti"/i);
+  assert.doesNotMatch(normalizedExplanation, /overt left-peripheral head "oti"/i);
+});
+
+test('harmonizeExplanationWithDerivation avoids infl-to-dp movement prose when the source is a null copy', () => {
+  const explanation = 'A wh-question.';
+  const movementEvents = [
+    {
+      operation: 'Move',
+      fromNodeId: 'n10',
+      toNodeId: 'n2',
+      traceNodeId: 'n10'
+    }
+  ];
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: 'DP_i',
+        children: [
+          {
+            id: 'n3',
+            label: 'D',
+            children: [{ id: 'n4', label: 'Which', word: 'Which' }]
+          },
+          {
+            id: 'n5',
+            label: 'NP',
+            children: [{ id: 'n6', label: 'book', word: 'book' }]
+          }
+        ]
+      },
+      {
+        id: 'n7',
+        label: "C'",
+        children: [
+          {
+            id: 'n8',
+            label: 'C',
+            children: [{ id: 'n9', label: 'did', word: 'did' }]
+          },
+          {
+            id: 'n11',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n12',
+                label: 'DP',
+                children: [{ id: 'n13', label: 'Anna', word: 'Anna' }]
+              },
+              {
+                id: 'n14',
+                label: "Infl'",
+                children: [
+                  {
+                    id: 'n15',
+                    label: 'Infl',
+                    children: [{ id: 'n10', label: '∅_i', word: '∅' }]
+                  },
+                  {
+                    id: 'n16',
+                    label: 'VP',
+                    children: [
+                      {
+                        id: 'n17',
+                        label: 'V',
+                        children: [{ id: 'n18', label: 'buy', word: 'buy' }]
+                      },
+                      {
+                        id: 'n19',
+                        label: 'DP',
+                        children: [{ id: 'n20', label: 't_i', word: 't' }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    movementEvents,
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /movement of DP_i from its lower copy/i);
+  assert.doesNotMatch(normalizedExplanation, /movement from Infl to DP/i);
 });
 
 test('harmonizeExplanationWithDerivation does not append generic structure-building boilerplate', () => {
@@ -1347,7 +1572,7 @@ test('normalizeParseBundle does not treat empty category leaves as overt termina
                   id: 'n3',
                   label: 'D',
                   children: [
-                    { id: 'n4', label: 'Pron', children: [{ id: 'n5', label: 'I', children: [] }] }
+                    { id: 'n4', label: 'Pron', children: [{ id: 'n5', label: 'I', word: 'I', children: [] }] }
                   ]
                 }
               ]
@@ -1636,5 +1861,396 @@ test('normalizeParseBundle materializes singleton-span lexical leaves when their
   assert.deepEqual(
     normalized.analyses[0].surfaceOrder,
     ['A', 'diretora', 'disse', 'que', 'os', 'alunos', 'chegaram', 'cedo']
+  );
+});
+
+test('normalizeParseBundle recognizes category-prefixed traces like V_trace_1 and excludes them from surface order', () => {
+  const sentence = "D'oscail Sean an doras?";
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: "C'",
+              children: [
+                {
+                  id: 'n3',
+                  label: 'C',
+                  children: [
+                    {
+                      id: 'n4',
+                      label: 'V[+Q]',
+                      children: [{ id: 'n5', label: "D'oscail", word: "D'oscail" }]
+                    }
+                  ]
+                },
+                {
+                  id: 'n6',
+                  label: 'InflP',
+                  children: [
+                    {
+                      id: 'n7',
+                      label: 'DP',
+                      children: [
+                        {
+                          id: 'n8',
+                          label: "D'",
+                          children: [
+                            { id: 'n9', label: 'D', children: [{ id: 'n10', label: 'Sean', word: 'Sean' }] }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      id: 'n11',
+                      label: "Infl'",
+                      children: [
+                        { id: 'n12', label: 'Infl', children: [{ id: 'n13', label: '∅' }] },
+                        {
+                          id: 'n14',
+                          label: 'VP',
+                          children: [
+                            {
+                              id: 'n15',
+                              label: "V'",
+                              children: [
+                                { id: 'n16', label: 'V_trace_1' },
+                                {
+                                  id: 'n17',
+                                  label: 'DP',
+                                  children: [
+                                    {
+                                      id: 'n18',
+                                      label: "D'",
+                                      children: [
+                                        { id: 'n19', label: 'D', children: [{ id: 'n20', label: 'an', word: 'an' }] },
+                                        {
+                                          id: 'n21',
+                                          label: 'NP',
+                                          children: [
+                                            { id: 'n22', label: "N'", children: [{ id: 'n23', label: 'doras', word: 'doras' }] }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'Irish VSO with verb fronting.',
+        movementEvents: []
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  // V_trace_1 must not appear in the surface order
+  assert.deepEqual(analysis.surfaceOrder, ["D'oscail", 'Sean', 'an', 'doras']);
+
+  // Model did not commit to indexed movement pairing, so movementEvents stays empty
+  assert.ok(!analysis.movementEvents || analysis.movementEvents.length === 0);
+
+  // Explanation must not claim movement that was not encoded
+  assert.doesNotMatch(analysis.explanation, /explicitly records movement/i);
+});
+
+test('normalizeParseBundle strips movement indices from tree labels so Canopy receives clean data', () => {
+  const sentence = 'Which book did Anna buy?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: 'DP_i',
+              children: [
+                {
+                  id: 'n3',
+                  label: "D'",
+                  children: [
+                    { id: 'n4', label: 'D', children: [{ id: 'n5', label: 'Which', word: 'Which' }] },
+                    { id: 'n6', label: 'NP', children: [{ id: 'n7', label: 'N', children: [{ id: 'n8', label: 'book', word: 'book' }] }] }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'n9',
+              label: "C'",
+              children: [
+                { id: 'n10', label: 'C', children: [{ id: 'n11', label: 'did', word: 'did' }] },
+                {
+                  id: 'n12',
+                  label: 'InflP',
+                  children: [
+                    { id: 'n13', label: 'DP', children: [{ id: 'n14', label: 'D', children: [{ id: 'n15', label: 'Anna', word: 'Anna' }] }] },
+                    {
+                      id: 'n16',
+                      label: "Infl'",
+                      children: [
+                        { id: 'n17', label: 'Infl', children: [{ id: 'n18', label: '∅' }] },
+                        {
+                          id: 'n19',
+                          label: 'VP',
+                          children: [
+                            { id: 'n20', label: 'V', children: [{ id: 'n21', label: 'buy', word: 'buy' }] },
+                            { id: 'n22', label: 'DP_i', children: [{ id: 'n23', label: 't_i' }] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'The wh-phrase is displaced to the clause edge.'
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  // Tree labels must be stripped of movement indices
+  assert.equal(analysis.tree.children[0].label, 'DP');
+  // Infl' keeps [Infl(∅), VP] — null Infl stays in model position, so VP is at index 1
+  assert.equal(analysis.tree.children[1].children[1].children[1].children[1].children[1].label, 'DP');
+
+  // Movement is no longer inferred from label indices alone.
+  assert.deepStrictEqual(analysis.movementEvents, []);
+
+  // Bracketed notation must use the clean labels
+  assert.doesNotMatch(analysis.bracketedNotation, /DP_i/);
+  assert.match(analysis.bracketedNotation, /\[DP \[D' \[D Which\]/);
+});
+
+test('normalizeParseBundle does not derive movement from trace-prefixed node IDs without explicit movement events', () => {
+  const sentence = 'Welches Buch hat Maria gelesen';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'CP_1', label: 'CP', children: [
+            { id: 'DP_1', label: 'DP', children: [
+              { id: 'D_bar_1', label: "D'", children: [
+                { id: 'D_1', label: 'D', children: [
+                  { id: 'T_1', label: 'Welches' }
+                ]},
+                { id: 'NP_1', label: 'NP', children: [
+                  { id: 'N_1', label: 'N', children: [
+                    { id: 'T_2', label: 'Buch' }
+                  ]}
+                ]}
+              ]}
+            ]},
+            { id: 'C_bar_1', label: "C'", children: [
+              { id: 'C_1', label: 'C', children: [
+                { id: 'T_3', label: 'hat' }
+              ]},
+              { id: 'InflP_1', label: 'InflP', children: [
+                { id: 'DP_2', label: 'DP', children: [
+                  { id: 'D_bar_2', label: "D'", children: [
+                    { id: 'D_2', label: 'D', children: [
+                      { id: 'T_4', label: 'Maria' }
+                    ]}
+                  ]}
+                ]},
+                { id: 'Infl_bar_1', label: "Infl'", children: [
+                  { id: 'Infl_1', label: 'Infl', children: [
+                    { id: 'T_5', label: '\u2205' }
+                  ]},
+                  { id: 'VP_1', label: 'VP', children: [
+                    { id: 'V_bar_1', label: "V'", children: [
+                      { id: 'V_1', label: 'V', children: [
+                        { id: 'T_6', label: 'gelesen' }
+                      ]},
+                      { id: 'trace_1', label: 'DP' }
+                    ]}
+                  ]}
+                ]}
+              ]}
+            ]}
+          ]
+        },
+        explanation: 'No displacement.',
+        movementEvents: []
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.movementEvents, []);
+
+  // Surface order should not include the trace DP
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Welches', 'Buch', 'hat', 'Maria', 'gelesen']);
+});
+
+test('normalizeParseBundle reorders siblings to match input sentence order (Spanish wh-VS)', () => {
+  // Model might produce the object DP before the subject DP in the tree,
+  // yielding "Donde compró el libro Juan" instead of "Donde compró Juan el libro".
+  // reorderChildrenBySentenceOrder should fix the linearisation.
+  const sentence = 'Donde compró Juan el libro';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'CP_1', label: 'CP', children: [
+            { id: 'DP_1', label: 'DP', children: [
+              { id: 'D_bar_1', label: "D'", children: [
+                { id: 'D_1', label: 'D', children: [
+                  { id: 'T_1', label: 'Donde' }
+                ]}
+              ]}
+            ]},
+            { id: 'C_bar_1', label: "C'", children: [
+              { id: 'C_1', label: 'C' },
+              { id: 'IP_1', label: 'IP', children: [
+                { id: 'I_bar_1', label: "I'", children: [
+                  { id: 'VP_1', label: 'VP', children: [
+                    { id: 'V_bar_1', label: "V'", children: [
+                      { id: 'V_1', label: 'V', children: [
+                        { id: 'T_2', label: 'compró' }
+                      ]},
+                      // WRONG ORDER: object DP before subject DP
+                      { id: 'DP_3', label: 'DP', children: [
+                        { id: 'D_bar_3', label: "D'", children: [
+                          { id: 'D_3', label: 'D', children: [
+                            { id: 'T_4', label: 'el' }
+                          ]},
+                          { id: 'NP_1', label: 'NP', children: [
+                            { id: 'N_1', label: 'N', children: [
+                              { id: 'T_5', label: 'libro' }
+                            ]}
+                          ]}
+                        ]}
+                      ]},
+                      { id: 'DP_2', label: 'DP', children: [
+                        { id: 'D_bar_2', label: "D'", children: [
+                          { id: 'D_2', label: 'D', children: [
+                            { id: 'T_3', label: 'Juan' }
+                          ]}
+                        ]}
+                      ]}
+                    ]}
+                  ]},
+                  { id: 'I_1', label: 'I' }
+                ]}
+              ]}
+            ]}
+          ]
+        },
+        explanation: 'Wh-movement of Donde.',
+        movementEvents: [],
+        surfaceOrder: ['Donde', 'compró', 'el', 'libro', 'Juan']
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  // After reordering, the surface order must match the input sentence
+  assert.deepStrictEqual(
+    analysis.surfaceOrder,
+    ['Donde', 'compró', 'Juan', 'el', 'libro'],
+    'surface order must match input sentence after sibling reordering'
+  );
+});
+
+test('normalizeParseBundle sorts siblings but does not restructure tree depth (Spanish wh-VS with misplaced DP at InfIP level)', () => {
+  // Model places DP(Juan) as sibling of VP at InfIP level.  The sentence
+  // requires Juan between compró and el (both inside VP), but the simple
+  // sibling sort cannot fix this — it honestly surfaces the model's error.
+  const sentence = 'Donde compró Juan el libro';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'CP_1', label: 'CP', children: [
+            { id: 'XP_1', label: 'XP', children: [
+              { id: 'X_bar_1', label: "X'", children: [
+                { id: 'X_1', label: 'X', children: [
+                  { id: 'T_1', label: 'Donde' }
+                ]}
+              ]}
+            ]},
+            { id: 'C_bar_1', label: "C'", children: [
+              { id: 'InfIP_1', label: 'InfIP', children: [
+                { id: 'VP_1', label: 'VP', children: [
+                  { id: 'V_bar_1', label: "V'", children: [
+                    { id: 'V_1', label: 'V', children: [
+                      { id: 'T_2', label: 'compró' }
+                    ]},
+                    { id: 'DP_3', label: 'DP', children: [
+                      { id: 'D_bar_3', label: "D'", children: [
+                        { id: 'D_3', label: 'D', children: [
+                          { id: 'T_4', label: 'el' }
+                        ]},
+                        { id: 'NP_1', label: 'NP', children: [
+                          { id: 'N_1', label: 'N', children: [
+                            { id: 'T_5', label: 'libro' }
+                          ]}
+                        ]}
+                      ]}
+                    ]}
+                  ]}
+                ]},
+                { id: 'DP_2', label: 'DP', children: [
+                  { id: 'D_bar_2', label: "D'", children: [
+                    { id: 'N_2', label: 'N', children: [
+                      { id: 'T_3', label: 'Juan' }
+                    ]}
+                  ]}
+                ]}
+              ]},
+              { id: 'C_1', label: 'C' }
+            ]}
+          ]
+        },
+        explanation: 'Wh-movement of Donde.',
+        movementEvents: [],
+        surfaceOrder: ['Donde', 'compró', 'el', 'libro', 'Juan']
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  // VP (min=1) sorts before DP(Juan) (min=2), so DFS reads:
+  // Donde, compró, el, libro, Juan — the model's structural error is visible.
+  assert.deepStrictEqual(
+    normalized.analyses[0].surfaceOrder,
+    ['Donde', 'compró', 'el', 'libro', 'Juan'],
+    'sibling sort preserves model structure; misplaced DP surfaces as wrong terminal order'
   );
 });
