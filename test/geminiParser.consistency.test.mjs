@@ -11,7 +11,7 @@ const {
   buildParseContentsPrompt
 } = __test__;
 
-const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
+const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:[_-][a-z0-9]+)+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
 const tokenize = (sentence) => String(sentence || '').trim().split(/\s+/).filter(Boolean);
 
 function annotateSurfaceSpans(tree, sentence) {
@@ -169,8 +169,9 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   assert.match(instruction, /Every overt input token must appear in the tree exactly as pronounced/i);
   assert.match(instruction, /Keep only the pronounced copy overt and render the lower occurrence as a trace, copy, or null element/i);
   assert.match(instruction, /represent it only as "∅"/i);
-  assert.match(instruction, /Do not introduce helper projection labels such as "SpecCP" or "Spec,InflP"/i);
+  assert.match(instruction, /Do not introduce helper position labels .*labels beginning with "Spec"/i);
   assert.match(instruction, /Do not stack extra overt head labels such as C > V > word/i);
+  assert.match(instruction, /use exactly one overt head label above the pronounced word/i);
   assert.match(instruction, /landing head should directly dominate the overt word/i);
 });
 
@@ -183,9 +184,10 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /The order of children in your final tree must encode the pronounced left-to-right order|CRITICAL LINEARIZATION RULE.*children array must be ordered/i);
   assert.match(prompt, /Use each overt input token exactly once in the final tree/i);
   assert.match(prompt, /use exactly "∅"/i);
-  assert.match(prompt, /Keep lower copy notation consistent within this tree/i);
-  assert.match(prompt, /Do not use helper labels such as SpecCP or Spec,InflP as separate nodes/i);
+  assert.match(prompt, /Keep lower copy notation consistent within this tree, including phrasal and head movement/i);
+  assert.match(prompt, /Do not use helper position labels .*labels beginning with "Spec" as separate nodes/i);
   assert.match(prompt, /realize it there as one overt head rather than stacking labels like C > V > word/i);
+  assert.match(prompt, /use exactly one overt head label above the pronounced word/i);
   assert.match(prompt, /landing head should directly dominate the overt word/i);
 });
 
@@ -1325,8 +1327,279 @@ test('harmonizeExplanationWithDerivation avoids infl-to-dp movement prose when t
     'xbar'
   );
 
-  assert.match(normalizedExplanation, /movement of DP_i from its lower copy/i);
+  assert.match(normalizedExplanation, /movement of DP_i "Which book" from its lower copy/i);
   assert.doesNotMatch(normalizedExplanation, /movement from Infl to DP/i);
+});
+
+test('harmonizeExplanationWithDerivation prefers moved phrase wording over dp-to-dp prose for fronted wh phrases', () => {
+  const explanation = 'A wh-question.';
+  const movementEvents = [
+    {
+      operation: 'Move',
+      fromNodeId: 'n11',
+      toNodeId: 'n2',
+      traceNodeId: 'n11'
+    }
+  ];
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: 'DP',
+        children: [
+          {
+            id: 'n3',
+            label: "D'",
+            children: [
+              {
+                id: 'n4',
+                label: 'D',
+                children: [{ id: 'n5', label: 'Quale', word: 'Quale' }]
+              },
+              {
+                id: 'n6',
+                label: 'NP',
+                children: [{ id: 'n7', label: 'N', children: [{ id: 'n8', label: 'libro', word: 'libro' }] }]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'n9',
+        label: "C'",
+        children: [
+          {
+            id: 'n10',
+            label: 'C',
+            children: [{ id: 'n20', label: 'ha', word: 'ha' }]
+          },
+          {
+            id: 'n12',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n13',
+                label: 'Infl',
+                children: [{ id: 'n21', label: '∅', word: '∅' }]
+              },
+              {
+                id: 'n14',
+                label: 'VP',
+                children: [
+                  {
+                    id: 'n15',
+                    label: 'V',
+                    children: [{ id: 'n22', label: 'letto', word: 'letto' }]
+                  },
+                  {
+                    id: 'n11',
+                    label: 'DP',
+                    children: [{ id: 'n16', label: 'D', children: [{ id: 'n17', label: '∅', word: '∅' }] }]
+                  }
+                ]
+              },
+              {
+                id: 'n18',
+                label: 'DP',
+                children: [{ id: 'n19', label: 'D', children: [{ id: 'n23', label: 'Giulia', word: 'Giulia' }] }]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    movementEvents,
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /movement of DP "Quale libro" from its lower copy/i);
+  assert.doesNotMatch(normalizedExplanation, /movement from DP to DP/i);
+});
+
+test('harmonizeExplanationWithDerivation describes head movement by overt head and landing site', () => {
+  const explanation = 'A German V2 question.';
+  const movementEvents = [
+    {
+      operation: 'HeadMove',
+      fromNodeId: 'n10',
+      toNodeId: 'n3',
+      traceNodeId: 'n11'
+    }
+  ];
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: "C'",
+        children: [
+          {
+            id: 'n3',
+            label: 'C',
+            children: [{ id: 'n4', label: 'hat', word: 'hat' }]
+          },
+          {
+            id: 'n5',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n6',
+                label: 'DP',
+                children: [{ id: 'n7', label: 'Maria', word: 'Maria' }]
+              },
+              {
+                id: 'n8',
+                label: "Infl'",
+                children: [
+                  {
+                    id: 'n10',
+                    label: 'Infl',
+                    children: [{ id: 'n11', label: '∅', word: '∅' }]
+                  },
+                  {
+                    id: 'n12',
+                    label: 'VP',
+                    children: [{ id: 'n13', label: 'gesehen', word: 'gesehen' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    movementEvents,
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /head movement of "hat" from Infl to C/i);
+  assert.doesNotMatch(normalizedExplanation, /head movement of C "hat" to C/i);
+});
+
+test('harmonizeExplanationWithDerivation bubbles stacked head landings up to the landing head in prose', () => {
+  const explanation = 'An Irish VSO clause.';
+  const movementEvents = [
+    {
+      operation: 'HeadMove',
+      fromNodeId: 'n8',
+      toNodeId: 'n3',
+      traceNodeId: 'n8'
+    }
+  ];
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: "C'",
+        children: [
+          {
+            id: 'n4',
+            label: 'C',
+            children: [
+              {
+                id: 'n3',
+                label: 'V',
+                children: [{ id: 'n5', label: "D'oscail", word: "D'oscail" }]
+              }
+            ]
+          },
+          {
+            id: 'n6',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n7',
+                label: 'Infl',
+                children: [{ id: 'n9', label: '∅', word: '∅' }]
+              },
+              {
+                id: 'n10',
+                label: 'VP',
+                children: [
+                  {
+                    id: 'n8',
+                    label: 'V',
+                    children: [{ id: 'n11', label: '∅', word: '∅' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    movementEvents,
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /head movement of "D'oscail" from V to C/i);
+  assert.doesNotMatch(normalizedExplanation, /to V/i);
+});
+
+test('harmonizeExplanationWithDerivation uses the overt head surface rather than an entire subtree yield', () => {
+  const explanation = 'A Hungarian wh question.';
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: 'DP',
+        children: [
+          { id: 'n3', label: 'D', children: [{ id: 'n4', label: 'Melyik', word: 'Melyik' }] }
+        ]
+      },
+      {
+        id: 'n5',
+        label: 'C',
+        children: [
+          {
+            id: 'n6',
+            label: 'InflP',
+            children: [
+              { id: 'n7', label: 'Infl', children: [{ id: 'n8', label: 'nezte', word: 'nezte' }] },
+              { id: 'n9', label: 'DP', children: [{ id: 'n10', label: 'Anna', word: 'Anna' }] }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    [],
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /left-peripheral head "nezte"/i);
+  assert.doesNotMatch(normalizedExplanation, /"nezte Anna"/i);
 });
 
 test('harmonizeExplanationWithDerivation does not append generic structure-building boilerplate', () => {
@@ -1363,7 +1636,7 @@ test('harmonizeExplanationWithDerivation does not append generic structure-build
   assert.doesNotMatch(normalizedExplanation, /adopts a CP-level structure/i);
 });
 
-test('normalizeParseBundle accepts overt unary head-stacking when surface order remains coherent', () => {
+test('normalizeParseBundle collapses overt unary head-stacking at landing sites', () => {
   const sentence = 'Kya Anu ne chai banayi?';
   const payload = {
     analyses: [
@@ -1422,6 +1695,101 @@ test('normalizeParseBundle accepts overt unary head-stacking when surface order 
 
   const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
   assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Kya', 'Anu', 'ne', 'chai', 'banayi']);
+  const cNode = normalized.analyses[0].tree.children[0].children[0];
+  assert.equal(cNode.label, 'C');
+  assert.equal(Array.isArray(cNode.children), true);
+  assert.equal(cNode.children.length, 1);
+  assert.equal(cNode.children[0].label, 'Kya');
+  assert.equal(cNode.children[0].word, 'Kya');
+});
+
+test('normalizeParseBundle remaps movement landing ids after collapsing stacked head shells', () => {
+  const sentence = 'Has Elena finished the report?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: "C'",
+              children: [
+                {
+                  id: 'n3',
+                  label: 'C',
+                  children: [
+                    {
+                      id: 'n4',
+                      label: 'Aux',
+                      children: [{ id: 'n5', label: 'Has', word: 'Has' }]
+                    }
+                  ]
+                },
+                {
+                  id: 'n6',
+                  label: 'InflP',
+                  children: [
+                    {
+                      id: 'n7',
+                      label: 'DP',
+                      children: [{ id: 'n8', label: 'N', children: [{ id: 'n9', label: 'Elena', word: 'Elena' }] }]
+                    },
+                    {
+                      id: 'n10',
+                      label: "Infl'",
+                      children: [
+                        { id: 'n11', label: 'Infl', children: [{ id: 'n12', label: '∅', word: '∅' }] },
+                        {
+                          id: 'n13',
+                          label: 'VP',
+                          children: [
+                            { id: 'n14', label: 'V', children: [{ id: 'n15', label: 'finished', word: 'finished' }] },
+                            {
+                              id: 'n16',
+                              label: 'DP',
+                              children: [
+                                { id: 'n17', label: 'D', children: [{ id: 'n18', label: 'the', word: 'the' }] },
+                                { id: 'n19', label: 'N', children: [{ id: 'n20', label: 'report', word: 'report' }] }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'Head movement is part of the committed analysis.'
+        },
+        movementEvents: [
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'n11',
+            toNodeId: 'n4',
+            traceNodeId: 'n12'
+          }
+        ],
+        explanation: 'An auxiliary-in-C analysis.'
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Has', 'Elena', 'finished', 'the', 'report']);
+  assert.equal(normalized.analyses[0].movementEvents?.[0]?.toNodeId, 'n3');
+  const cNode = normalized.analyses[0].tree.children[0].children[0];
+  assert.equal(cNode.label, 'C');
+  assert.equal(cNode.children[0].label, 'Has');
 });
 
 test('normalizeParseBundle does not misclassify ordinary t-initial words as traces', () => {
@@ -1953,6 +2321,66 @@ test('normalizeParseBundle recognizes category-prefixed traces like V_trace_1 an
 
   // Explanation must not claim movement that was not encoded
   assert.doesNotMatch(analysis.explanation, /explicitly records movement/i);
+});
+
+test('normalizeParseBundle recognizes multi-segment trace labels like t_Vilken_bok and excludes them from surface order', () => {
+  const sentence = 'Vilken bok laste Sara?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: 'DP',
+              children: [
+                { id: 'n3', label: 'D', children: [{ id: 'n4', label: 'Vilken', word: 'Vilken' }] },
+                { id: 'n5', label: 'NP', children: [{ id: 'n6', label: 'bok', word: 'bok' }] }
+              ]
+            },
+            {
+              id: 'n7',
+              label: "C'",
+              children: [
+                { id: 'n8', label: 'C', children: [{ id: 'n9', label: 'laste', word: 'laste' }] },
+                {
+                  id: 'n10',
+                  label: 'InflP',
+                  children: [
+                    { id: 'n11', label: 'DP', children: [{ id: 'n12', label: 'Sara', word: 'Sara' }] },
+                    {
+                      id: 'n13',
+                      label: "Infl'",
+                      children: [
+                        { id: 'n14', label: 'Infl', children: [{ id: 'n15', label: '∅', word: '∅' }] },
+                        {
+                          id: 'n16',
+                          label: 'VP',
+                          children: [
+                            { id: 'n17', label: 'V', children: [{ id: 'n18', label: 't_laste' }] },
+                            { id: 'n19', label: 'DP', children: [{ id: 'n20', label: 't_Vilken_bok' }] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A Swedish V2 wh-question.',
+        movementEvents: []
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
+  assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Vilken', 'bok', 'laste', 'Sara']);
 });
 
 test('normalizeParseBundle strips movement indices from tree labels so Canopy receives clean data', () => {

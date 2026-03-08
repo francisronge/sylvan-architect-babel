@@ -59,9 +59,10 @@ General rules:
 - Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
 - Do not attach overt words directly under X' or XP nodes.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
-- Keep lower copy notation consistent within a tree. Do not mix multiple lower-copy conventions for the same analysis without an explicit reason in the chosen tree.
-- Do not introduce helper projection labels such as "SpecCP" or "Spec,InflP" as separate structural nodes. Represent the specifier phrase itself in the tree.
+- Keep lower copy notation consistent within a tree. Use one coherent lower-copy style across the analysis, including phrasal and head movement.
+- Do not introduce helper position labels (for example labels beginning with "Spec") as separate structural nodes. Represent the phrase itself in the tree.
 - If a head is overt in a higher functional position, realize it there as a single overt head. Do not stack extra overt head labels such as C > V > word merely to preserve its source category.
+- At the landing site of head movement, use exactly one overt head label above the pronounced word. Do not return unary chains of overt head labels with the same overt yield.
 - If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word. Do not wrap the overt word in an extra overt source-category head beneath the landing site.
 
 For movement:
@@ -794,6 +795,138 @@ const getLabelProfile = (label) => {
   };
 };
 
+const collectCollapsedHeadLandingLeaf = (node) => {
+  if (!node || typeof node !== 'object') return null;
+  const profile = getLabelProfile(node.label);
+  if (!profile.isHeadLikeStructural) return null;
+
+  const removed = [node];
+  let current = node;
+
+  while (current && typeof current === 'object') {
+    const children = Array.isArray(current.children) ? current.children : [];
+    if (children.length === 0) {
+      const surface = String(resolveOvertLeafSurface(current) || '').trim();
+      if (!surface || isTraceLikeNode(current) || isNullLikeNode(current)) return null;
+      return {
+        surface,
+        keptLeafId: String(current.id || '').trim(),
+        removed
+      };
+    }
+    if (children.length !== 1) return null;
+    const child = children[0];
+    if (!child || typeof child !== 'object') return null;
+    removed.push(child);
+
+    const childChildren = Array.isArray(child.children) ? child.children : [];
+    if (childChildren.length === 0) {
+      const surface = String(resolveOvertLeafSurface(child) || '').trim();
+      if (!surface || isTraceLikeNode(child) || isNullLikeNode(child)) return null;
+      return {
+        surface,
+        keptLeafId: String(child.id || '').trim(),
+        removed
+      };
+    }
+
+    const childProfile = getLabelProfile(child.label);
+    if (!childProfile.isHeadLikeStructural) return null;
+    current = child;
+  }
+
+  return null;
+};
+
+const collapseOvertHeadLandingChains = (tree) => {
+  const redirects = new Map();
+
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+
+    const profile = getLabelProfile(node.label);
+    if (!profile.isHeadLikeStructural) return;
+    if (children.length !== 1) return;
+
+    const child = children[0];
+    const collapsed = collectCollapsedHeadLandingLeaf(child);
+    if (!collapsed) return;
+
+    const surface = String(collapsed.surface || '').trim();
+    if (!surface) return;
+    if (normalizeMovementLabelKey(getNodeOvertYield(node)) !== normalizeMovementLabelKey(surface)) return;
+
+    const directLeafId = collapsed.keptLeafId || `${String(node.id || 'node').trim() || 'node'}__lex`;
+    node.children = [{ id: directLeafId, label: surface, word: surface }];
+    delete node.word;
+    delete node.surfaceSpan;
+
+    const parentId = String(node.id || '').trim();
+    collapsed.removed.forEach((removedNode) => {
+      const removedId = String(removedNode?.id || '').trim();
+      if (!removedId || !parentId || removedId === parentId || removedId === directLeafId) return;
+      redirects.set(removedId, parentId);
+    });
+  };
+
+  visit(tree);
+  return redirects;
+};
+
+const resolveRedirectedNodeId = (nodeId, redirects) => {
+  let current = String(nodeId || '').trim();
+  const seen = new Set();
+  while (current && redirects?.has(current) && !seen.has(current)) {
+    seen.add(current);
+    current = String(redirects.get(current) || '').trim();
+  }
+  return current;
+};
+
+const remapDerivationStepsNodeIds = (steps, redirects) => {
+  if (!Array.isArray(steps) || steps.length === 0 || !(redirects instanceof Map) || redirects.size === 0) {
+    return steps;
+  }
+
+  return steps.map((step) => {
+    const targetNodeId = resolveRedirectedNodeId(step?.targetNodeId, redirects);
+    const sourceNodeIds = Array.isArray(step?.sourceNodeIds)
+      ? Array.from(new Set(step.sourceNodeIds
+          .map((id) => resolveRedirectedNodeId(id, redirects))
+          .filter(Boolean)))
+      : step?.sourceNodeIds;
+    const featureChecking = Array.isArray(step?.featureChecking)
+      ? step.featureChecking.map((item) => ({
+          ...item,
+          probeNodeId: resolveRedirectedNodeId(item?.probeNodeId, redirects) || item?.probeNodeId,
+          goalNodeId: resolveRedirectedNodeId(item?.goalNodeId, redirects) || item?.goalNodeId
+        }))
+      : step?.featureChecking;
+
+    return {
+      ...step,
+      targetNodeId: targetNodeId || undefined,
+      sourceNodeIds,
+      featureChecking
+    };
+  });
+};
+
+const remapMovementEventsNodeIds = (events, redirects) => {
+  if (!Array.isArray(events) || events.length === 0 || !(redirects instanceof Map) || redirects.size === 0) {
+    return events;
+  }
+
+  return events.map((event) => ({
+    ...event,
+    fromNodeId: resolveRedirectedNodeId(event?.fromNodeId, redirects) || event?.fromNodeId,
+    toNodeId: resolveRedirectedNodeId(event?.toNodeId, redirects) || event?.toNodeId,
+    traceNodeId: resolveRedirectedNodeId(event?.traceNodeId, redirects) || event?.traceNodeId
+  }));
+};
+
 /**
  * Reorder sibling nodes so the tree's overt-terminal yield matches the
  * linear word order of the input sentence.  The algorithm:
@@ -1257,8 +1390,12 @@ const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labe
   return events.length > 0 ? events : undefined;
 };
 
-const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|[a-z]+[_-]trace(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:[_-][a-z0-9]+)+|[a-z]+[_-]trace(?:[_-][a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const NULL_LIKE_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
+const normalizeTraceLikeSurface = (surface) =>
+  String(surface || '')
+    .trim()
+    .replace(/\{([^}]*)\}/g, '$1');
 
 const buildNodeIndexFromTree = (tree) => {
   const byId = new Map();
@@ -1338,7 +1475,14 @@ const resolveOvertLeafSurface = (node) => {
   return label;
 };
 
-const isTraceLikeNode = (node) => TRACE_LIKE_SURFACE_RE.test(resolveNodeSurface(node));
+const isTraceLikeSurface = (surface) => {
+  const raw = String(surface || '').trim();
+  if (!raw) return false;
+  const normalized = normalizeTraceLikeSurface(raw);
+  return TRACE_LIKE_SURFACE_RE.test(raw) || TRACE_LIKE_SURFACE_RE.test(normalized);
+};
+
+const isTraceLikeNode = (node) => isTraceLikeSurface(resolveNodeSurface(node));
 
 const isNullLikeNode = (node) => NULL_LIKE_SURFACE_RE.test(resolveNodeSurface(node));
 
@@ -1350,8 +1494,8 @@ const nodeMovementIndex = (node) =>
 const isIndexedTraceOrNullNode = (node) => {
   const label = stripMovementIndex(String(node?.label || '').trim());
   const surface = stripMovementIndex(resolveNodeSurface(node));
-  return TRACE_LIKE_SURFACE_RE.test(label) ||
-    TRACE_LIKE_SURFACE_RE.test(surface) ||
+  return isTraceLikeSurface(label) ||
+    isTraceLikeSurface(surface) ||
     NULL_LIKE_SURFACE_RE.test(label) ||
     NULL_LIKE_SURFACE_RE.test(surface);
 };
@@ -1934,24 +2078,119 @@ const getMovementDisplayLabel = (node, { preserveIndex = false } = {}) => {
   return surface || '';
 };
 
+const normalizeMovementLabelKey = (label) =>
+  String(label || '')
+    .trim()
+    .replace(/[_\s,.-]+/g, '')
+    .toLowerCase();
+
+const resolveHeadMovementLandingNode = (node, nodeById, parentById) => {
+  if (!node) return null;
+
+  let current = node;
+  let currentId = String(node.id || '').trim();
+  let currentYield = getNodeOvertYield(current);
+
+  while (currentId) {
+    const parentId = String(parentById.get(currentId) || '').trim();
+    if (!parentId) break;
+    const parent = nodeById.get(parentId) || null;
+    if (!parent) break;
+
+    const profile = getLabelProfile(parent.label);
+    if (!profile.isHeadLikeStructural) break;
+
+    const parentYield = getNodeOvertYield(parent);
+    if (!parentYield || !currentYield) break;
+    if (normalizeMovementLabelKey(parentYield) !== normalizeMovementLabelKey(currentYield)) break;
+
+    current = parent;
+    currentId = parentId;
+    currentYield = parentYield;
+  }
+
+  return current;
+};
+
+const buildMovedPhraseDescriptor = (node, { preserveIndex = false } = {}) => {
+  if (!node) return '';
+  const label = getMovementDisplayLabel(node, { preserveIndex });
+  const overtYield = getNodeOvertYield(node);
+  if (overtYield && overtYield.split(/\s+/).length <= 5) {
+    if (label && normalizeMovementLabelKey(label) !== normalizeMovementLabelKey(overtYield)) {
+      return `${label} "${overtYield}"`;
+    }
+    return `"${overtYield}"`;
+  }
+  return label;
+};
+
 const buildMovementDetail = ({ event, nodeById, parentById }) => {
   const operation = normalizeMovementOperation(event?.operation) || 'Other';
   const phrase = MOVEMENT_OPERATION_PHRASE[operation] || 'movement';
   const rawSourceNode = nodeById.get(String(event?.fromNodeId || event?.traceNodeId || '').trim()) || null;
   const traceNode = nodeById.get(String(event?.traceNodeId || '').trim()) || null;
-  const toNode = resolveMovementSiteNode(nodeById, parentById, event?.toNodeId) || null;
+  const resolvedToNode = resolveMovementSiteNode(nodeById, parentById, event?.toNodeId) || null;
+  const toNode = operation === 'HeadMove'
+    ? resolveHeadMovementLandingNode(resolvedToNode, nodeById, parentById) || resolvedToNode
+    : resolvedToNode;
   const note = cleanExplanationWhitespace(String(event?.note || ''));
+  const sourceNode = rawSourceNode
+    ? resolveMovementSiteNode(nodeById, parentById, event?.fromNodeId || event?.traceNodeId)
+    : null;
 
   const landingIndex = nodeMovementIndex(toNode);
   const sourceIndex = nodeMovementIndex(rawSourceNode) || nodeMovementIndex(traceNode);
+  const sourceLabel = getMovementDisplayLabel(rawSourceNode, { preserveIndex: true });
+  const landingLabel = getMovementDisplayLabel(toNode, { preserveIndex: true });
+  const movedDescriptor = buildMovedPhraseDescriptor(toNode, { preserveIndex: true });
+
+  if (operation === 'HeadMove') {
+    const movedHeadSurface = getNodeOvertYield(toNode) || getNodeOvertYield(resolvedToNode);
+    const movedHead = movedHeadSurface ? `"${movedHeadSurface}"` : buildMovedPhraseDescriptor(toNode);
+    const landingHead = getMovementDisplayLabel(toNode);
+    const sourceHead = getMovementDisplayLabel(sourceNode);
+    if (
+      movedHead &&
+      sourceHead &&
+      landingHead &&
+      normalizeMovementLabelKey(sourceHead) !== normalizeMovementLabelKey(landingHead)
+    ) {
+      return `${phrase} of ${movedHead} from ${sourceHead} to ${landingHead}`;
+    }
+    if (movedHead && landingHead) {
+      return `${phrase} of ${movedHead} to ${landingHead}`;
+    }
+    if (landingHead) {
+      return `${phrase} to ${landingHead}`;
+    }
+  }
+
   if (toNode && landingIndex && (sourceIndex === landingIndex || isTraceLikeNode(rawSourceNode) || isNullLikeNode(rawSourceNode) || isTraceLikeNode(traceNode) || isNullLikeNode(traceNode))) {
-    const landingLabel = getMovementDisplayLabel(toNode, { preserveIndex: true });
+    if (movedDescriptor) {
+      return `${phrase} of ${movedDescriptor} from its lower copy`;
+    }
     if (landingLabel) {
       return `${phrase} of ${landingLabel} from its lower copy`;
     }
   }
 
+  if (
+    operation === 'Move' &&
+    sourceLabel &&
+    landingLabel &&
+    normalizeMovementLabelKey(sourceLabel) === normalizeMovementLabelKey(landingLabel)
+  ) {
+    if (movedDescriptor) {
+      return `${phrase} of ${movedDescriptor} from its lower copy`;
+    }
+    return `${phrase} of ${landingLabel} from its lower copy`;
+  }
+
   if (rawSourceNode && (isTraceLikeNode(rawSourceNode) || isNullLikeNode(rawSourceNode) || (traceNode && (isTraceLikeNode(traceNode) || isNullLikeNode(traceNode))))) {
+    if (operation === 'Move' && movedDescriptor) {
+      return `${phrase} of ${movedDescriptor} from its lower copy`;
+    }
     const toLabel = getMovementDisplayLabel(toNode);
     if (toLabel) {
       return `${phrase} to ${toLabel}`;
@@ -1962,11 +2201,20 @@ const buildMovementDetail = ({ event, nodeById, parentById }) => {
     return phrase;
   }
 
-  const fromNode = rawSourceNode
-    ? resolveMovementSiteNode(nodeById, parentById, event?.fromNodeId || event?.traceNodeId)
-    : null;
+  const fromNode = sourceNode;
   const fromLabel = getMovementDisplayLabel(fromNode);
   const toLabel = getMovementDisplayLabel(toNode);
+  if (
+    operation === 'Move' &&
+    fromLabel &&
+    toLabel &&
+    normalizeMovementLabelKey(fromLabel) === normalizeMovementLabelKey(toLabel)
+  ) {
+    if (movedDescriptor) {
+      return `${phrase} of ${movedDescriptor} from its lower copy`;
+    }
+    return `${phrase} of ${toLabel} from its lower copy`;
+  }
   if (fromLabel && toLabel) {
     return `${phrase} from ${fromLabel} to ${toLabel}`;
   }
@@ -2098,6 +2346,26 @@ const findNearestOvertDescendant = (node, predicate) => {
   return null;
 };
 
+const findClauseCoreComplement = (node) =>
+  findNearestOvertDescendant(node, (child) => {
+    const profile = getLabelProfile(child?.label);
+    return profile.isPhrasal && ['infl', 't', 'ip', 'v'].includes(profile.base);
+  });
+
+const getOvertHeadSurfaceForExplanation = (node) => {
+  if (!node || typeof node !== 'object') return '';
+  const directSurface = String(resolveOvertLeafSurface(node) || '').trim();
+  if (directSurface && !isTraceLikeNode(node) && !isNullLikeNode(node)) {
+    return directSurface;
+  }
+  const overtHeadDescendant = findNearestOvertDescendant(node, (child) => {
+    const profile = getLabelProfile(child?.label);
+    return profile.isHeadLikeStructural;
+  });
+  const descendantYield = getNodeOvertYield(overtHeadDescendant);
+  return descendantYield || getNodeOvertYield(node);
+};
+
 const collectDescendantNodes = (node, out = []) => {
   if (!node || typeof node !== 'object') return out;
   const children = Array.isArray(node.children) ? node.children : [];
@@ -2111,8 +2379,8 @@ const collectDescendantNodes = (node, out = []) => {
 const getMatrixClauseNode = (tree) => {
   const rootProfile = getLabelProfile(tree?.label);
   if (rootProfile.base === 'c' && rootProfile.isPhrasal) {
-    const { complementNode } = getClauseSpineInfo(tree);
-    return complementNode || tree;
+    const { headNode, complementNode } = getClauseSpineInfo(tree);
+    return complementNode || findClauseCoreComplement(headNode) || tree;
   }
   return tree;
 };
@@ -2165,8 +2433,9 @@ const buildRootArchitectureSentence = (tree, framework = 'xbar') => {
   if (rootProfile.base === 'c' && rootProfile.isPhrasal) {
     const { headNode, complementNode } = getClauseSpineInfo(tree);
     const leftHead = headNode && subtreeHasOvertYield(headNode) ? headNode : null;
-    const complement = complementNode && subtreeHasOvertYield(complementNode) ? complementNode : complementNode;
-    const headYield = getNodeOvertYield(leftHead);
+    const derivedComplement = !complementNode && leftHead ? findClauseCoreComplement(leftHead) : null;
+    const complement = [complementNode, derivedComplement].find((node) => node && subtreeHasOvertYield(node)) || null;
+    const headYield = getOvertHeadSurfaceForExplanation(leftHead);
     const headProfile = getLabelProfile(leftHead?.label);
     const complementLabel = getNodeExplanationLabel(complement);
     const interrogative = headProfile.base === 'q' || /[?؟]$/.test(rootYield);
@@ -2227,7 +2496,7 @@ const buildEmbeddedClauseSentence = (tree) => {
   const embedded = embeddedClauses[0];
   const { headNode } = getClauseSpineInfo(embedded);
   const head = headNode && subtreeHasOvertYield(headNode) ? headNode : null;
-  const headYield = getNodeOvertYield(head);
+  const headYield = getOvertHeadSurfaceForExplanation(head);
   const clauseYield = getNodeOvertYield(embedded);
   const embeddedLabel = getNodeExplanationLabel(embedded) || 'CP';
   const parent = nodeById.get(String(parentById.get(String(embedded?.id || '')) || ''));
@@ -2244,7 +2513,7 @@ const buildEmbeddedClauseSentence = (tree) => {
   return '';
 };
 
-const buildNoMovementSentence = () => 'No displacement operation is encoded in the derivation, so the surface order is read directly from the final tree.';
+const buildNoMovementSentence = () => 'No displacement operation is encoded in the derivation, so the pronounced order is read directly from the final tree.';
 
 const buildGroundedExplanation = ({ tree, derivationSteps, movementEvents, framework = 'xbar' }) => {
   const parts = [
@@ -2469,13 +2738,16 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
   const nodeById = buildNodeIndexFromTree(rawTree);
   const labelIndex = buildNodeLabelIndexFromTree(rawTree);
   const derivationSteps = normalizeDerivationSteps(parsed.derivationSteps, nodeIds);
-  const { tree, surfaceOrder } = validateAndCommitSurfaceOrder(parsed.surfaceOrder, rawTree, sentence);
-  validateSpelloutConsistency(derivationSteps, tokenizeSentenceSurfaceOrder(sentence), surfaceOrder);
   const rawMovementEvents = normalizeMovementEvents(parsed.movementEvents, nodeIds, derivationSteps, nodeById, labelIndex);
+  const redirects = collapseOvertHeadLandingChains(rawTree);
+  const remappedDerivationSteps = remapDerivationStepsNodeIds(derivationSteps, redirects);
+  const remappedRawMovementEvents = remapMovementEventsNodeIds(rawMovementEvents, redirects);
+  const { tree, surfaceOrder } = validateAndCommitSurfaceOrder(parsed.surfaceOrder, rawTree, sentence);
+  validateSpelloutConsistency(remappedDerivationSteps, tokenizeSentenceSurfaceOrder(sentence), surfaceOrder);
   const movementEvents = buildCanonicalMovementEvents({
     tree,
-    derivationSteps,
-    rawMovementEvents
+    derivationSteps: remappedDerivationSteps,
+    rawMovementEvents: remappedRawMovementEvents
   });
   stripMovementIndicesFromTree(tree);
   const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
@@ -2497,7 +2769,7 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
     tree,
     movementEvents,
     surfaceOrder,
-    modelDerivationSteps: derivationSteps
+    modelDerivationSteps: remappedDerivationSteps
   });
   const reconciledDerivationSteps = reconcileDerivationStepOperations(
     canonicalTimeline.derivationSteps,
@@ -2784,9 +3056,10 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `Use each overt input token exactly once in the final tree unless that token occurs multiple times in the sentence itself. ` +
   `If you include a silent or null terminal, use exactly "∅". ` +
   `Use "word" for terminal surface forms, never "value". ` +
-  `Keep lower copy notation consistent within this tree. ` +
-  `Do not use helper labels such as SpecCP or Spec,InflP as separate nodes; represent the specifier phrase itself instead. ` +
+  `Keep lower copy notation consistent within this tree, including phrasal and head movement. ` +
+  `Do not use helper position labels such as labels beginning with "Spec" as separate nodes; represent the phrase itself instead. ` +
   `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
+  `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
