@@ -41,7 +41,13 @@ export const formatApiError = (error) => {
   if (error instanceof ParseApiError) {
     return {
       status: error.status,
-      body: { error: { code: error.code, message: error.message } }
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        }
+      }
     };
   }
 

@@ -110,7 +110,7 @@ const FORBIDDEN_STRING_LEAF_TOKENS = new Set([
 ]);
 const STRUCTURAL_LEAF_LABELS = new Set([
   'c', "c'", 'cp',
-  'infl', "infl'", 'inflp', 'ip',
+  'i', 'infl', "infl'", 'inflp', 'ip',
   't', "t'", 'tp',
   'v', "v'", 'vp',
   'd', "d'", 'dp', 'det', 'pron',
@@ -744,6 +744,104 @@ const getLabelProfile = (label) => {
   };
 };
 
+/**
+ * Reorder sibling nodes so the tree's overt-terminal yield matches the
+ * linear word order of the input sentence.  The algorithm:
+ *   1. Collect overt terminals and match each to a sentence-token position.
+ *   2. Walk the tree bottom-up; for every internal node, sort its children
+ *      by the *minimum* sentence position found in each child's subtree.
+ *   3. Non-overt subtrees (traces, ∅) keep their original relative order.
+ *
+ * The function bails out silently if the token multisets don't align, so it
+ * is safe to call unconditionally.
+ */
+const reorderChildrenBySentenceOrder = (tree, normalizedSentenceTokens) => {
+  if (!tree || typeof tree !== 'object') return;
+  if (normalizedSentenceTokens.length === 0) return;
+
+  // Step 1 – collect overt terminals in current (possibly wrong) DFS order
+  const overtTerminals = collectOvertTerminalNodes(tree);
+  if (overtTerminals.length === 0) return;
+
+  const terminalSurfaces = overtTerminals.map((node) =>
+    normalizeSurfaceToken(resolveOvertLeafSurface(node))
+  );
+
+  // Bail if the tree's token bag doesn't match the sentence's
+  if (!sameTokenCounts(terminalSurfaces, normalizedSentenceTokens)) return;
+
+  // Step 2 – assign a sentence position to every overt terminal.
+  const sentencePositionsByToken = new Map();
+  normalizedSentenceTokens.forEach((token, idx) => {
+    if (!sentencePositionsByToken.has(token)) {
+      sentencePositionsByToken.set(token, []);
+    }
+    sentencePositionsByToken.get(token).push(idx);
+  });
+
+  const nodePositionMap = new Map();
+  const usedCountByToken = new Map();
+  for (let i = 0; i < overtTerminals.length; i++) {
+    const surface = terminalSurfaces[i];
+    const positions = sentencePositionsByToken.get(surface);
+    if (!positions) continue;
+    const usedCount = usedCountByToken.get(surface) || 0;
+    if (usedCount < positions.length) {
+      nodePositionMap.set(overtTerminals[i], positions[usedCount]);
+      usedCountByToken.set(surface, usedCount + 1);
+    }
+  }
+
+  // Step 3 – compute the minimum sentence position in every subtree
+  const subtreeMin = new Map();
+  const computeMin = (node) => {
+    if (!node || typeof node !== 'object') return Infinity;
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      const pos = nodePositionMap.has(node) ? nodePositionMap.get(node) : Infinity;
+      subtreeMin.set(node, pos);
+      return pos;
+    }
+    let min = Infinity;
+    for (const child of children) {
+      const childMin = computeMin(child);
+      if (childMin < min) min = childMin;
+    }
+    subtreeMin.set(node, min);
+    return min;
+  };
+  computeMin(tree);
+
+  // Step 4 – recursively sort children by ascending min-position.
+  // Children with overt content are sorted by their earliest sentence position.
+  // Children with NO overt content (Infinity) stay in their original position
+  // relative to their neighbors — they are not displaced by the sort.
+  const reorder = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(reorder);
+    if (children.length <= 1) return;
+
+    const overt = [];
+    const slots = [];           // indices where overt children sit
+    for (let i = 0; i < children.length; i++) {
+      const minPos = subtreeMin.get(children[i]) ?? Infinity;
+      if (minPos < Infinity) {
+        overt.push({ child: children[i], minPos, origIdx: i });
+        slots.push(i);
+      }
+    }
+    if (overt.length <= 1) return;
+    overt.sort((a, b) => a.minPos - b.minPos || a.origIdx - b.origIdx);
+    const newChildren = [...children];
+    for (let j = 0; j < slots.length; j++) {
+      newChildren[slots[j]] = overt[j].child;
+    }
+    node.children = newChildren;
+  };
+  reorder(tree);
+};
+
 const validateAndCommitSurfaceOrder = (_surfaceOrder, tree, sentence) => {
   const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
   const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
@@ -895,6 +993,10 @@ const extractMovementIndex = (value) => {
   if (!text) return null;
   const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
   if (braced?.[1]) return braced[1].toLowerCase();
+  const bareBraced = text.match(/(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
+  if (bareBraced?.[1]) return bareBraced[1].toLowerCase();
+  const postBracket = text.match(/[\]\)\}]([a-z]\d?|\d{1,2})$/i);
+  if (postBracket?.[1]) return postBracket[1].toLowerCase();
   const plain = text.match(/_([A-Za-z0-9]+)$/);
   if (plain?.[1]) return plain[1].toLowerCase();
   const danglingSubscript = text.match(/([A-Za-z0-9]+)$/);
@@ -908,6 +1010,8 @@ const stripMovementIndex = (value) => {
   if (!text) return '';
   return text
     .replace(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/, '')
+    .replace(/(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/, '')
+    .replace(/([\]\)\}])([a-z]\d?|\d{1,2})$/i, '$1')
     .replace(/_([A-Za-z0-9]+)$/, '')
     .trim();
 };
@@ -1040,7 +1144,7 @@ const normalizeMovementEvents = (value, nodeIds, derivationSteps) => {
   return events.length > 0 ? events : undefined;
 };
 
-const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|[a-z]+[_-]trace(?:[_-]?[a-z0-9]+)?|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const NULL_LIKE_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
 
 const buildNodeIndexFromTree = (tree) => {
@@ -1198,6 +1302,161 @@ const deriveIndexedMovementEvents = ({ tree }) => {
   });
 
   return derived.length > 0 ? derived : undefined;
+};
+
+const TRACE_ID_RE = /^trace[_-]?(\d+)?$/i;
+
+const deriveTraceIdMovementEvents = ({ tree }) => {
+  const nodeById = buildNodeIndexFromTree(tree);
+  const derived = [];
+
+  nodeById.forEach((traceNode, traceNodeId) => {
+    const match = TRACE_ID_RE.exec(traceNodeId);
+    if (!match) return;
+    if (subtreeHasOvertYield(traceNode)) return;
+
+    const traceCategory = String(traceNode.label || '').trim();
+    if (!traceCategory) return;
+
+    const suffix = match[1];
+    let landingNodeId = null;
+
+    if (suffix) {
+      const target = `${traceCategory}_${suffix}`.toLowerCase();
+      for (const [nid, nnode] of nodeById) {
+        if (nid.toLowerCase() === target && subtreeHasOvertYield(nnode)) {
+          landingNodeId = nid;
+          break;
+        }
+      }
+    }
+
+    if (!landingNodeId) {
+      const candidates = [];
+      nodeById.forEach((n, nid) => {
+        if (nid === traceNodeId) return;
+        if (String(n.label || '').trim().toLowerCase() !== traceCategory.toLowerCase()) return;
+        if (!subtreeHasOvertYield(n)) return;
+        candidates.push(nid);
+      });
+      if (candidates.length === 1) {
+        landingNodeId = candidates[0];
+      }
+    }
+
+    if (landingNodeId) {
+      derived.push({
+        operation: 'Move',
+        fromNodeId: traceNodeId,
+        toNodeId: landingNodeId,
+        traceNodeId: traceNodeId
+      });
+    }
+  });
+
+  return derived.length > 0 ? derived : undefined;
+};
+
+const deriveOrphanedMovementEvents = ({ tree, priorEvents }) => {
+  const nodeById = buildNodeIndexFromTree(tree);
+  const claimed = new Set();
+  (priorEvents || []).forEach((e) => {
+    if (e.fromNodeId) claimed.add(e.fromNodeId);
+    if (e.toNodeId) claimed.add(e.toNodeId);
+    if (e.traceNodeId) claimed.add(e.traceNodeId);
+  });
+
+  const orphanedLandings = [];
+  nodeById.forEach((node, nodeId) => {
+    if (claimed.has(nodeId)) return;
+    const idx = nodeMovementIndex(node);
+    if (!idx) return;
+    if (!subtreeHasOvertYield(node)) return;
+    if (isIndexedTraceOrNullNode(node)) return;
+    orphanedLandings.push({ nodeId, node, index: idx });
+  });
+
+  const orphanedTraces = [];
+  nodeById.forEach((node, nodeId) => {
+    if (claimed.has(nodeId)) return;
+    if (nodeMovementIndex(node)) return;
+    if (subtreeHasOvertYield(node)) return;
+    if (!isTraceLikeNode(node) && !isNullLikeNode(node)) return;
+    orphanedTraces.push({ nodeId, node });
+  });
+
+  if (orphanedLandings.length === 0 || orphanedTraces.length === 0) return undefined;
+
+  const derived = [];
+  const usedTraces = new Set();
+
+  for (const landing of orphanedLandings) {
+    let bestTrace = null;
+    if (orphanedTraces.length - usedTraces.size === 1) {
+      bestTrace = orphanedTraces.find((t) => !usedTraces.has(t.nodeId)) || null;
+    }
+    if (bestTrace) {
+      derived.push({
+        operation: 'Move',
+        fromNodeId: bestTrace.nodeId,
+        toNodeId: landing.nodeId,
+        traceNodeId: bestTrace.nodeId
+      });
+      usedTraces.add(bestTrace.nodeId);
+    }
+  }
+
+  return derived.length > 0 ? derived : undefined;
+};
+
+const stripMovementIndicesFromTree = (node) => {
+  if (!node || typeof node !== 'object') return node;
+  const label = String(node.label || '').trim();
+  if (label) {
+    const stripped = stripMovementIndex(label);
+    if (stripped && stripped !== label) {
+      node.label = stripped;
+    }
+  }
+  const children = Array.isArray(node.children) ? node.children : [];
+  children.forEach((child) => stripMovementIndicesFromTree(child));
+  return node;
+};
+
+const materializeEmptyStructuralLeaves = (node, sentenceTokens) => {
+  if (!node || typeof node !== 'object') return node;
+  const children = Array.isArray(node.children) ? node.children : [];
+  children.forEach((child) => materializeEmptyStructuralLeaves(child, sentenceTokens));
+  if (children.length === 0) {
+    const label = String(node.label || '').trim();
+    const word = String(node.word || '').trim();
+    if (label && !word && isStructuralLeafLabel(label)) {
+      const normalizedLabel = normalizeSurfaceToken(label);
+      if (normalizedLabel && sentenceTokens && sentenceTokens.has(normalizedLabel)) return node;
+      node.children = [{ label: '\u2205', id: `null_${String(node.id || 'anon').trim()}` }];
+    }
+  }
+  return node;
+};
+
+const promoteSentenceMatchingLeaves = (tree, sentenceTokenSet) => {
+  if (!tree || typeof tree !== 'object' || !sentenceTokenSet) return;
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      if (String(node.word || '').trim()) return;
+      const label = String(node.label || '').trim();
+      if (!label) return;
+      const normalized = normalizeSurfaceToken(label);
+      if (normalized && sentenceTokenSet.has(normalized) && isStructuralLeafLabel(label)) {
+        node.word = label;
+      }
+      return;
+    }
+    children.forEach(visit);
+  };
+  visit(tree);
 };
 
 const isNodeDominatedBy = (nodeId, ancestorId, parentById) => {
@@ -1467,7 +1726,6 @@ const reconcileDerivationStepOperations = (derivationSteps, movementEvents) => {
 };
 
 const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
-const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
 const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c)\b/i;
 const EXPLANATION_SUCCESSIVE_HEADMOVE_RE = /\b(v\s*-?to\s*-?(?:infl|i|t)|verb raises? to (?:infl|i|t)|infl\s*-?to\s*-?c|(?:infl|i|t) (?:raises?|moves?) to c|finally to c|subsequently to c)\b/i;
 const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
@@ -1480,14 +1738,6 @@ const MOVEMENT_OPERATION_PHRASE = {
   'A-Move': 'A-movement',
   AbarMove: 'A-bar movement',
   Other: 'movement'
-};
-
-const joinWithAnd = (items = []) => {
-  const values = items.filter(Boolean);
-  if (values.length === 0) return '';
-  if (values.length === 1) return values[0];
-  if (values.length === 2) return `${values[0]} and ${values[1]}`;
-  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
 };
 
 const splitExplanationSentences = (text) => String(text || '')
@@ -1505,11 +1755,6 @@ const ensureExplanationTerminator = (text) => {
   if (!value) return '';
   return /[.!?]$/.test(value) ? value : `${value}.`;
 };
-
-const removeWeakHedging = (text) => cleanExplanationWhitespace(
-  String(text || '')
-    .replace(EXPLANATION_HEDGE_RE, '')
-);
 
 const extractMovementClaimsFromSentence = (sentence) => {
   const text = String(sentence || '');
@@ -1539,80 +1784,6 @@ const countMovementEventsByOperation = (movementEvents, wantedOperation) =>
   Array.isArray(movementEvents)
     ? movementEvents.filter((event) => normalizeMovementOperation(event?.operation) === wantedOperation).length
     : 0;
-
-const movementKindFromOperation = (operation) => {
-  const op = normalizeMovementOperation(operation);
-  if (op === 'HeadMove') return 'head';
-  if (op === 'AbarMove') return 'wh';
-  if (op === 'A-Move') return 'a';
-  if (op === 'InternalMerge') return 'internal';
-  return null;
-};
-
-const extractClaimedMovementKindsFromText = (text) => {
-  const kinds = new Set();
-  splitExplanationSentences(text).forEach((sentence) => {
-    const claims = extractMovementClaimsFromSentence(sentence);
-    if (claims.claimsHeadMove) kinds.add('head');
-    if (claims.claimsWhMove) kinds.add('wh');
-    if (claims.claimsAMove) kinds.add('a');
-    if (claims.claimsInternalMerge) kinds.add('internal');
-    if (
-      claims.mentionsMovement
-      && !claims.claimsHeadMove
-      && !claims.claimsWhMove
-      && !claims.claimsAMove
-      && !claims.claimsInternalMerge
-    ) {
-      kinds.add('generic');
-    }
-  });
-  return kinds;
-};
-
-const buildSupplementalMovementSummary = (compatibleText, movementEvents) => {
-  if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
-  const claimedKinds = extractClaimedMovementKindsFromText(compatibleText);
-  if (claimedKinds.size === 0) {
-    return summarizeGroundedMovement(movementEvents);
-  }
-
-  const missingEvents = movementEvents.filter((event) => {
-    const kind = movementKindFromOperation(event?.operation);
-    if (!kind) return false;
-    return !claimedKinds.has(kind);
-  });
-  if (missingEvents.length === 0) return '';
-  return summarizeGroundedMovement(missingEvents);
-};
-
-const movementSignatureForSentence = (sentence) => {
-  const claims = extractMovementClaimsFromSentence(sentence);
-  if (!claims.mentionsMovement) return '';
-  const tags = [];
-  if (claims.claimsHeadMove) tags.push('head');
-  if (claims.claimsWhMove) tags.push('wh');
-  if (claims.claimsAMove) tags.push('a');
-  if (claims.claimsInternalMerge) tags.push('internal');
-  if (tags.length === 0) tags.push('generic');
-  return tags.sort().join('+');
-};
-
-const dedupeMovementSentences = (sentences) => {
-  const seenSignatures = new Set();
-  const output = [];
-  sentences.forEach((sentence) => {
-    const signature = movementSignatureForSentence(sentence);
-    if (!signature) {
-      output.push(sentence);
-      return;
-    }
-    if (seenSignatures.has(signature)) return;
-    seenSignatures.add(signature);
-    output.push(sentence);
-  });
-  return output;
-};
 
 const isCompatibleMovementSentence = (sentence, movementEventKinds, movementEvents) => {
   const claims = extractMovementClaimsFromSentence(sentence);
@@ -2153,12 +2324,41 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
   validateSpelloutConsistency(derivationSteps, tokenizeSentenceSurfaceOrder(sentence), surfaceOrder);
   const rawMovementEvents = normalizeMovementEvents(parsed.movementEvents, nodeIds, derivationSteps);
   const indexedMovementEvents = deriveIndexedMovementEvents({ tree });
+  const traceIdMovementEvents = deriveTraceIdMovementEvents({ tree });
+  const combinedIndexedEvents = [
+    ...(indexedMovementEvents || []),
+    ...(traceIdMovementEvents || [])
+  ];
+  const orphanedMovementEvents = deriveOrphanedMovementEvents({
+    tree,
+    priorEvents: combinedIndexedEvents
+  });
+  const allDerivedEvents = [
+    ...combinedIndexedEvents,
+    ...(orphanedMovementEvents || [])
+  ];
   const movementEvents = buildCanonicalMovementEvents({
     tree,
     derivationSteps,
     rawMovementEvents,
-    indexedMovementEvents
+    indexedMovementEvents: allDerivedEvents.length > 0 ? allDerivedEvents : undefined
   });
+  stripMovementIndicesFromTree(tree);
+  const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
+  const sentenceTokenSet = new Set(sentenceTokens.map(normalizeSurfaceToken).filter(Boolean));
+  materializeEmptyStructuralLeaves(tree, sentenceTokenSet);
+  promoteSentenceMatchingLeaves(tree, sentenceTokenSet);
+  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
+  reorderChildrenBySentenceOrder(tree, normalizedSentenceTokens);
+  const postStripOvertTerminals = collectOvertTerminalNodes(tree);
+  const cleanSurfaceOrder = postStripOvertTerminals
+    .map((node) => resolveNodeSurface(node))
+    .map((token) => String(token || '').trim())
+    .filter(Boolean);
+  if (cleanSurfaceOrder.length > 0) {
+    surfaceOrder.length = 0;
+    cleanSurfaceOrder.forEach((token) => surfaceOrder.push(token));
+  }
   const canonicalTimeline = buildCanonicalDerivationFromTree({
     tree,
     movementEvents,
@@ -2436,13 +2636,79 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `Return the complete analysis in one pass. ` +
   `Use these exact overt input tokens as your pronounced terminals: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
   `Do not split or rewrite those overt tokens. ` +
-  `The order of children in your final tree must encode the pronounced left-to-right order. ` +
+  `CRITICAL LINEARIZATION RULE: At every node in the tree, the children array must be ordered so that a left-to-right depth-first traversal of the entire tree reads out the overt terminals in exactly the pronounced sentence order. ` +
+  `This means: if a child subtree contains an overt terminal that is pronounced earlier in the sentence, that child must appear BEFORE siblings whose overt terminals are pronounced later. This applies at every level of the tree, not just the root. ` +
   `Use each overt input token exactly once in the final tree unless that token occurs multiple times in the sentence itself. ` +
   `If you claim movement, encode it directly in the tree with shared movement indices on syntactic labels, and encode the lower source/copy explicitly there as well. ` +
   `Put movement indices on syntactic labels rather than on overt token strings. ` +
   `If you include a silent or null terminal, use exactly "∅". ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
-  `Before answering, read the overt terminals of your final tree from left to right and ensure they spell out the exact sentence order: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}.`;
+  `FINAL CHECK: Read the overt terminals of your tree left-to-right by DFS. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. If they do not, reorder the children arrays until they do.`;
+
+const LINEARIZE_SYSTEM_INSTRUCTION =
+  `You are a syntax tree linearization assistant. ` +
+  `You will receive a syntactic tree as JSON and a target surface order. ` +
+  `Your ONLY job is to reorder the children arrays at every level of the tree so that ` +
+  `a left-to-right depth-first traversal of the tree reads out the overt terminals ` +
+  `in exactly the target surface order. ` +
+  `Do NOT change the tree structure (no adding, removing, or reparenting nodes). ` +
+  `Do NOT rename labels, change ids, or alter any node properties. ` +
+  `ONLY reorder children arrays. Return the corrected tree as JSON.`;
+
+const buildLinearizePrompt = (tree, sentence) => {
+  const tokens = tokenizeSentenceSurfaceOrder(sentence);
+  return (
+    `Here is a syntactic tree:\n${JSON.stringify(tree)}\n\n` +
+    `The target surface order is: ${tokens.join(' | ')}\n\n` +
+    `Reorder the children arrays at every level so a left-to-right DFS reads out exactly: ${tokens.join(' | ')}.\n` +
+    `Return ONLY the corrected tree as a JSON object. Do not wrap it in any other structure. ` +
+    `Do not add, remove, or reparent any nodes — only reorder children arrays.`
+  );
+};
+
+/**
+ * Check whether the normalized surface order matches the sentence.
+ */
+const surfaceOrderMatchesSentence = (surfaceOrder, sentence) => {
+  const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence).map(normalizeSurfaceToken).filter(Boolean);
+  const normalized = (surfaceOrder || []).map((t) => normalizeSurfaceToken(String(t || '').trim())).filter(Boolean);
+  if (sentenceTokens.length !== normalized.length) return false;
+  return sentenceTokens.every((tok, i) => tok === normalized[i]);
+};
+
+/**
+ * Pass 2 — Linearization refinement.
+ * Sends the model's own tree back with the target surface order and asks it to
+ * reorder children arrays so DFS yields the correct terminal sequence.
+ * Returns the corrected tree, or null if the call fails.
+ */
+const runLinearizationPass = async ({ ai, model, tree, sentence, abortSignal }) => {
+  try {
+    const generation = await ai.models.generateContent({
+      model,
+      contents: buildLinearizePrompt(tree, sentence),
+      config: {
+        systemInstruction: LINEARIZE_SYSTEM_INSTRUCTION,
+        responseMimeType: 'application/json',
+        maxOutputTokens: MODEL_MAX_OUTPUT_TOKENS,
+        temperature: 0,
+        abortSignal
+      }
+    });
+    const meta = summarizeGeneration(generation);
+    if (!meta.rawText) return null;
+    const parsed = JSON.parse(meta.rawText);
+    // The model should return a bare tree object
+    if (parsed && typeof parsed === 'object' && parsed.id && parsed.label) return parsed;
+    // Might be wrapped in { tree: ... } or { analyses: [{ tree: ... }] }
+    if (parsed?.tree?.id) return parsed.tree;
+    if (parsed?.analyses?.[0]?.tree?.id) return parsed.analyses[0].tree;
+    return null;
+  } catch (err) {
+    console.warn(`[gemini] linearization pass failed: ${err.message}`);
+    return null;
+  }
+};
 
 export const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
@@ -2470,6 +2736,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
 
   try {
     let normalized = null;
+    let rawPayload = null;
     let lastError = null;
     let usedModel = null;
     for (let modelIndex = 0; modelIndex < modelCandidates.length; modelIndex += 1) {
@@ -2581,6 +2848,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           }
 
           normalized = candidateNormalized;
+          rawPayload = payload;
           usedModel = currentModel;
           if (modelIndex > 0) {
             console.warn(`[gemini] fallback model active: ${currentModel}`);
@@ -2589,16 +2857,9 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
         } catch (error) {
           lastError = error;
           if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
-            if (attempt < BAD_MODEL_RETRY_MAX_ATTEMPTS) {
-              console.warn(
-                `[gemini] invalid model payload from ${currentModel} ` +
-                `(attempt ${attempt}/${BAD_MODEL_RETRY_MAX_ATTEMPTS}): ${error.message}. Retrying.`
-              );
-              continue;
-            }
             if (hasNextModel) {
               console.warn(
-                `[gemini] invalid model payload persisted on ${currentModel}: ${error.message}. ` +
+                `[gemini] invalid model payload on ${currentModel}: ${error.message}. ` +
                 `Falling back to ${modelCandidates[modelIndex + 1]}.`
               );
               moveToNextModel = true;
@@ -2688,6 +2949,45 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
     }
     if (usedModel) {
       console.info(`[gemini] parse success via ${usedModel}`);
+    }
+
+    // Pass 2 — Linearization refinement.
+    // If the surface order from pass 1 doesn't match the sentence, give the
+    // model its own tree back and ask it to reorder children arrays so DFS
+    // yields the correct terminal sequence.  This is a lightweight, focused
+    // task the model reliably gets right.
+    for (const analysis of (normalized?.analyses || [])) {
+      if (!surfaceOrderMatchesSentence(analysis.surfaceOrder, sentence)) {
+        console.info(`[gemini] surface order mismatch detected — running linearization pass`);
+        const rawTree = rawPayload?.analyses?.[0]?.tree;
+        if (rawTree && usedModel) {
+          const linearizedTree = await runLinearizationPass({
+            ai,
+            model: usedModel,
+            tree: rawTree,
+            sentence
+          });
+          if (linearizedTree) {
+            // Deep-clone the raw payload, replace the tree, re-normalize
+            const patchedPayload = JSON.parse(JSON.stringify(rawPayload));
+            patchedPayload.analyses[0].tree = linearizedTree;
+            try {
+              const reNormalized = normalizeParseBundle(patchedPayload, framework, sentence);
+              // Only accept if the surface order now actually matches
+              const reAnalysis = reNormalized?.analyses?.[0];
+              if (reAnalysis && surfaceOrderMatchesSentence(reAnalysis.surfaceOrder, sentence)) {
+                normalized = reNormalized;
+                console.info(`[gemini] linearization pass fixed surface order`);
+              } else {
+                console.warn(`[gemini] linearization pass did not fix surface order — keeping pass 1 result`);
+              }
+            } catch (err) {
+              console.warn(`[gemini] re-normalization after linearization failed: ${err.message}`);
+            }
+          }
+        }
+        break; // only attempt once
+      }
     }
 
     const fallbackUsed = Boolean(usedModel && attemptedModels.length > 0 && usedModel !== attemptedModels[0]);

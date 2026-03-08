@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:consistency": "node --test test/*.test.mjs",
     "preview": "vite preview",
     "start": "node server/index.js",
     "audit": "npm audit"

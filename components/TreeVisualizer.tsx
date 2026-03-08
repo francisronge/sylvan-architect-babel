@@ -110,6 +110,21 @@ const isIndexedSurface = (label: string): boolean => {
   return Boolean(trimmed) && !isTraceLike(trimmed) && !isNullLike(trimmed) && Boolean(extractMovementIndex(trimmed));
 };
 
+const isRenderableTerminalSurface = (surface: string, overtSurfaceSet: Set<string> | null): boolean => {
+  const trimmed = surface.trim();
+  if (!trimmed || isTraceLike(trimmed) || isIndexedSurface(trimmed)) {
+    return false;
+  }
+  if (isNullLike(trimmed)) return true;
+  const normalized = normalizeToken(trimmed);
+  if (!normalized) return false;
+  if (overtSurfaceSet) return overtSurfaceSet.has(normalized);
+  return true;
+};
+
+const isOvertLeafNode = (node: HierNode, overtSurfaceSet: Set<string> | null): boolean =>
+  isRenderableTerminalSurface(resolveLeafSurface(node), overtSurfaceSet);
+
 const getReadyNodePriority = (node: HierNode): number => {
   const hasChildren = Boolean(node.children && node.children.length > 0);
   if (hasChildren) return 1;
@@ -1098,13 +1113,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .text(d => d.data.label);
 
     // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
-    const terminals = nodeGroups.filter(d => !d.children || d.children.length === 0);
+    const leafNodes = nodeGroups.filter(d => !d.children || d.children.length === 0);
+    const abstractLeaves = leafNodes.filter((d) => !isOvertLeafNode(d, overtSurfaceSet));
+    const terminals = leafNodes.filter((d) => isOvertLeafNode(d, overtSurfaceSet));
+
+    abstractLeaves.append('text')
+      .attr('y', -10)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '42px')
+      .attr('font-weight', '900')
+      .attr('fill', PURE_WHITE)
+      .style('fill', PURE_WHITE, 'important')
+      .style('font-family', 'Quicksand, sans-serif')
+      .style('paint-order', 'stroke')
+      .style('stroke', '#020806')
+      .style('stroke-width', '10px')
+      .text(d => d.data.label || '');
 
     // Render leaf node text in Emerald - Reduced Font Size
     terminals.append('text')
       .attr('class', 'terminal-label')
       .attr('data-node-id', (d) => getNodeId(d))
-      .attr('data-default-label', (d) => d.data.word || d.data.label || '')
+      .attr('data-default-label', (d) => resolveLeafSurface(d))
       .attr('y', 115) // Adjusted vertical offset for smaller font
       .attr('text-anchor', 'middle')
       .attr('font-size', '56px') // Reduced from 84px to be more proportional
@@ -1114,7 +1144,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .style('fill', TARGET_EMERALD, 'important')
       .text(d => {
         const nodeId = getNodeId(d);
-        const fallback = d.data.word || d.data.label || '';
+        const fallback = resolveLeafSurface(d);
         const morph = terminalMorphRef.current.get(nodeId);
         if (!morph) return fallback;
         if (revealThreshold < morph.step) {

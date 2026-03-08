@@ -10,7 +10,6 @@ import {
   EMPTY_MOVEMENT_INDEX_MAPS
 } from './movementEvents';
 import { 
-  BookOpen, 
   RotateCcw, 
   Sparkles,
   TreeDeciduous,
@@ -36,12 +35,11 @@ import {
   Clock3
 } from 'lucide-react';
 
-type AppTab = 'tree' | 'growth' | 'pos' | 'notes';
+type AppTab = 'tree' | 'growth' | 'notes';
 
 const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
   { id: 'growth', icon: FlameKindling, label: 'Growth Simulation' },
-  { id: 'pos', icon: BookOpen, label: 'Catalog' },
   { id: 'notes', icon: FileText, label: 'Notes' },
 ];
 
@@ -1283,12 +1281,21 @@ const App: React.FC = () => {
         {!isTreeBankView && (
         <div className="absolute inset-0 z-0">
           {loading && (
-            <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-8 animate-in fade-in duration-700">
+            <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
               <div className="relative">
-                <div className="w-28 h-28 border-[6px] border-emerald-950/50 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_100px_rgba(16,185,129,0.2)]"></div>
-                <RootLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-500 animate-pulse" size={38} />
+                <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
+                <div className="relative z-10 w-32 h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
+                  <div className="absolute inset-0 rounded-full border-[6px] border-emerald-950/50 border-t-emerald-500 animate-spin shadow-[0_0_100px_rgba(16,185,129,0.2)]"></div>
+                  <RootLogo
+                    size={104}
+                    shape="circle"
+                    blend={true}
+                    zoom={0.92}
+                    className="animate-pulse"
+                  />
+                </div>
               </div>
-              <div className="text-center">
+              <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
                 <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
               </div>
@@ -1304,24 +1311,10 @@ const App: React.FC = () => {
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
             />
-          ) : activeParse && (activeTab === 'pos' || activeTab === 'notes') ? (
+          ) : activeParse && activeTab === 'notes' ? (
             <div
-              className={`w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md ${
-                activeTab === 'notes'
-                  ? 'items-start px-12 pt-20 pb-44'
-                  : 'items-center p-12'
-              }`}
+              className="w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md items-start px-12 pt-20 pb-44"
             >
-              {activeTab === 'pos' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-6xl w-full">
-                  {(activeParse.partsOfSpeech ?? []).map((item, idx) => (
-                    <div key={idx} className="p-8 bg-black/60 border border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 hover:border-emerald-500/40 transition-all shadow-2xl group hover:-translate-y-1">
-                      <span className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.5em]">{item.pos}</span>
-                      <span className="font-bold text-white serif italic text-2xl tracking-tight">{item.word}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
               {activeTab === 'notes' && (
                 <div className="max-w-4xl w-full space-y-8">
                   <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
@@ -1417,7 +1410,7 @@ const App: React.FC = () => {
                   <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="animate-pulse" />
                 </div>
               </div>
-              <div className="text-center z-10">
+              <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="font-extrabold text-white text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
                 <p className="text-emerald-900 font-black uppercase text-[10px] tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto">Cast a thought into the generative soil to begin its derivation.</p>
               </div>

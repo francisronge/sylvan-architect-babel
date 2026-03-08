@@ -114,7 +114,7 @@ When you submit a sentence, Babel shows:
 
 If Babel detects clear syntactic ambiguity, it can return two analyses.
 
-You can toggle `Parse 1` and `Parse 2`, and the active parse updates across the entire app state (tree view, growth simulation, catalog, notes).
+You can toggle `Parse 1` and `Parse 2`, and the active parse updates across the entire app state (tree view, growth simulation, notes).
 
 ### 7) Canopy view
 
@@ -139,13 +139,7 @@ It includes:
 
 This view is designed to expose process, not just endpoint.
 
-### 9) Catalog view
-
-`Catalog` displays token-level parts-of-speech output from the active parse.
-
-This helps users cross-check lexical categorization against the generated tree.
-
-### 10) Notes view
+### 9) Notes view
 
 `Notes` includes:
 

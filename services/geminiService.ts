@@ -5,6 +5,10 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
     const payload = await response.json();
     const code = String(payload?.error?.code || '').trim();
     const message = String(payload?.error?.message || '').trim();
+    const details = payload?.error?.details;
+    const diagnosticStage = String(details?.stage || '').trim();
+    const diagnosticModel = String(details?.model || '').trim();
+    const diagnosticPreview = String(details?.payloadPreview || details?.preview || '').trim();
 
     if (code === 'API_KEY_MISSING') return 'API_KEY_MISSING';
     if (code === 'API_KEY_INVALID') return 'API_KEY_INVALID';
@@ -12,10 +16,16 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
       return message || 'The canopy is noisy right now. Please plant your sentence again in a moment.';
     }
     if (code === 'BAD_MODEL_RESPONSE') {
-      return 'The canopy is noisy right now. Please plant your sentence again in a moment.';
+      const diagnostics = [
+        message || code,
+        diagnosticStage ? `Stage: ${diagnosticStage}` : '',
+        diagnosticModel ? `Model: ${diagnosticModel}` : '',
+        diagnosticPreview ? `Preview: ${diagnosticPreview}` : ''
+      ].filter(Boolean);
+      return diagnostics.join('\n');
     }
     if (code === 'PARSE_FAILED') {
-      return 'The canopy is noisy right now. Please plant your sentence again in a moment.';
+      return message || code;
     }
 
     if (message) return message;
