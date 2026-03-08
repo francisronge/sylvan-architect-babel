@@ -59,6 +59,10 @@ General rules:
 - Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
 - Do not attach overt words directly under X' or XP nodes.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
+- Keep lower copy notation consistent within a tree. Do not mix multiple lower-copy conventions for the same analysis without an explicit reason in the chosen tree.
+- Do not introduce helper projection labels such as "SpecCP" or "Spec,InflP" as separate structural nodes. Represent the specifier phrase itself in the tree.
+- If a head is overt in a higher functional position, realize it there as a single overt head. Do not stack extra overt head labels such as C > V > word merely to preserve its source category.
+- If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word. Do not wrap the overt word in an extra overt source-category head beneath the landing site.
 
 For movement:
 - First decide movement and encode it in "movementDecision.hasMovement" (true/false).
@@ -215,37 +219,6 @@ const PARSE_RESPONSE_JSON_SCHEMA = {
   },
   required: ['analyses']
 };
-
-const FINALIZATION_RESPONSE_JSON_SCHEMA = {
-  type: 'object',
-  $defs: {
-    syntaxNode: SYNTAX_NODE_JSON_SCHEMA
-  },
-  properties: {
-    analyses: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 2,
-      items: {
-        type: 'object',
-        properties: {
-          tree: { $ref: '#/$defs/syntaxNode' },
-          explanation: { type: 'string' },
-          surfaceOrder: { type: 'array', items: { type: 'string' } },
-          derivationSteps: { type: 'array', items: { type: 'object' } },
-          movementEvents: { type: 'array', items: MOVEMENT_EVENT_JSON_SCHEMA },
-          bracketedNotation: { type: 'string' },
-          interpretation: { type: 'string' },
-          partsOfSpeech: { type: 'array', items: { type: 'object' } }
-        },
-        required: ['tree', 'explanation', 'surfaceOrder', 'derivationSteps', 'movementEvents']
-      }
-    },
-    ambiguityNote: { type: 'string' }
-  },
-  required: ['analyses']
-};
-const USE_FINALIZATION_PASS = false;
 
 export class ParseApiError extends Error {
   constructor(code, message, status = 500, details = undefined) {
@@ -2811,106 +2784,15 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `Use each overt input token exactly once in the final tree unless that token occurs multiple times in the sentence itself. ` +
   `If you include a silent or null terminal, use exactly "∅". ` +
   `Use "word" for terminal surface forms, never "value". ` +
+  `Keep lower copy notation consistent within this tree. ` +
+  `Do not use helper labels such as SpecCP or Spec,InflP as separate nodes; represent the specifier phrase itself instead. ` +
+  `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
+  `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
   `FINAL CHECK: Read the overt terminals of your tree left-to-right by DFS. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. If they do not, reorder the children arrays until they do.`;
-
-const FINALIZATION_SYSTEM_INSTRUCTION = (framework = 'xbar') =>
-  `You are finalizing a draft syntax analysis so that the returned analysis is fully coherent and self-consistent. ` +
-  `You are not producing a second interpretation; you are making the draft commit cleanly to one analysis. ` +
-  `${framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION}\n\n${BASE_INSTRUCTION}\n\n` +
-  `Finalization rules:\n` +
-  `- Preserve the same overt token inventory and the same sentence.\n` +
-  `- Preserve the same draft tree analysis unless a local revision is needed to make it internally coherent.\n` +
-  `- Treat the draft tree as the only authoritative input. Generate movementEvents, derivationSteps, and explanation from the finalized tree rather than from any prior metadata.\n` +
-  `- You may reorder children arrays, make movement explicit, remove contradictory null/copy material, and rewrite movementEvents/derivationSteps/explanation so they match the final tree.\n` +
-  `- For each fronted phrase or higher overt head, decide exactly one of: direct merge or movement. Do not leave hybrid or undercommitted structures in the final output.\n` +
-  `- If the draft tree implies movement, encode that movement explicitly in the final tree and metadata.\n` +
-  `- Use "HeadMove" only for head movement and "Move" only for phrasal movement.\n` +
-  `- Every finalized analysis must include movementEvents, derivationSteps, and surfaceOrder explicitly. Do not omit those fields.\n` +
-  `- If the draft does NOT commit to movement, do not leave traces, lower copies, or null heads that falsely imply it.\n` +
-  `- Return only the finalized JSON object.`;
-
-const buildFinalizationDraftPayload = (draftPayload) => {
-  const analyses = Array.isArray(draftPayload?.analyses)
-    ? draftPayload.analyses
-        .map((analysis) => {
-          if (!analysis || typeof analysis !== 'object' || !analysis.tree) return null;
-          return { tree: analysis.tree };
-        })
-        .filter(Boolean)
-    : draftPayload?.tree
-      ? [{ tree: draftPayload.tree }]
-      : [];
-
-  return {
-    analyses,
-    ambiguityNote: typeof draftPayload?.ambiguityNote === 'string' ? draftPayload.ambiguityNote : undefined
-  };
-};
-
-const buildFinalizationPrompt = (draftPayload, sentence, framework = 'xbar') => {
-  const tokens = tokenizeSentenceSurfaceOrder(sentence);
-  const treeOnlyDraft = buildFinalizationDraftPayload(draftPayload);
-  return (
-    `Sentence: "${sentence}"\n` +
-    `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'The Minimalist Program (Bare Phrase Structure)'}\n` +
-    `Pronounced overt tokens: ${tokens.join(' | ')}\n\n` +
-    `Here is the draft tree bundle from pass 1:\n${JSON.stringify(treeOnlyDraft)}\n\n` +
-    `Return a finalized JSON analysis bundle in the same schema.\n` +
-    `Requirements:\n` +
-    `- Left-to-right DFS of the final tree must spell exactly: ${tokens.join(' | ')}\n` +
-    `- Every overt input token must appear exactly once unless it occurs multiple times in the sentence.\n` +
-    `- Use the draft tree as primary evidence. Rebuild movementEvents, derivationSteps, and explanation from the finalized tree.\n` +
-    `- For each fronted phrase or higher overt head, decide exactly one of: direct merge or movement.\n` +
-    `- If movement is intended, encode it explicitly in the tree with shared movement indices and make movementEvents, derivationSteps, and explanation match that same movement story.\n` +
-    `- Use "HeadMove" only for head movement and "Move" only for phrasal movement.\n` +
-    `- Return movementEvents, derivationSteps, and surfaceOrder in every finalized analysis. If no movement is posited, return movementEvents as [].\n` +
-    `- If the final tree still contains a fronted phrase with a lower null/trace/copy site, movementEvents must not be empty for that dependency.\n` +
-    `- If an overt higher head and a lower null head would imply head movement, either encode that head movement explicitly or revise the draft so it no longer suggests unseen movement.\n` +
-    `- Do not leave contradictory combinations like: overt head high, lower null source, but no explicit head movement commitment.\n` +
-    `- Keep notes/explanation academically natural but grounded only in the finalized analysis.\n` +
-    `Return ONLY the finalized JSON object.`
-  );
-};
-
-/**
- * Check whether the normalized surface order matches the sentence.
- */
-const surfaceOrderMatchesSentence = (surfaceOrder, sentence) => {
-  const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence).map(normalizeSurfaceToken).filter(Boolean);
-  const normalized = (surfaceOrder || []).map((t) => normalizeSurfaceToken(String(t || '').trim())).filter(Boolean);
-  if (sentenceTokens.length !== normalized.length) return false;
-  return sentenceTokens.every((tok, i) => tok === normalized[i]);
-};
-
-/**
- * Pass 2 — Analysis finalization.
- * Sends the model its own draft bundle and asks it to return a single coherent
- * finalized analysis that aligns tree, linearization, movement, derivation,
- * and explanation.
- */
-const runFinalizationPass = async ({ ai, model, draftPayload, sentence, framework = 'xbar', abortSignal }) => {
-  try {
-    const generation = await generateStructuredContent({
-      ai,
-      model,
-      contents: buildFinalizationPrompt(draftPayload, sentence, framework),
-      systemInstruction: FINALIZATION_SYSTEM_INSTRUCTION(framework),
-      temperature: 0,
-      abortSignal,
-      responseJsonSchema: FINALIZATION_RESPONSE_JSON_SCHEMA
-    });
-    const meta = summarizeGeneration(generation);
-    if (!meta.rawText) return null;
-    return parseModelJson(meta.rawText);
-  } catch (err) {
-    console.warn(`[gemini] finalization pass failed: ${err.message}`);
-    return null;
-  }
-};
 
 export const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
@@ -2938,7 +2820,6 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
 
   try {
     let normalized = null;
-    let rawPayload = null;
     let lastError = null;
     let usedModel = null;
     for (let modelIndex = 0; modelIndex < modelCandidates.length; modelIndex += 1) {
@@ -3050,7 +2931,6 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           }
 
           normalized = candidateNormalized;
-          rawPayload = payload;
           usedModel = currentModel;
           if (modelIndex > 0) {
             console.warn(`[gemini] fallback model active: ${currentModel}`);
@@ -3153,30 +3033,6 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
       console.info(`[gemini] parse success via ${usedModel}`);
     }
 
-    // Pass 2 — Finalize the draft into one coherent committed analysis.
-    if (USE_FINALIZATION_PASS && rawPayload && usedModel) {
-      console.info(`[gemini] running finalization pass`);
-      const finalizedPayload = await runFinalizationPass({
-        ai,
-        model: usedModel,
-        draftPayload: rawPayload,
-        sentence,
-        framework
-      });
-      if (finalizedPayload) {
-        try {
-          const reNormalized = normalizeParseBundle(finalizedPayload, framework, sentence);
-          normalized = reNormalized;
-          rawPayload = finalizedPayload;
-          console.info(`[gemini] finalization pass produced a coherent final bundle`);
-        } catch (err) {
-          console.warn(`[gemini] normalization after finalization failed: ${err.message}`);
-        }
-      } else {
-        console.warn(`[gemini] finalization pass returned no bundle — keeping pass 1 result`);
-      }
-    }
-
     const fallbackUsed = Boolean(usedModel && attemptedModels.length > 0 && usedModel !== attemptedModels[0]);
     return {
       ...normalized,
@@ -3258,6 +3114,5 @@ export const __test__ = {
   harmonizeExplanationWithDerivation,
   buildSystemInstruction,
   buildParseContentsPrompt,
-  buildFinalizationPrompt,
   parseModelJson
 };

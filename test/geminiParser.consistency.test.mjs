@@ -8,8 +8,7 @@ const {
   harmonizeExplanationWithDerivation,
   buildCanonicalMovementEvents,
   buildSystemInstruction,
-  buildParseContentsPrompt,
-  buildFinalizationPrompt
+  buildParseContentsPrompt
 } = __test__;
 
 const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
@@ -170,6 +169,9 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   assert.match(instruction, /Every overt input token must appear in the tree exactly as pronounced/i);
   assert.match(instruction, /Keep only the pronounced copy overt and render the lower occurrence as a trace, copy, or null element/i);
   assert.match(instruction, /represent it only as "∅"/i);
+  assert.match(instruction, /Do not introduce helper projection labels such as "SpecCP" or "Spec,InflP"/i);
+  assert.match(instruction, /Do not stack extra overt head labels such as C > V > word/i);
+  assert.match(instruction, /landing head should directly dominate the overt word/i);
 });
 
 test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lower copies', () => {
@@ -181,29 +183,10 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /The order of children in your final tree must encode the pronounced left-to-right order|CRITICAL LINEARIZATION RULE.*children array must be ordered/i);
   assert.match(prompt, /Use each overt input token exactly once in the final tree/i);
   assert.match(prompt, /use exactly "∅"/i);
-});
-
-test('buildFinalizationPrompt asks the model to finalize movement and linearization coherently', () => {
-  const prompt = buildFinalizationPrompt(
-    {
-      analyses: [
-        {
-          tree: { id: 'n1', label: 'CP', children: [] },
-          explanation: 'Draft explanation.'
-        }
-      ]
-    },
-    'Which article did Nora publish?',
-    'xbar'
-  );
-
-  assert.match(prompt, /draft tree bundle from pass 1/i);
-  assert.match(prompt, /Return a finalized JSON analysis bundle/i);
-  assert.match(prompt, /If movement is intended, encode it explicitly in the tree/i);
-  assert.match(prompt, /either encode that head movement explicitly or revise the draft/i);
-  assert.match(prompt, /Return movementEvents, derivationSteps, and surfaceOrder in every finalized analysis/i);
-  assert.match(prompt, /Left-to-right DFS of the final tree must spell exactly/i);
-  assert.doesNotMatch(prompt, /Draft explanation/);
+  assert.match(prompt, /Keep lower copy notation consistent within this tree/i);
+  assert.match(prompt, /Do not use helper labels such as SpecCP or Spec,InflP as separate nodes/i);
+  assert.match(prompt, /realize it there as one overt head rather than stacking labels like C > V > word/i);
+  assert.match(prompt, /landing head should directly dominate the overt word/i);
 });
 
 test('normalizeParseBundle does not infer movement from indexed tree labels when movementEvents are omitted', () => {
