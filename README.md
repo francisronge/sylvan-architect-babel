@@ -16,10 +16,10 @@ Many tree tools either use rigid templates or return black-box output with littl
 
 Babel is designed to make the model's structural decisions inspectable:
 
-- The analysis is generated inside a chosen syntactic framework.
-- You get both final structures and derivational metadata.
+- The model is required to commit to a concrete analysis inside a chosen syntactic framework.
+- You get both final structures and derivational metadata tied to the same committed analysis.
 - You can compare analyses under different theory settings.
-- You can inspect ambiguous inputs through multiple parses.
+- When Babel detects genuine structural ambiguity, it can return two parses for comparison.
 
 ## Who Babel is for
 
@@ -42,7 +42,7 @@ With Babel's model routes (currently `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro
 
 Researchers can use Babel to build hypothesis-driven syntax studies: run controlled sentence suites, compare analyses across frameworks and model routes, trace how movement and feature-checking decisions vary across languages, and document where models converge or diverge from formal grammatical expectations.
 
-This shifts Babel from only a tree tool into an evaluation framework for LLM structural reasoning.
+This pushes Babel beyond a tree tool and toward an evaluation framework for explicit LLM structural reasoning.
 
 #### Why this is different from standard syntax benchmarks
 
@@ -59,7 +59,9 @@ Babel asks a different question:
 - Not only: "Does the model behave like it knows syntax?"
 - But: "Can the model explicitly produce syntactic structure?"
 
-In Babel, the model must commit to a concrete tree and derivation, including hierarchy, projection, movement, and trace placement.
+In Babel, the model must commit to a concrete tree and derivation: one hierarchy, one movement story, one replayable analysis.
+
+Babel is designed around forced commitment: the model must choose one analysis and Babel evaluates the coherence of that committed structure rather than completing the syntax on the model's behalf.
 
 ### Students
 
@@ -187,7 +189,7 @@ It includes:
 ## Limits and caveats
 
 - Output quality can vary with model behavior and service availability.
-- Any single tree should be treated as an analysis proposal, not final theoretical truth.
+- Any single tree should be treated as a committed analysis proposal, not final theoretical truth.
 
 ## Project direction
 
