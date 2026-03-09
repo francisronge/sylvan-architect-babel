@@ -1,9 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 
 const EXPLANATION_INSTRUCTION = `In the explanation, justify major choices in framework terms, not language-specific heuristics.
-Write a developed natural paragraph (roughly 3-6 sentences): brief, but not skeletal.
-Aim for the tone of a compact research note rather than a checklist, and prefer academically natural prose over symbolic shorthand.
-You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, but only when they are directly supported by the chosen tree and derivation.
+Write a developed natural paragraph (roughly 4-7 sentences): substantial enough to sound like a compact research note, not a compressed checklist.
+Prefer academically natural prose over symbolic shorthand.
+You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, and you may include at most one brief reference to a well-known analytical tradition or scholar, but only when that framing is directly supported by the chosen tree and derivation.
 Do not introduce extra movements, landing sites, heads, complements, adjuncts, or alternative analyses that are not part of the selected analysis.`;
 
 const XBAR_INSTRUCTION = `You are a world-class syntactician specializing in Generative syntax, with a focus on X-bar Theory and Government and Binding Theory.
@@ -60,6 +60,7 @@ General rules:
 - Do not attach overt words directly under X' or XP nodes.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
 - Keep lower copy notation consistent within a tree. Use one coherent lower-copy style across the analysis, including phrasal and head movement.
+- If you use trace labels, use only canonical trace forms such as "t", "trace", "t_1", or "trace_DP". Do not use hyphenated trace forms.
 - Do not introduce helper position labels (for example labels beginning with "Spec") as separate structural nodes. Represent the phrase itself in the tree.
 - If a head is overt in a higher functional position, realize it there as a single overt head. Do not stack extra overt head labels such as C > V > word merely to preserve its source category.
 - At the landing site of head movement, use exactly one overt head label above the pronounced word. Do not return unary chains of overt head labels with the same overt yield.
@@ -92,6 +93,43 @@ For derivationSteps:
 
 The "bracketedNotation" field should contain a Labeled Bracketing string compatible with Miles Shang's syntax tree generator.`;
 
+const SERIALIZER_SYSTEM_INSTRUCTION = `You are a syntax-analysis serializer for Babel.
+Rewrite the provided draft analysis into Babel's exact JSON schema without changing the chosen syntactic analysis.
+
+Preserve:
+- the same sentence and overt token inventory
+- the same number of analyses
+- the same hierarchy and constituent relations
+- the same movement commitments
+- the same derivational claims
+- the same explanation content, except for notation cleanup needed to match the committed analysis
+
+You may only normalize serialization details, such as:
+- adding missing node labels when the draft already makes the category clear
+- converting terminal surface fields to "word"
+- converting movement event keys to the canonical names
+- ensuring children are node objects
+- ensuring ids are consistent
+- ensuring silent terminals use exactly "∅"
+
+Do not invent new movement, delete committed movement, change direct merge into movement, change movement into direct merge, reorder overt terminals to a different sentence, or replace the draft with a different analysis.
+
+Output only the canonical JSON object.`;
+
+const NOTES_SYSTEM_INSTRUCTION = `You are an academic syntax-note writer for Babel.
+Write explanation paragraphs from grounded analysis facts only.
+
+Requirements:
+- Preserve the committed analysis exactly.
+- Use only facts supplied in the grounded fact bundle.
+- Do not add movements, landing sites, projections, heads, complements, adjuncts, or alternative analyses that are not in the facts.
+- Write one compact but developed paragraph per analysis (roughly 3-6 sentences).
+- Prefer academically natural prose over templatic checklist language.
+- You may include one brief theory-flavored framing sentence about clause type, typology, or structural treatment when it is directly supported by the facts.
+- You may include at most one brief mention of a well-known analytical tradition or scholar only when the connection is clearly warranted by the facts, and only as optional contextualization rather than extra evidence.
+
+Output only the canonical JSON object.`;
+
 const PRIMARY_MODEL = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-flash-lite-preview';
 const FALLBACK_MODEL = String(process.env.GEMINI_FALLBACK_MODEL || '').trim() || 'gemini-3.1-pro-preview';
 const PRO_RETRY_MAX_ATTEMPTS = Math.max(1, Number(process.env.GEMINI_RETRY_MAX_ATTEMPTS || 2));
@@ -112,6 +150,7 @@ const MODEL_COOLDOWN_MS = Math.max(0, Number(process.env.GEMINI_MODEL_COOLDOWN_M
 const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 0));
 const MIN_ATTEMPT_TIMEOUT_MS = Math.max(1200, Number(process.env.GEMINI_MIN_ATTEMPT_TIMEOUT_MS || 4000));
 const USE_RESPONSE_JSON_SCHEMA = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_RESPONSE_JSON_SCHEMA || '').trim());
+const USE_NOTES_PASS = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_NOTES_PASS || '').trim());
 const routeUnavailableMessage = (modelRoute = 'flash-lite') =>
   modelRoute === 'pro'
     ? 'The canopy is noisy right now. The selected Gemini 3.1 Pro route is unavailable; please plant your sentence again in a moment.'
@@ -219,6 +258,27 @@ const PARSE_RESPONSE_JSON_SCHEMA = {
     ambiguityNote: { type: 'string' }
   },
   required: ['analyses']
+};
+
+const NOTES_RESPONSE_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    analyses: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 2,
+      items: {
+        type: 'object',
+        properties: {
+          explanation: { type: 'string' }
+        },
+        required: ['explanation'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['analyses'],
+  additionalProperties: false
 };
 
 export class ParseApiError extends Error {
@@ -1390,7 +1450,7 @@ const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labe
   return events.length > 0 ? events : undefined;
 };
 
-const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:[_-][a-z0-9]+)+|[a-z]+[_-]trace(?:[_-][a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:_[a-z0-9]+)+|[a-z]+_trace(?:_[a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const NULL_LIKE_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
 const normalizeTraceLikeSurface = (surface) =>
   String(surface || '')
@@ -1973,6 +2033,7 @@ const EXPLANATION_SUCCESSIVE_HEADMOVE_RE = /\b(v\s*-?to\s*-?(?:infl|i|t)|verb ra
 const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
 const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
 const EXPLANATION_INTERNALMERGE_RE = /\binternal\s*merge\b/i;
+const EXPLANATION_NO_MOVEMENT_RE = /\b(no\s+(?:movement|displacement)|movement is not posited|no displacement operation is encoded|read directly from the final tree)\b/i;
 const MOVEMENT_OPERATION_PHRASE = {
   Move: 'movement',
   InternalMerge: 'internal merge',
@@ -2027,18 +2088,29 @@ const countMovementEventsByOperation = (movementEvents, wantedOperation) =>
     ? movementEvents.filter((event) => normalizeMovementOperation(event?.operation) === wantedOperation).length
     : 0;
 
-const isCompatibleMovementSentence = (sentence, movementEventKinds, movementEvents) => {
+const countPhrasalMovementEvents = (movementEvents) =>
+  Array.isArray(movementEvents)
+    ? movementEvents.filter((event) => normalizeMovementOperation(event?.operation) !== 'HeadMove').length
+    : 0;
+
+const isDirectlyContradictoryMovementSentence = (sentence, movementEventKinds, movementEvents) => {
   const claims = extractMovementClaimsFromSentence(sentence);
-  if (!claims.mentionsMovement) return true;
-  if (/\bor\b/i.test(sentence)) return false;
-  if (claims.claimsHeadMove && !movementEventKinds.has('head')) return false;
-  if ((claims.claimsHeadMove || EXPLANATION_SUCCESSIVE_HEADMOVE_RE.test(sentence))) {
-    if (countMovementEventsByOperation(movementEvents, 'HeadMove') < 2) return false;
+  const movementCount = Array.isArray(movementEvents) ? movementEvents.length : 0;
+  const headMoveCount = countMovementEventsByOperation(movementEvents, 'HeadMove');
+  const phrasalMoveCount = countPhrasalMovementEvents(movementEvents);
+
+  if (EXPLANATION_NO_MOVEMENT_RE.test(sentence)) {
+    return movementCount > 0;
   }
-  if (claims.claimsWhMove && !movementEventKinds.has('wh')) return false;
-  if (claims.claimsAMove && !movementEventKinds.has('a')) return false;
-  if (claims.claimsInternalMerge && !movementEventKinds.has('internal')) return false;
-  return true;
+
+  if (!claims.mentionsMovement) return false;
+  if (movementCount === 0) return true;
+  if (claims.claimsHeadMove && headMoveCount === 0) return true;
+  if (EXPLANATION_SUCCESSIVE_HEADMOVE_RE.test(sentence) && headMoveCount < 2) return true;
+  if (claims.claimsWhMove && phrasalMoveCount === 0) return true;
+  if (claims.claimsAMove && phrasalMoveCount === 0) return true;
+  if (claims.claimsInternalMerge && !movementEventKinds.has('internal') && phrasalMoveCount === 0) return true;
+  return false;
 };
 
 const removeUnsupportedSuccessiveHeadMoveSentences = (text, movementEvents) => {
@@ -2125,19 +2197,32 @@ const buildMovedPhraseDescriptor = (node, { preserveIndex = false } = {}) => {
   return label;
 };
 
+const preferExplicitMovementSiteNode = (rawNode, resolvedNode, operation) => {
+  if (operation === 'HeadMove') return resolvedNode || rawNode || null;
+  if (rawNode) {
+    const profile = getLabelProfile(rawNode?.label);
+    if (profile.isPhrasal || profile.isHeadLikeStructural) {
+      return rawNode;
+    }
+  }
+  return resolvedNode || rawNode || null;
+};
+
 const buildMovementDetail = ({ event, nodeById, parentById }) => {
   const operation = normalizeMovementOperation(event?.operation) || 'Other';
   const phrase = MOVEMENT_OPERATION_PHRASE[operation] || 'movement';
   const rawSourceNode = nodeById.get(String(event?.fromNodeId || event?.traceNodeId || '').trim()) || null;
   const traceNode = nodeById.get(String(event?.traceNodeId || '').trim()) || null;
+  const rawToNode = nodeById.get(String(event?.toNodeId || '').trim()) || null;
   const resolvedToNode = resolveMovementSiteNode(nodeById, parentById, event?.toNodeId) || null;
   const toNode = operation === 'HeadMove'
     ? resolveHeadMovementLandingNode(resolvedToNode, nodeById, parentById) || resolvedToNode
-    : resolvedToNode;
+    : preferExplicitMovementSiteNode(rawToNode, resolvedToNode, operation);
   const note = cleanExplanationWhitespace(String(event?.note || ''));
-  const sourceNode = rawSourceNode
+  const resolvedSourceNode = rawSourceNode
     ? resolveMovementSiteNode(nodeById, parentById, event?.fromNodeId || event?.traceNodeId)
     : null;
+  const sourceNode = preferExplicitMovementSiteNode(rawSourceNode, resolvedSourceNode, operation);
 
   const landingIndex = nodeMovementIndex(toNode);
   const sourceIndex = nodeMovementIndex(rawSourceNode) || nodeMovementIndex(traceNode);
@@ -2532,6 +2617,149 @@ const buildGroundedExplanation = ({ tree, derivationSteps, movementEvents, frame
   return ensureExplanationTerminator(parts.join(' '));
 };
 
+const explanationHasEnoughTexture = (text) => {
+  const cleaned = cleanExplanationWhitespace(text);
+  if (!cleaned) return false;
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  const sentenceCount = splitExplanationSentences(cleaned).length;
+  return wordCount >= 18 || sentenceCount >= 2;
+};
+
+const explanationHasMinimumSubstance = (text) => {
+  const cleaned = cleanExplanationWhitespace(text);
+  if (!cleaned) return false;
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  const sentenceCount = splitExplanationSentences(cleaned).length;
+  return wordCount >= 12 || sentenceCount >= 2;
+};
+
+const mergeExplanationWithGroundedFallback = (primaryText, fallbackText) => {
+  const primarySentences = splitExplanationSentences(primaryText);
+  const fallbackSentences = splitExplanationSentences(fallbackText);
+  const existing = new Set(
+    primarySentences.map((sentence) =>
+      cleanExplanationWhitespace(sentence).toLowerCase()
+    )
+  );
+
+  const merged = [...primarySentences];
+  for (const sentence of fallbackSentences) {
+    const key = cleanExplanationWhitespace(sentence).toLowerCase();
+    if (!key || existing.has(key)) continue;
+    merged.push(sentence);
+    existing.add(key);
+    if (explanationHasEnoughTexture(merged.join(' '))) break;
+  }
+
+  return ensureExplanationTerminator(cleanExplanationWhitespace(merged.join(' ')));
+};
+
+const buildGroundedExplanationFacts = ({ tree, derivationSteps, movementEvents, framework = 'xbar', surfaceOrder = [] }) => {
+  const movementFactDetails = Array.isArray(movementEvents)
+    ? movementEvents
+      .map((event) => {
+        const nodeById = buildNodeIndexFromTree(tree);
+        const parentById = buildParentIndexFromTree(tree);
+        return buildMovementDetail({ event, nodeById, parentById });
+      })
+      .filter(Boolean)
+    : [];
+
+  return {
+    framework,
+    rootLabel: String(tree?.label || '').trim() || 'clause',
+    surfaceOrder: Array.isArray(surfaceOrder) ? surfaceOrder : [],
+    bracketedNotation: serializeTreeToBracketedNotation(tree),
+    groundedFacts: [
+      buildRootArchitectureSentence(tree, framework),
+      buildClausalEdgeSentence(tree),
+      buildMatrixOrganizationSentence(tree),
+      buildEmbeddedClauseSentence(tree)
+    ].filter(Boolean),
+    featureFacts: (() => {
+      const summary = summarizeDerivationFacts({ derivationSteps });
+      return summary ? [summary] : [];
+    })(),
+    movementFacts: movementFactDetails,
+    movementSummary: Array.isArray(movementEvents) && movementEvents.length > 0
+      ? summarizeGroundedMovement(movementEvents, tree)
+      : buildNoMovementSentence(),
+    derivationOperations: (Array.isArray(derivationSteps) ? derivationSteps : [])
+      .map((step) => String(step?.operation || '').trim())
+      .filter(Boolean)
+  };
+};
+
+const buildNotesContentsPrompt = (sentence, framework = 'xbar', analyses = []) =>
+  `Write one explanation paragraph for each analysis using only the grounded facts below.\n\n` +
+  `Sentence: "${sentence}"\n` +
+  `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}\n\n` +
+  `Instructions:\n` +
+  `- Preserve the committed analysis exactly.\n` +
+  `- Use only the supplied facts.\n` +
+  `- Keep each paragraph academically natural and compact, not skeletal.\n` +
+  `- You may include one brief piece of theory-oriented contextualization, and at most one brief reference to a well-known analytical tradition or scholar, only when directly warranted by the supplied facts.\n` +
+  `- Do not introduce extra structure, extra movement, or alternative analyses.\n\n` +
+  `Grounded analysis facts:\n` +
+  '```json\n' +
+  `${JSON.stringify({
+    analyses: analyses.map((analysis, index) => ({
+      analysisIndex: index,
+      ...buildGroundedExplanationFacts({
+        tree: analysis.tree,
+        derivationSteps: analysis.derivationSteps,
+        movementEvents: analysis.movementEvents,
+        framework,
+        surfaceOrder: analysis.surfaceOrder
+      })
+    }))
+  }, null, 2)}\n` +
+  '```';
+
+const reconcileGeneratedExplanationWithDerivation = (generatedExplanation, fallbackExplanation, movementEvents) => {
+  const raw = cleanExplanationWhitespace(String(generatedExplanation || ''));
+  if (!raw) return fallbackExplanation;
+
+  const movementKinds = extractMovementEventKinds(movementEvents);
+  if ((!Array.isArray(movementEvents) || movementEvents.length === 0) && EXPLANATION_MOVEMENT_RE.test(raw)) {
+    return fallbackExplanation;
+  }
+
+  const kept = splitExplanationSentences(raw).filter((sentence) =>
+    !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+  );
+  const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
+    cleanExplanationWhitespace(kept.join(' ')),
+    movementEvents
+  );
+
+  return cleaned || fallbackExplanation;
+};
+
+const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExplanation, movementEvents) => {
+  const raw = cleanExplanationWhitespace(String(modelExplanation || ''));
+  if (!raw) return fallbackExplanation;
+
+  const movementKinds = extractMovementEventKinds(movementEvents);
+  if ((!Array.isArray(movementEvents) || movementEvents.length === 0) && EXPLANATION_MOVEMENT_RE.test(raw)) {
+    return fallbackExplanation;
+  }
+
+  const kept = splitExplanationSentences(raw).filter((sentence) =>
+    !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+  );
+  const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
+    cleanExplanationWhitespace(kept.join(' ')),
+    movementEvents
+  );
+  if (!cleaned) return fallbackExplanation;
+  if (!explanationHasMinimumSubstance(cleaned)) return fallbackExplanation;
+  if (!explanationHasEnoughTexture(cleaned)) {
+    return mergeExplanationWithGroundedFallback(cleaned, fallbackExplanation);
+  }
+  return ensureExplanationTerminator(cleaned);
+};
+
 const buildCanonicalDerivationFromTree = ({
   tree,
   movementEvents,
@@ -2695,12 +2923,17 @@ const buildCanonicalDerivationFromTree = ({
 };
 
 const harmonizeExplanationWithDerivation = (explanation, derivationSteps, movementEvents, tree, framework = 'xbar') => {
-  return buildGroundedExplanation({
+  const groundedFallback = buildGroundedExplanation({
     tree,
     derivationSteps,
     movementEvents,
     framework
   });
+  return reconcileModelExplanationWithDerivation(
+    explanation,
+    groundedFallback,
+    movementEvents
+  );
 };
 
 const harmonizeInterpretationWithDerivation = (interpretation, movementEvents) => {
@@ -2713,7 +2946,7 @@ const harmonizeInterpretationWithDerivation = (interpretation, movementEvents) =
   }
 
   const kept = splitExplanationSentences(raw).filter((sentence) =>
-    isCompatibleMovementSentence(sentence, movementKinds, movementEvents)
+    !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
   );
   const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
     cleanExplanationWhitespace(kept.join(' ')),
@@ -3057,15 +3290,103 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `If you include a silent or null terminal, use exactly "∅". ` +
   `Use "word" for terminal surface forms, never "value". ` +
   `Keep lower copy notation consistent within this tree, including phrasal and head movement. ` +
+  `If you use traces, use only canonical trace forms like t, trace, t_1, or trace_DP; do not use hyphenated trace forms. ` +
   `Do not use helper position labels such as labels beginning with "Spec" as separate nodes; represent the phrase itself instead. ` +
   `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
   `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
+  `Write the explanation as a developed academic paragraph rather than a compressed checklist. When directly warranted by the committed analysis, you may briefly situate it in a recognized analytical tradition or mention a relevant scholar. ` +
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
   `FINAL CHECK: Read the overt terminals of your tree left-to-right by DFS. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. If they do not, reorder the children arrays until they do.`;
+
+const buildSerializerContentsPrompt = (sentence, framework = 'xbar', draftPayload) =>
+  `Rewrite the following draft syntactic analysis into Babel's canonical JSON schema without changing the underlying analysis.\n\n` +
+  `Sentence: "${sentence}"\n` +
+  `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}\n` +
+  `Exact pronounced tokens: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}\n\n` +
+  `Required canonicalization rules:\n` +
+  `- Use the exact same overt tokens and pronounced order.\n` +
+  `- Use "word" for terminal surface forms, not alternate fields like "value".\n` +
+  `- Every node must have a usable "label".\n` +
+  `- In movementEvents, use only: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note.\n` +
+  `- Keep the draft's movement/no-movement commitments; do not reinterpret the syntax.\n` +
+  `- Keep lower-copy and null notation consistent, and use exactly "∅" for silent terminals.\n\n` +
+  `Draft analysis JSON:\n` +
+  '```json\n' +
+  `${JSON.stringify(draftPayload, null, 2)}\n` +
+  '```';
+
+const shouldAttemptSerializerPass = (error) => {
+  if (!(error instanceof ParseApiError) || error.code !== 'BAD_MODEL_RESPONSE') return false;
+  const message = String(error.message || '');
+  return (
+    message.includes('Malformed structural components from model.') ||
+    message.includes('Malformed tree node from model')
+  );
+};
+
+const runSerializerPass = async ({
+  ai,
+  model,
+  sentence,
+  framework,
+  draftPayload,
+  abortSignal
+}) => {
+  const contents = buildSerializerContentsPrompt(sentence, framework, draftPayload);
+  const generation = await generateStructuredContent({
+    ai,
+    model,
+    contents,
+    systemInstruction: SERIALIZER_SYSTEM_INSTRUCTION,
+    temperature: MODEL_TEMPERATURE,
+    abortSignal,
+    responseJsonSchema: PARSE_RESPONSE_JSON_SCHEMA
+  });
+
+  if (isTruncatedGeneration(generation)) {
+    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Serializer output was truncated before JSON completion.', 502);
+  }
+
+  const generationMeta = summarizeGeneration(generation);
+  return {
+    payload: parseModelJson(generationMeta.rawText),
+    generationMeta
+  };
+};
+
+const runNotesPass = async ({
+  ai,
+  model,
+  sentence,
+  framework,
+  normalizedBundle,
+  abortSignal
+}) => {
+  const contents = buildNotesContentsPrompt(sentence, framework, normalizedBundle.analyses || []);
+  const generation = await generateStructuredContent({
+    ai,
+    model,
+    contents,
+    systemInstruction: NOTES_SYSTEM_INSTRUCTION,
+    temperature: MODEL_TEMPERATURE,
+    abortSignal,
+    responseJsonSchema: NOTES_RESPONSE_JSON_SCHEMA
+  });
+
+  if (isTruncatedGeneration(generation)) {
+    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Notes output was truncated before JSON completion.', 502);
+  }
+
+  const generationMeta = summarizeGeneration(generation);
+  return {
+    payload: parseModelJson(generationMeta.rawText),
+    generationMeta
+  };
+};
 
 export const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
@@ -3172,7 +3493,66 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           try {
             candidateNormalized = normalizeParseBundle(payload, framework, sentence);
           } catch (error) {
-            if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
+            if (shouldAttemptSerializerPass(error)) {
+              const serializerRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+              if (serializerRemainingBudgetMs > 1200) {
+                try {
+                  const serializerTimeoutMs = resolveAttemptTimeoutMs({
+                    baseTimeoutMs: resolveModelTimeoutMs(currentModel),
+                    remainingBudgetMs: serializerRemainingBudgetMs,
+                    hasNextModel,
+                    attempt
+                  });
+                  const serialized = await withTimeout(
+                    (abortSignal) => runSerializerPass({
+                      ai,
+                      model: currentModel,
+                      sentence,
+                      framework,
+                      draftPayload: payload,
+                      abortSignal
+                    }),
+                    serializerTimeoutMs,
+                    `Serializer pass (${currentModel})`
+                  );
+                  candidateNormalized = normalizeParseBundle(serialized.payload, framework, sentence);
+                } catch (serializerError) {
+                  if (serializerError instanceof ParseApiError && serializerError.code === 'BAD_MODEL_RESPONSE') {
+                    let payloadPreview = '<unserializable>';
+                    try {
+                      payloadPreview = JSON.stringify(payload).slice(0, 320);
+                    } catch {
+                      // keep fallback preview
+                    }
+                    console.warn(
+                      `[gemini] serializer failure on ${currentModel} ` +
+                      `(attempt ${attempt}/${PRO_RETRY_MAX_ATTEMPTS}, finishReason=${generationMeta.finishReason}, textLength=${generationMeta.textLength}). ` +
+                      `Original normalization error: ${error.message}. Serializer error: ${serializerError.message}. Payload preview: ${payloadPreview}`
+                    );
+                    throw new ParseApiError(
+                      serializerError.code,
+                      serializerError.message,
+                      422,
+                      {
+                        stage: 'serializer',
+                        model: currentModel,
+                        attempt,
+                        finishReason: generationMeta.finishReason || null,
+                        textLength: generationMeta.textLength,
+                        preview: generationMeta.preview || '',
+                        payloadPreview,
+                        modelsTried: [...attemptedModels, currentModel]
+                      }
+                    );
+                  }
+                  throw serializerError;
+                }
+              }
+            }
+
+            if (candidateNormalized) {
+              // serializer pass recovered a canonical payload; continue with the normalized bundle
+            } else if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
               let payloadPreview = '<unserializable>';
               try {
                 payloadPreview = JSON.stringify(payload).slice(0, 320);
@@ -3200,7 +3580,50 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
                 }
               );
             }
-            throw error;
+            if (!candidateNormalized) {
+              throw error;
+            }
+          }
+
+          const notesRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+          if (USE_NOTES_PASS && candidateNormalized && notesRemainingBudgetMs > 1200) {
+            try {
+              const notesTimeoutMs = resolveAttemptTimeoutMs({
+                baseTimeoutMs: resolveModelTimeoutMs(currentModel),
+                remainingBudgetMs: notesRemainingBudgetMs,
+                hasNextModel,
+                attempt
+              });
+              const notesResult = await withTimeout(
+                (abortSignal) => runNotesPass({
+                  ai,
+                  model: currentModel,
+                  sentence,
+                  framework,
+                  normalizedBundle: candidateNormalized,
+                  abortSignal
+                }),
+                notesTimeoutMs,
+                `Notes pass (${currentModel})`
+              );
+              const noteAnalyses = Array.isArray(notesResult?.payload?.analyses)
+                ? notesResult.payload.analyses
+                : [];
+              candidateNormalized = {
+                ...candidateNormalized,
+                analyses: candidateNormalized.analyses.map((analysis, index) => ({
+                  ...analysis,
+                  explanation: reconcileGeneratedExplanationWithDerivation(
+                    noteAnalyses[index]?.explanation,
+                    analysis.explanation,
+                    analysis.movementEvents
+                  )
+                }))
+              };
+            } catch (notesError) {
+              const message = notesError instanceof Error ? notesError.message : String(notesError || 'unknown notes error');
+              console.warn(`[gemini] notes pass skipped on ${currentModel}: ${message}`);
+            }
           }
 
           normalized = candidateNormalized;
@@ -3387,5 +3810,9 @@ export const __test__ = {
   harmonizeExplanationWithDerivation,
   buildSystemInstruction,
   buildParseContentsPrompt,
+  buildSerializerContentsPrompt,
+  buildNotesContentsPrompt,
+  reconcileModelExplanationWithDerivation,
+  reconcileGeneratedExplanationWithDerivation,
   parseModelJson
 };
