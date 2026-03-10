@@ -142,7 +142,8 @@ const isTraceOrNullAnchor = (node?: SyntaxNode | null): boolean => {
 
 export const resolveMovementEventLinks = (
   tree: SyntaxNode,
-  movementEvents?: MovementEvent[]
+  movementEvents?: MovementEvent[],
+  framework: 'xbar' | 'minimalism' = 'xbar'
 ): ResolvedMovementEventLink[] => {
   if (!movementEvents || movementEvents.length === 0) return [];
 
@@ -159,7 +160,14 @@ export const resolveMovementEventLinks = (
     const normalizedOperation = normalizeMovementOperation(event.operation);
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
     const fromLexicalAnchor = pickLexicalAnchor(fromNode);
-    let movedAnchor = pickStructuralPhraseAnchor(toNode) || pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode;
+    const prefersPhraseShellAnchor =
+      framework === 'minimalism'
+      && !HEAD_MOVE_OPERATION_RE.test(normalizedOperation)
+      && Array.isArray(toNode.children)
+      && toNode.children.length > 0;
+    let movedAnchor = prefersPhraseShellAnchor
+      ? toNode
+      : (pickStructuralPhraseAnchor(toNode) || pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode);
     let traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
     let sourceAnchor = traceAnchor || fromLexicalAnchor || movedAnchor;
     const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
@@ -224,9 +232,10 @@ export const resolveMovementEventLinks = (
 
 export const buildMovementIndexMaps = (
   tree: SyntaxNode,
-  movementEvents?: MovementEvent[]
+  movementEvents?: MovementEvent[],
+  framework: 'xbar' | 'minimalism' = 'xbar'
 ): MovementIndexMaps => {
-  const links = resolveMovementEventLinks(tree, movementEvents);
+  const links = resolveMovementEventLinks(tree, movementEvents, framework);
   if (links.length === 0) return EMPTY_MOVEMENT_INDEX_MAPS;
 
   const movedByNodeId = new Map<string, string>();

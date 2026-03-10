@@ -769,12 +769,12 @@ const App: React.FC = () => {
   const isTreeBankView = workspaceView === 'treeBank';
   const resolvedMovementLinks = useMemo(() => {
     if (!activeParse) return [];
-    return resolveMovementEventLinks(activeParse.tree, activeParse.movementEvents);
-  }, [activeParse]);
+    return resolveMovementEventLinks(activeParse.tree, activeParse.movementEvents, framework);
+  }, [activeParse, framework]);
   const growthMovementMaps = useMemo(() => {
     if (!activeParse) return EMPTY_MOVEMENT_INDEX_MAPS;
-    return buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents);
-  }, [activeParse]);
+    return buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents, framework);
+  }, [activeParse, framework]);
   const replayDerivationSteps = useMemo(() => ensureReplaySpelloutStep(activeParse), [activeParse]);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';

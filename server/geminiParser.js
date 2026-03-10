@@ -4,6 +4,10 @@ const EXPLANATION_INSTRUCTION = `In the explanation, justify major choices in fr
 Write a developed natural paragraph (roughly 4-7 sentences): substantial enough to sound like a compact research note, not a compressed checklist.
 Prefer academically natural prose over symbolic shorthand.
 You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, and you may include at most one brief reference to a well-known analytical tradition or scholar, but only when that framing is directly supported by the chosen tree and derivation.
+Make the explanation read the derivation you encoded: explain how the actual clause architecture, movement path, and major derivational operations produce the observed surface order.
+When the derivation is non-trivial, say what major structural choice this analysis makes and how that choice follows from the committed tree and derivation.
+If movement is encoded in the analysis, say explicitly that the relevant phrase or head moves (or undergoes Internal Merge / head movement) from a lower position; do not describe a derived position as if it were only externally merged there.
+If you mention a scholar or analytical tradition, give a complete name or complete reference phrase; do not leave scholar references truncated or reduced to an isolated initial.
 Do not introduce extra movements, landing sites, heads, complements, adjuncts, or alternative analyses that are not part of the selected analysis.`;
 
 const XBAR_INSTRUCTION = `You are a world-class syntactician specializing in Generative syntax, with a focus on X-bar Theory and Government and Binding Theory.
@@ -55,9 +59,12 @@ General rules:
 - Every node must have a unique "id".
 - Use full node objects in "children"; never node-id references.
 - Use "word" for overt or null terminal surface forms. Do not use alternate fields such as "value".
+- Every overt terminal leaf should include "tokenIndex", pointing to its exact position in the input sentence token list.
 - Every overt input token must appear in the tree exactly as pronounced and in the same left-to-right order as the sentence.
 - Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
+- When tokenIndex is used, each overt token index must be used exactly once, and overt children must appear in ascending tokenIndex/surfaceSpan order.
 - Do not attach overt words directly under X' or XP nodes.
+- Do not attach overt words directly to phrasal labels such as DP, NP, VP, TP, InflP, or CP. Overt words must appear on head/preterminal nodes beneath those phrases.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
 - Keep lower copy notation consistent within a tree. Use one coherent lower-copy style across the analysis, including phrasal and head movement.
 - If you use trace labels, use only canonical trace forms such as "t", "trace", "t_1", or "trace_DP". Do not use hyphenated trace forms.
@@ -81,6 +88,11 @@ For movement:
 - If movement is part of the analysis, encode it consistently in the tree with traces/copies/null sites that match the committed movement story.
 - Keep only the pronounced copy overt and render the lower occurrence as a trace, copy, or null element.
 - Use "HeadMove" only for head movement and "Move" only for phrasal movement.
+- For phrasal movement, the lower source/trace must be a lower copy of the moved phrase, not merely a head trace inside that phrase.
+- Do not split one overt moved phrase across an overt C/head node plus a separate DP/NP/PP phrase shell. If a phrase moves to the clause edge, keep all overt words of that phrase inside that single moved phrase node.
+- For head movement, the lower source/trace must be a lower head or head-copy of the moved head, not a whole phrase containing that head.
+- If the final tree places an overt head in a higher functional head position (such as C, T, or Infl) and the corresponding lower head position is silent, this must be encoded as a HeadMove with an explicit lower head source. Do not leave higher-overt/lower-silent head configurations undercommitted.
+- Do not reuse one lower node as the source for both a phrasal Move and a HeadMove unless the analysis explicitly represents both dependencies there.
 - In "movementEvents", use exactly these keys: "operation", "fromNodeId", "toNodeId", optional "traceNodeId", optional "stepIndex", optional "note". Do not use alternate keys such as "type", "source", "target", or "trace".
 - Do not describe movement in the explanation unless it is encoded in the analysis.
 - Do not return undercommitted hybrids such as: a fronted phrase plus a lower null/trace/copy but no explicit movement commitment; or an overt higher head plus a lower null counterpart but no explicit head-movement commitment.
@@ -93,26 +105,39 @@ For derivationSteps:
 
 The "bracketedNotation" field should contain a Labeled Bracketing string compatible with Miles Shang's syntax tree generator.`;
 
-const SERIALIZER_SYSTEM_INSTRUCTION = `You are a syntax-analysis serializer for Babel.
-Rewrite the provided draft analysis into Babel's exact JSON schema without changing the chosen syntactic analysis.
+const LITE_FORMAT_INSTRUCTION = `Flash Lite format discipline:
+- Return analyses[].nodes plus optional rootId as the only structural format. Do not return a nested tree.
+- Treat parentId, siblingOrder, and overt tokenIndex as the primary structural commitments for linear order.
+- Every node, including the root, must include siblingOrder to state its left-to-right position among siblings.
+- Every overt terminal leaf must include tokenIndex.
+- Only overt terminal leaves may include tokenIndex.
+- Sister nodes with overt descendants must realize disjoint, non-interleaving token intervals. Do not place one sibling so its overt tokens fall inside the overt interval of a sister node.
+- If a bar-level or binary shell would force a subject/specifier to surface between the overt descendants of another sibling, do not use that shell. Instead, encode the locally ordered head, subject/specifier, and complement material directly as siblings of the phrasal node with explicit siblingOrder so the committed structure itself spells the sentence correctly.
+- In head-initial structures, do not bury the overt head and its complement together under one shell if the subject surfaces between them. Encode the head, subject/specifier, and complement sequence directly in the local sibling order.
+- If you are unsure about a phrasal surfaceSpan, omit it rather than guessing. Babel will derive spans from the committed overt token indices.
+- The final node table must already imply the correct sentence order through parent relations plus overt tokenIndex commitments.`;
+
+const SERIALIZER_SYSTEM_INSTRUCTION = `You are a syntax-tree serializer for Babel.
+Rewrite the provided draft tree into Babel's exact canonical tree schema without changing the chosen syntactic analysis.
 
 Preserve:
 - the same sentence and overt token inventory
 - the same number of analyses
 - the same hierarchy and constituent relations
 - the same movement commitments
-- the same derivational claims
-- the same explanation content, except for notation cleanup needed to match the committed analysis
+- the same overt/null distinction
 
 You may only normalize serialization details, such as:
 - adding missing node labels when the draft already makes the category clear
 - converting terminal surface fields to "word"
-- converting movement event keys to the canonical names
 - ensuring children are node objects
 - ensuring ids are consistent
 - ensuring silent terminals use exactly "∅"
+- reordering child arrays when necessary so the same committed overt terminals are realized in the exact pronounced sentence order
 
-Do not invent new movement, delete committed movement, change direct merge into movement, change movement into direct merge, reorder overt terminals to a different sentence, or replace the draft with a different analysis.
+Your job is canonical tree serialization, not new analysis. You may reorder child arrays only to make the existing overt terminals realize the same pronounced sentence in the correct left-to-right order, while preserving the same dominance relations and movement commitments.
+
+Do not invent new movement, delete committed movement, change direct merge into movement, change movement into direct merge, change the overt token inventory, or replace the draft with a different analysis.
 
 Output only the canonical JSON object.`;
 
@@ -145,9 +170,11 @@ const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT
 // Default to no hard cutoff. Set env vars to enforce explicit timeouts if needed.
 const PRIMARY_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRIMARY_TIMEOUT_MS || 0));
 const FALLBACK_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_FALLBACK_TIMEOUT_MS || 0));
+const PRO_ROUTE_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRO_ROUTE_TIMEOUT_MS || 0));
 const MODEL_COOLDOWN_MS = Math.max(0, Number(process.env.GEMINI_MODEL_COOLDOWN_MS || 45000));
 // Default to unlimited request budget. Set GEMINI_REQUEST_BUDGET_MS to enforce a cap.
 const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 0));
+const PRO_ROUTE_REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_PRO_REQUEST_BUDGET_MS || 0));
 const MIN_ATTEMPT_TIMEOUT_MS = Math.max(1200, Number(process.env.GEMINI_MIN_ATTEMPT_TIMEOUT_MS || 4000));
 const USE_RESPONSE_JSON_SCHEMA = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_RESPONSE_JSON_SCHEMA || '').trim());
 const USE_NOTES_PASS = /^(1|true|yes|on)$/i.test(String(process.env.GEMINI_USE_NOTES_PASS || '').trim());
@@ -195,6 +222,7 @@ const SYNTAX_NODE_JSON_SCHEMA = {
     id: { type: 'string' },
     label: { type: 'string' },
     word: { type: 'string' },
+    tokenIndex: { type: 'integer', minimum: 0 },
     surfaceSpan: {
       type: 'array',
       minItems: 2,
@@ -207,6 +235,25 @@ const SYNTAX_NODE_JSON_SCHEMA = {
     }
   },
   required: ['id', 'label'],
+  additionalProperties: false
+};
+const FLAT_SYNTAX_NODE_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    label: { type: 'string' },
+    word: { type: 'string' },
+    tokenIndex: { type: 'integer', minimum: 0 },
+    siblingOrder: { type: 'integer', minimum: 0 },
+    surfaceSpan: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 2,
+      items: { type: 'integer', minimum: 0 }
+    },
+    parentId: { type: 'string' }
+  },
+  required: ['id', 'label', 'siblingOrder'],
   additionalProperties: false
 };
 const MOVEMENT_EVENT_JSON_SCHEMA = {
@@ -222,43 +269,123 @@ const MOVEMENT_EVENT_JSON_SCHEMA = {
   required: ['operation', 'fromNodeId', 'toNodeId'],
   additionalProperties: false
 };
+const ANALYSIS_JSON_SCHEMA = {
+  anyOf: [
+    {
+      type: 'object',
+      properties: {
+        tree: { $ref: '#/$defs/syntaxNode' },
+        explanation: { type: 'string' },
+        movementDecision: {
+          type: 'object',
+          properties: {
+            hasMovement: { type: 'boolean' },
+            rationale: { type: 'string' }
+          },
+          required: ['hasMovement', 'rationale']
+        },
+        surfaceOrder: { type: 'array', items: { type: 'string' } },
+        partsOfSpeech: { type: 'array', items: { type: 'object' } },
+        bracketedNotation: { type: 'string' },
+        interpretation: { type: 'string' },
+        derivationSteps: { type: 'array', items: { type: 'object' } },
+        movementEvents: { type: 'array', items: MOVEMENT_EVENT_JSON_SCHEMA }
+      },
+      required: ['tree', 'explanation', 'movementDecision']
+    },
+    {
+      type: 'object',
+      properties: {
+        nodes: {
+          type: 'array',
+          minItems: 1,
+          items: { $ref: '#/$defs/flatSyntaxNode' }
+        },
+        rootId: { type: 'string' },
+        explanation: { type: 'string' },
+        movementDecision: {
+          type: 'object',
+          properties: {
+            hasMovement: { type: 'boolean' },
+            rationale: { type: 'string' }
+          },
+          required: ['hasMovement', 'rationale']
+        },
+        surfaceOrder: { type: 'array', items: { type: 'string' } },
+        partsOfSpeech: { type: 'array', items: { type: 'object' } },
+        bracketedNotation: { type: 'string' },
+        interpretation: { type: 'string' },
+        derivationSteps: { type: 'array', items: { type: 'object' } },
+        movementEvents: { type: 'array', items: MOVEMENT_EVENT_JSON_SCHEMA }
+      },
+      required: ['nodes', 'explanation', 'movementDecision']
+    }
+  ]
+};
+const FLAT_ANALYSIS_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    nodes: {
+      type: 'array',
+      minItems: 1,
+      items: { $ref: '#/$defs/flatSyntaxNode' }
+    },
+    rootId: { type: 'string' },
+    explanation: { type: 'string' },
+    movementDecision: {
+      type: 'object',
+      properties: {
+        hasMovement: { type: 'boolean' },
+        rationale: { type: 'string' }
+      },
+      required: ['hasMovement', 'rationale']
+    },
+    surfaceOrder: { type: 'array', items: { type: 'string' } },
+    partsOfSpeech: { type: 'array', items: { type: 'object' } },
+    bracketedNotation: { type: 'string' },
+    interpretation: { type: 'string' },
+    derivationSteps: { type: 'array', items: { type: 'object' } },
+    movementEvents: { type: 'array', items: MOVEMENT_EVENT_JSON_SCHEMA }
+  },
+  required: ['nodes', 'explanation', 'movementDecision'],
+  additionalProperties: false
+};
 const PARSE_RESPONSE_JSON_SCHEMA = {
   type: 'object',
   $defs: {
-    syntaxNode: SYNTAX_NODE_JSON_SCHEMA
+    syntaxNode: SYNTAX_NODE_JSON_SCHEMA,
+    flatSyntaxNode: FLAT_SYNTAX_NODE_JSON_SCHEMA
   },
   properties: {
     analyses: {
       type: 'array',
       minItems: 1,
       maxItems: 2,
-      items: {
-        type: 'object',
-        properties: {
-          tree: { $ref: '#/$defs/syntaxNode' },
-          explanation: { type: 'string' },
-          movementDecision: {
-            type: 'object',
-            properties: {
-              hasMovement: { type: 'boolean' },
-              rationale: { type: 'string' }
-            },
-            required: ['hasMovement', 'rationale']
-          },
-          surfaceOrder: { type: 'array', items: { type: 'string' } },
-          partsOfSpeech: { type: 'array', items: { type: 'object' } },
-          bracketedNotation: { type: 'string' },
-          interpretation: { type: 'string' },
-          derivationSteps: { type: 'array', items: { type: 'object' } },
-          movementEvents: { type: 'array', items: MOVEMENT_EVENT_JSON_SCHEMA }
-        },
-        required: ['tree', 'explanation', 'movementDecision']
-      }
+      items: ANALYSIS_JSON_SCHEMA
     },
     ambiguityNote: { type: 'string' }
   },
   required: ['analyses']
 };
+const LITE_PARSE_RESPONSE_JSON_SCHEMA = {
+  type: 'object',
+  $defs: {
+    flatSyntaxNode: FLAT_SYNTAX_NODE_JSON_SCHEMA
+  },
+  properties: {
+    analyses: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 2,
+      items: FLAT_ANALYSIS_JSON_SCHEMA
+    },
+    ambiguityNote: { type: 'string' }
+  },
+  required: ['analyses']
+};
+
+const parseResponseJsonSchemaForRoute = (modelRoute = 'flash-lite') =>
+  modelRoute === 'pro' ? PARSE_RESPONSE_JSON_SCHEMA : LITE_PARSE_RESPONSE_JSON_SCHEMA;
 
 const NOTES_RESPONSE_JSON_SCHEMA = {
   type: 'object',
@@ -273,6 +400,30 @@ const NOTES_RESPONSE_JSON_SCHEMA = {
           explanation: { type: 'string' }
         },
         required: ['explanation'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['analyses'],
+  additionalProperties: false
+};
+
+const TREE_SERIALIZER_RESPONSE_JSON_SCHEMA = {
+  type: 'object',
+  $defs: {
+    syntaxNode: SYNTAX_NODE_JSON_SCHEMA
+  },
+  properties: {
+    analyses: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 2,
+      items: {
+        type: 'object',
+        properties: {
+          tree: { $ref: '#/$defs/syntaxNode' }
+        },
+        required: ['tree'],
         additionalProperties: false
       }
     }
@@ -403,14 +554,26 @@ const getRetryDelayMs = (attempt) => {
   return Math.round(expDelay * jitter);
 };
 
-const resolveModelTimeoutMs = (model) => {
+const resolveModelTimeoutMs = (model, modelRoute = 'flash-lite') => {
+  if (modelRoute === 'pro' && PRO_ROUTE_TIMEOUT_MS > 0) {
+    return PRO_ROUTE_TIMEOUT_MS;
+  }
+  if (modelRoute === 'pro' && !(Number.isFinite(MODEL_CALL_TIMEOUT_MS) && MODEL_CALL_TIMEOUT_MS > 0)) {
+    return 0;
+  }
   if (Number.isFinite(MODEL_CALL_TIMEOUT_MS) && MODEL_CALL_TIMEOUT_MS > 0) {
     return MODEL_CALL_TIMEOUT_MS;
   }
   return model === PRIMARY_MODEL ? PRIMARY_MODEL_TIMEOUT_MS : FALLBACK_MODEL_TIMEOUT_MS;
 };
 
-const getRemainingRequestBudgetMs = (requestStartedAt) => {
+const getRemainingRequestBudgetMs = (requestStartedAt, modelRoute = 'flash-lite') => {
+  if (modelRoute === 'pro' && PRO_ROUTE_REQUEST_BUDGET_MS > 0) {
+    return Math.max(0, PRO_ROUTE_REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));
+  }
+  if (modelRoute === 'pro') {
+    return Number.POSITIVE_INFINITY;
+  }
   if (!(Number.isFinite(REQUEST_BUDGET_MS) && REQUEST_BUDGET_MS > 0)) {
     return Number.POSITIVE_INFINITY;
   }
@@ -550,7 +713,8 @@ const collectNodeReferencesById = (value) => {
 };
 
 const normalizeLabelForFramework = (rawLabel, framework) => {
-  const label = String(rawLabel || '').trim();
+  let label = String(rawLabel || '').trim();
+  label = label.replace(/^([A-Za-z]+)_bar$/i, "$1'");
   if (framework !== 'minimalism') return label;
   if (!PRIME_CATEGORY_LABEL_RE.test(label)) return label;
   return label.slice(0, -1);
@@ -562,6 +726,92 @@ const normalizeSurfaceSpan = (value) => {
   const end = Number(value[1]);
   if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) return undefined;
   return [start, end];
+};
+
+const isPhrasalLabel = (label) => {
+  const raw = String(label || '').trim();
+  if (!raw) return false;
+  if (PRIME_CATEGORY_LABEL_RE.test(raw)) return true;
+  return /p$/i.test(raw);
+};
+
+const inferLexicalChildTemplateForPhrase = (label) => {
+  const raw = String(label || '').trim();
+  const lower = raw.toLowerCase();
+  if (!raw) return null;
+  if (lower === 'dp') {
+    return ['NP', 'N'];
+  }
+  if (lower === 'np') return ['N'];
+  if (lower === 'vp') return ['V'];
+  if (lower === 'tp') return ['T'];
+  if (lower === 'ip') return ['I'];
+  if (lower === 'inflp') return ['Infl'];
+  if (lower === 'cp') return ['C'];
+  if (lower === 'pp') return ['P'];
+  if (lower === 'ap') return ['A'];
+  if (lower === 'advp') return ['Adv'];
+  return null;
+};
+
+const materializeLexicalPhrasalLeaves = (tree) => {
+  if (!tree || typeof tree !== 'object') return tree;
+
+  const existingIds = new Set();
+  const collectIds = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const id = String(node.id || '').trim();
+    if (id) existingIds.add(id);
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(collectIds);
+  };
+  collectIds(tree);
+  const counterRef = { value: existingIds.size + 1 };
+
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+
+    if (children.length > 0) return;
+    if (!isPhrasalLabel(node.label)) return;
+
+    const word = String(node.word || '').trim();
+    if (!word || isTraceLikeSurface(word) || NULL_LIKE_SURFACE_RE.test(word)) return;
+
+    const lexicalTemplate = inferLexicalChildTemplateForPhrase(node.label);
+    if (!lexicalTemplate || lexicalTemplate.length === 0) return;
+
+    const makeLexicalChain = (labels) => {
+      if (labels.length === 0) return null;
+      const [headLabel, ...rest] = labels;
+      const childId = nextGeneratedNodeId(existingIds, counterRef);
+      const childNode = { id: childId, label: headLabel };
+      if (rest.length === 0) {
+        childNode.word = word;
+        if (node.tokenIndex !== undefined) childNode.tokenIndex = node.tokenIndex;
+        if (Array.isArray(node.surfaceSpan)) childNode.surfaceSpan = [...node.surfaceSpan];
+        return childNode;
+      }
+      childNode.children = [makeLexicalChain(rest)];
+      if (Array.isArray(node.surfaceSpan)) childNode.surfaceSpan = [...node.surfaceSpan];
+      return childNode;
+    };
+
+    delete node.word;
+    delete node.tokenIndex;
+    node.children = [makeLexicalChain(lexicalTemplate)];
+  };
+
+  visit(tree);
+  return tree;
+};
+
+const normalizeTokenIndex = (value, sentenceLength) => {
+  const index = Number(value);
+  if (!Number.isInteger(index) || index < 0) return undefined;
+  if (Number.isInteger(sentenceLength) && sentenceLength >= 0 && index >= sentenceLength) return undefined;
+  return index;
 };
 
 const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
@@ -646,6 +896,10 @@ const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   if (surfaceSpan) {
     normalized.surfaceSpan = surfaceSpan;
   }
+  const tokenIndex = normalizeTokenIndex(node.tokenIndex, context?.sentenceTokens?.length);
+  if (tokenIndex !== undefined) {
+    normalized.tokenIndex = tokenIndex;
+  }
   const terminalWord =
     typeof node.word === 'string' && node.word.trim()
       ? node.word.trim()
@@ -666,15 +920,443 @@ const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   return normalized;
 };
 
-const normalizeSyntaxTreeWithIds = (value, nodeReferences = new Map(), framework = 'xbar') => {
+const normalizeSyntaxTreeWithIds = (value, nodeReferences = new Map(), framework = 'xbar', sentenceTokens = []) => {
   const nodeIds = new Set();
   const counterRef = { value: 1 };
   const tree = normalizeSyntaxNode(value, nodeIds, counterRef, {
     nodeReferences,
     resolvingIds: new Set(),
-    framework
+    framework,
+    sentenceTokens
   });
   return { tree, nodeIds };
+};
+
+const compileFlatNodeTableToTree = (nodesValue, rootIdValue, framework = 'xbar', sentenceTokens = []) => {
+  if (!Array.isArray(nodesValue) || nodesValue.length === 0) {
+    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Flat node table must contain at least one node.', 502);
+  }
+
+  const nodesById = new Map();
+  const childrenByParent = new Map();
+  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
+  const tokenPositionsBySurface = new Map();
+
+  normalizedSentenceTokens.forEach((token, index) => {
+    const positions = tokenPositionsBySurface.get(token) || [];
+    positions.push(index);
+    tokenPositionsBySurface.set(token, positions);
+  });
+
+  nodesValue.forEach((rawNode, index) => {
+    if (!rawNode || typeof rawNode !== 'object' || Array.isArray(rawNode)) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed flat node record from model.', 502);
+    }
+
+    const rawId = typeof rawNode.id === 'string' ? rawNode.id.trim() : '';
+    if (!rawId) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Every flat node must include a non-empty id.', 502);
+    }
+    if (nodesById.has(rawId)) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', `Duplicate flat node id: ${rawId}.`, 502);
+    }
+
+    const explicitWordValue =
+      typeof rawNode.word === 'string' && rawNode.word.trim()
+        ? rawNode.word.trim()
+        : typeof rawNode.value === 'string' && rawNode.value.trim()
+          ? rawNode.value.trim()
+          : '';
+    const rawNodeLabel = typeof rawNode.label === 'string' && rawNode.label.trim()
+      ? rawNode.label.trim()
+      : '';
+    const rawLabel = rawNodeLabel
+      ? (/^word$/i.test(rawNodeLabel) && explicitWordValue ? explicitWordValue : rawNodeLabel)
+      : explicitWordValue;
+    const label = normalizeLabelForFramework(rawLabel, framework);
+    if (!label) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node ${rawId} is missing a usable label.`, 502);
+    }
+
+    const structuralProfile = getLabelProfile(label);
+    const word =
+      explicitWordValue
+        ? explicitWordValue
+        : label
+          && !structuralProfile.isPhrasal
+          && !structuralProfile.isHeadLikeStructural
+          && !isTraceLikeSurface(label)
+          && !NULL_LIKE_SURFACE_RE.test(label)
+            ? label
+            : undefined;
+    const explicitTokenIndex = normalizeTokenIndex(rawNode.tokenIndex, sentenceTokens.length);
+    const normalizedWordSurface = normalizeSurfaceToken(word);
+    const inferredTokenIndex =
+      explicitTokenIndex === undefined &&
+      normalizedWordSurface &&
+      !isTraceLikeSurface(word) &&
+      !NULL_LIKE_SURFACE_RE.test(String(word || '').trim())
+        ? (() => {
+            const positions = tokenPositionsBySurface.get(normalizedWordSurface) || [];
+            return positions.length === 1 ? positions[0] : undefined;
+          })()
+        : undefined;
+    const tokenIndex = explicitTokenIndex ?? inferredTokenIndex;
+    const surfaceSpan = normalizeSurfaceSpan(rawNode.surfaceSpan);
+    const parentId = typeof rawNode.parentId === 'string' && rawNode.parentId.trim()
+      ? rawNode.parentId.trim()
+      : undefined;
+    const siblingOrder = Number.isInteger(Number(rawNode.siblingOrder))
+      ? Math.max(0, Number(rawNode.siblingOrder))
+      : undefined;
+
+    nodesById.set(rawId, {
+      id: rawId,
+      label,
+      word,
+      tokenIndex,
+      siblingOrder,
+      surfaceSpan,
+      parentId,
+      __order: index
+    });
+  });
+
+  const getNodeInterval = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (Array.isArray(node.surfaceSpan)) return node.surfaceSpan;
+    if (node.tokenIndex !== undefined) return [node.tokenIndex, node.tokenIndex];
+    return null;
+  };
+
+  const intervalContains = (parentInterval, childInterval) => {
+    if (!Array.isArray(parentInterval) || !Array.isArray(childInterval)) return false;
+    if (parentInterval[0] > childInterval[0] || parentInterval[1] < childInterval[1]) return false;
+    return true;
+  };
+
+  const explicitRootId = typeof rootIdValue === 'string' && rootIdValue.trim() ? rootIdValue.trim() : '';
+
+  for (const node of nodesById.values()) {
+    if (node.parentId) continue;
+    if (explicitRootId && node.id === explicitRootId) continue;
+
+    const nodeInterval = getNodeInterval(node);
+    if (!nodeInterval) continue;
+
+    const candidates = Array.from(nodesById.values())
+      .filter((candidate) => {
+        if (!candidate || candidate.id === node.id) return false;
+        const candidateInterval = getNodeInterval(candidate);
+        if (!intervalContains(candidateInterval, nodeInterval)) return false;
+        return candidate.__order < node.__order;
+      })
+      .sort((left, right) => {
+        const leftInterval = getNodeInterval(left);
+        const rightInterval = getNodeInterval(right);
+        const leftWidth = leftInterval ? (leftInterval[1] - leftInterval[0]) : Number.POSITIVE_INFINITY;
+        const rightWidth = rightInterval ? (rightInterval[1] - rightInterval[0]) : Number.POSITIVE_INFINITY;
+        if (leftWidth !== rightWidth) return leftWidth - rightWidth;
+        return right.__order - left.__order;
+      });
+
+    if (candidates.length > 0) {
+      node.parentId = candidates[0].id;
+    }
+  }
+
+  for (const node of nodesById.values()) {
+    if (node.parentId) {
+      if (!nodesById.has(node.parentId)) {
+        throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node ${node.id} points to missing parentId ${node.parentId}.`, 502);
+      }
+      const siblings = childrenByParent.get(node.parentId) || [];
+      siblings.push(node.id);
+      childrenByParent.set(node.parentId, siblings);
+    }
+  }
+
+  let rootId = explicitRootId;
+  if (rootId) {
+    if (!nodesById.has(rootId)) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node rootId ${rootId} does not exist.`, 502);
+    }
+  } else {
+    const rootCandidates = Array.from(nodesById.values()).filter((node) => !node.parentId);
+    if (rootCandidates.length !== 1) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Flat node table must determine exactly one root node.', 502);
+    }
+    rootId = rootCandidates[0].id;
+  }
+
+  const visiting = new Set();
+  const built = new Map();
+
+  const buildNode = (nodeId) => {
+    if (built.has(nodeId)) return built.get(nodeId);
+    if (visiting.has(nodeId)) {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node table contains a cycle at ${nodeId}.`, 502);
+    }
+    visiting.add(nodeId);
+    const node = nodesById.get(nodeId);
+    const childIds = childrenByParent.get(nodeId) || [];
+    const childEntries = childIds.map((childId) => buildNode(childId));
+    const sortedChildren = childEntries
+      .slice()
+      .sort((left, right) => {
+        const leftSiblingOrder = left.siblingOrder;
+        const rightSiblingOrder = right.siblingOrder;
+        if (Number.isInteger(leftSiblingOrder) || Number.isInteger(rightSiblingOrder)) {
+          if (!Number.isInteger(leftSiblingOrder)) return 1;
+          if (!Number.isInteger(rightSiblingOrder)) return -1;
+          if (leftSiblingOrder !== rightSiblingOrder) return leftSiblingOrder - rightSiblingOrder;
+        }
+        const leftStart = left.sortStart;
+        const rightStart = right.sortStart;
+        if (leftStart === rightStart) return left.order - right.order;
+        if (leftStart === null) return 1;
+        if (rightStart === null) return -1;
+        return leftStart - rightStart;
+      });
+
+    const compiled = { id: node.id, label: node.label };
+    if (typeof node.word === 'string' && node.word.trim()) {
+      compiled.word = node.word.trim();
+    }
+    if (node.tokenIndex !== undefined) {
+      compiled.tokenIndex = node.tokenIndex;
+    }
+    if (node.surfaceSpan) {
+      compiled.surfaceSpan = node.surfaceSpan;
+    }
+    if (sortedChildren.length > 0) {
+      compiled.children = sortedChildren.map((entry) => entry.node);
+    }
+
+    let sortStart = null;
+    if (node.tokenIndex !== undefined) {
+      sortStart = node.tokenIndex;
+    } else {
+      for (const child of sortedChildren) {
+        if (Number.isInteger(child.sortStart)) {
+          sortStart = child.sortStart;
+          break;
+        }
+      }
+      if (sortStart === null && node.surfaceSpan) {
+        sortStart = node.surfaceSpan[0];
+      }
+    }
+
+    const entry = {
+      node: compiled,
+      sortStart,
+      order: node.__order,
+      siblingOrder: node.siblingOrder
+    };
+    built.set(nodeId, entry);
+    visiting.delete(nodeId);
+    return entry;
+  };
+
+  const rootEntry = buildNode(rootId);
+  return alignCompiledTreeToSentence(rootEntry.node, sentenceTokens);
+};
+
+const alignCompiledTreeToSentence = (tree, sentenceTokens = []) => {
+  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
+
+  const permutationsOf = (items) => {
+    if (items.length <= 1) return [items];
+    const out = [];
+    items.forEach((item, index) => {
+      const rest = items.slice(0, index).concat(items.slice(index + 1));
+      permutationsOf(rest).forEach((suffix) => out.push([item, ...suffix]));
+    });
+    return out;
+  };
+
+  const explicitOrder = (children) =>
+    children
+      .slice()
+      .sort((left, right) => {
+        const leftOrder = Number.isInteger(left?.siblingOrder) ? left.siblingOrder : undefined;
+        const rightOrder = Number.isInteger(right?.siblingOrder) ? right.siblingOrder : undefined;
+        if (leftOrder === undefined && rightOrder === undefined) return 0;
+        if (leftOrder === undefined) return 1;
+        if (rightOrder === undefined) return -1;
+        return leftOrder - rightOrder;
+      });
+
+  const tokenBounds = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (Number.isInteger(node.tokenIndex)) {
+      return [node.tokenIndex, node.tokenIndex];
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    let start = null;
+    let end = null;
+    children.forEach((child) => {
+      const bounds = tokenBounds(child);
+      if (!bounds) return;
+      start = start === null ? bounds[0] : Math.min(start, bounds[0]);
+      end = end === null ? bounds[1] : Math.max(end, bounds[1]);
+    });
+    return start === null || end === null ? null : [start, end];
+  };
+
+  const flattenHeadInitialShells = (node) => {
+    if (!node || typeof node !== 'object') return node;
+    const children = Array.isArray(node.children)
+      ? node.children.map((child) => flattenHeadInitialShells(child))
+      : [];
+    if (children.length === 0) return node;
+
+    let flattenedChildren = children;
+    if (children.length === 2) {
+      const [specifierChild, shellChild] = children;
+      const shellChildren = Array.isArray(shellChild?.children) ? shellChild.children : [];
+      if (shellChildren.length === 2) {
+        const [headChild, complementChild] = shellChildren;
+        const specifierBounds = tokenBounds(specifierChild);
+        const headBounds = tokenBounds(headChild);
+        const complementBounds = tokenBounds(complementChild);
+        const headProfile = getLabelProfile(headChild?.label);
+        if (
+          headProfile.isHeadLikeStructural &&
+          specifierBounds &&
+          headBounds &&
+          complementBounds &&
+          headBounds[0] < specifierBounds[0] &&
+          specifierBounds[1] < complementBounds[0]
+        ) {
+          flattenedChildren = [headChild, specifierChild, complementChild];
+        }
+      }
+    }
+
+    return { ...node, children: flattenedChildren };
+  };
+
+  const flattenInterleavingChildren = (node) => {
+    if (!node || typeof node !== 'object') return node;
+    let children = Array.isArray(node.children)
+      ? node.children.map((child) => flattenInterleavingChildren(child))
+      : [];
+    if (children.length <= 1) return { ...node, children };
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let index = 0; index < children.length; index += 1) {
+        const child = children[index];
+        const childBounds = tokenBounds(child);
+        const grandChildren = Array.isArray(child?.children) ? child.children : [];
+        if (!childBounds || grandChildren.length === 0) continue;
+
+        const containsSibling = children.some((sibling, siblingIndex) => {
+          if (siblingIndex === index) return false;
+          const siblingBounds = tokenBounds(sibling);
+          if (!siblingBounds) return false;
+          return childBounds[0] < siblingBounds[0] && siblingBounds[1] < childBounds[1];
+        });
+
+        if (!containsSibling) continue;
+
+        children = [
+          ...children.slice(0, index),
+          ...grandChildren,
+          ...children.slice(index + 1)
+        ];
+        changed = true;
+        break;
+      }
+    }
+
+    return { ...node, children };
+  };
+
+  const preparedTree = flattenInterleavingChildren(flattenHeadInitialShells(tree));
+
+  const alignNode = (node, startIndex) => {
+    if (!node || typeof node !== 'object') {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during flat-node sentence alignment.', 502);
+    }
+
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
+      if (!surface || isTraceLikeNode(node) || isNullLikeNode(node)) {
+        const silentLeaf = { ...node };
+        delete silentLeaf.tokenIndex;
+        delete silentLeaf.surfaceSpan;
+        return { success: true, node: silentLeaf, nextIndex: startIndex, overtCount: 0 };
+      }
+
+      if (startIndex >= normalizedSentenceTokens.length || normalizedSentenceTokens[startIndex] !== surface) {
+        return { success: false };
+      }
+
+      const overtLeaf = {
+        ...node,
+        word: String(sentenceTokens[startIndex] || resolveOvertLeafSurface(node) || '').trim(),
+        tokenIndex: startIndex,
+        surfaceSpan: [startIndex, startIndex]
+      };
+      return { success: true, node: overtLeaf, nextIndex: startIndex + 1, overtCount: 1 };
+    }
+
+    const orderedChildren = explicitOrder(children);
+    const candidateOrders = [orderedChildren];
+    const seenOrders = new Set([
+      orderedChildren.map((child) => String(child?.id || '')).join('|')
+    ]);
+
+    const tryCandidate = (candidate) => {
+      let nextIndex = startIndex;
+      let overtCount = 0;
+      const builtChildren = [];
+
+      for (const child of candidate) {
+        const alignedChild = alignNode(child, nextIndex);
+        if (!alignedChild.success) {
+          return null;
+        }
+        nextIndex = alignedChild.nextIndex;
+        overtCount += alignedChild.overtCount;
+        builtChildren.push(alignedChild.node);
+      }
+
+      const alignedNode = { ...node, children: builtChildren };
+      if (overtCount > 0) {
+        alignedNode.surfaceSpan = [startIndex, nextIndex - 1];
+      } else {
+        delete alignedNode.surfaceSpan;
+      }
+      return { success: true, node: alignedNode, nextIndex, overtCount };
+    };
+
+    for (const candidate of candidateOrders) {
+      const alignedCandidate = tryCandidate(candidate);
+      if (alignedCandidate) return alignedCandidate;
+    }
+
+    for (const candidate of permutationsOf(children)) {
+      const key = candidate.map((child) => String(child?.id || '')).join('|');
+      if (seenOrders.has(key)) continue;
+      seenOrders.add(key);
+      const alignedCandidate = tryCandidate(candidate);
+      if (alignedCandidate) return alignedCandidate;
+    }
+
+    return { success: false };
+  };
+
+  const aligned = alignNode(preparedTree, 0);
+  if (!aligned.success || aligned.nextIndex !== normalizedSentenceTokens.length) {
+    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Tree overt terminals do not match the input sentence order.', 502);
+  }
+  return aligned.node;
 };
 
 const normalizePartsOfSpeech = (value) => {
@@ -735,6 +1417,16 @@ const sameTokenCounts = (leftTokens, rightTokens) => {
   if (leftCounts.size !== rightCounts.size) return false;
   for (const [token, count] of leftCounts.entries()) {
     if (Number(rightCounts.get(token) || 0) !== count) return false;
+  }
+  return true;
+};
+
+const sameTokenSequence = (leftTokens, rightTokens) => {
+  if (leftTokens.length !== rightTokens.length) return false;
+  for (let index = 0; index < leftTokens.length; index += 1) {
+    if (normalizeSurfaceToken(leftTokens[index]) !== normalizeSurfaceToken(rightTokens[index])) {
+      return false;
+    }
   }
   return true;
 };
@@ -815,28 +1507,128 @@ const canonicalizeTreeToTraversalOrder = (tree) => {
   return root.node;
 };
 
-const materializeSingletonSpanLexicalLeaves = (tree, normalizedSentenceTokens) => {
+const anchorOvertLeavesToSentenceTokens = (tree, sentenceTokens) => {
+  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
+  const overtLeaves = [];
+
   const visit = (node) => {
-    if (!node || typeof node !== 'object') return;
+    if (!node || typeof node !== 'object') {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during token anchoring.', 502);
+    }
+
     const children = Array.isArray(node.children) ? node.children : [];
     if (children.length === 0) {
-      const existingWord = String(node.word || '').trim();
-      if (existingWord) return;
-      const span = normalizeSurfaceSpan(node.surfaceSpan);
-      if (!span || span[0] !== span[1]) return;
-      const tokenIndex = span[0];
-      const expected = String(normalizedSentenceTokens[tokenIndex] || '').trim();
-      if (!expected) return;
-      const label = String(node.label || '').trim();
-      if (!label) return;
-      if (normalizeSurfaceToken(label) === expected) {
-        node.word = label;
+      let surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
+      const traceLike = isTraceLikeNode(node);
+      const nullLike = isNullLikeNode(node);
+      const tokenIndex = normalizeTokenIndex(node.tokenIndex, normalizedSentenceTokens.length);
+      const singletonSpan = normalizeSurfaceSpan(node.surfaceSpan);
+      const spanTokenIndex = singletonSpan && singletonSpan[0] === singletonSpan[1]
+        ? normalizeTokenIndex(singletonSpan[0], normalizedSentenceTokens.length)
+        : undefined;
+      const hintedTokenIndex = tokenIndex ?? spanTokenIndex;
+
+      if (!surface && hintedTokenIndex !== undefined) {
+        const hintedSurface = normalizedSentenceTokens[hintedTokenIndex];
+        const labelSurface = normalizeSurfaceToken(String(node.label || '').trim());
+        if (hintedSurface && labelSurface === hintedSurface && !traceLike && !nullLike) {
+          surface = hintedSurface;
+          node.word = String(sentenceTokens[hintedTokenIndex] || '').trim();
+        }
+      }
+
+      if (tokenIndex !== undefined) {
+        if (traceLike || nullLike) {
+          delete node.tokenIndex;
+        } else {
+          const expectedToken = normalizedSentenceTokens[tokenIndex];
+          if (!expectedToken) {
+            throw new ParseApiError('BAD_MODEL_RESPONSE', 'Overt tokenIndex falls outside the sentence token inventory.', 502);
+          }
+          if (surface && surface !== expectedToken) {
+            throw new ParseApiError('BAD_MODEL_RESPONSE', 'Leaf tokenIndex does not match the overt sentence token it claims to realize.', 502);
+          }
+          node.tokenIndex = tokenIndex;
+          node.word = String(sentenceTokens[tokenIndex] || '').trim();
+          overtLeaves.push(node);
+          return;
+        }
+      }
+
+      delete node.tokenIndex;
+      if (surface && !traceLike && !nullLike) {
+        overtLeaves.push(node);
       }
       return;
     }
+
     children.forEach(visit);
   };
+
   visit(tree);
+
+  const traversalOrder = overtLeaves
+    .map((node) => normalizeSurfaceToken(resolveOvertLeafSurface(node)))
+    .filter(Boolean);
+  if (!sameTokenSequence(traversalOrder, normalizedSentenceTokens)) {
+    throw new ParseApiError('BAD_MODEL_RESPONSE', 'Tree overt terminals do not match the input sentence order.', 502);
+  }
+
+  // Once the tree itself spells the sentence correctly, derive canonical token
+  // anchoring from that committed left-to-right order rather than treating
+  // partial/sloppy tokenIndex metadata as a second competing truth source.
+  overtLeaves.forEach((node, index) => {
+    node.tokenIndex = index;
+    node.word = String(sentenceTokens[index] || '').trim();
+  });
+};
+
+const deriveCanonicalSurfaceSpans = (tree) => {
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') {
+      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during surface-span normalization.', 502);
+    }
+
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
+      const overt = Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node);
+      if (!overt) {
+        delete node.surfaceSpan;
+        return null;
+      }
+
+      const tokenIndex = normalizeTokenIndex(node.tokenIndex, Number.POSITIVE_INFINITY);
+      if (tokenIndex === undefined) {
+        throw new ParseApiError('BAD_MODEL_RESPONSE', 'Overt leaves must carry tokenIndex after sentence anchoring.', 502);
+      }
+      node.surfaceSpan = [tokenIndex, tokenIndex];
+      return node.surfaceSpan;
+    }
+
+    const childSpans = [];
+    children.forEach((child) => {
+      const childSpan = visit(child);
+      if (childSpan) childSpans.push(childSpan);
+    });
+
+    if (childSpans.length === 0) {
+      delete node.surfaceSpan;
+      return null;
+    }
+
+    for (let index = 1; index < childSpans.length; index += 1) {
+      if (childSpans[index - 1][0] > childSpans[index][0]) {
+        throw new ParseApiError('BAD_MODEL_RESPONSE', 'Children arrays do not follow ascending surface-span order.', 502);
+      }
+    }
+
+    node.surfaceSpan = [childSpans[0][0], childSpans[childSpans.length - 1][1]];
+    return node.surfaceSpan;
+  };
+
+  visit(tree);
+  return tree;
 };
 
 const getLabelProfile = (label) => {
@@ -935,6 +1727,124 @@ const collapseOvertHeadLandingChains = (tree) => {
   return redirects;
 };
 
+const getNodeTokenBounds = (node) => {
+  if (!node || typeof node !== 'object') return null;
+  if (Number.isInteger(node.tokenIndex)) {
+    return [node.tokenIndex, node.tokenIndex];
+  }
+  const span = normalizeSurfaceSpan(node.surfaceSpan);
+  if (span) return span;
+  const children = Array.isArray(node.children) ? node.children : [];
+  let start = null;
+  let end = null;
+  children.forEach((child) => {
+    const bounds = getNodeTokenBounds(child);
+    if (!bounds) return;
+    start = start === null ? bounds[0] : Math.min(start, bounds[0]);
+    end = end === null ? bounds[1] : Math.max(end, bounds[1]);
+  });
+  return start === null || end === null ? null : [start, end];
+};
+
+const findSingleOvertLeafForSplitFronting = (node) => {
+  if (!node || typeof node !== 'object') return null;
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length !== 1) return null;
+  const child = children[0];
+  if (!child || typeof child !== 'object') return null;
+  const grandChildren = Array.isArray(child.children) ? child.children : [];
+  if (grandChildren.length === 0) {
+    const surface = String(resolveOvertLeafSurface(child) || '').trim();
+    if (!surface || isTraceLikeNode(child) || isNullLikeNode(child)) return null;
+    return { carrier: node, leaf: child };
+  }
+  if (grandChildren.length === 1) {
+    const grandChild = grandChildren[0];
+    const greatGrandChildren = Array.isArray(grandChild?.children) ? grandChild.children : [];
+    if (greatGrandChildren.length === 0) {
+      const surface = String(resolveOvertLeafSurface(grandChild) || '').trim();
+      if (!surface || isTraceLikeNode(grandChild) || isNullLikeNode(grandChild)) return null;
+      return { carrier: child, leaf: grandChild };
+    }
+  }
+  return null;
+};
+
+const findEmptyHeadSlotForSplitFronting = (node) => {
+  if (!node || typeof node !== 'object') return null;
+  const children = Array.isArray(node.children) ? node.children : [];
+  for (const child of children) {
+    const profile = getLabelProfile(child?.label);
+    if (!profile.isHeadLikeStructural) continue;
+    const grandChildren = Array.isArray(child?.children) ? child.children : [];
+    if (grandChildren.length === 1 && isNullLikeNode(grandChildren[0])) {
+      return { carrier: child, placeholder: grandChildren[0] };
+    }
+  }
+  return null;
+};
+
+const canonicalizeSplitClauseEdgeMovedPhrases = (tree, movementEvents) => {
+  if (!tree || typeof tree !== 'object' || !Array.isArray(movementEvents) || movementEvents.length === 0) {
+    return tree;
+  }
+
+  const moveTargetIds = new Set(
+    movementEvents
+      .filter((event) => normalizeMovementOperation(event?.operation) === 'Move')
+      .map((event) => String(event?.toNodeId || '').trim())
+      .filter(Boolean)
+  );
+  if (moveTargetIds.size === 0) return tree;
+
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+
+    const nodeProfile = getLabelProfile(node.label);
+    if (nodeProfile.base !== 'c') return;
+    if (children.length < 2) return;
+
+    for (let index = 1; index < children.length; index += 1) {
+      const targetNode = children[index];
+      const leftSibling = children[index - 1];
+      const targetId = String(targetNode?.id || '').trim();
+      if (!targetId || !moveTargetIds.has(targetId)) continue;
+
+      const leftProfile = getLabelProfile(leftSibling?.label);
+      if (leftProfile.base !== 'c' || !leftProfile.isHeadLikeStructural) continue;
+
+      const overtLeafEntry = findSingleOvertLeafForSplitFronting(leftSibling);
+      const emptyHeadSlot = findEmptyHeadSlotForSplitFronting(targetNode);
+      if (!overtLeafEntry || !emptyHeadSlot) continue;
+
+      const leftBounds = getNodeTokenBounds(overtLeafEntry.leaf);
+      const targetBounds = getNodeTokenBounds(targetNode);
+      if (!leftBounds || !targetBounds) continue;
+      if (leftBounds[0] !== leftBounds[1]) continue;
+      if (targetBounds[0] !== targetBounds[1]) continue;
+      if (leftBounds[0] + 1 !== targetBounds[0]) continue;
+
+      const overtLeaf = overtLeafEntry.leaf;
+      const placeholder = emptyHeadSlot.placeholder;
+      emptyHeadSlot.carrier.children = [overtLeaf];
+      overtLeafEntry.carrier.children = [placeholder];
+
+      delete overtLeaf.tokenIndex;
+      delete overtLeaf.surfaceSpan;
+      delete placeholder.tokenIndex;
+      delete placeholder.surfaceSpan;
+      delete emptyHeadSlot.carrier.surfaceSpan;
+      delete leftSibling.surfaceSpan;
+      delete targetNode.surfaceSpan;
+    }
+  };
+
+  visit(tree);
+  return tree;
+};
+
 const resolveRedirectedNodeId = (nodeId, redirects) => {
   let current = String(nodeId || '').trim();
   const seen = new Set();
@@ -987,112 +1897,11 @@ const remapMovementEventsNodeIds = (events, redirects) => {
   }));
 };
 
-/**
- * Reorder sibling nodes so the tree's overt-terminal yield matches the
- * linear word order of the input sentence.  The algorithm:
- *   1. Collect overt terminals and match each to a sentence-token position.
- *   2. Walk the tree bottom-up; for every internal node, sort its children
- *      by the *minimum* sentence position found in each child's subtree.
- *   3. Non-overt subtrees (traces, ∅) keep their original relative order.
- *
- * The function bails out silently if the token multisets don't align, so it
- * is safe to call unconditionally.
- */
-const reorderChildrenBySentenceOrder = (tree, normalizedSentenceTokens) => {
-  if (!tree || typeof tree !== 'object') return;
-  if (normalizedSentenceTokens.length === 0) return;
-
-  // Step 1 – collect overt terminals in current (possibly wrong) DFS order
-  const overtTerminals = collectOvertTerminalNodes(tree);
-  if (overtTerminals.length === 0) return;
-
-  const terminalSurfaces = overtTerminals.map((node) =>
-    normalizeSurfaceToken(resolveOvertLeafSurface(node))
-  );
-
-  // Bail if the tree's token bag doesn't match the sentence's
-  if (!sameTokenCounts(terminalSurfaces, normalizedSentenceTokens)) return;
-
-  // Step 2 – assign a sentence position to every overt terminal.
-  const sentencePositionsByToken = new Map();
-  normalizedSentenceTokens.forEach((token, idx) => {
-    if (!sentencePositionsByToken.has(token)) {
-      sentencePositionsByToken.set(token, []);
-    }
-    sentencePositionsByToken.get(token).push(idx);
-  });
-
-  const nodePositionMap = new Map();
-  const usedCountByToken = new Map();
-  for (let i = 0; i < overtTerminals.length; i++) {
-    const surface = terminalSurfaces[i];
-    const positions = sentencePositionsByToken.get(surface);
-    if (!positions) continue;
-    const usedCount = usedCountByToken.get(surface) || 0;
-    if (usedCount < positions.length) {
-      nodePositionMap.set(overtTerminals[i], positions[usedCount]);
-      usedCountByToken.set(surface, usedCount + 1);
-    }
-  }
-
-  // Step 3 – compute the minimum sentence position in every subtree
-  const subtreeMin = new Map();
-  const computeMin = (node) => {
-    if (!node || typeof node !== 'object') return Infinity;
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length === 0) {
-      const pos = nodePositionMap.has(node) ? nodePositionMap.get(node) : Infinity;
-      subtreeMin.set(node, pos);
-      return pos;
-    }
-    let min = Infinity;
-    for (const child of children) {
-      const childMin = computeMin(child);
-      if (childMin < min) min = childMin;
-    }
-    subtreeMin.set(node, min);
-    return min;
-  };
-  computeMin(tree);
-
-  // Step 4 – recursively sort children by ascending min-position.
-  // Children with overt content are sorted by their earliest sentence position.
-  // Children with NO overt content (Infinity) stay in their original position
-  // relative to their neighbors — they are not displaced by the sort.
-  const reorder = (node) => {
-    if (!node || typeof node !== 'object') return;
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(reorder);
-    if (children.length <= 1) return;
-
-    const overt = [];
-    const slots = [];           // indices where overt children sit
-    for (let i = 0; i < children.length; i++) {
-      const minPos = subtreeMin.get(children[i]) ?? Infinity;
-      if (minPos < Infinity) {
-        overt.push({ child: children[i], minPos, origIdx: i });
-        slots.push(i);
-      }
-    }
-    if (overt.length <= 1) return;
-    overt.sort((a, b) => a.minPos - b.minPos || a.origIdx - b.origIdx);
-    const newChildren = [...children];
-    for (let j = 0; j < slots.length; j++) {
-      newChildren[slots[j]] = overt[j].child;
-    }
-    node.children = newChildren;
-  };
-  reorder(tree);
-};
-
 const validateAndCommitSurfaceOrder = (_surfaceOrder, tree, sentence) => {
   const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
-  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
-  materializeSingletonSpanLexicalLeaves(tree, normalizedSentenceTokens);
-
-  const overtTerminals = collectOvertTerminalNodes(tree);
-  const canonicalTree = canonicalizeTreeToTraversalOrder(tree);
-  const surfaceOrder = overtTerminals
+  anchorOvertLeavesToSentenceTokens(tree, sentenceTokens);
+  const canonicalTree = deriveCanonicalSurfaceSpans(tree);
+  const surfaceOrder = collectOvertTerminalNodes(canonicalTree)
     .map((node) => resolveNodeSurface(node))
     .map((token) => String(token || '').trim())
     .filter(Boolean);
@@ -1357,6 +2166,29 @@ const normalizeMovementDecision = (value) => {
     rationale: rationale || (value.hasMovement
       ? 'Movement is posited in this analysis.'
       : 'No movement is posited in this analysis.')
+  };
+};
+
+const reconcileMovementDecisionWithCommittedAnalysis = (movementDecision, movementEvents) => {
+  const hasEncodedMovement = Array.isArray(movementEvents) && movementEvents.length > 0;
+  if (!movementDecision) {
+    return {
+      hasMovement: hasEncodedMovement,
+      rationale: hasEncodedMovement
+        ? 'The final committed analysis explicitly encodes movement.'
+        : 'No movement is encoded in the final committed analysis.'
+    };
+  }
+
+  if (movementDecision.hasMovement === hasEncodedMovement) {
+    return movementDecision;
+  }
+
+  return {
+    hasMovement: hasEncodedMovement,
+    rationale: hasEncodedMovement
+      ? 'The final committed analysis explicitly encodes movement.'
+      : 'No movement is encoded in the final committed analysis.'
   };
 };
 
@@ -2028,12 +2860,13 @@ const reconcileDerivationStepOperations = (derivationSteps, movementEvents) => {
 };
 
 const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
-const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c)\b/i;
+const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c|(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))[^.!?]{0,120}\b(?:c|t|infl|i|v)\s+head\b|\b(?:c|t|infl|i|v)\s+head\b[^.!?]{0,120}\b(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))\b)\b/i;
 const EXPLANATION_SUCCESSIVE_HEADMOVE_RE = /\b(v\s*-?to\s*-?(?:infl|i|t)|verb raises? to (?:infl|i|t)|infl\s*-?to\s*-?c|(?:infl|i|t) (?:raises?|moves?) to c|finally to c|subsequently to c)\b/i;
 const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
 const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
 const EXPLANATION_INTERNALMERGE_RE = /\binternal\s*merge\b/i;
 const EXPLANATION_NO_MOVEMENT_RE = /\b(no\s+(?:movement|displacement)|movement is not posited|no displacement operation is encoded|read directly from the final tree)\b/i;
+const EXPLANATION_DENIES_VERB_MOVEMENT_RE = /\bno\s+(?:phrasal\s+)?movement\b[^.!?]{0,120}\bverb\b/i;
 const MOVEMENT_OPERATION_PHRASE = {
   Move: 'movement',
   InternalMerge: 'internal merge',
@@ -2093,6 +2926,38 @@ const countPhrasalMovementEvents = (movementEvents) =>
     ? movementEvents.filter((event) => normalizeMovementOperation(event?.operation) !== 'HeadMove').length
     : 0;
 
+const isTruncatedScholarReferenceSentence = (sentence) => {
+  const text = cleanExplanationWhitespace(sentence);
+  if (!text) return false;
+  return /\b(?:tradition|framework|approach|analysis)\s+of\s+[A-ZÀ-ÖØ-Þ]\.?(?:["')\]]|[.!?])?$/u.test(text)
+    || /\b[A-ZÀ-ÖØ-Þ]\.(?:["')\]]|[.!?])?$/u.test(text);
+};
+
+const isImplementationLeakSentence = (sentence) => {
+  const text = cleanExplanationWhitespace(sentence);
+  if (!text) return false;
+  return /\bflatten(?:ed|ing)?\b/i.test(text)
+    || /\bnode-table\b/i.test(text)
+    || /\bsiblingOrder\b/i.test(text)
+    || /\btokenIndex\b/i.test(text);
+};
+
+const isVagueScholarReferenceSentence = (sentence) => {
+  const text = cleanExplanationWhitespace(sentence);
+  if (!text) return false;
+  return /\bsuch as\b.+\band others\b/i.test(text)
+    || /\band others\b/i.test(text)
+    || /\bothers\b.*\bgenerative studies\b/i.test(text);
+};
+
+const usesMergeLanguageForDerivedPeripheralPosition = (sentence, movementEvents) => {
+  const text = cleanExplanationWhitespace(sentence);
+  if (!text) return false;
+  if (countPhrasalMovementEvents(movementEvents) === 0) return false;
+  if (EXPLANATION_MOVEMENT_RE.test(text)) return false;
+  return /\bmerge(?:d|s|ing)?\b/i.test(text) && /\bSpec(?:ifier)?[, ]*(?:CP|TP|InflP|IP)\b/i.test(text);
+};
+
 const isDirectlyContradictoryMovementSentence = (sentence, movementEventKinds, movementEvents) => {
   const claims = extractMovementClaimsFromSentence(sentence);
   const movementCount = Array.isArray(movementEvents) ? movementEvents.length : 0;
@@ -2105,11 +2970,13 @@ const isDirectlyContradictoryMovementSentence = (sentence, movementEventKinds, m
 
   if (!claims.mentionsMovement) return false;
   if (movementCount === 0) return true;
+  if (headMoveCount > 0 && EXPLANATION_DENIES_VERB_MOVEMENT_RE.test(sentence)) return true;
   if (claims.claimsHeadMove && headMoveCount === 0) return true;
   if (EXPLANATION_SUCCESSIVE_HEADMOVE_RE.test(sentence) && headMoveCount < 2) return true;
   if (claims.claimsWhMove && phrasalMoveCount === 0) return true;
   if (claims.claimsAMove && phrasalMoveCount === 0) return true;
   if (claims.claimsInternalMerge && !movementEventKinds.has('internal') && phrasalMoveCount === 0) return true;
+  if (usesMergeLanguageForDerivedPeripheralPosition(sentence, movementEvents)) return true;
   return false;
 };
 
@@ -2654,6 +3521,48 @@ const mergeExplanationWithGroundedFallback = (primaryText, fallbackText) => {
   return ensureExplanationTerminator(cleanExplanationWhitespace(merged.join(' ')));
 };
 
+const ensureEncodedMovementIsMentioned = (text, fallbackText, movementEvents) => {
+  const cleaned = cleanExplanationWhitespace(text);
+  if (!cleaned) return cleaned;
+  if (!Array.isArray(movementEvents) || movementEvents.length === 0) {
+    return ensureExplanationTerminator(cleaned);
+  }
+
+  const sentences = splitExplanationSentences(cleaned);
+  const headMoveCount = countMovementEventsByOperation(movementEvents, 'HeadMove');
+  const phrasalMoveCount = countPhrasalMovementEvents(movementEvents);
+  const mentionsHeadMove = sentences.some((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence));
+  const mentionsPhrasalMove = sentences.some((sentence) => {
+    const claims = extractMovementClaimsFromSentence(sentence);
+    return claims.claimsWhMove || claims.claimsAMove || claims.claimsInternalMerge
+      || (claims.mentionsMovement && !claims.claimsHeadMove);
+  });
+
+  if ((headMoveCount === 0 || mentionsHeadMove) && (phrasalMoveCount === 0 || mentionsPhrasalMove)) {
+    return ensureExplanationTerminator(cleaned);
+  }
+
+  const fallbackSentences = splitExplanationSentences(fallbackText);
+  const fallbackMovementSentence =
+    (headMoveCount > 0 && !mentionsHeadMove
+      ? fallbackSentences.find((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence))
+      : null)
+    || (phrasalMoveCount > 0 && !mentionsPhrasalMove
+      ? fallbackSentences.find((sentence) => {
+          const claims = extractMovementClaimsFromSentence(sentence);
+          return claims.claimsWhMove || claims.claimsAMove || claims.claimsInternalMerge
+            || (claims.mentionsMovement && !claims.claimsHeadMove);
+        })
+      : null)
+    || fallbackSentences.find((sentence) => EXPLANATION_MOVEMENT_RE.test(sentence));
+  if (!fallbackMovementSentence) {
+    return ensureExplanationTerminator(cleaned);
+  }
+
+  const merged = cleanExplanationWhitespace(`${cleaned} ${fallbackMovementSentence}`);
+  return ensureExplanationTerminator(merged);
+};
+
 const buildGroundedExplanationFacts = ({ tree, derivationSteps, movementEvents, framework = 'xbar', surfaceOrder = [] }) => {
   const movementFactDetails = Array.isArray(movementEvents)
     ? movementEvents
@@ -2727,13 +3636,16 @@ const reconcileGeneratedExplanationWithDerivation = (generatedExplanation, fallb
 
   const kept = splitExplanationSentences(raw).filter((sentence) =>
     !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+      && !isTruncatedScholarReferenceSentence(sentence)
+      && !isVagueScholarReferenceSentence(sentence)
+      && !isImplementationLeakSentence(sentence)
   );
   const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
     cleanExplanationWhitespace(kept.join(' ')),
     movementEvents
   );
-
-  return cleaned || fallbackExplanation;
+  if (!cleaned) return fallbackExplanation;
+  return ensureEncodedMovementIsMentioned(cleaned, fallbackExplanation, movementEvents);
 };
 
 const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExplanation, movementEvents) => {
@@ -2746,18 +3658,22 @@ const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExpla
   }
 
   const kept = splitExplanationSentences(raw).filter((sentence) =>
-    !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+      !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+      && !isTruncatedScholarReferenceSentence(sentence)
+      && !isVagueScholarReferenceSentence(sentence)
+      && !isImplementationLeakSentence(sentence)
   );
   const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
     cleanExplanationWhitespace(kept.join(' ')),
     movementEvents
   );
   if (!cleaned) return fallbackExplanation;
+  const movementAware = ensureEncodedMovementIsMentioned(cleaned, fallbackExplanation, movementEvents);
   if (!explanationHasMinimumSubstance(cleaned)) return fallbackExplanation;
-  if (!explanationHasEnoughTexture(cleaned)) {
-    return mergeExplanationWithGroundedFallback(cleaned, fallbackExplanation);
+  if (!explanationHasEnoughTexture(movementAware)) {
+    return mergeExplanationWithGroundedFallback(movementAware, fallbackExplanation);
   }
-  return ensureExplanationTerminator(cleaned);
+  return ensureExplanationTerminator(movementAware);
 };
 
 const buildCanonicalDerivationFromTree = ({
@@ -2947,6 +3863,9 @@ const harmonizeInterpretationWithDerivation = (interpretation, movementEvents) =
 
   const kept = splitExplanationSentences(raw).filter((sentence) =>
     !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
+      && !isTruncatedScholarReferenceSentence(sentence)
+      && !isVagueScholarReferenceSentence(sentence)
+      && !isImplementationLeakSentence(sentence)
   );
   const cleaned = removeUnsupportedSuccessiveHeadMoveSentences(
     cleanExplanationWhitespace(kept.join(' ')),
@@ -2966,12 +3885,22 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
     : 'No explanation provided.';
   const movementDecision = normalizeMovementDecision(parsed.movementDecision);
 
-  const nodeReferences = collectNodeReferencesById(parsed);
-  const { tree: rawTree, nodeIds } = normalizeSyntaxTreeWithIds(parsed.tree, nodeReferences, framework);
+  const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
+  const treeSource = parsed.tree && Array.isArray(parsed.tree.nodes)
+    ? compileFlatNodeTableToTree(parsed.tree.nodes, parsed.tree.rootId, framework, sentenceTokens)
+    : parsed.tree
+      ? parsed.tree
+      : Array.isArray(parsed.nodes)
+        ? compileFlatNodeTableToTree(parsed.nodes, parsed.rootId, framework, sentenceTokens)
+        : null;
+  const nodeReferences = collectNodeReferencesById(treeSource || parsed);
+  const { tree: rawTree, nodeIds } = normalizeSyntaxTreeWithIds(treeSource, nodeReferences, framework, sentenceTokens);
+  materializeLexicalPhrasalLeaves(rawTree);
   const nodeById = buildNodeIndexFromTree(rawTree);
   const labelIndex = buildNodeLabelIndexFromTree(rawTree);
   const derivationSteps = normalizeDerivationSteps(parsed.derivationSteps, nodeIds);
   const rawMovementEvents = normalizeMovementEvents(parsed.movementEvents, nodeIds, derivationSteps, nodeById, labelIndex);
+  canonicalizeSplitClauseEdgeMovedPhrases(rawTree, rawMovementEvents);
   const redirects = collapseOvertHeadLandingChains(rawTree);
   const remappedDerivationSteps = remapDerivationStepsNodeIds(derivationSteps, redirects);
   const remappedRawMovementEvents = remapMovementEventsNodeIds(rawMovementEvents, redirects);
@@ -2983,12 +3912,9 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
     rawMovementEvents: remappedRawMovementEvents
   });
   stripMovementIndicesFromTree(tree);
-  const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
   const sentenceTokenSet = new Set(sentenceTokens.map(normalizeSurfaceToken).filter(Boolean));
   materializeEmptyStructuralLeaves(tree, sentenceTokenSet);
   promoteSentenceMatchingLeaves(tree, sentenceTokenSet);
-  const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
-  reorderChildrenBySentenceOrder(tree, normalizedSentenceTokens);
   const postStripOvertTerminals = collectOvertTerminalNodes(tree);
   const cleanSurfaceOrder = postStripOvertTerminals
     .map((node) => resolveNodeSurface(node))
@@ -3004,6 +3930,10 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
     surfaceOrder,
     modelDerivationSteps: remappedDerivationSteps
   });
+  const coherentMovementDecision = reconcileMovementDecisionWithCommittedAnalysis(
+    movementDecision,
+    canonicalTimeline.movementEvents
+  );
   const reconciledDerivationSteps = reconcileDerivationStepOperations(
     canonicalTimeline.derivationSteps,
     canonicalTimeline.movementEvents
@@ -3023,7 +3953,7 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '') => {
   return {
     tree,
     explanation: coherentExplanation,
-    movementDecision,
+    movementDecision: coherentMovementDecision,
     surfaceOrder,
     partsOfSpeech: normalizePartsOfSpeech(parsed.partsOfSpeech),
     bracketedNotation: serializeTreeToBracketedNotation(tree),
@@ -3275,17 +4205,35 @@ const generateStructuredContent = async ({
   }
 };
 
-const buildSystemInstruction = (framework = 'xbar') =>
-  (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) + '\n\n' + BASE_INSTRUCTION;
+const buildSystemInstruction = (framework = 'xbar', modelRoute = 'flash-lite') =>
+  (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
+  '\n\n' +
+  BASE_INSTRUCTION +
+  (modelRoute === 'flash-lite' ? `\n\n${LITE_FORMAT_INSTRUCTION}` : '');
 
-const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
+const buildSingleParseContentsPrompt = (sentence, framework = 'xbar', modelRoute = 'flash-lite') =>
   `Analyze the sentence: "${sentence}" and return a complete syntactic tree analysis using ` +
   `${framework === 'xbar' ? 'X-Bar Theory' : 'The Minimalist Program (Bare Phrase Structure)'} in the specified JSON format. ` +
   `Return the complete analysis in one pass. ` +
+  `${modelRoute === 'flash-lite'
+    ? `For the structure, use the flat node-table format only: return analyses[].nodes plus optional rootId, and do not return a nested "tree" field at all. ` +
+      `Every node should have id, label, and siblingOrder; non-root nodes should include parentId; overt terminal nodes should include word and tokenIndex; phrasal nodes may include surfaceSpan. ` +
+      `Do not place overt word directly on a phrasal node; realize overt words only on head/preterminal nodes below that phrase. ` +
+      `Babel will deterministically compile that committed node table into the visible tree, so focus on structural commitments rather than hand-serializing nested children arrays. `
+    : `Use the standard nested tree format with explicit ordered children arrays. ` +
+      `Each overt subtree must already appear in the correct pronounced order inside the returned tree. `}` +
   `Use these exact overt input tokens as your pronounced terminals: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
+  `For overt terminal leaves, include tokenIndex values tied to that token list: ${tokenizeSentenceSurfaceOrder(sentence).map((token, index) => `${index}:${token}`).join(' | ')}. ` +
   `Do not split or rewrite those overt tokens. ` +
-  `CRITICAL LINEARIZATION RULE: At every node in the tree, the children array must be ordered so that a left-to-right depth-first traversal of the entire tree reads out the overt terminals in exactly the pronounced sentence order. ` +
+  `CRITICAL LINEARIZATION RULE: Your committed structure must realize the overt terminals in exactly the pronounced sentence order. ` +
+  `${modelRoute === 'flash-lite'
+      ? `In the flat node-table format, make every parent-child relation and every surfaceSpan/tokenIndex consistent with that order. Every phrasal node's surfaceSpan must match the leftmost and rightmost overt descendant token indices of that node. Only overt terminals may carry tokenIndex; traces, nulls, and silent copies must omit tokenIndex. For phrasal movement, the lower source must be a lower copy of the moved phrase, not merely a head trace inside that phrase. For head movement, the lower source must be a lower head or head-copy, not a whole phrase containing that head. Do not reuse one lower node as the source of both a phrasal Move and a HeadMove unless the analysis explicitly represents both dependencies there. If a bar-level shell would force one child to surface between the overt descendants of another sibling, do not use that shell there; encode the actual head/specifier/complement order directly with siblingOrder instead. `
+    : `In the nested tree format, at every node the children array must be ordered so that a left-to-right depth-first traversal of the entire tree reads out the overt terminals in exactly the pronounced sentence order. `}` +
+  `Token indices and surface spans must agree with that same left-to-right order. ` +
   `This means: if a child subtree contains an overt terminal that is pronounced earlier in the sentence, that child must appear BEFORE siblings whose overt terminals are pronounced later. This applies at every level of the tree, not just the root. ` +
+  `${modelRoute === 'flash-lite'
+    ? `For any pair of sisters with overt descendants, one sister's overt token interval must be entirely before or entirely after the other's. Do not create sibling structures whose overt intervals interleave. `
+    : ''}` +
   `Use each overt input token exactly once in the final tree unless that token occurs multiple times in the sentence itself. ` +
   `If you include a silent or null terminal, use exactly "∅". ` +
   `Use "word" for terminal surface forms, never "value". ` +
@@ -3293,38 +4241,132 @@ const buildParseContentsPrompt = (sentence, framework = 'xbar') =>
   `If you use traces, use only canonical trace forms like t, trace, t_1, or trace_DP; do not use hyphenated trace forms. ` +
   `Do not use helper position labels such as labels beginning with "Spec" as separate nodes; represent the phrase itself instead. ` +
   `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
+  `Do not split one overt moved phrase across an overt C/head node plus a separate DP/NP/PP phrase shell; if a phrase moves to the clause edge, keep all overt words of that phrase inside that single moved phrase node. ` +
   `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
-  `Write the explanation as a developed academic paragraph rather than a compressed checklist. When directly warranted by the committed analysis, you may briefly situate it in a recognized analytical tradition or mention a relevant scholar. ` +
+  `Write the explanation as a developed academic paragraph rather than a compressed checklist. When directly warranted by the committed analysis, you may briefly situate it in a recognized analytical tradition or mention a relevant scholar. If you mention a scholar or tradition, make the reference specific and complete; do not use vague phrases like "and others". ` +
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
-  `FINAL CHECK: Read the overt terminals of your tree left-to-right by DFS. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. If they do not, reorder the children arrays until they do.`;
+  `${modelRoute === 'flash-lite'
+    ? `FLASH LITE FORMAT CHECK: Return analyses[].nodes plus optional rootId only; never return tree or tree.nodes. tokenIndex belongs only on overt terminals. surfaceSpan must agree with overt descendants and sentence order. ` +
+      `FLASH LITE FORMAT CHECK AGAIN: analyses[].nodes is the only allowed structural format. Nulls, traces, and silent copies must omit tokenIndex. Every node must include siblingOrder. ` +
+      `FLASH LITE FORMAT CHECK A THIRD TIME: parentId, siblingOrder, and overt tokenIndex are the primary commitments. If unsure about a surfaceSpan, omit it rather than guessing. Every overt terminal must still include tokenIndex. Never place an overt word directly on a phrasal node. If a head-initial clause would spell the sentence wrongly under a bar-level shell, do not use that shell there; encode the overt head, subject/specifier, and complement material as direct ordered siblings. `
+    : ''}` +
+  `FINAL CHECK: Read the overt terminals of your committed structure in left-to-right order. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. Every overt leaf should point to the matching tokenIndex, and the returned structure should already encode the correct sentence order before you return it.`;
 
-const buildSerializerContentsPrompt = (sentence, framework = 'xbar', draftPayload) =>
-  `Rewrite the following draft syntactic analysis into Babel's canonical JSON schema without changing the underlying analysis.\n\n` +
-  `Sentence: "${sentence}"\n` +
-  `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}\n` +
-  `Exact pronounced tokens: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}\n\n` +
-  `Required canonicalization rules:\n` +
-  `- Use the exact same overt tokens and pronounced order.\n` +
-  `- Use "word" for terminal surface forms, not alternate fields like "value".\n` +
-  `- Every node must have a usable "label".\n` +
-  `- In movementEvents, use only: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note.\n` +
-  `- Keep the draft's movement/no-movement commitments; do not reinterpret the syntax.\n` +
-  `- Keep lower-copy and null notation consistent, and use exactly "∅" for silent terminals.\n\n` +
-  `Draft analysis JSON:\n` +
-  '```json\n' +
-  `${JSON.stringify(draftPayload, null, 2)}\n` +
-  '```';
+const buildParseContentsPrompt = (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
+  const basePrompt = buildSingleParseContentsPrompt(sentence, framework, modelRoute);
+  const repeatedConsistencyCheck =
+    `CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis. ` +
+    `The overt terminals must spell exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
+    `movementDecision, movementEvents, derivationSteps, explanation, and the tree must all reflect the same movement story. ` +
+    `If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove. ` +
+    `${modelRoute === 'flash-lite'
+      ? `For Flash Lite, analyses[].nodes plus optional rootId is the only allowed structural format, overt terminals must carry tokenIndex, silent terminals must omit tokenIndex, every node must include siblingOrder, sister nodes with overt descendants must realize disjoint non-interleaving token intervals, and any head-initial local order that would fail under a bar-level shell must instead be encoded directly with ordered siblings. `
+      : ''}` +
+    `Return one final JSON answer only.`;
+  return (
+    `${basePrompt}\n\n` +
+    `${repeatedConsistencyCheck}`
+  );
+};
 
-const shouldAttemptSerializerPass = (error) => {
+const buildSerializerContentsPrompt = (sentence, framework = 'xbar', draftPayload, modelRoute = 'pro') => {
+  const tokenText = tokenizeSentenceSurfaceOrder(sentence).join(' | ');
+  const tokenIndexText = tokenizeSentenceSurfaceOrder(sentence).map((token, index) => `${index}:${token}`).join(' | ');
+
+  if (modelRoute === 'flash-lite') {
+    return (
+      `Rewrite the following draft structural output into Babel's canonical flat node-table schema without changing the underlying analysis.\n\n` +
+      `Sentence: "${sentence}"\n` +
+      `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}\n` +
+      `Exact pronounced tokens: ${tokenText}\n` +
+      `Exact token indices: ${tokenIndexText}\n\n` +
+      `Required canonicalization rules:\n` +
+      `- Return analyses[].nodes plus optional rootId as the only structural format.\n` +
+      `- Preserve the same hierarchy, overt/null distinction, movement commitments, and overt token inventory.\n` +
+      `- Use parentId to encode hierarchy.\n` +
+      `- Every overt terminal must include tokenIndex.\n` +
+      `- Traces, nulls, and silent copies must omit tokenIndex.\n` +
+      `- Use "word" for terminal surface forms, not alternate fields like "value".\n` +
+      `- Every node must have a usable label.\n` +
+      `- If surfaceSpan is present, it must agree with the leftmost and rightmost overt descendant token indices.\n` +
+      `- Sister nodes with overt descendants must realize disjoint, non-interleaving token intervals.\n` +
+      `- Do not rewrite the analysis into a nested tree.\n\n` +
+      `Serializer procedure:\n` +
+      `1. Preserve the same committed analysis.\n` +
+      `2. Normalize field names, labels, ids, and parentId relations into the flat node-table schema.\n` +
+      `3. Ensure every overt terminal is tied to the correct tokenIndex from: ${tokenText}.\n` +
+      `4. Ensure the final node table implies exactly that sentence order and no other overt order.\n` +
+      `5. Before returning, verify that no overt token is missing, duplicated, or attached to a silent node.\n\n` +
+      `Draft analysis JSON (only structural serialization should be rewritten; all non-structural commitments will be preserved outside this serializer pass):\n` +
+      '```json\n' +
+      `${JSON.stringify({
+        analyses: Array.isArray(draftPayload?.analyses)
+          ? draftPayload.analyses.map((analysis) => ({
+              tree: analysis?.tree,
+              nodes: analysis?.nodes,
+              rootId: analysis?.rootId
+            }))
+          : []
+      }, null, 2)}\n` +
+      '```'
+    );
+  }
+
+  return (
+    `Rewrite the following draft tree into Babel's canonical tree JSON schema without changing the underlying analysis.\n\n` +
+    `Sentence: "${sentence}"\n` +
+    `Framework: ${framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}\n` +
+    `Exact pronounced tokens: ${tokenText}\n` +
+    `Exact token indices: ${tokenIndexText}\n\n` +
+    `Required canonicalization rules:\n` +
+    `- Use the exact same overt tokens and pronounced order.\n` +
+    `- Every overt terminal leaf must include tokenIndex pointing to the corresponding sentence token.\n` +
+    `- Overt children must appear in ascending tokenIndex/surfaceSpan order.\n` +
+    `- If a subtree's children are out of order, reorder the children array only; do not change the hierarchy, dominance relations, or movement commitments.\n` +
+    `- Use "word" for terminal surface forms, not alternate fields like "value".\n` +
+    `- Every node must have a usable "label".\n` +
+    `- Keep lower-copy and null notation consistent, and use exactly "∅" for silent terminals.\n\n` +
+    `Serializer procedure:\n` +
+    `1. Preserve the same tree structure and same committed analysis.\n` +
+    `2. Normalize field names and missing labels into Babel's canonical tree schema.\n` +
+    `3. Reorder child arrays wherever needed so a left-to-right DFS over overt leaves spells exactly: ${tokenText}.\n` +
+    `4. Assign tokenIndex values from that final overt DFS order.\n` +
+    `5. Before returning, verify that the overt DFS yield of the tree exactly matches the sentence tokens and that no overt token is missing, duplicated, or reordered.\n\n` +
+    `Draft analysis JSON (only the tree should be rewritten; all non-tree commitments will be preserved outside this serializer pass):\n` +
+    '```json\n' +
+    `${JSON.stringify({
+      analyses: Array.isArray(draftPayload?.analyses)
+        ? draftPayload.analyses.map((analysis) => ({ tree: analysis?.tree }))
+        : []
+    }, null, 2)}\n` +
+    '```'
+  );
+};
+
+const payloadUsesFlatNodeTable = (payload) => {
+  const analyses = Array.isArray(payload?.analyses) ? payload.analyses : payload ? [payload] : [];
+  return analyses.some((analysis) => (
+    Array.isArray(analysis?.nodes) ||
+    Array.isArray(analysis?.tree?.nodes)
+  ));
+};
+
+const shouldAttemptSerializerPass = (error, modelRoute = 'pro', payload = null) => {
   if (!(error instanceof ParseApiError) || error.code !== 'BAD_MODEL_RESPONSE') return false;
   const message = String(error.message || '');
   return (
     message.includes('Malformed structural components from model.') ||
-    message.includes('Malformed tree node from model')
+    message.includes('Malformed tree node from model') ||
+    message.includes('Tree overt terminals do not match the input sentence order.') ||
+    message.includes('All overt leaves must include tokenIndex once token anchoring is used.') ||
+    message.includes('Overt token indices do not cover the sentence exactly once.') ||
+    message.includes('Children arrays do not realize overt terminals in ascending tokenIndex order.') ||
+    message.includes('Children arrays do not follow ascending surface-span order.') ||
+    message.includes('Leaf tokenIndex does not match the overt sentence token it claims to realize.')
   );
 };
 
@@ -3334,17 +4376,23 @@ const runSerializerPass = async ({
   sentence,
   framework,
   draftPayload,
+  modelRoute = 'pro',
   abortSignal
 }) => {
-  const contents = buildSerializerContentsPrompt(sentence, framework, draftPayload);
+  const contents = buildSerializerContentsPrompt(sentence, framework, draftPayload, modelRoute);
+  const serializerSystemInstruction =
+    SERIALIZER_SYSTEM_INSTRUCTION +
+    (modelRoute === 'flash-lite'
+      ? `\n\nFor Flash Lite route outputs, keep the final structure in flat node-table form only: analyses[].nodes plus optional rootId.`
+      : '');
   const generation = await generateStructuredContent({
     ai,
     model,
     contents,
-    systemInstruction: SERIALIZER_SYSTEM_INSTRUCTION,
+    systemInstruction: serializerSystemInstruction,
     temperature: MODEL_TEMPERATURE,
     abortSignal,
-    responseJsonSchema: PARSE_RESPONSE_JSON_SCHEMA
+    responseJsonSchema: parseResponseJsonSchemaForRoute(modelRoute)
   });
 
   if (isTruncatedGeneration(generation)) {
@@ -3355,6 +4403,41 @@ const runSerializerPass = async ({
   return {
     payload: parseModelJson(generationMeta.rawText),
     generationMeta
+  };
+};
+
+const mergeSerializedStructureIntoDraftPayload = (draftPayload, serializedPayload) => {
+  const draftAnalyses = Array.isArray(draftPayload?.analyses) ? draftPayload.analyses : [];
+  const serializedAnalyses = Array.isArray(serializedPayload?.analyses) ? serializedPayload.analyses : [];
+  if (draftAnalyses.length === 0 || serializedAnalyses.length === 0) {
+    return serializedPayload;
+  }
+
+  const mergedAnalyses = draftAnalyses.map((draftAnalysis, index) => {
+    const serializedAnalysis = serializedAnalyses[index];
+    if (!serializedAnalysis || typeof serializedAnalysis !== 'object') return draftAnalysis;
+
+    const merged = { ...draftAnalysis };
+    if (serializedAnalysis.tree && typeof serializedAnalysis.tree === 'object') {
+      merged.tree = serializedAnalysis.tree;
+      delete merged.nodes;
+      delete merged.rootId;
+    }
+    if (Array.isArray(serializedAnalysis.nodes)) {
+      merged.nodes = serializedAnalysis.nodes;
+      if (typeof serializedAnalysis.rootId === 'string' && serializedAnalysis.rootId.trim()) {
+        merged.rootId = serializedAnalysis.rootId.trim();
+      } else {
+        delete merged.rootId;
+      }
+      delete merged.tree;
+    }
+    return merged;
+  });
+
+  return {
+    ...draftPayload,
+    analyses: mergedAnalyses
   };
 };
 
@@ -3396,8 +4479,9 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
 
   const ai = new GoogleGenAI({ apiKey });
   const normalizedModelRoute = modelRoute === 'pro' ? 'pro' : 'flash-lite';
-  const systemInstruction = buildSystemInstruction(framework);
-  const contents = buildParseContentsPrompt(sentence, framework);
+  const systemInstruction = buildSystemInstruction(framework, normalizedModelRoute);
+  const contents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute);
+  const responseJsonSchema = parseResponseJsonSchemaForRoute(normalizedModelRoute);
   const preferredModel = normalizedModelRoute === 'pro' ? FALLBACK_MODEL : PRIMARY_MODEL;
   const baseModelCandidates = Array.from(new Set([preferredModel].map((model) => String(model || '').trim()).filter(Boolean)));
   const healthyModels = baseModelCandidates.filter((model) => getModelCooldownRemainingMs(model) <= 0);
@@ -3425,7 +4509,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
       }
 
       for (let attempt = 1; attempt <= PRO_RETRY_MAX_ATTEMPTS; attempt += 1) {
-        const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+        const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
         if (remainingBudgetMs <= 1200) {
           lastError = new ParseApiError(
             'GEMINI_UNAVAILABLE',
@@ -3436,7 +4520,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           break;
         }
         try {
-          const baseTimeoutMs = resolveModelTimeoutMs(currentModel);
+          const baseTimeoutMs = resolveModelTimeoutMs(currentModel, normalizedModelRoute);
           const boundedTimeoutMs = resolveAttemptTimeoutMs({
             baseTimeoutMs,
             remainingBudgetMs,
@@ -3450,7 +4534,8 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
               contents,
               systemInstruction,
               temperature: MODEL_TEMPERATURE,
-              abortSignal
+              abortSignal,
+              responseJsonSchema
             }),
             boundedTimeoutMs,
             `Model generation (${currentModel})`
@@ -3493,12 +4578,12 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           try {
             candidateNormalized = normalizeParseBundle(payload, framework, sentence);
           } catch (error) {
-            if (shouldAttemptSerializerPass(error)) {
-              const serializerRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+            if (shouldAttemptSerializerPass(error, normalizedModelRoute, payload)) {
+              const serializerRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
               if (serializerRemainingBudgetMs > 1200) {
                 try {
                   const serializerTimeoutMs = resolveAttemptTimeoutMs({
-                    baseTimeoutMs: resolveModelTimeoutMs(currentModel),
+                    baseTimeoutMs: resolveModelTimeoutMs(currentModel, normalizedModelRoute),
                     remainingBudgetMs: serializerRemainingBudgetMs,
                     hasNextModel,
                     attempt
@@ -3510,12 +4595,14 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
                       sentence,
                       framework,
                       draftPayload: payload,
+                      modelRoute: normalizedModelRoute,
                       abortSignal
                     }),
                     serializerTimeoutMs,
                     `Serializer pass (${currentModel})`
                   );
-                  candidateNormalized = normalizeParseBundle(serialized.payload, framework, sentence);
+                  const mergedPayload = mergeSerializedStructureIntoDraftPayload(payload, serialized.payload);
+                  candidateNormalized = normalizeParseBundle(mergedPayload, framework, sentence);
                 } catch (serializerError) {
                   if (serializerError instanceof ParseApiError && serializerError.code === 'BAD_MODEL_RESPONSE') {
                     let payloadPreview = '<unserializable>';
@@ -3585,11 +4672,11 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
             }
           }
 
-          const notesRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+            const notesRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
           if (USE_NOTES_PASS && candidateNormalized && notesRemainingBudgetMs > 1200) {
             try {
               const notesTimeoutMs = resolveAttemptTimeoutMs({
-                baseTimeoutMs: resolveModelTimeoutMs(currentModel),
+                baseTimeoutMs: resolveModelTimeoutMs(currentModel, normalizedModelRoute),
                 remainingBudgetMs: notesRemainingBudgetMs,
                 hasNextModel,
                 attempt
@@ -3810,9 +4897,11 @@ export const __test__ = {
   harmonizeExplanationWithDerivation,
   buildSystemInstruction,
   buildParseContentsPrompt,
+  parseResponseJsonSchemaForRoute,
   buildSerializerContentsPrompt,
   buildNotesContentsPrompt,
   reconcileModelExplanationWithDerivation,
   reconcileGeneratedExplanationWithDerivation,
+  mergeSerializedStructureIntoDraftPayload,
   parseModelJson
 };

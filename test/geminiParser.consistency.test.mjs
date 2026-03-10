@@ -9,13 +9,15 @@ const {
   buildCanonicalMovementEvents,
   buildSystemInstruction,
   buildParseContentsPrompt,
+  parseResponseJsonSchemaForRoute,
   buildSerializerContentsPrompt,
   buildNotesContentsPrompt,
   reconcileModelExplanationWithDerivation,
-  reconcileGeneratedExplanationWithDerivation
+  reconcileGeneratedExplanationWithDerivation,
+  mergeSerializedStructureIntoDraftPayload
 } = __test__;
 
-const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:[_-][a-z0-9]+)+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
+const TRACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:_[a-z0-9]+)+|[a-z]+_trace(?:_[a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|∅|Ø|ε|null|epsilon)$/i;
 const tokenize = (sentence) => String(sentence || '').trim().split(/\s+/).filter(Boolean);
 
 function annotateSurfaceSpans(tree, sentence) {
@@ -165,6 +167,7 @@ test('normalizeParseBundle commits a surface-consistent embedded-clause tree and
 
 test('buildSystemInstruction reinforces single overt realization and explicit movement-source commitments', () => {
   const instruction = buildSystemInstruction('xbar');
+  const proInstruction = buildSystemInstruction('xbar', 'pro');
 
   assert.match(instruction, /The tree must be the final pronounced structure/i);
   assert.match(instruction, /First decide movement and encode it in "movementDecision\.hasMovement"/i);
@@ -178,15 +181,28 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   assert.match(instruction, /Do not stack extra overt head labels such as C > V > word/i);
   assert.match(instruction, /use exactly one overt head label above the pronounced word/i);
   assert.match(instruction, /landing head should directly dominate the overt word/i);
+  assert.match(instruction, /If the final tree places an overt head in a higher functional head position .* this must be encoded as a HeadMove/i);
+  assert.match(instruction, /Flash Lite format discipline/i);
+  assert.match(instruction, /Every overt terminal leaf must include tokenIndex/i);
+  assert.doesNotMatch(proInstruction, /Flash Lite format discipline/i);
 });
 
 test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lower copies', () => {
   const prompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar');
+  const proPrompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar', 'pro');
 
   assert.match(prompt, /Return the complete analysis in one pass/i);
+  assert.match(prompt, /For the structure, use the flat node-table format/i);
+  assert.match(prompt, /return analyses\[\]\.nodes plus optional rootId, and do not return a nested \"tree\" field at all/i);
+  assert.match(prompt, /Babel will deterministically compile that committed node table into the visible tree/i);
+  assert.match(prompt, /include tokenIndex values tied to that token list/i);
+  assert.match(proPrompt, /Use the standard nested tree format with explicit ordered children arrays/i);
+  assert.doesNotMatch(proPrompt, /Babel will deterministically compile that committed node table into the visible tree/i);
+  assert.match(proPrompt, /CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis\./i);
   assert.match(prompt, /Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice/i);
   assert.match(prompt, /If movement occurs, make it explicit\. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise/i);
-  assert.match(prompt, /The order of children in your final tree must encode the pronounced left-to-right order|CRITICAL LINEARIZATION RULE.*children array must be ordered/i);
+  assert.match(prompt, /CRITICAL LINEARIZATION RULE: Your committed structure must realize the overt terminals in exactly the pronounced sentence order/i);
+  assert.match(prompt, /Token indices and surface spans must agree with that same left-to-right order/i);
   assert.match(prompt, /Use each overt input token exactly once in the final tree/i);
   assert.match(prompt, /use exactly "∅"/i);
   assert.match(prompt, /Keep lower copy notation consistent within this tree, including phrasal and head movement/i);
@@ -195,8 +211,31 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /realize it there as one overt head rather than stacking labels like C > V > word/i);
   assert.match(prompt, /use exactly one overt head label above the pronounced word/i);
   assert.match(prompt, /landing head should directly dominate the overt word/i);
+  assert.match(prompt, /If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove/i);
   assert.match(prompt, /developed academic paragraph rather than a compressed checklist/i);
   assert.match(prompt, /recognized analytical tradition or mention a relevant scholar/i);
+  assert.match(prompt, /FLASH LITE FORMAT CHECK: Return analyses\[\]\.nodes plus optional rootId only; never return tree or tree\.nodes\./i);
+  assert.match(prompt, /FLASH LITE FORMAT CHECK AGAIN: analyses\[\]\.nodes is the only allowed structural format\./i);
+  assert.match(prompt, /FLASH LITE FORMAT CHECK A THIRD TIME: parentId, siblingOrder, and overt tokenIndex are the primary commitments\./i);
+  assert.match(prompt, /CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis\./i);
+});
+
+test('parseResponseJsonSchemaForRoute uses flat analysis schema for lite and mixed schema for pro', () => {
+  const liteSchema = parseResponseJsonSchemaForRoute('flash-lite');
+  const proSchema = parseResponseJsonSchemaForRoute('pro');
+
+  assert.equal(liteSchema.properties.analyses.items.required.includes('nodes'), true);
+  assert.equal(liteSchema.properties.analyses.items.additionalProperties, false);
+  assert.equal(
+    liteSchema.$defs.flatSyntaxNode.required.includes('siblingOrder'),
+    true
+  );
+  assert.equal(Array.isArray(proSchema.properties.analyses.items.anyOf), true);
+  assert.equal(proSchema.properties.analyses.items.anyOf.length, 2);
+  assert.equal(
+    proSchema.$defs.syntaxNode.required.includes('siblingOrder'),
+    false
+  );
 });
 
 test('buildSerializerContentsPrompt constrains the serializer to canonical schema only', () => {
@@ -218,11 +257,577 @@ test('buildSerializerContentsPrompt constrains the serializer to canonical schem
   const prompt = buildSerializerContentsPrompt('Wen hat Maria gesehen?', 'xbar', draftPayload);
 
   assert.match(prompt, /without changing the underlying analysis/i);
+  assert.match(prompt, /Every overt terminal leaf must include tokenIndex/i);
+  assert.match(prompt, /ascending tokenIndex\/surfaceSpan order/i);
+  assert.match(prompt, /reorder the children array only/i);
+  assert.match(prompt, /left-to-right DFS over overt leaves spells exactly: Wen \| hat \| Maria \| gesehen/i);
   assert.match(prompt, /Use "word" for terminal surface forms, not alternate fields like "value"/i);
   assert.match(prompt, /Every node must have a usable "label"/i);
-  assert.match(prompt, /Keep the draft's movement\/no-movement commitments; do not reinterpret the syntax/i);
+  assert.match(prompt, /do not change the hierarchy, dominance relations, or movement commitments/i);
+  assert.match(prompt, /Preserve the same tree structure and same committed analysis/i);
   assert.match(prompt, /Exact pronounced tokens: Wen \| hat \| Maria \| gesehen/i);
   assert.match(prompt, /"value": "Wen"/i);
+});
+
+test('buildSerializerContentsPrompt keeps lite serializer in flat node-table format', () => {
+  const draftPayload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n1', label: 'CP' },
+          { id: 'n2', label: 'D', parentId: 'n1', value: 'Welchen' }
+        ],
+        rootId: 'n1',
+        explanation: 'A lite draft analysis.'
+      }
+    ]
+  };
+
+  const prompt = buildSerializerContentsPrompt('Welchen Film hat Jonas empfohlen?', 'xbar', draftPayload, 'flash-lite');
+
+  assert.match(prompt, /canonical flat node-table schema/i);
+  assert.match(prompt, /Return analyses\[\]\.nodes plus optional rootId as the only structural format/i);
+  assert.match(prompt, /Do not rewrite the analysis into a nested tree/i);
+  assert.match(prompt, /Every overt terminal must include tokenIndex/i);
+  assert.match(prompt, /"value": "Welchen"/i);
+});
+
+test('reconcileModelExplanationWithDerivation removes implementation-leak prose but keeps scholar flavor', () => {
+  const explanation = [
+    'This analysis follows the tradition of McCloskey in treating the verb as raising to the clausal domain.',
+    'By flattening the structure to preserve siblingOrder, the derivation maps tokenIndex values onto the pronounced string.'
+  ].join(' ');
+
+  const reconciled = reconcileModelExplanationWithDerivation(
+    explanation,
+    'Fallback explanation.',
+    [{ operation: 'HeadMove', fromNodeId: 'n1', toNodeId: 'n2', traceNodeId: 'n3' }]
+  );
+
+  assert.match(reconciled, /McCloskey/i);
+  assert.doesNotMatch(reconciled, /flattening the structure/i);
+  assert.doesNotMatch(reconciled, /siblingOrder/i);
+  assert.doesNotMatch(reconciled, /tokenIndex/i);
+});
+
+test('mergeSerializedStructureIntoDraftPayload preserves original movement commitments while swapping in serialized structure', () => {
+  const draftPayload = {
+    analyses: [
+      {
+        tree: {
+          id: 'old-root',
+          label: 'CP',
+          children: []
+        },
+        explanation: 'Original explanation with movement.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'Movement is part of the committed analysis.'
+        },
+        movementEvents: [
+          {
+            operation: 'Move',
+            fromNodeId: 'n14',
+            toNodeId: 'n2',
+            traceNodeId: 'n14'
+          },
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'n10',
+            toNodeId: 'n7'
+          }
+        ],
+        derivationSteps: [
+          { operation: 'Move', targetNodeId: 'n2', sourceNodeIds: ['n14'] },
+          { operation: 'HeadMove', targetNodeId: 'n7', sourceNodeIds: ['n10'] }
+        ]
+      }
+    ]
+  };
+
+  const serializedPayload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n1', label: 'CP' },
+          { id: 'n2', label: 'DP', parentId: 'n1' }
+        ],
+        rootId: 'n1',
+        explanation: 'Serializer flattened the explanation.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement.'
+        },
+        movementEvents: []
+      }
+    ]
+  };
+
+  const merged = mergeSerializedStructureIntoDraftPayload(draftPayload, serializedPayload);
+  const analysis = merged.analyses[0];
+
+  assert.ok(Array.isArray(analysis.nodes));
+  assert.equal(analysis.rootId, 'n1');
+  assert.equal(analysis.tree, undefined);
+  assert.equal(analysis.explanation, 'Original explanation with movement.');
+  assert.deepEqual(analysis.movementDecision, {
+    hasMovement: true,
+    rationale: 'Movement is part of the committed analysis.'
+  });
+  assert.equal(analysis.movementEvents.length, 2);
+  assert.deepEqual(analysis.derivationSteps.map((step) => step.operation), ['Move', 'HeadMove']);
+});
+
+test('normalizeParseBundle accepts token-anchored overt leaves and derives canonical spans', () => {
+  const sentence = 'Ha comprado Ana el libro?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'cp',
+          label: 'CP',
+          children: [
+            {
+              id: 'cbar',
+              label: "C'",
+              children: [
+                { id: 'c', label: 'C', children: [{ id: 'ha', label: 'Ha', tokenIndex: 0 }] },
+                {
+                  id: 'inflp',
+                  label: 'InflP',
+                  children: [
+                    {
+                      id: 'vp',
+                      label: 'VP',
+                      children: [
+                        { id: 'v', label: 'V', children: [{ id: 'comprado', label: 'comprado', tokenIndex: 1 }] },
+                        { id: 'subj', label: 'DP', children: [{ id: 'ana', label: 'Ana', tokenIndex: 2 }] },
+                        {
+                          id: 'obj',
+                          label: 'DP',
+                          children: [
+                            { id: 'd', label: 'D', children: [{ id: 'el', label: 'el', tokenIndex: 3 }] },
+                            { id: 'n', label: 'N', children: [{ id: 'libro', label: 'libro', tokenIndex: 4 }] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A canonical token-anchored parse.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Ha', 'comprado', 'Ana', 'el', 'libro']);
+  assert.deepStrictEqual(analysis.tree.surfaceSpan, [0, 4]);
+  assert.equal(analysis.tree.children[0].children[0].children[0].word, 'Ha');
+});
+
+test('normalizeParseBundle compiles a flat node table into a canonical nested tree', () => {
+  const sentence = 'Ha comprado Ana el libro?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'cp', label: 'CP', surfaceSpan: [0, 4] },
+          { id: 'cbar', label: "C'", parentId: 'cp', surfaceSpan: [0, 4] },
+          { id: 'inflp', label: 'InflP', parentId: 'cbar', surfaceSpan: [1, 4] },
+          { id: 'c', label: 'C', parentId: 'cbar', surfaceSpan: [0, 0] },
+          { id: 'ha', label: 'Aux', parentId: 'c', word: 'Ha', tokenIndex: 0 },
+          { id: 'vp', label: 'VP', parentId: 'inflp', surfaceSpan: [1, 4] },
+          { id: 'v', label: 'V', parentId: 'vp', surfaceSpan: [1, 1] },
+          { id: 'comprado', label: 'V', parentId: 'v', word: 'comprado', tokenIndex: 1 },
+          { id: 'subj', label: 'DP', parentId: 'vp', surfaceSpan: [2, 2] },
+          { id: 'ana', label: 'N', parentId: 'subj', word: 'Ana', tokenIndex: 2 },
+          { id: 'obj', label: 'DP', parentId: 'vp', surfaceSpan: [3, 4] },
+          { id: 'd', label: 'D', parentId: 'obj', surfaceSpan: [3, 3] },
+          { id: 'el', label: 'D', parentId: 'd', word: 'el', tokenIndex: 3 },
+          { id: 'n', label: 'N', parentId: 'obj', surfaceSpan: [4, 4] },
+          { id: 'libro', label: 'N', parentId: 'n', word: 'libro', tokenIndex: 4 }
+        ],
+        rootId: 'cp',
+        explanation: 'A canonical flat-node-table parse.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.equal(analysis.tree.label, 'CP');
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Ha', 'comprado', 'Ana', 'el', 'libro']);
+  assert.equal(analysis.tree.children[0].children[0].children[0].word, 'Ha');
+});
+
+test('normalizeParseBundle compiles a flat node table nested under tree into a canonical nested tree', () => {
+  const sentence = 'Welchen Film hat Jonas empfohlen?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          rootId: 'n1',
+          nodes: [
+            { id: 'n1', label: 'CP', surfaceSpan: [0, 4] },
+            { id: 'n2', label: 'DP', parentId: 'n1', surfaceSpan: [0, 1] },
+            { id: 'n3', label: "D'", parentId: 'n2', surfaceSpan: [0, 1] },
+            { id: 'n4', label: 'D', parentId: 'n3', word: 'Welchen', tokenIndex: 0 },
+            { id: 'n5', label: 'NP', parentId: 'n3', surfaceSpan: [1, 1] },
+            { id: 'n6', label: 'N', parentId: 'n5', word: 'Film', tokenIndex: 1 },
+            { id: 'n7', label: "C'", parentId: 'n1', surfaceSpan: [2, 4] },
+            { id: 'n8', label: 'C', parentId: 'n7', surfaceSpan: [2, 2] },
+            { id: 'n9', label: 'Aux', parentId: 'n8', word: 'hat', tokenIndex: 2 },
+            { id: 'n10', label: 'InflP', parentId: 'n7', surfaceSpan: [3, 4] },
+            { id: 'n11', label: 'DP', parentId: 'n10', surfaceSpan: [3, 3] },
+            { id: 'n12', label: 'N', parentId: 'n11', word: 'Jonas', tokenIndex: 3 },
+            { id: 'n13', label: "Infl'", parentId: 'n10', surfaceSpan: [4, 4] },
+            { id: 'n14', label: 'VP', parentId: 'n13', surfaceSpan: [4, 4] },
+            { id: 'n15', label: 'V', parentId: 'n14', word: 'empfohlen', tokenIndex: 4 }
+          ]
+        },
+        explanation: 'A canonical flat-node-table parse nested under tree.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.equal(analysis.tree.label, 'CP');
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Welchen', 'Film', 'hat', 'Jonas', 'empfohlen']);
+  assert.equal(analysis.tree.children[0].children[0].children[0].word, 'Welchen');
+});
+
+test('normalizeParseBundle orders flat-node siblings by overt token indices even when model surface spans are sloppy', () => {
+  const sentence = 'Ha comprado Ana el libro?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'cp', label: 'CP', surfaceSpan: [0, 4] },
+          { id: 'cbar', label: "C'", parentId: 'cp', surfaceSpan: [1, 4] },
+          { id: 'c', label: 'C', parentId: 'cbar', surfaceSpan: [4, 4] },
+          { id: 'ha', label: 'C', parentId: 'c', word: 'Ha', tokenIndex: 0 },
+          { id: 'inflp', label: 'InflP', parentId: 'cbar', surfaceSpan: [0, 3] },
+          { id: 'inflbar', label: "Infl'", parentId: 'inflp', surfaceSpan: [1, 4] },
+          { id: 'vp', label: 'VP', parentId: 'inflbar', surfaceSpan: [1, 4] },
+          { id: 'v', label: 'V', parentId: 'vp', word: 'comprado', tokenIndex: 1 },
+          { id: 'subj', label: 'DP', parentId: 'vp', surfaceSpan: [4, 4] },
+          { id: 'ana', label: 'N', parentId: 'subj', word: 'Ana', tokenIndex: 2 },
+          { id: 'obj', label: 'DP', parentId: 'vp', surfaceSpan: [2, 2] },
+          { id: 'd', label: 'D', parentId: 'obj', surfaceSpan: [4, 4] },
+          { id: 'el', label: 'D', parentId: 'd', word: 'el', tokenIndex: 3 },
+          { id: 'nbar', label: "N'", parentId: 'obj', surfaceSpan: [3, 3] },
+          { id: 'n', label: 'N', parentId: 'nbar', word: 'libro', tokenIndex: 4 }
+        ],
+        rootId: 'cp',
+        explanation: 'A flat-node parse with misleading spans but correct token anchoring.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Ha', 'comprado', 'Ana', 'el', 'libro']);
+});
+
+test('normalizeParseBundle ignores stray tokenIndex values on null or trace leaves in flat-node mode', () => {
+  const sentence = 'Welchen Film hat Jonas empfohlen?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'cp', label: 'CP' },
+          { id: 'dp', label: 'DP', parentId: 'cp' },
+          { id: 'd', label: 'D', parentId: 'dp', word: 'Welchen', tokenIndex: 0 },
+          { id: 'np', label: 'NP', parentId: 'dp', word: 'Film', tokenIndex: 1 },
+          { id: 'cbar', label: "C'", parentId: 'cp' },
+          { id: 'c', label: 'C', parentId: 'cbar', word: 'hat', tokenIndex: 2 },
+          { id: 'inflp', label: 'InflP', parentId: 'cbar' },
+          { id: 'subj', label: 'DP', parentId: 'inflp', word: 'Jonas', tokenIndex: 3 },
+          { id: 'inflbar', label: "Infl'", parentId: 'inflp' },
+          { id: 'vp', label: 'VP', parentId: 'inflbar' },
+          { id: 'v', label: 'V', parentId: 'vp', word: 'empfohlen', tokenIndex: 4 },
+          { id: 'trace', label: 't', parentId: 'vp', word: 't', tokenIndex: 4 }
+        ],
+        rootId: 'cp',
+        explanation: 'A flat-node parse with stray tokenIndex on a trace.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The wh-phrase moves to the left periphery.'
+        },
+        movementEvents: [{ operation: 'Move', fromNodeId: 'trace', toNodeId: 'dp', traceNodeId: 'trace' }],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Welchen', 'Film', 'hat', 'Jonas', 'empfohlen']);
+});
+
+test('normalizeParseBundle infers missing tokenIndex for unique overt words in flat-node mode', () => {
+  const sentence = 'Welchen Film hat Jonas empfohlen?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'cp', label: 'CP' },
+          { id: 'dp', label: 'DP', parentId: 'cp' },
+          { id: 'dbar', label: "D'", parentId: 'dp' },
+          { id: 'd', label: 'D', parentId: 'dbar', word: 'Welchen' },
+          { id: 'np', label: 'NP', parentId: 'dbar', word: 'Film', tokenIndex: 1 },
+          { id: 'cbar', label: "C'", parentId: 'cp' },
+          { id: 'c', label: 'C', parentId: 'cbar', word: 'hat', tokenIndex: 2 },
+          { id: 'inflp', label: 'InflP', parentId: 'cbar' },
+          { id: 'subj', label: 'DP', parentId: 'inflp', word: 'Jonas', tokenIndex: 3 },
+          { id: 'inflbar', label: "Infl'", parentId: 'inflp' },
+          { id: 'vp', label: 'VP', parentId: 'inflbar' },
+          { id: 'vbar', label: "V'", parentId: 'vp' },
+          { id: 'v', label: 'V', parentId: 'vbar', word: 'empfohlen', tokenIndex: 4 },
+          { id: 'trace', label: 'DP', parentId: 'vbar', word: 't' }
+        ],
+        rootId: 'cp',
+        explanation: 'A flat-node parse with one missing overt tokenIndex.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The wh-phrase moves to the left periphery.'
+        },
+        movementEvents: [{ operation: 'Move', fromNodeId: 'trace', toNodeId: 'dp', traceNodeId: 'trace' }],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Welchen', 'Film', 'hat', 'Jonas', 'empfohlen']);
+});
+
+test('normalizeParseBundle infers missing parentId links in flat-node mode from token intervals', () => {
+  const sentence = 'Melyik konyvet vette meg Anna?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n0', label: 'CP', surfaceSpan: [0, 4] },
+          { id: 'n1', label: 'DP', surfaceSpan: [0, 1] },
+          { id: 'n2', label: 'D', word: 'Melyik', tokenIndex: 0 },
+          { id: 'n3', label: 'NP', word: 'konyvet', tokenIndex: 1 },
+          { id: 'n4', label: 'C', word: 'vette', tokenIndex: 2 },
+          { id: 'n5', label: 'TP', surfaceSpan: [3, 4] },
+          { id: 'n6', label: 'V', word: 'meg', tokenIndex: 3 },
+          { id: 'n7', label: 'DP', word: 'Anna', tokenIndex: 4 }
+        ],
+        rootId: 'n0',
+        explanation: 'A flat-node parse with omitted parent links.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'minimalism', sentence);
+  const analysis = normalized.analyses[0];
+
+  assert.deepStrictEqual(analysis.surfaceOrder, ['Melyik', 'konyvet', 'vette', 'meg', 'Anna']);
+});
+
+test('normalizeParseBundle materializes overt lexical words on phrasal flat nodes into preterminal structure', () => {
+  const sentence = 'Melyik konyvet vette meg Anna?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n0', label: 'CP', surfaceSpan: [0, 4] },
+          { id: 'n1', label: 'DP', parentId: 'n0', surfaceSpan: [0, 1] },
+          { id: 'n2', label: 'D', parentId: 'n1', word: 'Melyik', tokenIndex: 0 },
+          { id: 'n3', label: 'NP', parentId: 'n1', word: 'konyvet', tokenIndex: 1 },
+          { id: 'n4', label: 'TP', parentId: 'n0', surfaceSpan: [2, 4] },
+          { id: 'n5', label: 'T', parentId: 'n4', word: 'vette', tokenIndex: 2 },
+          { id: 'n6', label: 'VP', parentId: 'n4', surfaceSpan: [3, 4] },
+          { id: 'n7', label: 'V', parentId: 'n6', word: 'meg', tokenIndex: 3 },
+          { id: 'n8', label: 'DP', parentId: 'n6', word: 'Anna', tokenIndex: 4 }
+        ],
+        rootId: 'n0',
+        explanation: 'A flat-node parse with lexical words on phrasal nodes.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'minimalism', sentence);
+  const analysis = normalized.analyses[0];
+  const whDp = analysis.tree.children[0];
+  const npChild = whDp.children.find((child) => child.label === 'NP');
+  assert.equal(npChild?.children?.[0]?.label, 'N');
+  const tp = analysis.tree.children[1];
+  const vp = tp.children.find((child) => child.label === 'VP');
+  const subjectDp = vp.children.find((child) => child.label === 'DP');
+  assert.equal(subjectDp?.children?.[0]?.label, 'NP');
+  assert.equal(subjectDp?.children?.[0]?.children?.[0]?.label, 'N');
+});
+
+test('normalizeParseBundle uses explicit siblingOrder in flat-node mode to preserve head-initial local order', () => {
+  const sentence = 'Gheall se go bhfillfeadh se ar an bhaile.';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n1', label: 'CP', surfaceSpan: [0, 7] },
+          { id: 'n2', label: "C'", parentId: 'n1', siblingOrder: 0, surfaceSpan: [0, 7] },
+          { id: 'n3', label: 'C', parentId: 'n2', siblingOrder: 1, word: '∅' },
+          { id: 'n4', label: 'InflP', parentId: 'n2', siblingOrder: 0, surfaceSpan: [0, 7] },
+          { id: 'n8', label: 'Infl', parentId: 'n4', siblingOrder: 0, word: 'Gheall', tokenIndex: 0 },
+          { id: 'n5', label: 'DP', parentId: 'n4', siblingOrder: 1, surfaceSpan: [1, 1] },
+          { id: 'n6', label: 'D', parentId: 'n5', siblingOrder: 0, word: 'se', tokenIndex: 1 },
+          { id: 'n9', label: 'VP', parentId: 'n4', siblingOrder: 2, surfaceSpan: [2, 7] },
+          { id: 'n10', label: "V'", parentId: 'n9', siblingOrder: 0, surfaceSpan: [2, 7] },
+          { id: 'n11', label: 'V', parentId: 'n10', siblingOrder: 1, word: '∅' },
+          { id: 'n12', label: 'CP', parentId: 'n10', siblingOrder: 0, surfaceSpan: [2, 7] },
+          { id: 'n13', label: "C'", parentId: 'n12', siblingOrder: 0, surfaceSpan: [2, 7] },
+          { id: 'n14', label: 'C', parentId: 'n13', siblingOrder: 0, word: 'go', tokenIndex: 2 },
+          { id: 'n15', label: 'InflP', parentId: 'n13', siblingOrder: 1, surfaceSpan: [3, 7] },
+          { id: 'n19', label: 'Infl', parentId: 'n15', siblingOrder: 0, word: 'bhfillfeadh', tokenIndex: 3 },
+          { id: 'n16', label: 'DP', parentId: 'n15', siblingOrder: 1, surfaceSpan: [4, 4] },
+          { id: 'n17', label: 'D', parentId: 'n16', siblingOrder: 0, word: 'se', tokenIndex: 4 },
+          { id: 'n20', label: 'VP', parentId: 'n15', siblingOrder: 2, surfaceSpan: [5, 7] },
+          { id: 'n21', label: "V'", parentId: 'n20', siblingOrder: 0, surfaceSpan: [5, 7] },
+          { id: 'n22', label: 'PP', parentId: 'n21', siblingOrder: 0, surfaceSpan: [5, 7] },
+          { id: 'n23', label: "P'", parentId: 'n22', siblingOrder: 0, surfaceSpan: [5, 7] },
+          { id: 'n24', label: 'P', parentId: 'n23', siblingOrder: 0, word: 'ar', tokenIndex: 5 },
+          { id: 'n25', label: 'DP', parentId: 'n23', siblingOrder: 1, surfaceSpan: [6, 7] },
+          { id: 'n26', label: "D'", parentId: 'n25', siblingOrder: 0, surfaceSpan: [6, 7] },
+          { id: 'n27', label: 'D', parentId: 'n26', siblingOrder: 0, word: 'an', tokenIndex: 6 },
+          { id: 'n28', label: 'NP', parentId: 'n26', siblingOrder: 1, surfaceSpan: [7, 7] },
+          { id: 'n29', label: 'N', parentId: 'n28', siblingOrder: 0, word: 'bhaile', tokenIndex: 7 }
+        ],
+        rootId: 'n1',
+        explanation: 'An Irish flat-node parse with explicit sibling ordering.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The verbs move to Infl in both clauses.'
+        },
+        movementEvents: [
+          { operation: 'HeadMove', fromNodeId: 'n11', toNodeId: 'n8' },
+          { operation: 'HeadMove', fromNodeId: 'n21', toNodeId: 'n19' }
+        ],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  assert.deepStrictEqual(
+    normalized.analyses[0].surfaceOrder,
+    ['Gheall', 'se', 'go', 'bhfillfeadh', 'se', 'ar', 'an', 'bhaile']
+  );
+});
+
+test('normalizeParseBundle falls back to token anchoring when explicit siblingOrder contradicts the sentence in flat-node mode', () => {
+  const sentence = 'Gheall se go bhfillfeadh se ar an bhaile.';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n0', label: 'CP', siblingOrder: 0 },
+          { id: 'n1', label: "C'", parentId: 'n0', siblingOrder: 0 },
+          { id: 'n2', label: 'C', parentId: 'n1', siblingOrder: 0 },
+          { id: 'n3', label: '∅', parentId: 'n2', siblingOrder: 0 },
+          { id: 'n4', label: 'InflP', parentId: 'n1', siblingOrder: 1 },
+          { id: 'n5', label: 'DP', parentId: 'n4', siblingOrder: 0 },
+          { id: 'n6', label: 'D', parentId: 'n5', siblingOrder: 0 },
+          { id: 'n7', label: 'se', parentId: 'n6', siblingOrder: 0, tokenIndex: 1 },
+          { id: 'n8', label: "Infl'", parentId: 'n4', siblingOrder: 1 },
+          { id: 'n9', label: 'Infl', parentId: 'n8', siblingOrder: 0 },
+          { id: 'n10', label: 'Gheall', parentId: 'n9', siblingOrder: 0, tokenIndex: 0 },
+          { id: 'n11', label: 'VP', parentId: 'n8', siblingOrder: 1 },
+          { id: 'n12', label: "V'", parentId: 'n11', siblingOrder: 0 },
+          { id: 'n13', label: 'V', parentId: 'n12', siblingOrder: 0 },
+          { id: 'n14', label: 't', parentId: 'n13', siblingOrder: 0 },
+          { id: 'n15', label: 'CP', parentId: 'n12', siblingOrder: 1 },
+          { id: 'n16', label: "C'", parentId: 'n15', siblingOrder: 0 },
+          { id: 'n17', label: 'C', parentId: 'n16', siblingOrder: 0 },
+          { id: 'n18', label: 'go', parentId: 'n17', siblingOrder: 0, tokenIndex: 2 },
+          { id: 'n19', label: 'InflP', parentId: 'n16', siblingOrder: 1 },
+          { id: 'n20', label: 'DP', parentId: 'n19', siblingOrder: 0 },
+          { id: 'n21', label: 'D', parentId: 'n20', siblingOrder: 0 },
+          { id: 'n22', label: 'se', parentId: 'n21', siblingOrder: 0, tokenIndex: 4 },
+          { id: 'n23', label: "Infl'", parentId: 'n19', siblingOrder: 1 },
+          { id: 'n24', label: 'Infl', parentId: 'n23', siblingOrder: 0 },
+          { id: 'n25', label: 'bhfillfeadh', parentId: 'n24', siblingOrder: 0, tokenIndex: 3 },
+          { id: 'n26', label: 'VP', parentId: 'n23', siblingOrder: 1 },
+          { id: 'n27', label: 'PP', parentId: 'n26', siblingOrder: 0 },
+          { id: 'n28', label: 'P', parentId: 'n27', siblingOrder: 0 },
+          { id: 'n29', label: 'ar', parentId: 'n28', siblingOrder: 0, tokenIndex: 5 },
+          { id: 'n30', label: 'DP', parentId: 'n27', siblingOrder: 1 },
+          { id: 'n31', label: 'D', parentId: 'n30', siblingOrder: 0 },
+          { id: 'n32', label: 'an', parentId: 'n31', siblingOrder: 0, tokenIndex: 6 },
+          { id: 'n33', label: 'NP', parentId: 'n30', siblingOrder: 1 },
+          { id: 'n34', label: 'N', parentId: 'n33', siblingOrder: 0 },
+          { id: 'n35', label: 'bhaile', parentId: 'n34', siblingOrder: 0, tokenIndex: 7 }
+        ],
+        rootId: 'n0',
+        explanation: 'A flat-node parse whose siblingOrder contradicts the overt token anchoring.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The verb moves to Infl in the matrix clause.'
+        },
+        movementEvents: [{ operation: 'HeadMove', fromNodeId: 'n14', toNodeId: 'n10' }],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  assert.deepStrictEqual(
+    normalized.analyses[0].surfaceOrder,
+    ['Gheall', 'se', 'go', 'bhfillfeadh', 'se', 'ar', 'an', 'bhaile']
+  );
 });
 
 test('buildNotesContentsPrompt supplies grounded facts rather than free-form explanation text', () => {
@@ -309,6 +914,29 @@ test('reconcileModelExplanationWithDerivation supplements a thin but compatible 
   assert.match(reconciled, /On the committed X-bar analysis/i);
 });
 
+test('reconcileModelExplanationWithDerivation drops truncated scholar-reference fragments', () => {
+  const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP.';
+  const modelExplanation = 'Following the tradition of É. The wh-phrase moves from a lower copy to the left edge of the clause.';
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'Move', fromNodeId: 'n1', toNodeId: 'n2', traceNodeId: 'n1' }]
+  );
+  assert.doesNotMatch(reconciled, /tradition of É/i);
+  assert.match(reconciled, /moves from a lower copy/i);
+});
+
+test('reconcileModelExplanationWithDerivation drops merge-only phrasing for moved specifier positions', () => {
+  const fallback = 'On the committed X-bar analysis, the derivation explicitly records movement of DP "Que carta" from its lower copy.';
+  const modelExplanation = 'The wh-phrase is merged into Spec,CP to satisfy the interrogative requirement.';
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'Move', fromNodeId: 'n1', toNodeId: 'n2', traceNodeId: 'n1' }]
+  );
+  assert.equal(reconciled, fallback);
+});
+
 test('reconcileModelExplanationWithDerivation keeps a single head-movement sentence when one HeadMove is grounded', () => {
   const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP.';
   const modelExplanation = 'This derivation raises the auxiliary to C to satisfy the V2 requirement. The subject remains in Spec,InflP.';
@@ -321,6 +949,28 @@ test('reconcileModelExplanationWithDerivation keeps a single head-movement sente
   assert.doesNotMatch(reconciled, /On the committed X-bar analysis/i);
 });
 
+test('reconcileModelExplanationWithDerivation drops unsupported head-movement prose phrased as movement from the Infl head', () => {
+  const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP where the interrogative DP occupies the left edge of the clause.';
+  const modelExplanation = "Following the tradition of Noam Chomsky's Government and Binding Theory, the auxiliary 'hat' is analyzed as occupying the C head position, having moved from the Infl head to satisfy the V2 requirement typical of German matrix interrogatives.";
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'Move', fromNodeId: 'objTrace', toNodeId: 'whDp', traceNodeId: 'objTrace' }]
+  );
+  assert.equal(reconciled, fallback);
+});
+
+test('reconcileModelExplanationWithDerivation drops verb no-movement prose when a HeadMove is encoded', () => {
+  const fallback = "The verb 'Gheall' undergoes head movement to Infl, while the embedded clause remains a CP complement.";
+  const modelExplanation = "No phrasal movement is posited for the subject or the verb in this derivation, as the surface order is derived through head-adjunction to the functional Infl head.";
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'HeadMove', fromNodeId: 'v1', toNodeId: 'infl1', traceNodeId: 'v1' }]
+  );
+  assert.equal(reconciled, fallback);
+});
+
 test('reconcileModelExplanationWithDerivation keeps ordinary wh-movement prose for generic Move events', () => {
   const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP.';
   const modelExplanation = 'The wh-phrase moves to the left edge of the clause, leaving a trace in object position. This derives the interrogative order.';
@@ -331,6 +981,18 @@ test('reconcileModelExplanationWithDerivation keeps ordinary wh-movement prose f
   );
   assert.match(reconciled, /wh-phrase moves to the left edge of the clause/i);
   assert.doesNotMatch(reconciled, /On the committed X-bar analysis/i);
+});
+
+test('reconcileModelExplanationWithDerivation appends grounded movement when the model omits it', () => {
+  const fallback = "The subject remains in Spec,InflP. The derivation explicitly records head movement of \"Gheall\" from V to Infl.";
+  const modelExplanation = "The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement.";
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'HeadMove', fromNodeId: 'v1', toNodeId: 'infl1', traceNodeId: 'v1' }]
+  );
+  assert.match(reconciled, /subject remains in Spec,InflP/i);
+  assert.match(reconciled, /derivation explicitly records head movement/i);
 });
 
 test('normalizeParseBundle does not infer movement from indexed tree labels when movementEvents are omitted', () => {
@@ -430,7 +1092,7 @@ test('normalizeParseBundle does not infer movement from indexed tree labels when
   assert.match(analysis.explanation, /No displacement operation is encoded/i);
 });
 
-test('normalizeParseBundle preserves tree yield when sibling order drifts from the input sentence', () => {
+test('normalizeParseBundle rejects trees whose overt traversal order drifts from the input sentence', () => {
   const sentence = 'The student said that the lecture ended early.';
   const payload = {
     analyses: [
@@ -524,14 +1186,13 @@ test('normalizeParseBundle preserves tree yield when sibling order drifts from t
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
   payload.analyses[0].surfaceOrder = tokenize(sentence);
 
-  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
-  assert.deepEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['The', 'student', 'said', 'that', 'the', 'lecture', 'ended', 'early']
+  assert.throws(
+    () => normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
-test('normalizeParseBundle preserves tree yield when overt tokens are duplicated beyond the input sentence inventory', () => {
+test('normalizeParseBundle rejects trees that duplicate overt tokens beyond the sentence inventory', () => {
   const sentence = 'Marie a dit que Paul partirait.';
   const payload = {
     analyses: [
@@ -617,10 +1278,9 @@ test('normalizeParseBundle preserves tree yield when overt tokens are duplicated
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
   payload.analyses[0].surfaceOrder = tokenize(sentence);
 
-  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
-  assert.deepEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['Marie', 'Marie', 'a', 'dit', 'que', 'Paul', 'partirait']
+  assert.throws(
+    () => normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
@@ -892,7 +1552,62 @@ test('normalizeParseBundle does not require movementDecision when explicit movem
   assert.equal(normalized.analyses[0].movementEvents?.length, 1);
 });
 
-test('normalizeParseBundle preserves tree yield even when overt constituents realize a non-sentence order', () => {
+test('normalizeParseBundle reconciles movementDecision to the encoded committed analysis', () => {
+  const sentence = 'Melyik konyvet vette meg Anna?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n0',
+          label: 'CP',
+          children: [
+            {
+              id: 'n1',
+              label: 'DP',
+              children: [
+                { id: 'n2', label: 'D', children: [{ id: 'n3', label: 'Melyik', word: 'Melyik' }] },
+                { id: 'n4', label: 'NP', children: [{ id: 'n5', label: 'N', word: 'konyvet' }] }
+              ]
+            },
+            { id: 'n6', label: 'C', children: [{ id: 'n7', label: '∅', word: '∅' }] },
+            {
+              id: 'n8',
+              label: 'TP',
+              children: [
+                { id: 'n9', label: 'T', children: [{ id: 'n10', label: 'vette', word: 'vette' }] },
+                {
+                  id: 'n11',
+                  label: 'VP',
+                  children: [
+                    { id: 'n12', label: 'V', word: 'meg' },
+                    { id: 'n13', label: 'DP', children: [{ id: 'n14', label: 'D', word: 'Anna' }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'No displacement operation is encoded in the derivation, so the pronounced order is read directly from the final tree.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The wh-phrase moves to the clause edge.'
+        },
+        movementEvents: []
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = ['Melyik', 'konyvet', 'vette', 'meg', 'Anna'];
+
+  const normalized = normalizeParseBundle(payload, 'minimalism', sentence);
+  assert.deepEqual(normalized.analyses[0].movementDecision, {
+    hasMovement: false,
+    rationale: 'No movement is encoded in the final committed analysis.'
+  });
+});
+
+test('normalizeParseBundle rejects trees whose overt constituents realize a non-sentence order', () => {
   const sentence = 'The student said that the lecture ended early.';
   const payload = {
     analyses: [
@@ -941,14 +1656,13 @@ test('normalizeParseBundle preserves tree yield even when overt constituents rea
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
   payload.analyses[0].surfaceOrder = tokenize(sentence);
 
-  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
-  assert.deepEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['The', 'lecture', 'said', 'early', 'that', 'student', 'ended']
+  assert.throws(
+    () => normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
-test('normalizeParseBundle preserves tree yield for misordered TP siblings in minimalism wh-questions', () => {
+test('normalizeParseBundle rejects misordered TP siblings in minimalism wh-questions', () => {
   const sentence = 'Quale poema ha scritto Elisa?';
   const payload = {
     analyses: [
@@ -995,10 +1709,9 @@ test('normalizeParseBundle preserves tree yield for misordered TP siblings in mi
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
   payload.analyses[0].surfaceOrder = tokenize(sentence);
 
-  const normalized = normalizeParseBundle(withMovementDecision(payload), 'minimalism', sentence);
-  assert.deepEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['Quale', 'poema', 'ha', 'scritto', 'Elisa']
+  assert.throws(
+    () => normalizeParseBundle(withMovementDecision(payload), 'minimalism', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
@@ -1032,6 +1745,54 @@ test('normalizeParseBundle derives surface spans canonically when the model omit
   const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
   assert.deepEqual(normalized.analyses[0].surfaceOrder, ['The', 'story', 'was', 'shocking']);
   assert.deepEqual(normalized.analyses[0].tree.surfaceSpan, [0, 3]);
+});
+
+test('normalizeParseBundle flattens interleaving flat-node shells that would otherwise block correct surface order', () => {
+  const sentence = 'Ha comprado Ana el libro?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n0', label: 'CP', siblingOrder: 0 },
+          { id: 'n1', label: "C'", parentId: 'n0', siblingOrder: 0 },
+          { id: 'n2', label: 'C', parentId: 'n1', siblingOrder: 0 },
+          { id: 'n3', label: 'Ha', parentId: 'n2', word: 'Ha', tokenIndex: 0 },
+          { id: 'n4', label: 'InflP', parentId: 'n1', siblingOrder: 1 },
+          { id: 'n5', label: 'DP', parentId: 'n4', siblingOrder: 0 },
+          { id: 'n6', label: 'D', parentId: 'n5', siblingOrder: 0, word: '∅' },
+          { id: 'n7', label: 'NP', parentId: 'n5', siblingOrder: 1 },
+          { id: 'n8', label: 'N', parentId: 'n7', siblingOrder: 0, word: 'Ana', tokenIndex: 2 },
+          { id: 'n9', label: "Infl'", parentId: 'n4', siblingOrder: 1 },
+          { id: 'n10', label: 'Infl', parentId: 'n9', siblingOrder: 0, word: 't_Ha' },
+          { id: 'n11', label: 'VP', parentId: 'n9', siblingOrder: 1 },
+          { id: 'n12', label: "V'", parentId: 'n11', siblingOrder: 0 },
+          { id: 'n13', label: 'V', parentId: 'n12', siblingOrder: 0, word: 'comprado', tokenIndex: 1 },
+          { id: 'n14', label: 'DP', parentId: 'n12', siblingOrder: 1 },
+          { id: 'n15', label: "D'", parentId: 'n14', siblingOrder: 0 },
+          { id: 'n16', label: 'D', parentId: 'n15', siblingOrder: 0, word: 'el', tokenIndex: 3 },
+          { id: 'n17', label: 'NP', parentId: 'n15', siblingOrder: 1 },
+          { id: 'n18', label: 'N', parentId: 'n17', siblingOrder: 0, word: 'libro', tokenIndex: 4 }
+        ],
+        rootId: 'n0',
+        explanation: 'Spanish auxiliary-fronting with a subject shell that interleaves the overt order.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The auxiliary moves to C.'
+        },
+        movementEvents: [
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'n10',
+            toNodeId: 'n3',
+            traceNodeId: 'n10'
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Ha', 'comprado', 'Ana', 'el', 'libro']);
 });
 
 test('normalizeParseBundle ignores model-provided spans on null heads and derives canonical spans', () => {
@@ -1082,11 +1843,7 @@ test('normalizeParseBundle ignores model-provided spans on null heads and derive
   assert.deepEqual(normalized.analyses[0].tree.surfaceSpan, [0, 2]);
 });
 
-test('normalizeParseBundle sorts siblings by sentence position but does not restructure tree depth (V-initial with misplaced DP)', () => {
-  // When the model places DP(Ana) as sibling of VP at InflP level instead of
-  // inside VP, the simple sibling sort cannot fix the interleaving because
-  // Ana (pos 2) falls between comprado (pos 1) and el (pos 3) which are both
-  // inside VP.  The sort honestly surfaces this structural error.
+test('normalizeParseBundle rejects V-initial trees whose deeper structure cannot realize the sentence order', () => {
   const sentence = 'Ha comprado Ana el libro?';
   const payload = {
     analyses: [
@@ -1156,12 +1913,9 @@ test('normalizeParseBundle sorts siblings by sentence position but does not rest
     ]
   };
 
-  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
-  // With DP(Ana) outside VP, sibling sort places VP (min=1) before DP(Ana) (min=2),
-  // so DFS reads: Ha, comprado, el, libro, Ana — the model's structural error is visible.
-  assert.deepEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['Ha', 'comprado', 'el', 'libro', 'Ana']
+  assert.throws(
+    () => normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
@@ -2122,6 +2876,90 @@ test('normalizeParseBundle does not misclassify hyphenated lexical words like t-
   assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Dith', 'Niamh', 'an', 't-aran']);
 });
 
+test('normalizeParseBundle canonicalizes split clause-edge moved phrases into one overt DP shell', () => {
+  const sentence = 'Que carta escribio Lucia?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'root',
+          label: 'CP',
+          children: [
+            {
+              id: 'c_head',
+              label: 'C',
+              children: [{ id: 'que', label: 'Que', word: 'Que' }]
+            },
+            {
+              id: 'dp_obj',
+              label: 'DP',
+              children: [
+                {
+                  id: 'd_obj',
+                  label: 'D',
+                  children: [{ id: 'null_d', label: '∅', word: '∅' }]
+                },
+                {
+                  id: 'np_obj',
+                  label: 'NP',
+                  children: [{ id: 'n_obj', label: 'N', children: [{ id: 'carta', label: 'carta', word: 'carta' }] }]
+                }
+              ]
+            },
+            {
+              id: 'tp',
+              label: 'TP',
+              children: [
+                { id: 't_head', label: 'T', children: [{ id: 'v_t', label: 'escribio', word: 'escribio' }] },
+                { id: 'subj', label: 'DP', children: [{ id: 'lucia', label: 'N', word: 'Lucia' }] },
+                {
+                  id: 'vp',
+                  label: 'VP',
+                  children: [
+                    { id: 'v_trace', label: 'V', word: '∅' },
+                    { id: 'obj_trace', label: 'DP', word: 'trace_DP' }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A Spanish wh-question with a split left-edge phrase.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The object DP moves to the left edge and the verb moves to T.'
+        },
+        movementEvents: [
+          {
+            operation: 'Move',
+            fromNodeId: 'obj_trace',
+            toNodeId: 'dp_obj',
+            traceNodeId: 'obj_trace'
+          },
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'v_trace',
+            toNodeId: 'v_t',
+            traceNodeId: 'v_trace'
+          }
+        ]
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(payload, 'minimalism', sentence);
+  const tree = normalized.analyses[0].tree;
+  assert.deepEqual(normalized.analyses[0].surfaceOrder, ['Que', 'carta', 'escribio', 'Lucia']);
+  assert.equal(tree.children[0].label, 'C');
+  assert.equal(tree.children[0].children[0].label, '∅');
+  assert.equal(tree.children[1].label, 'DP');
+  assert.equal(tree.children[1].children[0].label, 'D');
+  assert.equal(tree.children[1].children[0].children[0].word, 'Que');
+});
+
 test('normalizeParseBundle keeps complementizer and PP words like that/time in the overt yield', () => {
   const sentence = 'It was shocking that no one arrived on time';
   const payload = {
@@ -2815,10 +3653,7 @@ test('normalizeParseBundle does not derive movement from trace-prefixed node IDs
   assert.deepStrictEqual(analysis.surfaceOrder, ['Welches', 'Buch', 'hat', 'Maria', 'gelesen']);
 });
 
-test('normalizeParseBundle reorders siblings to match input sentence order (Spanish wh-VS)', () => {
-  // Model might produce the object DP before the subject DP in the tree,
-  // yielding "Donde compró el libro Juan" instead of "Donde compró Juan el libro".
-  // reorderChildrenBySentenceOrder should fix the linearisation.
+test('normalizeParseBundle rejects sibling orders that do not already realize the input sentence (Spanish wh-VS)', () => {
   const sentence = 'Donde compró Juan el libro';
   const payload = {
     analyses: [
@@ -2877,21 +3712,13 @@ test('normalizeParseBundle reorders siblings to match input sentence order (Span
   };
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
 
-  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
-  const analysis = normalized.analyses[0];
-
-  // After reordering, the surface order must match the input sentence
-  assert.deepStrictEqual(
-    analysis.surfaceOrder,
-    ['Donde', 'compró', 'Juan', 'el', 'libro'],
-    'surface order must match input sentence after sibling reordering'
+  assert.throws(
+    () => normalizeParseBundle(payload, 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
 
-test('normalizeParseBundle sorts siblings but does not restructure tree depth (Spanish wh-VS with misplaced DP at InfIP level)', () => {
-  // Model places DP(Juan) as sibling of VP at InfIP level.  The sentence
-  // requires Juan between compró and el (both inside VP), but the simple
-  // sibling sort cannot fix this — it honestly surfaces the model's error.
+test('normalizeParseBundle rejects deeper structural misplacements instead of silently surfacing them', () => {
   const sentence = 'Donde compró Juan el libro';
   const payload = {
     analyses: [
@@ -2946,12 +3773,8 @@ test('normalizeParseBundle sorts siblings but does not restructure tree depth (S
   };
   annotateSurfaceSpans(payload.analyses[0].tree, sentence);
 
-  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
-  // VP (min=1) sorts before DP(Juan) (min=2), so DFS reads:
-  // Donde, compró, el, libro, Juan — the model's structural error is visible.
-  assert.deepStrictEqual(
-    normalized.analyses[0].surfaceOrder,
-    ['Donde', 'compró', 'el', 'libro', 'Juan'],
-    'sibling sort preserves model structure; misplaced DP surfaces as wrong terminal order'
+  assert.throws(
+    () => normalizeParseBundle(payload, 'xbar', sentence),
+    /Tree overt terminals do not match the input sentence order/
   );
 });
