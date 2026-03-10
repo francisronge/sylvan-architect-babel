@@ -274,7 +274,8 @@ const removeTreeBankEntry = async (id: string): Promise<void> => {
   });
 };
 
-const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
+const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9{}]+|trace[_-][a-z0-9{}]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
   "A'",
@@ -596,8 +597,172 @@ const joinWithAnd = (items: string[]): string => {
   return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
 };
 
-const summarizeMovementFromEvents = (movementEvents?: MovementEvent[]): string => {
+const isNullLikeSurface = (surface: string): boolean => NULL_SURFACE_RE.test(surface);
+const isTraceLikeSurface = (surface: string): boolean => TRACE_SURFACE_RE.test(surface);
+
+const stripMovementIndex = (label: string): string =>
+  String(label || '')
+    .trim()
+    .replace(/[_-]\{?[a-z0-9]+\}?$/i, '');
+
+const normalizeMovementLabelKey = (label?: string): string =>
+  stripMovementIndex(String(label || ''))
+    .replace(/[’']+$/g, '')
+    .replace(/_bar$/i, '')
+    .toLowerCase();
+
+const buildNodeIndexForExplanation = (tree?: SyntaxNode | null): Map<string, SyntaxNode> => {
+  const byId = new Map<string, SyntaxNode>();
+  const visit = (node?: SyntaxNode | null) => {
+    if (!node) return;
+    const id = String(node.id || '').trim();
+    if (id) byId.set(id, node);
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(tree || undefined);
+  return byId;
+};
+
+const buildParentIndexForExplanation = (tree?: SyntaxNode | null): Map<string, SyntaxNode> => {
+  const parentById = new Map<string, SyntaxNode>();
+  const visit = (node?: SyntaxNode | null) => {
+    if (!node) return;
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach((child) => {
+      const childId = String(child?.id || '').trim();
+      if (childId) parentById.set(childId, node);
+      visit(child);
+    });
+  };
+  visit(tree || undefined);
+  return parentById;
+};
+
+const collectOvertYieldForExplanation = (node?: SyntaxNode | null, words: string[] = []): string[] => {
+  if (!node) return words;
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length === 0) {
+    const surface = String(node.word || node.label || '').trim();
+    if (surface && !isNullLikeSurface(surface) && !isTraceLikeSurface(surface)) {
+      words.push(surface);
+    }
+    return words;
+  }
+  children.forEach((child) => collectOvertYieldForExplanation(child, words));
+  return words;
+};
+
+const getNodeOvertYieldForExplanation = (node?: SyntaxNode | null): string =>
+  collectOvertYieldForExplanation(node, []).join(' ').trim();
+
+const isNullLikeNodeForExplanation = (node?: SyntaxNode | null): boolean => {
+  if (!node) return false;
+  const surface = String(node.word || node.label || '').trim();
+  return Boolean(surface) && isNullLikeSurface(surface);
+};
+
+const isTraceLikeNodeForExplanation = (node?: SyntaxNode | null): boolean => {
+  if (!node) return false;
+  const surface = String(node.word || node.label || '').trim();
+  return Boolean(surface) && isTraceLikeSurface(surface);
+};
+
+const getMovementDisplayLabelForExplanation = (node?: SyntaxNode | null): string => {
+  if (!node) return '';
+  const stripped = stripMovementIndex(String(node.label || '').trim());
+  return stripped || String(node.label || '').trim();
+};
+
+const resolveHeadMoveSourceLabel = (
+  node: SyntaxNode | undefined,
+  parentById: Map<string, SyntaxNode>
+): string => {
+  if (!node) return '';
+  if (!isNullLikeNodeForExplanation(node) && !isTraceLikeNodeForExplanation(node)) {
+    return getMovementDisplayLabelForExplanation(node);
+  }
+  let current = parentById.get(String(node.id || '').trim());
+  while (current) {
+    const label = getMovementDisplayLabelForExplanation(current);
+    if (label && label !== '∅') return label;
+    current = parentById.get(String(current.id || '').trim());
+  }
+  return '';
+};
+
+const buildMovementDetailForExplanation = (
+  event: MovementEvent,
+  nodeById: Map<string, SyntaxNode>,
+  parentById: Map<string, SyntaxNode>
+): string => {
+  const operation = normalizeMovementOperationForSummary(event.operation);
+  const fromNode = nodeById.get(String(event.fromNodeId || '').trim());
+  const toNode = nodeById.get(String(event.toNodeId || '').trim());
+  const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
+  const note = cleanExplanationWhitespace(String(event.note || ''));
+
+  if (!toNode) {
+    return note || 'movement';
+  }
+
+  if (operation === 'headmove') {
+    const movedHeadSurface = getNodeOvertYieldForExplanation(toNode);
+    const movedHead = movedHeadSurface ? `"${movedHeadSurface}"` : 'the head';
+    const landingHead = getMovementDisplayLabelForExplanation(toNode);
+    const sourceHead = resolveHeadMoveSourceLabel(traceNode || fromNode, parentById);
+    const normalizedSource = normalizeMovementLabelKey(sourceHead);
+    const normalizedLanding = normalizeMovementLabelKey(landingHead);
+    const phrase =
+      normalizedSource === 'c' && /^(?:infl|i|t)$/.test(normalizedLanding)
+        ? 'lowering'
+        : 'head movement';
+    if (sourceHead && landingHead && normalizedSource && normalizedLanding && normalizedSource !== normalizedLanding) {
+      return `${phrase} of ${movedHead} from ${sourceHead} to ${landingHead}`;
+    }
+    if (landingHead) {
+      return `${phrase} of ${movedHead} to ${landingHead}`;
+    }
+    return note || 'head movement';
+  }
+
+  const movedYield = getNodeOvertYieldForExplanation(toNode);
+  const movedLabel = getMovementDisplayLabelForExplanation(toNode);
+  const movedDescriptor = movedYield ? `${movedLabel} "${movedYield}"` : movedLabel;
+  if (
+    traceNode
+    && (isTraceLikeNodeForExplanation(traceNode) || isNullLikeNodeForExplanation(traceNode))
+    && movedDescriptor
+  ) {
+    return `movement of ${movedDescriptor} from its lower copy`;
+  }
+  if (
+    fromNode
+    && (isTraceLikeNodeForExplanation(fromNode) || isNullLikeNodeForExplanation(fromNode))
+    && movedDescriptor
+  ) {
+    return `movement of ${movedDescriptor} from its lower copy`;
+  }
+  const sourceLabel = getMovementDisplayLabelForExplanation(fromNode);
+  const landingLabel = getMovementDisplayLabelForExplanation(toNode);
+  if (sourceLabel && landingLabel) {
+    return `movement from ${sourceLabel} to ${landingLabel}`;
+  }
+  return note || 'movement';
+};
+
+const summarizeMovementFromEvents = (tree: SyntaxNode | null | undefined, movementEvents?: MovementEvent[]): string => {
   if (!Array.isArray(movementEvents) || movementEvents.length === 0) return 'No movement is posited in this analysis.';
+
+  const nodeById = buildNodeIndexForExplanation(tree);
+  const parentById = buildParentIndexForExplanation(tree);
+  const details = movementEvents
+    .slice(0, 3)
+    .map((event) => buildMovementDetailForExplanation(event, nodeById, parentById))
+    .filter(Boolean);
+  if (details.length > 0) {
+    return `The derivation explicitly records ${details.join('; ')}.`;
+  }
 
   const operationOrder: string[] = [];
   movementEvents.forEach((event) => {
@@ -615,27 +780,21 @@ const summarizeMovementFromEvents = (movementEvents?: MovementEvent[]): string =
   };
 
   const parts = operationOrder.map((op) => labelForOperation(op));
-  const details = movementEvents
-    .slice(0, 3)
-    .map((event) => {
-      const op = normalizeMovementOperationForSummary(event.operation);
-      const phrase = labelForOperation(op || 'move');
-      const note = cleanExplanationWhitespace(String(event.note || ''));
-      return note ? `${phrase} (${note})` : phrase;
-    })
-    .filter(Boolean);
-  const detailsSuffix = details.length > 0 ? ` Grounded in the tree as: ${details.join('; ')}.` : '';
   const summary = parts.length > 0
     ? `Movement in this derivation includes ${joinWithAnd(parts)}.`
     : 'Movement is present in this derivation.';
-  return `${summary}${detailsSuffix}`;
+  return summary;
 };
 
-const buildSupplementalMovementSummary = (compatibleText: string, movementEvents?: MovementEvent[]): string => {
+const buildSupplementalMovementSummary = (
+  compatibleText: string,
+  tree: SyntaxNode | null | undefined,
+  movementEvents?: MovementEvent[]
+): string => {
   if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
   const claimedKinds = extractClaimedMovementKindsFromText(compatibleText);
   if (claimedKinds.size === 0) {
-    return summarizeMovementFromEvents(movementEvents);
+    return summarizeMovementFromEvents(tree, movementEvents);
   }
 
   const missingEvents = movementEvents.filter((event) => {
@@ -644,7 +803,7 @@ const buildSupplementalMovementSummary = (compatibleText: string, movementEvents
     return !claimedKinds.has(kind);
   });
   if (missingEvents.length === 0) return '';
-  return summarizeMovementFromEvents(missingEvents);
+  return summarizeMovementFromEvents(tree, missingEvents);
 };
 
 const movementSignatureForSentence = (sentence: string): string => {
@@ -675,7 +834,11 @@ const dedupeMovementSentences = (sentences: string[]): string[] => {
   return out;
 };
 
-const normalizeExplanationForDisplay = (explanation: string, movementEvents?: MovementEvent[]): string => {
+const normalizeExplanationForDisplay = (
+  explanation: string,
+  movementEvents?: MovementEvent[],
+  tree?: SyntaxNode | null
+): string => {
   const base = ensureExplanationTerminator(removeWeakHedging(explanation));
   const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
 
@@ -687,8 +850,8 @@ const normalizeExplanationForDisplay = (explanation: string, movementEvents?: Mo
   const compatibleText = ensureExplanationTerminator(compatible);
 
   if (hasMovementEvents) {
-    const summary = buildSupplementalMovementSummary(compatibleText, movementEvents);
-    if (!compatibleText) return summary || summarizeMovementFromEvents(movementEvents);
+    const summary = buildSupplementalMovementSummary(compatibleText, tree, movementEvents);
+    if (!compatibleText) return summary || summarizeMovementFromEvents(tree, movementEvents);
     if (!summary) return compatibleText;
     return `${compatibleText} ${summary}`.trim();
   }
@@ -787,7 +950,7 @@ const App: React.FC = () => {
   }, [activeParse, growthMovementMaps]);
   const normalizedExplanation = useMemo(() => {
     if (!activeParse) return '';
-    return normalizeExplanationForDisplay(activeParse.explanation, activeParse.movementEvents);
+    return normalizeExplanationForDisplay(activeParse.explanation, activeParse.movementEvents, activeParse.tree);
   }, [activeParse]);
 
   useEffect(() => {

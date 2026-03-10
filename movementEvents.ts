@@ -173,9 +173,18 @@ export const resolveMovementEventLinks = (
     const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
 
     if (isHeadMove) {
-      // Head movement is only drawable when the analysis contains a real lower launch site.
-      if (!traceAnchor || !isTraceOrNullAnchor(traceAnchor)) return;
-      sourceAnchor = traceAnchor;
+      // For head movement, prefer an explicit lower trace/copy if the model supplied one.
+      // Otherwise anchor the launch site on the committed source node itself rather than
+      // scavenging an unrelated phrasal trace from inside that subtree.
+      if (traceNode && traceAnchor && isTraceOrNullAnchor(traceAnchor)) {
+        sourceAnchor = traceAnchor;
+      } else if (fromNode.id) {
+        sourceAnchor = fromNode;
+      } else if (traceAnchor && isTraceOrNullAnchor(traceAnchor)) {
+        sourceAnchor = traceAnchor;
+      } else {
+        return;
+      }
       movedAnchor = pickLexicalAnchor(toNode) || toNode;
     }
 

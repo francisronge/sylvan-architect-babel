@@ -978,7 +978,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       : [];
     const nodeRevealStepIndex = new Map(nodeStepIndex);
     const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
-    const buildTraceLabel = (index?: string | null): string => (index ? `t_{${index}}` : 't');
+    const formatMovementTraceIndex = (index?: string | null): string => {
+      const normalized = String(index || '').trim().toLowerCase();
+      if (!normalized) return '';
+      const numeric = /^\d+$/.test(normalized)
+        ? Number(normalized)
+        : (/^[a-z]$/.test(normalized) ? normalized.charCodeAt(0) - 96 : NaN);
+      if (!Number.isFinite(numeric) || numeric < 1) return normalized;
+      const digits = String(numeric).split('');
+      const subscripts = digits.map((digit) => '₀₁₂₃₄₅₆₇₈₉'[Number(digit)] || digit).join('');
+      return subscripts;
+    };
+    const buildTraceLabel = (index?: string | null): string => {
+      const suffix = formatMovementTraceIndex(index);
+      return suffix ? `t${suffix}` : 't';
+    };
+    const formatTraceSurfaceForDisplay = (surface: string, fallbackIndex?: string | null): string => {
+      const raw = String(surface || '').trim();
+      if (!raw) return buildTraceLabel(fallbackIndex);
+      const match = raw.match(/^(?:t|trace)(?:[_\-\{]?([a-z0-9]+)\}?)?$/i);
+      if (!match) return raw;
+      return buildTraceLabel(match[1] || fallbackIndex);
+    };
 
     movementArrows.forEach((arrow) => {
       const sourceId = getNodeId(arrow.source);
@@ -1008,7 +1029,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const movementIndex = arrow.index || extractMovementIndex(traceSurface) || extractMovementIndex(targetSurface) || null;
         terminalMorph.set(traceId, {
           preText: targetSurface,
-          postText: isTraceLike(traceSurface) ? traceSurface : buildTraceLabel(movementIndex),
+          postText: isTraceLike(traceSurface)
+            ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
+            : buildTraceLabel(movementIndex),
           step: arrow.step,
           hideBefore: false
         });
@@ -1114,8 +1137,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
     const leafNodes = nodeGroups.filter(d => !d.children || d.children.length === 0);
-    const abstractLeaves = leafNodes.filter((d) => !isOvertLeafNode(d, overtSurfaceSet));
-    const terminals = leafNodes.filter((d) => isOvertLeafNode(d, overtSurfaceSet));
+    const movementTerminalIds = new Set(Array.from(terminalMorphRef.current.keys()));
+    const abstractLeaves = leafNodes.filter((d) => {
+      const nodeId = getNodeId(d);
+      return !movementTerminalIds.has(nodeId) && !isOvertLeafNode(d, overtSurfaceSet);
+    });
+    const terminals = leafNodes.filter((d) => {
+      const nodeId = getNodeId(d);
+      return movementTerminalIds.has(nodeId) || isOvertLeafNode(d, overtSurfaceSet);
+    });
 
     abstractLeaves.append('text')
       .attr('y', -10)

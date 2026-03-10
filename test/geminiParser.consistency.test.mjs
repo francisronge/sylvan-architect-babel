@@ -11,9 +11,7 @@ const {
   buildParseContentsPrompt,
   parseResponseJsonSchemaForRoute,
   buildSerializerContentsPrompt,
-  buildNotesContentsPrompt,
   reconcileModelExplanationWithDerivation,
-  reconcileGeneratedExplanationWithDerivation,
   mergeSerializedStructureIntoDraftPayload
 } = __test__;
 
@@ -830,55 +828,6 @@ test('normalizeParseBundle falls back to token anchoring when explicit siblingOr
   );
 });
 
-test('buildNotesContentsPrompt supplies grounded facts rather than free-form explanation text', () => {
-  const prompt = buildNotesContentsPrompt('Which article did Nora publish?', 'xbar', [
-    {
-      tree: {
-        id: 'cp1',
-        label: 'CP',
-        children: [
-          {
-            id: 'dp1',
-            label: 'DP',
-            children: [{ id: 'd1', label: 'D', children: [{ id: 'w1', label: 'Which', word: 'Which' }] }]
-          },
-          {
-            id: 'cbar1',
-            label: "C'",
-            children: [
-              { id: 'c1', label: 'C', children: [{ id: 'did1', label: 'did', word: 'did' }] },
-              {
-                id: 'inflp1',
-                label: 'InflP',
-                children: [
-                  { id: 'dp2', label: 'DP', children: [{ id: 'nora1', label: 'Nora', word: 'Nora' }] },
-                  { id: 'infl1', label: 'Infl', children: [{ id: 'null1', label: '∅', word: '∅' }] }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      derivationSteps: [{ operation: 'Move', targetNodeId: 'dp1', sourceNodeIds: ['t1'] }],
-      movementEvents: [{ operation: 'Move', fromNodeId: 't1', toNodeId: 'dp1', traceNodeId: 't1' }],
-      surfaceOrder: ['Which', 'article', 'did', 'Nora', 'publish']
-    }
-  ]);
-
-  assert.match(prompt, /Grounded analysis facts/i);
-  assert.match(prompt, /movementSummary/i);
-  assert.match(prompt, /The derivation explicitly records movement/i);
-  assert.match(prompt, /Framework: X-Bar Theory/i);
-  assert.doesNotMatch(prompt, /No explanation provided\./i);
-});
-
-test('reconcileGeneratedExplanationWithDerivation falls back when notes invent unsupported movement', () => {
-  const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP.';
-  const generated = 'The derivation records wh-movement and successive head movement throughout the clause.';
-  const reconciled = reconcileGeneratedExplanationWithDerivation(generated, fallback, []);
-  assert.equal(reconciled, fallback);
-});
-
 test('reconcileModelExplanationWithDerivation keeps a substantive compatible model explanation', () => {
   const fallback = 'On the committed X-bar analysis, the sentence is analyzed as a CP.';
   const modelExplanation = 'This X-bar analysis treats the clause as a CP with a fronted DP at the left edge. The lower copy remains in object position, and the surface order follows from that displacement.';
@@ -992,6 +941,17 @@ test('reconcileModelExplanationWithDerivation appends grounded movement when the
     [{ operation: 'HeadMove', fromNodeId: 'v1', toNodeId: 'infl1', traceNodeId: 'v1' }]
   );
   assert.match(reconciled, /subject remains in Spec,InflP/i);
+  assert.match(reconciled, /derivation explicitly records head movement/i);
+});
+
+test('reconcileModelExplanationWithDerivation adds a minimal movement sentence when fallback prose omits it', () => {
+  const fallback = 'The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement.';
+  const modelExplanation = "The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement.";
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'HeadMove', fromNodeId: 'c1', toNodeId: 'infl1', traceNodeId: 'c1' }]
+  );
   assert.match(reconciled, /derivation explicitly records head movement/i);
 });
 
