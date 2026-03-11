@@ -1,9 +1,8 @@
----
-title: Babel Research
+title: Sylvan Architect Babel Research
 permalink: /
 ---
 
-This site collects mini papers and devlogs from explicit syntax benchmarking in SylvanArchitectBabel. The current focus is forced syntactic commitment: visible trees, replayable derivations, and prose explanations that can be compared across model routes.
+This site collects mini papers and devlogs from explicit syntax benchmarking in Sylvan Architect Babel. The current focus is forced syntactic commitment: visible trees, replayable derivations, and prose explanations that can be compared across model routes.
 
 <div class="research-card">
   <p><strong>Featured note.</strong> <a href="./research/explicit-syntax-benchmark-random20/">Explicit Syntax Under Forced Commitment</a> compares Gemini 3.1 Pro and Gemini 3.1 Flash Lite on a paired 20-case multilingual batch with quantitative summaries and screenshot-based case studies.</p>

@@ -3,14 +3,105 @@
 
 @import "{{ site.theme }}";
 
+:root {
+  --arboretum-deep: #020806;
+  --arboretum-deep-alt: #03100c;
+  --arboretum-panel: rgba(0, 0, 0, 0.58);
+  --arboretum-panel-strong: rgba(0, 0, 0, 0.72);
+  --arboretum-border: rgba(16, 185, 129, 0.16);
+  --arboretum-border-strong: rgba(16, 185, 129, 0.3);
+  --arboretum-text: #e6fff4;
+  --arboretum-text-muted: rgba(230, 255, 244, 0.72);
+  --arboretum-heading: #f3fff9;
+  --arboretum-accent: #10b981;
+  --arboretum-accent-soft: rgba(16, 185, 129, 0.14);
+  --arboretum-gold: #eab308;
+  --arboretum-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  color: var(--arboretum-text);
+  background-color: var(--arboretum-deep);
+  background-image:
+    radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.1) 0%, transparent 70%),
+    radial-gradient(circle at 18% 24%, rgba(16, 185, 129, 0.05) 0%, transparent 34%),
+    radial-gradient(circle at 82% 68%, rgba(6, 95, 70, 0.07) 0%, transparent 38%),
+    linear-gradient(180deg, var(--arboretum-deep-alt) 0%, var(--arboretum-deep) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    70deg,
+    transparent,
+    transparent 150px,
+    rgba(16, 185, 129, 0.028) 200px,
+    transparent 300px
+  );
+  mask-image: linear-gradient(to bottom, white, transparent);
+  opacity: 0.75;
+}
+
+.page-header {
+  position: relative;
+  z-index: 1;
+  padding: 4.5rem 1.5rem 2.5rem;
+  background: transparent;
+  color: var(--arboretum-text);
+}
+
+.project-name {
+  color: var(--arboretum-heading);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 24px rgba(16, 185, 129, 0.18);
+}
+
+.project-tagline {
+  color: var(--arboretum-text-muted);
+  max-width: 52rem;
+}
+
+.btn {
+  color: var(--arboretum-text);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.btn:hover {
+  color: var(--arboretum-heading);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--arboretum-border-strong);
+}
+
 .main-content {
   max-width: 1180px;
+  margin: 0 auto 4rem;
+  padding: 2.75rem 3rem 3.25rem;
+  position: relative;
+  z-index: 1;
+  color: var(--arboretum-text);
+  background: linear-gradient(180deg, rgba(4, 20, 14, 0.9) 0%, var(--arboretum-panel-strong) 100%);
+  border: 1px solid var(--arboretum-border);
+  border-radius: 30px;
+  box-shadow: var(--arboretum-shadow);
+  backdrop-filter: blur(20px);
 }
 
 .main-content table {
   display: block;
   overflow-x: auto;
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .main-content table img {
@@ -19,15 +110,17 @@
   min-width: 280px;
   height: auto;
   border-radius: 12px;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
 }
 
 .research-card {
   margin: 1.5rem 0 2rem;
   padding: 1.25rem 1.5rem;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--arboretum-border-strong);
   border-radius: 16px;
-  background: #f8fafc;
+  background: linear-gradient(180deg, rgba(6, 78, 59, 0.16) 0%, rgba(0, 0, 0, 0.45) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .research-card p:last-child {
@@ -35,6 +128,106 @@
 }
 
 .research-meta {
-  color: #57606a;
+  color: rgba(230, 255, 244, 0.6);
   font-size: 0.95rem;
+}
+
+.main-content h1,
+.main-content h2,
+.main-content h3,
+.main-content h4,
+.main-content h5,
+.main-content h6 {
+  color: var(--arboretum-heading);
+  letter-spacing: 0.01em;
+}
+
+.main-content h2,
+.main-content h3 {
+  border-bottom-color: rgba(16, 185, 129, 0.18);
+}
+
+.main-content p,
+.main-content li,
+.main-content blockquote {
+  color: var(--arboretum-text);
+}
+
+.main-content a {
+  color: #7bf7c9;
+}
+
+.main-content a:hover {
+  color: #b9ffdf;
+}
+
+.main-content strong {
+  color: var(--arboretum-heading);
+}
+
+.main-content code {
+  color: #baffea;
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 0.45rem;
+}
+
+.main-content pre,
+.main-content pre code {
+  background: rgba(0, 0, 0, 0.46);
+  color: #dffef1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.main-content table th,
+.main-content table td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.main-content table th {
+  color: var(--arboretum-heading);
+  background: rgba(6, 78, 59, 0.22);
+}
+
+.main-content hr {
+  background-color: rgba(16, 185, 129, 0.16);
+}
+
+.main-content blockquote {
+  border-left-color: rgba(16, 185, 129, 0.45);
+  color: var(--arboretum-text-muted);
+}
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  color: rgba(230, 255, 244, 0.58);
+}
+
+.site-footer a {
+  color: #7bf7c9;
+}
+
+@media screen and (max-width: 64em) {
+  .main-content {
+    margin: 0 1rem 3rem;
+    padding: 2rem 1.5rem 2.5rem;
+    border-radius: 24px;
+  }
+
+  .page-header {
+    padding: 3.5rem 1.25rem 2rem;
+  }
+}
+
+@media screen and (max-width: 42em) {
+  .main-content {
+    margin: 0 0.75rem 2.5rem;
+    padding: 1.5rem 1rem 2rem;
+    border-radius: 20px;
+  }
+
+  .project-name {
+    font-size: 2rem;
+  }
 }
