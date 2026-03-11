@@ -1,0 +1,1138 @@
+{
+  "generatedAt": "2026-03-11T14:08:07.227Z",
+  "seed": 1773234618245,
+  "pairedCases": [
+    {
+      "language": "Romanian",
+      "phenomenon": "passive",
+      "sentence": "A fost inchisa usa de vant.",
+      "framework": "xbar",
+      "caseId": "xbar-01-romanian-passive"
+    },
+    {
+      "language": "English",
+      "phenomenon": "relative-clause",
+      "sentence": "The editor that Naomi interviewed laughed.",
+      "framework": "xbar",
+      "caseId": "xbar-02-english-relative-clause"
+    },
+    {
+      "language": "German",
+      "phenomenon": "yes-no-question",
+      "sentence": "Hat Maria den Brief gelesen?",
+      "framework": "xbar",
+      "caseId": "xbar-03-german-yes-no-question"
+    },
+    {
+      "language": "Portuguese",
+      "phenomenon": "wh-question",
+      "sentence": "Que pintura comprou Teresa?",
+      "framework": "xbar",
+      "caseId": "xbar-04-portuguese-wh-question"
+    },
+    {
+      "language": "French",
+      "phenomenon": "embedded-clause",
+      "sentence": "Marie a dit que Paul partirait.",
+      "framework": "xbar",
+      "caseId": "xbar-05-french-embedded-clause"
+    },
+    {
+      "language": "Japanese (romanized)",
+      "phenomenon": "simple-transitive",
+      "sentence": "Naoki-ga keeki-o tabeta.",
+      "framework": "minimalism",
+      "caseId": "minimalism-01-japanese-romanized-simple-transitive"
+    },
+    {
+      "language": "Romanian",
+      "phenomenon": "wh-question",
+      "sentence": "Ce profesor a laudat Andrei?",
+      "framework": "minimalism",
+      "caseId": "minimalism-02-romanian-wh-question"
+    },
+    {
+      "language": "Hindi (romanized)",
+      "phenomenon": "yes-no-question",
+      "sentence": "Kya Anu ne chai banayi?",
+      "framework": "minimalism",
+      "caseId": "minimalism-03-hindi-romanized-yes-no-question"
+    },
+    {
+      "language": "Hungarian",
+      "phenomenon": "focus-inversion",
+      "sentence": "Melyik konyvet vette meg Anna?",
+      "framework": "minimalism",
+      "caseId": "minimalism-04-hungarian-focus-inversion"
+    },
+    {
+      "language": "English",
+      "phenomenon": "long-distance-wh",
+      "sentence": "Which article do you think Clara said Mateo published?",
+      "framework": "minimalism",
+      "caseId": "minimalism-05-english-long-distance-wh"
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "ok": 20,
+    "failed": 0,
+    "structurallyClean": 20,
+    "byRoute": {
+      "pro": 10,
+      "flashLite": 10
+    },
+    "byFrameworkAndRoute": {
+      "proXbar": 5,
+      "proMinimalism": 5,
+      "flashLiteXbar": 5,
+      "flashLiteMinimalism": 5
+    }
+  },
+  "results": [
+    {
+      "language": "Romanian",
+      "phenomenon": "passive",
+      "sentence": "A fost inchisa usa de vant.",
+      "framework": "xbar",
+      "caseId": "xbar-01-romanian-passive",
+      "route": "pro",
+      "runId": "pro-xbar-01-romanian-passive",
+      "ok": true,
+      "elapsedMs": 90992,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "In Romanian, the subject of a passive can remain in its base-generated position as the complement of the verb, receiving nominative Case in situ without moving to Spec,InflP."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 29,
+      "surfaceOrder": [
+        "A",
+        "fost",
+        "inchisa",
+        "usa",
+        "de",
+        "vant"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"On the committed X-bar analysis, the sentence is analyzed as a CP dominating a InflP as its finite core. Within the InflP, the overt material is confined to \"A fost inchisa usa de vant\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "A",
+          "fost",
+          "inchisa",
+          "usa",
+          "de",
+          "vant"
+        ],
+        "surfaceOrder": [
+          "A",
+          "fost",
+          "inchisa",
+          "usa",
+          "de",
+          "vant"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 29,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "English",
+      "phenomenon": "relative-clause",
+      "sentence": "The editor that Naomi interviewed laughed.",
+      "framework": "xbar",
+      "caseId": "xbar-02-english-relative-clause",
+      "route": "pro",
+      "runId": "pro-xbar-02-english-relative-clause",
+      "ok": true,
+      "elapsedMs": 56908,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "A null operator moves from the object position of 'interviewed' to the specifier of the relative clause CP to establish the relative dependency."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 32,
+      "surfaceOrder": [
+        "The",
+        "editor",
+        "that",
+        "Naomi",
+        "interviewed",
+        "laughed"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"The analysis adopts a standard Government and Binding approach to restrictive relative clauses, treating the relative clause as a CP adjoined to the NP 'editor'. This movement leaves a trace in the complement position of the verb and establishes the necessary predication relationship with the head noun. The complementizer 'that' occupies the C head, overtly marking the finite subordinate clause. The main clause is an InflP where the complex DP 'The editor that Naomi interviewed' occupies the subject position, and the intransitive verb 'laughed' projects the main predicate. Null Infl heads are posited in both the main and embedded clauses to carry finite tense features.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "The",
+          "editor",
+          "that",
+          "Naomi",
+          "interviewed",
+          "laughed"
+        ],
+        "surfaceOrder": [
+          "The",
+          "editor",
+          "that",
+          "Naomi",
+          "interviewed",
+          "laughed"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 32,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    },
+    {
+      "language": "German",
+      "phenomenon": "yes-no-question",
+      "sentence": "Hat Maria den Brief gelesen?",
+      "framework": "xbar",
+      "caseId": "xbar-03-german-yes-no-question",
+      "route": "pro",
+      "runId": "pro-xbar-03-german-yes-no-question",
+      "ok": true,
+      "elapsedMs": 64696,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "No movement is encoded in the final committed analysis."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 22,
+      "surfaceOrder": [
+        "Hat",
+        "Maria",
+        "den",
+        "Brief",
+        "gelesen"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"On the committed X-bar analysis, the sentence is analyzed as a CP, with the overt left-peripheral head \"Hat\" and a InflP clausal core. Within the matrix InflP, the left branch yields \"Maria\", while the remaining material yields \"den Brief gelesen\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Hat",
+          "Maria",
+          "den",
+          "Brief",
+          "gelesen"
+        ],
+        "surfaceOrder": [
+          "Hat",
+          "Maria",
+          "den",
+          "Brief",
+          "gelesen"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 22,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "Portuguese",
+      "phenomenon": "wh-question",
+      "sentence": "Que pintura comprou Teresa?",
+      "framework": "xbar",
+      "caseId": "xbar-04-portuguese-wh-question",
+      "route": "pro",
+      "runId": "pro-xbar-04-portuguese-wh-question",
+      "ok": true,
+      "elapsedMs": 78918,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase moves to Spec,CP, the verb moves to C, and the subject moves to Spec,InflP, deriving the Wh-V-S order."
+      },
+      "movementEventsCount": 4,
+      "derivationStepsCount": 28,
+      "surfaceOrder": [
+        "Que",
+        "pintura",
+        "comprou",
+        "Teresa"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"The sentence 'Que pintura comprou Teresa?' is a Portuguese wh-question exhibiting subject-verb inversion. To license this interrogative structure, the finite verb 'comprou' undergoes successive-cyclic head movement from V to Infl, and subsequently to C, resulting in the observed V-to-C inversion characteristic of Romance interrogatives as discussed by Luigi Rizzi (1996). Because the verb has moved to C, it linearly precedes the subject in Spec,InflP, yielding the surface order Wh-phrase – Verb – Subject.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Que",
+          "pintura",
+          "comprou",
+          "Teresa"
+        ],
+        "surfaceOrder": [
+          "Que",
+          "pintura",
+          "comprou",
+          "Teresa"
+        ],
+        "movementEventsCount": 4,
+        "replayFrames": 28,
+        "replayMovementFrames": 5,
+        "replayMaxVisibleArrows": 4
+      }
+    },
+    {
+      "language": "French",
+      "phenomenon": "embedded-clause",
+      "sentence": "Marie a dit que Paul partirait.",
+      "framework": "xbar",
+      "caseId": "xbar-05-french-embedded-clause",
+      "route": "pro",
+      "runId": "pro-xbar-05-french-embedded-clause",
+      "ok": true,
+      "elapsedMs": 103844,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The derivation includes A-movement of both subjects from their VP-internal positions to Spec,InflP to satisfy the EPP, as well as V-to-Infl head movement of the finite lexical verb 'partirait'."
+      },
+      "movementEventsCount": 3,
+      "derivationStepsCount": 36,
+      "surfaceOrder": [
+        "Marie",
+        "a",
+        "dit",
+        "que",
+        "Paul",
+        "partirait"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"This analysis is grounded in Government and Binding Theory, incorporating the VP-Internal Subject Hypothesis and standard assumptions regarding French verb movement. In the matrix clause, the auxiliary 'a' is base-generated in the Infl head, while the past participle 'dit' heads the lexical VP. The derivation explicitly records movement of DP \"Marie\" from its lower copy; movement of DP \"Paul\" from its lower copy; head movement of \"partirait\" from V' to Infl.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Marie",
+          "a",
+          "dit",
+          "que",
+          "Paul",
+          "partirait"
+        ],
+        "surfaceOrder": [
+          "Marie",
+          "a",
+          "dit",
+          "que",
+          "Paul",
+          "partirait"
+        ],
+        "movementEventsCount": 3,
+        "replayFrames": 36,
+        "replayMovementFrames": 4,
+        "replayMaxVisibleArrows": 3
+      }
+    },
+    {
+      "language": "Japanese (romanized)",
+      "phenomenon": "simple-transitive",
+      "sentence": "Naoki-ga keeki-o tabeta.",
+      "framework": "minimalism",
+      "caseId": "minimalism-01-japanese-romanized-simple-transitive",
+      "route": "pro",
+      "runId": "pro-minimalism-01-japanese-romanized-simple-transitive",
+      "ok": true,
+      "elapsedMs": 88580,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The subject moves to Spec,TP to satisfy the EPP, and the verb undergoes successive-cyclic head movement to T to form the tensed verb."
+      },
+      "movementEventsCount": 3,
+      "derivationStepsCount": 18,
+      "surfaceOrder": [
+        "Naoki-ga",
+        "keeki-o",
+        "tabeta"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"This analysis derives the strictly head-final SOV order of Japanese within a Minimalist Bare Phrase Structure framework. The derivation begins in the vP phase, where the object DP 'keeki-o' merges as the complement to the lexical verb, and the subject DP 'Naoki-ga' merges in the specifier of vP to receive its external theta-role. The derivation explicitly records movement of DP \"Naoki-ga\" from its lower copy; head movement of \"keeki-o\" from VP to v; head movement of \"tabeta\" from v to T. The resulting structure correctly yields the pronounced left-to-right surface order, with all heads strictly following their complements and the raised subject occupying the highest specifier position.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Naoki-ga",
+          "keeki-o",
+          "tabeta"
+        ],
+        "surfaceOrder": [
+          "Naoki-ga",
+          "keeki-o",
+          "tabeta"
+        ],
+        "movementEventsCount": 3,
+        "replayFrames": 18,
+        "replayMovementFrames": 4,
+        "replayMaxVisibleArrows": 3
+      }
+    },
+    {
+      "language": "Romanian",
+      "phenomenon": "wh-question",
+      "sentence": "Ce profesor a laudat Andrei?",
+      "framework": "minimalism",
+      "caseId": "minimalism-02-romanian-wh-question",
+      "route": "pro",
+      "runId": "pro-minimalism-02-romanian-wh-question",
+      "ok": true,
+      "elapsedMs": 93721,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase 'Ce profesor' moves to Spec,CP to check a [wh] feature, and the participle 'laudat' undergoes head movement to Asp to precede the in-situ subject."
+      },
+      "movementEventsCount": 3,
+      "derivationStepsCount": 23,
+      "surfaceOrder": [
+        "Ce",
+        "profesor",
+        "a",
+        "laudat",
+        "Andrei"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"The derivation explicitly records movement of DP \"Ce profesor\" from its lower copy; head movement of v from VP to v; head movement of \"laudat\" from v to Asp. The auxiliary 'a' is externally merged in T, valuing the tense features of the clause. To derive the postverbal position of the subject 'Andrei', we adopt the standard analysis for Romanian (e.g., Carmen Dobrovie-Sorin 1994) where the subject remains in its base-generated position in Spec,vP. This V-to-v-to-Asp movement elevates the participle above the in-situ subject, straightforwardly yielding the observed auxiliary-participle-subject-object trace linear order.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Ce",
+          "profesor",
+          "a",
+          "laudat",
+          "Andrei"
+        ],
+        "surfaceOrder": [
+          "Ce",
+          "profesor",
+          "a",
+          "laudat",
+          "Andrei"
+        ],
+        "movementEventsCount": 3,
+        "replayFrames": 23,
+        "replayMovementFrames": 4,
+        "replayMaxVisibleArrows": 3
+      }
+    },
+    {
+      "language": "Hindi (romanized)",
+      "phenomenon": "yes-no-question",
+      "sentence": "Kya Anu ne chai banayi?",
+      "framework": "minimalism",
+      "caseId": "minimalism-03-hindi-romanized-yes-no-question",
+      "route": "pro",
+      "runId": "pro-minimalism-03-hindi-romanized-yes-no-question",
+      "ok": true,
+      "elapsedMs": 91561,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The verb undergoes successive-cyclic head movement to T, and the subject KP moves from Spec,vP to Spec,TP to satisfy the EPP."
+      },
+      "movementEventsCount": 3,
+      "derivationStepsCount": 21,
+      "surfaceOrder": [
+        "Kya",
+        "Anu",
+        "ne",
+        "chai",
+        "banayi"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"The analysis assumes a Minimalist framework where Hindi-Urdu clause structure is fundamentally head-final in the inflectional domain (vP, TP) but allows head-initial functional projections at the clause edge, such as the interrogative C hosting the polar question particle 'kya' (following Rajesh Bhatt and Veneeta Dayal 2020). The derivation explicitly records head movement of \"chai\" from VP to v; head movement of \"banayi\" from v to T; movement of KP \"Anu ne\" from its lower copy. The subject 'Anu' merges with the ergative case marker 'ne' to form a KP, which is initially merged in Spec,vP to receive its external theta-role. Finally, the C head 'kya' merges with TP to type the clause as a polar interrogative, yielding the observed surface word order.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Kya",
+          "Anu",
+          "ne",
+          "chai",
+          "banayi"
+        ],
+        "surfaceOrder": [
+          "Kya",
+          "Anu",
+          "ne",
+          "chai",
+          "banayi"
+        ],
+        "movementEventsCount": 3,
+        "replayFrames": 21,
+        "replayMovementFrames": 4,
+        "replayMaxVisibleArrows": 3
+      }
+    },
+    {
+      "language": "Hungarian",
+      "phenomenon": "focus-inversion",
+      "sentence": "Melyik konyvet vette meg Anna?",
+      "framework": "minimalism",
+      "caseId": "minimalism-04-hungarian-focus-inversion",
+      "route": "pro",
+      "runId": "pro-minimalism-04-hungarian-focus-inversion",
+      "ok": true,
+      "elapsedMs": 104753,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase moves to Spec,FocP and the verb moves to Foc, stranding the preverb and subject in lower positions."
+      },
+      "movementEventsCount": 2,
+      "derivationStepsCount": 27,
+      "surfaceOrder": [
+        "Melyik",
+        "konyvet",
+        "vette",
+        "meg",
+        "Anna"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"This analysis adopts a cartographic approach to the Hungarian left periphery, following the tradition of Katalin É. Kiss. The derivation explicitly records movement of DP \"Melyik konyvet\" from its lower copy; head movement of \"vette\" from VP to Foc. The verbal particle (preverb) 'meg' is stranded in the specifier of PredP, a functional projection immediately above vP that typically hosts verbal modifiers. The subject 'Anna' remains in its base-generated position in the specifier of vP. This derivation elegantly captures the characteristic Hungarian V-to-Foc movement that inverts the verb and its preverb, yielding the surface order where the verb precedes the stranded particle and the in-situ subject.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Melyik",
+          "konyvet",
+          "vette",
+          "meg",
+          "Anna"
+        ],
+        "surfaceOrder": [
+          "Melyik",
+          "konyvet",
+          "vette",
+          "meg",
+          "Anna"
+        ],
+        "movementEventsCount": 2,
+        "replayFrames": 27,
+        "replayMovementFrames": 3,
+        "replayMaxVisibleArrows": 2
+      }
+    },
+    {
+      "language": "English",
+      "phenomenon": "long-distance-wh",
+      "sentence": "Which article do you think Clara said Mateo published?",
+      "framework": "minimalism",
+      "caseId": "minimalism-05-english-long-distance-wh",
+      "route": "pro",
+      "runId": "pro-minimalism-05-english-long-distance-wh",
+      "ok": true,
+      "elapsedMs": 201213,
+      "status": 200,
+      "modelUsed": "gemini-3.1-pro-preview",
+      "actualRoute": "pro",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase 'Which article' undergoes successive-cyclic A'-movement to the matrix Spec,CP, and 'do' undergoes T-to-C head movement."
+      },
+      "movementEventsCount": 7,
+      "derivationStepsCount": 51,
+      "surfaceOrder": [
+        "Which",
+        "article",
+        "do",
+        "you",
+        "think",
+        "Clara",
+        "said",
+        "Mateo",
+        "published"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"The derivation explicitly records movement of DP from its lower copy; movement of DP from its lower copy; movement of DP \"Which article\" from its lower copy.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Which",
+          "article",
+          "do",
+          "you",
+          "think",
+          "Clara",
+          "said",
+          "Mateo",
+          "published"
+        ],
+        "surfaceOrder": [
+          "Which",
+          "article",
+          "do",
+          "you",
+          "think",
+          "Clara",
+          "said",
+          "Mateo",
+          "published"
+        ],
+        "movementEventsCount": 7,
+        "replayFrames": 51,
+        "replayMovementFrames": 8,
+        "replayMaxVisibleArrows": 7
+      }
+    },
+    {
+      "language": "Romanian",
+      "phenomenon": "passive",
+      "sentence": "A fost inchisa usa de vant.",
+      "framework": "xbar",
+      "caseId": "xbar-01-romanian-passive",
+      "route": "flash-lite",
+      "runId": "flash-lite-xbar-01-romanian-passive",
+      "ok": true,
+      "elapsedMs": 9440,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "No movement is posited in this analysis as the surface order directly reflects the base-generated hierarchy."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 23,
+      "surfaceOrder": [
+        "A",
+        "fost",
+        "inchisa",
+        "usa",
+        "de",
+        "vant"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"On the committed X-bar analysis, the sentence is analyzed as a CP dominating a InflP as its finite core. Within the InflP, the overt material is confined to \"A fost inchisa usa de vant\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "A",
+          "fost",
+          "inchisa",
+          "usa",
+          "de",
+          "vant"
+        ],
+        "surfaceOrder": [
+          "A",
+          "fost",
+          "inchisa",
+          "usa",
+          "de",
+          "vant"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 23,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "English",
+      "phenomenon": "relative-clause",
+      "sentence": "The editor that Naomi interviewed laughed.",
+      "framework": "xbar",
+      "caseId": "xbar-02-english-relative-clause",
+      "route": "flash-lite",
+      "runId": "flash-lite-xbar-02-english-relative-clause",
+      "ok": true,
+      "elapsedMs": 11820,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The matrix subject DP moves from Spec,VP to Spec,InflP to satisfy the EPP, and a null operator moves to Spec,CP within the relative clause."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 35,
+      "surfaceOrder": [
+        "The",
+        "editor",
+        "that",
+        "Naomi",
+        "interviewed",
+        "laughed"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"This analysis adopts the standard Government and Binding framework, treating the relative clause as a CP adjunct to the NP 'editor'. The matrix subject 'The editor' is generated in the Spec,VP of the main clause and moves to the Spec,InflP position to satisfy the Extended Projection Principle. The verb 'laughed' is treated as the head of the matrix InflP, consistent with the analysis of finite verbs in English as occupying the Infl head position.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "The",
+          "editor",
+          "that",
+          "Naomi",
+          "interviewed",
+          "laughed"
+        ],
+        "surfaceOrder": [
+          "The",
+          "editor",
+          "that",
+          "Naomi",
+          "interviewed",
+          "laughed"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 35,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    },
+    {
+      "language": "German",
+      "phenomenon": "yes-no-question",
+      "sentence": "Hat Maria den Brief gelesen?",
+      "framework": "xbar",
+      "caseId": "xbar-03-german-yes-no-question",
+      "route": "flash-lite",
+      "runId": "flash-lite-xbar-03-german-yes-no-question",
+      "ok": true,
+      "elapsedMs": 9933,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The finite verb 'Hat' undergoes head movement from the V position to the C position to satisfy the V2 requirement in German interrogative clauses."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 14,
+      "surfaceOrder": [
+        "Hat",
+        "Maria",
+        "den",
+        "Brief",
+        "gelesen"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"This analysis adopts the standard Generative framework for German V2 syntax, where the finite verb occupies the head of the CP projection. The derivation explicitly records head movement of \"Hat\" from VP to C. The subject 'Maria' occupies the Spec,InflP position, while the object DP 'den Brief' remains within the VP as the complement of the verb.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Hat",
+          "Maria",
+          "den",
+          "Brief",
+          "gelesen"
+        ],
+        "surfaceOrder": [
+          "Hat",
+          "Maria",
+          "den",
+          "Brief",
+          "gelesen"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 14,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    },
+    {
+      "language": "Portuguese",
+      "phenomenon": "wh-question",
+      "sentence": "Que pintura comprou Teresa?",
+      "framework": "xbar",
+      "caseId": "xbar-04-portuguese-wh-question",
+      "route": "flash-lite",
+      "runId": "flash-lite-xbar-04-portuguese-wh-question",
+      "ok": true,
+      "elapsedMs": 10329,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase undergoes phrasal movement to Spec,CP and the verb undergoes head movement to Infl."
+      },
+      "movementEventsCount": 2,
+      "derivationStepsCount": 20,
+      "surfaceOrder": [
+        "Que",
+        "pintura",
+        "comprou",
+        "Teresa"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"Simultaneously, the verb 'comprou' undergoes head movement from the V position to the Infl head, a standard operation in Romance languages to account for the surface order of the finite verb relative to the subject. The subject 'Teresa' is generated in the specifier of the VP and remains in a post-verbal position, consistent with the null-subject parameter and the free inversion properties often discussed in the work of Luigi Rizzi. The resulting structure maintains strict X-bar adherence, ensuring that the overt terminals are realized in the correct linear order through the specified sibling hierarchy.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Que",
+          "pintura",
+          "comprou",
+          "Teresa"
+        ],
+        "surfaceOrder": [
+          "Que",
+          "pintura",
+          "comprou",
+          "Teresa"
+        ],
+        "movementEventsCount": 2,
+        "replayFrames": 20,
+        "replayMovementFrames": 3,
+        "replayMaxVisibleArrows": 2
+      }
+    },
+    {
+      "language": "French",
+      "phenomenon": "embedded-clause",
+      "sentence": "Marie a dit que Paul partirait.",
+      "framework": "xbar",
+      "caseId": "xbar-05-french-embedded-clause",
+      "route": "flash-lite",
+      "runId": "flash-lite-xbar-05-french-embedded-clause",
+      "ok": true,
+      "elapsedMs": 9844,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "No movement is posited in this analysis as the surface order is generated by base-merging the constituents in their thematic and functional positions."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 20,
+      "surfaceOrder": [
+        "Marie",
+        "a",
+        "dit",
+        "que",
+        "Paul",
+        "partirait"
+      ],
+      "notesText": "Structural Geneology (X-Bar)\n\n\"On the committed X-bar analysis, the sentence is analyzed as a CP dominating a InflP as its finite core. At the left edge of the CP, the DP \"Marie\" occupies the initial peripheral position. Within the matrix InflP, the left branch yields \"a\", while the remaining material yields \"dit que Paul partirait\". The matrix predicate selects an embedded CP introduced by \"que\", yielding \"que Paul partirait\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Marie",
+          "a",
+          "dit",
+          "que",
+          "Paul",
+          "partirait"
+        ],
+        "surfaceOrder": [
+          "Marie",
+          "a",
+          "dit",
+          "que",
+          "Paul",
+          "partirait"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 20,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "Japanese (romanized)",
+      "phenomenon": "simple-transitive",
+      "sentence": "Naoki-ga keeki-o tabeta.",
+      "framework": "minimalism",
+      "caseId": "minimalism-01-japanese-romanized-simple-transitive",
+      "route": "flash-lite",
+      "runId": "flash-lite-minimalism-01-japanese-romanized-simple-transitive",
+      "ok": true,
+      "elapsedMs": 9134,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "The sentence is analyzed as a base-generated SOV structure where the verb remains in the head of the VP, consistent with standard analyses of Japanese as a head-final language."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 9,
+      "surfaceOrder": [
+        "Naoki-ga",
+        "keeki-o",
+        "tabeta"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"On the committed Minimalist analysis, the clause is rooted in a TP. Within the matrix TP, the left branch yields \"Naoki-ga\", while the remaining material yields \"keeki-o tabeta\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Naoki-ga",
+          "keeki-o",
+          "tabeta"
+        ],
+        "surfaceOrder": [
+          "Naoki-ga",
+          "keeki-o",
+          "tabeta"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 9,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "Romanian",
+      "phenomenon": "wh-question",
+      "sentence": "Ce profesor a laudat Andrei?",
+      "framework": "minimalism",
+      "caseId": "minimalism-02-romanian-wh-question",
+      "route": "flash-lite",
+      "runId": "flash-lite-minimalism-02-romanian-wh-question",
+      "ok": true,
+      "elapsedMs": 10472,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase 'Ce profesor' undergoes internal merge to the specifier of CP to satisfy the wh-feature requirement."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 16,
+      "surfaceOrder": [
+        "Ce",
+        "profesor",
+        "a",
+        "laudat",
+        "Andrei"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"This analysis adopts the Minimalist Program framework, treating the Romanian wh-question as a result of phrasal movement to the CP periphery. The auxiliary 'a' occupies the T head, while the subject 'Andrei' remains in its base position within the VP-internal domain, consistent with the standard treatment of post-verbal subjects in Romance languages as discussed by Luigi Rizzi.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Ce",
+          "profesor",
+          "a",
+          "laudat",
+          "Andrei"
+        ],
+        "surfaceOrder": [
+          "Ce",
+          "profesor",
+          "a",
+          "laudat",
+          "Andrei"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 16,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    },
+    {
+      "language": "Hindi (romanized)",
+      "phenomenon": "yes-no-question",
+      "sentence": "Kya Anu ne chai banayi?",
+      "framework": "minimalism",
+      "caseId": "minimalism-03-hindi-romanized-yes-no-question",
+      "route": "flash-lite",
+      "runId": "flash-lite-minimalism-03-hindi-romanized-yes-no-question",
+      "ok": true,
+      "elapsedMs": 9121,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": false,
+        "rationale": "No movement is posited as the surface order is derived directly from the hierarchical merge of the functional and lexical projections."
+      },
+      "movementEventsCount": 0,
+      "derivationStepsCount": 11,
+      "surfaceOrder": [
+        "Kya",
+        "Anu",
+        "ne",
+        "chai",
+        "banayi"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"On the committed Minimalist analysis, the sentence is analyzed as a CP, with the overt left-peripheral head \"Kya\" and a TP clausal core. Within the matrix TP, the left branch yields \"Anu\", while the remaining material yields \"ne chai banayi\". No displacement operation is encoded in the derivation.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Kya",
+          "Anu",
+          "ne",
+          "chai",
+          "banayi"
+        ],
+        "surfaceOrder": [
+          "Kya",
+          "Anu",
+          "ne",
+          "chai",
+          "banayi"
+        ],
+        "movementEventsCount": 0,
+        "replayFrames": 11,
+        "replayMovementFrames": 0,
+        "replayMaxVisibleArrows": 0
+      }
+    },
+    {
+      "language": "Hungarian",
+      "phenomenon": "focus-inversion",
+      "sentence": "Melyik konyvet vette meg Anna?",
+      "framework": "minimalism",
+      "caseId": "minimalism-04-hungarian-focus-inversion",
+      "route": "flash-lite",
+      "runId": "flash-lite-minimalism-04-hungarian-focus-inversion",
+      "ok": true,
+      "elapsedMs": 10191,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase moves to the specifier of CP, and the verb undergoes head movement to T."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 15,
+      "surfaceOrder": [
+        "Melyik",
+        "konyvet",
+        "vette",
+        "meg",
+        "Anna"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"Kiss. The subject 'Anna' remains in a post-verbal position, consistent with the focus-based word order constraints of the language. The structure utilizes Bare Phrase Structure to represent the DP and TP projections, ensuring that the overt terminals are realized in the correct surface order through explicit sibling ordering. The derivation explicitly records movement of DP \"Melyik konyvet\" from its lower copy.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Melyik",
+          "konyvet",
+          "vette",
+          "meg",
+          "Anna"
+        ],
+        "surfaceOrder": [
+          "Melyik",
+          "konyvet",
+          "vette",
+          "meg",
+          "Anna"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 15,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    },
+    {
+      "language": "English",
+      "phenomenon": "long-distance-wh",
+      "sentence": "Which article do you think Clara said Mateo published?",
+      "framework": "minimalism",
+      "caseId": "minimalism-05-english-long-distance-wh",
+      "route": "flash-lite",
+      "runId": "flash-lite-minimalism-05-english-long-distance-wh",
+      "ok": true,
+      "elapsedMs": 10516,
+      "status": 200,
+      "modelUsed": "gemini-3.1-flash-lite-preview",
+      "actualRoute": "flash-lite",
+      "fallbackUsed": false,
+      "movementDecision": {
+        "hasMovement": true,
+        "rationale": "The wh-phrase 'Which article' undergoes Internal Merge to the Spec,CP position to satisfy the [+wh] feature requirement of the matrix C head."
+      },
+      "movementEventsCount": 1,
+      "derivationStepsCount": 25,
+      "surfaceOrder": [
+        "Which",
+        "article",
+        "do",
+        "you",
+        "think",
+        "Clara",
+        "said",
+        "Mateo",
+        "published"
+      ],
+      "notesText": "Structural Geneology (Minimalism)\n\n\"The auxiliary 'do' is merged into the T position to support the interrogative clause structure, while the embedded clauses remain as CP complements. The trace 't' at the base position represents the lower copy of the moved DP, ensuring that the thematic role assigned by the verb 'published' is properly satisfied within the internal argument position.\"",
+      "checks": {
+        "ok": true,
+        "issues": [],
+        "leaves": [
+          "Which",
+          "article",
+          "do",
+          "you",
+          "think",
+          "Clara",
+          "said",
+          "Mateo",
+          "published"
+        ],
+        "surfaceOrder": [
+          "Which",
+          "article",
+          "do",
+          "you",
+          "think",
+          "Clara",
+          "said",
+          "Mateo",
+          "published"
+        ],
+        "movementEventsCount": 1,
+        "replayFrames": 25,
+        "replayMovementFrames": 2,
+        "replayMaxVisibleArrows": 1
+      }
+    }
+  ]
+}

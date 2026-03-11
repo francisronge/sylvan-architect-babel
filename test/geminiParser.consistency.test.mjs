@@ -63,6 +63,29 @@ function withMovementDecision(payload) {
   return payload;
 }
 
+function findNodeById(tree, targetId) {
+  let found = null;
+  const visit = (node) => {
+    if (!node || found) return;
+    if (String(node.id || '').trim() === targetId) {
+      found = node;
+      return;
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(tree);
+  return found;
+}
+
+function collectLabels(tree, labels = []) {
+  if (!tree) return labels;
+  labels.push(String(tree.label || '').trim());
+  const children = Array.isArray(tree.children) ? tree.children : [];
+  children.forEach((child) => collectLabels(child, labels));
+  return labels;
+}
+
 test('normalizeParseBundle commits a surface-consistent embedded-clause tree and appends SpellOut', () => {
   const sentence = 'Marie a dit que Paul partirait.';
   const payload = {
@@ -179,6 +202,9 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   assert.match(instruction, /Do not stack extra overt head labels such as C > V > word/i);
   assert.match(instruction, /use exactly one overt head label above the pronounced word/i);
   assert.match(instruction, /landing head should directly dominate the overt word/i);
+  assert.match(instruction, /Every overt lexical item must be visibly headed exactly once/i);
+  assert.match(instruction, /Do not make one head node directly dominate both an overt word and a trace\/null\/copy sibling/i);
+  assert.match(instruction, /"word" is a field name, not a category label/i);
   assert.match(instruction, /If the final tree places an overt head in a higher functional head position .* this must be encoded as a HeadMove/i);
   assert.match(instruction, /Flash Lite format discipline/i);
   assert.match(instruction, /Every overt terminal leaf must include tokenIndex/i);
@@ -188,6 +214,7 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
 test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lower copies', () => {
   const prompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar');
   const proPrompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar', 'pro');
+  const compactProPrompt = buildParseContentsPrompt('Ha comprado Ana el libro?', 'xbar', 'pro', { compactOutput: true });
 
   assert.match(prompt, /Return the complete analysis in one pass/i);
   assert.match(prompt, /For the structure, use the flat node-table format/i);
@@ -209,6 +236,9 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /realize it there as one overt head rather than stacking labels like C > V > word/i);
   assert.match(prompt, /use exactly one overt head label above the pronounced word/i);
   assert.match(prompt, /landing head should directly dominate the overt word/i);
+  assert.match(prompt, /Each overt lexical item must be visibly headed exactly once/i);
+  assert.match(prompt, /Do not let one head node directly dominate both an overt word and a trace\/null\/copy sibling/i);
+  assert.match(prompt, /never use "word" as a node label/i);
   assert.match(prompt, /If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove/i);
   assert.match(prompt, /developed academic paragraph rather than a compressed checklist/i);
   assert.match(prompt, /recognized analytical tradition or mention a relevant scholar/i);
@@ -216,6 +246,9 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /FLASH LITE FORMAT CHECK AGAIN: analyses\[\]\.nodes is the only allowed structural format\./i);
   assert.match(prompt, /FLASH LITE FORMAT CHECK A THIRD TIME: parentId, siblingOrder, and overt tokenIndex are the primary commitments\./i);
   assert.match(prompt, /CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis\./i);
+  assert.match(compactProPrompt, /COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note/i);
+  assert.match(compactProPrompt, /Keep the explanation to 2-4 substantive sentences/i);
+  assert.match(compactProPrompt, /Compact retry mode is active because an earlier answer was cut off/i);
 });
 
 test('parseResponseJsonSchemaForRoute uses flat analysis schema for lite and mixed schema for pro', () => {
@@ -932,6 +965,28 @@ test('reconcileModelExplanationWithDerivation keeps ordinary wh-movement prose f
   assert.doesNotMatch(reconciled, /On the committed X-bar analysis/i);
 });
 
+test('reconcileModelExplanationWithDerivation keeps successive-cyclic wh prose when phrasal movement is encoded as generic Move', () => {
+  const fallback = 'The derivation explicitly records movement and head movement.';
+  const modelExplanation = [
+    "This analysis models long-distance wh-movement within the Minimalist Program, demonstrating successive-cyclic movement through intermediate phase edges.",
+    "The wh-phrase 'Which article' originates as the complement of 'published' and undergoes Internal Merge to the specifier of each intervening CP phase before reaching the matrix Spec,CP.",
+    "In the matrix clause, the auxiliary 'do' undergoes T-to-C head movement."
+  ].join(' ');
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [
+      { operation: 'Move', fromNodeId: 'wh3', toNodeId: 'wh2', traceNodeId: 'wh3' },
+      { operation: 'Move', fromNodeId: 'wh2', toNodeId: 'wh1', traceNodeId: 'wh2' },
+      { operation: 'Move', fromNodeId: 'wh1', toNodeId: 'wh0', traceNodeId: 'wh1' },
+      { operation: 'HeadMove', fromNodeId: 't', toNodeId: 'c', traceNodeId: 't' }
+    ]
+  );
+  assert.match(reconciled, /successive-cyclic movement through intermediate phase edges/i);
+  assert.match(reconciled, /undergoes Internal Merge/i);
+  assert.match(reconciled, /auxiliary 'do' undergoes T-to-C head movement/i);
+});
+
 test('reconcileModelExplanationWithDerivation appends grounded movement when the model omits it', () => {
   const fallback = "The subject remains in Spec,InflP. The derivation explicitly records head movement of \"Gheall\" from V to Infl.";
   const modelExplanation = "The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement.";
@@ -953,6 +1008,19 @@ test('reconcileModelExplanationWithDerivation adds a minimal movement sentence w
     [{ operation: 'HeadMove', fromNodeId: 'c1', toNodeId: 'infl1', traceNodeId: 'c1' }]
   );
   assert.match(reconciled, /derivation explicitly records head movement/i);
+});
+
+test('reconcileModelExplanationWithDerivation prefers grounded lowering wording over generic head-movement prose', () => {
+  const fallback = 'The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement. The derivation explicitly records lowering of "Gheall" from C to Infl.';
+  const modelExplanation = 'The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement. The derivation explicitly records head movement.';
+  const reconciled = reconcileModelExplanationWithDerivation(
+    modelExplanation,
+    fallback,
+    [{ operation: 'HeadMove', fromNodeId: 'c1', toNodeId: 'infl1', traceNodeId: 'c1' }]
+  );
+  assert.match(reconciled, /embedded clause is selected as a CP complement/i);
+  assert.match(reconciled, /lowering of "Gheall" from C to Infl/i);
+  assert.doesNotMatch(reconciled, /The derivation explicitly records head movement\./i);
 });
 
 test('normalizeParseBundle does not infer movement from indexed tree labels when movementEvents are omitted', () => {
@@ -2480,6 +2548,68 @@ test('harmonizeExplanationWithDerivation bubbles stacked head landings up to the
   assert.doesNotMatch(normalizedExplanation, /to V/i);
 });
 
+test('harmonizeExplanationWithDerivation names lowering when the committed head movement is from C to Infl', () => {
+  const explanation = 'The subject remains in Spec,InflP, while the embedded clause is selected as a CP complement. The derivation explicitly records head movement.';
+  const movementEvents = [
+    {
+      operation: 'HeadMove',
+      fromNodeId: 'n3',
+      toNodeId: 'n6',
+      traceNodeId: 'n3'
+    }
+  ];
+  const tree = {
+    id: 'n1',
+    label: 'CP',
+    children: [
+      {
+        id: 'n2',
+        label: "C'",
+        children: [
+          {
+            id: 'n4',
+            label: 'C',
+            children: [{ id: 'n3', label: '∅', word: '∅' }]
+          },
+          {
+            id: 'n5',
+            label: 'InflP',
+            children: [
+              {
+                id: 'n7',
+                label: "Infl'",
+                children: [
+                  {
+                    id: 'n6',
+                    label: 'Infl',
+                    children: [{ id: 'n8', label: 'Gheall', word: 'Gheall' }]
+                  },
+                  {
+                    id: 'n9',
+                    label: 'DP',
+                    children: [{ id: 'n10', label: 'se', word: 'se' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalizedExplanation = harmonizeExplanationWithDerivation(
+    explanation,
+    [],
+    movementEvents,
+    tree,
+    'xbar'
+  );
+
+  assert.match(normalizedExplanation, /lowering of "Gheall" from C to Infl/i);
+  assert.doesNotMatch(normalizedExplanation, /The derivation explicitly records head movement\./i);
+});
+
 test('harmonizeExplanationWithDerivation uses the overt head surface rather than an entire subtree yield', () => {
   const explanation = 'A Hungarian wh question.';
   const tree = {
@@ -2918,6 +3048,135 @@ test('normalizeParseBundle canonicalizes split clause-edge moved phrases into on
   assert.equal(tree.children[1].label, 'DP');
   assert.equal(tree.children[1].children[0].label, 'D');
   assert.equal(tree.children[1].children[0].children[0].word, 'Que');
+});
+
+test('normalizeParseBundle inserts a dedicated lower head copy for assisted head movement sourced from a shell', () => {
+  const sentence = 'vette meg Anna';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'tp',
+          label: 'TP',
+          children: [
+            { id: 't_head', label: 'T', word: 'vette' },
+            {
+              id: 'vp',
+              label: 'VP',
+              children: [
+                { id: 'v_particle', label: 'V', word: 'meg' },
+                {
+                  id: 'subj',
+                  label: 'DP',
+                  children: [{ id: 'subj_n', label: 'N', word: 'Anna' }]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A Hungarian-style head movement configuration.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'The verb raises to T.'
+        },
+        movementEvents: [
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'vp',
+            toNodeId: 't_head',
+            stepIndex: 3
+          }
+        ]
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const analysis = normalizeParseBundle(payload, 'minimalism', sentence, 'flash-lite').analyses[0];
+  assert.equal(analysis.movementEvents.length, 1);
+  const headMove = analysis.movementEvents[0];
+  assert.equal(headMove.operation, 'HeadMove');
+  assert.notEqual(headMove.fromNodeId, 'vp');
+  assert.ok(headMove.traceNodeId);
+  const traceNode = findNodeById(analysis.tree, headMove.traceNodeId);
+  assert.ok(traceNode);
+  assert.equal(traceNode.word, '∅');
+  const vp = findNodeById(analysis.tree, 'vp');
+  assert.equal(vp.children[0].label, 'V');
+  assert.equal(vp.children[0].children[0].word, '∅');
+});
+
+test('normalizeParseBundle drops assisted phrasal movement that illegitimately reuses a head trace source', () => {
+  const sentence = 'Hvilken bok leste Nora?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: 'DP',
+              children: [
+                { id: 'n3', label: 'D', word: 'Hvilken' },
+                { id: 'n4', label: 'NP', children: [{ id: 'n5', label: 'N', word: 'bok' }] }
+              ]
+            },
+            {
+              id: 'n6',
+              label: 'C',
+              children: [{ id: 'n7', label: 'leste', word: 'leste' }]
+            },
+            {
+              id: 'n8',
+              label: 'TP',
+              children: [
+                {
+                  id: 'n9',
+                  label: 'DP',
+                  children: [{ id: 'n11', label: 'NP', children: [{ id: 'n12', label: 'N', word: 'Nora' }] }]
+                },
+                { id: 'n10', label: 'V', word: '∅' }
+              ]
+            }
+          ]
+        },
+        explanation: 'A Norwegian wh-question with V2.',
+        movementDecision: {
+          hasMovement: true,
+          rationale: 'Wh movement and verb movement are both part of the intended analysis.'
+        },
+        movementEvents: [
+          {
+            operation: 'HeadMove',
+            fromNodeId: 'n10',
+            toNodeId: 'n7',
+            traceNodeId: 'n10',
+            stepIndex: 12
+          },
+          {
+            operation: 'Move',
+            fromNodeId: 'n10',
+            toNodeId: 'n2',
+            traceNodeId: 'n10',
+            stepIndex: 13
+          }
+        ]
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const analysis = normalizeParseBundle(payload, 'minimalism', sentence, 'flash-lite').analyses[0];
+  assert.equal(analysis.movementEvents.length, 1);
+  assert.equal(analysis.movementEvents[0].operation, 'HeadMove');
+  const launchSites = analysis.movementEvents.map((event) => event.traceNodeId || event.fromNodeId);
+  assert.equal(new Set(launchSites).size, launchSites.length);
 });
 
 test('normalizeParseBundle keeps complementizer and PP words like that/time in the overt yield', () => {
@@ -3546,6 +3805,48 @@ test('normalizeParseBundle strips movement indices from tree labels so Canopy re
   // Bracketed notation must use the clean labels
   assert.doesNotMatch(analysis.bracketedNotation, /DP_i/);
   assert.match(analysis.bracketedNotation, /\[DP \[D' \[D Which\]/);
+});
+
+test('normalizeParseBundle rewrites nested literal word labels into surface terminals', () => {
+  const sentence = 'The analyst';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'root',
+          label: 'DP',
+          children: [
+            {
+              id: 'd_head',
+              label: 'D',
+              children: [{ id: 'd_word', label: 'word', word: 'The' }]
+            },
+            {
+              id: 'np',
+              label: 'NP',
+              children: [
+                {
+                  id: 'n_head',
+                  label: 'N',
+                  children: [{ id: 'n_word', label: 'word', word: 'analyst' }]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A simple determiner phrase.',
+        movementEvents: []
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const analysis = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence).analyses[0];
+  assert.equal(collectLabels(analysis.tree).includes('word'), false);
+  assert.equal(analysis.tree.children[0].children[0].label, 'The');
+  assert.equal(analysis.tree.children[1].children[0].children[0].label, 'analyst');
 });
 
 test('normalizeParseBundle does not derive movement from trace-prefixed node IDs without explicit movement events', () => {

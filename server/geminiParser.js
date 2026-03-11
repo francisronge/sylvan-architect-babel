@@ -58,7 +58,8 @@ General rules:
 - The tree must be the final pronounced structure.
 - Every node must have a unique "id".
 - Use full node objects in "children"; never node-id references.
-- Use "word" for overt or null terminal surface forms. Do not use alternate fields such as "value".
+- Use the field "word" for overt or null terminal surface forms. Do not use alternate fields such as "value".
+- "word" is a field name, not a category label. Do not return nodes whose literal label is "word".
 - Every overt terminal leaf should include "tokenIndex", pointing to its exact position in the input sentence token list.
 - Every overt input token must appear in the tree exactly as pronounced and in the same left-to-right order as the sentence.
 - Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
@@ -72,6 +73,8 @@ General rules:
 - If a head is overt in a higher functional position, realize it there as a single overt head. Do not stack extra overt head labels such as C > V > word merely to preserve its source category.
 - At the landing site of head movement, use exactly one overt head label above the pronounced word. Do not return unary chains of overt head labels with the same overt yield.
 - If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word. Do not wrap the overt word in an extra overt source-category head beneath the landing site.
+- Every overt lexical item must be visibly headed exactly once: either place the overt word on a head node itself, or let a single head node directly dominate that overt word as its only overt child.
+- Do not make one head node directly dominate both an overt word and a trace/null/copy sibling. If a lower head copy is needed, encode it in a distinct lower head position.
 
 For movement:
 - First decide movement and encode it in "movementDecision.hasMovement" (true/false).
@@ -114,6 +117,8 @@ const LITE_FORMAT_INSTRUCTION = `Flash Lite format discipline:
 - Sister nodes with overt descendants must realize disjoint, non-interleaving token intervals. Do not place one sibling so its overt tokens fall inside the overt interval of a sister node.
 - If a bar-level or binary shell would force a subject/specifier to surface between the overt descendants of another sibling, do not use that shell. Instead, encode the locally ordered head, subject/specifier, and complement material directly as siblings of the phrasal node with explicit siblingOrder so the committed structure itself spells the sentence correctly.
 - In head-initial structures, do not bury the overt head and its complement together under one shell if the subject surfaces between them. Encode the head, subject/specifier, and complement sequence directly in the local sibling order.
+- Keep overt headedness local and explicit. If a node is the overt realization of a head, let that head node carry the overt word itself or directly dominate that overt word as its sole overt child; do not place an overt word and a lower trace/null sibling under the same head node.
+- The literal label "word" is not an allowed category label in the node table. Use the field "word" for surface forms and keep structural labels as actual categories or terminal surfaces.
 - If you are unsure about a phrasal surfaceSpan, omit it rather than guessing. Babel will derive spans from the committed overt token indices.
 - The final node table must already imply the correct sentence order through parent relations plus overt tokenIndex commitments.`;
 
@@ -835,13 +840,17 @@ const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   }
 
   const node = value;
-  const rawLabel = typeof node.label === 'string' && node.label.trim()
+  const explicitWord = typeof node.word === 'string' && node.word.trim()
+    ? node.word.trim()
+    : typeof node.value === 'string' && node.value.trim()
+      ? node.value.trim()
+      : '';
+  const rawNodeLabel = typeof node.label === 'string' && node.label.trim()
     ? node.label.trim()
-    : typeof node.word === 'string' && node.word.trim()
-      ? node.word.trim()
-      : typeof node.value === 'string' && node.value.trim()
-        ? node.value.trim()
-        : '';
+    : '';
+  const rawLabel = rawNodeLabel
+    ? (/^word$/i.test(rawNodeLabel) && explicitWord ? explicitWord : rawNodeLabel)
+    : explicitWord;
   const label = normalizeLabelForFramework(rawLabel, context.framework);
   if (!label) {
     throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed structural components from model.', 502);
@@ -864,12 +873,7 @@ const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   if (tokenIndex !== undefined) {
     normalized.tokenIndex = tokenIndex;
   }
-  const terminalWord =
-    typeof node.word === 'string' && node.word.trim()
-      ? node.word.trim()
-      : typeof node.value === 'string' && node.value.trim()
-        ? node.value.trim()
-        : '';
+  const terminalWord = explicitWord;
   const rawChildren = Array.isArray(node.children)
     ? node.children.map((child) => normalizeSyntaxNode(child, usedIds, counterRef, context))
     : [];
@@ -1756,13 +1760,19 @@ const canonicalizeHeadMoveSourceShells = (tree, movementEvents) => {
     const children = Array.isArray(fromNode.children) ? fromNode.children : [];
     const existingHeadChild = children.find((child) => normalizeMovementLabelKey(child?.label) === normalizeMovementLabelKey(headLabel));
     if (existingHeadChild) {
-      const existingHeadKids = Array.isArray(existingHeadChild.children) ? existingHeadChild.children : [];
-      const nullLeaf = existingHeadKids.find((child) => isTraceLikeNode(child) || isNullLikeNode(child));
-      if (nullLeaf?.id) {
-        event.fromNodeId = String(nullLeaf.id);
-        event.traceNodeId = String(nullLeaf.id);
+      const directNullSource =
+        (isTraceLikeNode(existingHeadChild) || isNullLikeNode(existingHeadChild))
+          ? existingHeadChild
+          : null;
+      const descendantNullSource = directNullSource
+        ? null
+        : collectLeafNodes(existingHeadChild).find((child) => isTraceLikeNode(child) || isNullLikeNode(child));
+      const groundedSource = directNullSource || descendantNullSource;
+      if (groundedSource?.id) {
+        event.fromNodeId = String(groundedSource.id);
+        event.traceNodeId = String(groundedSource.id);
+        return;
       }
-      return;
     }
 
     const nullLeafId = nextId();
@@ -2284,6 +2294,7 @@ const resolveMovementNodeReference = (rawRef, nodeIds, labelIndex) => {
 
 const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labelIndex) => {
   if (!Array.isArray(value)) return undefined;
+  const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
 
   const events = value
     .map((item) => {
@@ -2296,10 +2307,10 @@ const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labe
       let toNodeId = resolveMovementNodeReference(explicitTargetRef, nodeIds, labelIndex);
       let traceNodeId = resolveMovementNodeReference(explicitTraceRef, nodeIds, labelIndex);
       const stepIndexRaw = Number(item.stepIndex);
-      const hasDerivationTimeline = Array.isArray(derivationSteps) && derivationSteps.length > 0;
+      const hasDerivationTimeline = steps.length > 0;
       let stepIndex = Number.isInteger(stepIndexRaw) &&
         stepIndexRaw >= 0 &&
-        (!hasDerivationTimeline || stepIndexRaw < derivationSteps.length)
+        (!hasDerivationTimeline || stepIndexRaw < steps.length)
         ? stepIndexRaw
         : undefined;
 
@@ -2309,11 +2320,11 @@ const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labe
           fromNodeId,
           toNodeId,
           traceNodeId
-        }, derivationSteps);
+        }, steps);
       }
 
-      const alignedStep = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < derivationSteps.length
-        ? derivationSteps[stepIndex]
+      const alignedStep = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
+        ? steps[stepIndex]
         : undefined;
 
       if (!fromNodeId && Array.isArray(alignedStep?.sourceNodeIds) && alignedStep.sourceNodeIds.length === 1) {
@@ -2781,6 +2792,38 @@ const groundMovementEvent = ({
     return null;
   }
 
+  const fromProfile = getLabelProfile(fromNode.label);
+  const toProfile = getLabelProfile(toNode.label);
+  if (toProfile.isPhrasal && fromProfile.isHeadLikeStructural) {
+    const stepTrace = getMoveLikeTraceSourceFromStep(step, nodeById, toNodeId, parentById);
+    if (stepTrace) {
+      const stepTraceProfile = getLabelProfile(stepTrace.label);
+      if (!stepTraceProfile.isHeadLikeStructural) {
+        return {
+          ...event,
+          operation: op,
+          fromNodeId: String(stepTrace.id || '').trim(),
+          traceNodeId: String(stepTrace.id || '').trim()
+        };
+      }
+    }
+
+    const externalTrace = findUniqueTraceLikeLeafOutsideSubtree(tree, toNode, parentById);
+    if (externalTrace) {
+      const traceProfile = getLabelProfile(externalTrace.label);
+      if (!traceProfile.isHeadLikeStructural) {
+        return {
+          ...event,
+          operation: op,
+          fromNodeId: String(externalTrace.id || '').trim(),
+          traceNodeId: String(externalTrace.id || '').trim()
+        };
+      }
+    }
+
+    return null;
+  }
+
   if (groundedExplicitTrace) {
     return {
       ...event,
@@ -2834,10 +2877,12 @@ const buildCanonicalMovementEvents = ({
   rawMovementEvents
 }) => {
   const nodeById = buildNodeIndexFromTree(tree);
+  const parentById = buildParentIndexFromTree(tree);
   const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
   const rawEvents = Array.isArray(rawMovementEvents) ? rawMovementEvents : [];
   const canonical = [];
   const seen = new Set();
+  const claimedLaunchSites = new Set();
 
   const pushEvent = (event, stepForContext) => {
     if (!event) return;
@@ -2851,18 +2896,22 @@ const buildCanonicalMovementEvents = ({
       ? stepIndex
       : undefined;
     const explicitOperation = normalizeMovementOperation(event.operation) || 'Move';
+    const traceNodeId = (() => {
+      const trace = String(event.traceNodeId || '').trim();
+      if (trace && nodeById.has(trace)) return trace;
+      return undefined;
+    })();
+    const launchSiteId = traceNodeId || fromNodeId;
+    if (launchSiteId && claimedLaunchSites.has(launchSiteId)) return;
     const key = `${fromNodeId}->${toNodeId}@${safeStepIndex ?? 'na'}:${explicitOperation}`;
     if (seen.has(key)) return;
     seen.add(key);
+    if (launchSiteId) claimedLaunchSites.add(launchSiteId);
     canonical.push({
       operation: explicitOperation,
       fromNodeId,
       toNodeId,
-      traceNodeId: (() => {
-        const trace = String(event.traceNodeId || '').trim();
-        if (trace && nodeById.has(trace)) return trace;
-        return undefined;
-      })(),
+      traceNodeId,
       stepIndex: safeStepIndex,
       note: typeof event.note === 'string' ? event.note : undefined
     });
@@ -2875,7 +2924,17 @@ const buildCanonicalMovementEvents = ({
       const step = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
         ? steps[stepIndex]
         : undefined;
-      pushEvent(event, step);
+      const op = normalizeMovementOperation(event?.operation) || 'Move';
+      const grounded = op === 'HeadMove'
+        ? event
+        : groundMovementEvent({
+            event,
+            step,
+            tree,
+            nodeById,
+            parentById
+          });
+      pushEvent(grounded, step);
     });
 
   return canonical.length > 0 ? canonical : undefined;
@@ -2923,8 +2982,8 @@ const reconcileDerivationStepOperations = (derivationSteps, movementEvents) => {
   });
 };
 
-const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
-const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c|(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))[^.!?]{0,120}\b(?:c|t|infl|i|v)\s+head\b|\b(?:c|t|infl|i|v)\s+head\b[^.!?]{0,120}\b(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))\b)\b/i;
+const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|rais(?:e|es|ed|ing)|lower(?:ing|ed)|trace|copy|a-?bar|a-?move|wh-?move|front(?:ing|ed)?|displac(?:e|ed|ement|ing)|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
+const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c|lower(?:ing|ed)|(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))[^.!?]{0,120}\b(?:c|t|infl|i|v)\s+head\b|\b(?:c|t|infl|i|v)\s+head\b[^.!?]{0,120}\b(?:move(?:d|s|ment)?|rais(?:e|es|ed|ing))\b)\b/i;
 const EXPLANATION_SUCCESSIVE_HEADMOVE_RE = /\b(v\s*-?to\s*-?(?:infl|i|t)|verb raises? to (?:infl|i|t)|infl\s*-?to\s*-?c|(?:infl|i|t) (?:raises?|moves?) to c|finally to c|subsequently to c)\b/i;
 const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
 const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
@@ -2973,6 +3032,9 @@ const extractMovementEventKinds = (movementEvents) => {
   movementEvents.forEach((event) => {
     const op = normalizeMovementOperation(event?.operation);
     if (op === 'HeadMove') kinds.add('head');
+    if (op === 'Move' || op === 'AbarMove' || op === 'A-Move' || op === 'InternalMerge') {
+      kinds.add('generic');
+    }
     if (op === 'AbarMove') kinds.add('wh');
     if (op === 'A-Move') kinds.add('a');
     if (op === 'InternalMerge') kinds.add('internal');
@@ -3594,16 +3656,51 @@ const mergeExplanationWithGroundedFallback = (primaryText, fallbackText) => {
   return ensureExplanationTerminator(cleanExplanationWhitespace(merged.join(' ')));
 };
 
+const sentenceHasSpecificHeadMovementDetail = (sentence) => {
+  const text = cleanExplanationWhitespace(sentence);
+  if (!text) return false;
+  return /\blowering\b/i.test(text)
+    || /"[^"]+"/.test(text)
+    || /\bfrom\b[^.!?]{0,120}\bto\b/i.test(text);
+};
+
+const shouldPreferFallbackHeadMovementSentence = (modelSentence, fallbackSentence) => {
+  const model = cleanExplanationWhitespace(modelSentence);
+  const fallback = cleanExplanationWhitespace(fallbackSentence);
+  if (!model || !fallback) return false;
+  if (model.toLowerCase() === fallback.toLowerCase()) return false;
+  if (/\blowering\b/i.test(fallback) && !/\blowering\b/i.test(model)) return true;
+  if (/^the derivation explicitly records head movement\.?$/i.test(model) && sentenceHasSpecificHeadMovementDetail(fallback)) {
+    return true;
+  }
+  return sentenceHasSpecificHeadMovementDetail(fallback) && !sentenceHasSpecificHeadMovementDetail(model);
+};
+
 const ensureEncodedMovementIsMentioned = (text, fallbackText, movementEvents) => {
-  const cleaned = cleanExplanationWhitespace(text);
-  if (!cleaned) return cleaned;
+  const rawCleaned = cleanExplanationWhitespace(text);
+  if (!rawCleaned) return rawCleaned;
   if (!Array.isArray(movementEvents) || movementEvents.length === 0) {
-    return ensureExplanationTerminator(cleaned);
+    return ensureExplanationTerminator(rawCleaned);
   }
 
-  const sentences = splitExplanationSentences(cleaned);
   const headMoveCount = countMovementEventsByOperation(movementEvents, 'HeadMove');
   const phrasalMoveCount = countPhrasalMovementEvents(movementEvents);
+  const fallbackSentences = splitExplanationSentences(fallbackText);
+  const sentences = splitExplanationSentences(rawCleaned);
+  const headMoveSentenceIndex = headMoveCount > 0
+    ? sentences.findIndex((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence))
+    : -1;
+  const fallbackHeadMoveSentence = headMoveCount > 0
+    ? fallbackSentences.find((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence))
+    : null;
+  if (
+    headMoveSentenceIndex >= 0
+    && shouldPreferFallbackHeadMovementSentence(sentences[headMoveSentenceIndex], fallbackHeadMoveSentence)
+  ) {
+    sentences[headMoveSentenceIndex] = fallbackHeadMoveSentence;
+  }
+
+  const cleaned = cleanExplanationWhitespace(sentences.join(' '));
   const mentionsHeadMove = sentences.some((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence));
   const mentionsPhrasalMove = sentences.some((sentence) => {
     const claims = extractMovementClaimsFromSentence(sentence);
@@ -3615,7 +3712,6 @@ const ensureEncodedMovementIsMentioned = (text, fallbackText, movementEvents) =>
     return ensureExplanationTerminator(cleaned);
   }
 
-  const fallbackSentences = splitExplanationSentences(fallbackText);
   const fallbackMovementSentence =
     (headMoveCount > 0 && !mentionsHeadMove
       ? fallbackSentences.find((sentence) => EXPLANATION_HEADMOVE_RE.test(sentence))
@@ -4237,7 +4333,12 @@ const buildSystemInstruction = (framework = 'xbar', modelRoute = 'flash-lite') =
   BASE_INSTRUCTION +
   (modelRoute === 'flash-lite' ? `\n\n${LITE_FORMAT_INSTRUCTION}` : '');
 
-const buildSingleParseContentsPrompt = (sentence, framework = 'xbar', modelRoute = 'flash-lite') =>
+const buildSingleParseContentsPrompt = (
+  sentence,
+  framework = 'xbar',
+  modelRoute = 'flash-lite',
+  { compactOutput = false } = {}
+) =>
   `Analyze the sentence: "${sentence}" and return a complete syntactic tree analysis using ` +
   `${framework === 'xbar' ? 'X-Bar Theory' : 'The Minimalist Program (Bare Phrase Structure)'} in the specified JSON format. ` +
   `Return the complete analysis in one pass. ` +
@@ -4270,11 +4371,17 @@ const buildSingleParseContentsPrompt = (sentence, framework = 'xbar', modelRoute
   `Do not split one overt moved phrase across an overt C/head node plus a separate DP/NP/PP phrase shell; if a phrase moves to the clause edge, keep all overt words of that phrase inside that single moved phrase node. ` +
   `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
+  `Each overt lexical item must be visibly headed exactly once: either put the overt word on a head node itself, or let one head node directly dominate that overt word as its only overt child. ` +
+  `Do not let one head node directly dominate both an overt word and a trace/null/copy sibling; encode lower head copies in distinct lower head positions. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
   `Write the explanation as a developed academic paragraph rather than a compressed checklist. When directly warranted by the committed analysis, you may briefly situate it in a recognized analytical tradition or mention a relevant scholar. If you mention a scholar or tradition, make the reference specific and complete; do not use vague phrases like "and others". ` +
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
+  `The literal string "word" is a field name only; never use "word" as a node label. ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
+  `${compactOutput
+    ? `COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note. Keep the explanation to 2-4 substantive sentences. Keep derivationSteps minimal: include only the structural commitments needed for the replay, and omit optional note, workspaceAfter, and featureChecking fields unless they are strictly necessary to encode the committed derivation. Prefer the smallest valid JSON that still fully commits to the analysis. `
+    : ''}` +
   `${modelRoute === 'flash-lite'
     ? `FLASH LITE FORMAT CHECK: Return analyses[].nodes plus optional rootId only; never return tree or tree.nodes. tokenIndex belongs only on overt terminals. surfaceSpan must agree with overt descendants and sentence order. ` +
       `FLASH LITE FORMAT CHECK AGAIN: analyses[].nodes is the only allowed structural format. Nulls, traces, and silent copies must omit tokenIndex. Every node must include siblingOrder. ` +
@@ -4282,13 +4389,21 @@ const buildSingleParseContentsPrompt = (sentence, framework = 'xbar', modelRoute
     : ''}` +
   `FINAL CHECK: Read the overt terminals of your committed structure in left-to-right order. They must spell out exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. Every overt leaf should point to the matching tokenIndex, and the returned structure should already encode the correct sentence order before you return it.`;
 
-const buildParseContentsPrompt = (sentence, framework = 'xbar', modelRoute = 'flash-lite') => {
-  const basePrompt = buildSingleParseContentsPrompt(sentence, framework, modelRoute);
+const buildParseContentsPrompt = (
+  sentence,
+  framework = 'xbar',
+  modelRoute = 'flash-lite',
+  { compactOutput = false } = {}
+) => {
+  const basePrompt = buildSingleParseContentsPrompt(sentence, framework, modelRoute, { compactOutput });
   const repeatedConsistencyCheck =
     `CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis. ` +
     `The overt terminals must spell exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
     `movementDecision, movementEvents, derivationSteps, explanation, and the tree must all reflect the same movement story. ` +
     `If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove. ` +
+    `${compactOutput
+      ? `Compact retry mode is active because an earlier answer was cut off. Keep the JSON concise and do not add a second analysis. `
+      : ''}` +
     `${modelRoute === 'flash-lite'
       ? `For Flash Lite, analyses[].nodes plus optional rootId is the only allowed structural format, overt terminals must carry tokenIndex, silent terminals must omit tokenIndex, every node must include siblingOrder, sister nodes with overt descendants must realize disjoint non-interleaving token intervals, and any head-initial local order that would fail under a bar-level shell must instead be encoded directly with ordered siblings. `
       : ''}` +
@@ -4477,7 +4592,8 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
   const ai = new GoogleGenAI({ apiKey });
   const normalizedModelRoute = modelRoute === 'pro' ? 'pro' : 'flash-lite';
   const systemInstruction = buildSystemInstruction(framework, normalizedModelRoute);
-  const contents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute);
+  const fullContents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute);
+  const compactContents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute, { compactOutput: true });
   const responseJsonSchema = parseResponseJsonSchemaForRoute(normalizedModelRoute);
   const preferredModel = normalizedModelRoute === 'pro' ? FALLBACK_MODEL : PRIMARY_MODEL;
   const baseModelCandidates = Array.from(new Set([preferredModel].map((model) => String(model || '').trim()).filter(Boolean)));
@@ -4501,6 +4617,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
       const currentModel = modelCandidates[modelIndex];
       const hasNextModel = modelIndex < modelCandidates.length - 1;
       let moveToNextModel = false;
+      let useCompactPrompt = false;
       if (!attemptedModels.includes(currentModel)) {
         attemptedModels.push(currentModel);
       }
@@ -4528,7 +4645,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
             (abortSignal) => generateStructuredContent({
               ai,
               model: currentModel,
-              contents,
+              contents: useCompactPrompt ? compactContents : fullContents,
               systemInstruction,
               temperature: MODEL_TEMPERATURE,
               abortSignal,
@@ -4676,6 +4793,22 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
           break;
         } catch (error) {
           lastError = error;
+          if (
+            error instanceof ParseApiError &&
+            error.code === 'BAD_MODEL_RESPONSE' &&
+            /truncated before JSON completion/i.test(String(error.message || '')) &&
+            !useCompactPrompt &&
+            attempt < PRO_RETRY_MAX_ATTEMPTS
+          ) {
+            console.warn(
+              `[gemini] truncated output on ${currentModel} ` +
+              `(attempt ${attempt}/${PRO_RETRY_MAX_ATTEMPTS}); retrying once with compact output mode.`
+            );
+            useCompactPrompt = true;
+            const delayMs = getRetryDelayMs(attempt);
+            await sleep(delayMs);
+            continue;
+          }
           if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
             if (hasNextModel) {
               console.warn(

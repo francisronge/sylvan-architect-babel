@@ -1,0 +1,12 @@
+title: Babel Research
+description: Mini papers and devlogs from explicit syntax benchmarking in SylvanArchitectBabel.
+theme: jekyll-theme-cayman
+permalink: pretty
+markdown: kramdown
+kramdown:
+  input: GFM
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

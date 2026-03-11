@@ -61,7 +61,6 @@ const applyVizIds = (root: HierNode) => {
 const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
 const resolveLeafSurface = (node: HierNode): string => (node.data.word || node.data.label || '').trim();
 const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
-const HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'V', 'D', 'N', 'A', 'P']);
 const NULLABLE_HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'I', 'D', 'NEG', 'ASP']);
 const EXPLICIT_NULL_TERMINAL = '∅';
 const SUBSCRIPT_MAP: Record<string, string> = {
@@ -695,8 +694,7 @@ const shouldExpandPreterminalLeaf = (node: SyntaxNode): boolean => {
   const word = typeof node.word === 'string' ? node.word.trim() : '';
   if (!label || !word) return false;
   if (normalizeToken(label) === normalizeToken(word)) return false;
-  const normalizedCategory = label.replace(/['\s]/g, '').toUpperCase();
-  return HEAD_CATEGORIES.has(normalizedCategory);
+  return true;
 };
 
 const materializeCanopyPreterminals = (node: SyntaxNode): SyntaxNode => {
@@ -998,7 +996,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       if (!raw) return buildTraceLabel(fallbackIndex);
       const match = raw.match(/^(?:t|trace)(?:[_\-\{]?([a-z0-9]+)\}?)?$/i);
       if (!match) return raw;
-      return buildTraceLabel(match[1] || fallbackIndex);
+      return buildTraceLabel(fallbackIndex);
     };
 
     movementArrows.forEach((arrow) => {

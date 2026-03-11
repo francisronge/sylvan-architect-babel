@@ -541,6 +541,9 @@ const extractMovementEventKinds = (movementEvents?: MovementEvent[]): Set<string
   (Array.isArray(movementEvents) ? movementEvents : []).forEach((event) => {
     const op = normalizeMovementOperationForSummary(event.operation);
     if (op === 'headmove') kinds.add('head');
+    if (op === 'move' || op === 'abarmove' || op === 'amove' || op === 'internalmerge') {
+      kinds.add('generic');
+    }
     if (op === 'abarmove') kinds.add('wh');
     if (op === 'amove') kinds.add('a');
     if (op === 'internalmerge') kinds.add('internal');
@@ -582,10 +585,11 @@ const isCompatibleMovementSentence = (sentence: string, movementKinds: Set<strin
   const claims = extractMovementClaimsFromSentence(sentence);
   if (!claims.mentionsMovement) return true;
   if (/\bor\b/i.test(sentence)) return false;
+  const hasGenericPhrasalMovement = movementKinds.has('generic');
   if (claims.claimsHeadMove && !movementKinds.has('head')) return false;
-  if (claims.claimsWhMove && !movementKinds.has('wh')) return false;
-  if (claims.claimsAMove && !movementKinds.has('a')) return false;
-  if (claims.claimsInternalMerge && !movementKinds.has('internal')) return false;
+  if (claims.claimsWhMove && !(movementKinds.has('wh') || hasGenericPhrasalMovement)) return false;
+  if (claims.claimsAMove && !(movementKinds.has('a') || hasGenericPhrasalMovement)) return false;
+  if (claims.claimsInternalMerge && !(movementKinds.has('internal') || hasGenericPhrasalMovement)) return false;
   return true;
 };
 
