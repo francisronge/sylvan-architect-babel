@@ -4,6 +4,10 @@ export interface SyntaxNode {
   word?: string;
   surfaceSpan?: [number, number];
   id?: string; // Optional ID for D3 indexing
+  case?: string;
+  assigner?: string;
+  caseEvidence?: string;
+  caseOvert?: boolean;
 }
 
 export type DerivationOperation =

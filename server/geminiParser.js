@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 const EXPLANATION_INSTRUCTION = `In the explanation, justify major choices in framework terms, not language-specific heuristics.
 Write a developed natural paragraph (roughly 4-7 sentences): substantial enough to sound like a compact research note, not a compressed checklist.
 Prefer academically natural prose over symbolic shorthand.
+Name only the selected framework in the explanation. If the requested analysis is X-bar, do not describe it as Minimalist or Minimalism; if the requested analysis is Minimalist, do not describe it as X-bar Theory.
 You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, and you may include at most one brief reference to a well-known analytical tradition or scholar, but only when that framing is directly supported by the chosen tree and derivation.
 Make the explanation read the derivation you encoded: explain how the actual clause architecture, movement path, and major derivational operations produce the observed surface order.
 When the derivation is non-trivial, say what major structural choice this analysis makes and how that choice follows from the committed tree and derivation.
@@ -67,6 +68,7 @@ General rules:
 - Do not attach overt words directly under X' or XP nodes.
 - Do not attach overt words directly to phrasal labels such as DP, NP, VP, TP, InflP, or CP. Overt words must appear on head/preterminal nodes beneath those phrases.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
+- If you explicitly commit to a case assignment on a DP or argument phrase, you may annotate that node with optional fields "case", "assigner", "caseEvidence", and "caseOvert". Omit these fields if the analysis is not explicitly committing to case there.
 - Keep lower copy notation consistent within a tree. Use one coherent lower-copy style across the analysis, including phrasal and head movement.
 - If you use trace labels, use only canonical trace forms such as "t", "trace", "t_1", or "trace_DP". Do not use hyphenated trace forms.
 - Do not introduce helper position labels (for example labels beginning with "Spec") as separate structural nodes. Represent the phrase itself in the tree.
@@ -104,7 +106,14 @@ For derivationSteps:
 - Include derivationSteps only when they help make the chosen analysis explicit.
 - Keep them lightweight.
 - Prefer only: "operation", "targetNodeId", "sourceNodeIds", optional "featureChecking", and optional "note".
+- When case, agreement, EPP, wh/focus licensing, or other syntactic feature relations are central to the committed analysis, encode them in "featureChecking" on the relevant derivation step rather than leaving them only in the prose.
+- Use "Agree" as a derivational operation only when agreement or valuation is itself part of the committed analysis.
 - Do not invent extra labels, recipes, or workspace metadata unless they are genuinely needed.
+
+For featureChecking:
+- Use it for explicit feature-licensing commitments such as case, phi/agreement, EPP, wh/focus licensing, tense/aspect checking, or other feature valuation relations that are part of the selected analysis.
+- When you explicitly claim a case assignment in the explanation, prefer to encode the same commitment in featureChecking and/or on the relevant DP node.
+- Each featureChecking entry may include: "feature", optional "value", optional "status", optional "probeNodeId", optional "goalNodeId", optional "probeLabel", optional "goalLabel", and optional "note".
 
 The "bracketedNotation" field should contain a Labeled Bracketing string compatible with Miles Shang's syntax tree generator.`;
 
@@ -212,6 +221,10 @@ const SYNTAX_NODE_JSON_SCHEMA = {
     id: { type: 'string' },
     label: { type: 'string' },
     word: { type: 'string' },
+    case: { type: 'string' },
+    assigner: { type: 'string' },
+    caseEvidence: { type: 'string' },
+    caseOvert: { type: 'boolean' },
     tokenIndex: { type: 'integer', minimum: 0 },
     surfaceSpan: {
       type: 'array',
@@ -233,6 +246,10 @@ const FLAT_SYNTAX_NODE_JSON_SCHEMA = {
     id: { type: 'string' },
     label: { type: 'string' },
     word: { type: 'string' },
+    case: { type: 'string' },
+    assigner: { type: 'string' },
+    caseEvidence: { type: 'string' },
+    caseOvert: { type: 'boolean' },
     tokenIndex: { type: 'integer', minimum: 0 },
     siblingOrder: { type: 'integer', minimum: 0 },
     surfaceSpan: {
@@ -783,6 +800,15 @@ const normalizeTokenIndex = (value, sentenceLength) => {
   return index;
 };
 
+const normalizeOptionalMetadataText = (value) => {
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  return text || undefined;
+};
+
+const normalizeOptionalMetadataBoolean = (value) =>
+  typeof value === 'boolean' ? value : undefined;
+
 const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   if (typeof value === 'string') {
     const token = value.trim();
@@ -865,6 +891,14 @@ const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
   }
 
   const normalized = { id, label };
+  const caseValue = normalizeOptionalMetadataText(node.case);
+  const assigner = normalizeOptionalMetadataText(node.assigner);
+  const caseEvidence = normalizeOptionalMetadataText(node.caseEvidence);
+  const caseOvert = normalizeOptionalMetadataBoolean(node.caseOvert);
+  if (caseValue) normalized.case = caseValue;
+  if (assigner) normalized.assigner = assigner;
+  if (caseEvidence) normalized.caseEvidence = caseEvidence;
+  if (caseOvert !== undefined) normalized.caseOvert = caseOvert;
   const surfaceSpan = normalizeSurfaceSpan(node.surfaceSpan);
   if (surfaceSpan) {
     normalized.surfaceSpan = surfaceSpan;
@@ -974,6 +1008,10 @@ const compileFlatNodeTableToTree = (nodesValue, rootIdValue, framework = 'xbar',
     const parentId = typeof rawNode.parentId === 'string' && rawNode.parentId.trim()
       ? rawNode.parentId.trim()
       : undefined;
+    const caseValue = normalizeOptionalMetadataText(rawNode.case);
+    const assigner = normalizeOptionalMetadataText(rawNode.assigner);
+    const caseEvidence = normalizeOptionalMetadataText(rawNode.caseEvidence);
+    const caseOvert = normalizeOptionalMetadataBoolean(rawNode.caseOvert);
     const siblingOrder = Number.isInteger(Number(rawNode.siblingOrder))
       ? Math.max(0, Number(rawNode.siblingOrder))
       : undefined;
@@ -986,6 +1024,10 @@ const compileFlatNodeTableToTree = (nodesValue, rootIdValue, framework = 'xbar',
       siblingOrder,
       surfaceSpan,
       parentId,
+      case: caseValue,
+      assigner,
+      caseEvidence,
+      caseOvert,
       __order: index
     });
   });
@@ -1096,6 +1138,18 @@ const compileFlatNodeTableToTree = (nodesValue, rootIdValue, framework = 'xbar',
     }
     if (node.surfaceSpan) {
       compiled.surfaceSpan = node.surfaceSpan;
+    }
+    if (node.case) {
+      compiled.case = node.case;
+    }
+    if (node.assigner) {
+      compiled.assigner = node.assigner;
+    }
+    if (node.caseEvidence) {
+      compiled.caseEvidence = node.caseEvidence;
+    }
+    if (node.caseOvert !== undefined) {
+      compiled.caseOvert = node.caseOvert;
     }
     if (sortedChildren.length > 0) {
       compiled.children = sortedChildren.map((entry) => entry.node);
@@ -4375,10 +4429,14 @@ const buildSingleParseContentsPrompt = (
   `Do not let one head node directly dominate both an overt word and a trace/null/copy sibling; encode lower head copies in distinct lower head positions. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
   `If movement occurs, make it explicit. If movement does not occur, do not leave traces, lower copies, or null heads that imply otherwise. ` +
+  `${framework === 'xbar'
+    ? `In the explanation, describe the analysis only in X-bar terms; do not call it Minimalist or Minimalism. `
+    : `In the explanation, describe the analysis only in Minimalist terms; do not call it X-Bar Theory. `}` +
   `Write the explanation as a developed academic paragraph rather than a compressed checklist. When directly warranted by the committed analysis, you may briefly situate it in a recognized analytical tradition or mention a relevant scholar. If you mention a scholar or tradition, make the reference specific and complete; do not use vague phrases like "and others". ` +
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
   `The literal string "word" is a field name only; never use "word" as a node label. ` +
-  `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. ` +
+  `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. When case, agreement, EPP, wh/focus licensing, or other feature valuation is central to the committed derivation, encode it in featureChecking instead of leaving it only in the prose. ` +
+  `If you explicitly assign case to a DP, you may annotate that node with optional fields case, assigner, caseEvidence, and caseOvert. Omit those fields if you are not explicitly committing. ` +
   `${compactOutput
     ? `COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note. Keep the explanation to 2-4 substantive sentences. Keep derivationSteps minimal: include only the structural commitments needed for the replay, and omit optional note, workspaceAfter, and featureChecking fields unless they are strictly necessary to encode the committed derivation. Prefer the smallest valid JSON that still fully commits to the analysis. `
     : ''}` +

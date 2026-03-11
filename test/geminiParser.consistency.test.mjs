@@ -239,6 +239,9 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /Each overt lexical item must be visibly headed exactly once/i);
   assert.match(prompt, /Do not let one head node directly dominate both an overt word and a trace\/null\/copy sibling/i);
   assert.match(prompt, /never use "word" as a node label/i);
+  assert.match(proPrompt, /describe the analysis only in X-bar terms; do not call it Minimalist or Minimalism/i);
+  assert.match(proPrompt, /If you explicitly assign case to a DP, you may annotate that node with optional fields case, assigner, caseEvidence, and caseOvert/i);
+  assert.match(proPrompt, /When case, agreement, EPP, wh\/focus licensing, or other feature valuation is central to the committed derivation, encode it in featureChecking/i);
   assert.match(prompt, /If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove/i);
   assert.match(prompt, /developed academic paragraph rather than a compressed checklist/i);
   assert.match(prompt, /recognized analytical tradition or mention a relevant scholar/i);
@@ -267,6 +270,98 @@ test('parseResponseJsonSchemaForRoute uses flat analysis schema for lite and mix
     proSchema.$defs.syntaxNode.required.includes('siblingOrder'),
     false
   );
+  assert.equal(proSchema.$defs.syntaxNode.properties.case.type, 'string');
+  assert.equal(proSchema.$defs.syntaxNode.properties.assigner.type, 'string');
+  assert.equal(proSchema.$defs.syntaxNode.properties.caseEvidence.type, 'string');
+  assert.equal(proSchema.$defs.syntaxNode.properties.caseOvert.type, 'boolean');
+  assert.equal(liteSchema.$defs.flatSyntaxNode.properties.case.type, 'string');
+  assert.equal(liteSchema.$defs.flatSyntaxNode.properties.assigner.type, 'string');
+  assert.equal(liteSchema.$defs.flatSyntaxNode.properties.caseEvidence.type, 'string');
+  assert.equal(liteSchema.$defs.flatSyntaxNode.properties.caseOvert.type, 'boolean');
+});
+
+test('normalizeParseBundle preserves explicit case metadata on committed nodes', () => {
+  const sentence = 'pit’ín-im páa’yaxˆna picpíc-ne.';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'cp',
+          label: 'CP',
+          children: [
+            {
+              id: 'cbar',
+              label: "C'",
+              children: [
+                { id: 'c', label: 'C', word: '∅' },
+                {
+                  id: 'inflp',
+                  label: 'InflP',
+                  children: [
+                    {
+                      id: 'subj',
+                      label: 'DP',
+                      case: 'ergative',
+                      assigner: 'Infl',
+                      caseEvidence: '-im',
+                      caseOvert: true,
+                      children: [
+                        {
+                          id: 'subj-bar',
+                          label: "D'",
+                          children: [{ id: 'subj-d', label: 'D', word: 'pit’ín-im', tokenIndex: 0 }]
+                        }
+                      ]
+                    },
+                    {
+                      id: 'infl-bar',
+                      label: "Infl'",
+                      children: [
+                        { id: 'infl', label: 'Infl', word: 'páa’yaxˆna', tokenIndex: 1 },
+                        {
+                          id: 'obj',
+                          label: 'DP',
+                          case: 'objective',
+                          assigner: 'v',
+                          caseEvidence: '-ne',
+                          caseOvert: true,
+                          children: [
+                            {
+                              id: 'obj-bar',
+                              label: "D'",
+                              children: [{ id: 'obj-d', label: 'D', word: 'picpíc-ne', tokenIndex: 2 }]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'The subject receives ergative case and the object receives objective case.'
+      }
+    ]
+  };
+
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(withMovementDecision(payload), 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+  const subject = findNodeById(analysis.tree, 'subj');
+  const object = findNodeById(analysis.tree, 'obj');
+
+  assert.equal(subject.case, 'ergative');
+  assert.equal(subject.assigner, 'Infl');
+  assert.equal(subject.caseEvidence, '-im');
+  assert.equal(subject.caseOvert, true);
+  assert.equal(object.case, 'objective');
+  assert.equal(object.assigner, 'v');
+  assert.equal(object.caseEvidence, '-ne');
+  assert.equal(object.caseOvert, true);
 });
 
 test('buildSerializerContentsPrompt constrains the serializer to canonical schema only', () => {

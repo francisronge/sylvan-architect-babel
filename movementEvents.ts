@@ -158,11 +158,11 @@ export const resolveMovementEventLinks = (
     if (!toNode || !fromNode) return;
 
     const normalizedOperation = normalizeMovementOperation(event.operation);
+    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
     const fromLexicalAnchor = pickLexicalAnchor(fromNode);
     const prefersPhraseShellAnchor =
-      framework === 'minimalism'
-      && !HEAD_MOVE_OPERATION_RE.test(normalizedOperation)
+      !isHeadMove
       && Array.isArray(toNode.children)
       && toNode.children.length > 0;
     let movedAnchor = prefersPhraseShellAnchor
@@ -170,7 +170,6 @@ export const resolveMovementEventLinks = (
       : (pickStructuralPhraseAnchor(toNode) || pickLexicalAnchor(toNode) || fromLexicalAnchor || toNode);
     let traceAnchor = traceNode ? pickTraceAnchor(traceNode) : pickTraceAnchor(fromNode);
     let sourceAnchor = traceAnchor || fromLexicalAnchor || movedAnchor;
-    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
 
     if (isHeadMove) {
       // For head movement, prefer an explicit lower trace/copy if the model supplied one.
