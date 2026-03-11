@@ -1,3 +1,4 @@
+---
 title: Sylvan Architect Babel Research
 permalink: /
 ---
