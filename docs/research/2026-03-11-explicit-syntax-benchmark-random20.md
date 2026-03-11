@@ -4,12 +4,29 @@ description: Mini Paper v1: A paired 20-case Babel benchmark of Gemini 3.1 Pro a
 permalink: /research/explicit-syntax-benchmark-random20/
 ---
 
-**Mini Paper v1:** A Paired 20-Case Babel Benchmark of Gemini 3.1 Pro and Gemini 3.1 Flash Lite
-
-**Date:** March 11, 2026  
-**Primary report:** [random20-v1-report.json](./data/random20-v1-report.json)  
-**Capture script:** [random20_dual_showcase.cjs](./data/random20_dual_showcase.cjs)  
-**Figure assets:** [random20-v1 asset folder](./assets/random20-v1/)  
+<div class="paper-hero">
+  <p class="paper-kicker">Mini Paper v1</p>
+  <h1 class="paper-title">Explicit Syntax Under Forced Commitment</h1>
+  <p class="paper-subtitle">A paired 20-case Sylvan Architect Babel benchmark comparing Gemini 3.1 Pro and Gemini 3.1 Flash Lite across multilingual X-bar and Minimalist analyses.</p>
+  <div class="paper-meta-grid">
+    <div class="paper-meta-item">
+      <span class="paper-meta-label">Date</span>
+      <p>March 11, 2026</p>
+    </div>
+    <div class="paper-meta-item">
+      <span class="paper-meta-label">Primary Report</span>
+      <a href="./data/random20-v1-report.json">random20-v1-report.json</a>
+    </div>
+    <div class="paper-meta-item">
+      <span class="paper-meta-label">Capture Script</span>
+      <a href="./data/random20_dual_showcase.cjs">random20_dual_showcase.cjs</a>
+    </div>
+    <div class="paper-meta-item">
+      <span class="paper-meta-label">Figure Assets</span>
+      <a href="./assets/random20-v1/">random20-v1 asset folder</a>
+    </div>
+  </div>
+</div>
 
 ## Abstract
 
