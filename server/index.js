@@ -101,14 +101,12 @@ const enforceDailyIpQuota = (req, res, next) => {
 };
 
 const parseOriginHost = (req) =>
-  String(req.get('x-forwarded-host') || req.get('host') || '')
-    .split(',')[0]
+  String(req.get('host') || '')
     .trim()
     .toLowerCase();
 
 const parseOriginProto = (req) =>
-  String(req.get('x-forwarded-proto') || req.protocol || '')
-    .split(',')[0]
+  String(req.protocol || '')
     .trim()
     .toLowerCase();
 

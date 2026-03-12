@@ -143,7 +143,7 @@ const isTraceOrNullAnchor = (node?: SyntaxNode | null): boolean => {
 export const resolveMovementEventLinks = (
   tree: SyntaxNode,
   movementEvents?: MovementEvent[],
-  framework: 'xbar' | 'minimalism' = 'xbar'
+  _framework: 'xbar' | 'minimalism' = 'xbar'
 ): ResolvedMovementEventLink[] => {
   if (!movementEvents || movementEvents.length === 0) return [];
 

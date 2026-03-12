@@ -26,6 +26,10 @@ interface PlaybackStep {
   workspaceAfter?: string[];
   spelloutOrder?: string[];
   featureChecking?: FeatureCheckEvent[];
+  stepId?: string;
+  trigger?: string;
+  chainId?: string;
+  spelloutDomain?: string;
   note?: string;
 }
 
@@ -1045,7 +1049,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     terminalMorphRef.current = terminalMorph;
 
-    const link = g.selectAll('.branch')
+    g.selectAll('.branch')
       .data(visibleLinks)
       .enter()
       .append('path')

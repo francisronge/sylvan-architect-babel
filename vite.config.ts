@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { IncomingMessage } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -9,6 +10,31 @@ import { formatApiError, parseFromBody } from './server/parseApi.js';
 const MAX_BODY_BYTES = 16 * 1024;
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX_REQUESTS = 30;
+
+const parseBooleanEnv = (value: string | undefined, defaultValue = false): boolean => {
+  const raw = String(value || '').trim();
+  if (!raw) return defaultValue;
+  if (/^(1|true|yes|on)$/i.test(raw)) return true;
+  if (/^(0|false|no|off)$/i.test(raw)) return false;
+  return defaultValue;
+};
+
+const parseCsvEnv = (value: string | undefined): string[] =>
+  String(value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const constantTimeTokenMatch = (providedToken: string, expectedToken: string): boolean => {
+  const provided = Buffer.from(String(providedToken || ''), 'utf8');
+  const expected = Buffer.from(String(expectedToken || ''), 'utf8');
+  if (provided.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(provided, expected);
+  } catch {
+    return false;
+  }
+};
 
 const readBody = async (req: IncomingMessage): Promise<string> => {
   const chunks: Buffer[] = [];
@@ -28,6 +54,9 @@ const readBody = async (req: IncomingMessage): Promise<string> => {
 
 const secureParseApiPlugin = (mode: string): Plugin => {
   const env = loadEnv(mode, '.', '');
+  const parseApiToken = String(env.BABEL_PARSE_API_TOKEN || '').trim();
+  const allowedOrigins = new Set(parseCsvEnv(env.BABEL_ALLOWED_ORIGINS));
+  const requireOriginCheck = parseBooleanEnv(env.BABEL_REQUIRE_ORIGIN, allowedOrigins.size > 0);
 
   if (!process.env.GEMINI_API_KEY && env.GEMINI_API_KEY) {
     process.env.GEMINI_API_KEY = env.GEMINI_API_KEY;
@@ -56,6 +85,45 @@ const secureParseApiPlugin = (mode: string): Plugin => {
         }
 
         try {
+          if (parseApiToken) {
+            const providedToken = String(req.headers['x-babel-api-token'] || '').trim();
+            if (!constantTimeTokenMatch(providedToken, parseApiToken)) {
+              return send(401, {
+                error: { code: 'UNAUTHORIZED', message: 'Missing or invalid parse API token.' }
+              });
+            }
+          }
+
+          if (requireOriginCheck) {
+            const requestOrigin = String(req.headers.origin || '').trim();
+            if (!requestOrigin) {
+              return send(403, {
+                error: { code: 'FORBIDDEN_ORIGIN', message: 'Request origin is not allowed for parse API access.' }
+              });
+            }
+
+            let parsedOrigin: URL | null = null;
+            try {
+              parsedOrigin = new URL(requestOrigin);
+            } catch {
+              parsedOrigin = null;
+            }
+
+            const host = String(req.headers.host || '').trim().toLowerCase();
+            const sameHost = !!parsedOrigin && parsedOrigin.host.toLowerCase() === host;
+            const sameProto = !!parsedOrigin && parsedOrigin.protocol.replace(':', '').toLowerCase() === 'http';
+            const allowed = parsedOrigin && (
+              allowedOrigins.has(parsedOrigin.origin) ||
+              (allowedOrigins.size === 0 && sameHost && sameProto)
+            );
+
+            if (!allowed) {
+              return send(403, {
+                error: { code: 'FORBIDDEN_ORIGIN', message: 'Request origin is not allowed for parse API access.' }
+              });
+            }
+          }
+
           const ip = req.socket.remoteAddress || 'unknown';
           const now = Date.now();
           const slot = rateMap.get(ip);
@@ -120,7 +188,11 @@ export default defineConfig(({ mode }) => ({
     port: 5177,
     strictPort: true,
     host: '127.0.0.1',
-    allowedHosts: ['.trycloudflare.com']
+    allowedHosts: (() => {
+      const env = loadEnv(mode, '.', '');
+      const hosts = parseCsvEnv(env.BABEL_DEV_ALLOWED_HOSTS);
+      return hosts.length > 0 ? hosts : undefined;
+    })()
   },
   plugins: [react(), secureParseApiPlugin(mode)],
   resolve: {
