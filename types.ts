@@ -36,7 +36,11 @@ export interface FeatureCheckEvent {
 }
 
 export interface DerivationStep {
+  stepId?: string;
   operation: DerivationOperation;
+  trigger?: string;
+  chainId?: string;
+  spelloutDomain?: string;
   targetLabel?: string;
   targetNodeId?: string;
   sourceNodeIds?: string[];

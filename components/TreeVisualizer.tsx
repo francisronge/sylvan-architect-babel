@@ -1396,6 +1396,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 	            <div className="text-[11px] text-emerald-100/80 font-semibold">
 	              {activeStep?.recipe || `${activeStep?.targetLabel || 'Node'} created`}
 	            </div>
+              {(activeStep?.stepId || activeStep?.trigger || activeStep?.chainId || activeStep?.spelloutDomain) && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-emerald-300/70">
+                  {activeStep?.stepId && <span>Step {activeStep.stepId}</span>}
+                  {activeStep?.trigger && <span>Trigger: {activeStep.trigger}</span>}
+                  {activeStep?.chainId && <span>Chain: {activeStep.chainId}</span>}
+                  {activeStep?.spelloutDomain && <span>Domain: {activeStep.spelloutDomain}</span>}
+                </div>
+              )}
               {activeStep?.spelloutOrder && activeStep.spelloutOrder.length > 0 && (
                 <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/75">
                   Spellout: {activeStep.spelloutOrder.join(' | ')}

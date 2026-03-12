@@ -66,6 +66,7 @@ General rules:
 - Do not split, rewrite, translate, or duplicate overt tokens unless the token appears multiple times in the sentence.
 - When tokenIndex is used, each overt token index must be used exactly once, and overt children must appear in ascending tokenIndex/surfaceSpan order.
 - Do not attach overt words directly under X' or XP nodes.
+- If a node is phrasal (XP or X'), it must realize structure through children, not through a word field.
 - Do not attach overt words directly to phrasal labels such as DP, NP, VP, TP, InflP, or CP. Overt words must appear on head/preterminal nodes beneath those phrases.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
 - If you explicitly commit to a case assignment on a DP or argument phrase, you may annotate that node with optional fields "case", "assigner", "caseEvidence", and "caseOvert". Omit these fields if the analysis is not explicitly committing to case there.
@@ -76,6 +77,7 @@ General rules:
 - At the landing site of head movement, use exactly one overt head label above the pronounced word. Do not return unary chains of overt head labels with the same overt yield.
 - If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word. Do not wrap the overt word in an extra overt source-category head beneath the landing site.
 - Every overt lexical item must be visibly headed exactly once: either place the overt word on a head node itself, or let a single head node directly dominate that overt word as its only overt child.
+- Every overt lexical item must appear on a terminal/head node, never directly on a phrasal projection.
 - Do not make one head node directly dominate both an overt word and a trace/null/copy sibling. If a lower head copy is needed, encode it in a distinct lower head position.
 
 For movement:
@@ -105,7 +107,10 @@ For movement:
 For derivationSteps:
 - Include derivationSteps only when they help make the chosen analysis explicit.
 - Keep them lightweight.
-- Prefer only: "operation", "targetNodeId", "sourceNodeIds", optional "featureChecking", and optional "note".
+- Prefer only: "operation", "targetNodeId", "sourceNodeIds", optional "trigger", optional "chainId", optional "spelloutDomain", optional "featureChecking", and optional "note".
+- If a short reason for the step is clear from the analysis, you may add "trigger" with values like "wh", "focus", "EPP", "agreement", "case", "tense", or "spellout".
+- If multiple steps belong to one dependency, you may reuse a short "chainId" such as "ch1".
+- For SpellOut steps, you may add "spelloutDomain" when the committed analysis explicitly treats the transfer domain as important.
 - When case, agreement, EPP, wh/focus licensing, or other syntactic feature relations are central to the committed analysis, encode them in "featureChecking" on the relevant derivation step rather than leaving them only in the prose.
 - Use "Agree" as a derivational operation only when agreement or valuation is itself part of the committed analysis.
 - Do not invent extra labels, recipes, or workspace metadata unless they are genuinely needed.
@@ -2153,6 +2158,11 @@ const normalizeSpelloutOrder = (value) => {
   return tokens.length > 0 ? tokens : undefined;
 };
 
+const normalizeOptionalStepText = (value) => {
+  const text = String(value || '').trim();
+  return text || undefined;
+};
+
 const normalizeMovementOperation = (value) => {
   const key = normalizeKey(value);
   if (!key) return undefined;
@@ -2204,7 +2214,11 @@ const normalizeDerivationSteps = (value, nodeIds) => {
       const operation = normalizeDerivationOperation(item.operation);
       if (!operation) return null;
       return {
+        stepId: normalizeOptionalStepText(item.stepId),
         operation,
+        trigger: normalizeOptionalStepText(item.trigger),
+        chainId: normalizeOptionalStepText(item.chainId),
+        spelloutDomain: normalizeOptionalStepText(item.spelloutDomain),
         targetLabel: typeof item.targetLabel === 'string' ? item.targetLabel : undefined,
         targetNodeId:
           typeof item.targetNodeId === 'string' && nodeIds.has(item.targetNodeId)
@@ -2234,6 +2248,21 @@ const normalizeDerivationSteps = (value, nodeIds) => {
     .filter(Boolean);
 
   return steps.length > 0 ? steps : undefined;
+};
+
+const assignDerivationStepIds = (steps) => {
+  if (!Array.isArray(steps) || steps.length === 0) return steps;
+
+  const seen = new Set();
+  return steps.map((step, index) => {
+    const preferred = normalizeOptionalStepText(step?.stepId);
+    const stepId = preferred && !seen.has(preferred) ? preferred : `s${index + 1}`;
+    seen.add(stepId);
+    return {
+      ...step,
+      stepId
+    };
+  });
 };
 
 
@@ -3857,20 +3886,31 @@ const buildCanonicalDerivationFromTree = ({
   visitPostorder(tree);
 
   const existingSteps = Array.isArray(modelDerivationSteps) ? modelDerivationSteps : [];
-  const structuralFeatureChecksByTarget = new Map();
-  const movementFeatureSteps = [];
+  const structuralMetaByTarget = new Map();
+  const movementStepMeta = [];
+  let spelloutStepMeta = null;
   existingSteps.forEach((step) => {
     const targetNodeId = String(step?.targetNodeId || '').trim();
     const featureChecking = Array.isArray(step?.featureChecking) && step.featureChecking.length > 0
       ? step.featureChecking
       : undefined;
-    if (!featureChecking) return;
-    if (isMoveLikeOperation(step?.operation)) {
-      movementFeatureSteps.push(featureChecking);
+    const meta = {
+      featureChecking,
+      trigger: normalizeOptionalStepText(step?.trigger),
+      chainId: normalizeOptionalStepText(step?.chainId),
+      spelloutDomain: normalizeOptionalStepText(step?.spelloutDomain),
+      note: normalizeOptionalStepText(step?.note)
+    };
+    if (String(step?.operation || '').trim() === 'SpellOut') {
+      spelloutStepMeta = meta;
       return;
     }
-    if (targetNodeId && !structuralFeatureChecksByTarget.has(targetNodeId)) {
-      structuralFeatureChecksByTarget.set(targetNodeId, featureChecking);
+    if (isMoveLikeOperation(step?.operation)) {
+      movementStepMeta.push(meta);
+      return;
+    }
+    if (targetNodeId && !structuralMetaByTarget.has(targetNodeId)) {
+      structuralMetaByTarget.set(targetNodeId, meta);
     }
   });
 
@@ -3884,14 +3924,20 @@ const buildCanonicalDerivationFromTree = ({
     if (children.length === 0) {
       const surface = resolveNodeSurface(node) || targetLabel;
       workspace.set(nodeId, targetLabel);
+      const meta = structuralMetaByTarget.get(nodeId) || {};
       derivationSteps.push({
         operation: 'LexicalSelect',
+        trigger: meta.trigger,
+        chainId: meta.chainId,
+        spelloutDomain: meta.spelloutDomain,
         targetNodeId: nodeId || undefined,
         targetLabel,
         sourceNodeIds: [],
         sourceLabels: [surface],
         recipe: `Select ${surface}`,
-        workspaceAfter: Array.from(workspace.values())
+        workspaceAfter: Array.from(workspace.values()),
+        featureChecking: meta.featureChecking,
+        note: meta.note
       });
       return;
     }
@@ -3901,8 +3947,12 @@ const buildCanonicalDerivationFromTree = ({
       if (childId) workspace.delete(childId);
     });
     workspace.set(nodeId, targetLabel);
+    const meta = structuralMetaByTarget.get(nodeId) || {};
     derivationSteps.push({
       operation: children.length === 1 ? 'Project' : 'ExternalMerge',
+      trigger: meta.trigger,
+      chainId: meta.chainId,
+      spelloutDomain: meta.spelloutDomain,
       targetNodeId: nodeId || undefined,
       targetLabel,
       sourceNodeIds: children
@@ -3916,7 +3966,8 @@ const buildCanonicalDerivationFromTree = ({
         .filter(Boolean)
         .join(' + ')} -> ${targetLabel}`,
       workspaceAfter: Array.from(workspace.values()),
-      featureChecking: structuralFeatureChecksByTarget.get(nodeId)
+      featureChecking: meta.featureChecking,
+      note: meta.note
     });
   });
 
@@ -3937,7 +3988,8 @@ const buildCanonicalDerivationFromTree = ({
         String(event?.fromNodeId || '').trim(),
         String(event?.traceNodeId || '').trim()
       ].filter(Boolean)));
-      const featureChecking = movementFeatureSteps[index];
+      const meta = movementStepMeta[index] || {};
+      const featureChecking = meta.featureChecking;
       const op = normalizeMovementOperation(event?.operation) || 'Move';
       const targetLabel = String(nodeById.get(targetNodeId)?.label || '').trim() || 'Move';
       const sourceLabels = sourceNodeIds
@@ -3948,6 +4000,9 @@ const buildCanonicalDerivationFromTree = ({
         .filter(Boolean);
       derivationSteps.push({
         operation: op,
+        trigger: meta.trigger,
+        chainId: meta.chainId,
+        spelloutDomain: meta.spelloutDomain,
         targetNodeId: targetNodeId || undefined,
         targetLabel,
         sourceNodeIds,
@@ -3955,12 +4010,15 @@ const buildCanonicalDerivationFromTree = ({
         recipe: `${sourceLabels.join(' + ')} -> ${targetLabel}`,
         workspaceAfter: [rootLabel],
         featureChecking,
-        note: typeof event?.note === 'string' ? event.note : undefined
+        note: typeof event?.note === 'string' ? event.note : meta.note
       });
     });
 
   derivationSteps.push({
     operation: 'SpellOut',
+    trigger: spelloutStepMeta?.trigger,
+    chainId: spelloutStepMeta?.chainId,
+    spelloutDomain: spelloutStepMeta?.spelloutDomain || rootLabel,
     targetNodeId: String(tree?.id || '').trim() || undefined,
     targetLabel: rootLabel,
     sourceNodeIds: String(tree?.id || '').trim() ? [String(tree.id).trim()] : undefined,
@@ -3968,7 +4026,7 @@ const buildCanonicalDerivationFromTree = ({
     recipe: `SpellOut(${rootLabel})`,
     workspaceAfter: [rootLabel],
     spelloutOrder: Array.isArray(surfaceOrder) ? surfaceOrder : undefined,
-    note: 'Final spellout of the committed surface order.'
+    note: spelloutStepMeta?.note || 'Final spellout of the committed surface order.'
   });
 
   const movementStepIndexesByKey = new Map();
@@ -4060,7 +4118,9 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '', modelRou
         : null;
   const nodeReferences = collectNodeReferencesById(treeSource || parsed);
   const { tree: rawTree, nodeIds } = normalizeSyntaxTreeWithIds(treeSource, nodeReferences, framework, sentenceTokens);
-  materializeLexicalPhrasalLeaves(rawTree);
+  if (useAssistedStructurePath) {
+    materializeLexicalPhrasalLeaves(rawTree);
+  }
   const nodeById = buildNodeIndexFromTree(rawTree);
   const labelIndex = buildNodeLabelIndexFromTree(rawTree);
   const derivationSteps = normalizeDerivationSteps(parsed.derivationSteps, nodeIds);
@@ -4114,9 +4174,10 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '', modelRou
     canonicalTimeline.derivationSteps,
     canonicalTimeline.movementEvents
   );
+  const identifiedDerivationSteps = assignDerivationStepIds(reconciledDerivationSteps);
   const coherentExplanation = harmonizeExplanationWithDerivation(
     explanation,
-    reconciledDerivationSteps,
+    identifiedDerivationSteps,
     canonicalTimeline.movementEvents,
     tree,
     framework
@@ -4134,7 +4195,7 @@ const normalizeParseResult = (value, framework = 'xbar', sentence = '', modelRou
     partsOfSpeech: normalizePartsOfSpeech(parsed.partsOfSpeech),
     bracketedNotation: serializeTreeToBracketedNotation(tree),
     interpretation: coherentInterpretation,
-    derivationSteps: reconciledDerivationSteps,
+    derivationSteps: identifiedDerivationSteps,
     movementEvents: canonicalTimeline.movementEvents
   };
 };
@@ -4421,10 +4482,12 @@ const buildSingleParseContentsPrompt = (
   `Keep lower copy notation consistent within this tree, including phrasal and head movement. ` +
   `If you use traces, use only canonical trace forms like t, trace, t_1, or trace_DP; do not use hyphenated trace forms. ` +
   `Do not use helper position labels such as labels beginning with "Spec" as separate nodes; represent the phrase itself instead. ` +
+  `If a node is phrasal (XP or X'), it must realize structure through children, not through a word field. ` +
   `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
   `Do not split one overt moved phrase across an overt C/head node plus a separate DP/NP/PP phrase shell; if a phrase moves to the clause edge, keep all overt words of that phrase inside that single moved phrase node. ` +
   `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
+  `Every overt lexical item must appear on a terminal or head node, never directly on a phrasal projection such as DP, NP, VP, TP, InflP, or CP. ` +
   `Each overt lexical item must be visibly headed exactly once: either put the overt word on a head node itself, or let one head node directly dominate that overt word as its only overt child. ` +
   `Do not let one head node directly dominate both an overt word and a trace/null/copy sibling; encode lower head copies in distinct lower head positions. ` +
   `Before returning, decide whether movement occurs in this analysis and make movementDecision, movementEvents, derivationSteps, explanation, and the tree all match that same one choice. ` +
@@ -4436,9 +4499,10 @@ const buildSingleParseContentsPrompt = (
   `In movementEvents, use exactly: operation, fromNodeId, toNodeId, optional traceNodeId, optional stepIndex, optional note. Do not use type/source/target fields. ` +
   `The literal string "word" is a field name only; never use "word" as a node label. ` +
   `If you include derivationSteps, keep them lightweight and use node ids rather than extra serialized labels or workspace metadata. When case, agreement, EPP, wh/focus licensing, or other feature valuation is central to the committed derivation, encode it in featureChecking instead of leaving it only in the prose. ` +
+  `If a short reason for the step is clear, you may include trigger, and if multiple steps belong to one dependency, you may reuse a short chainId. For SpellOut steps, you may include spelloutDomain when the transfer domain matters in the committed analysis. ` +
   `If you explicitly assign case to a DP, you may annotate that node with optional fields case, assigner, caseEvidence, and caseOvert. Omit those fields if you are not explicitly committing. ` +
   `${compactOutput
-    ? `COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note. Keep the explanation to 2-4 substantive sentences. Keep derivationSteps minimal: include only the structural commitments needed for the replay, and omit optional note, workspaceAfter, and featureChecking fields unless they are strictly necessary to encode the committed derivation. Prefer the smallest valid JSON that still fully commits to the analysis. `
+    ? `COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note. Keep the explanation to 2-4 substantive sentences. Keep derivationSteps minimal: include only the structural commitments needed for the replay, and omit optional note, trigger, chainId, spelloutDomain, workspaceAfter, and featureChecking fields unless they are strictly necessary to encode the committed derivation. Prefer the smallest valid JSON that still fully commits to the analysis. `
     : ''}` +
   `${modelRoute === 'flash-lite'
     ? `FLASH LITE FORMAT CHECK: Return analyses[].nodes plus optional rootId only; never return tree or tree.nodes. tokenIndex belongs only on overt terminals. surfaceSpan must agree with overt descendants and sentence order. ` +

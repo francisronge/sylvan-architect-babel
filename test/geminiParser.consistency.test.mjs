@@ -202,7 +202,9 @@ test('buildSystemInstruction reinforces single overt realization and explicit mo
   assert.match(instruction, /Do not stack extra overt head labels such as C > V > word/i);
   assert.match(instruction, /use exactly one overt head label above the pronounced word/i);
   assert.match(instruction, /landing head should directly dominate the overt word/i);
+  assert.match(instruction, /If a node is phrasal \(XP or X'\), it must realize structure through children, not through a word field/i);
   assert.match(instruction, /Every overt lexical item must be visibly headed exactly once/i);
+  assert.match(instruction, /Every overt lexical item must appear on a terminal\/head node, never directly on a phrasal projection/i);
   assert.match(instruction, /Do not make one head node directly dominate both an overt word and a trace\/null\/copy sibling/i);
   assert.match(instruction, /"word" is a field name, not a category label/i);
   assert.match(instruction, /If the final tree places an overt head in a higher functional head position .* this must be encoded as a HeadMove/i);
@@ -236,12 +238,16 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /realize it there as one overt head rather than stacking labels like C > V > word/i);
   assert.match(prompt, /use exactly one overt head label above the pronounced word/i);
   assert.match(prompt, /landing head should directly dominate the overt word/i);
+  assert.match(prompt, /If a node is phrasal \(XP or X'\), it must realize structure through children, not through a word field/i);
   assert.match(prompt, /Each overt lexical item must be visibly headed exactly once/i);
+  assert.match(prompt, /Every overt lexical item must appear on a terminal or head node, never directly on a phrasal projection such as DP, NP, VP, TP, InflP, or CP/i);
   assert.match(prompt, /Do not let one head node directly dominate both an overt word and a trace\/null\/copy sibling/i);
   assert.match(prompt, /never use "word" as a node label/i);
   assert.match(proPrompt, /describe the analysis only in X-bar terms; do not call it Minimalist or Minimalism/i);
   assert.match(proPrompt, /If you explicitly assign case to a DP, you may annotate that node with optional fields case, assigner, caseEvidence, and caseOvert/i);
   assert.match(proPrompt, /When case, agreement, EPP, wh\/focus licensing, or other feature valuation is central to the committed derivation, encode it in featureChecking/i);
+  assert.match(proPrompt, /you may include trigger, and if multiple steps belong to one dependency, you may reuse a short chainId/i);
+  assert.match(proPrompt, /For SpellOut steps, you may include spelloutDomain/i);
   assert.match(prompt, /If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove/i);
   assert.match(prompt, /developed academic paragraph rather than a compressed checklist/i);
   assert.match(prompt, /recognized analytical tradition or mention a relevant scholar/i);
@@ -251,7 +257,82 @@ test('buildParseContentsPrompt reinforces overt-token uniqueness and explicit lo
   assert.match(prompt, /CONSISTENCY RECHECK: Before returning, read the same request again and verify that your final JSON already encodes one coherent analysis\./i);
   assert.match(compactProPrompt, /COMPACT OUTPUT MODE: return exactly one analysis and no ambiguity note/i);
   assert.match(compactProPrompt, /Keep the explanation to 2-4 substantive sentences/i);
+  assert.match(compactProPrompt, /omit optional note, trigger, chainId, spelloutDomain, workspaceAfter, and featureChecking fields unless they are strictly necessary/i);
   assert.match(compactProPrompt, /Compact retry mode is active because an earlier answer was cut off/i);
+});
+
+test('normalizeParseBundle assigns derivation step ids and preserves lightweight step metadata', () => {
+  const sentence = 'Who bought the book?';
+  const payload = {
+    analyses: [
+      {
+        tree: {
+          id: 'n1',
+          label: 'CP',
+          children: [
+            {
+              id: 'n2',
+              label: 'DP',
+              children: [{ id: 'n3', label: 'who', word: 'Who' }]
+            },
+            {
+              id: 'n4',
+              label: 'TP',
+              children: [
+                {
+                  id: 'n5',
+                  label: 'T',
+                  children: [{ id: 'n6', label: 'bought', word: 'bought' }]
+                },
+                {
+                  id: 'n7',
+                  label: 'DP',
+                  children: [
+                    { id: 'n8', label: 'D', children: [{ id: 'n9', label: 'the', word: 'the' }] },
+                    { id: 'n10', label: 'N', children: [{ id: 'n11', label: 'book', word: 'book' }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        explanation: 'A simple clause with a fronted wh phrase.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is explicitly committed in this test payload.'
+        },
+        movementEvents: [],
+        derivationSteps: [
+          {
+            operation: 'ExternalMerge',
+            targetNodeId: 'n1',
+            sourceNodeIds: ['n2', 'n4'],
+            trigger: 'clause-build',
+            chainId: 'ch1',
+            note: 'Merge the subject edge and TP into CP.'
+          },
+          {
+            operation: 'SpellOut',
+            targetNodeId: 'n1',
+            spelloutDomain: 'CP'
+          }
+        ]
+      }
+    ]
+  };
+  annotateSurfaceSpans(payload.analyses[0].tree, sentence);
+  payload.analyses[0].surfaceOrder = tokenize(sentence);
+
+  const normalized = normalizeParseBundle(payload, 'xbar', sentence);
+  const analysis = normalized.analyses[0];
+  const mergeStep = analysis.derivationSteps.find((step) => step.targetNodeId === 'n1' && step.operation === 'ExternalMerge');
+  const spelloutStep = analysis.derivationSteps.at(-1);
+
+  assert.ok(analysis.derivationSteps.every((step, index) => step.stepId === `s${index + 1}`));
+  assert.equal(mergeStep.trigger, 'clause-build');
+  assert.equal(mergeStep.chainId, 'ch1');
+  assert.equal(spelloutStep.operation, 'SpellOut');
+  assert.equal(spelloutStep.spelloutDomain, 'CP');
 });
 
 test('parseResponseJsonSchemaForRoute uses flat analysis schema for lite and mixed schema for pro', () => {
@@ -836,6 +917,47 @@ test('normalizeParseBundle materializes overt lexical words on phrasal flat node
   const subjectDp = vp.children.find((child) => child.label === 'DP');
   assert.equal(subjectDp?.children?.[0]?.label, 'NP');
   assert.equal(subjectDp?.children?.[0]?.children?.[0]?.label, 'N');
+});
+
+test('normalizeParseBundle leaves phrasal lexical words untouched on the Pro path', () => {
+  const sentence = 'Melyik konyvet vette meg Anna?';
+  const payload = {
+    analyses: [
+      {
+        nodes: [
+          { id: 'n0', label: 'CP', surfaceSpan: [0, 4] },
+          { id: 'n1', label: 'DP', parentId: 'n0', surfaceSpan: [0, 1] },
+          { id: 'n2', label: 'D', parentId: 'n1', word: 'Melyik', tokenIndex: 0 },
+          { id: 'n3', label: 'NP', parentId: 'n1', word: 'konyvet', tokenIndex: 1 },
+          { id: 'n4', label: 'TP', parentId: 'n0', surfaceSpan: [2, 4] },
+          { id: 'n5', label: 'T', parentId: 'n4', word: 'vette', tokenIndex: 2 },
+          { id: 'n6', label: 'VP', parentId: 'n4', surfaceSpan: [3, 4] },
+          { id: 'n7', label: 'V', parentId: 'n6', word: 'meg', tokenIndex: 3 },
+          { id: 'n8', label: 'DP', parentId: 'n6', word: 'Anna', tokenIndex: 4 }
+        ],
+        rootId: 'n0',
+        explanation: 'A flat-node parse with lexical words on phrasal nodes.',
+        movementDecision: {
+          hasMovement: false,
+          rationale: 'No movement is posited in the committed analysis.'
+        },
+        movementEvents: [],
+        derivationSteps: []
+      }
+    ]
+  };
+
+  const normalized = normalizeParseBundle(payload, 'minimalism', sentence, 'pro');
+  const analysis = normalized.analyses[0];
+  const whDp = analysis.tree.children[0];
+  const npChild = whDp.children.find((child) => child.label === 'NP');
+  assert.equal(npChild?.word, 'konyvet');
+  assert.equal(npChild?.children, undefined);
+  const tp = analysis.tree.children[1];
+  const vp = tp.children.find((child) => child.label === 'VP');
+  const subjectDp = vp.children.find((child) => child.label === 'DP');
+  assert.equal(subjectDp?.word, 'Anna');
+  assert.equal(subjectDp?.children, undefined);
 });
 
 test('normalizeParseBundle uses explicit siblingOrder in flat-node mode to preserve head-initial local order', () => {
