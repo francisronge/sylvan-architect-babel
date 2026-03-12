@@ -15,6 +15,7 @@ const XBAR_INSTRUCTION = `You are a world-class syntactician specializing in Gen
 
 Parse natural language sentences by deriving structure from framework principles, not memorized templates.
 Use theoretical notions such as projection, headedness, selection, argument/adjunct distinction, locality, and null elements only when justified.
+Assume endocentric phrase structure: every XP or X' must be projected from a head X, and the category of the projection must come from that head.
 
 Output conventions:
 - Use X-bar style constituent structure.
@@ -24,6 +25,7 @@ Output conventions:
 - If clear syntactic ambiguity exists, return two analyses; otherwise return one.
 - For overt lexical items, keep full X-bar projections explicit (e.g., DP -> D' -> D -> "the", VP -> V' -> V -> "eat").
 - Do not attach overt words directly under X' or XP nodes.
+- Keep X-bar structure endocentric: every phrasal projection must be headed by a matching lexical or functional head.
 
 ${EXPLANATION_INSTRUCTION}`;
 
@@ -67,6 +69,7 @@ General rules:
 - When tokenIndex is used, each overt token index must be used exactly once, and overt children must appear in ascending tokenIndex/surfaceSpan order.
 - Do not attach overt words directly under X' or XP nodes.
 - If a node is phrasal (XP or X'), it must realize structure through children, not through a word field.
+- Keep phrase structure endocentric: if a node is phrasal, its category must be projected from a matching head inside that phrase, not treated as an unheaded word-bearing shell.
 - Do not attach overt words directly to phrasal labels such as DP, NP, VP, TP, InflP, or CP. Overt words must appear on head/preterminal nodes beneath those phrases.
 - If you include a silent/null terminal anywhere in the analysis, represent it only as "∅".
 - If you explicitly commit to a case assignment on a DP or argument phrase, you may annotate that node with optional fields "case", "assigner", "caseEvidence", and "caseOvert". Omit these fields if the analysis is not explicitly committing to case there.
