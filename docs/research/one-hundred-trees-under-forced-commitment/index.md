@@ -332,11 +332,9 @@ Flash Lite should be read with one methodological fact in mind: it receives more
 
 Sentence: `أي كتاب اشترت ليلى ؟`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_ar_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ar_wh-growth-final.png) | ![Flash m_ar_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ar_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_ar_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ar_wh-notes.png) | ![Flash m_ar_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ar_wh-notes.png) |
+| **Growth**<br>![Pro m_ar_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ar_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_ar_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ar_wh-notes.png) | **Growth**<br>![Flash m_ar_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ar_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_ar_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ar_wh-notes.png) |
 
 Metrics: Pro 3 movement / 25 steps; Flash Lite 1 movement / 16 steps.
 
@@ -348,11 +346,9 @@ Metrics: Pro 3 movement / 25 steps; Flash Lite 1 movement / 16 steps.
 
 Sentence: `Коя книга прочете Мария?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_bg_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_bg_wh-growth-final.png) | ![Flash m_bg_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_bg_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_bg_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_bg_wh-notes.png) | ![Flash m_bg_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_bg_wh-notes.png) |
+| **Growth**<br>![Pro m_bg_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_bg_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_bg_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_bg_wh-notes.png) | **Growth**<br>![Flash m_bg_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_bg_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_bg_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_bg_wh-notes.png) |
 
 Metrics: Pro 3 movement / 26 steps; Flash Lite 2 movement / 17 steps.
 
@@ -364,11 +360,9 @@ Metrics: Pro 3 movement / 26 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `কোন বইটা রিমা কিনেছে ?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_bn_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_bn_wh-growth-final.png) | ![Flash m_bn_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_bn_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_bn_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_bn_wh-notes.png) | ![Flash m_bn_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_bn_wh-notes.png) |
+| **Growth**<br>![Pro m_bn_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_bn_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_bn_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_bn_wh-notes.png) | **Growth**<br>![Flash m_bn_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_bn_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_bn_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_bn_wh-notes.png) |
 
 Metrics: Pro 4 movement / 27 steps; Flash Lite 0 movement / 16 steps.
 
@@ -380,11 +374,9 @@ Metrics: Pro 4 movement / 27 steps; Flash Lite 0 movement / 16 steps.
 
 Sentence: `Kterou knihu koupil Marek?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_cs_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_cs_wh-growth-final.png) | ![Flash m_cs_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_cs_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_cs_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_cs_wh-notes.png) | ![Flash m_cs_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_cs_wh-notes.png) |
+| **Growth**<br>![Pro m_cs_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_cs_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_cs_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_cs_wh-notes.png) | **Growth**<br>![Flash m_cs_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_cs_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_cs_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_cs_wh-notes.png) |
 
 Metrics: Pro 4 movement / 23 steps; Flash Lite 2 movement / 18 steps.
 
@@ -396,11 +388,9 @@ Metrics: Pro 4 movement / 23 steps; Flash Lite 2 movement / 18 steps.
 
 Sentence: `Welches Foto hat Maria gesehen?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_de_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_de_wh-growth-final.png) | ![Flash m_de_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_de_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_de_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_de_wh-notes.png) | ![Flash m_de_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_de_wh-notes.png) |
+| **Growth**<br>![Pro m_de_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_de_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_de_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_de_wh-notes.png) | **Growth**<br>![Flash m_de_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_de_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_de_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_de_wh-notes.png) |
 
 Metrics: Pro 3 movement / 25 steps; Flash Lite 1 movement / 15 steps.
 
@@ -412,11 +402,9 @@ Metrics: Pro 3 movement / 25 steps; Flash Lite 1 movement / 15 steps.
 
 Sentence: `Hat der Fahrer den Wagen verkauft?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_de_yesno growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_de_yesno-growth-final.png) | ![Flash m_de_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_de_yesno-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_de_yesno notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_de_yesno-notes.png) | ![Flash m_de_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_de_yesno-notes.png) |
+| **Growth**<br>![Pro m_de_yesno growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_de_yesno-growth-final.png)<br><br>**Notes**<br>![Pro m_de_yesno notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_de_yesno-notes.png) | **Growth**<br>![Flash m_de_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_de_yesno-growth-final.png)<br><br>**Notes**<br>![Flash m_de_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_de_yesno-notes.png) |
 
 Metrics: Pro 2 movement / 20 steps; Flash Lite 1 movement / 17 steps.
 
@@ -428,11 +416,9 @@ Metrics: Pro 2 movement / 20 steps; Flash Lite 1 movement / 17 steps.
 
 Sentence: `Ποιο βιβλίο διάβασε η Μαρία;`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_el_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_el_wh-growth-final.png) | ![Flash m_el_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_el_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_el_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_el_wh-notes.png) | ![Flash m_el_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_el_wh-notes.png) |
+| **Growth**<br>![Pro m_el_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_el_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_el_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_el_wh-notes.png) | **Growth**<br>![Flash m_el_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_el_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_el_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_el_wh-notes.png) |
 
 Metrics: Pro 3 movement / 24 steps; Flash Lite 2 movement / 19 steps.
 
@@ -444,11 +430,9 @@ Metrics: Pro 3 movement / 24 steps; Flash Lite 2 movement / 19 steps.
 
 Sentence: `Which article do you think Clara said Mateo published?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_en_long_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_en_long_wh-growth-final.png) | ![Flash m_en_long_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_en_long_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_en_long_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_en_long_wh-notes.png) | ![Flash m_en_long_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_en_long_wh-notes.png) |
+| **Growth**<br>![Pro m_en_long_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_en_long_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_en_long_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_en_long_wh-notes.png) | **Growth**<br>![Flash m_en_long_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_en_long_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_en_long_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_en_long_wh-notes.png) |
 
 Metrics: Pro 7 movement / 57 steps; Flash Lite 1 movement / 46 steps.
 
@@ -460,11 +444,9 @@ Metrics: Pro 7 movement / 57 steps; Flash Lite 1 movement / 46 steps.
 
 Sentence: `The letters were delivered yesterday.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_en_passive growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_en_passive-growth-final.png) | ![Flash m_en_passive growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_en_passive-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_en_passive notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_en_passive-notes.png) | ![Flash m_en_passive notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_en_passive-notes.png) |
+| **Growth**<br>![Pro m_en_passive growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_en_passive-growth-final.png)<br><br>**Notes**<br>![Pro m_en_passive notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_en_passive-notes.png) | **Growth**<br>![Flash m_en_passive growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_en_passive-growth-final.png)<br><br>**Notes**<br>![Flash m_en_passive notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_en_passive-notes.png) |
 
 Metrics: Pro 1 movement / 20 steps; Flash Lite 0 movement / 11 steps.
 
@@ -476,11 +458,9 @@ Metrics: Pro 1 movement / 20 steps; Flash Lite 0 movement / 11 steps.
 
 Sentence: `¿Qué cuadro pintó Elena?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_es_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_es_wh-growth-final.png) | ![Flash m_es_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_es_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_es_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_es_wh-notes.png) | ![Flash m_es_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_es_wh-notes.png) |
+| **Growth**<br>![Pro m_es_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_es_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_es_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_es_wh-notes.png) | **Growth**<br>![Flash m_es_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_es_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_es_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_es_wh-notes.png) |
 
 Metrics: Pro 4 movement / 26 steps; Flash Lite 1 movement / 16 steps.
 
@@ -492,11 +472,9 @@ Metrics: Pro 4 movement / 26 steps; Flash Lite 1 movement / 16 steps.
 
 Sentence: `Minkä kirjan Anna osti?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_fi_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_fi_wh-growth-final.png) | ![Flash m_fi_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_fi_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_fi_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_fi_wh-notes.png) | ![Flash m_fi_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_fi_wh-notes.png) |
+| **Growth**<br>![Pro m_fi_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_fi_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_fi_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_fi_wh-notes.png) | **Growth**<br>![Flash m_fi_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_fi_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_fi_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_fi_wh-notes.png) |
 
 Metrics: Pro 4 movement / 24 steps; Flash Lite 1 movement / 18 steps.
 
@@ -508,11 +486,9 @@ Metrics: Pro 4 movement / 24 steps; Flash Lite 1 movement / 18 steps.
 
 Sentence: `Quel roman a choisi Élise ?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_fr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_fr_wh-growth-final.png) | ![Flash m_fr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_fr_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_fr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_fr_wh-notes.png) | ![Flash m_fr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_fr_wh-notes.png) |
+| **Growth**<br>![Pro m_fr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_fr_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_fr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_fr_wh-notes.png) | **Growth**<br>![Flash m_fr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_fr_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_fr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_fr_wh-notes.png) |
 
 Metrics: Pro 3 movement / 28 steps; Flash Lite 1 movement / 22 steps.
 
@@ -524,11 +500,9 @@ Metrics: Pro 3 movement / 28 steps; Flash Lite 1 movement / 22 steps.
 
 Sentence: `Cén leabhar a cheannaigh Máire?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_ga_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ga_wh-growth-final.png) | ![Flash m_ga_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ga_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_ga_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ga_wh-notes.png) | ![Flash m_ga_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ga_wh-notes.png) |
+| **Growth**<br>![Pro m_ga_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ga_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_ga_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ga_wh-notes.png) | **Growth**<br>![Flash m_ga_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ga_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_ga_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ga_wh-notes.png) |
 
 Metrics: Pro 3 movement / 21 steps; Flash Lite 2 movement / 17 steps.
 
@@ -540,11 +514,9 @@ Metrics: Pro 3 movement / 21 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `איזה ספר קנתה נועה?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_he_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_he_wh-growth-final.png) | ![Flash m_he_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_he_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_he_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_he_wh-notes.png) | ![Flash m_he_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_he_wh-notes.png) |
+| **Growth**<br>![Pro m_he_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_he_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_he_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_he_wh-notes.png) | **Growth**<br>![Flash m_he_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_he_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_he_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_he_wh-notes.png) |
 
 Metrics: Pro 5 movement / 27 steps; Flash Lite 2 movement / 17 steps.
 
@@ -556,11 +528,9 @@ Metrics: Pro 5 movement / 27 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `कौन सी किताब मीरा ने खरीदी ?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_hi_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hi_wh-growth-final.png) | ![Flash m_hi_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hi_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_hi_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hi_wh-notes.png) | ![Flash m_hi_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hi_wh-notes.png) |
+| **Growth**<br>![Pro m_hi_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hi_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_hi_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hi_wh-notes.png) | **Growth**<br>![Flash m_hi_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hi_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_hi_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hi_wh-notes.png) |
 
 Metrics: Pro 2 movement / 28 steps; Flash Lite 1 movement / 17 steps.
 
@@ -572,11 +542,9 @@ Metrics: Pro 2 movement / 28 steps; Flash Lite 1 movement / 17 steps.
 
 Sentence: `क्या रवि ने चिट्ठी लिखी ?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_hi_yesno growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hi_yesno-growth-final.png) | ![Flash m_hi_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hi_yesno-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_hi_yesno notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hi_yesno-notes.png) | ![Flash m_hi_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hi_yesno-notes.png) |
+| **Growth**<br>![Pro m_hi_yesno growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hi_yesno-growth-final.png)<br><br>**Notes**<br>![Pro m_hi_yesno notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hi_yesno-notes.png) | **Growth**<br>![Flash m_hi_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hi_yesno-growth-final.png)<br><br>**Notes**<br>![Flash m_hi_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hi_yesno-notes.png) |
 
 Metrics: Pro 3 movement / 20 steps; Flash Lite 0 movement / 11 steps.
 
@@ -588,11 +556,9 @@ Metrics: Pro 3 movement / 20 steps; Flash Lite 0 movement / 11 steps.
 
 Sentence: `Melyik könyvet vette meg Anna?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_hu_focus growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hu_focus-growth-final.png) | ![Flash m_hu_focus growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hu_focus-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_hu_focus notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hu_focus-notes.png) | ![Flash m_hu_focus notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hu_focus-notes.png) |
+| **Growth**<br>![Pro m_hu_focus growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_hu_focus-growth-final.png)<br><br>**Notes**<br>![Pro m_hu_focus notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_hu_focus-notes.png) | **Growth**<br>![Flash m_hu_focus growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_hu_focus-growth-final.png)<br><br>**Notes**<br>![Flash m_hu_focus notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_hu_focus-notes.png) |
 
 Metrics: Pro 5 movement / 31 steps; Flash Lite 1 movement / 16 steps.
 
@@ -604,11 +570,9 @@ Metrics: Pro 5 movement / 31 steps; Flash Lite 1 movement / 16 steps.
 
 Sentence: `Quale sonata ha eseguito Marta?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_it_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_it_wh-growth-final.png) | ![Flash m_it_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_it_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_it_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_it_wh-notes.png) | ![Flash m_it_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_it_wh-notes.png) |
+| **Growth**<br>![Pro m_it_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_it_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_it_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_it_wh-notes.png) | **Growth**<br>![Flash m_it_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_it_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_it_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_it_wh-notes.png) |
 
 Metrics: Pro 3 movement / 23 steps; Flash Lite 0 movement / 14 steps.
 
@@ -620,11 +584,9 @@ Metrics: Pro 3 movement / 23 steps; Flash Lite 0 movement / 14 steps.
 
 Sentence: `Welke student heeft Emma gezien?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_nl_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_nl_wh-growth-final.png) | ![Flash m_nl_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_nl_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_nl_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_nl_wh-notes.png) | ![Flash m_nl_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_nl_wh-notes.png) |
+| **Growth**<br>![Pro m_nl_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_nl_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_nl_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_nl_wh-notes.png) | **Growth**<br>![Flash m_nl_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_nl_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_nl_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_nl_wh-notes.png) |
 
 Metrics: Pro 3 movement / 23 steps; Flash Lite 2 movement / 21 steps.
 
@@ -636,11 +598,9 @@ Metrics: Pro 3 movement / 23 steps; Flash Lite 2 movement / 21 steps.
 
 Sentence: `Którą gazetę kupił Marek?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_pl_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_pl_wh-growth-final.png) | ![Flash m_pl_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_pl_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_pl_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_pl_wh-notes.png) | ![Flash m_pl_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_pl_wh-notes.png) |
+| **Growth**<br>![Pro m_pl_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_pl_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_pl_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_pl_wh-notes.png) | **Growth**<br>![Flash m_pl_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_pl_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_pl_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_pl_wh-notes.png) |
 
 Metrics: Pro 3 movement / 21 steps; Flash Lite 2 movement / 17 steps.
 
@@ -652,11 +612,9 @@ Metrics: Pro 3 movement / 21 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `Que relatório revisou Sofia?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_pt_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_pt_wh-growth-final.png) | ![Flash m_pt_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_pt_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_pt_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_pt_wh-notes.png) | ![Flash m_pt_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_pt_wh-notes.png) |
+| **Growth**<br>![Pro m_pt_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_pt_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_pt_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_pt_wh-notes.png) | **Growth**<br>![Flash m_pt_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_pt_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_pt_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_pt_wh-notes.png) |
 
 Metrics: Pro 5 movement / 27 steps; Flash Lite 1 movement / 16 steps.
 
@@ -668,11 +626,9 @@ Metrics: Pro 5 movement / 27 steps; Flash Lite 1 movement / 16 steps.
 
 Sentence: `Ce film a văzut Irina?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_ro_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ro_wh-growth-final.png) | ![Flash m_ro_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ro_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_ro_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ro_wh-notes.png) | ![Flash m_ro_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ro_wh-notes.png) |
+| **Growth**<br>![Pro m_ro_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ro_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_ro_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ro_wh-notes.png) | **Growth**<br>![Flash m_ro_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ro_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_ro_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ro_wh-notes.png) |
 
 Metrics: Pro 3 movement / 22 steps; Flash Lite 0 movement / 13 steps.
 
@@ -684,11 +640,9 @@ Metrics: Pro 3 movement / 22 steps; Flash Lite 0 movement / 13 steps.
 
 Sentence: `Какую книгу купила Маша?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_ru_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ru_wh-growth-final.png) | ![Flash m_ru_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ru_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_ru_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ru_wh-notes.png) | ![Flash m_ru_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ru_wh-notes.png) |
+| **Growth**<br>![Pro m_ru_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_ru_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_ru_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_ru_wh-notes.png) | **Growth**<br>![Flash m_ru_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_ru_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_ru_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_ru_wh-notes.png) |
 
 Metrics: Pro 2 movement / 22 steps; Flash Lite 2 movement / 17 steps.
 
@@ -700,11 +654,9 @@ Metrics: Pro 2 movement / 22 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `Коју књигу је Ана купила?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_sr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_sr_wh-growth-final.png) | ![Flash m_sr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_sr_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_sr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_sr_wh-notes.png) | ![Flash m_sr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_sr_wh-notes.png) |
+| **Growth**<br>![Pro m_sr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_sr_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_sr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_sr_wh-notes.png) | **Growth**<br>![Flash m_sr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_sr_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_sr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_sr_wh-notes.png) |
 
 Metrics: Pro 4 movement / 26 steps; Flash Lite 2 movement / 17 steps.
 
@@ -716,11 +668,9 @@ Metrics: Pro 4 movement / 26 steps; Flash Lite 2 movement / 17 steps.
 
 Sentence: `Hangi kitabı Ayşe okudu?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro m_tr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_tr_wh-growth-final.png) | ![Flash m_tr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_tr_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro m_tr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_tr_wh-notes.png) | ![Flash m_tr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_tr_wh-notes.png) |
+| **Growth**<br>![Pro m_tr_wh growth](../assets/gauntlet100-v1/growth/pro-minimalism-m_tr_wh-growth-final.png)<br><br>**Notes**<br>![Pro m_tr_wh notes](../assets/gauntlet100-v1/notes/pro-minimalism-m_tr_wh-notes.png) | **Growth**<br>![Flash m_tr_wh growth](../assets/gauntlet100-v1/growth/flash-lite-minimalism-m_tr_wh-growth-final.png)<br><br>**Notes**<br>![Flash m_tr_wh notes](../assets/gauntlet100-v1/notes/flash-lite-minimalism-m_tr_wh-notes.png) |
 
 Metrics: Pro 2 movement / 22 steps; Flash Lite 1 movement / 15 steps.
 
@@ -734,11 +684,9 @@ Metrics: Pro 2 movement / 22 steps; Flash Lite 1 movement / 15 steps.
 
 Sentence: `قالت مريم إن بول سيغادر غداً.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ar_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ar_embed-growth-final.png) | ![Flash x_ar_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ar_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ar_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ar_embed-notes.png) | ![Flash x_ar_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ar_embed-notes.png) |
+| **Growth**<br>![Pro x_ar_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ar_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_ar_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ar_embed-notes.png) | **Growth**<br>![Flash x_ar_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ar_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_ar_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ar_embed-notes.png) |
 
 Metrics: Pro 3 movement / 41 steps; Flash Lite 0 movement / 25 steps.
 
@@ -750,11 +698,9 @@ Metrics: Pro 3 movement / 41 steps; Flash Lite 0 movement / 25 steps.
 
 Sentence: `শিক্ষক বললেন যে ছাত্রী বইটি পড়েছে।`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_bn_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_bn_embed-growth-final.png) | ![Flash x_bn_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_bn_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_bn_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_bn_embed-notes.png) | ![Flash x_bn_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_bn_embed-notes.png) |
+| **Growth**<br>![Pro x_bn_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_bn_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_bn_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_bn_embed-notes.png) | **Growth**<br>![Flash x_bn_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_bn_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_bn_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_bn_embed-notes.png) |
 
 Metrics: Pro 3 movement / 39 steps; Flash Lite 0 movement / 23 steps.
 
@@ -766,11 +712,9 @@ Metrics: Pro 3 movement / 39 steps; Flash Lite 0 movement / 23 steps.
 
 Sentence: `Der Lehrer sagte, dass die Schülerin das Buch gelesen hat.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_de_embed_perfect growth](../assets/gauntlet100-v1/growth/pro-xbar-x_de_embed_perfect-growth-final.png) | ![Flash x_de_embed_perfect growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_de_embed_perfect-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_de_embed_perfect notes](../assets/gauntlet100-v1/notes/pro-xbar-x_de_embed_perfect-notes.png) | ![Flash x_de_embed_perfect notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_de_embed_perfect-notes.png) |
+| **Growth**<br>![Pro x_de_embed_perfect growth](../assets/gauntlet100-v1/growth/pro-xbar-x_de_embed_perfect-growth-final.png)<br><br>**Notes**<br>![Pro x_de_embed_perfect notes](../assets/gauntlet100-v1/notes/pro-xbar-x_de_embed_perfect-notes.png) | **Growth**<br>![Flash x_de_embed_perfect growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_de_embed_perfect-growth-final.png)<br><br>**Notes**<br>![Flash x_de_embed_perfect notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_de_embed_perfect-notes.png) |
 
 Metrics: Pro 5 movement / 51 steps; Flash Lite 0 movement / 27 steps.
 
@@ -782,11 +726,9 @@ Metrics: Pro 5 movement / 51 steps; Flash Lite 0 movement / 27 steps.
 
 Sentence: `Welches Gemälde hat Lara gekauft?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_de_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_de_wh-growth-final.png) | ![Flash x_de_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_de_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_de_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_de_wh-notes.png) | ![Flash x_de_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_de_wh-notes.png) |
+| **Growth**<br>![Pro x_de_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_de_wh-growth-final.png)<br><br>**Notes**<br>![Pro x_de_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_de_wh-notes.png) | **Growth**<br>![Flash x_de_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_de_wh-growth-final.png)<br><br>**Notes**<br>![Flash x_de_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_de_wh-notes.png) |
 
 Metrics: Pro 2 movement / 27 steps; Flash Lite 2 movement / 20 steps.
 
@@ -798,11 +740,9 @@ Metrics: Pro 2 movement / 27 steps; Flash Lite 2 movement / 20 steps.
 
 Sentence: `Ποιο βιβλίο διάβασε η Μαρία;`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_el_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_el_wh-growth-final.png) | ![Flash x_el_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_el_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_el_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_el_wh-notes.png) | ![Flash x_el_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_el_wh-notes.png) |
+| **Growth**<br>![Pro x_el_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_el_wh-growth-final.png)<br><br>**Notes**<br>![Pro x_el_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_el_wh-notes.png) | **Growth**<br>![Flash x_el_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_el_wh-growth-final.png)<br><br>**Notes**<br>![Flash x_el_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_el_wh-notes.png) |
 
 Metrics: Pro 3 movement / 28 steps; Flash Lite 2 movement / 28 steps.
 
@@ -814,11 +754,9 @@ Metrics: Pro 3 movement / 28 steps; Flash Lite 2 movement / 28 steps.
 
 Sentence: `It seems that the guests have departed.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_en_raising growth](../assets/gauntlet100-v1/growth/pro-xbar-x_en_raising-growth-final.png) | ![Flash x_en_raising growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_en_raising-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_en_raising notes](../assets/gauntlet100-v1/notes/pro-xbar-x_en_raising-notes.png) | ![Flash x_en_raising notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_en_raising-notes.png) |
+| **Growth**<br>![Pro x_en_raising growth](../assets/gauntlet100-v1/growth/pro-xbar-x_en_raising-growth-final.png)<br><br>**Notes**<br>![Pro x_en_raising notes](../assets/gauntlet100-v1/notes/pro-xbar-x_en_raising-notes.png) | **Growth**<br>![Flash x_en_raising growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_en_raising-growth-final.png)<br><br>**Notes**<br>![Flash x_en_raising notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_en_raising-notes.png) |
 
 Metrics: Pro 1 movement / 32 steps; Flash Lite 0 movement / 23 steps.
 
@@ -830,11 +768,9 @@ Metrics: Pro 1 movement / 32 steps; Flash Lite 0 movement / 23 steps.
 
 Sentence: `The editor who praised the article resigned.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_en_relative growth](../assets/gauntlet100-v1/growth/pro-xbar-x_en_relative-growth-final.png) | ![Flash x_en_relative growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_en_relative-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_en_relative notes](../assets/gauntlet100-v1/notes/pro-xbar-x_en_relative-notes.png) | ![Flash x_en_relative notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_en_relative-notes.png) |
+| **Growth**<br>![Pro x_en_relative growth](../assets/gauntlet100-v1/growth/pro-xbar-x_en_relative-growth-final.png)<br><br>**Notes**<br>![Pro x_en_relative notes](../assets/gauntlet100-v1/notes/pro-xbar-x_en_relative-notes.png) | **Growth**<br>![Flash x_en_relative growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_en_relative-growth-final.png)<br><br>**Notes**<br>![Flash x_en_relative notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_en_relative-notes.png) |
 
 Metrics: Pro 1 movement / 39 steps; Flash Lite 0 movement / 34 steps.
 
@@ -846,11 +782,9 @@ Metrics: Pro 1 movement / 39 steps; Flash Lite 0 movement / 34 steps.
 
 Sentence: `El médico dijo que la paciente llegó temprano.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_es_complement growth](../assets/gauntlet100-v1/growth/pro-xbar-x_es_complement-growth-final.png) | ![Flash x_es_complement growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_es_complement-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_es_complement notes](../assets/gauntlet100-v1/notes/pro-xbar-x_es_complement-notes.png) | ![Flash x_es_complement notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_es_complement-notes.png) |
+| **Growth**<br>![Pro x_es_complement growth](../assets/gauntlet100-v1/growth/pro-xbar-x_es_complement-growth-final.png)<br><br>**Notes**<br>![Pro x_es_complement notes](../assets/gauntlet100-v1/notes/pro-xbar-x_es_complement-notes.png) | **Growth**<br>![Flash x_es_complement growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_es_complement-growth-final.png)<br><br>**Notes**<br>![Flash x_es_complement notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_es_complement-notes.png) |
 
 Metrics: Pro 4 movement / 38 steps; Flash Lite 0 movement / 26 steps.
 
@@ -862,11 +796,9 @@ Metrics: Pro 4 movement / 38 steps; Flash Lite 0 movement / 26 steps.
 
 Sentence: `¿Ha comprado Ana el libro?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_es_yesno growth](../assets/gauntlet100-v1/growth/pro-xbar-x_es_yesno-growth-final.png) | ![Flash x_es_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_es_yesno-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_es_yesno notes](../assets/gauntlet100-v1/notes/pro-xbar-x_es_yesno-notes.png) | ![Flash x_es_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_es_yesno-notes.png) |
+| **Growth**<br>![Pro x_es_yesno growth](../assets/gauntlet100-v1/growth/pro-xbar-x_es_yesno-growth-final.png)<br><br>**Notes**<br>![Pro x_es_yesno notes](../assets/gauntlet100-v1/notes/pro-xbar-x_es_yesno-notes.png) | **Growth**<br>![Flash x_es_yesno growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_es_yesno-growth-final.png)<br><br>**Notes**<br>![Flash x_es_yesno notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_es_yesno-notes.png) |
 
 Metrics: Pro 1 movement / 34 steps; Flash Lite 1 movement / 17 steps.
 
@@ -878,11 +810,9 @@ Metrics: Pro 1 movement / 34 steps; Flash Lite 1 movement / 17 steps.
 
 Sentence: `Marie a dit que Paul viendra.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_fr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_fr_embed-growth-final.png) | ![Flash x_fr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_fr_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_fr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_fr_embed-notes.png) | ![Flash x_fr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_fr_embed-notes.png) |
+| **Growth**<br>![Pro x_fr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_fr_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_fr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_fr_embed-notes.png) | **Growth**<br>![Flash x_fr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_fr_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_fr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_fr_embed-notes.png) |
 
 Metrics: Pro 3 movement / 40 steps; Flash Lite 0 movement / 24 steps.
 
@@ -894,11 +824,9 @@ Metrics: Pro 3 movement / 40 steps; Flash Lite 0 movement / 24 steps.
 
 Sentence: `Le rapport a été publié hier.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_fr_passive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_fr_passive-growth-final.png) | ![Flash x_fr_passive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_fr_passive-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_fr_passive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_fr_passive-notes.png) | ![Flash x_fr_passive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_fr_passive-notes.png) |
+| **Growth**<br>![Pro x_fr_passive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_fr_passive-growth-final.png)<br><br>**Notes**<br>![Pro x_fr_passive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_fr_passive-notes.png) | **Growth**<br>![Flash x_fr_passive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_fr_passive-growth-final.png)<br><br>**Notes**<br>![Flash x_fr_passive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_fr_passive-notes.png) |
 
 Metrics: Pro 1 movement / 27 steps; Flash Lite 0 movement / 20 steps.
 
@@ -910,11 +838,9 @@ Metrics: Pro 1 movement / 27 steps; Flash Lite 0 movement / 20 steps.
 
 Sentence: `Gheall sé go bhfillfeadh sé ar an bhaile.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ga_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ga_embed-growth-final.png) | ![Flash x_ga_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ga_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ga_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ga_embed-notes.png) | ![Flash x_ga_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ga_embed-notes.png) |
+| **Growth**<br>![Pro x_ga_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ga_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_ga_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ga_embed-notes.png) | **Growth**<br>![Flash x_ga_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ga_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_ga_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ga_embed-notes.png) |
 
 Metrics: Pro 2 movement / 36 steps; Flash Lite 0 movement / 22 steps.
 
@@ -926,11 +852,9 @@ Metrics: Pro 2 movement / 36 steps; Flash Lite 0 movement / 22 steps.
 
 Sentence: `Chonaic Seán an madra.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ga_vso growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ga_vso-growth-final.png) | ![Flash x_ga_vso growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ga_vso-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ga_vso notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ga_vso-notes.png) | ![Flash x_ga_vso notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ga_vso-notes.png) |
+| **Growth**<br>![Pro x_ga_vso growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ga_vso-growth-final.png)<br><br>**Notes**<br>![Pro x_ga_vso notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ga_vso-notes.png) | **Growth**<br>![Flash x_ga_vso growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ga_vso-growth-final.png)<br><br>**Notes**<br>![Flash x_ga_vso notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ga_vso-notes.png) |
 
 Metrics: Pro 1 movement / 23 steps; Flash Lite 1 movement / 23 steps.
 
@@ -942,11 +866,9 @@ Metrics: Pro 1 movement / 23 steps; Flash Lite 1 movement / 23 steps.
 
 Sentence: `דנה אמרה שיואב יגיע מחר.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_he_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_he_embed-growth-final.png) | ![Flash x_he_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_he_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_he_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_he_embed-notes.png) | ![Flash x_he_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_he_embed-notes.png) |
+| **Growth**<br>![Pro x_he_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_he_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_he_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_he_embed-notes.png) | **Growth**<br>![Flash x_he_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_he_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_he_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_he_embed-notes.png) |
 
 Metrics: Pro 4 movement / 46 steps; Flash Lite 0 movement / 22 steps.
 
@@ -958,11 +880,9 @@ Metrics: Pro 4 movement / 46 steps; Flash Lite 0 movement / 22 steps.
 
 Sentence: `शिक्षक ने कहा कि छात्रा जल्दी आई।`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_hi_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_hi_embed-growth-final.png) | ![Flash x_hi_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_hi_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_hi_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_hi_embed-notes.png) | ![Flash x_hi_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_hi_embed-notes.png) |
+| **Growth**<br>![Pro x_hi_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_hi_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_hi_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_hi_embed-notes.png) | **Growth**<br>![Flash x_hi_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_hi_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_hi_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_hi_embed-notes.png) |
 
 Metrics: Pro 5 movement / 41 steps; Flash Lite 0 movement / 22 steps.
 
@@ -974,11 +894,9 @@ Metrics: Pro 5 movement / 41 steps; Flash Lite 0 movement / 22 steps.
 
 Sentence: `Gianni pensa che Lucia parta domani.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_it_subjunctive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_it_subjunctive-growth-final.png) | ![Flash x_it_subjunctive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_it_subjunctive-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_it_subjunctive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_it_subjunctive-notes.png) | ![Flash x_it_subjunctive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_it_subjunctive-notes.png) |
+| **Growth**<br>![Pro x_it_subjunctive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_it_subjunctive-growth-final.png)<br><br>**Notes**<br>![Pro x_it_subjunctive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_it_subjunctive-notes.png) | **Growth**<br>![Flash x_it_subjunctive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_it_subjunctive-growth-final.png)<br><br>**Notes**<br>![Flash x_it_subjunctive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_it_subjunctive-notes.png) |
 
 Metrics: Pro 2 movement / 37 steps; Flash Lite 0 movement / 21 steps.
 
@@ -990,11 +908,9 @@ Metrics: Pro 2 movement / 37 steps; Flash Lite 0 movement / 21 steps.
 
 Sentence: `Milan zegt dat Sara morgen belt.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_nl_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_nl_embed-growth-final.png) | ![Flash x_nl_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_nl_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_nl_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_nl_embed-notes.png) | ![Flash x_nl_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_nl_embed-notes.png) |
+| **Growth**<br>![Pro x_nl_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_nl_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_nl_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_nl_embed-notes.png) | **Growth**<br>![Flash x_nl_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_nl_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_nl_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_nl_embed-notes.png) |
 
 Metrics: Pro 7 movement / 48 steps; Flash Lite 0 movement / 17 steps.
 
@@ -1006,11 +922,9 @@ Metrics: Pro 7 movement / 48 steps; Flash Lite 0 movement / 17 steps.
 
 Sentence: `De man die Emma zag lachte.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_nl_relative growth](../assets/gauntlet100-v1/growth/pro-xbar-x_nl_relative-growth-final.png) | ![Flash x_nl_relative growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_nl_relative-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_nl_relative notes](../assets/gauntlet100-v1/notes/pro-xbar-x_nl_relative-notes.png) | ![Flash x_nl_relative notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_nl_relative-notes.png) |
+| **Growth**<br>![Pro x_nl_relative growth](../assets/gauntlet100-v1/growth/pro-xbar-x_nl_relative-growth-final.png)<br><br>**Notes**<br>![Pro x_nl_relative notes](../assets/gauntlet100-v1/notes/pro-xbar-x_nl_relative-notes.png) | **Growth**<br>![Flash x_nl_relative growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_nl_relative-growth-final.png)<br><br>**Notes**<br>![Flash x_nl_relative notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_nl_relative-notes.png) |
 
 Metrics: Pro 4 movement / 44 steps; Flash Lite 0 movement / 27 steps.
 
@@ -1022,11 +936,9 @@ Metrics: Pro 4 movement / 44 steps; Flash Lite 0 movement / 27 steps.
 
 Sentence: `Nauczyciel powiedział, że uczennica przeczytała książkę.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_pl_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_pl_embed-growth-final.png) | ![Flash x_pl_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_pl_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_pl_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_pl_embed-notes.png) | ![Flash x_pl_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_pl_embed-notes.png) |
+| **Growth**<br>![Pro x_pl_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_pl_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_pl_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_pl_embed-notes.png) | **Growth**<br>![Flash x_pl_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_pl_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_pl_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_pl_embed-notes.png) |
 
 Metrics: Pro 2 movement / 39 steps; Flash Lite 0 movement / 26 steps.
 
@@ -1038,11 +950,9 @@ Metrics: Pro 2 movement / 39 steps; Flash Lite 0 movement / 26 steps.
 
 Sentence: `Que poema escreveu Sofia?`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_pt_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_pt_wh-growth-final.png) | ![Flash x_pt_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_pt_wh-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_pt_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_pt_wh-notes.png) | ![Flash x_pt_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_pt_wh-notes.png) |
+| **Growth**<br>![Pro x_pt_wh growth](../assets/gauntlet100-v1/growth/pro-xbar-x_pt_wh-growth-final.png)<br><br>**Notes**<br>![Pro x_pt_wh notes](../assets/gauntlet100-v1/notes/pro-xbar-x_pt_wh-notes.png) | **Growth**<br>![Flash x_pt_wh growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_pt_wh-growth-final.png)<br><br>**Notes**<br>![Flash x_pt_wh notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_pt_wh-notes.png) |
 
 Metrics: Pro 4 movement / 32 steps; Flash Lite 2 movement / 24 steps.
 
@@ -1054,11 +964,9 @@ Metrics: Pro 4 movement / 32 steps; Flash Lite 2 movement / 24 steps.
 
 Sentence: `Profesorul a întrebat dacă studenții au venit.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ro_embed_q growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ro_embed_q-growth-final.png) | ![Flash x_ro_embed_q growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ro_embed_q-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ro_embed_q notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ro_embed_q-notes.png) | ![Flash x_ro_embed_q notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ro_embed_q-notes.png) |
+| **Growth**<br>![Pro x_ro_embed_q growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ro_embed_q-growth-final.png)<br><br>**Notes**<br>![Pro x_ro_embed_q notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ro_embed_q-notes.png) | **Growth**<br>![Flash x_ro_embed_q growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ro_embed_q-growth-final.png)<br><br>**Notes**<br>![Flash x_ro_embed_q notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ro_embed_q-notes.png) |
 
 Metrics: Pro 4 movement / 41 steps; Flash Lite 0 movement / 22 steps.
 
@@ -1070,11 +978,9 @@ Metrics: Pro 4 movement / 41 steps; Flash Lite 0 movement / 22 steps.
 
 Sentence: `A fost închisă ușa de vânt.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ro_passive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ro_passive-growth-final.png) | ![Flash x_ro_passive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ro_passive-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ro_passive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ro_passive-notes.png) | ![Flash x_ro_passive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ro_passive-notes.png) |
+| **Growth**<br>![Pro x_ro_passive growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ro_passive-growth-final.png)<br><br>**Notes**<br>![Pro x_ro_passive notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ro_passive-notes.png) | **Growth**<br>![Flash x_ro_passive growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ro_passive-growth-final.png)<br><br>**Notes**<br>![Flash x_ro_passive notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ro_passive-notes.png) |
 
 Metrics: Pro 2 movement / 34 steps; Flash Lite 0 movement / 19 steps.
 
@@ -1086,11 +992,9 @@ Metrics: Pro 2 movement / 34 steps; Flash Lite 0 movement / 19 steps.
 
 Sentence: `Учитель сказал, что ученица прочитала книгу.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_ru_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ru_embed-growth-final.png) | ![Flash x_ru_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ru_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_ru_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ru_embed-notes.png) | ![Flash x_ru_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ru_embed-notes.png) |
+| **Growth**<br>![Pro x_ru_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_ru_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_ru_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_ru_embed-notes.png) | **Growth**<br>![Flash x_ru_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_ru_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_ru_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_ru_embed-notes.png) |
 
 Metrics: Pro 4 movement / 47 steps; Flash Lite 0 movement / 22 steps.
 
@@ -1102,11 +1006,9 @@ Metrics: Pro 4 movement / 47 steps; Flash Lite 0 movement / 22 steps.
 
 Sentence: `Професор је рекао да су студенти дошли рано.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_sr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_sr_embed-growth-final.png) | ![Flash x_sr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_sr_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_sr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_sr_embed-notes.png) | ![Flash x_sr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_sr_embed-notes.png) |
+| **Growth**<br>![Pro x_sr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_sr_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_sr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_sr_embed-notes.png) | **Growth**<br>![Flash x_sr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_sr_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_sr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_sr_embed-notes.png) |
 
 Metrics: Pro 1 movement / 37 steps; Flash Lite 0 movement / 23 steps.
 
@@ -1118,11 +1020,9 @@ Metrics: Pro 1 movement / 37 steps; Flash Lite 0 movement / 23 steps.
 
 Sentence: `Doktor hastanın erken geldiğini söyledi.`
 
-| Pro Growth | Flash Lite Growth |
+| Pro | Flash Lite |
 | --- | --- |
-| ![Pro x_tr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_tr_embed-growth-final.png) | ![Flash x_tr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_tr_embed-growth-final.png) |
-| Pro Notes | Flash Lite Notes |
-| ![Pro x_tr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_tr_embed-notes.png) | ![Flash x_tr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_tr_embed-notes.png) |
+| **Growth**<br>![Pro x_tr_embed growth](../assets/gauntlet100-v1/growth/pro-xbar-x_tr_embed-growth-final.png)<br><br>**Notes**<br>![Pro x_tr_embed notes](../assets/gauntlet100-v1/notes/pro-xbar-x_tr_embed-notes.png) | **Growth**<br>![Flash x_tr_embed growth](../assets/gauntlet100-v1/growth/flash-lite-xbar-x_tr_embed-growth-final.png)<br><br>**Notes**<br>![Flash x_tr_embed notes](../assets/gauntlet100-v1/notes/flash-lite-xbar-x_tr_embed-notes.png) |
 
 Metrics: Pro 2 movement / 36 steps; Flash Lite 0 movement / 24 steps.
 
