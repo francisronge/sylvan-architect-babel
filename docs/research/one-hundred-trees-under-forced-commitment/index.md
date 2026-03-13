@@ -146,6 +146,8 @@ The point of the benchmark is not to declare one route universally correct. The 
 
 One methodological caveat should be made explicit because it strengthens, rather than weakens, the central result: the smaller model receives more help. Gemini 3.1 Flash Lite runs on Babel's assisted structure path, which gives it extra serialization support so that the benchmark remains focused on the analysis the model chooses rather than collapsing into a test of whether the smaller route can serialize perfect structure unaided. Gemini 3.1 Pro is closer to a raw benchmark route. If Pro still externalizes a richer syntactic theory under those conditions, that gap is not an artifact of Flash Lite being abandoned to fail. It is a difference in public syntactic commitment.
 
+This distinction also matters at the model-family level. Google presents Gemini 3.1 Pro as the advanced-intelligence route in the Gemini 3 line and Gemini 3.1 Flash-Lite as the lighter, lower-cost route in the same family ([Gemini model docs](https://ai.google.dev/gemini-api/docs/models)). The comparison in this paper should therefore not be read as a contest between two equally scaled systems with identical inference budgets.
+
 <a id="results"></a>
 ## 4. Results
 
