@@ -304,9 +304,9 @@ The Bengali sentence is analyzed in the same forced-commitment regime as the res
 
 **Figure 6. Hindi X-bar analysis in native script**
 
-| Pro Growth | Flash Lite Notes |
+| Pro Growth | Flash Lite Growth |
 | --- | --- |
-| ![Pro Hindi embedded-clause growth](../assets/gauntlet100-v1/pro-hi-growth.png) | ![Flash Lite Hindi embedded-clause notes](../assets/gauntlet100-v1/flash-hi-notes.png) |
+| ![Pro Hindi embedded-clause growth](../assets/gauntlet100-v1/pro-hi-growth.png) | ![Flash Lite Hindi embedded-clause growth](../assets/gauntlet100-v1/flash-hi-growth.png) |
 
 The Hindi pair makes the same point in a second way: the route difference survives when the sentence is presented directly in Devanagari rather than in transliteration. The contrast therefore belongs to syntax, not to romanization convenience. Pro still externalizes the richer theory; Flash Lite still externalizes the thinner one.
 
