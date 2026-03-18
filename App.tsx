@@ -1200,13 +1200,13 @@ const App: React.FC = () => {
             </div>
 
             <div className="basis-full md:basis-auto min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-start md:justify-between gap-2 md:gap-4">
-                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <div className="flex flex-wrap md:flex-nowrap items-center justify-start md:justify-between gap-2 md:gap-4">
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
                   {!isTreeBankView ? (
                     <>
                       <button
                         onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                        className={`flex items-center gap-2 md:gap-2.5 min-w-[15rem] justify-center px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
+                        className={`flex items-center gap-2 md:gap-2.5 min-w-[14rem] justify-center px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           framework === 'minimalism'
                           ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                           : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
@@ -1243,7 +1243,7 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
                   {!isTreeBankView && (
                     <button
                       onClick={handleSaveCurrentTree}
