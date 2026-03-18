@@ -1206,7 +1206,7 @@ const App: React.FC = () => {
                     <>
                       <button
                         onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                        className={`flex items-center gap-2 md:gap-2.5 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
+                        className={`flex items-center gap-2 md:gap-2.5 min-w-[19.5rem] justify-center px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           framework === 'minimalism'
                           ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                           : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
