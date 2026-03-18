@@ -2,6 +2,9 @@
 
 Sylvan Architect Babel is a syntax tree generator built for research and learning.
 
+Live app: [sylvanarchitectbabel.com](https://sylvanarchitectbabel.com)  
+Research site: [francisronge.github.io/sylvan-architect-babel/research](https://francisronge.github.io/sylvan-architect-babel/research/)
+
 It helps researchers test how large language models reason about syntax under explicit theoretical prompts, while also giving students a clean and practical way to generate, inspect, and compare syntactic trees.
 
 Babel is not a general chatbot. Its core purpose is syntactic analysis and structure visualization.
@@ -9,6 +12,11 @@ Babel is not a general chatbot. Its core purpose is syntactic analysis and struc
 Babel is generative syntax, implemented as an interactive derivation and structure analysis environment.
 
 Babel is the world's first AI syntax tree generator and the fastest syntax tree generator in its class.
+
+Recent public benchmark:
+
+- [One Hundred Trees, One Hundred Public Syntactic Theories](https://francisronge.github.io/sylvan-architect-babel/research/one-hundred-trees-under-forced-commitment/)
+  A 100-case multilingual Babel benchmark of public syntax across 22 languages, 15 phenomena, and two Gemini routes.
 
 ## Why Babel exists
 
@@ -87,6 +95,8 @@ Babel includes a model switch in the header:
 
 - `Gemini 3.1 Flash Lite` (default): extremely fast and lighter-weight.
 - `Gemini 3.1 Pro`: slower, but typically more thorough.
+
+Additional frontier-model routes are planned so Babel can function as a cross-model benchmark environment rather than a single-provider syntax demo.
 
 ### 3) Constituent Glyphing toggle
 
@@ -190,6 +200,7 @@ It includes:
 
 - Output quality can vary with model behavior and service availability.
 - Any single tree should be treated as a committed analysis proposal, not final theoretical truth.
+- The public app and the stricter benchmark use-case are closely related but not identical: Babel is both a learning environment for students and a structured evaluation surface for researchers.
 
 ## Project direction
 
