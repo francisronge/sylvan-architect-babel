@@ -615,7 +615,22 @@ const getTerminalWords = (node: SyntaxNode): string[] => {
   return node.children.flatMap(getTerminalWords);
 };
 
-const markTriangulatedNodes = (rootHierarchy: HierNode) => {
+const buildMovementProtectedNodeIds = (
+  resolvedMovementLinks?: ResolvedMovementEventLink[]
+): Set<string> => {
+  const protectedIds = new Set<string>();
+  (resolvedMovementLinks || []).forEach((link) => {
+    const sourceId = String(link.sourceAnchorId || '').trim();
+    const movedId = String(link.movedAnchorId || '').trim();
+    const traceId = String(link.traceAnchorId || '').trim();
+    if (sourceId) protectedIds.add(sourceId);
+    if (movedId) protectedIds.add(movedId);
+    if (traceId) protectedIds.add(traceId);
+  });
+  return protectedIds;
+};
+
+const markTriangulatedNodes = (rootHierarchy: HierNode, protectedNodeIds?: Set<string>) => {
   rootHierarchy.each((d) => {
     const label = (d.data.label || "").trim().toUpperCase();
     const isBackbone =
@@ -633,8 +648,11 @@ const markTriangulatedNodes = (rootHierarchy: HierNode) => {
 
     const isPhrase = label.endsWith('P');
     const terminals = getTerminalWords(d.data);
+    const containsProtectedMovementNode = (protectedNodeIds?.size || 0) > 0
+      ? d.descendants().some((descendant) => protectedNodeIds.has(getNodeId(descendant)))
+      : false;
 
-    if (isPhrase && !isBackbone && terminals.length >= 2) {
+    if (isPhrase && !isBackbone && !containsProtectedMovementNode && terminals.length >= 2) {
       (d as any).isTriangulated = true;
       (d as any).triangulatedWords = terminals.join(' ');
     }
@@ -790,27 +808,31 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ].join(':'))
       .join('|');
   }, [resolvedMovementLinks]);
+  const movementProtectedNodeIds = useMemo(
+    () => buildMovementProtectedNodeIds(resolvedMovementLinks),
+    [resolvedMovementLinks]
+  );
   const playbackSteps = useMemo(() => {
     if (!animated) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
     applyVizIds(hierarchy);
     if (abstractionMode) {
-      markTriangulatedNodes(hierarchy);
+      markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
     }
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
     return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps);
-  }, [animated, data, derivationSteps, abstractionMode]);
+  }, [animated, data, derivationSteps, abstractionMode, movementProtectedNodeIds]);
   const replayMovementArrows = useMemo(() => {
-    if (!animated || abstractionMode || playbackSteps.length === 0) return [];
+    if (!animated || playbackSteps.length === 0) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
     applyVizIds(hierarchy);
     if (abstractionMode) {
-      markTriangulatedNodes(hierarchy);
+      markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
     }
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
     const nodeStepIndex = buildNodeStepIndex(playbackSteps);
     return buildMovementArrowsFromLinks(visibleNodes, resolvedMovementLinks, nodeStepIndex, playbackSteps);
-  }, [animated, abstractionMode, data, playbackSteps, resolvedMovementLinks]);
+  }, [animated, abstractionMode, data, playbackSteps, resolvedMovementLinks, movementProtectedNodeIds]);
   const replayMovementStepMap = useMemo(() => {
     if (!animated || replayMovementArrows.length === 0) return new Map<number, MovementArrow[]>();
     return buildReplayMovementStepMap(replayMovementArrows);
@@ -939,7 +961,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     // Logic for Triangulation (Abstraction Mode)
     if (abstractionMode) {
-      markTriangulatedNodes(rootHierarchy);
+      markTriangulatedNodes(rootHierarchy, movementProtectedNodeIds);
     }
 
     const nodeCount = rootHierarchy.descendants().length;
@@ -975,7 +997,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const timeline = animated && playbackSteps.length > 0 ? playbackSteps : inferredTimeline;
     const nodeStepIndex = buildNodeStepIndex(timeline);
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
-    const movementArrows = animated && !abstractionMode
+    const movementArrows = animated
       ? buildMovementArrowsFromLinks(visibleNodes, resolvedMovementLinks, nodeStepIndex, timeline)
       : [];
     const nodeRevealStepIndex = new Map(nodeStepIndex);
@@ -1277,7 +1299,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
     }
 
-  }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementLinksSignature]);
+  }, [canvasData, dimensions, animated, abstractionMode, derivationStepsSignature, movementLinksSignature, movementProtectedNodeIds]);
 
   const currentStepIndex = animated && playbackSteps.length > 0
     ? Math.min(activeStepIndex, playbackSteps.length - 1)
