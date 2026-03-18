@@ -13,10 +13,28 @@ Babel is generative syntax, implemented as an interactive derivation and structu
 
 Babel is the world's first AI syntax tree generator and the fastest syntax tree generator in its class.
 
+## Start Here
+
+1. Use the live app at [sylvanarchitectbabel.com](https://sylvanarchitectbabel.com).
+2. Read the benchmark paper: [One Hundred Trees, One Hundred Public Syntactic Theories](https://francisronge.github.io/sylvan-architect-babel/research/one-hundred-trees-under-forced-commitment/).
+3. Browse the research site: [Babel Research](https://francisronge.github.io/sylvan-architect-babel/research/).
+4. If you are developing Babel itself, production-facing environment guidance lives in [.env.example](./.env.example).
+
 Recent public benchmark:
 
 - [One Hundred Trees, One Hundred Public Syntactic Theories](https://francisronge.github.io/sylvan-architect-babel/research/one-hundred-trees-under-forced-commitment/)
   A 100-case multilingual Babel benchmark of public syntax across 22 languages, 15 phenomena, and two Gemini routes.
+
+## Public benchmark snapshot
+
+- `100` sentence-level evaluations under forced explicit syntactic commitment
+- `22` languages in native script where applicable
+- `15` syntactic phenomena
+- `2` public model routes in the current release: `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro`
+
+| Pro route | Flash Lite route |
+| --- | --- |
+| ![Gemini 3.1 Pro long-distance wh derivation](docs/research/assets/gauntlet100-v1/pro-en-longwh-growth.png) | ![Gemini 3.1 Flash Lite long-distance wh derivation](docs/research/assets/gauntlet100-v1/flash-en-longwh-growth.png) |
 
 ## Why Babel exists
 
@@ -30,6 +48,10 @@ Babel is designed to make the model's structural decisions inspectable:
 - When Babel detects genuine structural ambiguity, it can return two parses for comparison.
 
 ## Who Babel is for
+
+Babel has two primary users:
+- students who want syntax to be legible, visual, and explorable
+- researchers who want to inspect what theory a model is actually making public
 
 ### Researchers
 
@@ -162,7 +184,7 @@ This view is designed to expose process, not just endpoint.
 - Direct external link support for notation tooling
 - Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
 
-### 11) Output artifacts
+### 10) Output artifacts
 
 Each parse can include structured outputs such as:
 
@@ -175,7 +197,7 @@ Each parse can include structured outputs such as:
 
 These outputs are intended for both human reading and downstream inspection workflows.
 
-### 12) Tree Bank
+### 11) Tree Bank
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 
@@ -209,6 +231,7 @@ Babel is being built as an open resource for linguistics and AI interpretability
 Current direction includes:
 
 - Expanding model routes so researchers can benchmark multiple LLMs inside the same syntax environment
+- Adding `GPT` and `Claude` routes so Babel can compare public syntax across frontier model families rather than within a single provider
 - Running large cross-model gauntlets (for example, 100+ tree/derivation suites) across many languages
 - Publishing comparable structural-reasoning results across frameworks, models, and sentence phenomena
 - Evolving Babel into a public benchmark standard for explicit syntactic derivation generation
