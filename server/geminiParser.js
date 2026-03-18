@@ -172,7 +172,7 @@ const PRO_RETRY_MAX_DELAY_MS = Math.max(PRO_RETRY_BASE_DELAY_MS, Number(process.
 const MODEL_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16384);
 const MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_TEMPERATURE))
   ? Number(process.env.GEMINI_TEMPERATURE)
-  : 0;
+  : 0.2;
 const MODEL_CALL_TIMEOUT_RAW = String(process.env.GEMINI_MODEL_TIMEOUT_MS || '').trim();
 const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT_RAW) : NaN;
 // Default to no hard cutoff. Set env vars to enforce explicit timeouts if needed.
