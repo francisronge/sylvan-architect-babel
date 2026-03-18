@@ -1164,14 +1164,11 @@ const App: React.FC = () => {
   };
 
   const toggleFullscreen = async () => {
-    const appContainer = appContainerRef.current;
-    if (!appContainer) return;
-
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
       } else {
-        await appContainer.requestFullscreen();
+        await document.documentElement.requestFullscreen();
       }
     } catch (err) {
       console.error('Fullscreen toggle failed', err);
@@ -1179,7 +1176,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <div ref={appContainerRef} className="app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
+    <div
+      ref={appContainerRef}
+      className={`app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white ${
+        isFullscreen ? 'is-fullscreen' : ''
+      }`}
+    >
       <div className="god-rays"></div>
       <div className={`spore-layer ${loading ? 'paused' : ''}`} aria-hidden="true">
         {spores.map((spore, idx) => (
