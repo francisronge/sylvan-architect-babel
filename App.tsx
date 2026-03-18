@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { parseSentence } from './services/geminiService';
 import { DerivationStep, MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
@@ -1783,6 +1784,7 @@ const App: React.FC = () => {
         </div>
       </footer>
       )}
+      <Analytics />
     </div>
   );
 };

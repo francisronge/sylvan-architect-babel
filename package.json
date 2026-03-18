@@ -16,6 +16,7 @@
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/quicksand": "^5.2.10",
     "@google/genai": "^1.42.0",
+    "@vercel/analytics": "^2.0.1",
     "d3": "^7.9.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
