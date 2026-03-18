@@ -894,8 +894,15 @@ const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] |
 
 const App: React.FC = () => {
   const appContainerRef = useRef<HTMLDivElement>(null);
+  const headerViewportRef = useRef<HTMLDivElement>(null);
+  const headerContentRef = useRef<HTMLDivElement>(null);
   const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
+  const showcaseMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const value = new URLSearchParams(window.location.search).get('showcase');
+    return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
+  }, []);
   const spores = useMemo(
     () =>
       Array.from({ length: 12 }, () => ({
@@ -913,7 +920,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
   const [isInputExpanded, setIsInputExpanded] = useState(true);
-  const [isInputVisible, setIsInputVisible] = useState(true);
+  const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
@@ -928,12 +935,15 @@ const App: React.FC = () => {
   const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
   const [treeBankSaving, setTreeBankSaving] = useState(false);
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
+  const [headerScale, setHeaderScale] = useState(1);
+  const [headerScaledHeight, setHeaderScaledHeight] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
   const selectedModelLabel = modelRoute === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.1 Flash Lite';
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
   const isFallbackModel = Boolean(analysisBundle?.fallbackUsed);
   const isTreeBankView = workspaceView === 'treeBank';
+  const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const resolvedMovementLinks = useMemo(() => {
     if (!activeParse) return [];
     return resolveMovementEventLinks(activeParse.tree, activeParse.movementEvents, framework);
@@ -977,6 +987,38 @@ const App: React.FC = () => {
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => {
       document.removeEventListener('fullscreenchange', syncFullscreenState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const viewport = headerViewportRef.current;
+    const content = headerContentRef.current;
+    if (!viewport || !content) return undefined;
+
+    const updateHeaderScale = () => {
+      const availableWidth = viewport.clientWidth;
+      const contentWidth = content.scrollWidth;
+      const contentHeight = content.scrollHeight;
+      if (availableWidth <= 0 || contentWidth <= 0 || contentHeight <= 0) return;
+
+      const nextScale = Math.min(1, availableWidth / contentWidth);
+      setHeaderScale((current) => (Math.abs(current - nextScale) > 0.01 ? nextScale : current));
+      const nextScaledHeight = Math.ceil(contentHeight * nextScale);
+      setHeaderScaledHeight((current) => (current !== nextScaledHeight ? nextScaledHeight : current));
+    };
+
+    updateHeaderScale();
+
+    const observer = new ResizeObserver(updateHeaderScale);
+    observer.observe(viewport);
+    observer.observe(content);
+    window.addEventListener('resize', updateHeaderScale);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateHeaderScale);
     };
   }, []);
 
@@ -1181,33 +1223,46 @@ const App: React.FC = () => {
           />
         ))}
       </div>
-      <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-8 py-4 shrink-0 shadow-2xl">
-        <div className="max-w-[2000px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
-                <RootLogo size={40} shape="square" blend={true} zoom={1.12} />
+      <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
+        <div
+          ref={headerViewportRef}
+          className="max-w-[2000px] mx-auto overflow-visible"
+          style={headerScaledHeight ? { height: `${headerScaledHeight}px` } : undefined}
+        >
+          <div
+            ref={headerContentRef}
+            className="flex items-center justify-between gap-3 md:gap-4"
+            style={{
+              width: `${100 / headerScale}%`,
+              transform: `scale(${headerScale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
+                <RootLogo size={40} shape="square" blend={true} zoom={1.12} className="w-full h-full" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
-                <p className="text-[7px] font-black uppercase tracking-[0.5em] text-emerald-500/80 leading-none">Generative Grammar Arboretum</p>
+                <h1 className="text-base md:text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
+                <p className="text-[6px] md:text-[7px] font-black uppercase tracking-[0.35em] md:tracking-[0.5em] text-emerald-500/80 leading-none">Generative Grammar Arboretum</p>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-white/10 hidden md:block"></div>
+            <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block"></div>
 
             {!isTreeBankView ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 <button
                   onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                  className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                  className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
                     framework === 'minimalism'
                     ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                     : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                   }`}
                 >
                   <span
-                    className={`inline-flex items-center justify-center min-w-4 text-[11px] font-black tracking-normal leading-none normal-case ${
+                    className={`inline-flex items-center justify-center min-w-4 text-[10px] md:text-[11px] font-black tracking-normal leading-none normal-case ${
                       framework === 'xbar' ? 'text-emerald-400' : 'text-purple-300'
                     }`}
                     aria-hidden="true"
@@ -1219,13 +1274,13 @@ const App: React.FC = () => {
 
                 <button
                   onClick={() => setAbstractionMode(!abstractionMode)}
-                  className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                  className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
                     abstractionMode
                     ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                     : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
                   }`}
                 >
-                  <Triangle size={12} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors`} />
+                  <Triangle size={10} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors md:w-3 md:h-3`} />
                   Constituent Glyphing
                 </button>
               </div>
@@ -1237,12 +1292,12 @@ const App: React.FC = () => {
             )}
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {!isTreeBankView && (
               <button
                 onClick={handleSaveCurrentTree}
                 disabled={!analysisBundle || loading || treeBankSaving}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-widest ${
+                className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
                   treeBankSaveSuccess
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
                     : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
@@ -1256,7 +1311,7 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setWorkspaceView((current) => (current === 'treeBank' ? 'arboretum' : 'treeBank'))}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-widest ${
+              className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
                 isTreeBankView
                   ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
                   : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
@@ -1270,7 +1325,7 @@ const App: React.FC = () => {
             {!isTreeBankView && (
               <button
                 onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
-                className={`hidden md:flex items-center gap-2 text-[9px] font-black px-5 py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
+                className={`flex items-center gap-2 text-[8px] md:text-[9px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
                   modelRoute === 'pro'
                     ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
                     : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
@@ -1287,19 +1342,20 @@ const App: React.FC = () => {
             )}
             <button
               onClick={toggleFullscreen}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[9px] font-black uppercase tracking-widest"
+              className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest"
               title="Toggle Fullscreen"
             >
               {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
               {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
             </button>
           </div>
+          </div>
         </div>
       </header>
 
       <main className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
-          <div className="absolute inset-0 z-20 overflow-y-auto px-8 py-10 md:px-12 md:py-12">
+          <div className="absolute inset-0 z-20 overflow-y-auto px-4 py-6 md:px-12 md:py-12">
             <div className="max-w-7xl mx-auto space-y-8 pb-24">
               <div className="glass-dark rounded-[2.5rem] p-8 md:p-10">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1480,32 +1536,32 @@ const App: React.FC = () => {
             />
           ) : activeParse && activeTab === 'notes' ? (
             <div
-              className="w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md items-start px-12 pt-20 pb-44"
+              className="w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md items-start px-4 pt-8 pb-36 md:px-12 md:pt-20 md:pb-44"
             >
               {activeTab === 'notes' && (
                 <div className="max-w-4xl w-full space-y-8">
-                  <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
-                     <div className="flex items-center gap-5 mb-8">
-                        <div className="w-12 h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
+                     <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8">
+                        <div className="w-10 h-10 md:w-12 md:h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
                           <Info size={24} />
                         </div>
-                        <h2 className="text-3xl font-bold text-white serif tracking-tight">Structural Geneology ({framework === 'xbar' ? 'X-Bar' : 'Minimalism'})</h2>
+                        <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Structural Genealogy ({framework === 'xbar' ? 'X-Bar' : 'Minimalism'})</h2>
                       </div>
                       {activeParse.interpretation && (
                         <p className="text-xs uppercase tracking-[0.2em] text-emerald-400/70 mb-4">{activeParse.interpretation}</p>
                       )}
-                      <p className="text-emerald-50/90 leading-relaxed italic serif text-2xl border-l-2 border-emerald-500/20 pl-8">"{normalizedExplanation}"</p>
+                      <p className="text-emerald-50/90 leading-relaxed italic serif text-lg md:text-2xl border-l-2 border-emerald-500/20 pl-5 md:pl-8">"{normalizedExplanation}"</p>
                   </div>
 
                   {(canopyMilesNotation || growthMilesNotation) && (
-                    <div className="glass-dark p-12 rounded-[3rem] shadow-2xl">
-                       <div className="flex items-center justify-between mb-8">
-                          <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 border border-white/10">
+                    <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
+                       <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
+                          <div className="flex items-center gap-4 md:gap-5">
+                            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 border border-white/10">
                               <Layers size={24} />
                             </div>
                             <div>
-                              <h2 className="text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
+                              <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
                               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Growth Miles Shang Formalism</p>
                             </div>
                           </div>
@@ -1521,7 +1577,7 @@ const App: React.FC = () => {
                         </div>
                         <div className="space-y-6">
                           {canopyMilesNotation && (
-                            <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
+                            <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
                               <div className="flex items-center justify-between mb-4">
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Canopy Code</p>
                                 <button 
@@ -1536,14 +1592,14 @@ const App: React.FC = () => {
                                   {copiedCodeKey === 'canopy' ? 'Copied to Soil' : 'Copy Canopy'}
                                 </button>
                               </div>
-                              <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+                              <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
                                 {canopyMilesNotation}
                               </code>
                             </div>
                           )}
 
                           {growthMilesNotation && (
-                            <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 shadow-inner">
+                            <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
                               <div className="flex items-center justify-between mb-4">
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Growth Code (Movement Indexed)</p>
                                 <button 
@@ -1558,7 +1614,7 @@ const App: React.FC = () => {
                                   {copiedCodeKey === 'growth' ? 'Copied to Soil' : 'Copy Growth'}
                                 </button>
                               </div>
-                              <code className="text-emerald-400 mono text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+                              <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
                                 {growthMilesNotation}
                               </code>
                             </div>
@@ -1573,13 +1629,13 @@ const App: React.FC = () => {
             <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
-                <div className="relative z-10 w-32 h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="animate-pulse" />
+                <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
+                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="animate-pulse w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
                 </div>
               </div>
               <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
-                <p className="font-extrabold text-white text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
-                <p className="text-emerald-900 font-black uppercase text-[10px] tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto">Cast a thought into the generative soil to begin its derivation.</p>
+                <p className="font-extrabold text-white text-2xl md:text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
+                <p className="text-emerald-900 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
               </div>
             </div>
           )}
@@ -1589,19 +1645,19 @@ const App: React.FC = () => {
         {!isTreeBankView && (
           <>
             {/* Navigation Sidebar */}
-            <div className="absolute right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4">
+            <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4">
               {NAV_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   disabled={!activeParse}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
+                  className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
                     activeTab === tab.id
                     ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
                     : 'glass-dark text-emerald-600/60 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
                   }`}
                 >
-                  <tab.icon size={22} />
+                  <tab.icon size={18} className="md:w-[22px] md:h-[22px]" />
                   <span className="absolute right-full mr-5 px-4 py-2 rounded-xl bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-white/10 whitespace-nowrap shadow-2xl translate-x-2 group-hover:translate-x-0">
                     {tab.label}
                   </span>
@@ -1609,97 +1665,105 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            {/* Input UI */}
-            <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-8 transition-all duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-              <div className={`glass-dark rounded-[2.5rem] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-all duration-700 overflow-hidden`}>
-                <div className="flex items-center justify-between px-7 py-3.5 border-b border-white/5 bg-black/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-500/80">Arboretum Link</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setIsInputExpanded(!isInputExpanded)}
-                      title={isInputExpanded ? "Collapse" : "Expand"}
-                      className="p-1.5 hover:bg-white/10 rounded-xl transition-colors text-emerald-500/60"
-                    >
-                      {isInputExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-                    </button>
-                    <button
-                      onClick={() => setIsInputVisible(false)}
-                      title="Hide Control Panel"
-                      className="p-1.5 hover:bg-rose-500/20 rounded-xl transition-colors text-emerald-500/60 hover:text-rose-400"
-                    >
-                      <EyeOff size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className={`transition-all duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-6 pt-4' : 'max-h-0 opacity-0'}`}>
-                  {error && (
-                    <div className="mb-4 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-2xl flex flex-col gap-3 text-rose-400 text-xs shadow-inner">
-                      <div className="flex items-center gap-3 italic serif">
-                        <AlertTriangle size={14} className="shrink-0" /> {error}
+            {!hideShowcaseInput && (
+              <>
+                {/* Input UI */}
+                <div
+                  className={`absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8 transition-all duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}
+                  style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+                >
+                  <div className={`glass-dark rounded-[2.5rem] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-all duration-700 overflow-hidden`}>
+                    <div className="flex items-center justify-between px-5 md:px-7 py-3 md:py-3.5 border-b border-white/5 bg-black/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-500/80">Arboretum Link</span>
                       </div>
-                      {needsKey && (
+                      <div className="flex items-center gap-1.5">
                         <button
-                          onClick={handleOpenKeySelection}
-                          className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/40 transition-all font-black uppercase tracking-widest text-[10px] text-rose-200 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                          onClick={() => setIsInputExpanded(!isInputExpanded)}
+                          title={isInputExpanded ? "Collapse" : "Expand"}
+                          className="p-1.5 hover:bg-white/10 rounded-xl transition-colors text-emerald-500/60"
                         >
-                          <Key size={12} />
-                          Renew API Credentials
+                          {isInputExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                         </button>
-                      )}
+                        <button
+                          onClick={() => setIsInputVisible(false)}
+                          title="Hide Control Panel"
+                          className="p-1.5 hover:bg-rose-500/20 rounded-xl transition-colors text-emerald-500/60 hover:text-rose-400"
+                        >
+                          <EyeOff size={18} />
+                        </button>
+                      </div>
                     </div>
-                  )}
 
-                  <form onSubmit={handleParse} className="flex gap-4 items-end">
-                    <div className="flex-1 relative">
-                      <textarea
-                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-emerald-50 serif italic placeholder:text-emerald-900/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-20 text-lg shadow-inner leading-relaxed"
-                        placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            void handleParse();
-                          }
-                        }}
-                        disabled={loading}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="moss-gradient hover:brightness-110 disabled:opacity-40 text-white font-black w-20 h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
-                    >
-                      {loading ? (
-                        <RotateCcw className="animate-spin" size={24} />
-                      ) : (
-                        <Sparkles size={24} className="group-hover:rotate-12 group-hover:scale-110 transition-transform" />
+                    <div className={`transition-all duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-4 md:p-6 pt-3 md:pt-4' : 'max-h-0 opacity-0'}`}>
+                      {error && (
+                        <div className="mb-4 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-2xl flex flex-col gap-3 text-rose-400 text-xs shadow-inner">
+                          <div className="flex items-center gap-3 italic serif">
+                            <AlertTriangle size={14} className="shrink-0" /> {error}
+                          </div>
+                          {needsKey && (
+                            <button
+                              onClick={handleOpenKeySelection}
+                              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/40 transition-all font-black uppercase tracking-widest text-[10px] text-rose-200 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                            >
+                              <Key size={12} />
+                              Renew API Credentials
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </button>
-                  </form>
+
+                      <form onSubmit={handleParse} className="flex gap-3 md:gap-4 items-end">
+                        <div className="flex-1 relative">
+                          <textarea
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-900/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
+                            placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                void handleParse();
+                              }
+                            }}
+                            disabled={loading}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="moss-gradient hover:brightness-110 disabled:opacity-40 text-white font-black w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
+                        >
+                          {loading ? (
+                            <RotateCcw className="animate-spin" size={20} />
+                          ) : (
+                            <Sparkles size={20} className="group-hover:rotate-12 group-hover:scale-110 transition-transform md:w-6 md:h-6" />
+                          )}
+                        </button>
+                      </form>
+                    </div>
+                    {!isInputExpanded && (
+                      <div className="px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
+                        <span className="text-emerald-50/50 serif italic text-xs md:text-sm truncate max-w-[220px] md:max-w-[400px]">"{input}"</span>
+                        <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {!isInputExpanded && (
-                   <div className="px-7 py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
-                      <span className="text-emerald-50/50 serif italic text-sm truncate max-w-[400px]">"{input}"</span>
-                      <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
-                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Restore Logo Trigger */}
-            {!isInputVisible && (
-              <button
-                onClick={() => setIsInputVisible(true)}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-14 h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
-                title="Restore Arboretum Link"
-              >
-                <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="animate-pulse" />
-              </button>
+                {/* Restore Logo Trigger */}
+                {!isInputVisible && (
+                  <button
+                    onClick={() => setIsInputVisible(true)}
+                    className="absolute left-1/2 -translate-x-1/2 z-50 w-12 h-12 md:w-14 md:h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
+                    style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+                    title="Restore Arboretum Link"
+                  >
+                    <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="animate-pulse w-7 h-7 md:w-[34px] md:h-[34px]" />
+                  </button>
+                )}
+              </>
             )}
           </>
         )}
