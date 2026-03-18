@@ -895,7 +895,8 @@ const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] |
 const App: React.FC = () => {
   const appContainerRef = useRef<HTMLDivElement>(null);
   const headerViewportRef = useRef<HTMLDivElement>(null);
-  const headerContentRef = useRef<HTMLDivElement>(null);
+  const headerBrandRef = useRef<HTMLDivElement>(null);
+  const headerControlsRef = useRef<HTMLDivElement>(null);
   const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
   const showcaseMode = useMemo(() => {
@@ -935,8 +936,8 @@ const App: React.FC = () => {
   const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
   const [treeBankSaving, setTreeBankSaving] = useState(false);
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
-  const [headerScale, setHeaderScale] = useState(1);
-  const [headerScaledHeight, setHeaderScaledHeight] = useState<number | null>(null);
+  const [headerControlsScale, setHeaderControlsScale] = useState(1);
+  const [headerControlsScaledHeight, setHeaderControlsScaledHeight] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
   const selectedModelLabel = modelRoute === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.1 Flash Lite';
@@ -994,26 +995,31 @@ const App: React.FC = () => {
     if (typeof ResizeObserver === 'undefined') return undefined;
 
     const viewport = headerViewportRef.current;
-    const content = headerContentRef.current;
-    if (!viewport || !content) return undefined;
+    const brand = headerBrandRef.current;
+    const controls = headerControlsRef.current;
+    if (!viewport || !brand || !controls) return undefined;
 
     const updateHeaderScale = () => {
       const availableWidth = viewport.clientWidth;
-      const contentWidth = content.scrollWidth;
-      const contentHeight = content.scrollHeight;
-      if (availableWidth <= 0 || contentWidth <= 0 || contentHeight <= 0) return;
+      const brandWidth = brand.scrollWidth;
+      const controlsWidth = controls.scrollWidth;
+      const controlsHeight = controls.scrollHeight;
+      if (availableWidth <= 0 || brandWidth <= 0 || controlsWidth <= 0 || controlsHeight <= 0) return;
 
-      const nextScale = Math.min(1, availableWidth / contentWidth);
-      setHeaderScale((current) => (Math.abs(current - nextScale) > 0.01 ? nextScale : current));
-      const nextScaledHeight = Math.ceil(contentHeight * nextScale);
-      setHeaderScaledHeight((current) => (current !== nextScaledHeight ? nextScaledHeight : current));
+      const interGroupGap = availableWidth >= 768 ? 24 : 12;
+      const remainingWidth = Math.max(0, availableWidth - brandWidth - interGroupGap);
+      const nextScale = Math.min(1, remainingWidth / controlsWidth);
+      setHeaderControlsScale((current) => (Math.abs(current - nextScale) > 0.01 ? nextScale : current));
+      const nextScaledHeight = Math.ceil(controlsHeight * nextScale);
+      setHeaderControlsScaledHeight((current) => (current !== nextScaledHeight ? nextScaledHeight : current));
     };
 
     updateHeaderScale();
 
     const observer = new ResizeObserver(updateHeaderScale);
     observer.observe(viewport);
-    observer.observe(content);
+    observer.observe(brand);
+    observer.observe(controls);
     window.addEventListener('resize', updateHeaderScale);
 
     return () => {
@@ -1227,128 +1233,133 @@ const App: React.FC = () => {
         <div
           ref={headerViewportRef}
           className="max-w-[2000px] mx-auto overflow-visible"
-          style={headerScaledHeight ? { height: `${headerScaledHeight}px` } : undefined}
         >
-          <div
-            ref={headerContentRef}
-            className="flex items-center justify-between gap-3 md:gap-4"
-            style={{
-              width: `${100 / headerScale}%`,
-              transform: `scale(${headerScale})`,
-              transformOrigin: 'top left',
-            }}
-          >
-          <div className="flex items-center gap-4 md:gap-6">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div ref={headerBrandRef} className="flex items-center gap-3 md:gap-4 shrink-0">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
                 <RootLogo size={40} shape="square" blend={true} zoom={1.12} className="w-full h-full" />
               </div>
               <div>
-                <h1 className="text-base md:text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
+                <h1 className="text-lg md:text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
                 <p className="text-[6px] md:text-[7px] font-black uppercase tracking-[0.35em] md:tracking-[0.5em] text-emerald-500/80 leading-none">Generative Grammar Arboretum</p>
               </div>
             </div>
 
-            <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block"></div>
+            <div
+              className="min-w-0 flex-1 overflow-visible"
+              style={headerControlsScaledHeight ? { height: `${headerControlsScaledHeight}px` } : undefined}
+            >
+              <div
+                ref={headerControlsRef}
+                className="flex items-center justify-between gap-2 md:gap-4"
+                style={{
+                  width: `${100 / headerControlsScale}%`,
+                  transform: `scale(${headerControlsScale})`,
+                  transformOrigin: 'center left',
+                }}
+              >
+                <div className="flex items-center gap-2 md:gap-3">
+                  {!isTreeBankView ? (
+                    <>
+                      <button
+                        onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
+                        className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                          framework === 'minimalism'
+                          ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                        }`}
+                      >
+                        <span
+                          className={`inline-flex items-center justify-center min-w-4 text-[10px] md:text-[11px] font-black tracking-normal leading-none normal-case ${
+                            framework === 'xbar' ? 'text-emerald-400' : 'text-purple-300'
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {framework === 'xbar' ? 'X̄' : 'vP'}
+                        </span>
+                        {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
+                      </button>
 
-            {!isTreeBankView ? (
-              <div className="flex items-center gap-2 md:gap-3">
-                <button
-                  onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                  className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
-                    framework === 'minimalism'
-                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                  }`}
-                >
-                  <span
-                    className={`inline-flex items-center justify-center min-w-4 text-[10px] md:text-[11px] font-black tracking-normal leading-none normal-case ${
-                      framework === 'xbar' ? 'text-emerald-400' : 'text-purple-300'
+                      <button
+                        onClick={() => setAbstractionMode(!abstractionMode)}
+                        className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                          abstractionMode
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                          : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                        }`}
+                      >
+                        <Triangle size={10} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors md:w-3 md:h-3`} />
+                        Constituent Glyphing
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-950/20 text-emerald-300/90 text-[9px] font-black uppercase tracking-widest">
+                      <Archive size={12} />
+                      Tree Bank Library
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 md:gap-4">
+                  {!isTreeBankView && (
+                    <button
+                      onClick={handleSaveCurrentTree}
+                      disabled={!analysisBundle || loading || treeBankSaving}
+                      className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
+                        treeBankSaveSuccess
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                          : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
+                      }`}
+                      title={analysisBundle ? 'Save current analysis to Tree Bank' : 'Parse a sentence before saving'}
+                    >
+                      {treeBankSaveSuccess ? <Check size={12} /> : <Archive size={12} />}
+                      {treeBankSaving ? 'Saving...' : treeBankSaveSuccess ? 'Saved' : 'Save to Tree Bank'}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setWorkspaceView((current) => (current === 'treeBank' ? 'arboretum' : 'treeBank'))}
+                    className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
+                      isTreeBankView
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
+                        : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
                     }`}
-                    aria-hidden="true"
+                    title={isTreeBankView ? 'Return to Arboretum' : 'Open Tree Bank'}
                   >
-                    {framework === 'xbar' ? 'X̄' : 'vP'}
-                  </span>
-                  {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
-                </button>
+                    <Archive size={12} />
+                    {isTreeBankView ? 'Back to Arboretum' : `Tree Bank (${treeBankEntries.length})`}
+                  </button>
 
-                <button
-                  onClick={() => setAbstractionMode(!abstractionMode)}
-                  className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
-                    abstractionMode
-                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                    : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
-                  }`}
-                >
-                  <Triangle size={10} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors md:w-3 md:h-3`} />
-                  Constituent Glyphing
-                </button>
+                  {!isTreeBankView && (
+                    <button
+                      onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
+                      className={`flex items-center gap-2 text-[8px] md:text-[9px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
+                        modelRoute === 'pro'
+                          ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
+                          : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
+                      }`}
+                      title={
+                        analysisBundle?.modelUsed
+                          ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}${isFallbackModel ? ' (fallback).' : '.'}`
+                          : 'Toggle parsing model route'
+                      }
+                    >
+                      <Zap size={10} className={modelRoute === 'pro' ? 'fill-purple-300' : 'fill-emerald-400'} />
+                      {selectedModelLabel}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={toggleFullscreen}
+                    className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest"
+                    title="Toggle Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                    {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-950/20 text-emerald-300/90 text-[9px] font-black uppercase tracking-widest">
-                <Archive size={12} />
-                Tree Bank Library
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-4">
-            {!isTreeBankView && (
-              <button
-                onClick={handleSaveCurrentTree}
-                disabled={!analysisBundle || loading || treeBankSaving}
-                className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
-                  treeBankSaveSuccess
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                    : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
-                }`}
-                title={analysisBundle ? 'Save current analysis to Tree Bank' : 'Parse a sentence before saving'}
-              >
-                {treeBankSaveSuccess ? <Check size={12} /> : <Archive size={12} />}
-                {treeBankSaving ? 'Saving...' : treeBankSaveSuccess ? 'Saved' : 'Save to Tree Bank'}
-              </button>
-            )}
-
-            <button
-              onClick={() => setWorkspaceView((current) => (current === 'treeBank' ? 'arboretum' : 'treeBank'))}
-              className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
-                isTreeBankView
-                  ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                  : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
-              }`}
-              title={isTreeBankView ? 'Return to Arboretum' : 'Open Tree Bank'}
-            >
-              <Archive size={12} />
-              {isTreeBankView ? 'Back to Arboretum' : `Tree Bank (${treeBankEntries.length})`}
-            </button>
-
-            {!isTreeBankView && (
-              <button
-                onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
-                className={`flex items-center gap-2 text-[8px] md:text-[9px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
-                  modelRoute === 'pro'
-                    ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
-                    : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
-                }`}
-                title={
-                  analysisBundle?.modelUsed
-                    ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}${isFallbackModel ? ' (fallback).' : '.'}`
-                    : 'Toggle parsing model route'
-                }
-              >
-                <Zap size={10} className={modelRoute === 'pro' ? 'fill-purple-300' : 'fill-emerald-400'} />
-                {selectedModelLabel}
-              </button>
-            )}
-            <button
-              onClick={toggleFullscreen}
-              className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest"
-              title="Toggle Fullscreen"
-            >
-              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-              {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-            </button>
-          </div>
+            </div>
           </div>
         </div>
       </header>
