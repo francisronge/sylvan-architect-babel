@@ -977,6 +977,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const syncFullscreenState = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        window.dispatchEvent(new Event('resize'));
+      });
+      window.setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        window.dispatchEvent(new Event('resize'));
+      }, 80);
     };
 
     syncFullscreenState();
@@ -1171,7 +1179,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div ref={appContainerRef} className="app-shell h-screen flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
+    <div ref={appContainerRef} className="app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white">
       <div className="god-rays"></div>
       <div className={`spore-layer ${loading ? 'paused' : ''}`} aria-hidden="true">
         {spores.map((spore, idx) => (
