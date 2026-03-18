@@ -894,9 +894,6 @@ const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] |
 
 const App: React.FC = () => {
   const appContainerRef = useRef<HTMLDivElement>(null);
-  const headerViewportRef = useRef<HTMLDivElement>(null);
-  const headerBrandRef = useRef<HTMLDivElement>(null);
-  const headerControlsRef = useRef<HTMLDivElement>(null);
   const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
   const showcaseMode = useMemo(() => {
@@ -936,8 +933,6 @@ const App: React.FC = () => {
   const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
   const [treeBankSaving, setTreeBankSaving] = useState(false);
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
-  const [headerControlsScale, setHeaderControlsScale] = useState(1);
-  const [headerControlsScaledHeight, setHeaderControlsScaledHeight] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
   const selectedModelLabel = modelRoute === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.1 Flash Lite';
@@ -988,43 +983,6 @@ const App: React.FC = () => {
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => {
       document.removeEventListener('fullscreenchange', syncFullscreenState);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof ResizeObserver === 'undefined') return undefined;
-
-    const viewport = headerViewportRef.current;
-    const brand = headerBrandRef.current;
-    const controls = headerControlsRef.current;
-    if (!viewport || !brand || !controls) return undefined;
-
-    const updateHeaderScale = () => {
-      const availableWidth = viewport.clientWidth;
-      const brandWidth = brand.scrollWidth;
-      const controlsWidth = controls.scrollWidth;
-      const controlsHeight = controls.scrollHeight;
-      if (availableWidth <= 0 || brandWidth <= 0 || controlsWidth <= 0 || controlsHeight <= 0) return;
-
-      const interGroupGap = availableWidth >= 768 ? 24 : 12;
-      const remainingWidth = Math.max(0, availableWidth - brandWidth - interGroupGap);
-      const nextScale = Math.min(1, remainingWidth / controlsWidth);
-      setHeaderControlsScale((current) => (Math.abs(current - nextScale) > 0.01 ? nextScale : current));
-      const nextScaledHeight = Math.ceil(controlsHeight * nextScale);
-      setHeaderControlsScaledHeight((current) => (current !== nextScaledHeight ? nextScaledHeight : current));
-    };
-
-    updateHeaderScale();
-
-    const observer = new ResizeObserver(updateHeaderScale);
-    observer.observe(viewport);
-    observer.observe(brand);
-    observer.observe(controls);
-    window.addEventListener('resize', updateHeaderScale);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateHeaderScale);
     };
   }, []);
 
@@ -1230,12 +1188,8 @@ const App: React.FC = () => {
         ))}
       </div>
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
-        <div
-          ref={headerViewportRef}
-          className="max-w-[2000px] mx-auto overflow-visible"
-        >
-          <div className="flex items-center gap-3 md:gap-6">
-            <div ref={headerBrandRef} className="flex items-center gap-3 md:gap-4 shrink-0">
+        <div className="max-w-[2000px] mx-auto flex flex-wrap items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-3 md:gap-4 shrink-0">
               <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
                 <RootLogo size={40} shape="square" blend={true} zoom={1.12} className="w-full h-full" />
               </div>
@@ -1245,32 +1199,21 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div
-              className="min-w-0 flex-1 overflow-visible"
-              style={headerControlsScaledHeight ? { height: `${headerControlsScaledHeight}px` } : undefined}
-            >
-              <div
-                ref={headerControlsRef}
-                className="flex items-center justify-between gap-2 md:gap-4"
-                style={{
-                  width: `${100 / headerControlsScale}%`,
-                  transform: `scale(${headerControlsScale})`,
-                  transformOrigin: 'center left',
-                }}
-              >
-                <div className="flex items-center gap-2 md:gap-3">
+            <div className="basis-full md:basis-auto min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-start md:justify-between gap-2 md:gap-4">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   {!isTreeBankView ? (
                     <>
                       <button
                         onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                        className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                        className={`flex items-center gap-2 md:gap-2.5 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           framework === 'minimalism'
                           ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                           : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                         }`}
                       >
                         <span
-                          className={`inline-flex items-center justify-center min-w-4 text-[10px] md:text-[11px] font-black tracking-normal leading-none normal-case ${
+                          className={`inline-flex items-center justify-center min-w-4 text-[11px] font-black tracking-normal leading-none normal-case ${
                             framework === 'xbar' ? 'text-emerald-400' : 'text-purple-300'
                           }`}
                           aria-hidden="true"
@@ -1282,13 +1225,13 @@ const App: React.FC = () => {
 
                       <button
                         onClick={() => setAbstractionMode(!abstractionMode)}
-                        className={`flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-inner group ${
+                        className={`flex items-center gap-2 md:gap-2.5 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           abstractionMode
                           ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                           : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
                         }`}
                       >
-                        <Triangle size={10} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors md:w-3 md:h-3`} />
+                        <Triangle size={12} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors`} />
                         Constituent Glyphing
                       </button>
                     </>
@@ -1300,12 +1243,12 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
+                <div className="flex flex-wrap items-center gap-2 md:gap-4">
                   {!isTreeBankView && (
                     <button
                       onClick={handleSaveCurrentTree}
                       disabled={!analysisBundle || loading || treeBankSaving}
-                      className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
+                      className={`flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap ${
                         treeBankSaveSuccess
                           ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
                           : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
@@ -1319,7 +1262,7 @@ const App: React.FC = () => {
 
                   <button
                     onClick={() => setWorkspaceView((current) => (current === 'treeBank' ? 'arboretum' : 'treeBank'))}
-                    className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
+                    className={`flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap ${
                       isTreeBankView
                         ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
                         : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
@@ -1333,7 +1276,7 @@ const App: React.FC = () => {
                   {!isTreeBankView && (
                     <button
                       onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
-                      className={`flex items-center gap-2 text-[8px] md:text-[9px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-full border tracking-widest uppercase shadow-inner ${
+                      className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-5 py-2 md:py-2.5 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap ${
                         modelRoute === 'pro'
                           ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
                           : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
@@ -1351,7 +1294,7 @@ const App: React.FC = () => {
 
                   <button
                     onClick={toggleFullscreen}
-                    className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest"
+                    className="flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap"
                     title="Toggle Fullscreen"
                   >
                     {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
@@ -1360,7 +1303,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </header>
 
