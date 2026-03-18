@@ -1185,7 +1185,7 @@ const App: React.FC = () => {
         <div className="max-w-[2000px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)] rotate-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
                 <RootLogo size={40} shape="square" blend={true} zoom={1.12} />
               </div>
               <div>
