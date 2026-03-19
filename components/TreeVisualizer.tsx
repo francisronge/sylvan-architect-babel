@@ -64,6 +64,15 @@ const applyVizIds = (root: HierNode) => {
 
 const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
 const resolveLeafSurface = (node: HierNode): string => (node.data.word || node.data.label || '').trim();
+const collectHierarchyLeaves = (node: HierNode): HierNode[] => {
+  const leaves: HierNode[] = [];
+  node.each((current) => {
+    if (!current.children || current.children.length === 0) {
+      leaves.push(current);
+    }
+  });
+  return leaves;
+};
 const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
 const NULLABLE_HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'I', 'D', 'NEG', 'ASP']);
 const EXPLICIT_NULL_TERMINAL = '∅';
@@ -127,6 +136,34 @@ const isRenderableTerminalSurface = (surface: string, overtSurfaceSet: Set<strin
 
 const isOvertLeafNode = (node: HierNode, overtSurfaceSet: Set<string> | null): boolean =>
   isRenderableTerminalSurface(resolveLeafSurface(node), overtSurfaceSet);
+
+const pickHierarchyLexicalLeaf = (node: HierNode): HierNode | null => {
+  const leaves = collectHierarchyLeaves(node);
+  if (leaves.length === 0) return null;
+
+  return (
+    leaves.find((leaf) => {
+      const surface = resolveLeafSurface(leaf);
+      return surface.length > 0 && !isNullLike(surface) && !isTraceLike(surface);
+    }) ||
+    leaves.find((leaf) => {
+      const surface = resolveLeafSurface(leaf);
+      return surface.length > 0 && !isNullLike(surface);
+    }) ||
+    leaves[0]
+  );
+};
+
+const pickHierarchyTraceLeaf = (node: HierNode): HierNode | null => {
+  const leaves = collectHierarchyLeaves(node);
+  if (leaves.length === 0) return null;
+
+  return (
+    leaves.find((leaf) => isTraceLike(resolveLeafSurface(leaf))) ||
+    leaves.find((leaf) => isNullLike(resolveLeafSurface(leaf))) ||
+    leaves[0]
+  );
+};
 
 const getReadyNodePriority = (node: HierNode): number => {
   const hasChildren = Boolean(node.children && node.children.length > 0);
@@ -1050,21 +1087,35 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         nodeRevealStepIndex.set(traceId, Math.min(traceStep, arrow.step));
       }
 
-      if ((arrow.source.children && arrow.source.children.length > 0) || (arrow.target.children && arrow.target.children.length > 0)) {
-        return;
-      }
+      const sourceDisplayAnchor =
+        (!arrow.source.children || arrow.source.children.length === 0)
+          ? arrow.source
+          : pickHierarchyLexicalLeaf(arrow.source);
+      const targetDisplayAnchor =
+        (!arrow.target.children || arrow.target.children.length === 0)
+          ? arrow.target
+          : pickHierarchyLexicalLeaf(arrow.target);
+      const traceAnchor =
+        arrow.traceNode
+          ? pickHierarchyTraceLeaf(arrow.traceNode) || arrow.traceNode
+          : (isTraceLike(resolveLeafSurface(arrow.source)) || isNullLike(resolveLeafSurface(arrow.source))
+              ? arrow.source
+              : pickHierarchyTraceLeaf(arrow.source));
 
-      const sourceSurface = resolveLeafSurface(arrow.source);
-      const targetSurface = resolveLeafSurface(arrow.target);
-      if (!targetSurface) return;
+      const sourceSurface = sourceDisplayAnchor ? resolveLeafSurface(sourceDisplayAnchor) : '';
+      const targetSurface = targetDisplayAnchor ? resolveLeafSurface(targetDisplayAnchor) : '';
+      const traceSurface = traceAnchor ? resolveLeafSurface(traceAnchor) : '';
+      const movementIndex =
+        arrow.index ||
+        extractMovementIndex(traceSurface) ||
+        extractMovementIndex(targetSurface) ||
+        extractMovementIndex(sourceSurface) ||
+        null;
 
-      const traceAnchor = arrow.traceNode || (isTraceLike(sourceSurface) ? arrow.source : null);
       if (traceAnchor) {
         const traceId = getNodeId(traceAnchor);
-        const traceSurface = resolveLeafSurface(traceAnchor);
-        const movementIndex = arrow.index || extractMovementIndex(traceSurface) || extractMovementIndex(targetSurface) || null;
         terminalMorph.set(traceId, {
-          preText: targetSurface,
+          preText: targetSurface || sourceSurface,
           postText: isTraceLike(traceSurface)
             ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
             : buildTraceLabel(movementIndex),
@@ -1073,12 +1124,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         });
       }
 
-      terminalMorph.set(targetId, {
-        preText: '',
-        postText: targetSurface,
-        step: arrow.step,
-        hideBefore: true
-      });
+      if (targetDisplayAnchor && targetSurface) {
+        const displayTargetId = getNodeId(targetDisplayAnchor);
+        terminalMorph.set(displayTargetId, {
+          preText: '',
+          postText: targetSurface,
+          step: arrow.step,
+          hideBefore: true
+        });
+      }
     });
 
     terminalMorphRef.current = terminalMorph;
