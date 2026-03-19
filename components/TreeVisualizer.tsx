@@ -1350,8 +1350,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
       const viewportPadX = 28;
       const viewportPadTop = 34;
-      // Reserve space for bottom overlays (input tray / growth controls) so terminals remain visible.
-      const viewportPadBottom = animated ? 170 : 250;
+      // Reserve enough room for the replay tray plus the Arboretum Link overlay so
+      // lower movement traces do not disappear under the stacked bottom chrome.
+      const viewportPadBottom = animated ? 360 : 250;
       const availableWidth = Math.max(120, containerWidth - viewportPadX * 2);
       const availableHeight = Math.max(120, containerHeight - viewportPadTop - viewportPadBottom);
 
@@ -1379,7 +1380,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
       const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
       const scaleX = Math.max(0.01, (containerWidth - 56) / contentWidth);
-      const scaleY = Math.max(0.01, (containerHeight - 220) / contentHeight);
+      const scaleY = Math.max(0.01, (containerHeight - (animated ? 410 : 220)) / contentHeight);
       const initialScale = Math.max(0.06, Math.min(scaleX, scaleY, 1));
       const centerX = (minNodeX + maxNodeX) / 2;
       const centerY = (minNodeY + maxNodeY) / 2;
