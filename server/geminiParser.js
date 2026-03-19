@@ -173,6 +173,12 @@ const MODEL_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 1
 const MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_TEMPERATURE))
   ? Number(process.env.GEMINI_TEMPERATURE)
   : 0.2;
+const FLASH_LITE_MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_FLASH_LITE_TEMPERATURE))
+  ? Number(process.env.GEMINI_FLASH_LITE_TEMPERATURE)
+  : 0;
+const PRO_MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_PRO_TEMPERATURE))
+  ? Number(process.env.GEMINI_PRO_TEMPERATURE)
+  : MODEL_TEMPERATURE;
 const MODEL_CALL_TIMEOUT_RAW = String(process.env.GEMINI_MODEL_TIMEOUT_MS || '').trim();
 const MODEL_CALL_TIMEOUT_MS = MODEL_CALL_TIMEOUT_RAW ? Number(MODEL_CALL_TIMEOUT_RAW) : NaN;
 // Default to no hard cutoff. Set env vars to enforce explicit timeouts if needed.
@@ -189,6 +195,8 @@ const routeUnavailableMessage = (modelRoute = 'flash-lite') =>
   modelRoute === 'pro'
     ? 'The canopy is noisy right now. The selected Gemini 3.1 Pro route is unavailable; please plant your sentence again in a moment.'
     : 'The canopy is noisy right now. The selected Gemini 3.1 Flash Lite route is unavailable; please plant your sentence again in a moment.';
+const resolveRouteTemperature = (modelRoute = 'flash-lite') =>
+  modelRoute === 'pro' ? PRO_MODEL_TEMPERATURE : FLASH_LITE_MODEL_TEMPERATURE;
 const FORBIDDEN_STRING_LEAF_TOKENS = new Set([
   'id',
   'label',
@@ -4657,7 +4665,7 @@ const runSerializerPass = async ({
     model,
     contents,
     systemInstruction: serializerSystemInstruction,
-    temperature: MODEL_TEMPERATURE,
+    temperature: resolveRouteTemperature(modelRoute),
     abortSignal,
     responseJsonSchema: parseResponseJsonSchemaForRoute(modelRoute)
   });
@@ -4720,6 +4728,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
   const fullContents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute);
   const compactContents = buildParseContentsPrompt(sentence, framework, normalizedModelRoute, { compactOutput: true });
   const responseJsonSchema = parseResponseJsonSchemaForRoute(normalizedModelRoute);
+  const routeTemperature = resolveRouteTemperature(normalizedModelRoute);
   const preferredModel = normalizedModelRoute === 'pro' ? FALLBACK_MODEL : PRIMARY_MODEL;
   const baseModelCandidates = Array.from(new Set([preferredModel].map((model) => String(model || '').trim()).filter(Boolean)));
   const healthyModels = baseModelCandidates.filter((model) => getModelCooldownRemainingMs(model) <= 0);
@@ -4772,7 +4781,7 @@ export const parseSentenceWithGemini = async (sentence, framework = 'xbar', mode
               model: currentModel,
               contents: useCompactPrompt ? compactContents : fullContents,
               systemInstruction,
-              temperature: MODEL_TEMPERATURE,
+              temperature: routeTemperature,
               abortSignal,
               responseJsonSchema
             }),
