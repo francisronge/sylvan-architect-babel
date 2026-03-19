@@ -18,9 +18,10 @@ Babel is the world's first AI syntax tree generator and the fastest syntax tree 
 ## Start Here
 
 1. Use the live app at [sylvanarchitectbabel.com](https://sylvanarchitectbabel.com).
-2. Read the benchmark paper: [One Hundred Trees, One Hundred Public Syntactic Theories](https://francisronge.github.io/sylvan-architect-babel/research/one-hundred-trees-under-forced-commitment/).
-3. Browse the research site: [Babel Research](https://francisronge.github.io/sylvan-architect-babel/research/).
-4. If you are developing Babel itself, production-facing environment guidance lives in [.env.example](./.env.example).
+2. In the header, click the active `X-Bar Theory` / `Minimalist Program` pill to toggle theory, and click the active model pill to switch routes.
+3. Read the benchmark paper: [One Hundred Trees, One Hundred Public Syntactic Theories](https://francisronge.github.io/sylvan-architect-babel/research/one-hundred-trees-under-forced-commitment/).
+4. Browse the research site: [Babel Research](https://francisronge.github.io/sylvan-architect-babel/research/).
+5. If you are developing Babel itself, production-facing environment guidance lives in [.env.example](./.env.example).
 
 Recent public benchmark:
 
@@ -111,7 +112,9 @@ Babel includes two theory modes:
 - `X-Bar Theory`
 - `Minimalist Program`
 
-Switching mode changes the analysis behavior and explanatory framing.
+Click the active theory pill in the header to toggle between them.
+
+Switching theory changes the analysis behavior, tree style, replay, and explanatory framing.
 
 ### 2) Model route switch (default: Flash Lite)
 
@@ -119,6 +122,8 @@ Babel includes a model switch in the header:
 
 - `Gemini 3.1 Flash Lite` (default): extremely fast and lighter-weight.
 - `Gemini 3.1 Pro`: slower, but typically more thorough.
+
+Click the active model pill in the header to switch routes.
 
 Additional frontier-model routes are planned so Babel can function as a cross-model benchmark environment rather than a single-provider syntax demo.
 
