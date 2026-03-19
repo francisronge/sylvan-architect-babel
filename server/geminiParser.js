@@ -3881,10 +3881,6 @@ const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExpla
   if (normalizedMovementAware !== normalizedCleaned) {
     return fallbackExplanation;
   }
-  if (!explanationHasMinimumSubstance(cleaned)) return fallbackExplanation;
-  if (!explanationHasEnoughTexture(movementAware)) {
-    return fallbackExplanation;
-  }
   return normalizedMovementAware;
 };
 

@@ -845,23 +845,9 @@ const normalizeExplanationForDisplay = (
   tree?: SyntaxNode | null
 ): string => {
   const base = ensureExplanationTerminator(removeWeakHedging(explanation));
+  if (base) return base;
   const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
-
-  const movementKinds = extractMovementEventKinds(movementEvents);
-  const compatible = dedupeMovementSentences(
-    splitExplanationSentences(base)
-      .filter((sentence) => isCompatibleMovementSentence(sentence, movementKinds))
-  ).join(' ');
-  const compatibleText = ensureExplanationTerminator(compatible);
-
-  if (hasMovementEvents) {
-    const summary = buildSupplementalMovementSummary(compatibleText, tree, movementEvents);
-    if (!compatibleText) return summary || summarizeMovementFromEvents(tree, movementEvents);
-    if (!summary) return compatibleText;
-    return `${compatibleText} ${summary}`.trim();
-  }
-
-  if (compatibleText) return compatibleText;
+  if (hasMovementEvents) return summarizeMovementFromEvents(tree, movementEvents);
   return 'No movement is posited in this analysis.';
 };
 
