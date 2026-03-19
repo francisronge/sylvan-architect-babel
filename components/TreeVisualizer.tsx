@@ -381,6 +381,18 @@ const reorderMovementSteps = (steps: PlaybackStep[]): PlaybackStep[] => {
   return reordered;
 };
 
+const finalizeReplayStepOrder = (steps: PlaybackStep[]): PlaybackStep[] => {
+  if (steps.length < 2) return steps;
+
+  // SpellOut is the terminal replay event. Any late movement bookkeeping
+  // should still be normalized before it rather than surfacing after it.
+  const nonSpellout = steps.filter((step) => String(step.operation || '').trim() !== 'SpellOut');
+  const spellout = steps.filter((step) => String(step.operation || '').trim() === 'SpellOut');
+
+  const normalized = reorderMovementSteps(nonSpellout);
+  return spellout.length > 0 ? [...normalized, ...spellout] : normalized;
+};
+
 const buildPlaybackSteps = (
   root: HierNode,
   visibleNodes: HierNode[],
@@ -390,7 +402,7 @@ const buildPlaybackSteps = (
   const fallbackSequence = buildBottomUpSequence(root, visibleIds);
   const inferred = createInferredPlaybackSteps(fallbackSequence, visibleIds);
 
-  if (!derivationSteps || derivationSteps.length === 0) return reorderMovementSteps(inferred);
+  if (!derivationSteps || derivationSteps.length === 0) return finalizeReplayStepOrder(inferred);
 
   const mappedProvidedSteps = mapProvidedStepsToNodes(visibleNodes, derivationSteps);
   const withProvided = inferred.map((step) => {
@@ -427,7 +439,7 @@ const buildPlaybackSteps = (
       note: step.note
     }));
 
-  return reorderMovementSteps([...withProvided, ...supplementalProvided]);
+  return finalizeReplayStepOrder([...withProvided, ...supplementalProvided]);
 };
 
 const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
