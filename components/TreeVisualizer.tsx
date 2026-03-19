@@ -137,6 +137,8 @@ const isRenderableTerminalSurface = (surface: string, overtSurfaceSet: Set<strin
 const isOvertLeafNode = (node: HierNode, overtSurfaceSet: Set<string> | null): boolean =>
   isRenderableTerminalSurface(resolveLeafSurface(node), overtSurfaceSet);
 
+const traceDisplayYOffset = (surface: string): number => (isTraceLike(surface) ? 72 : 115);
+
 const pickHierarchyLexicalLeaf = (node: HierNode): HierNode | null => {
   const leaves = collectHierarchyLeaves(node);
   if (leaves.length === 0) return null;
@@ -983,6 +985,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
 
     svg.selectAll<SVGTextElement, unknown>('.terminal-label')
+      .attr('y', function () {
+        const element = this as SVGTextElement;
+        const nodeId = element.getAttribute('data-node-id') || '';
+        const fallback = element.getAttribute('data-default-label') || '';
+        const morph = terminalMorphRef.current.get(nodeId);
+        const display =
+          !morph
+            ? fallback
+            : (revealThreshold < morph.step ? (morph.hideBefore ? '' : morph.preText) : morph.postText);
+        return String(traceDisplayYOffset(display));
+      })
       .text(function () {
         const element = this as SVGTextElement;
         const nodeId = element.getAttribute('data-node-id') || '';
@@ -1256,7 +1269,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .attr('class', 'terminal-label')
       .attr('data-node-id', (d) => getNodeId(d))
       .attr('data-default-label', (d) => resolveLeafSurface(d))
-      .attr('y', 115) // Adjusted vertical offset for smaller font
+      .attr('y', (d) => {
+        const nodeId = getNodeId(d);
+        const fallback = resolveLeafSurface(d);
+        const morph = terminalMorphRef.current.get(nodeId);
+        const display =
+          !morph
+            ? fallback
+            : (revealThreshold < morph.step ? (morph.hideBefore ? '' : morph.preText) : morph.postText);
+        return traceDisplayYOffset(display);
+      })
       .attr('text-anchor', 'middle')
       .attr('font-size', '56px') // Reduced from 84px to be more proportional
       .attr('font-weight', '900')
