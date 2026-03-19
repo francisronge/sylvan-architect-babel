@@ -1,8 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 
 const EXPLANATION_INSTRUCTION = `In the explanation, justify major choices in framework terms, not language-specific heuristics.
-Write a developed natural paragraph (roughly 4-7 sentences): substantial enough to sound like a compact research note, not a compressed checklist.
+Write a developed natural paragraph that reads like a compact research note, not a compressed checklist. Simple clauses may be handled concisely (for example 1-3 sentences), while more complex derivations may take 3-5 sentences.
 Prefer academically natural prose over symbolic shorthand.
+Avoid boilerplate lead-ins and repeated stock phrasing across examples; vary the opening naturally and focus on what this committed analysis actually says.
 Name only the selected framework in the explanation. If the requested analysis is X-bar, do not describe it as Minimalist or Minimalism; if the requested analysis is Minimalist, do not describe it as X-bar Theory.
 You may include 1-2 theory-flavored framing sentences about typology, clause type, or major structural treatment, and you may include at most one brief reference to a well-known analytical tradition or scholar, but only when that framing is directly supported by the chosen tree and derivation.
 Make the explanation read the derivation you encoded: explain how the actual clause architecture, movement path, and major derivational operations produce the observed surface order.
@@ -3874,12 +3875,17 @@ const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExpla
     movementEvents
   );
   if (!cleaned) return fallbackExplanation;
+  const normalizedCleaned = ensureExplanationTerminator(cleaned);
   const movementAware = ensureEncodedMovementIsMentioned(cleaned, fallbackExplanation, movementEvents);
+  const normalizedMovementAware = ensureExplanationTerminator(movementAware);
+  if (normalizedMovementAware !== normalizedCleaned) {
+    return fallbackExplanation;
+  }
   if (!explanationHasMinimumSubstance(cleaned)) return fallbackExplanation;
   if (!explanationHasEnoughTexture(movementAware)) {
-    return mergeExplanationWithGroundedFallback(movementAware, fallbackExplanation);
+    return fallbackExplanation;
   }
-  return ensureExplanationTerminator(movementAware);
+  return normalizedMovementAware;
 };
 
 const buildCanonicalDerivationFromTree = ({
