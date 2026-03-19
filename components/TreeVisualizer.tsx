@@ -1101,10 +1101,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           : (isTraceLike(resolveLeafSurface(arrow.source)) || isNullLike(resolveLeafSurface(arrow.source))
               ? arrow.source
               : pickHierarchyTraceLeaf(arrow.source));
+      const displayTraceAnchor = traceAnchor || sourceDisplayAnchor || null;
 
       const sourceSurface = sourceDisplayAnchor ? resolveLeafSurface(sourceDisplayAnchor) : '';
       const targetSurface = targetDisplayAnchor ? resolveLeafSurface(targetDisplayAnchor) : '';
-      const traceSurface = traceAnchor ? resolveLeafSurface(traceAnchor) : '';
+      const traceSurface = displayTraceAnchor ? resolveLeafSurface(displayTraceAnchor) : '';
       const movementIndex =
         arrow.index ||
         extractMovementIndex(traceSurface) ||
@@ -1112,10 +1113,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         extractMovementIndex(sourceSurface) ||
         null;
 
-      if (traceAnchor) {
-        const traceId = getNodeId(traceAnchor);
+      if (displayTraceAnchor) {
+        const traceId = getNodeId(displayTraceAnchor);
         terminalMorph.set(traceId, {
-          preText: targetSurface || sourceSurface,
+          preText: sourceSurface || targetSurface,
           postText: isTraceLike(traceSurface)
             ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
             : buildTraceLabel(movementIndex),
