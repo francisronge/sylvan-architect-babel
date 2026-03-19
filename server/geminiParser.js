@@ -135,6 +135,8 @@ const LITE_FORMAT_INSTRUCTION = `Flash Lite format discipline:
 - If a bar-level or binary shell would force a subject/specifier to surface between the overt descendants of another sibling, do not use that shell. Instead, encode the locally ordered head, subject/specifier, and complement material directly as siblings of the phrasal node with explicit siblingOrder so the committed structure itself spells the sentence correctly.
 - In head-initial structures, do not bury the overt head and its complement together under one shell if the subject surfaces between them. Encode the head, subject/specifier, and complement sequence directly in the local sibling order.
 - Keep overt headedness local and explicit. If a node is the overt realization of a head, let that head node carry the overt word itself or directly dominate that overt word as its sole overt child; do not place an overt word and a lower trace/null sibling under the same head node.
+- For clause-edge phrasal movement, the landing phrase itself must dominate the overt moved words in the final tree. Do not target an empty DP/NP/PP shell at the left edge while leaving the overt moved phrase lower in the clause.
+- If the root is CP and the analysis uses a left-peripheral moved phrase, the sister spine on the other branch must remain C-projected (for example C' and C), not D/D', N/N', or another lexical projection.
 - The literal label "word" is not an allowed category label in the node table. Use the field "word" for surface forms and keep structural labels as actual categories or terminal surfaces.
 - If you are unsure about a phrasal surfaceSpan, omit it rather than guessing. Babel will derive spans from the committed overt token indices.
 - The final node table must already imply the correct sentence order through parent relations plus overt tokenIndex commitments.`;
@@ -4496,6 +4498,8 @@ const buildSingleParseContentsPrompt = (
   `If a node is phrasal (XP or X'), it must realize structure through children, not through a word field. ` +
   `If a head is overt in a higher functional position, realize it there as one overt head rather than stacking labels like C > V > word. ` +
   `Do not split one overt moved phrase across an overt C/head node plus a separate DP/NP/PP phrase shell; if a phrase moves to the clause edge, keep all overt words of that phrase inside that single moved phrase node. ` +
+  `If a wh-phrase or other moved phrase lands in Spec,CP, the final tree must pronounce that moved phrase there; do not leave Spec,CP as an empty shell while the overt moved phrase remains lower in the clause. ` +
+  `If the root is CP, keep the clause spine C-projected under that root; do not realize CP as DP + D', NP + N', or any other non-C projection. ` +
   `At the landing site of head movement, use exactly one overt head label above the pronounced word; do not return unary chains of overt head labels with the same overt yield. ` +
   `If a head lands in C, Infl, or another higher head position, that landing head should directly dominate the overt word rather than an extra overt source-category head. ` +
   `Every overt lexical item must appear on a terminal or head node, never directly on a phrasal projection such as DP, NP, VP, TP, InflP, or CP. ` +
@@ -4534,6 +4538,8 @@ const buildParseContentsPrompt = (
     `The overt terminals must spell exactly: ${tokenizeSentenceSurfaceOrder(sentence).join(' | ')}. ` +
     `movementDecision, movementEvents, derivationSteps, explanation, and the tree must all reflect the same movement story. ` +
     `If your final tree contains an overt higher head with a silent lower head site for that same dependency, the final JSON must include a HeadMove. ` +
+    `If your final tree uses clause-edge phrasal movement, the moved phrase must be overt at the landing site and silent only at the lower site. ` +
+    `If the root is CP, the clause spine under it must still be C-projected rather than re-labeled as D/D' or another lexical projection. ` +
     `${compactOutput
       ? `Compact retry mode is active because an earlier answer was cut off. Keep the JSON concise and do not add a second analysis. `
       : ''}` +
