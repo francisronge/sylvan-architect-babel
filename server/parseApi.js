@@ -1,4 +1,5 @@
 import { ParseApiError, parseSentenceWithGemini } from './geminiParser.js';
+import { recordParseEvent } from './parseLogStore.js';
 
 const FRAMEWORKS = new Set(['xbar', 'minimalism']);
 const MODEL_ROUTES = new Set(['flash-lite', 'pro']);
@@ -34,7 +35,9 @@ export const validateParseBody = (body) => {
 
 export const parseFromBody = async (body) => {
   const { sentence, framework, modelRoute } = validateParseBody(body);
-  return parseSentenceWithGemini(sentence, framework, modelRoute);
+  const result = await parseSentenceWithGemini(sentence, framework, modelRoute);
+  await recordParseEvent({ sentence, framework, modelRoute, result });
+  return result;
 };
 
 export const formatApiError = (error) => {
