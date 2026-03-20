@@ -3875,13 +3875,7 @@ const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExpla
     movementEvents
   );
   if (!cleaned) return fallbackExplanation;
-  const normalizedCleaned = ensureExplanationTerminator(cleaned);
-  const movementAware = ensureEncodedMovementIsMentioned(cleaned, fallbackExplanation, movementEvents);
-  const normalizedMovementAware = ensureExplanationTerminator(movementAware);
-  if (normalizedMovementAware !== normalizedCleaned) {
-    return fallbackExplanation;
-  }
-  return normalizedMovementAware;
+  return ensureExplanationTerminator(cleaned);
 };
 
 const buildCanonicalDerivationFromTree = ({
