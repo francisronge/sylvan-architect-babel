@@ -2,6 +2,35 @@ import postgres from 'postgres';
 
 const connectionString = String(process.env.BABEL_PARSE_LOG_DATABASE_URL || '').trim();
 
+const getConnectionDiagnostics = () => {
+  if (!connectionString) {
+    return {
+      configured: false,
+      looksLikeApiUrl: false,
+      hasPlaceholderPassword: false,
+      host: null
+    };
+  }
+
+  const looksLikeApiUrl = /^https?:\/\//i.test(connectionString);
+  const hasPlaceholderPassword = /YOUR[-_ ]?PASSWORD/i.test(connectionString);
+
+  let host = null;
+  try {
+    const parsed = new URL(connectionString);
+    host = parsed.hostname || null;
+  } catch {
+    host = null;
+  }
+
+  return {
+    configured: true,
+    looksLikeApiUrl,
+    hasPlaceholderPassword,
+    host
+  };
+};
+
 let db = null;
 let schemaReadyPromise = null;
 
@@ -83,7 +112,11 @@ export const recordParseEvent = async ({ sentence, framework, modelRoute, result
 
     return true;
   } catch (error) {
-    console.error('[parse-log] failed to record parse event', error);
+    const diagnostics = getConnectionDiagnostics();
+    console.error(
+      `[parse-log] failed to record parse event: ${error?.message || String(error)}`,
+      diagnostics
+    );
     return false;
   }
 };
