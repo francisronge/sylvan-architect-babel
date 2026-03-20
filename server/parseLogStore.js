@@ -2,35 +2,6 @@ import postgres from 'postgres';
 
 const connectionString = String(process.env.BABEL_PARSE_LOG_DATABASE_URL || '').trim();
 
-const getConnectionDiagnostics = () => {
-  if (!connectionString) {
-    return {
-      configured: false,
-      looksLikeApiUrl: false,
-      hasPlaceholderPassword: false,
-      host: null
-    };
-  }
-
-  const looksLikeApiUrl = /^https?:\/\//i.test(connectionString);
-  const hasPlaceholderPassword = /YOUR[-_ ]?PASSWORD/i.test(connectionString);
-
-  let host = null;
-  try {
-    const parsed = new URL(connectionString);
-    host = parsed.hostname || null;
-  } catch {
-    host = null;
-  }
-
-  return {
-    configured: true,
-    looksLikeApiUrl,
-    hasPlaceholderPassword,
-    host
-  };
-};
-
 let db = null;
 let schemaReadyPromise = null;
 
@@ -112,10 +83,7 @@ export const recordParseEvent = async ({ sentence, framework, modelRoute, result
 
     return true;
   } catch (error) {
-    const diagnostics = getConnectionDiagnostics();
-    console.error(
-      `[parse-log] host=${diagnostics.host || 'unknown'} api_url=${diagnostics.looksLikeApiUrl} placeholder_password=${diagnostics.hasPlaceholderPassword} err=${error?.message || String(error)}`
-    );
+    console.error(`[parse-log] ${error?.message || String(error)}`);
     return false;
   }
 };
