@@ -1701,7 +1701,7 @@ const App: React.FC = () => {
                     )}
                   </div>
                   <p className="mt-3 px-4 text-center text-[9px] md:text-[10px] uppercase tracking-[0.26em] text-emerald-900/70">
-                    Parses may be stored anonymously to improve Babel and study syntactic model behavior.
+                    Parses may be stored anonymously for research and product improvement.
                   </p>
                 </div>
 
