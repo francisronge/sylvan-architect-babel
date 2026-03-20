@@ -114,8 +114,7 @@ export const recordParseEvent = async ({ sentence, framework, modelRoute, result
   } catch (error) {
     const diagnostics = getConnectionDiagnostics();
     console.error(
-      `[parse-log] failed to record parse event: ${error?.message || String(error)}`,
-      diagnostics
+      `[parse-log] host=${diagnostics.host || 'unknown'} api_url=${diagnostics.looksLikeApiUrl} placeholder_password=${diagnostics.hasPlaceholderPassword} err=${error?.message || String(error)}`
     );
     return false;
   }
