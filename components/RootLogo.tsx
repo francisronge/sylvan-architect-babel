@@ -38,6 +38,9 @@ const RootLogo: React.FC<RootLogoProps> = ({
         src="/babellogo.png"
         alt="Babel logo"
         className="absolute h-full w-full select-none pointer-events-none"
+        loading="eager"
+        decoding="sync"
+        fetchPriority="high"
         style={{
           top: `${imageInset}%`,
           left: `${imageInset}%`,
