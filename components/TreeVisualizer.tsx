@@ -689,14 +689,15 @@ const collectDescendantNodeIds = (node?: HierNode | null): string[] => {
 
 const buildSuppressedReplayNodeIds = (
   visibleNodes: HierNode[],
-  resolvedMovementLinks?: ResolvedMovementEventLink[]
+  derivationSteps?: DerivationStep[]
 ): Set<string> => {
-  if (!resolvedMovementLinks || resolvedMovementLinks.length === 0) return new Set<string>();
+  if (!derivationSteps || derivationSteps.length === 0) return new Set<string>();
   const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
   const suppressed = new Set<string>();
 
-  resolvedMovementLinks.forEach((link) => {
-    const target = nodeById.get(String(link.movedAnchorId || '').trim());
+  derivationSteps.forEach((step) => {
+    if (!isMoveLikeOperation(step.operation)) return;
+    const target = nodeById.get(String(step.targetNodeId || '').trim());
     if (!target || !target.children || target.children.length === 0) return;
     collectDescendantNodeIds(target).forEach((id) => suppressed.add(id));
   });
@@ -894,9 +895,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
     }
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
-    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, resolvedMovementLinks);
+    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, derivationSteps);
     return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps, suppressedReplayNodeIds);
-  }, [animated, data, derivationSteps, abstractionMode, movementProtectedNodeIds, resolvedMovementLinks]);
+  }, [animated, data, derivationSteps, abstractionMode, movementProtectedNodeIds]);
   const replayMovementArrows = useMemo(() => {
     if (!animated || playbackSteps.length === 0) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
@@ -1079,7 +1080,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // 1. RENDER BRANCHES
     const visibleNodes = treeData.descendants().filter((node) => !isUnderTriangulation(node));
     const visibleLinks = treeData.links().filter((link) => !isUnderTriangulation(link.target)) as VisibleLink[];
-    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, resolvedMovementLinks);
+    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, derivationSteps);
     const inferredTimeline = buildPlaybackSteps(rootHierarchy, visibleNodes, derivationSteps, suppressedReplayNodeIds);
     const timeline = animated && playbackSteps.length > 0 ? playbackSteps : inferredTimeline;
     const nodeStepIndex = buildNodeStepIndex(timeline);
@@ -1088,6 +1089,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? buildMovementArrowsFromLinks(visibleNodes, resolvedMovementLinks, nodeStepIndex, timeline)
       : [];
     const nodeRevealStepIndex = new Map(nodeStepIndex);
+    (derivationSteps || []).forEach((step) => {
+      if (!isMoveLikeOperation(step.operation)) return;
+      const targetId = String(step.targetNodeId || '').trim();
+      if (!targetId) return;
+      const targetNode = visibleNodes.find((node) => getNodeId(node) === targetId);
+      if (!targetNode || !targetNode.children || targetNode.children.length === 0) return;
+      const targetStep = nodeStepIndex.get(targetId);
+      if (targetStep === undefined) return;
+      collectDescendantNodeIds(targetNode).forEach((descendantId) => {
+        const currentStep = nodeRevealStepIndex.get(descendantId) ?? 0;
+        nodeRevealStepIndex.set(descendantId, Math.max(currentStep, targetStep));
+      });
+    });
     const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
     const formatMovementTraceIndex = (index?: string | null): string => {
       const normalized = String(index || '').trim().toLowerCase();
