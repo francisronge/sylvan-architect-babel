@@ -3881,6 +3881,25 @@ const buildCanonicalDerivationFromTree = ({
   modelDerivationSteps
 }) => {
   const nodeById = buildNodeIndexFromTree(tree);
+  const collectDescendantIds = (node, into = new Set()) => {
+    if (!node || typeof node !== 'object') return into;
+    const nodeId = String(node.id || '').trim();
+    if (nodeId) into.add(nodeId);
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach((child) => collectDescendantIds(child, into));
+    return into;
+  };
+  const canonicalMovementEvents = Array.isArray(movementEvents) ? movementEvents : [];
+  const suppressedStructuralTargetIds = new Set();
+  canonicalMovementEvents.forEach((event) => {
+    const op = normalizeMovementOperation(event?.operation);
+    if (op === 'HeadMove') return;
+    const targetNodeId = String(event?.toNodeId || '').trim();
+    if (!targetNodeId) return;
+    const targetNode = nodeById.get(targetNodeId);
+    if (!targetNode || !Array.isArray(targetNode.children) || targetNode.children.length === 0) return;
+    collectDescendantIds(targetNode, suppressedStructuralTargetIds);
+  });
   const postorder = [];
   const visitPostorder = (node) => {
     if (!node || typeof node !== 'object') return;
@@ -3923,6 +3942,7 @@ const buildCanonicalDerivationFromTree = ({
   const derivationSteps = [];
   postorder.forEach((node) => {
     const nodeId = String(node.id || '').trim();
+    if (suppressedStructuralTargetIds.has(nodeId)) return;
     const children = Array.isArray(node.children) ? node.children : [];
     const targetLabel = String(node.label || '').trim() || String(node.word || '').trim() || 'Node';
 
@@ -3977,7 +3997,6 @@ const buildCanonicalDerivationFromTree = ({
   });
 
   const rootLabel = String(tree?.label || 'Tree').trim() || 'Tree';
-  const canonicalMovementEvents = Array.isArray(movementEvents) ? movementEvents : [];
   canonicalMovementEvents
     .slice()
     .sort((left, right) => {
