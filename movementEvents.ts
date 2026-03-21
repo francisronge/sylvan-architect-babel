@@ -9,6 +9,7 @@ export interface ResolvedMovementEventLink {
   movementIndex: string;
   sourceAnchorId: string;
   movedAnchorId: string;
+  sourcePhraseId?: string;
   traceAnchorId?: string;
   stepIndex?: number;
   operation?: MovementEvent['operation'];
@@ -228,6 +229,10 @@ export const resolveMovementEventLinks = (
       movementIndex,
       sourceAnchorId: sourceAnchor.id,
       movedAnchorId: movedAnchor.id,
+      sourcePhraseId:
+        !isHeadMove && Array.isArray(fromNode.children) && fromNode.children.length > 0
+          ? String(fromNode.id || '').trim() || undefined
+          : undefined,
       traceAnchorId: traceAnchor?.id || undefined,
       stepIndex,
       operation: event.operation,

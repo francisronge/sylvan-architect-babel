@@ -36,9 +36,34 @@ interface PlaybackStep {
 interface MovementArrow {
   source: HierNode;
   target: HierNode;
+  sourcePhraseRoot?: HierNode;
   traceNode?: HierNode;
   step: number;
   index?: string | null;
+}
+
+interface PhrasalMovementOverlayNode {
+  key: string;
+  x: number;
+  y: number;
+  label: string;
+  isLeaf: boolean;
+}
+
+interface PhrasalMovementOverlayLink {
+  key: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+}
+
+interface PhrasalMovementOverlay {
+  key: string;
+  startStep: number;
+  endStep: number;
+  nodes: PhrasalMovementOverlayNode[];
+  links: PhrasalMovementOverlayLink[];
 }
 
 const getNodeId = (node: HierNode): string => (node as any).__vizId as string;
@@ -536,6 +561,9 @@ const buildMovementArrowsFromLinks = (
   resolvedMovementLinks.forEach((link) => {
     const source = nodeById.get(String(link.sourceAnchorId || '').trim());
     const target = nodeById.get(String(link.movedAnchorId || '').trim());
+    const sourcePhraseRoot = link.sourcePhraseId
+      ? nodeById.get(String(link.sourcePhraseId).trim()) || undefined
+      : undefined;
     const traceNode = link.traceAnchorId
       ? nodeById.get(String(link.traceAnchorId).trim()) || undefined
       : undefined;
@@ -564,6 +592,7 @@ const buildMovementArrowsFromLinks = (
     arrows.push({
       source,
       target,
+      sourcePhraseRoot,
       traceNode: traceNode || undefined,
       step,
       index
@@ -1117,6 +1146,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
     });
     const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
+    const phrasalMovementOverlays: PhrasalMovementOverlay[] = [];
     const formatMovementTraceIndex = (index?: string | null): string => {
       const normalized = String(index || '').trim().toLowerCase();
       if (!normalized) return '';
@@ -1162,43 +1192,55 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
       const isPhrasalMove = Boolean(arrow.target.children && arrow.target.children.length > 0);
       if (isPhrasalMove) {
-        const traceAnchor =
-          arrow.traceNode
-            ? pickHierarchyTraceLeaf(arrow.traceNode) || arrow.traceNode
-            : (isTraceLike(resolveLeafSurface(arrow.source)) || isNullLike(resolveLeafSurface(arrow.source))
-                ? arrow.source
-                : pickHierarchyTraceLeaf(arrow.source) || arrow.source);
-        const movedPhraseSurface = collectHierarchyOvertYield(arrow.target);
-        const traceSurface = traceAnchor ? resolveLeafSurface(traceAnchor) : '';
-        const movementIndex =
-          arrow.index ||
-          extractMovementIndex(traceSurface) ||
-          null;
+        if (arrow.sourcePhraseRoot) {
+          const sourcePhraseRootId = getNodeId(arrow.sourcePhraseRoot);
+          const sourcePhraseRootStep = nodeRevealStepIndex.get(sourcePhraseRootId) ?? 0;
+          collectDescendantNodeIds(arrow.sourcePhraseRoot)
+            .filter((id) => id !== sourcePhraseRootId)
+            .forEach((descendantId) => {
+              const currentStep = nodeRevealStepIndex.get(descendantId) ?? 0;
+              nodeRevealStepIndex.set(descendantId, Math.max(currentStep, arrow.step));
+            });
 
-        if (traceAnchor && movedPhraseSurface) {
-          terminalMorph.set(getNodeId(traceAnchor), {
-            preText: movedPhraseSurface,
-            postText: isTraceLike(traceSurface)
-              ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
-              : buildTraceLabel(movementIndex),
-            step: arrow.step,
-            hideBefore: false
+          const dx = arrow.sourcePhraseRoot.x - arrow.target.x;
+          const dy = arrow.sourcePhraseRoot.y - arrow.target.y;
+          const overlayNodes = arrow.target
+            .descendants()
+            .filter((node) => node !== arrow.target)
+            .map((node) => ({
+              key: `${getNodeId(arrow.sourcePhraseRoot!)}:${getNodeId(node)}`,
+              x: node.x + dx,
+              y: node.y + dy,
+              label: node.children && node.children.length > 0 ? (node.data.label || '') : resolveLeafSurface(node),
+              isLeaf: !node.children || node.children.length === 0
+            }));
+          const overlayLinks = arrow.target
+            .descendants()
+            .filter((node) => node !== arrow.target)
+            .map((node) => {
+              const parent = node.parent;
+              if (!parent) return null;
+              const sourceNode = parent === arrow.target
+                ? arrow.sourcePhraseRoot!
+                : parent;
+              return {
+                key: `${getNodeId(arrow.sourcePhraseRoot!)}:${getNodeId(sourceNode)}->${getNodeId(node)}`,
+                sourceX: parent === arrow.target ? arrow.sourcePhraseRoot!.x : parent.x + dx,
+                sourceY: parent === arrow.target ? arrow.sourcePhraseRoot!.y : parent.y + dy,
+                targetX: node.x + dx,
+                targetY: node.y + dy
+              };
+            })
+            .filter((link): link is PhrasalMovementOverlayLink => Boolean(link));
+
+          phrasalMovementOverlays.push({
+            key: `${sourcePhraseRootId}->${targetId}:${arrow.step}`,
+            startStep: sourcePhraseRootStep,
+            endStep: arrow.step,
+            nodes: overlayNodes,
+            links: overlayLinks
           });
         }
-
-        collectHierarchyLeaves(arrow.target)
-          .filter((leaf) => {
-            const surface = resolveLeafSurface(leaf);
-            return surface.length > 0 && !isNullLike(surface) && !isTraceLike(surface);
-          })
-          .forEach((leaf) => {
-            terminalMorph.set(getNodeId(leaf), {
-              preText: '',
-              postText: resolveLeafSurface(leaf),
-              step: arrow.step,
-              hideBefore: true
-            });
-          });
         return;
       }
 
@@ -1307,6 +1349,29 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const controlX = (sx + tx) / 2;
           const controlY = Math.max(sy, ty) + Math.max(42, Math.abs(tx - sx) * 0.2);
           return `M ${sx} ${sy} Q ${controlX} ${controlY}, ${tx} ${ty}`;
+        });
+    }
+
+    if (phrasalMovementOverlays.length > 0) {
+      const overlayBranches = phrasalMovementOverlays.flatMap((overlay) =>
+        overlay.links.map((link) => ({ ...link, startStep: overlay.startStep, endStep: overlay.endStep }))
+      );
+      g.selectAll('.phrasal-move-overlay-branch')
+        .data(overlayBranches)
+        .enter()
+        .append('path')
+        .attr('class', 'phrasal-move-overlay-branch')
+        .attr('fill', 'none')
+        .attr('stroke', BRANCH_COLOR)
+        .attr('stroke-width', 4)
+        .attr('opacity', (d) => (d.startStep <= revealThreshold && revealThreshold < d.endStep ? 0.6 : 0))
+        .style('transition', 'opacity 260ms ease')
+        .attr('d', (d) => {
+          const link = {
+            source: { x: d.sourceX, y: d.sourceY },
+            target: { x: d.targetX, y: d.targetY }
+          };
+          return (d3.linkVertical().x((node: any) => node.x).y((node: any) => node.y) as any)(link);
         });
     }
 
@@ -1438,6 +1503,57 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .attr('fill', TARGET_EMERALD)
       .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
       .text((d: any) => (d as any).triangulatedWords);
+
+    if (phrasalMovementOverlays.length > 0) {
+      const overlayNodes = phrasalMovementOverlays.flatMap((overlay) =>
+        overlay.nodes.map((node) => ({
+          ...node,
+          startStep: overlay.startStep,
+          endStep: overlay.endStep
+        }))
+      );
+      const overlayGroups = g.selectAll('.phrasal-move-overlay-node')
+        .data(overlayNodes)
+        .enter()
+        .append('g')
+        .attr('class', 'phrasal-move-overlay-node')
+        .attr('transform', (d) => `translate(${d.x},${d.y})`)
+        .attr('opacity', (d) => (d.startStep <= revealThreshold && revealThreshold < d.endStep ? 1 : 0))
+        .style('transition', 'opacity 260ms ease');
+
+      overlayGroups
+        .filter((d) => !d.isLeaf)
+        .append('text')
+        .attr('y', -10)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '42px')
+        .attr('font-weight', '900')
+        .attr('fill', PURE_WHITE)
+        .style('fill', PURE_WHITE, 'important')
+        .style('font-family', 'Quicksand, sans-serif')
+        .style('paint-order', 'stroke')
+        .style('stroke', '#020806')
+        .style('stroke-width', '10px')
+        .text((d) => d.label);
+
+      overlayGroups
+        .filter((d) => d.isLeaf)
+        .append('text')
+        .attr('y', (d) => traceDisplayYOffset(d.label))
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '56px')
+        .attr('font-weight', '900')
+        .attr('fill', TARGET_EMERALD)
+        .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
+        .style('fill', TARGET_EMERALD, 'important')
+        .text((d) => d.label);
+
+      overlayGroups
+        .filter((d) => d.isLeaf)
+        .append('line')
+        .attr('x1', 0).attr('y1', 20).attr('x2', 0).attr('y2', 65)
+        .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
+    }
 
     // Initial viewport fit:
     // Use actual rendered bounds so terminal labels are not clipped/off-canvas.
