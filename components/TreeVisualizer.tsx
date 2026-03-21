@@ -200,6 +200,22 @@ const collectHierarchyOvertYield = (node: HierNode): string => {
     .trim();
 };
 
+const pickMatchingLexicalLeaf = (node: HierNode, label: string): HierNode | null => {
+  const normalized = String(label || '').trim().toUpperCase();
+  if (!normalized) return null;
+  const queue: HierNode[] = [node];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) continue;
+    if (String(current.data.label || '').trim().toUpperCase() === normalized && (!current.children || current.children.length === 0)) {
+      return current;
+    }
+    const children = Array.isArray(current.children) ? current.children : [];
+    queue.push(...children);
+  }
+  return null;
+};
+
 const getReadyNodePriority = (node: HierNode): number => {
   const hasChildren = Boolean(node.children && node.children.length > 0);
   if (hasChildren) return 1;
@@ -1195,51 +1211,82 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         if (arrow.sourcePhraseRoot) {
           const sourcePhraseRootId = getNodeId(arrow.sourcePhraseRoot);
           const sourcePhraseRootStep = nodeRevealStepIndex.get(sourcePhraseRootId) ?? 0;
-          collectDescendantNodeIds(arrow.sourcePhraseRoot)
-            .filter((id) => id !== sourcePhraseRootId)
-            .forEach((descendantId) => {
-              const currentStep = nodeRevealStepIndex.get(descendantId) ?? 0;
-              nodeRevealStepIndex.set(descendantId, Math.max(currentStep, arrow.step));
+          const traceAnchor =
+            arrow.traceNode
+              ? pickHierarchyTraceLeaf(arrow.traceNode) || arrow.traceNode
+              : (isTraceLike(resolveLeafSurface(arrow.source)) || isNullLike(resolveLeafSurface(arrow.source))
+                  ? arrow.source
+                  : pickHierarchyTraceLeaf(arrow.source) || arrow.source);
+          const traceSurface = traceAnchor ? resolveLeafSurface(traceAnchor) : '';
+          const movementIndex =
+            arrow.index ||
+            extractMovementIndex(traceSurface) ||
+            null;
+
+          const sourceShell = arrow.sourcePhraseRoot.children?.[0];
+          const targetShell = arrow.target.children?.[0];
+          const overtSourceLeaf =
+            (targetShell && traceAnchor
+              ? pickMatchingLexicalLeaf(targetShell, String(traceAnchor.data.label || ''))
+              : null) ||
+            pickHierarchyLexicalLeaf(arrow.target);
+
+          if (traceAnchor && overtSourceLeaf) {
+            terminalMorph.set(getNodeId(traceAnchor), {
+              preText: resolveLeafSurface(overtSourceLeaf),
+              postText: isTraceLike(traceSurface)
+                ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
+                : buildTraceLabel(movementIndex),
+              step: arrow.step,
+              hideBefore: false
+            });
+          }
+
+          if (sourceShell && targetShell) {
+            const sourceChildLabels = new Set(
+              (sourceShell.children || []).map((child) => String(child.data.label || '').trim().toUpperCase())
+            );
+            const missingTargetChildren = (targetShell.children || []).filter((child) => {
+              const label = String(child.data.label || '').trim().toUpperCase();
+              return Boolean(label) && !sourceChildLabels.has(label);
             });
 
-          const dx = arrow.sourcePhraseRoot.x - arrow.target.x;
-          const dy = arrow.sourcePhraseRoot.y - arrow.target.y;
-          const overlayNodes = arrow.target
-            .descendants()
-            .filter((node) => node !== arrow.target)
-            .map((node) => ({
-              key: `${getNodeId(arrow.sourcePhraseRoot!)}:${getNodeId(node)}`,
-              x: node.x + dx,
-              y: node.y + dy,
-              label: node.children && node.children.length > 0 ? (node.data.label || '') : resolveLeafSurface(node),
-              isLeaf: !node.children || node.children.length === 0
-            }));
-          const overlayLinks = arrow.target
-            .descendants()
-            .filter((node) => node !== arrow.target)
-            .map((node) => {
-              const parent = node.parent;
-              if (!parent) return null;
-              const sourceNode = parent === arrow.target
-                ? arrow.sourcePhraseRoot!
-                : parent;
-              return {
-                key: `${getNodeId(arrow.sourcePhraseRoot!)}:${getNodeId(sourceNode)}->${getNodeId(node)}`,
-                sourceX: parent === arrow.target ? arrow.sourcePhraseRoot!.x : parent.x + dx,
-                sourceY: parent === arrow.target ? arrow.sourcePhraseRoot!.y : parent.y + dy,
-                targetX: node.x + dx,
-                targetY: node.y + dy
-              };
-            })
-            .filter((link): link is PhrasalMovementOverlayLink => Boolean(link));
+            const dx = sourceShell.x - targetShell.x;
+            const dy = sourceShell.y - targetShell.y;
+            const overlayNodes = missingTargetChildren.flatMap((subtreeRoot) =>
+              subtreeRoot.descendants().map((node) => ({
+                key: `${sourcePhraseRootId}:${getNodeId(subtreeRoot)}:${getNodeId(node)}`,
+                x: node.x + dx,
+                y: node.y + dy,
+                label: node.children && node.children.length > 0 ? (node.data.label || '') : resolveLeafSurface(node),
+                isLeaf: !node.children || node.children.length === 0
+              }))
+            );
+            const overlayLinks = missingTargetChildren.flatMap((subtreeRoot) =>
+              subtreeRoot.descendants().map((node) => {
+                const parent = node.parent;
+                if (!parent) return null;
+                const isSubtreeRoot = node === subtreeRoot;
+                return {
+                  key: `${sourcePhraseRootId}:${getNodeId(isSubtreeRoot ? sourceShell : parent)}->${getNodeId(node)}`,
+                  sourceX: isSubtreeRoot ? sourceShell.x : parent.x + dx,
+                  sourceY: isSubtreeRoot ? sourceShell.y : parent.y + dy,
+                  targetX: node.x + dx,
+                  targetY: node.y + dy
+                };
+              }).filter((link): link is PhrasalMovementOverlayLink => Boolean(link))
+            );
 
-          phrasalMovementOverlays.push({
-            key: `${sourcePhraseRootId}->${targetId}:${arrow.step}`,
-            startStep: sourcePhraseRootStep,
-            endStep: arrow.step,
-            nodes: overlayNodes,
-            links: overlayLinks
-          });
+            if (overlayNodes.length > 0) {
+              phrasalMovementOverlays.push({
+                key: `${sourcePhraseRootId}->${targetId}:${arrow.step}`,
+                startStep: sourcePhraseRootStep,
+                endStep: arrow.step,
+                nodes: overlayNodes,
+                links: overlayLinks
+              });
+            }
+          }
         }
         return;
       }
