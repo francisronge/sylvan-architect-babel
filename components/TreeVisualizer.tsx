@@ -681,6 +681,11 @@ const buildMovementProtectedNodeIds = (
   return protectedIds;
 };
 
+const collectDescendantNodeIds = (node?: HierNode | null): string[] => {
+  if (!node) return [];
+  return node.descendants().map((descendant) => getNodeId(descendant)).filter(Boolean);
+};
+
 const markTriangulatedNodes = (rootHierarchy: HierNode, protectedNodeIds?: Set<string>) => {
   rootHierarchy.each((d) => {
     const label = (d.data.label || "").trim().toUpperCase();
@@ -1098,6 +1103,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const traceId = getNodeId(arrow.traceNode);
         const traceStep = nodeRevealStepIndex.get(traceId) ?? 0;
         nodeRevealStepIndex.set(traceId, Math.min(traceStep, arrow.step));
+      }
+
+      if (arrow.target.children && arrow.target.children.length > 0) {
+        collectDescendantNodeIds(arrow.target).forEach((descendantId) => {
+          const currentStep = nodeRevealStepIndex.get(descendantId) ?? 0;
+          nodeRevealStepIndex.set(descendantId, Math.max(currentStep, arrow.step));
+        });
       }
 
       const sourceDisplayAnchor =
