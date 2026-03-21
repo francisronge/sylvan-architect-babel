@@ -3860,10 +3860,6 @@ const reconcileModelExplanationWithDerivation = (modelExplanation, fallbackExpla
   if (!raw) return fallbackExplanation;
 
   const movementKinds = extractMovementEventKinds(movementEvents);
-  if ((!Array.isArray(movementEvents) || movementEvents.length === 0) && EXPLANATION_MOVEMENT_RE.test(raw)) {
-    return fallbackExplanation;
-  }
-
   const kept = splitExplanationSentences(raw).filter((sentence) =>
       !isDirectlyContradictoryMovementSentence(sentence, movementKinds, movementEvents)
       && !isTruncatedScholarReferenceSentence(sentence)
