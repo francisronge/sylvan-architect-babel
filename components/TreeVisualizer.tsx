@@ -1251,13 +1251,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               return Boolean(label) && !sourceChildLabels.has(label);
             });
 
-            const dx = sourceShell.x - targetShell.x;
-            const dy = sourceShell.y - targetShell.y;
+            const xScale = 0.55;
+            const yScale = 0.5;
             const overlayNodes = missingTargetChildren.flatMap((subtreeRoot) =>
               subtreeRoot.descendants().map((node) => ({
                 key: `${sourcePhraseRootId}:${getNodeId(subtreeRoot)}:${getNodeId(node)}`,
-                x: node.x + dx,
-                y: node.y + dy,
+                x: sourceShell.x + (node.x - targetShell.x) * xScale,
+                y: sourceShell.y + (node.y - targetShell.y) * yScale,
                 label: node.children && node.children.length > 0 ? (node.data.label || '') : resolveLeafSurface(node),
                 isLeaf: !node.children || node.children.length === 0
               }))
@@ -1269,10 +1269,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 const isSubtreeRoot = node === subtreeRoot;
                 return {
                   key: `${sourcePhraseRootId}:${getNodeId(isSubtreeRoot ? sourceShell : parent)}->${getNodeId(node)}`,
-                  sourceX: isSubtreeRoot ? sourceShell.x : parent.x + dx,
-                  sourceY: isSubtreeRoot ? sourceShell.y : parent.y + dy,
-                  targetX: node.x + dx,
-                  targetY: node.y + dy
+                  sourceX: isSubtreeRoot ? sourceShell.x : sourceShell.x + (parent.x - targetShell.x) * xScale,
+                  sourceY: isSubtreeRoot ? sourceShell.y : sourceShell.y + (parent.y - targetShell.y) * yScale,
+                  targetX: sourceShell.x + (node.x - targetShell.x) * xScale,
+                  targetY: sourceShell.y + (node.y - targetShell.y) * yScale
                 };
               }).filter((link): link is PhrasalMovementOverlayLink => Boolean(link))
             );
