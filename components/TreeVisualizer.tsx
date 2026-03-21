@@ -580,9 +580,15 @@ const formatOperationLabel = (operation?: DerivationStep['operation']): string =
   return operation.replace(/([a-z])([A-Z])/g, '$1 $2');
 };
 
+const looksOpaqueNodeId = (value: string): boolean => /^[a-z]+(?:[_-][a-z0-9]+)?$/i.test(value) || /^n\d+[a-z]*$/i.test(value);
+
 const formatFeatureCheckingEntry = (entry: FeatureCheckEvent): string => {
-  const probe = entry.probeLabel || entry.probeNodeId || '';
-  const goal = entry.goalLabel || entry.goalNodeId || '';
+  const probeLabel = String(entry.probeLabel || '').trim();
+  const goalLabel = String(entry.goalLabel || '').trim();
+  const probeNodeId = String(entry.probeNodeId || '').trim();
+  const goalNodeId = String(entry.goalNodeId || '').trim();
+  const probe = probeLabel || (!looksOpaqueNodeId(probeNodeId) ? probeNodeId : '');
+  const goal = goalLabel || (!looksOpaqueNodeId(goalNodeId) ? goalNodeId : '');
   const status = entry.status ? `[${entry.status}]` : '';
   const value = entry.value ? `=${entry.value}` : '';
   const relation = probe && goal ? `${probe} -> ${goal}` : (probe || goal || '');
