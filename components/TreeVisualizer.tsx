@@ -435,15 +435,18 @@ const finalizeReplayStepOrder = (steps: PlaybackStep[]): PlaybackStep[] => {
 const buildPlaybackSteps = (
   root: HierNode,
   visibleNodes: HierNode[],
-  derivationSteps?: DerivationStep[]
+  derivationSteps?: DerivationStep[],
+  suppressedNodeIds: Set<string> = new Set<string>()
 ): PlaybackStep[] => {
   const visibleIds = new Set(visibleNodes.map((node) => getNodeId(node)));
-  const fallbackSequence = buildBottomUpSequence(root, visibleIds);
+  const fallbackSequence = buildBottomUpSequence(root, visibleIds)
+    .filter((node) => !suppressedNodeIds.has(getNodeId(node)));
   const inferred = createInferredPlaybackSteps(fallbackSequence, visibleIds);
 
   if (!derivationSteps || derivationSteps.length === 0) return finalizeReplayStepOrder(inferred);
 
-  const mappedProvidedSteps = mapProvidedStepsToNodes(visibleNodes, derivationSteps);
+  const replayVisibleNodes = visibleNodes.filter((node) => !suppressedNodeIds.has(getNodeId(node)));
+  const mappedProvidedSteps = mapProvidedStepsToNodes(replayVisibleNodes, derivationSteps);
   const withProvided = inferred.map((step) => {
     const provided = mappedProvidedSteps.get(step.targetNodeId);
     if (!provided) return step;
@@ -461,10 +464,8 @@ const buildPlaybackSteps = (
       note: provided.note || step.note
     };
   });
-  const mappedIds = new Set(withProvided.map((step) => step.targetNodeId));
   const supplementalProvided = derivationSteps
     .filter((step) => step.operation === 'SpellOut' || isMoveLikeOperation(step.operation))
-    .filter((step) => step.operation === 'SpellOut' || !step.targetNodeId || mappedIds.has(step.targetNodeId))
     .map((step, index) => ({
       operation: step.operation || 'SpellOut',
       targetNodeId: step.targetNodeId || `__spellout_${index}`,
@@ -686,6 +687,23 @@ const collectDescendantNodeIds = (node?: HierNode | null): string[] => {
   return node.descendants().map((descendant) => getNodeId(descendant)).filter(Boolean);
 };
 
+const buildSuppressedReplayNodeIds = (
+  visibleNodes: HierNode[],
+  resolvedMovementLinks?: ResolvedMovementEventLink[]
+): Set<string> => {
+  if (!resolvedMovementLinks || resolvedMovementLinks.length === 0) return new Set<string>();
+  const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
+  const suppressed = new Set<string>();
+
+  resolvedMovementLinks.forEach((link) => {
+    const target = nodeById.get(String(link.movedAnchorId || '').trim());
+    if (!target || !target.children || target.children.length === 0) return;
+    collectDescendantNodeIds(target).forEach((id) => suppressed.add(id));
+  });
+
+  return suppressed;
+};
+
 const markTriangulatedNodes = (rootHierarchy: HierNode, protectedNodeIds?: Set<string>) => {
   rootHierarchy.each((d) => {
     const label = (d.data.label || "").trim().toUpperCase();
@@ -876,8 +894,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
     }
     const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
-    return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps);
-  }, [animated, data, derivationSteps, abstractionMode, movementProtectedNodeIds]);
+    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, resolvedMovementLinks);
+    return buildPlaybackSteps(hierarchy, visibleNodes, derivationSteps, suppressedReplayNodeIds);
+  }, [animated, data, derivationSteps, abstractionMode, movementProtectedNodeIds, resolvedMovementLinks]);
   const replayMovementArrows = useMemo(() => {
     if (!animated || playbackSteps.length === 0) return [];
     const hierarchy = d3.hierarchy(JSON.parse(JSON.stringify(data)));
@@ -1060,7 +1079,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // 1. RENDER BRANCHES
     const visibleNodes = treeData.descendants().filter((node) => !isUnderTriangulation(node));
     const visibleLinks = treeData.links().filter((link) => !isUnderTriangulation(link.target)) as VisibleLink[];
-    const inferredTimeline = buildPlaybackSteps(rootHierarchy, visibleNodes, derivationSteps);
+    const suppressedReplayNodeIds = buildSuppressedReplayNodeIds(visibleNodes, resolvedMovementLinks);
+    const inferredTimeline = buildPlaybackSteps(rootHierarchy, visibleNodes, derivationSteps, suppressedReplayNodeIds);
     const timeline = animated && playbackSteps.length > 0 ? playbackSteps : inferredTimeline;
     const nodeStepIndex = buildNodeStepIndex(timeline);
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
