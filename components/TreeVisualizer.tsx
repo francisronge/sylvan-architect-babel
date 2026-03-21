@@ -167,6 +167,14 @@ const pickHierarchyTraceLeaf = (node: HierNode): HierNode | null => {
   );
 };
 
+const collectHierarchyOvertYield = (node: HierNode): string => {
+  return collectHierarchyLeaves(node)
+    .map((leaf) => resolveLeafSurface(leaf))
+    .filter((surface) => surface.length > 0 && !isNullLike(surface) && !isTraceLike(surface))
+    .join(' ')
+    .trim();
+};
+
 const getReadyNodePriority = (node: HierNode): number => {
   const hasChildren = Boolean(node.children && node.children.length > 0);
   if (hasChildren) return 1;
@@ -1144,6 +1152,48 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const currentStep = nodeRevealStepIndex.get(descendantId) ?? 0;
           nodeRevealStepIndex.set(descendantId, Math.max(currentStep, arrow.step));
         });
+      }
+
+      const isPhrasalMove = Boolean(arrow.target.children && arrow.target.children.length > 0);
+      if (isPhrasalMove) {
+        const traceAnchor =
+          arrow.traceNode
+            ? pickHierarchyTraceLeaf(arrow.traceNode) || arrow.traceNode
+            : (isTraceLike(resolveLeafSurface(arrow.source)) || isNullLike(resolveLeafSurface(arrow.source))
+                ? arrow.source
+                : pickHierarchyTraceLeaf(arrow.source) || arrow.source);
+        const movedPhraseSurface = collectHierarchyOvertYield(arrow.target);
+        const traceSurface = traceAnchor ? resolveLeafSurface(traceAnchor) : '';
+        const movementIndex =
+          arrow.index ||
+          extractMovementIndex(traceSurface) ||
+          null;
+
+        if (traceAnchor && movedPhraseSurface) {
+          terminalMorph.set(getNodeId(traceAnchor), {
+            preText: movedPhraseSurface,
+            postText: isTraceLike(traceSurface)
+              ? formatTraceSurfaceForDisplay(traceSurface, movementIndex)
+              : buildTraceLabel(movementIndex),
+            step: arrow.step,
+            hideBefore: false
+          });
+        }
+
+        collectHierarchyLeaves(arrow.target)
+          .filter((leaf) => {
+            const surface = resolveLeafSurface(leaf);
+            return surface.length > 0 && !isNullLike(surface) && !isTraceLike(surface);
+          })
+          .forEach((leaf) => {
+            terminalMorph.set(getNodeId(leaf), {
+              preText: '',
+              postText: resolveLeafSurface(leaf),
+              step: arrow.step,
+              hideBefore: true
+            });
+          });
+        return;
       }
 
       const sourceDisplayAnchor =
