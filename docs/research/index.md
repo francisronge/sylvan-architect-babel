@@ -5,6 +5,20 @@ permalink: /research/
 
 This section collects short papers and devlogs produced from Babel benchmark batches.
 
+## April 2026
+
+### [From Tree-First to Derivation-First](./from-tree-first-to-derivation-first/)
+
+Research Journal v1: why Babel had to be refactored, why derivation-first changed the system, and why smaller models now fall short of full Babel.
+
+- Date: April 10, 2026
+- Assets: [derivation-first-refactor-v1](./assets/derivation-first-refactor-v1/)
+- Focus: refactor rationale, renderer repair, cost pressure, and smaller-model failure under the stronger Babel standard
+
+| Refactored Gemini Portuguese Growth | Qwen Portuguese Growth |
+| --- | --- |
+| ![Refactored Portuguese growth](./assets/derivation-first-refactor-v1/pro-pt-replay-final.png) | ![Qwen Portuguese growth](./assets/derivation-first-refactor-v1/qwen-pt-growth.png) |
+
 ## March 2026
 
 ### [One Hundred Trees, One Hundred Public Syntactic Theories](./one-hundred-trees-under-forced-commitment/)
