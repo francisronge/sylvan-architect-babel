@@ -12,6 +12,9 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
 
     if (code === 'API_KEY_MISSING') return 'API_KEY_MISSING';
     if (code === 'API_KEY_INVALID') return 'API_KEY_INVALID';
+    if (code === 'LOCAL_MODEL_UNAVAILABLE') {
+      return message || 'Local model route is unavailable. Start the configured local model runtime and try again.';
+    }
     if (code === 'GEMINI_UNAVAILABLE') {
       return message || 'The canopy is noisy right now. Please plant your sentence again in a moment.';
     }
@@ -39,7 +42,7 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
 export const parseSentence = async (
   sentence: string,
   framework: 'xbar' | 'minimalism' = 'xbar',
-  modelRoute: 'flash-lite' | 'pro' = 'flash-lite'
+  modelRoute: 'local' | 'flash-lite' | 'pro' = 'local'
 ): Promise<ParseBundle> => {
   const response = await fetch('/api/parse', {
     method: 'POST',

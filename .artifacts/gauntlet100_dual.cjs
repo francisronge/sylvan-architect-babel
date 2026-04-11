@@ -457,6 +457,7 @@ function analyzeSuccess(testCase, route, payload, notesText, replay) {
       issues,
       modelUsed: payload?.modelUsed || payload?.metadata?.modelUsed || null,
       actualRoute: inferRouteFromModel(payload?.modelUsed || payload?.metadata?.modelUsed || ''),
+      fallbackUsed: Boolean(payload?.fallbackUsed),
       leaves,
       surfaceOrder,
       movementEventsCount: movementEvents.length,

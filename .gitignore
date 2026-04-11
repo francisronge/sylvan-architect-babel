@@ -15,6 +15,7 @@ dist-ssr
 !.artifacts/helpers/
 .artifacts/helpers/*
 !.artifacts/helpers/loadLocalEnv.cjs
+!.artifacts/helpers/surfaceTokens.cjs
 !.artifacts/quarantine/
 .artifacts/quarantine/*
 !.artifacts/quarantine/legacy-harnesses/
@@ -25,6 +26,7 @@ dist-ssr
 !.artifacts/capture_flavor_mixed10.cjs
 !.artifacts/direct_consistency_gauntlet.cjs
 !.artifacts/direct_consistency_world_sweep.cjs
+!.artifacts/gauntlet100_dual.cjs
 !.artifacts/live_consistency_gauntlet.cjs
 !.artifacts/novel_gauntlet_20.cjs
 !.artifacts/pro_novel5_sweep.cjs
@@ -47,3 +49,4 @@ skills/
 *.njsproj
 *.sln
 *.sw?
+.vercel

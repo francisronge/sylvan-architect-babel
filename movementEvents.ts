@@ -29,13 +29,7 @@ const STRUCTURAL_HEAD_LABEL_RE = /^(?:c|q|wh|t|infl|i|v|d|n|a|p|aux)$/i;
 const normalizeMovementOperation = (operation?: MovementEvent['operation']): string =>
   String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
 
-const indexToLetter = (index: number): string => {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-  if (index < alphabet.length) return alphabet[index];
-  const base = alphabet[index % alphabet.length];
-  const cycle = Math.floor(index / alphabet.length);
-  return `${base}${cycle}`;
-};
+const indexToReplayNumber = (index: number): string => String(index + 1);
 
 const collectLeafNodes = (root: SyntaxNode): SyntaxNode[] => {
   const leaves: SyntaxNode[] = [];
@@ -151,6 +145,7 @@ export const resolveMovementEventLinks = (
   const nodeById = buildNodeIndex(tree);
   const links: ResolvedMovementEventLink[] = [];
   const seenPairs = new Set<string>();
+  const chainIndexById = new Map<string, string>();
   let nextIndex = 0;
 
   movementEvents.forEach((event) => {
@@ -219,8 +214,15 @@ export const resolveMovementEventLinks = (
     if (seenPairs.has(pairKey)) return;
     seenPairs.add(pairKey);
 
-    const movementIndex = indexToLetter(nextIndex);
-    nextIndex += 1;
+    const normalizedChainId = String(event.chainId || '').trim();
+    let movementIndex = normalizedChainId ? chainIndexById.get(normalizedChainId) : undefined;
+    if (!movementIndex) {
+      movementIndex = indexToReplayNumber(nextIndex);
+      nextIndex += 1;
+      if (normalizedChainId) {
+        chainIndexById.set(normalizedChainId, movementIndex);
+      }
+    }
 
     const rawStep = Number(event.stepIndex);
     const stepIndex = Number.isInteger(rawStep) && rawStep >= 0 ? rawStep : undefined;
@@ -251,13 +253,38 @@ export const buildMovementIndexMaps = (
   const links = resolveMovementEventLinks(tree, movementEvents, framework);
   if (links.length === 0) return EMPTY_MOVEMENT_INDEX_MAPS;
 
+  const nodeById = buildNodeIndex(tree);
   const movedByNodeId = new Map<string, string>();
   const traceByNodeId = new Map<string, string>();
 
   links.forEach((link) => {
     movedByNodeId.set(link.movedAnchorId, link.movementIndex);
+    const movedNode = nodeById.get(link.movedAnchorId);
+    if (movedNode) {
+      collectLeafNodes(movedNode).forEach((leaf) => {
+        const leafId = String(leaf.id || '').trim();
+        if (leafId) movedByNodeId.set(leafId, link.movementIndex);
+      });
+    }
     if (link.traceAnchorId) {
       traceByNodeId.set(link.traceAnchorId, link.movementIndex);
+      const traceNode = nodeById.get(link.traceAnchorId);
+      if (traceNode) {
+        collectLeafNodes(traceNode).forEach((leaf) => {
+          const leafId = String(leaf.id || '').trim();
+          if (leafId) traceByNodeId.set(leafId, link.movementIndex);
+        });
+      }
+    }
+    if (link.sourceAnchorId) {
+      traceByNodeId.set(link.sourceAnchorId, link.movementIndex);
+      const sourceNode = nodeById.get(link.sourceAnchorId);
+      if (sourceNode) {
+        collectLeafNodes(sourceNode).forEach((leaf) => {
+          const leafId = String(leaf.id || '').trim();
+          if (leafId) traceByNodeId.set(leafId, link.movementIndex);
+        });
+      }
     }
   });
 

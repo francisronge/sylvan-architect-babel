@@ -390,7 +390,6 @@ async function runCase(page, item) {
     analysisPath,
     modelUsed,
     actualRoute,
-    fallbackUsed: Boolean(parsed.payload?.fallbackUsed),
     movementDecision: analysisSummary.analysis.movementDecision || null,
     movementEventsCount: analysisSummary.checks.movementEventsCount,
     derivationStepsCount: Array.isArray(analysisSummary.analysis.derivationSteps)
@@ -421,7 +420,7 @@ async function runCase(page, item) {
     try {
       const result = await runCase(page, item);
       results.push(result);
-      console.error(`[random20-dual] completed ${item.runId} ok=${result.ok} status=${result.status} actualRoute=${result.actualRoute || 'n/a'} fallback=${result.fallbackUsed ? 'yes' : 'no'}`);
+      console.error(`[random20-dual] completed ${item.runId} ok=${result.ok} status=${result.status} actualRoute=${result.actualRoute || 'n/a'}`);
     } catch (error) {
       const failed = path.join(OUT_DIR, `${item.runId}-exception.png`);
       await page.screenshot({ path: failed, fullPage: true }).catch(() => {});

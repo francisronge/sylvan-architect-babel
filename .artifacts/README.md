@@ -10,6 +10,8 @@ Current trusted harnesses before the 100-tree gauntlet:
   Trustworthy UI warm-up covering Canopy, Growth, and Notes on the live app.
 - `direct_consistency_world_sweep.cjs`
   Broader direct consistency sweep using `parseSentenceWithGemini`; now self-loads local env.
+- `gauntlet100_dual.cjs`
+  The serious 100-tree pre-launch gauntlet: 25 X-bar cases and 25 Minimalism cases, each run on both Pro and Flash Lite through the live API.
 - `api_consistency_multilang.cjs`
   API-based movement/notes consistency smoke through the live app.
 - `random20_dual_showcase.cjs`

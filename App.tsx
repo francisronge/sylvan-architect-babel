@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Analytics } from '@vercel/analytics/react';
 import { parseSentence } from './services/geminiService';
-import { DerivationStep, MovementEvent, ParseBundle, ParseResult, SyntaxNode } from './types';
+import { DerivationStep, MovementEvent, ParseBundle, ParseResult, ReplayLedgerBlock, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import RootLogo from './components/RootLogo';
 import {
@@ -10,6 +9,30 @@ import {
   MovementIndexMaps,
   EMPTY_MOVEMENT_INDEX_MAPS
 } from './movementEvents';
+import {
+  stringifyLedgerAtom,
+  hasMeaningfulLedgerText,
+  normalizeLedgerDisplay,
+  humanizeLedgerFallbackId,
+  humanizeLedgerStructuralHead,
+  formatAgreementReplayEntry,
+  formatSelectionReplayEntry,
+  formatCaseAssignmentReplayEntry,
+  formatThetaAssignmentReplayEntry,
+  formatBindingReplayEntry,
+  formatClausalDependencyReplayEntry,
+  formatPredicateClassReplayEntry,
+  formatProbeReplayEntry,
+  formatNullElementReplayEntry,
+  formatDiagnosticReplayEntry,
+  formatParameterReplayEntry,
+  formatInformationStructureReplayEntry,
+  formatOperatorScopeReplayEntry,
+  formatVoiceValencyReplayEntry,
+  formatLinearizationReplayEntry,
+  formatLocalityReplayEntry,
+  formatPredicationReplayEntry
+} from './replayLedgerDisplay';
 import { 
   RotateCcw, 
   Sparkles,
@@ -18,6 +41,7 @@ import {
   Layers,
   Zap,
   Info,
+  Brain,
   FileText,
   ChevronUp,
   ChevronDown,
@@ -63,18 +87,36 @@ const resolveUiError = (err: unknown): { needsKey: boolean; message: string } =>
 
 const formatModelLabel = (modelUsed?: string): string => {
   const model = String(modelUsed || '').trim();
-  if (!model) return 'Gemini 3.1 Flash Lite';
+  if (!model) return 'Local Model';
+  if (/^local:/i.test(model)) {
+    const detail = model.replace(/^local:/i, '').trim();
+    return detail ? `Local Model (${detail})` : 'Local Model';
+  }
   if (model === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash Lite';
   if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
   if (model === 'gemini-3-pro-preview') return 'Gemini 3 Pro';
   return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
 };
 
-type ModelRoute = 'flash-lite' | 'pro';
+type ModelRoute = 'local' | 'flash-lite' | 'pro';
+
+const MODEL_ROUTE_SEQUENCE: ModelRoute[] = ['local', 'flash-lite', 'pro'];
+const MODEL_ROUTE_LABELS: Record<ModelRoute, string> = {
+  local: 'Local Model',
+  'flash-lite': 'Gemini 3.1 Flash Lite',
+  pro: 'Gemini 3.1 Pro'
+};
+
+const nextModelRoute = (current: ModelRoute): ModelRoute => {
+  const index = MODEL_ROUTE_SEQUENCE.indexOf(current);
+  if (index < 0) return 'local';
+  return MODEL_ROUTE_SEQUENCE[(index + 1) % MODEL_ROUTE_SEQUENCE.length];
+};
 
 const inferModelRouteFromModel = (modelUsed?: string): ModelRoute => {
   const model = String(modelUsed || '').trim().toLowerCase();
-  if (!model) return 'flash-lite';
+  if (!model) return 'local';
+  if (model.startsWith('local:') || model.includes('ollama') || model.includes('gemma')) return 'local';
   return model.includes('pro') ? 'pro' : 'flash-lite';
 };
 
@@ -349,29 +391,103 @@ const appendMovementIndex = (token: string, movementIndex?: string): string => {
 const resolveLeafSurface = (node: SyntaxNode): string =>
   String(node.word || node.label || '').trim();
 
-const pruneCanopyMovementArtifacts = (node: SyntaxNode, isRoot = true): SyntaxNode | null => {
-  const children = Array.isArray(node.children) ? node.children : [];
-  const prunedChildren = children
-    .map((child) => pruneCanopyMovementArtifacts(child, false))
-    .filter((child): child is SyntaxNode => Boolean(child));
+const TRACE_SUBSCRIPT_TO_ASCII: Record<string, string> = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  'ᵢ': 'i', 'ⱼ': 'j', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm',
+  'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't'
+};
 
-  if (prunedChildren.length === 0) {
-    const surface = resolveLeafSurface(node);
-    if (!isRoot && TRACE_SURFACE_RE.test(surface)) {
-      return null;
-    }
-    return {
-      label: node.label,
-      id: node.id,
-      word: node.word
-    };
+const normalizeTraceSymbol = (value?: string): string =>
+  [...String(value || '').trim()].map((ch) => TRACE_SUBSCRIPT_TO_ASCII[ch] || ch).join('');
+
+const extractRawTraceMovementIndex = (value?: string): string | null => {
+  const normalized = normalizeTraceSymbol(value);
+  if (!normalized || !/^(?:t|trace)/i.test(normalized)) return null;
+  const suffix = normalized.replace(/^(?:t|trace)/i, '').replace(/^[_-]/, '').trim();
+  return suffix || null;
+};
+
+const collectLeafSyntaxNodes = (node: SyntaxNode, out: SyntaxNode[] = []): SyntaxNode[] => {
+  if (!node || typeof node !== 'object') return out;
+  const children = Array.isArray(node.children)
+    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
+    : [];
+  if (children.length === 0) {
+    out.push(node);
+    return out;
   }
+  children.forEach((child) => collectLeafSyntaxNodes(child, out));
+  return out;
+};
 
-  return {
-    label: node.label,
-    id: node.id,
-    children: prunedChildren
+const collectForestLeafSyntaxNodes = (forest?: SyntaxNode[] | null): SyntaxNode[] =>
+  (Array.isArray(forest) ? forest : []).flatMap((node) => collectLeafSyntaxNodes(node));
+
+const buildGrowthFirstMovementMaps = (
+  parse: ParseResult,
+  baseMaps: MovementIndexMaps
+): MovementIndexMaps => {
+  const frames = Array.isArray(parse.growthFrames) ? parse.growthFrames : [];
+  if (frames.length === 0) return baseMaps;
+
+  const movedByNodeId = new Map(baseMaps.movedByNodeId);
+  const traceByNodeId = new Map(baseMaps.traceByNodeId);
+  const chainIndexById = new Map<string, string>();
+  let nextIndex = 1;
+
+  const registerChain = (candidate?: string): string => {
+    const key = String(candidate || '').trim();
+    if (!key) return '';
+    const existing = chainIndexById.get(key);
+    if (existing) return existing;
+    const assigned = String(nextIndex);
+    nextIndex += 1;
+    chainIndexById.set(key, assigned);
+    return assigned;
   };
+
+  (Array.isArray(parse.movementEvents) ? parse.movementEvents : []).forEach((event) => {
+    registerChain(event.chainId);
+  });
+  frames.forEach((frame) => {
+    registerChain(frame?.chainId);
+  });
+
+  const rawTraceAlias = new Map<string, string>();
+  let previousTraceLeafIds = new Set<string>();
+  frames.forEach((frame) => {
+    const canonicalIndex = registerChain(frame?.chainId);
+    const traceLeaves = collectForestLeafSyntaxNodes(frame?.workspaceForest)
+      .map((leaf) => ({
+        id: String(leaf.id || '').trim(),
+        rawIndex: extractRawTraceMovementIndex(resolveLeafSurface(leaf))
+      }))
+      .filter((entry) => entry.id && entry.rawIndex);
+
+    if (frame?.movement && canonicalIndex) {
+      traceLeaves.forEach(({ id, rawIndex }) => {
+        if (!previousTraceLeafIds.has(id) && rawIndex && !rawTraceAlias.has(rawIndex)) {
+          rawTraceAlias.set(rawIndex, canonicalIndex);
+        }
+      });
+    }
+
+    previousTraceLeafIds = new Set(traceLeaves.map(({ id }) => id));
+  });
+
+  const finalFrame = frames[frames.length - 1];
+  collectForestLeafSyntaxNodes(finalFrame?.workspaceForest).forEach((leaf) => {
+    const nodeId = String(leaf.id || '').trim();
+    if (!nodeId || traceByNodeId.has(nodeId)) return;
+    const rawIndex = extractRawTraceMovementIndex(resolveLeafSurface(leaf));
+    if (!rawIndex) return;
+    const canonicalIndex = rawTraceAlias.get(rawIndex) || (/^\d+$/.test(rawIndex) ? rawIndex : '');
+    if (canonicalIndex) {
+      traceByNodeId.set(nodeId, canonicalIndex);
+    }
+  });
+
+  return { movedByNodeId, traceByNodeId };
 };
 
 const applyGrowthMovementNotation = (
@@ -401,9 +517,12 @@ const serializeMilesNode = (
   mode: MilesMode,
   movementMaps: MovementIndexMaps
 ): string => {
+  if (!node || typeof node !== 'object') return '';
   const label = String(node.label || '').trim();
   const word = String(node.word || '').trim();
-  const children = Array.isArray(node.children) ? node.children : [];
+  const children = Array.isArray(node.children)
+    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
+    : [];
 
   if (children.length === 0) {
     const rawSurface = (word || label || '∅').trim();
@@ -483,6 +602,7 @@ const buildMilesNotation = (
   movementEvents?: MovementEvent[],
   precomputedMovementMaps?: MovementIndexMaps
 ): string => {
+  if (!tree || typeof tree !== 'object') return '';
   const movementMaps = mode === 'growth'
     ? (precomputedMovementMaps || buildMovementIndexMaps(tree, movementEvents))
     : EMPTY_MOVEMENT_INDEX_MAPS;
@@ -844,39 +964,896 @@ const normalizeExplanationForDisplay = (
   movementEvents?: MovementEvent[],
   tree?: SyntaxNode | null
 ): string => {
-  const base = ensureExplanationTerminator(removeWeakHedging(explanation));
-  if (base) return base;
-  const hasMovementEvents = Array.isArray(movementEvents) && movementEvents.length > 0;
-  if (hasMovementEvents) return summarizeMovementFromEvents(tree, movementEvents);
-  return 'No movement is posited in this analysis.';
+  const cleaned = ensureExplanationTerminator(removeWeakHedging(explanation));
+  if (cleaned) return cleaned;
+  if (Array.isArray(movementEvents) && movementEvents.length > 0) {
+    return summarizeMovementFromEvents(tree, movementEvents);
+  }
+  return 'No explanation provided.';
+};
+
+const unwrapQuotedProviderText = (value: string): string => {
+  let text = String(value || '').trim();
+  if (!text) return '';
+  text = text.replace(/^```(?:json|text|markdown)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith("'") && text.endsWith("'"))
+  ) {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'string' && parsed.trim()) {
+        text = parsed.trim();
+      } else {
+        text = text.slice(1, -1).trim();
+      }
+    } catch {
+      text = text.slice(1, -1).trim();
+    }
+  }
+  return text.trim();
+};
+
+const normalizeProviderSummaryForDisplay = (summary: string): string => {
+  const text = unwrapQuotedProviderText(summary);
+  if (!text) return '';
+  if (
+    /^[{\[]/.test(text) &&
+    /"(?:analyses|analysis|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(text)
+  ) {
+    return '';
+  }
+  return text
+    .replace(/\r/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const summarizeProviderReasoningForDisplay = (summary: string, raw: string, maxChars = 520): string => {
+  const cleanedSummary = normalizeProviderSummaryForDisplay(summary);
+  const cleanedRaw = normalizeProviderRawForDisplay(raw);
+  const base = cleanedRaw || cleanedSummary;
+  if (!base) return '';
+
+  const metaIntroRe =
+    /^(?:analysis of[^:]*:\s*|deep dive into[^:]*:?|okay[, ]+|here(?:'|’)s how i(?:'|’)m thinking(?: about this sentence)?[, ]*|my immediate thought\??|first[, ]+|let(?:'|’)s\s+)/i;
+  const sentenceParts = base
+    .replace(/\bSHOW FULL RAW THINKING TRACE\b/gi, '')
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim().replace(/^\d+\.\s*/, '').replace(metaIntroRe, '').trim())
+    .filter(Boolean);
+
+  if (sentenceParts.length === 0) {
+    return base.length <= maxChars ? base : `${base.slice(0, maxChars).trim()}...`;
+  }
+
+  const decisionCueRe =
+    /\b(?:because|since|therefore|thus|so|given|evidence|cue|signal|shows?|indicates?|suggests?|supports?|licenses?|forces?|requires?|must|challenge|favou?rs?|prefers?|chooses?|decides?|rather than|instead of|contrast|alternative|standard analysis|word order|agreement|morphology|movement|selection|locality|scope|case|theta|theta-role|raising|control|passive|unaccusative|v2|wh|inversion)\b/i;
+  const recapPenaltyRe =
+    /\b(?:the analysis projects|the clause architecture|the final tree|spellout yields|surface string|surface order|the sentence is|this is a)\b/i;
+  const metaPenaltyRe =
+    /\b(?:i immediately recognize|i see|i begin|i'm thinking|here's how i'm thinking|my immediate thought|let's|okay)\b/i;
+
+  const ranked = sentenceParts.map((part, index) => {
+    let score = 0;
+    if (decisionCueRe.test(part)) score += 4;
+    if (/\b(?:rather than|instead of|contrast|alternative)\b/i.test(part)) score += 2;
+    if (/\b(?:because|since|given|shows?|indicates?|suggests?)\b/i.test(part)) score += 2;
+    if (/\b(?:must|requires?|challenge|standard analysis)\b/i.test(part)) score += 2;
+    if (recapPenaltyRe.test(part)) score -= 3;
+    if (metaPenaltyRe.test(part)) score -= 4;
+    return { part, index, score };
+  });
+
+  const chosen = ranked
+    .slice()
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+    .filter((entry) => entry.score > 0)
+    .slice(0, 3)
+    .sort((a, b) => a.index - b.index)
+    .map((entry) => entry.part);
+
+  const preferredParts = chosen.length > 0 ? chosen : sentenceParts.slice(0, 2);
+  const selected: string[] = [];
+  let total = 0;
+  for (const part of preferredParts) {
+    const nextTotal = total + (selected.length > 0 ? 1 : 0) + part.length;
+    if (selected.length >= 3 || nextTotal > maxChars) break;
+    selected.push(part);
+    total = nextTotal;
+  }
+
+  if (selected.length > 0) return selected.join(' ').trim();
+  return base.length <= maxChars ? base : `${base.slice(0, maxChars).trim()}...`;
+};
+
+const normalizeProviderRawForDisplay = (summary: string): string => {
+  const text = unwrapQuotedProviderText(summary);
+  if (!text) return '';
+  if (
+    /^[{\[]/.test(text) &&
+    /"(?:analyses|analysis|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(text)
+  ) {
+    return '';
+  }
+  return text
+    .replace(/\r/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+};
+
+const truncateReasoningSummary = (summary: string, limit = 900): string => {
+  const text = normalizeProviderSummaryForDisplay(summary);
+  if (!text || text.length <= limit) return text;
+  const boundary = Math.max(
+    text.lastIndexOf('. ', limit),
+    text.lastIndexOf('\n', limit),
+    text.lastIndexOf('; ', limit)
+  );
+  const cut = boundary >= Math.floor(limit * 0.65) ? boundary + 1 : limit;
+  return `${text.slice(0, cut).trim()}...`;
+};
+
+const getPreferredGrowthSteps = (parse: ParseResult | null): DerivationStep[] => {
+  if (!parse) return [];
+  const raw = Array.isArray(parse.rawDerivationSteps) ? parse.rawDerivationSteps : [];
+  if (raw.length > 0) return raw;
+  return Array.isArray(parse.derivationSteps) ? parse.derivationSteps : [];
+};
+
+const normalizeToken = (value?: string): string =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^<|>$/g, '')
+    .replace(/^⟨|⟩$/g, '')
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+
+const buildReadableNodeResolvers = (tree?: SyntaxNode | null) => {
+  const isStructuralLeafLabel = (value: string) =>
+    /^(?:c|c'|cp|infl|infl'|inflp|i|i'|ip|t|t'|tp|v|v'|vp|d|d'|dp|n|n'|np|p|p'|pp|a|a'|ap|q|q'|qp)$/i.test(value);
+  const stripStageSuffixes = (value: string) =>
+    stringifyLedgerAtom(value).replace(/(?:_(?:base|landing|trace|copy|infl|c|t|v|head|low|high|intermediate))+$/i, '');
+  const lexicalHintFromId = (value: string) => {
+    const raw = stringifyLedgerAtom(value);
+    if (!raw) return '';
+    const compact = stripStageSuffixes(raw);
+    const pieces = compact.split('_').filter(Boolean);
+    if (pieces.length < 2) return '';
+    const lexicalPieces = pieces.slice(1).filter((piece) => !/^(?:subj|obj|spec|comp|head|bar|root|matrix|embedded|emb|lower|upper|base|trace|copy|landing|phase|goal|probe|infl|c|t|v|d|n|p|a)$/i.test(piece));
+    return lexicalPieces.join(' ').trim();
+  };
+  const nodeById = new Map<string, SyntaxNode>();
+  const aliasToNodeId = new Map<string, string>();
+  const visit = (node?: SyntaxNode | null) => {
+    if (!node || typeof node !== 'object') return;
+    const id = stringifyLedgerAtom(node.id);
+    if (id) {
+      nodeById.set(id, node);
+      const alias = stripStageSuffixes(id);
+      if (alias && !aliasToNodeId.has(alias)) aliasToNodeId.set(alias, id);
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(tree);
+
+  const getNodeByReference = (reference?: string) => {
+    const raw = stringifyLedgerAtom(reference);
+    if (!raw) return null;
+    return nodeById.get(raw) || nodeById.get(aliasToNodeId.get(stripStageSuffixes(raw)) || '') || null;
+  };
+
+  const collectVisibleYield = (node?: SyntaxNode | null): string[] => {
+    if (!node) return [];
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length === 0) {
+      const word = stringifyLedgerAtom(node.word);
+      const label = stringifyLedgerAtom(node.label);
+      const surface = word || (!isStructuralLeafLabel(label) ? label : '');
+      if (!surface) return [];
+      if (/^(∅|Ø|ε|null|epsilon)$/i.test(surface)) return [];
+      if (/^(?:t|trace)(?:[_-]?[A-Za-z0-9]+)?$/i.test(surface)) return [];
+      return [surface];
+    }
+    return children.flatMap((child) => collectVisibleYield(child));
+  };
+
+  const resolveSurfaceRef = (reference?: string): string => {
+    const raw = stringifyLedgerAtom(reference);
+    if (!raw) return '';
+    const node = getNodeByReference(raw);
+    if (!node) {
+      const lexicalHint = lexicalHintFromId(raw);
+      return lexicalHint || humanizeLedgerFallbackId(normalizeLedgerDisplay(raw, { preferInner: true }));
+    }
+    const visibleYield = collectVisibleYield(node).join(' ').trim();
+    if (visibleYield) return visibleYield;
+    const label = stringifyLedgerAtom(node.label);
+    if (label) return label;
+    const lexicalHint = lexicalHintFromId(raw);
+    return lexicalHint || humanizeLedgerFallbackId(normalizeLedgerDisplay(raw, { preferInner: true }));
+  };
+
+  const resolveStructuralRef = (reference?: string): string => {
+    const raw = stringifyLedgerAtom(reference);
+    if (!raw) return '';
+    const node = getNodeByReference(raw);
+    if (!node) {
+      const lexicalHint = lexicalHintFromId(raw);
+      if (lexicalHint) {
+        const head = humanizeLedgerStructuralHead(raw);
+        return head ? `${head} (${lexicalHint})` : lexicalHint;
+      }
+      return humanizeLedgerFallbackId(normalizeLedgerDisplay(raw, { preferInner: false }));
+    }
+    const label = stringifyLedgerAtom(node.label);
+    const visibleYield = collectVisibleYield(node).join(' ').trim();
+    if (label && visibleYield && normalizeToken(label) !== normalizeToken(visibleYield)) {
+      return `${label} (${visibleYield})`;
+    }
+    return label || visibleYield || humanizeLedgerFallbackId(normalizeLedgerDisplay(raw, { preferInner: false }));
+  };
+
+  const resolveReadableReference = (preferred?: string, fallbackNodeRef?: string, { structural = false } = {}): string => {
+    const resolver = structural ? resolveStructuralRef : resolveSurfaceRef;
+    const preferredRaw = stringifyLedgerAtom(preferred);
+    const fallbackRaw = stringifyLedgerAtom(fallbackNodeRef);
+
+    if (preferredRaw) {
+      const resolvedPreferred = resolver(preferredRaw);
+      if (resolvedPreferred && resolvedPreferred !== humanizeLedgerFallbackId(preferredRaw)) {
+        return resolvedPreferred;
+      }
+      if (!/[A-Za-z]+_[A-Za-z0-9_]+/.test(preferredRaw)) {
+        return preferredRaw;
+      }
+      if (resolvedPreferred) return resolvedPreferred;
+    }
+
+    if (fallbackRaw) {
+      const resolvedFallback = resolver(fallbackRaw);
+      if (resolvedFallback) return resolvedFallback;
+    }
+
+    return preferredRaw || fallbackRaw || '';
+  };
+
+  return {
+    resolveSurfaceRef,
+    resolveStructuralRef,
+    resolveReadableReference
+  };
+};
+
+interface ReplayLedgerAttachment {
+  preferredStepId?: string;
+  block: ReplayLedgerBlock;
+}
+
+const REPLAY_LEDGER_OPERATIONS = new Set<DerivationStep['operation']>([
+  'FeatureLedger',
+  'CaseAssignment',
+  'ThetaAssignment',
+  'Selection',
+  'Binding',
+  'ClausalDependency'
+]);
+
+const isReplayLedgerOperation = (operation?: DerivationStep['operation'] | string): boolean =>
+  REPLAY_LEDGER_OPERATIONS.has(String(operation || '').trim() as DerivationStep['operation']);
+
+const buildReplayLedgerAttachments = (
+  parse: ParseResult,
+  workspaceAfter: string[],
+  rootId?: string,
+  rootLabel?: string
+): ReplayLedgerAttachment[] => {
+  const {
+    resolveReadableReference
+  } = buildReadableNodeResolvers(parse.tree);
+  const ledgerAttachments: ReplayLedgerAttachment[] = [];
+
+  const appendLedgerBlock = (
+    title: string,
+    lines: string[],
+    preferredStepId?: string
+  ) => {
+    const cleanedLines = lines.map((line) => stringifyLedgerAtom(line)).filter(Boolean);
+    if (cleanedLines.length === 0) return;
+    ledgerAttachments.push({
+      preferredStepId: stringifyLedgerAtom(preferredStepId) || undefined,
+      block: { title, lines: cleanedLines }
+    });
+  };
+
+  const appendAnchoredLedgerEntries = <T extends { stepIds?: string[] }>(
+    title: string,
+    entries: T[],
+    formatEntry: (entry: T) => string
+  ) => {
+    const linesByStep = new Map<string, string[]>();
+    const unanchoredLines: string[] = [];
+
+    entries.forEach((entry) => {
+      const line = stringifyLedgerAtom(formatEntry(entry));
+      if (!line) return;
+      const preferredStepIds = Array.isArray(entry.stepIds)
+        ? entry.stepIds.map((stepId) => stringifyLedgerAtom(stepId)).filter(Boolean)
+        : [];
+      if (preferredStepIds.length === 0) {
+        unanchoredLines.push(line);
+        return;
+      }
+      preferredStepIds.forEach((stepId) => {
+        const existing = linesByStep.get(stepId) || [];
+        existing.push(line);
+        linesByStep.set(stepId, existing);
+      });
+    });
+
+    linesByStep.forEach((lines, stepId) => appendLedgerBlock(title, lines, stepId));
+    appendLedgerBlock(title, unanchoredLines);
+  };
+
+  const featureLinesByStep = new Map<string, string[]>();
+  const unanchoredFeatureLines: string[] = [];
+  (parse.featureLedger || []).forEach((entry) => {
+      const line = (() => {
+      const node = stringifyLedgerAtom(entry.nodeId);
+      const value = stringifyLedgerAtom(entry.value);
+      const status = stringifyLedgerAtom(entry.status);
+      const source = stringifyLedgerAtom(entry.sourceStepId);
+      const parts = [
+        node ? `${node}: ` : '',
+        entry.feature,
+        value ? `=${value}` : '',
+        status ? ` [${status}]` : '',
+        source ? ` @ ${source}` : '',
+        entry.note ? ` - ${entry.note}` : ''
+      ];
+      return parts.join('');
+      })();
+      if (!line) return;
+      const sourceStepId = stringifyLedgerAtom(entry.sourceStepId);
+      if (sourceStepId) {
+        const existing = featureLinesByStep.get(sourceStepId) || [];
+        existing.push(line);
+        featureLinesByStep.set(sourceStepId, existing);
+      } else {
+        unanchoredFeatureLines.push(line);
+      }
+    });
+  featureLinesByStep.forEach((lines, stepId) => appendLedgerBlock('Feature Ledger', lines, stepId));
+  appendLedgerBlock('Feature Ledger', unanchoredFeatureLines);
+
+  appendAnchoredLedgerEntries(
+    'Case Assignment',
+    parse.caseAssignments || [],
+    (entry) => {
+      const assignee =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.assigneeLabel),
+          stringifyLedgerAtom(entry.nodeId),
+          { structural: false }
+        ) ||
+        'Unspecified node';
+      const assigner =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.assigner),
+          stringifyLedgerAtom(entry.assigner),
+          { structural: true }
+        );
+      return formatCaseAssignmentReplayEntry({
+        assignee,
+        assignedCase: entry.case,
+        assigner,
+        mechanism: entry.mechanism,
+        position: entry.position
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Theta Roles',
+    parse.argumentStructure || [],
+    (entry) => {
+      const referent =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.referent),
+          stringifyLedgerAtom(entry.nodeId),
+          { structural: true }
+        ) ||
+        '';
+      const predicate =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.predicate),
+          stringifyLedgerAtom(entry.predicate),
+          { structural: true }
+        );
+      const introducer =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.introducer),
+          stringifyLedgerAtom(entry.introducer),
+          { structural: true }
+        );
+      return formatThetaAssignmentReplayEntry({
+        referent,
+        role: entry.role,
+        predicate,
+          introducer,
+          position: entry.position
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Selection',
+    parse.selectionLedger || [],
+    (entry) => {
+      const selector =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.selectorHead) || stringifyLedgerAtom(entry.selectorLabel),
+          stringifyLedgerAtom(entry.selectorNodeId),
+          { structural: true }
+        ) ||
+        'Unspecified selector';
+      const selectedLabel =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.selectedLabel),
+          stringifyLedgerAtom(entry.selectedNodeId),
+          { structural: true }
+        );
+      return formatSelectionReplayEntry({
+        selector,
+        selectedLabel,
+        selectedCategory: entry.selectedCategory,
+        relation: entry.relation
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Binding',
+    parse.bindingLedger || [],
+    (entry) => {
+      const antecedent =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.antecedentLabel),
+          stringifyLedgerAtom(entry.antecedentNodeId),
+          { structural: false }
+        ) ||
+        'Unspecified antecedent';
+      const dependent =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.dependentLabel),
+          stringifyLedgerAtom(entry.dependentNodeId),
+          { structural: false }
+        ) ||
+        'unspecified dependent';
+      return formatBindingReplayEntry({
+        antecedent,
+        dependent,
+        principle: entry.principle,
+        relation: entry.relation,
+        status: entry.status
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Clausal Dependencies',
+    parse.clausalDependencies || [],
+    (entry) => {
+      const subtype = stringifyLedgerAtom(entry.subtype);
+      const type = stringifyLedgerAtom(entry.type) || 'dependency';
+      const label = subtype || type;
+      const controller =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.controllerLabel),
+          stringifyLedgerAtom(entry.controllerNodeId),
+          { structural: false }
+        );
+      const dependent =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.dependentLabel),
+          stringifyLedgerAtom(entry.dependentNodeId),
+          { structural: true }
+        );
+      const predicate =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.predicateLabel),
+          stringifyLedgerAtom(entry.predicateNodeId),
+          { structural: true }
+        );
+      const clause =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.clauseLabel),
+          stringifyLedgerAtom(entry.clauseNodeId),
+          { structural: true }
+        );
+      return formatClausalDependencyReplayEntry({
+        label,
+        controller,
+        dependent,
+        predicate,
+        clause,
+        evidence: entry.evidence
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Agreement',
+    parse.agreementLedger || [],
+    (entry) => {
+      const probe =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.probeLabel),
+          stringifyLedgerAtom(entry.probeNodeId),
+          { structural: true }
+        );
+      const goal =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.goalLabel),
+          stringifyLedgerAtom(entry.goalNodeId),
+          { structural: false }
+        );
+      return formatAgreementReplayEntry({
+        probe,
+        goal,
+        feature: entry.feature,
+        value: entry.value,
+        morphology: entry.morphology,
+        status: entry.status,
+        direction: entry.direction,
+        domain: entry.domain,
+        defaultValue: entry.defaultValue
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Predicate Class',
+    parse.predicateClassLedger || [],
+    (entry) => {
+      const predicate =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.predicateLabel),
+          stringifyLedgerAtom(entry.predicateNodeId),
+          { structural: true }
+        );
+      return formatPredicateClassReplayEntry({
+        predicate,
+        classification: entry.classification,
+        subtype: entry.subtype,
+        diagnostics: entry.diagnostics,
+        evidence: entry.evidence
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Probe Ledger',
+    parse.probeLedger || [],
+    (entry) => {
+      const probe =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.probeLabel),
+          stringifyLedgerAtom(entry.probeNodeId),
+          { structural: true }
+        );
+      const goal =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.goalLabel),
+          stringifyLedgerAtom(entry.goalNodeId),
+          { structural: true }
+        );
+      return formatProbeReplayEntry({
+        probe,
+        goal,
+        feature: entry.feature,
+        direction: entry.direction,
+        domain: entry.domain,
+        locality: entry.locality,
+        outcome: entry.outcome
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Null Elements',
+    parse.nullElementLedger || [],
+    (entry) => {
+      const controller =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.controllerLabel),
+          stringifyLedgerAtom(entry.controllerNodeId),
+          { structural: false }
+        );
+      const antecedent =
+        resolveReadableReference(
+          stringifyLedgerAtom(entry.antecedentLabel),
+          stringifyLedgerAtom(entry.antecedentNodeId),
+          { structural: false }
+        );
+      return formatNullElementReplayEntry({
+        label: entry.label,
+        kind: entry.kind,
+        controller,
+        antecedent,
+        licensing: entry.licensing,
+        evidence: entry.evidence
+      });
+    }
+  );
+
+  appendAnchoredLedgerEntries(
+    'Diagnostics',
+    parse.diagnosticLedger || [],
+    (entry) =>
+      formatDiagnosticReplayEntry({
+        diagnostic: entry.diagnostic,
+        observation: entry.observation,
+        supports: entry.supports,
+        status: entry.status,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Parameters',
+    parse.parameterLedger || [],
+    (entry) =>
+      formatParameterReplayEntry({
+        parameter: entry.parameter,
+        value: entry.value,
+        domain: entry.domain,
+        language: entry.language,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Information Structure',
+    parse.informationStructureLedger || [],
+    (entry) =>
+      formatInformationStructureReplayEntry({
+        label:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.label),
+            stringifyLedgerAtom(entry.nodeId),
+            { structural: false }
+          ),
+        role: entry.role,
+        scope: entry.scope,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Operator Scope',
+    parse.operatorScopeLedger || [],
+    (entry) =>
+      formatOperatorScopeReplayEntry({
+        operator:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.operatorLabel),
+            stringifyLedgerAtom(entry.operatorNodeId),
+            { structural: true }
+          ),
+        scope:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.scopeLabel),
+            stringifyLedgerAtom(entry.scopeNodeId),
+            { structural: true }
+          ),
+        operatorType: entry.operatorType,
+        relation: entry.relation,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Voice & Valency',
+    parse.voiceValencyLedger || [],
+    (entry) =>
+      formatVoiceValencyReplayEntry({
+        predicate:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.predicateLabel),
+            stringifyLedgerAtom(entry.predicateNodeId),
+            { structural: true }
+          ),
+        voice: entry.voice,
+        valency: entry.valency,
+        externalArgument: entry.externalArgument,
+        internalArgument: entry.internalArgument,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Linearization',
+    parse.linearizationLedger || [],
+    (entry) =>
+      formatLinearizationReplayEntry({
+        domain:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.domainLabel),
+            stringifyLedgerAtom(entry.domainNodeId),
+            { structural: true }
+          ),
+        order: entry.order,
+        mechanism: entry.mechanism,
+        effect: entry.effect,
+        evidence: entry.evidence || entry.note
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Locality',
+    parse.localityLedger || [],
+    (entry) =>
+      formatLocalityReplayEntry({
+        dependencyType: entry.dependencyType,
+        moving:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.movingLabel),
+            stringifyLedgerAtom(entry.movingNodeId),
+            { structural: false }
+          ),
+        landing:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.landingLabel),
+            stringifyLedgerAtom(entry.landingNodeId),
+            { structural: true }
+          ),
+        boundary: entry.boundary,
+        status: entry.status,
+        evidence: entry.evidence || entry.note
+      })
+    
+  );
+
+  appendAnchoredLedgerEntries(
+    'Predication',
+    parse.predicationLedger || [],
+    (entry) =>
+      formatPredicationReplayEntry({
+        predicate:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.predicateLabel),
+            stringifyLedgerAtom(entry.predicateNodeId),
+            { structural: true }
+          ),
+        subject:
+          resolveReadableReference(
+            stringifyLedgerAtom(entry.subjectLabel),
+            stringifyLedgerAtom(entry.subjectNodeId),
+            { structural: false }
+          ),
+        relation: entry.relation,
+        evidence: entry.evidence
+      })
+    
+  );
+
+  return ledgerAttachments;
+};
+
+const attachReplayLedgerBlocksToStructuralSteps = (
+  structuralSteps: DerivationStep[],
+  ledgerAttachments: ReplayLedgerAttachment[],
+  fallbackSteps: DerivationStep[] = []
+): { structuralSteps: DerivationStep[]; fallbackSteps: DerivationStep[] } => {
+  const normalizedStructuralSteps = structuralSteps.map((step) => ({
+    ...step,
+    ledgerBlocks: Array.isArray(step.ledgerBlocks) ? [...step.ledgerBlocks] : []
+  }));
+  const normalizedFallbackSteps = fallbackSteps.map((step) => ({
+    ...step,
+    ledgerBlocks: Array.isArray(step.ledgerBlocks) ? [...step.ledgerBlocks] : []
+  }));
+  const stepIndexById = new Map<string, number>();
+  normalizedStructuralSteps.forEach((step, index) => {
+    const stepId = stringifyLedgerAtom(step.stepId);
+    if (stepId) stepIndexById.set(stepId, index);
+  });
+  const fallbackStructuralIndex = normalizedStructuralSteps.length > 0 ? normalizedStructuralSteps.length - 1 : -1;
+  const fallbackStepIndex = normalizedFallbackSteps.length > 0 ? normalizedFallbackSteps.length - 1 : -1;
+
+  ledgerAttachments.forEach(({ preferredStepId, block }) => {
+    const preferredIndex = preferredStepId ? stepIndexById.get(preferredStepId) : undefined;
+    const targetStructuralIndex = preferredIndex ?? fallbackStructuralIndex;
+    if (targetStructuralIndex >= 0) {
+      normalizedStructuralSteps[targetStructuralIndex].ledgerBlocks!.push(block);
+      return;
+    }
+    if (fallbackStepIndex >= 0) {
+      normalizedFallbackSteps[fallbackStepIndex].ledgerBlocks!.push(block);
+    }
+  });
+
+  return {
+    structuralSteps: normalizedStructuralSteps,
+    fallbackSteps: normalizedFallbackSteps
+  };
 };
 
 const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] | undefined => {
   if (!parse) return undefined;
-  const existing = Array.isArray(parse.derivationSteps) ? parse.derivationSteps : [];
+  const existing = getPreferredGrowthSteps(parse);
+  const spelloutSteps = existing.filter((step) => String(step?.operation || '').trim() === 'SpellOut');
+  const structuralSteps = existing.filter((step) => {
+    const operation = String(step?.operation || '').trim();
+    return operation !== 'SpellOut' && !isReplayLedgerOperation(operation);
+  });
+  const lastStructural = structuralSteps[structuralSteps.length - 1];
+  const rootId = String(parse.tree?.id || '').trim() || undefined;
+  const rootLabel = String(parse.tree?.label || '').trim() || 'Tree';
+  const workspaceSnapshot = Array.isArray(lastStructural?.workspaceAfter) && lastStructural.workspaceAfter.length > 0
+    ? lastStructural.workspaceAfter
+    : [rootLabel];
+  const ledgerAttachments = buildReplayLedgerAttachments(parse, workspaceSnapshot, rootId, rootLabel);
   const surfaceOrder = Array.isArray(parse.surfaceOrder)
     ? parse.surfaceOrder.map((token) => String(token || '').trim()).filter(Boolean)
     : [];
-  if (surfaceOrder.length === 0) return existing.length > 0 ? existing : undefined;
-  const hasSpellout = existing.some((step) => String(step?.operation || '').trim() === 'SpellOut');
-  if (hasSpellout) return existing;
-
-  const rootId = String(parse.tree?.id || '').trim() || undefined;
-  const rootLabel = String(parse.tree?.label || '').trim() || 'Tree';
-  return [
-    ...existing,
-    {
-      operation: 'SpellOut',
-      targetNodeId: rootId,
-      targetLabel: rootLabel,
-      sourceNodeIds: rootId ? [rootId] : undefined,
-      sourceLabels: [rootLabel],
-      recipe: 'SpellOut',
-      workspaceAfter: [rootLabel],
-      spelloutOrder: surfaceOrder,
-      note: 'Final spellout of the committed surface order.'
+  const buildDeterministicReplaySpelloutNote = (tokens: string[]): string => {
+    if (!Array.isArray(tokens) || tokens.length === 0) {
+      return 'Final spellout of the committed surface order.';
     }
-  ];
+    return `Committed surface order: ${tokens.join(' ')}`;
+  };
+  const ensuredSpellout = spelloutSteps.length > 0
+    ? spelloutSteps.map((step) => {
+        const effectiveSpelloutOrder = Array.isArray(step?.spelloutOrder) && step.spelloutOrder.length > 0
+          ? step.spelloutOrder.map((token) => String(token || '').trim()).filter(Boolean)
+          : surfaceOrder;
+        return {
+          ...step,
+          targetNodeId: step?.targetNodeId || rootId,
+          targetLabel: step?.targetLabel || rootLabel,
+          sourceNodeIds: Array.isArray(step?.sourceNodeIds) && step.sourceNodeIds.length > 0
+            ? step.sourceNodeIds
+            : (rootId ? [rootId] : undefined),
+          sourceLabels: Array.isArray(step?.sourceLabels) && step.sourceLabels.length > 0
+            ? step.sourceLabels
+            : [rootLabel],
+          recipe: step?.recipe || `SpellOut(${rootLabel})`,
+          spelloutOrder: effectiveSpelloutOrder,
+          note: buildDeterministicReplaySpelloutNote(effectiveSpelloutOrder)
+        };
+      })
+    : (surfaceOrder.length > 0
+      ? [
+          {
+            operation: 'SpellOut',
+            targetNodeId: rootId,
+            targetLabel: rootLabel,
+            sourceNodeIds: rootId ? [rootId] : undefined,
+            sourceLabels: [rootLabel],
+            recipe: 'SpellOut',
+            workspaceAfter: [rootLabel],
+            spelloutOrder: surfaceOrder,
+            note: buildDeterministicReplaySpelloutNote(surfaceOrder)
+          }
+        ]
+      : []);
+
+  const attachedReplay = attachReplayLedgerBlocksToStructuralSteps(structuralSteps, ledgerAttachments, ensuredSpellout);
+  const replaySteps = [...attachedReplay.structuralSteps, ...attachedReplay.fallbackSteps];
+  return replaySteps.length > 0 ? replaySteps : undefined;
 };
 
 const App: React.FC = () => {
@@ -906,10 +1883,11 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
+  const [devCaptureMode, setDevCaptureMode] = useState(false);
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
-  const [modelRoute, setModelRoute] = useState<ModelRoute>('flash-lite');
+  const [modelRoute, setModelRoute] = useState<ModelRoute>('local');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -922,9 +1900,8 @@ const App: React.FC = () => {
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
-  const selectedModelLabel = modelRoute === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.1 Flash Lite';
+  const selectedModelLabel = MODEL_ROUTE_LABELS[modelRoute];
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
-  const isFallbackModel = Boolean(analysisBundle?.fallbackUsed);
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const resolvedMovementLinks = useMemo(() => {
@@ -933,13 +1910,13 @@ const App: React.FC = () => {
   }, [activeParse, framework]);
   const growthMovementMaps = useMemo(() => {
     if (!activeParse) return EMPTY_MOVEMENT_INDEX_MAPS;
-    return buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents, framework);
+    const baseMaps = buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents, framework);
+    return buildGrowthFirstMovementMaps(activeParse, baseMaps);
   }, [activeParse, framework]);
   const replayDerivationSteps = useMemo(() => ensureReplaySpelloutStep(activeParse), [activeParse]);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    const tracePrunedTree = pruneCanopyMovementArtifacts(activeParse.tree) || activeParse.tree;
-    return buildMilesNotation(tracePrunedTree, 'canopy');
+    return buildMilesNotation(activeParse.tree, 'canopy');
   }, [activeParse]);
   const growthMilesNotation = useMemo(() => {
     if (!activeParse) return '';
@@ -949,6 +1926,82 @@ const App: React.FC = () => {
     if (!activeParse) return '';
     return normalizeExplanationForDisplay(activeParse.explanation, activeParse.movementEvents, activeParse.tree);
   }, [activeParse]);
+  const providerReasoningRaw = useMemo(
+    () => normalizeProviderRawForDisplay(String(activeParse?.provenance?.providerReasoningRaw || '')),
+    [activeParse]
+  );
+  const providerReasoningSummary = useMemo(
+    () => summarizeProviderReasoningForDisplay(
+      String(activeParse?.provenance?.providerReasoningSummary || ''),
+      String(activeParse?.provenance?.providerReasoningRaw || '')
+    ),
+    [activeParse]
+  );
+  const providerReasoningPreview = useMemo(
+    () => truncateReasoningSummary(providerReasoningSummary, 780),
+    [providerReasoningSummary]
+  );
+  const notesSecondPassReasoningRaw = useMemo(
+    () => normalizeProviderRawForDisplay(String(activeParse?.provenance?.notesSecondPassReasoningRaw || '')),
+    [activeParse]
+  );
+  const notesSecondPassReasoningSummary = useMemo(
+    () => summarizeProviderReasoningForDisplay(
+      String(activeParse?.provenance?.notesSecondPassReasoningSummary || ''),
+      String(activeParse?.provenance?.notesSecondPassReasoningRaw || '')
+    ),
+    [activeParse]
+  );
+  const notesSecondPassReasoningPreview = useMemo(
+    () => truncateReasoningSummary(notesSecondPassReasoningSummary, 420),
+    [notesSecondPassReasoningSummary]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const target = window as any;
+    target.__BABEL_DEV_SET_ANALYSIS__ = (bundle: ParseBundle, options: {
+      sentence?: string;
+      framework?: 'xbar' | 'minimalism';
+      modelRoute?: ModelRoute;
+    } = {}) => {
+      setAnalysisBundle(bundle);
+      const nextSentence = String(options.sentence || '').trim();
+      if (nextSentence) {
+        setParsedSentence(nextSentence);
+        setInput(nextSentence);
+      }
+      if (options.framework) setFramework(options.framework);
+      if (options.modelRoute) setModelRoute(options.modelRoute);
+      setActiveParseIndex(0);
+      setActiveTab('tree');
+      setError(null);
+      setCopiedCodeKey(null);
+      setNeedsKey(false);
+      setIsInputVisible(true);
+      setIsInputExpanded(true);
+      setWorkspaceView('arboretum');
+      setLoading(false);
+    };
+    target.__BABEL_DEV_SET_TAB__ = (tab: AppTab) => {
+      if (tab === 'tree' || tab === 'growth' || tab === 'notes') {
+        setActiveTab(tab);
+      }
+    };
+    target.__BABEL_DEV_SET_INPUT_VISIBILITY__ = (visible: boolean) => {
+      setIsInputVisible(Boolean(visible));
+    };
+    target.__BABEL_DEV_SET_CAPTURE_MODE__ = (enabled: boolean) => {
+      setDevCaptureMode(Boolean(enabled));
+    };
+
+    return () => {
+      delete target.__BABEL_DEV_SET_ANALYSIS__;
+      delete target.__BABEL_DEV_SET_TAB__;
+      delete target.__BABEL_DEV_SET_INPUT_VISIBILITY__;
+      delete target.__BABEL_DEV_SET_CAPTURE_MODE__;
+    };
+  }, []);
 
   useEffect(() => {
     const checkKeyStatus = async () => {
@@ -1272,19 +2325,30 @@ const App: React.FC = () => {
 
                   {!isTreeBankView && (
                     <button
-                      onClick={() => setModelRoute(modelRoute === 'flash-lite' ? 'pro' : 'flash-lite')}
+                      onClick={() => setModelRoute(nextModelRoute(modelRoute))}
                       className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-5 py-2 md:py-2.5 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap ${
                         modelRoute === 'pro'
                           ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
-                          : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
+                          : modelRoute === 'flash-lite'
+                            ? 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
+                            : 'text-sky-300 bg-sky-950/35 border-sky-700/40'
                       }`}
                       title={
                         analysisBundle?.modelUsed
-                          ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}${isFallbackModel ? ' (fallback).' : '.'}`
-                          : 'Toggle parsing model route'
+                          ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
+                          : 'Cycle parsing model route'
                       }
                     >
-                      <Zap size={10} className={modelRoute === 'pro' ? 'fill-purple-300' : 'fill-emerald-400'} />
+                      <Zap
+                        size={10}
+                        className={
+                          modelRoute === 'pro'
+                            ? 'fill-purple-300'
+                            : modelRoute === 'flash-lite'
+                              ? 'fill-emerald-400'
+                              : 'fill-sky-300'
+                        }
+                      />
                       {selectedModelLabel}
                     </button>
                   )}
@@ -1480,7 +2544,10 @@ const App: React.FC = () => {
               data={activeParse.tree} 
               animated={activeTab === 'growth'} 
               derivationSteps={replayDerivationSteps}
+              growthFrames={activeParse.growthFrames}
+              movementEvents={activeParse.movementEvents}
               resolvedMovementLinks={resolvedMovementLinks}
+              movementMaps={growthMovementMaps}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
             />
@@ -1491,16 +2558,54 @@ const App: React.FC = () => {
               {activeTab === 'notes' && (
                 <div className="max-w-4xl w-full space-y-8">
                   <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
-                     <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8">
+                      <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8">
                         <div className="w-10 h-10 md:w-12 md:h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
                           <Info size={24} />
                         </div>
                         <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Structural Genealogy ({framework === 'xbar' ? 'X-Bar' : 'Minimalism'})</h2>
                       </div>
-                      {activeParse.interpretation && (
-                        <p className="text-xs uppercase tracking-[0.2em] text-emerald-400/70 mb-4">{activeParse.interpretation}</p>
-                      )}
                       <p className="text-emerald-50/90 leading-relaxed italic serif text-lg md:text-2xl border-l-2 border-emerald-500/20 pl-5 md:pl-8">"{normalizedExplanation}"</p>
+                      {providerReasoningSummary && (
+                        <div className="mb-6 md:mb-8 bg-black/35 border border-emerald-500/10 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-inner">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-9 h-9 rounded-2xl bg-white/5 border border-white/10 text-emerald-400 flex items-center justify-center">
+                              <Brain size={18} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Provider Reasoning Summary</p>
+                          </div>
+                          <p className="text-emerald-50/85 leading-relaxed serif text-base md:text-xl whitespace-pre-wrap">
+                            {providerReasoningPreview || providerReasoningSummary}
+                          </p>
+                          {providerReasoningRaw && providerReasoningRaw !== (providerReasoningPreview || providerReasoningSummary) && (
+                            <details className="mt-4 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                              <summary className="cursor-pointer text-[11px] font-black uppercase tracking-[0.24em] text-emerald-300/75">
+                                Show Full Raw Thinking Trace
+                              </summary>
+                              <pre className="mt-3 whitespace-pre-wrap break-words text-xs md:text-sm leading-relaxed text-emerald-50/72 serif">
+                                {providerReasoningRaw}
+                              </pre>
+                            </details>
+                          )}
+                          {notesSecondPassReasoningSummary && (
+                            <div className="mt-5 pt-5 border-t border-white/5">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/65 mb-2">Notes Pass Summary</p>
+                              <p className="text-emerald-50/65 leading-relaxed serif text-sm md:text-lg whitespace-pre-wrap">
+                                {notesSecondPassReasoningPreview || notesSecondPassReasoningSummary}
+                              </p>
+                              {notesSecondPassReasoningRaw && notesSecondPassReasoningRaw !== (notesSecondPassReasoningPreview || notesSecondPassReasoningSummary) && (
+                                <details className="mt-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                                  <summary className="cursor-pointer text-[11px] font-black uppercase tracking-[0.24em] text-emerald-300/60">
+                                    Show Full Raw Notes Pass Reasoning
+                                  </summary>
+                                  <pre className="mt-3 whitespace-pre-wrap break-words text-xs md:text-sm leading-relaxed text-emerald-50/60 serif">
+                                    {notesSecondPassReasoningRaw}
+                                  </pre>
+                                </details>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
 
                   {(canopyMilesNotation || growthMilesNotation) && (
@@ -1615,7 +2720,7 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            {!hideShowcaseInput && (
+            {!hideShowcaseInput && !devCaptureMode && (
               <>
                 {/* Input UI */}
                 <div
@@ -1700,9 +2805,6 @@ const App: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  <p className="mt-3 px-4 text-center text-[9px] md:text-[10px] uppercase tracking-[0.26em] text-emerald-900/70">
-                    Parses may be stored anonymously for research and product improvement.
-                  </p>
                 </div>
 
                 {/* Restore Logo Trigger */}
@@ -1773,7 +2875,6 @@ const App: React.FC = () => {
         </div>
       </footer>
       )}
-      <Analytics />
     </div>
   );
 };
