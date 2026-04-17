@@ -70,17 +70,21 @@ const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>
 
 const KEY_ERROR_CODES = new Set(['API_KEY_EXPIRED', 'API_KEY_MISSING', 'API_KEY_INVALID']);
 
-const resolveUiError = (err: unknown): { needsKey: boolean; message: string } => {
+type KeyPromptMode = 'none' | 'gemini' | 'external';
+
+const resolveUiError = (err: unknown): { needsKey: boolean; keyPromptMode: KeyPromptMode; message: string } => {
   const message = err instanceof Error ? err.message : String(err || '');
   if (KEY_ERROR_CODES.has(message)) {
     return {
       needsKey: true,
+      keyPromptMode: 'gemini',
       message: 'Your API key is missing or invalid. Please update it below.'
     };
   }
 
   return {
     needsKey: false,
+    keyPromptMode: 'none',
     message: message || 'Linguistic growth interrupted.'
   };
 };
@@ -92,32 +96,76 @@ const formatModelLabel = (modelUsed?: string): string => {
     const detail = model.replace(/^local:/i, '').trim();
     return detail ? `Local Model (${detail})` : 'Local Model';
   }
-  if (model === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash Lite';
   if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
   if (model === 'gemini-3-pro-preview') return 'Gemini 3 Pro';
   return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
 };
 
-type ModelRoute = 'local' | 'flash-lite' | 'pro';
+type ModelMode = 'local' | 'pro' | 'gpt-5.4' | 'claude-4.6';
 
-const MODEL_ROUTE_SEQUENCE: ModelRoute[] = ['local', 'flash-lite', 'pro'];
-const MODEL_ROUTE_LABELS: Record<ModelRoute, string> = {
+const MODEL_ROUTE_LABELS: Record<ModelMode, string> = {
   local: 'Local Model',
-  'flash-lite': 'Gemini 3.1 Flash Lite',
-  pro: 'Gemini 3.1 Pro'
+  pro: 'Gemini 3.1 Pro',
+  'gpt-5.4': 'GPT 5.4',
+  'claude-4.6': 'Claude 4.6'
 };
 
-const nextModelRoute = (current: ModelRoute): ModelRoute => {
-  const index = MODEL_ROUTE_SEQUENCE.indexOf(current);
-  if (index < 0) return 'local';
-  return MODEL_ROUTE_SEQUENCE[(index + 1) % MODEL_ROUTE_SEQUENCE.length];
+const MODEL_MODE_PILLS: Array<{
+  id: ModelMode;
+  label: string;
+  className: string;
+  activeClassName: string;
+  keyRequired?: boolean;
+}> = [
+  {
+    id: 'local',
+    label: 'Local',
+    className: 'border-sky-900/40 bg-sky-950/20 text-sky-200 hover:border-sky-600/50 hover:bg-sky-900/30',
+    activeClassName: 'border-sky-500/70 bg-sky-500/20 text-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.22)]'
+  },
+  {
+    id: 'pro',
+    label: 'Gemini Pro',
+    className: 'border-purple-900/40 bg-purple-950/20 text-purple-200 hover:border-purple-600/50 hover:bg-purple-900/30',
+    activeClassName: 'border-purple-500/70 bg-purple-500/20 text-purple-100 shadow-[0_0_18px_rgba(168,85,247,0.22)]'
+  },
+  {
+    id: 'gpt-5.4',
+    label: 'GPT 5.4',
+    className: 'border-blue-900/40 bg-blue-950/20 text-blue-200 hover:border-blue-600/50 hover:bg-blue-900/30',
+    activeClassName: 'border-blue-500/70 bg-blue-500/20 text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.24)]',
+    keyRequired: true
+  },
+  {
+    id: 'claude-4.6',
+    label: 'Claude 4.6',
+    className: 'border-orange-900/40 bg-orange-950/20 text-orange-200 hover:border-orange-600/50 hover:bg-orange-900/30',
+    activeClassName: 'border-orange-500/70 bg-orange-500/20 text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.24)]',
+    keyRequired: true
+  }
+];
+
+const isBackendModelMode = (value: ModelMode): value is 'local' | 'pro' =>
+  value === 'local' || value === 'pro';
+
+const isExternalApiModelMode = (value: ModelMode): value is 'gpt-5.4' | 'claude-4.6' =>
+  value === 'gpt-5.4' || value === 'claude-4.6';
+
+const coerceModelRoute = (value?: string): ModelMode => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'pro') return 'pro';
+  if (normalized === 'gpt-5.4') return 'gpt-5.4';
+  if (normalized === 'claude-4.6') return 'claude-4.6';
+  return 'local';
 };
 
-const inferModelRouteFromModel = (modelUsed?: string): ModelRoute => {
+const inferModelRouteFromModel = (modelUsed?: string): ModelMode => {
   const model = String(modelUsed || '').trim().toLowerCase();
   if (!model) return 'local';
   if (model.startsWith('local:') || model.includes('ollama') || model.includes('gemma')) return 'local';
-  return model.includes('pro') ? 'pro' : 'flash-lite';
+  if (model.includes('claude')) return 'claude-4.6';
+  if (model.includes('gpt-5.4') || model.includes('gpt-5')) return 'gpt-5.4';
+  return 'pro';
 };
 
 type MilesMode = 'canopy' | 'growth';
@@ -423,12 +471,26 @@ const collectLeafSyntaxNodes = (node: SyntaxNode, out: SyntaxNode[] = []): Synta
 const collectForestLeafSyntaxNodes = (forest?: SyntaxNode[] | null): SyntaxNode[] =>
   (Array.isArray(forest) ? forest : []).flatMap((node) => collectLeafSyntaxNodes(node));
 
+const findNodeById = (node: SyntaxNode | null | undefined, targetId: string): SyntaxNode | null => {
+  if (!node || typeof node !== 'object') return null;
+  const normalizedTargetId = String(targetId || '').trim();
+  if (!normalizedTargetId) return null;
+  if (String(node.id || '').trim() === normalizedTargetId) return node;
+  const children = Array.isArray(node.children)
+    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
+    : [];
+  for (const child of children) {
+    const found = findNodeById(child, normalizedTargetId);
+    if (found) return found;
+  }
+  return null;
+};
+
 const buildGrowthFirstMovementMaps = (
   parse: ParseResult,
   baseMaps: MovementIndexMaps
 ): MovementIndexMaps => {
   const frames = Array.isArray(parse.growthFrames) ? parse.growthFrames : [];
-  if (frames.length === 0) return baseMaps;
 
   const movedByNodeId = new Map(baseMaps.movedByNodeId);
   const traceByNodeId = new Map(baseMaps.traceByNodeId);
@@ -449,9 +511,49 @@ const buildGrowthFirstMovementMaps = (
   (Array.isArray(parse.movementEvents) ? parse.movementEvents : []).forEach((event) => {
     registerChain(event.chainId);
   });
+  (Array.isArray(parse.chains) ? parse.chains : []).forEach((chain) => {
+    registerChain(chain?.chainId);
+  });
   frames.forEach((frame) => {
     registerChain(frame?.chainId);
   });
+
+  const assignIndexToNodeAndLeaves = (
+    nodeId: string,
+    index: string,
+    destination: Map<string, string>
+  ) => {
+    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedIndex = String(index || '').trim();
+    if (!normalizedNodeId || !normalizedIndex) return;
+    destination.set(normalizedNodeId, normalizedIndex);
+    const node = findNodeById(parse.tree, normalizedNodeId);
+    if (!node) return;
+    collectLeafSyntaxNodes(node)
+      .map((leaf) => String(leaf.id || '').trim())
+      .filter(Boolean)
+      .forEach((leafId) => destination.set(leafId, normalizedIndex));
+  };
+
+  // Some live bundles omit movement events for a chain even though the final
+  // ledger already names the pronounced and silent copies. Use that ledger to
+  // decorate traces in growth mode without inventing a new replay step.
+  (Array.isArray(parse.chains) ? parse.chains : []).forEach((chain) => {
+    const canonicalIndex = registerChain(chain?.chainId);
+    if (!canonicalIndex) return;
+    const pronouncedCopy = String(chain?.pronouncedCopy || '').trim();
+    if (pronouncedCopy && !movedByNodeId.has(pronouncedCopy)) {
+      assignIndexToNodeAndLeaves(pronouncedCopy, canonicalIndex, movedByNodeId);
+    }
+    const silentCopies = Array.isArray(chain?.silentCopies) ? chain.silentCopies : [];
+    silentCopies.forEach((silentCopyId) => {
+      const normalizedSilentCopyId = String(silentCopyId || '').trim();
+      if (!normalizedSilentCopyId || traceByNodeId.has(normalizedSilentCopyId)) return;
+      assignIndexToNodeAndLeaves(normalizedSilentCopyId, canonicalIndex, traceByNodeId);
+    });
+  });
+
+  if (frames.length === 0) return { movedByNodeId, traceByNodeId };
 
   const rawTraceAlias = new Map<string, string>();
   let previousTraceLeafIds = new Set<string>();
@@ -1885,9 +1987,10 @@ const App: React.FC = () => {
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [devCaptureMode, setDevCaptureMode] = useState(false);
   const [needsKey, setNeedsKey] = useState(false);
+  const [keyPromptMode, setKeyPromptMode] = useState<KeyPromptMode>('none');
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
-  const [modelRoute, setModelRoute] = useState<ModelRoute>('local');
+  const [modelRoute, setModelRoute] = useState<ModelMode>('local');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -1963,7 +2066,7 @@ const App: React.FC = () => {
     target.__BABEL_DEV_SET_ANALYSIS__ = (bundle: ParseBundle, options: {
       sentence?: string;
       framework?: 'xbar' | 'minimalism';
-      modelRoute?: ModelRoute;
+      modelRoute?: ModelMode;
     } = {}) => {
       setAnalysisBundle(bundle);
       const nextSentence = String(options.sentence || '').trim();
@@ -1972,12 +2075,13 @@ const App: React.FC = () => {
         setInput(nextSentence);
       }
       if (options.framework) setFramework(options.framework);
-      if (options.modelRoute) setModelRoute(options.modelRoute);
+      if (options.modelRoute) setModelRoute(coerceModelRoute(options.modelRoute));
       setActiveParseIndex(0);
       setActiveTab('tree');
       setError(null);
       setCopiedCodeKey(null);
       setNeedsKey(false);
+      setKeyPromptMode('none');
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
@@ -2008,7 +2112,10 @@ const App: React.FC = () => {
       const aistudio = (window as any).aistudio;
       if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
         const hasKey = await aistudio.hasSelectedApiKey();
-        if (!hasKey) setNeedsKey(true);
+        if (!hasKey) {
+          setNeedsKey(true);
+          setKeyPromptMode('gemini');
+        }
       }
     };
     checkKeyStatus();
@@ -2080,6 +2187,7 @@ const App: React.FC = () => {
       try {
         await aistudio.openSelectKey();
         setNeedsKey(false);
+        setKeyPromptMode('none');
         setError(null);
         if (loading) handleParse();
       } catch (err) {
@@ -2097,17 +2205,26 @@ const App: React.FC = () => {
     setError(null);
 
     try {
+      if (isExternalApiModelMode(modelRoute)) {
+        setNeedsKey(true);
+        setKeyPromptMode('external');
+        setError(`${MODEL_ROUTE_LABELS[modelRoute]} requires an API key. This frontend mode is not wired yet.`);
+        return;
+      }
+
       const data = await parseSentence(input, framework, modelRoute);
       setAnalysisBundle(data);
-      setModelRoute(data.requestedModelRoute || modelRoute);
+      setModelRoute(coerceModelRoute(data.requestedModelRoute || modelRoute));
       setParsedSentence(input.trim());
       setActiveParseIndex(0);
       setActiveTab('tree');
       setCopiedCodeKey(null);
       setNeedsKey(false);
+      setKeyPromptMode('none');
     } catch (err: unknown) {
       const uiError = resolveUiError(err);
       setNeedsKey(uiError.needsKey);
+      setKeyPromptMode(uiError.keyPromptMode);
       setError(uiError.message);
     } finally {
       setLoading(false);
@@ -2166,12 +2283,13 @@ const App: React.FC = () => {
     setParsedSentence(entry.sentence);
     setInput(entry.sentence);
     setFramework(entry.framework);
-    setModelRoute(entry.bundle.requestedModelRoute || inferModelRouteFromModel(entry.bundle.modelUsed));
+    setModelRoute(coerceModelRoute(entry.bundle.requestedModelRoute || inferModelRouteFromModel(entry.bundle.modelUsed)));
     setActiveParseIndex(nextParseIndex);
     setActiveTab('tree');
     setError(null);
     setCopiedCodeKey(null);
     setNeedsKey(false);
+    setKeyPromptMode('none');
     setIsInputVisible(true);
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
@@ -2324,33 +2442,36 @@ const App: React.FC = () => {
                   </button>
 
                   {!isTreeBankView && (
-                    <button
-                      onClick={() => setModelRoute(nextModelRoute(modelRoute))}
-                      className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-5 py-2 md:py-2.5 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap ${
-                        modelRoute === 'pro'
-                          ? 'text-purple-300 bg-purple-950/35 border-purple-700/40'
-                          : modelRoute === 'flash-lite'
-                            ? 'text-emerald-400 bg-emerald-950/40 border-emerald-900/30'
-                            : 'text-sky-300 bg-sky-950/35 border-sky-700/40'
-                      }`}
+                    <div
+                      className="flex flex-wrap items-center gap-2"
                       title={
                         analysisBundle?.modelUsed
                           ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
-                          : 'Cycle parsing model route'
+                          : 'Choose parsing model route'
                       }
                     >
-                      <Zap
-                        size={10}
-                        className={
-                          modelRoute === 'pro'
-                            ? 'fill-purple-300'
-                            : modelRoute === 'flash-lite'
-                              ? 'fill-emerald-400'
-                              : 'fill-sky-300'
-                        }
-                      />
-                      {selectedModelLabel}
-                    </button>
+                      {MODEL_MODE_PILLS.map((option) => {
+                        const active = modelRoute === option.id;
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => {
+                              setModelRoute(option.id);
+                              setError(null);
+                              setNeedsKey(false);
+                              setKeyPromptMode('none');
+                            }}
+                            className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-4 py-2 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap transition-all ${
+                              active ? option.activeClassName : option.className
+                            }`}
+                            title={option.keyRequired ? `${option.label} requires an API key and is not wired yet.` : option.label}
+                          >
+                            {option.keyRequired ? <Key size={10} /> : <Zap size={10} className={active ? 'fill-current' : ''} />}
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
 
                   <button
@@ -2757,7 +2878,7 @@ const App: React.FC = () => {
                           <div className="flex items-center gap-3 italic serif">
                             <AlertTriangle size={14} className="shrink-0" /> {error}
                           </div>
-                          {needsKey && (
+                          {needsKey && keyPromptMode === 'gemini' && (
                             <button
                               onClick={handleOpenKeySelection}
                               className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/40 transition-all font-black uppercase tracking-widest text-[10px] text-rose-200 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]"
@@ -2765,6 +2886,12 @@ const App: React.FC = () => {
                               <Key size={12} />
                               Renew API Credentials
                             </button>
+                          )}
+                          {needsKey && keyPromptMode === 'external' && (
+                            <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200">
+                              <Key size={12} />
+                              External API Key Required
+                            </div>
                           )}
                         </div>
                       )}
@@ -2860,13 +2987,18 @@ const App: React.FC = () => {
             <span className="flex items-center gap-3"><TreeDeciduous size={12} /> Deep Structural Formalism</span>
           </div>
           <div className="flex items-center gap-6">
-            {needsKey && (
+            {needsKey && keyPromptMode === 'gemini' && (
               <button 
                 onClick={handleOpenKeySelection}
                 className="flex items-center gap-2 text-rose-500/80 hover:text-rose-400 transition-colors"
               >
                 <Key size={10} /> Key Missing/Invalid - Update
               </button>
+            )}
+            {needsKey && keyPromptMode === 'external' && (
+              <div className="flex items-center gap-2 text-amber-400/80">
+                <Key size={10} /> External API Key Required
+              </div>
             )}
             <div className="italic serif lowercase text-[10px] tracking-normal opacity-40">
               rooted in {framework === 'xbar' ? 'generative grammar' : 'minimalist principles'} and neural synthesis

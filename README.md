@@ -33,11 +33,11 @@ Recent public benchmark:
 - `100` sentence-level evaluations under forced explicit syntactic commitment
 - `22` languages in native script where applicable
 - `15` syntactic phenomena
-- `2` public model routes in the current release: `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro`
+- `1` public hosted model route in the current release: `Gemini 3.1 Pro`
 
-| Pro route | Flash Lite route |
-| --- | --- |
-| ![Gemini 3.1 Pro long-distance wh derivation](docs/research/assets/gauntlet100-v1/pro-en-longwh-growth.png) | ![Gemini 3.1 Flash Lite long-distance wh derivation](docs/research/assets/gauntlet100-v1/flash-en-longwh-growth.png) |
+| Pro route |
+| --- |
+| ![Gemini 3.1 Pro long-distance wh derivation](docs/research/assets/gauntlet100-v1/pro-en-longwh-growth.png) |
 
 ## Why Babel exists
 
@@ -67,7 +67,7 @@ Babel has two primary users:
 
 #### Babel as a benchmark framework
 
-With Babel's model routes (currently `Gemini 3.1 Flash Lite` and `Gemini 3.1 Pro`, with additional models planned), you can realistically run large syntax sweeps, for example:
+With Babel's current hosted model route (`Gemini 3.1 Pro`), plus the local runtime path, you can realistically run large syntax sweeps, for example:
 
 - hundreds of syntactic test sentences in a short evaluation window.
 - Multi-phenomenon suites covering `wh-movement`, `island constraints`, `agreement`, `control`, `raising`, and `attachment ambiguity`.
@@ -116,12 +116,12 @@ Click the active theory pill in the header to toggle between them.
 
 Switching theory changes the analysis behavior, tree style, replay, and explanatory framing.
 
-### 2) Model route switch (default: Flash Lite)
+### 2) Model route switch
 
 Babel includes a model switch in the header:
 
-- `Gemini 3.1 Flash Lite` (default): extremely fast and lighter-weight.
-- `Gemini 3.1 Pro`: slower, but typically more thorough.
+- `Local Model`: your configured local runtime.
+- `Gemini 3.1 Pro`: the hosted benchmark route.
 
 Click the active model pill in the header to switch routes.
 

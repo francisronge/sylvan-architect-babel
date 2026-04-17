@@ -40,7 +40,6 @@ interface PlaybackStep {
   spelloutDomain?: string;
   note?: string;
   replayCanvasData?: SyntaxNode | null;
-  replayLayoutCanvasData?: SyntaxNode | null;
   replayVisibleNodeIds?: string[];
   replayMovementLinks?: ResolvedMovementEventLink[];
 }
@@ -51,6 +50,7 @@ interface ReplaySupportLine {
 }
 
 const GROWTH_WORKSPACE_ROOT_LABEL = '__GROWTH_WORKSPACE__';
+const GROWTH_WORKSPACE_ROOT_ID = '__growth_workspace_root__';
 
 interface MovementArrow {
   source: HierNode;
@@ -67,6 +67,8 @@ interface GrowthMovementTransition {
   step: number;
   index: string;
   chainId?: string | null;
+  operation?: MovementEvent['operation'];
+  note?: string;
 }
 
 const getNodeId = (node: HierNode): string => (node as any).__vizId as string;
@@ -97,6 +99,7 @@ const buildGrowthCanvasData = (forest: SyntaxNode[]): SyntaxNode | null => {
   if (!Array.isArray(forest) || forest.length === 0) return null;
   if (forest.length === 1) return forest[0];
   return {
+    id: GROWTH_WORKSPACE_ROOT_ID,
     label: GROWTH_WORKSPACE_ROOT_LABEL,
     children: forest
   };
@@ -109,7 +112,10 @@ const buildRenderableGrowthCanvasData = (
   const canvas = buildGrowthCanvasData(forest);
   if (!canvas) return null;
   return materializeCanopyPreterminals(
-    materializeTraceShellsFromMovementLinks(canvas, resolvedMovementLinks)
+    materializeMissingTraceLeavesFromMovementLinks(
+      materializeTraceShellsFromMovementLinks(canvas, resolvedMovementLinks),
+      resolvedMovementLinks
+    )
   );
 };
 
@@ -118,7 +124,10 @@ const buildRenderableCommittedCanvasData = (
   resolvedMovementLinks?: ResolvedMovementEventLink[]
 ): SyntaxNode => {
   return materializeCanopyPreterminals(
-    materializeTraceShellsFromMovementLinks(tree, resolvedMovementLinks)
+    materializeMissingTraceLeavesFromMovementLinks(
+      materializeTraceShellsFromMovementLinks(tree, resolvedMovementLinks),
+      resolvedMovementLinks
+    )
   );
 };
 
@@ -158,16 +167,25 @@ const collectVisibleGrowthNodeIds = (
 
 const buildVisibleSyntaxSnapshotFromHierarchy = (
   root: HierNode,
-  visibleNodeIds?: Set<string>
+  visibleNodeIds?: Set<string>,
+  detachedRootIds?: Set<string>,
+  detachedRootSideHints?: Map<string, number>
 ): SyntaxNode | null => {
   if (!visibleNodeIds || visibleNodeIds.size === 0) return null;
 
   const cloneVisibleNode = (node: HierNode): SyntaxNode | null => {
-    if (!visibleNodeIds.has(getNodeId(node))) return null;
+    const nodeId = getNodeId(node);
+    if (!visibleNodeIds.has(nodeId)) return null;
     const dataClone = cloneSyntaxTree(node.data);
     if (!dataClone) return null;
     const childSnapshots = (node.children || [])
-      .map((child) => cloneVisibleNode(child))
+      .map((child) => {
+        const childId = getNodeId(child);
+        if (detachedRootIds?.has(childId) && visibleNodeIds.has(childId)) {
+          return null;
+        }
+        return cloneVisibleNode(child);
+      })
       .filter((child): child is SyntaxNode => Boolean(child));
     if (childSnapshots.length > 0) {
       dataClone.children = childSnapshots;
@@ -189,11 +207,32 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
     .filter((node) => !isSyntheticWorkspaceRootNode(node))
     .filter((node) => visibleNodeIds.has(getNodeId(node)))
     .filter((node) => {
+      const nodeId = getNodeId(node);
+      if (detachedRootIds?.has(nodeId)) return true;
       const parent = node.parent;
       if (!parent || isSyntheticWorkspaceRootNode(parent)) return true;
       return !visibleNodeIds.has(getNodeId(parent));
     })
-    .sort((a, b) => (preorderIndex.get(getNodeId(a)) ?? 0) - (preorderIndex.get(getNodeId(b)) ?? 0));
+    .sort((a, b) => {
+      const resolveDetachedRootSideHint = (node: HierNode): number => {
+        let current: HierNode | null = node;
+        while (current) {
+          const currentId = getNodeId(current);
+          if (detachedRootSideHints?.has(currentId)) {
+            return Number(detachedRootSideHints.get(currentId) || 0);
+          }
+          if (detachedRootIds?.has(currentId)) {
+            return 0;
+          }
+          current = current.parent;
+        }
+        return 0;
+      };
+      const sideA = resolveDetachedRootSideHint(a);
+      const sideB = resolveDetachedRootSideHint(b);
+      if (sideA !== sideB) return sideA - sideB;
+      return (preorderIndex.get(getNodeId(a)) ?? 0) - (preorderIndex.get(getNodeId(b)) ?? 0);
+    });
 
   const forest = visibleRoots
     .map((node) => cloneVisibleNode(node))
@@ -202,9 +241,62 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
   if (forest.length === 0) return null;
   if (forest.length === 1) return forest[0];
   return {
+    id: GROWTH_WORKSPACE_ROOT_ID,
     label: GROWTH_WORKSPACE_ROOT_LABEL,
     children: forest
   };
+};
+
+const collectRenderableVisibleNodeIds = (
+  root: HierNode,
+  rawVisibleNodeIds?: Set<string>
+): string[] => {
+  const allRenderableNodeIds = root
+    .descendants()
+    .filter((node) => !isSyntheticWorkspaceRootNode(node))
+    .map((node) => getNodeId(node));
+  if (!rawVisibleNodeIds || rawVisibleNodeIds.size === 0) {
+    return allRenderableNodeIds;
+  }
+
+  const nodesById = new Map(
+    root
+      .descendants()
+      .filter((node) => !isSyntheticWorkspaceRootNode(node))
+      .map((node) => [getNodeId(node), node] as const)
+  );
+  const visibleIds = new Set<string>();
+  const markRenderableSubtree = (node: HierNode) => {
+    if (isSyntheticWorkspaceRootNode(node)) return;
+    visibleIds.add(getNodeId(node));
+    (node.children || []).forEach(markRenderableSubtree);
+  };
+
+  // A requested internal node keeps its whole visible subtree alive. A requested
+  // leaf stays leaf-only. This preserves projected shells across later lexical
+  // select microsteps without leaking hidden ancestors into pure select frames.
+  rawVisibleNodeIds.forEach((requestedId) => {
+    const normalizedRequestedId = String(requestedId || '').trim();
+    if (!normalizedRequestedId) return;
+
+    const exactNode = nodesById.get(normalizedRequestedId);
+    if (exactNode) {
+      const hasChildren = Boolean(exactNode.children && exactNode.children.length > 0);
+      if (hasChildren) {
+        markRenderableSubtree(exactNode);
+      } else {
+        visibleIds.add(getNodeId(exactNode));
+      }
+      return;
+    }
+
+    const strippedId = stripSyntheticReplayLeafSuffix(normalizedRequestedId);
+    const strippedNode = nodesById.get(strippedId);
+    if (!strippedNode) return;
+    visibleIds.add(normalizedRequestedId);
+  });
+
+  return visibleIds.size > 0 ? Array.from(visibleIds) : allRenderableNodeIds;
 };
 
 const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): string[] => {
@@ -217,42 +309,139 @@ const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): string[] =
     .filter(Boolean);
 };
 
+const getReplayLeafSelectionTarget = (
+  root: SyntaxNode
+): { nodeId: string; surface: string } | null => {
+  const renderableRoot = materializeCanopyPreterminals(cloneSyntaxTree(root) || root);
+  const hierarchy = d3.hierarchy(renderableRoot);
+  applyVizIds(hierarchy);
+  const leaf = hierarchy.descendants().find((node) => !node.children || node.children.length === 0);
+  if (!leaf) return null;
+  const surface = resolveLeafSurface(leaf);
+  if (!surface) return null;
+  return {
+    nodeId: getNodeId(leaf),
+    surface
+  };
+};
+
 const buildGrowthReplaySnapshot = (
   forest: SyntaxNode[],
   activeFrameIndex: number,
   movementEvents?: MovementEvent[],
   fallbackMovementLinks?: ResolvedMovementEventLink[],
   visibleNodeIds?: Set<string>
+  ,
+  layoutNodeIds?: Set<string>,
+  growthFrames?: GrowthFrame[],
+  detachedRootIds?: Set<string>,
+  detachedRootSideHints?: Map<string, number>
 ): {
   canvasData: SyntaxNode | null;
+  visibleNodeIds: string[];
   movementLinks: ResolvedMovementEventLink[];
 } => {
-  const frameMovementLinks = resolveGrowthFrameMovementLinks(forest, movementEvents, activeFrameIndex);
-  const effectiveMovementLinks = frameMovementLinks.length > 0
-    ? frameMovementLinks
-    : (fallbackMovementLinks || []);
-  const renderableCanvas = buildRenderableGrowthCanvasData(forest, effectiveMovementLinks);
-  const clonedCanvas = cloneSyntaxTree(renderableCanvas);
-  if (!clonedCanvas) {
+  const transitionLinks = resolveGrowthMovementTransitions(
+    forest,
+    growthFrames,
+    activeFrameIndex,
+    fallbackMovementLinks
+  ).map((transition) => ({
+    movementIndex: transition.index,
+    sourceAnchorId: transition.sourceId,
+    movedAnchorId: transition.targetId,
+    traceAnchorId: transition.traceId || undefined,
+    stepIndex: transition.step,
+    operation: transition.operation,
+    chainId: transition.chainId || undefined,
+    note: transition.note
+  } satisfies ResolvedMovementEventLink));
+  const frameMovementLinks = transitionLinks.length > 0
+    ? transitionLinks
+    : resolveGrowthFrameMovementLinks(forest, movementEvents, activeFrameIndex);
+  const effectiveMovementLinks = frameMovementLinks;
+  const rawCanvas = buildGrowthCanvasData(forest);
+  const clonedRawCanvas = cloneSyntaxTree(rawCanvas);
+  if (!clonedRawCanvas) {
     return {
       canvasData: null,
+      visibleNodeIds: [],
       movementLinks: effectiveMovementLinks
     };
   }
 
-  const hierarchy = d3.hierarchy(clonedCanvas);
-  applyVizIds(hierarchy);
+  const rawHierarchy = d3.hierarchy(clonedRawCanvas);
+  applyVizIds(rawHierarchy);
   const effectiveVisibleNodeIds = visibleNodeIds && visibleNodeIds.size > 0
     ? visibleNodeIds
     : new Set(
-        hierarchy
+        rawHierarchy
           .descendants()
           .filter((node) => !isSyntheticWorkspaceRootNode(node))
           .map((node) => getNodeId(node))
       );
+  const effectiveLayoutNodeIds = layoutNodeIds && layoutNodeIds.size > 0
+    ? layoutNodeIds
+    : effectiveVisibleNodeIds;
+  const visibleRawCanvas = buildVisibleSyntaxSnapshotFromHierarchy(
+    rawHierarchy,
+    effectiveLayoutNodeIds,
+    detachedRootIds,
+    detachedRootSideHints
+  );
+  const renderableCanvas = visibleRawCanvas
+    ? materializeCanopyPreterminals(
+        materializeMissingTraceLeavesFromMovementLinks(
+          materializeTraceShellsFromMovementLinks(visibleRawCanvas, effectiveMovementLinks),
+          effectiveMovementLinks
+        )
+      )
+    : (
+      buildRenderableGrowthCanvasData(forest, effectiveMovementLinks)
+      || materializeCanopyPreterminals(
+        materializeMissingTraceLeavesFromMovementLinks(
+          materializeTraceShellsFromMovementLinks(clonedRawCanvas, effectiveMovementLinks),
+          effectiveMovementLinks
+        )
+      )
+    );
+  const clonedRenderableCanvas = cloneSyntaxTree(renderableCanvas);
+  if (!clonedRenderableCanvas) {
+    return {
+      canvasData: null,
+      visibleNodeIds: [],
+      movementLinks: effectiveMovementLinks
+    };
+  }
+  const renderableHierarchy = d3.hierarchy(clonedRenderableCanvas);
+  applyVizIds(renderableHierarchy);
+  const renderableVisibleNodeIds = new Set(collectRenderableVisibleNodeIds(
+    renderableHierarchy,
+    effectiveVisibleNodeIds
+  ));
+  if (effectiveVisibleNodeIds && effectiveVisibleNodeIds.size > 0) {
+    const renderableNodesById = new Map(
+      renderableHierarchy
+        .descendants()
+        .filter((node) => !isSyntheticWorkspaceRootNode(node))
+        .map((node) => [getNodeId(node), node] as const)
+    );
+    effectiveVisibleNodeIds.forEach((requestedId) => {
+      const normalizedRequestedId = String(requestedId || '').trim();
+      if (!normalizedRequestedId) return;
+      const exactNode = renderableNodesById.get(normalizedRequestedId);
+      if (exactNode && exactNode.children && exactNode.children.length > 0) {
+        exactNode.descendants().forEach((descendant) => {
+          if (isSyntheticWorkspaceRootNode(descendant)) return;
+          renderableVisibleNodeIds.add(getNodeId(descendant));
+        });
+      }
+    });
+  }
 
   return {
-    canvasData: buildVisibleSyntaxSnapshotFromHierarchy(hierarchy, effectiveVisibleNodeIds),
+    canvasData: renderableCanvas,
+    visibleNodeIds: Array.from(renderableVisibleNodeIds),
     movementLinks: effectiveMovementLinks
   };
 };
@@ -288,23 +477,25 @@ const buildStructuralReplayFallback = (
 ): string => {
   const op = String(operation || '').trim();
   const target = primaryRootLabel || rootLabels[0] || 'workspace';
+  const targetSummary = rootLabels.length > 1 ? rootLabels.join(' + ') : target;
   const targetIsTraceLike = isTraceLike(target) || isNullLike(target);
+  const describesWorkspaceState = rootLabels.length > 1 || target === 'Workspace';
   switch (op) {
     case 'LexicalSelect':
-      return `Select ${target}`;
+      return `Select ${targetSummary}`;
     case 'Project':
-      return `Project ${target}`;
+      return `Project ${targetSummary}`;
     case 'ExternalMerge':
-      return targetIsTraceLike ? 'External merge' : `External merge into ${target}`;
+      return (targetIsTraceLike || describesWorkspaceState) ? 'External merge in workspace' : `External merge into ${target}`;
     case 'InternalMerge':
     case 'Move':
-      return targetIsTraceLike ? 'Internal merge' : `Internal merge to ${target}`;
+      return (targetIsTraceLike || describesWorkspaceState) ? 'Internal merge' : `Internal merge to ${target}`;
     case 'A-Move':
-      return targetIsTraceLike ? 'A-movement' : `A-movement to ${target}`;
+      return (targetIsTraceLike || describesWorkspaceState) ? 'A-movement' : `A-movement to ${target}`;
     case 'AbarMove':
-      return targetIsTraceLike ? 'A-bar movement' : `A-bar movement to ${target}`;
+      return (targetIsTraceLike || describesWorkspaceState) ? 'A-bar movement' : `A-bar movement to ${target}`;
     case 'HeadMove':
-      return targetIsTraceLike ? 'Head movement' : `Head movement to ${target}`;
+      return (targetIsTraceLike || describesWorkspaceState) ? 'Head movement' : `Head movement to ${target}`;
     case 'Agree':
       return `Agree on ${target}`;
     case 'SpellOut':
@@ -316,11 +507,175 @@ const buildStructuralReplayFallback = (
   }
 };
 
+const reorderWorkspaceRootsForReplay = (
+  workspaceRoots: SyntaxNode[],
+  preferredRootIds?: string[] | null
+): SyntaxNode[] => {
+  if (!Array.isArray(workspaceRoots) || workspaceRoots.length <= 1) return workspaceRoots;
+  const preferredIds = Array.isArray(preferredRootIds)
+    ? preferredRootIds.map((id) => String(id || '').trim()).filter(Boolean)
+    : [];
+  if (preferredIds.length === 0) return workspaceRoots;
+
+  const rootsById = new Map(
+    workspaceRoots
+      .map((node) => [String(node?.id || '').trim(), node] as const)
+      .filter(([id]) => Boolean(id))
+  );
+  const ordered: SyntaxNode[] = [];
+  const used = new Set<string>();
+
+  preferredIds.forEach((id) => {
+    const node = rootsById.get(id);
+    if (!node || used.has(id)) return;
+    ordered.push(node);
+    used.add(id);
+  });
+
+  workspaceRoots.forEach((node) => {
+    const id = String(node?.id || '').trim();
+    if (id && used.has(id)) return;
+    ordered.push(node);
+  });
+
+  return ordered.length === workspaceRoots.length ? ordered : workspaceRoots;
+};
+
+const collectWorkspaceRootIds = (workspaceRoots: SyntaxNode[]): string[] =>
+  (Array.isArray(workspaceRoots) ? workspaceRoots : [])
+    .map((node) => String(node?.id || '').trim())
+    .filter(Boolean);
+
+const buildWorkspaceRootSideHints = (
+  workspaceRoots: SyntaxNode[],
+  preferredRootIds?: string[] | null
+): Map<string, number> => {
+  const orderedRootIds = (
+    Array.isArray(preferredRootIds) && preferredRootIds.length > 0
+      ? preferredRootIds
+      : collectWorkspaceRootIds(workspaceRoots)
+  )
+    .map((id) => String(id || '').trim())
+    .filter(Boolean);
+  const hints = new Map<string, number>();
+  orderedRootIds.forEach((rootId, index) => {
+    hints.set(rootId, index);
+  });
+  return hints;
+};
+
+const inferFutureWorkspaceRootOrder = (
+  workspaceRoots: SyntaxNode[],
+  frames: GrowthFrame[],
+  currentFrameIndex: number
+): string[] | null => {
+  if (!Array.isArray(workspaceRoots) || workspaceRoots.length <= 1) return null;
+  const currentRoots = workspaceRoots
+    .map((root, index) => ({
+      root,
+      id: String(root?.id || '').trim(),
+      originalIndex: index
+    }))
+    .filter(({ id }) => Boolean(id));
+  const currentRootIds = new Set(currentRoots.map(({ id }) => id));
+  if (currentRootIds.size <= 1) return null;
+
+  const comparePaths = (left: number[], right: number[]): number => {
+    const limit = Math.min(left.length, right.length);
+    for (let index = 0; index < limit; index += 1) {
+      if (left[index] !== right[index]) return left[index] - right[index];
+    }
+    return left.length - right.length;
+  };
+  let bestPreferredOrder: string[] | null = null;
+  let bestMergedRoots = -1;
+  let bestDepthScore = -1;
+
+  for (let futureFrameIndex = currentFrameIndex + 1; futureFrameIndex < frames.length; futureFrameIndex += 1) {
+    const futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
+      ? frames[futureFrameIndex].workspaceForest
+      : [];
+    const futureForestNodeIds = new Set(futureRoots.flatMap((root) => collectSubtreeNodeIds(root)));
+    if (!currentRoots.every(({ id }) => futureForestNodeIds.has(id))) {
+      break;
+    }
+
+    const rootMembership = currentRoots.map(({ id, originalIndex }) => {
+      let futureRootIndex = -1;
+      let localPath: number[] | null = null;
+      futureRoots.some((futureRoot, index) => {
+        const pathWithinRoot = findNodePathInForest([futureRoot], id);
+        if (!pathWithinRoot) return false;
+        futureRootIndex = index;
+        localPath = pathWithinRoot;
+        return true;
+      });
+      return { id, originalIndex, futureRootIndex, localPath };
+    });
+
+    if (rootMembership.some(({ futureRootIndex, localPath }) => futureRootIndex < 0 || !localPath)) {
+      break;
+    }
+
+    const groupedByFutureRoot = new Map<number, number>();
+    rootMembership.forEach(({ futureRootIndex }) => {
+      groupedByFutureRoot.set(futureRootIndex, (groupedByFutureRoot.get(futureRootIndex) || 0) + 1);
+    });
+    const mergedRoots = currentRoots.length - groupedByFutureRoot.size;
+    if (mergedRoots <= 0) continue;
+
+    const preferredOrder = [...rootMembership]
+      .sort((left, right) => {
+        if (left.futureRootIndex !== right.futureRootIndex) {
+          return left.futureRootIndex - right.futureRootIndex;
+        }
+        const pathOrder = comparePaths(left.localPath || [], right.localPath || []);
+        if (pathOrder !== 0) return pathOrder;
+        return left.originalIndex - right.originalIndex;
+      })
+      .map(({ id }) => id);
+    const depthScore = rootMembership.reduce((total, entry) => total + (entry.localPath?.length || 0), 0);
+
+    if (preferredOrder.length !== currentRoots.length) break;
+    if (
+      mergedRoots > bestMergedRoots
+      || (mergedRoots === bestMergedRoots && depthScore > bestDepthScore)
+    ) {
+      bestPreferredOrder = preferredOrder;
+      bestMergedRoots = mergedRoots;
+      bestDepthScore = depthScore;
+    }
+  }
+
+  return bestPreferredOrder;
+};
+
+const collectNextFramePendingRootSubtreeIds = (
+  workspaceRoots: SyntaxNode[],
+  nextFrame?: GrowthFrame | null
+): Set<string> => {
+  const currentRootIds = new Set(
+    (Array.isArray(workspaceRoots) ? workspaceRoots : [])
+      .map((node) => String(node?.id || '').trim())
+      .filter(Boolean)
+  );
+  const nextRoots = Array.isArray(nextFrame?.workspaceForest) ? nextFrame.workspaceForest : [];
+  return new Set(
+    nextRoots
+      .filter((node) => {
+        const nodeId = String(node?.id || '').trim();
+        return Boolean(nodeId) && !currentRootIds.has(nodeId);
+      })
+      .flatMap((node) => collectSubtreeNodeIds(node))
+  );
+};
+
 const buildPlaybackStepsFromGrowthFrames = (
   frames: GrowthFrame[],
   derivationSteps?: DerivationStep[],
   resolvedMovementLinks?: ResolvedMovementEventLink[],
-  movementEvents?: MovementEvent[]
+  movementEvents?: MovementEvent[],
+  sentence?: string
 ): PlaybackStep[] => {
   const alignedSteps = Array.isArray(derivationSteps) ? derivationSteps : [];
   const stepsById = new Map(
@@ -331,6 +686,8 @@ const buildPlaybackStepsFromGrowthFrames = (
 
   const usedStepIds = new Set<string>();
   let previousVisibleNodeIds = new Set<string>();
+  let previousWorkspaceRootIds = new Set<string>();
+  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
   const frameBackedSteps = frames.flatMap((frame, index) => {
     const alignedStep = (() => {
       const frameStepId = String(frame?.stepId || '').trim();
@@ -339,14 +696,24 @@ const buildPlaybackStepsFromGrowthFrames = (
       }
       return alignedSteps[index];
     })();
-    const workspaceRoots = Array.isArray(frame.workspaceForest) ? frame.workspaceForest : [];
+    const rawWorkspaceRoots = Array.isArray(frame.workspaceForest) ? frame.workspaceForest : [];
+    const nextFrame = index < frames.length - 1 ? frames[index + 1] : null;
+    const fallbackOperation = frame.operation || alignedStep?.operation || 'Other';
+    // Anchor detached roots to explicit future daughter order as soon as a later
+    // growth frame makes that merge order unambiguous. This keeps bottom-up
+    // workspace assembly visually aligned with the eventual tree without guessing.
+    const preferredWorkspaceRootOrder = inferFutureWorkspaceRootOrder(rawWorkspaceRoots, frames, index);
+    const preferredWorkspaceRootSideHints = buildWorkspaceRootSideHints(
+      rawWorkspaceRoots,
+      preferredWorkspaceRootOrder
+    );
+    const workspaceRoots = reorderWorkspaceRootsForReplay(rawWorkspaceRoots, preferredWorkspaceRootOrder);
     const rootLabels = workspaceRoots
       .map((node) => String(node?.label || '').trim())
       .filter(Boolean);
     const primaryRoot = workspaceRoots[0];
     const primaryRootId = String(primaryRoot?.id || '').trim();
     const primaryRootLabel = String(primaryRoot?.label || '').trim() || 'Workspace';
-    const fallbackOperation = frame.operation || alignedStep?.operation || 'Other';
     const preferredNote = pickPreferredReplayText(frame.note, alignedStep?.note);
     const structuralFallbackRecipe = buildStructuralReplayFallback(
       fallbackOperation,
@@ -384,29 +751,67 @@ const buildPlaybackStepsFromGrowthFrames = (
     const alignedStepId = String(alignedStep?.stepId || '').trim();
     if (alignedStepId) usedStepIds.add(alignedStepId);
 
-    const operationForFrame = String(fallbackOperation || '').trim();
-    const shouldDeriveStructuralMicroSteps =
-      !isMoveLikeOperation(operationForFrame) &&
-      operationForFrame !== 'SpellOut';
+    const priorVisibleNodeIds = new Set(previousVisibleNodeIds);
     const frameReplaySnapshot = buildGrowthReplaySnapshot(
       workspaceRoots,
       index,
       movementEvents,
-      resolvedMovementLinks
+      resolvedMovementLinks,
+      undefined,
+      undefined,
+      frames
     );
-    const structuralMicroSteps = shouldDeriveStructuralMicroSteps
-      ? buildStructuralGrowthPlaybackSteps(
-          workspaceRoots,
-          index,
-          previousVisibleNodeIds,
-          resolvedMovementLinks,
-          movementEvents
-        )
-      : [];
-    previousVisibleNodeIds = collectVisibleGrowthNodeIds(
+    const currentFrameVisibleNodeIds = collectVisibleGrowthNodeIds(
       workspaceRoots,
       frameReplaySnapshot.movementLinks
     );
+
+    const currentWorkspaceRootIds = new Set(
+      workspaceRoots
+        .map((node) => String(node?.id || '').trim())
+        .filter(Boolean)
+    );
+    const newlyIntroducedRootIds = new Set(
+      workspaceRoots
+        .map((node) => String(node?.id || '').trim())
+        .filter((nodeId) => Boolean(nodeId) && !previousWorkspaceRootIds.has(nodeId))
+    );
+    const nextFramePendingRootSubtreeIds = collectNextFramePendingRootSubtreeIds(workspaceRoots, nextFrame);
+    const moveSourceNodeIds = isMoveLikeOperation(fallbackOperation)
+      ? Array.from(new Set([
+          String(frame.movement?.traceNodeId || '').trim(),
+          String(frame.movement?.sourceNodeId || '').trim()
+        ].filter(Boolean)))
+      : [];
+    const moveSourceLabels = moveSourceNodeIds
+      .map((nodeId) => getReplayNodeLabelFromCanvas(frameReplaySnapshot.canvasData, nodeId))
+      .filter(Boolean);
+    const moveTargetNodeId = String(frame.movement?.targetNodeId || '').trim();
+    const moveTargetLabel = isMoveLikeOperation(fallbackOperation)
+      ? (
+          String(fallbackOperation || '').trim() === 'HeadMove'
+            ? (
+                getReplayNodeLabelFromCanvas(frameReplaySnapshot.canvasData, moveTargetNodeId)
+                || alignedStep?.targetLabel
+                || primaryRootLabel
+              )
+            : (
+                describeReplayNodePosition(frameReplaySnapshot.canvasData, moveTargetNodeId)
+                || alignedStep?.targetLabel
+                || primaryRootLabel
+              )
+        )
+      : '';
+    const moveStructuralFallbackRecipe = isMoveLikeOperation(fallbackOperation)
+      ? buildStructuralReplayFallback(
+          fallbackOperation,
+          moveTargetLabel || primaryRootLabel,
+          moveTargetLabel ? [moveTargetLabel] : rootLabels
+        )
+      : structuralFallbackRecipe;
+    const resolvedSemanticRecipe = isMoveLikeOperation(fallbackOperation)
+      ? (movementRecipe || moveStructuralFallbackRecipe)
+      : semanticRecipe;
 
     const frameSemanticStep: PlaybackStep = {
       operation: frame.operation || alignedStep?.operation,
@@ -422,15 +827,20 @@ const buildPlaybackStepsFromGrowthFrames = (
         frame.frameId ||
         frame.stepId ||
         `__growth_${index}`,
+      // Move steps should describe the local landing site, not the frame root.
       targetLabel:
-        (rootLabels.length === 1 ? primaryRootLabel : 'Workspace') ||
+        (isMoveLikeOperation(fallbackOperation)
+          ? moveTargetLabel
+          : (rootLabels.length === 1 ? primaryRootLabel : 'Workspace')) ||
         alignedStep?.targetLabel ||
         'Workspace',
-      sourceNodeIds: alignedStep?.sourceNodeIds,
-      sourceLabels: Array.isArray(alignedStep?.sourceLabels) && alignedStep.sourceLabels.length > 0
-        ? alignedStep.sourceLabels
-        : rootLabels,
-      recipe: semanticRecipe,
+      sourceNodeIds: moveSourceNodeIds.length > 0 ? moveSourceNodeIds : alignedStep?.sourceNodeIds,
+      sourceLabels: moveSourceLabels.length > 0
+        ? moveSourceLabels
+        : (Array.isArray(alignedStep?.sourceLabels) && alignedStep.sourceLabels.length > 0
+          ? alignedStep.sourceLabels
+          : rootLabels),
+      recipe: resolvedSemanticRecipe,
       workspaceAfter: Array.isArray(alignedStep?.workspaceAfter) && alignedStep.workspaceAfter.length > 0
         ? alignedStep.workspaceAfter
         : rootLabels,
@@ -443,32 +853,188 @@ const buildPlaybackStepsFromGrowthFrames = (
       trigger: alignedStep?.trigger || frame.trigger,
       chainId: alignedStep?.chainId || frame.chainId,
       spelloutDomain: alignedStep?.spelloutDomain || frame.spelloutDomain,
-      note: preferredNote && preferredNote !== semanticRecipe ? preferredNote : undefined,
+      note: preferredNote && preferredNote !== resolvedSemanticRecipe ? preferredNote : undefined,
       replayFrameIndex: index,
       replayCanvasData: frameReplaySnapshot.canvasData,
+      replayVisibleNodeIds: frameReplaySnapshot.visibleNodeIds,
       replayMovementLinks: frameReplaySnapshot.movementLinks
     };
 
-    const shouldAppendFrameSemanticStep =
-      isMoveLikeOperation(frameSemanticStep.operation) ||
-      String(frameSemanticStep.operation || '').trim() === 'SpellOut' ||
-      (Array.isArray(frameSemanticStep.featureChecking) && frameSemanticStep.featureChecking.length > 0) ||
-      (Array.isArray(frameSemanticStep.ledgerBlocks) && frameSemanticStep.ledgerBlocks.length > 0) ||
-      (Array.isArray(frameSemanticStep.spelloutOrder) && frameSemanticStep.spelloutOrder.length > 0);
-
-    if (!shouldAppendFrameSemanticStep && structuralMicroSteps.length > 0) {
-      const mergedStructuralSteps = [...structuralMicroSteps];
-      const lastIndex = mergedStructuralSteps.length - 1;
-      mergedStructuralSteps[lastIndex] = {
-        ...mergedStructuralSteps[lastIndex],
-        stepId: frameSemanticStep.stepId || mergedStructuralSteps[lastIndex].stepId,
-        trigger: frameSemanticStep.trigger || mergedStructuralSteps[lastIndex].trigger,
-        spelloutDomain: frameSemanticStep.spelloutDomain || mergedStructuralSteps[lastIndex].spelloutDomain
-      };
-      return mergedStructuralSteps;
+    const rootIntroductionMicrosteps =
+      !isMoveLikeOperation(fallbackOperation) &&
+      String(fallbackOperation || '').trim() !== 'SpellOut' &&
+      workspaceRoots.length > 1 &&
+      newlyIntroducedRootIds.size > 0
+        ? buildStructuralGrowthPlaybackSteps(
+            workspaceRoots,
+            index,
+            priorVisibleNodeIds,
+            resolvedMovementLinks,
+            movementEvents,
+            newlyIntroducedRootIds,
+            frames,
+            frame,
+            sentence
+          )
+        : [];
+    if (rootIntroductionMicrosteps.length > 1) {
+      previousWorkspaceRootIds = currentWorkspaceRootIds;
+      previousVisibleNodeIds = currentFrameVisibleNodeIds;
+      return rootIntroductionMicrosteps;
     }
 
-    return [...structuralMicroSteps, frameSemanticStep];
+    const structuralMicrosteps = !isMoveLikeOperation(fallbackOperation) && String(fallbackOperation || '').trim() !== 'SpellOut'
+      ? buildStructuralGrowthPlaybackSteps(
+          workspaceRoots,
+          index,
+          priorVisibleNodeIds,
+          resolvedMovementLinks,
+          movementEvents,
+          undefined,
+          frames,
+          frame,
+          sentence
+        )
+      : [];
+
+    if (String(fallbackOperation || '').trim() === 'LexicalSelect') {
+      const newlySelectedRoots = workspaceRoots.filter((root) => {
+        const rootId = String(root?.id || '').trim();
+        return rootId && !previousWorkspaceRootIds.has(rootId);
+      });
+      const packsInternalBaseGeneration = newlySelectedRoots.some((root) =>
+        countOvertLeafSyntaxNodes(root) > 1 || hasBranchingSyntaxSubtree(root)
+      );
+      if (packsInternalBaseGeneration && structuralMicrosteps.length > 1) {
+        previousWorkspaceRootIds = currentWorkspaceRootIds;
+        previousVisibleNodeIds = currentFrameVisibleNodeIds;
+        return structuralMicrosteps;
+      }
+      if (newlySelectedRoots.length > 0) {
+        const projectedRootIds = new Set(previousWorkspaceRootIds);
+        const projectedRootSubtreeIds = new Set<string>();
+        const lexicalSnapshotRoots = nextFramePendingRootSubtreeIds.size > 0 && Array.isArray(nextFrame?.workspaceForest)
+          ? reorderWorkspaceRootsForReplay(
+              nextFrame.workspaceForest,
+              inferFutureWorkspaceRootOrder(nextFrame.workspaceForest, frames, index + 1)
+            )
+          : workspaceRoots;
+        let lexicalStepCursor = 0;
+        const buildWorkspaceLabelsForState = (
+          activeRootId: string,
+          activeLabel: string,
+          mode: 'leaf' | 'projected'
+        ): string[] => workspaceRoots
+          .map((candidateRoot) => {
+            const candidateId = String(candidateRoot?.id || '').trim();
+            if (!candidateId) return '';
+            if (candidateId === activeRootId) {
+              return mode === 'leaf'
+                ? activeLabel
+                : String(candidateRoot?.label || '').trim();
+            }
+            if (!projectedRootIds.has(candidateId)) return '';
+            return String(candidateRoot?.label || '').trim();
+          })
+          .filter(Boolean);
+
+        const lexicalReplaySteps = newlySelectedRoots.flatMap((root, rootIndex) => {
+          const rootId = String(root?.id || '').trim() || `__growth_${index}_lex_${lexicalStepCursor + 1}`;
+          const projectedLabel = String(root?.label || '').trim() || 'Workspace';
+          const leafTarget = getReplayLeafSelectionTarget(root);
+          const rootSubtreeIds = collectSyntaxSubtreeNodeIds(root);
+          const pendingRootSubtreeIds = newlySelectedRoots
+            .slice(rootIndex + 1)
+            .flatMap((pendingRoot) => collectSyntaxSubtreeNodeIds(pendingRoot));
+          const lexicalSteps: PlaybackStep[] = [];
+
+          if (leafTarget) {
+            const selectVisibleNodeIds = new Set<string>(projectedRootIds);
+            selectVisibleNodeIds.add(leafTarget.nodeId);
+            const selectLayoutNodeIds = new Set<string>(selectVisibleNodeIds);
+            projectedRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
+            rootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
+            pendingRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
+            nextFramePendingRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
+            const lexicalSelectSnapshot = buildGrowthReplaySnapshot(
+              lexicalSnapshotRoots,
+              index,
+              movementEvents,
+              resolvedMovementLinks,
+              selectVisibleNodeIds,
+              selectLayoutNodeIds,
+              frames,
+              undefined,
+              preferredWorkspaceRootSideHints
+            );
+            lexicalStepCursor += 1;
+            lexicalSteps.push({
+              ...frameSemanticStep,
+              targetNodeId: leafTarget.nodeId,
+              targetLabel: leafTarget.surface,
+              sourceNodeIds: [leafTarget.nodeId],
+              sourceLabels: [leafTarget.surface],
+              recipe: buildStructuralReplayFallback('LexicalSelect', leafTarget.surface, [leafTarget.surface]),
+              workspaceAfter: buildWorkspaceLabelsForState(rootId, leafTarget.surface, 'leaf'),
+              replayCanvasData: lexicalSelectSnapshot.canvasData,
+              replayVisibleNodeIds: lexicalSelectSnapshot.visibleNodeIds,
+              replayMovementLinks: lexicalSelectSnapshot.movementLinks,
+              stepId: frameSemanticStep.stepId ? `${frameSemanticStep.stepId}.${lexicalStepCursor}` : undefined
+            } satisfies PlaybackStep);
+          }
+
+          projectedRootIds.add(rootId);
+          rootSubtreeIds.forEach((subtreeNodeId) => projectedRootSubtreeIds.add(subtreeNodeId));
+          const projectVisibleNodeIds = new Set<string>(projectedRootIds);
+          const projectLayoutNodeIds = new Set<string>(projectVisibleNodeIds);
+          projectedRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
+          pendingRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
+          nextFramePendingRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
+          const lexicalProjectSnapshot = buildGrowthReplaySnapshot(
+            lexicalSnapshotRoots,
+            index,
+            movementEvents,
+            resolvedMovementLinks,
+            projectVisibleNodeIds,
+            projectLayoutNodeIds,
+            frames,
+            undefined,
+            preferredWorkspaceRootSideHints
+          );
+          lexicalStepCursor += 1;
+          lexicalSteps.push({
+            ...frameSemanticStep,
+            operation: 'Project',
+            targetNodeId: rootId,
+            targetLabel: projectedLabel,
+            sourceNodeIds: [rootId],
+            sourceLabels: [projectedLabel],
+            recipe: buildStructuralReplayFallback('Project', projectedLabel, [projectedLabel]),
+            workspaceAfter: buildWorkspaceLabelsForState(rootId, projectedLabel, 'projected'),
+            replayCanvasData: lexicalProjectSnapshot.canvasData,
+            replayVisibleNodeIds: lexicalProjectSnapshot.visibleNodeIds,
+            replayMovementLinks: lexicalProjectSnapshot.movementLinks,
+            stepId: frameSemanticStep.stepId ? `${frameSemanticStep.stepId}.${lexicalStepCursor}` : undefined
+          } satisfies PlaybackStep);
+
+          return lexicalSteps;
+        });
+        previousWorkspaceRootIds = currentWorkspaceRootIds;
+        previousVisibleNodeIds = currentFrameVisibleNodeIds;
+        return lexicalReplaySteps;
+      }
+    }
+
+    if (structuralMicrosteps.length > 1) {
+      previousWorkspaceRootIds = currentWorkspaceRootIds;
+      previousVisibleNodeIds = currentFrameVisibleNodeIds;
+      return structuralMicrosteps;
+    }
+
+    previousWorkspaceRootIds = currentWorkspaceRootIds;
+    previousVisibleNodeIds = currentFrameVisibleNodeIds;
+
+    return [frameSemanticStep];
   });
 
   const expandedFrameBackedSteps = frameBackedSteps.flatMap((step, index) => {
@@ -503,38 +1069,11 @@ const buildPlaybackStepsFromGrowthFrames = (
     });
   });
 
-  const supplementalProvided = alignedSteps.flatMap((step, originalIndex) => {
-    const stepId = String(step?.stepId || '').trim();
-    if (!stepId || usedStepIds.has(stepId)) return [];
-    const boundedFrameIndex = Math.max(0, Math.min(originalIndex, Math.max(frameBackedSteps.length - 1, 0)));
-    return [{
-      operation: step.operation || 'Other',
-      microOperations: step.microOperations,
-      targetNodeId: step.targetNodeId || `__growth_supplemental_${originalIndex}`,
-      targetLabel: step.targetLabel || 'Workspace',
-      sourceNodeIds: step.sourceNodeIds,
-      sourceLabels: step.sourceLabels || [],
-      recipe: step.recipe || step.note || 'Derivation',
-      workspaceAfter: step.workspaceAfter,
-      spelloutOrder: step.spelloutOrder,
-      featureChecking: step.featureChecking,
-      ledgerBlocks: step.ledgerBlocks,
-      sourceFrameIndex: boundedFrameIndex,
-      visualFrameIndex: boundedFrameIndex,
-      stepId: step.stepId,
-      trigger: step.trigger,
-      chainId: step.chainId,
-      spelloutDomain: step.spelloutDomain,
-      note: step.note
-    }];
-  });
-
-  const squashedFrameBackedSteps = dropLowSignalStructuralFrameSummaries(
-    squashAdjacentStructuralReplayDuplicates(expandedFrameBackedSteps)
-  );
-  const nonSpellout = squashedFrameBackedSteps.filter((step) => String(step.operation || '').trim() !== 'SpellOut');
-  const spellout = squashedFrameBackedSteps.filter((step) => String(step.operation || '').trim() === 'SpellOut');
-  return [...nonSpellout, ...supplementalProvided, ...spellout];
+  const squashedFrameBackedSteps = squashAdjacentStructuralReplayDuplicates(expandedFrameBackedSteps);
+  const visibilityStabilizedSteps = stabilizeStructuralReplayVisibility(squashedFrameBackedSteps);
+  const nonSpellout = visibilityStabilizedSteps.filter((step) => String(step.operation || '').trim() !== 'SpellOut');
+  const spellout = visibilityStabilizedSteps.filter((step) => String(step.operation || '').trim() === 'SpellOut');
+  return [...nonSpellout, ...spellout];
 };
 
 const squashAdjacentStructuralReplayDuplicates = (steps: PlaybackStep[]): PlaybackStep[] => {
@@ -603,6 +1142,43 @@ const squashAdjacentStructuralReplayDuplicates = (steps: PlaybackStep[]): Playba
   return squashed;
 };
 
+const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackStep[] => {
+  if (steps.length === 0) return steps;
+
+  const persistentProjectedNodeIds = new Set<string>();
+  return steps.map((step) => {
+    const canvas = step.replayCanvasData;
+    const rawVisibleIds = Array.isArray(step.replayVisibleNodeIds)
+      ? step.replayVisibleNodeIds.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+    if (!canvas) {
+      if (step.operation === 'Project' && String(step.targetNodeId || '').trim()) {
+        persistentProjectedNodeIds.add(String(step.targetNodeId || '').trim());
+      }
+      return step;
+    }
+
+    const nextVisibleIds = new Set(rawVisibleIds);
+    const revealProjectedNode = (nodeId: string) => {
+      const node = findNodeByIdInForest([canvas], nodeId);
+      if (!node) return;
+      collectSubtreeNodeIds(node).forEach((visibleNodeId) => nextVisibleIds.add(visibleNodeId));
+    };
+
+    persistentProjectedNodeIds.forEach(revealProjectedNode);
+    if (step.operation === 'Project' && String(step.targetNodeId || '').trim()) {
+      const targetNodeId = String(step.targetNodeId || '').trim();
+      revealProjectedNode(targetNodeId);
+      persistentProjectedNodeIds.add(targetNodeId);
+    }
+
+    return {
+      ...step,
+      replayVisibleNodeIds: Array.from(nextVisibleIds)
+    };
+  });
+};
+
 const dropLowSignalStructuralFrameSummaries = (steps: PlaybackStep[]): PlaybackStep[] => {
   if (steps.length < 2) return steps;
 
@@ -653,6 +1229,19 @@ const collectForestNodesById = (forest: SyntaxNode[]): Map<string, SyntaxNode> =
   return out;
 };
 
+const collectSubtreeNodeIds = (node?: SyntaxNode | null): string[] => {
+  if (!node || typeof node !== 'object') return [];
+  const ids: string[] = [];
+  const visit = (current: SyntaxNode) => {
+    const nodeId = String(current?.id || '').trim();
+    if (nodeId) ids.push(nodeId);
+    const children = Array.isArray(current?.children) ? current.children : [];
+    children.forEach(visit);
+  };
+  visit(node);
+  return ids;
+};
+
 const collectLeafSyntaxNodes = (root?: SyntaxNode | null): SyntaxNode[] => {
   if (!root || typeof root !== 'object') return [];
   const leaves: SyntaxNode[] = [];
@@ -668,6 +1257,31 @@ const collectLeafSyntaxNodes = (root?: SyntaxNode | null): SyntaxNode[] => {
   return leaves;
 };
 
+const countOvertLeafSyntaxNodes = (root?: SyntaxNode | null): number =>
+  collectLeafSyntaxNodes(root).filter((leaf) => {
+    const surface = String(leaf?.word || leaf?.label || '').trim();
+    return Boolean(surface)
+      && !isTraceLike(surface)
+      && !isNullLike(surface)
+      && !isStructuralCategorySurface(surface);
+  }).length;
+
+const hasBranchingSyntaxSubtree = (root?: SyntaxNode | null): boolean => {
+  if (!root || typeof root !== 'object') return false;
+  let branching = false;
+  const visit = (node: SyntaxNode) => {
+    if (branching) return;
+    const children = Array.isArray(node?.children) ? node.children : [];
+    if (children.length > 1) {
+      branching = true;
+      return;
+    }
+    children.forEach(visit);
+  };
+  visit(root);
+  return branching;
+};
+
 const pickTraceLikeLeafNode = (root?: SyntaxNode | null): SyntaxNode | null => {
   const leaves = collectLeafSyntaxNodes(root);
   return leaves.find((leaf) => {
@@ -680,8 +1294,45 @@ const pickOvertLeafNode = (root?: SyntaxNode | null): SyntaxNode | null => {
   const leaves = collectLeafSyntaxNodes(root);
   return leaves.find((leaf) => {
     const surface = String(leaf?.word || leaf?.label || '').trim();
-    return Boolean(surface) && !isTraceLike(surface) && !isNullLike(surface);
+    return Boolean(surface)
+      && !isTraceLike(surface)
+      && !isNullLike(surface)
+      && !isStructuralCategorySurface(surface);
   }) || null;
+};
+
+const materializeMissingTraceLeavesFromMovementLinks = (
+  root: SyntaxNode,
+  links?: ResolvedMovementEventLink[]
+): SyntaxNode => {
+  if (!root || !Array.isArray(links) || links.length === 0) return root;
+
+  const clonedRoot = cloneSyntaxTree(root);
+  if (!clonedRoot) return root;
+  const forest = [clonedRoot];
+
+  links.forEach((link) => {
+    const traceId = String(link?.traceAnchorId || '').trim();
+    if (!traceId) return;
+
+    const tracePath = findNodePathInForest(forest, traceId);
+    const traceNode = getNodeAtForestPath(forest, tracePath);
+    if (!traceNode) return;
+    if (pickOvertLeafNode(traceNode)) return;
+    if (pickTraceLikeLeafNode(traceNode)) return;
+
+    replaceNodeAtForestPath(forest, tracePath, {
+      id: String(traceNode.id || '').trim() || traceId,
+      label: String(traceNode.label || '').trim() || 'XP',
+      children: [{
+        id: buildSyntheticReplayLeafId(traceNode, 'trace', 't'),
+        label: 't',
+        word: 't'
+      }]
+    });
+  });
+
+  return forest[0];
 };
 
 const findParentLabelInForest = (
@@ -755,6 +1406,9 @@ const findNodeByIdInForest = (forest: SyntaxNode[], targetNodeId: string): Synta
   return null;
 };
 
+const stripSyntheticReplayLeafSuffix = (value?: string): string =>
+  String(value || '').trim().replace(/::__[^:]+$/, '');
+
 const replaceNodeAtForestPath = (forest: SyntaxNode[], path: number[] | null, nextNode: SyntaxNode): void => {
   if (!Array.isArray(path) || path.length === 0) return;
   if (path.length === 1) {
@@ -788,7 +1442,9 @@ const isPhraseShellLabel = (label?: string): boolean => {
 };
 
 const isHeadShellLabel = (label?: string): boolean => {
-  const normalized = normalizeStructuralLabel(label);
+  const raw = String(label || '').trim();
+  if (!raw || PRIME_CATEGORY_LABEL_RE.test(raw)) return false;
+  const normalized = normalizeStructuralLabel(raw);
   if (!normalized) return false;
   return HEAD_LIKE_LABEL_RE.test(normalized);
 };
@@ -928,6 +1584,163 @@ const isBroadProjectionLike = (node?: SyntaxNode | null): boolean => {
     );
 };
 
+const isPhrasalCategoryLabel = (label?: string): boolean => {
+  const normalized = normalizeLabel(label);
+  return normalized.endsWith('P')
+    || normalized === "C'"
+    || normalized === "T'"
+    || normalized === "V'"
+    || normalized === "N'"
+    || normalized === "D'"
+    || normalized === "P'"
+    || normalized === "A'"
+    || normalized === "ADV'"
+    || normalized === "INFL'";
+};
+
+const subtreeHasOvertYield = (node?: SyntaxNode | null): boolean =>
+  Boolean(pickOvertLeafNode(node));
+
+const normalizeMovementStemFromNodeId = (value?: string): string => {
+  let normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return '';
+  normalized = normalized
+    .replace(/^(?:trace|t)(?:[_-]?\d+)?[_-]?/i, '')
+    .replace(/(?:[_-](?:trace|tr|landed|landing|moved|move|copy|target|source|site|lower|upper|high|low)(?:[_-]?\d+)*)+$/gi, '');
+
+  let previous = '';
+  while (normalized && normalized !== previous) {
+    previous = normalized;
+    normalized = normalized.replace(/^(?:cp|cbar|c|inflp|inflbar|infl|tp|tbar|vp|vbar|v|dp|dbar|d|np|nbar|n|pp|pbar|p|ap|abar|a|advp|advbar|adv|ip|ibar|i)[_-]+/i, '');
+  }
+
+  normalized = normalized
+    .replace(/(?:[_-]?(?:trace|tr|landed|landing|moved|move|copy|target|source|site|lower|upper|high|low)\d*)+$/gi, '')
+    .replace(/(?:[_-]\d+)+$/g, '');
+
+  return normalized.replace(/^[_-]+|[_-]+$/g, '');
+};
+
+const preferredHeadMoveLandingBases = (sourceNode?: SyntaxNode | null): string[] => {
+  const base = normalizeStructuralLabel(sourceNode?.label).toLowerCase();
+  if (base === 'v') return ['v', 'infl', 'i', 't', 'aux', 'c', 'q', 'wh'];
+  if (base === 'aux') return ['infl', 'i', 't', 'c', 'q', 'wh'];
+  if (base === 'infl' || base === 'i' || base === 't') return ['c', 'q', 'wh'];
+  return ['c', 'infl', 'i', 't', 'aux', 'v'];
+};
+
+const collectOvertHeadCandidatesInSubtree = (
+  node: SyntaxNode | null,
+  entries: Array<{ node: SyntaxNode; domainDistance: number }>,
+  domainDistance: number
+) => {
+  if (!node) return;
+  if (isHeadShellLabel(node.label) && subtreeHasOvertYield(node)) {
+    entries.push({ node, domainDistance });
+  }
+  const children = Array.isArray(node.children) ? node.children : [];
+  children.forEach((child) => collectOvertHeadCandidatesInSubtree(child, entries, domainDistance));
+};
+
+const inferMissingHeadMoveTargetId = (
+  movementForest: SyntaxNode[],
+  rawSourceId: string,
+  sourceFrameNode?: SyntaxNode | null
+): string => {
+  const sourcePath = findNodePathInForest(movementForest, rawSourceId);
+  if (!Array.isArray(sourcePath) || sourcePath.length === 0) return '';
+
+  const preferredBases = preferredHeadMoveLandingBases(sourceFrameNode);
+  const sourceStem = normalizeMovementStemFromNodeId(rawSourceId);
+  const candidates: Array<{ node: SyntaxNode; domainDistance: number }> = [];
+
+  let currentPath = sourcePath;
+  let domainDistance = 0;
+  while (currentPath.length > 0) {
+    const parentPath = currentPath.slice(0, -1);
+    const parentNode = getNodeAtForestPath(movementForest, parentPath);
+    const currentIndex = currentPath[currentPath.length - 1];
+    const siblings = Array.isArray(parentNode?.children)
+      ? parentNode.children.filter((_, index) => index !== currentIndex)
+      : [];
+    siblings.forEach((sibling) => collectOvertHeadCandidatesInSubtree(sibling, candidates, domainDistance));
+    currentPath = parentPath;
+    domainDistance += 1;
+  }
+
+  let bestId = '';
+  let bestScore = -1;
+  candidates.forEach(({ node, domainDistance: distance }) => {
+    const candidateId = String(node?.id || '').trim();
+    if (!candidateId || candidateId === rawSourceId) return;
+    const candidateBase = normalizeStructuralLabel(node?.label).toLowerCase();
+    const preferredIndex = preferredBases.indexOf(candidateBase);
+    const overtLeaf = pickOvertLeafNode(node);
+    const overtStem = normalizeMovementStemFromNodeId(String(overtLeaf?.word || overtLeaf?.label || '').trim());
+    let score = 0;
+    if (preferredIndex >= 0) score += 240 - (preferredIndex * 20);
+    score += Math.max(0, 90 - (distance * 15));
+    if (sourceStem && overtStem && sourceStem === overtStem) score += 120;
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = candidateId;
+    }
+  });
+
+  return bestScore >= 100 ? bestId : '';
+};
+
+const inferMissingPhrasalMoveSourceId = ({
+  movementNodesById,
+  currentNodesById,
+  previousNodesById,
+  rawSourceId,
+  rawTargetId,
+  targetFrameNode
+}: {
+  movementNodesById: Map<string, SyntaxNode>;
+  currentNodesById: Map<string, SyntaxNode>;
+  previousNodesById: Map<string, SyntaxNode>;
+  rawSourceId: string;
+  rawTargetId: string;
+  targetFrameNode?: SyntaxNode | null;
+}): string => {
+  const sourceStem = normalizeMovementStemFromNodeId(rawSourceId);
+  const targetStem = normalizeMovementStemFromNodeId(rawTargetId);
+  const preferredStem = sourceStem || targetStem;
+  if (!preferredStem && !targetStem) return '';
+
+  const targetLabel = normalizeStructuralLabel(targetFrameNode?.label);
+  let bestId = '';
+  let bestScore = -1;
+
+  movementNodesById.forEach((candidate, candidateId) => {
+    const normalizedCandidateId = String(candidateId || '').trim();
+    if (!normalizedCandidateId || !currentNodesById.has(normalizedCandidateId)) return;
+
+    const traceLeaf = pickTraceLikeLeafNode(candidate);
+    const looksTraceLike = isTraceOrNullLikeNode(candidate) || Boolean(traceLeaf);
+    if (!looksTraceLike) return;
+
+    const candidateStem = normalizeMovementStemFromNodeId(normalizedCandidateId);
+    let score = 0;
+    if (candidateStem && candidateStem === preferredStem) score += 220;
+    if (candidateStem && targetStem && candidateStem === targetStem) score += 80;
+    if (candidateStem && sourceStem && candidateStem === sourceStem) score += 80;
+    if (targetLabel && normalizeStructuralLabel(candidate.label) === targetLabel) score += 40;
+    if (/_trace\b/i.test(normalizedCandidateId)) score += 40;
+    if (traceLeaf) score += 20;
+    if (!previousNodesById.has(normalizedCandidateId)) score += 20;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = normalizedCandidateId;
+    }
+  });
+
+  return bestScore >= 160 ? bestId : '';
+};
+
 const resolveGrowthMovementTransitions = (
   currentForest: SyntaxNode[],
   growthFrames: GrowthFrame[] | undefined,
@@ -939,6 +1752,7 @@ const resolveGrowthMovementTransitions = (
   const currentNodesById = collectForestNodesById(currentForest);
   const currentNodeIds = new Set(currentNodesById.keys());
   const movementIndexByKey = new Map<string, string>();
+  const explicitGrowthMovementSteps = new Set<number>();
   let nextMovementIndex = 1;
 
   const getCanonicalMovementIndex = (
@@ -963,7 +1777,7 @@ const resolveGrowthMovementTransitions = (
     const frame = frames[frameIndex];
     const movement = frame?.movement;
     if (!movement) continue;
-    const chainId = String(frame.chainId || '').trim();
+    const chainId = String(frame.chainId || movement.chainId || '').trim();
 
     const movementForest = Array.isArray(frame.workspaceForest) ? frame.workspaceForest : [];
     const previousFrame = frameIndex > 0 ? frames[frameIndex - 1] : null;
@@ -977,25 +1791,46 @@ const resolveGrowthMovementTransitions = (
 
     const sourceCurrentData = rawSourceId ? currentNodesById.get(rawSourceId) : undefined;
     const targetCurrentData = rawTargetId ? currentNodesById.get(rawTargetId) : undefined;
-    const sourceFrameNode = rawSourceId ? movementNodesById.get(rawSourceId) : undefined;
+    let sourceFrameNode = rawSourceId ? movementNodesById.get(rawSourceId) : undefined;
     const targetFrameNode = rawTargetId ? movementNodesById.get(rawTargetId) : undefined;
-    const explicitTraceFrameNode = String((movement as any)?.traceNodeId || '').trim()
+    let explicitTraceFrameNode = String((movement as any)?.traceNodeId || '').trim()
       ? movementNodesById.get(String((movement as any).traceNodeId).trim())
       : undefined;
 
+    const normalizedMovementOperation = normalizeMovementOperationLabel(movement.operation || frame.operation);
     let resolvedTargetId = rawTargetId;
+    if (normalizedMovementOperation === 'headmove' && !resolvedTargetId) {
+      resolvedTargetId = inferMissingHeadMoveTargetId(movementForest, rawSourceId, sourceFrameNode) || resolvedTargetId;
+    }
+    const resolvedTargetCurrentData = resolvedTargetId
+      ? currentNodesById.get(resolvedTargetId)
+      : undefined;
     const targetLooksBad =
-      !targetCurrentData ||
-      isTraceOrNullLikeNode(targetCurrentData) ||
+      !resolvedTargetCurrentData ||
+      isTraceOrNullLikeNode(resolvedTargetCurrentData) ||
       (Boolean(sourceCurrentData)
-        && isBroadProjectionLike(targetCurrentData)
-        && normalizeLabel(targetCurrentData?.label) !== normalizeLabel(sourceCurrentData?.label));
-    if (sourceCurrentData && targetLooksBad) {
+        && isBroadProjectionLike(resolvedTargetCurrentData)
+        && normalizeLabel(resolvedTargetCurrentData?.label) !== normalizeLabel(sourceCurrentData?.label));
+    if (sourceCurrentData && targetLooksBad && normalizedMovementOperation !== 'headmove') {
       resolvedTargetId = rawSourceId;
     }
 
     let resolvedSourceId = rawSourceId;
-    if (!sourceCurrentData || !isTraceOrNullLikeNode(sourceCurrentData)) {
+    // A lower phrasal copy can be a bare shell in packed live bundles.
+    // Keep that shell as the movement source so replay can materialize a trace under it.
+    const keepVisiblePhrasalSourceShell = Boolean(sourceCurrentData)
+      && normalizedMovementOperation !== 'headmove'
+      && isPhrasalCategoryLabel(sourceCurrentData?.label);
+    // In cumulative head-move replay, keep the earlier lower head shell as the source
+    // for the earlier hop. Otherwise the V->T hop can collapse onto the later T-trace.
+    const keepVisibleHeadSourceShell = Boolean(sourceCurrentData)
+      && normalizedMovementOperation === 'headmove'
+      && isHeadShellLabel(sourceCurrentData?.label);
+    if (
+      (!sourceCurrentData || !isTraceOrNullLikeNode(sourceCurrentData))
+      && !keepVisiblePhrasalSourceShell
+      && !keepVisibleHeadSourceShell
+    ) {
       const previousPath = rawSourceId ? findNodePathInForest(previousForest, rawSourceId) : null;
       const replacementNode = getNodeAtForestPath(movementForest, previousPath);
       const replacementId = String(replacementNode?.id || '').trim();
@@ -1011,6 +1846,22 @@ const resolveGrowthMovementTransitions = (
         if (traceCandidates.length === 1) {
           resolvedSourceId = String(traceCandidates[0].id || '').trim();
         }
+      }
+    }
+
+    if ((!resolvedSourceId || !currentNodesById.has(resolvedSourceId)) && normalizedMovementOperation !== 'headmove') {
+      const inferredTraceSourceId = inferMissingPhrasalMoveSourceId({
+        movementNodesById,
+        currentNodesById,
+        previousNodesById,
+        rawSourceId,
+        rawTargetId,
+        targetFrameNode
+      });
+      if (inferredTraceSourceId) {
+        resolvedSourceId = inferredTraceSourceId;
+        sourceFrameNode = movementNodesById.get(inferredTraceSourceId);
+        explicitTraceFrameNode = explicitTraceFrameNode || sourceFrameNode;
       }
     }
 
@@ -1059,13 +1910,16 @@ const resolveGrowthMovementTransitions = (
     const transitionKey = `${resolvedSourceId}->${resolvedTargetId}@${frameIndex}`;
     if (transitionKeys.has(transitionKey)) continue;
     transitionKeys.add(transitionKey);
+    explicitGrowthMovementSteps.add(frameIndex);
     transitions.push({
       sourceId: resolvedSourceId,
       targetId: resolvedTargetId,
       traceId: resolvedTraceId,
       step: frameIndex,
       index: getCanonicalMovementIndex(frame, resolvedSourceId, resolvedTargetId, frameIndex),
-      chainId: chainId || null
+      chainId: chainId || null,
+      operation: movement.operation || frame.operation,
+      note: movement.note
     });
   }
 
@@ -1075,6 +1929,7 @@ const resolveGrowthMovementTransitions = (
     if (!sourceId || !targetId || sourceId === targetId) return;
     const step = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
     if (step > activeStepIndex) return;
+    if (explicitGrowthMovementSteps.has(step)) return;
     if (!currentNodeIds.has(sourceId) || !currentNodeIds.has(targetId)) return;
     const transitionKey = `${sourceId}->${targetId}@${step}`;
     if (transitionKeys.has(transitionKey)) return;
@@ -1087,7 +1942,9 @@ const resolveGrowthMovementTransitions = (
         : null,
       step,
       index: String(link?.movementIndex || '').trim() || `${transitions.length + 1}`,
-      chainId: null
+      chainId: null,
+      operation: link?.operation,
+      note: link?.note
     });
   });
 
@@ -1097,7 +1954,7 @@ const resolveGrowthMovementTransitions = (
 const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
 const resolveLeafSurface = (node: HierNode): string => (node.data.word || node.data.label || '').trim();
 const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
-const NULLABLE_HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'I', 'D', 'NEG', 'ASP']);
+const NULLABLE_HEAD_CATEGORIES = new Set(['C', 'INFL', 'T', 'I', 'D', 'NEG', 'ASP', 'VOICE']);
 const EXPLICIT_NULL_TERMINAL = '∅';
 const buildSyntheticReplayLeafId = (parent: SyntaxNode, suffix: string, word?: string): string => {
   const parentId = typeof parent?.id === 'string' ? parent.id.trim() : '';
@@ -1235,6 +2092,11 @@ const formatTraceSurfaceForDisplayValue = (
   return buildTraceDisplayLabel(fallbackIndex || extractMovementIndex(raw));
 };
 
+const DISPLAY_TRACE_LABEL_RE = /^t(?:[₀₁₂₃₄₅₆₇₈₉]+)?$/;
+
+const isDisplayTraceLabel = (value?: string): boolean =>
+  DISPLAY_TRACE_LABEL_RE.test(String(value || '').trim());
+
 const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
 const isIndexedSurface = (label: string): boolean => {
   const trimmed = label.trim();
@@ -1278,8 +2140,22 @@ const collectOvertLeafNodeIdsInOrder = (root?: SyntaxNode | null): string[] => {
   return overtIds;
 };
 
+const collectSyntaxSubtreeNodeIds = (root?: SyntaxNode | null): string[] => {
+  if (!root || typeof root !== 'object') return [];
+  const ids: string[] = [];
+  const visit = (node: SyntaxNode) => {
+    const nodeId = String(node?.id || '').trim();
+    if (nodeId) ids.push(nodeId);
+    const children = Array.isArray(node?.children) ? node.children : [];
+    children.forEach(visit);
+  };
+  visit(root);
+  return ids;
+};
+
 const maybeLowercaseSentenceInitialFunctionSurface = ({
   surface,
+  sentenceInitialSurface,
   nodeId,
   parentLabel,
   tokenIndex,
@@ -1287,6 +2163,7 @@ const maybeLowercaseSentenceInitialFunctionSurface = ({
   isWorkspaceForest = false
 }: {
   surface: string;
+  sentenceInitialSurface?: string;
   nodeId?: string;
   parentLabel?: string;
   tokenIndex?: number;
@@ -1299,10 +2176,19 @@ const maybeLowercaseSentenceInitialFunctionSurface = ({
 
   const normalizedNodeId = String(nodeId || '').trim();
   const normalizedParentLabel = String(parentLabel || '').trim().toUpperCase();
+  const normalizedSentenceInitialSurface = String(sentenceInitialSurface || '').trim();
   const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
   const firstVisibleOvertLeafId = visibleIds[0] || '';
   const isSentenceInitialInVisibleReplay = normalizedNodeId && normalizedNodeId === firstVisibleOvertLeafId;
-  if (!isWorkspaceForest && isSentenceInitialInVisibleReplay) return trimmed;
+  if (!isWorkspaceForest && isSentenceInitialInVisibleReplay) {
+    if (
+      normalizedSentenceInitialSurface
+      && normalizeToken(trimmed) === normalizeToken(normalizedSentenceInitialSurface)
+    ) {
+      return normalizedSentenceInitialSurface;
+    }
+    return trimmed;
+  }
 
   const functionLikeParentLabels = new Set(['D', 'C', 'INFL', 'T', 'AUX', 'DET']);
   if (!functionLikeParentLabels.has(normalizedParentLabel)) return trimmed;
@@ -1415,49 +2301,20 @@ const getReadyNodePriority = (node: HierNode): number => {
 };
 
 const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
-  const visibleNodes = root.descendants().filter((node) => visibleIds.has(getNodeId(node)));
-  if (visibleNodes.length <= 1) return visibleNodes;
-
-  const orderByTraversal = new Map<string, number>();
-  visibleNodes.forEach((node, index) => orderByTraversal.set(getNodeId(node), index));
-
-  const pendingChildren = new Map<string, number>();
-  visibleNodes.forEach((node) => {
-    const visibleChildCount = (node.children || []).filter((child) => visibleIds.has(getNodeId(child))).length;
-    pendingChildren.set(getNodeId(node), visibleChildCount);
-  });
-
-  const ready: HierNode[] = visibleNodes.filter((node) => (pendingChildren.get(getNodeId(node)) ?? 0) === 0);
   const sequence: HierNode[] = [];
 
-  const compareReady = (a: HierNode, b: HierNode): number => {
-    const priorityDelta = getReadyNodePriority(a) - getReadyNodePriority(b);
-    if (priorityDelta !== 0) return priorityDelta;
-
-    const depthDelta = b.depth - a.depth;
-    if (depthDelta !== 0) return depthDelta;
-
-    return (orderByTraversal.get(getNodeId(a)) ?? 0) - (orderByTraversal.get(getNodeId(b)) ?? 0);
+  const visit = (node: HierNode) => {
+    const syntheticWorkspaceRoot = isSyntheticWorkspaceRootNode(node);
+    if (!syntheticWorkspaceRoot && !visibleIds.has(getNodeId(node))) return;
+    const visibleChildren = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)));
+    visibleChildren.forEach(visit);
+    if (!syntheticWorkspaceRoot && visibleIds.has(getNodeId(node))) {
+      sequence.push(node);
+    }
   };
 
-  while (ready.length > 0) {
-    ready.sort(compareReady);
-    const current = ready.shift();
-    if (!current) break;
-    sequence.push(current);
-
-    const parent = current.parent;
-    if (!parent || !visibleIds.has(getNodeId(parent))) continue;
-
-    const parentId = getNodeId(parent);
-    const nextPending = (pendingChildren.get(parentId) ?? 0) - 1;
-    pendingChildren.set(parentId, nextPending);
-    if (nextPending === 0) {
-      ready.push(parent);
-    }
-  }
-
-  return sequence;
+  visit(root);
+  return sequence.filter((node) => visibleIds.has(getNodeId(node)));
 };
 
 const mapProvidedStepsToNodes = (
@@ -1484,62 +2341,18 @@ const mapProvidedStepsToNodes = (
   return mapped;
 };
 
-const createInferredPlaybackSteps = (
-  fallbackSequence: HierNode[],
-  visibleIds: Set<string>,
-  labelResolver: (node: HierNode) => string = resolveNodeLabel
-): PlaybackStep[] => {
-  const workspace = new Map<string, string>();
-  const inferred: PlaybackStep[] = [];
-
-  for (const node of fallbackSequence) {
-    const nodeId = getNodeId(node);
-    const targetLabel = labelResolver(node);
-    const childNodes = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)));
-    const sourceLabels = childNodes.map((child) => labelResolver(child)).filter(Boolean);
-
-    if (childNodes.length === 0) {
-      const lexicalSurface = resolveLeafSurface(node);
-      const lexicalLabel =
-        isTraceLike(lexicalSurface) || isNullLike(lexicalSurface)
-          ? targetLabel
-          : (node.data.word || targetLabel);
-      workspace.set(nodeId, targetLabel);
-      inferred.push({
-        operation: 'LexicalSelect',
-        targetNodeId: nodeId,
-        targetLabel,
-        sourceNodeIds: [],
-        sourceLabels: [lexicalLabel],
-        recipe: `Select ${lexicalLabel}`,
-        workspaceAfter: Array.from(workspace.values())
-      });
-      continue;
-    }
-
-    childNodes.forEach((child) => workspace.delete(getNodeId(child)));
-    workspace.set(nodeId, targetLabel);
-    inferred.push({
-      operation: childNodes.length === 1 ? 'Project' : 'ExternalMerge',
-      targetNodeId: nodeId,
-      targetLabel,
-      sourceNodeIds: childNodes.map((child) => getNodeId(child)),
-      sourceLabels,
-      recipe: `${sourceLabels.join(' + ')} -> ${targetLabel}`,
-      workspaceAfter: Array.from(workspace.values())
-    });
-  }
-
-  return inferred;
-};
-
 const buildStructuralGrowthPlaybackSteps = (
   forest: SyntaxNode[],
   frameIndex: number,
   previousVisibleNodeIds: Set<string>,
   resolvedMovementLinks?: ResolvedMovementEventLink[],
-  movementEvents?: MovementEvent[]
+  movementEvents?: MovementEvent[],
+  revealRootIds?: Set<string>,
+  growthFrames?: GrowthFrame[],
+  frame?: GrowthFrame,
+  sentence?: string
 ): PlaybackStep[] => {
+  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
   const growthFrameLinks = resolveGrowthFrameMovementLinks(forest, movementEvents, frameIndex);
   const effectiveMovementLinks = growthFrameLinks.length > 0 ? growthFrameLinks : (resolvedMovementLinks || []);
   const canvas = buildRenderableGrowthCanvasData(forest, effectiveMovementLinks);
@@ -1547,7 +2360,10 @@ const buildStructuralGrowthPlaybackSteps = (
   if (!cloned) return [];
   const hierarchy = d3.hierarchy(cloned);
   applyVizIds(hierarchy);
-  const visibleNodes = hierarchy.descendants().filter((node) => !isSyntheticWorkspaceRootNode(node));
+  const visibleNodes = hierarchy
+    .descendants()
+    .filter((node) => !isSyntheticWorkspaceRootNode(node));
+  const visibleNodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node] as const));
   const visibleIds = new Set(visibleNodes.map((node) => getNodeId(node)));
   const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
     forest,
@@ -1566,27 +2382,128 @@ const buildStructuralGrowthPlaybackSteps = (
   const sequence = buildBottomUpSequence(hierarchy, visibleIds)
     .filter((node) => !isSyntheticWorkspaceRootNode(node));
   const nodesToReveal = sequence.filter((node) =>
-    frameIndex === 0 || !previousVisibleNodeIds.has(getNodeId(node))
+    (frameIndex === 0 || !previousVisibleNodeIds.has(getNodeId(node)))
+    && (
+      !revealRootIds ||
+      revealRootIds.size === 0 ||
+      (() => {
+        let current: HierNode | null = node;
+        while (current) {
+          if (revealRootIds.has(getNodeId(current))) return true;
+          current = current.parent;
+        }
+        return false;
+      })()
+    )
   );
+  const detachedAttachmentRootIds = (() => {
+    if (String(frame?.operation || '').trim() !== 'ExternalMerge') return new Set<string>();
+    const detachedRoots = new Set<string>();
+    visibleNodes.forEach((node) => {
+      const nodeId = getNodeId(node);
+      if (!nodeId || previousVisibleNodeIds.has(nodeId)) return;
+      const parent = node.parent;
+      if (!parent || isSyntheticWorkspaceRootNode(parent)) return;
+      if (!previousVisibleNodeIds.has(getNodeId(parent))) return;
+      detachedRoots.add(nodeId);
+    });
+    return detachedRoots;
+  })();
+  const detachedAttachmentRootSideHints = (() => {
+    if (detachedAttachmentRootIds.size === 0) return new Map<string, number>();
+    const hints = new Map<string, number>();
+    detachedAttachmentRootIds.forEach((rootId) => {
+      const rootNode = visibleNodes.find((node) => getNodeId(node) === rootId);
+      const parent = rootNode?.parent;
+      if (!rootNode || !parent || !Array.isArray(parent.children)) return;
+      const childIndex = parent.children.findIndex((child) => getNodeId(child) === rootId);
+      if (childIndex < 0) return;
+      hints.set(rootId, childIndex === 0 ? -1 : 1);
+    });
+    return hints;
+  })();
   const cumulativeVisibleNodeIds = new Set(previousVisibleNodeIds);
   const playbackSteps: PlaybackStep[] = nodesToReveal.flatMap((node) => {
     const nodeId = getNodeId(node);
     cumulativeVisibleNodeIds.add(nodeId);
     const surface = resolveLeafSurface(node);
+    const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
+    Array.from(cumulativeVisibleNodeIds).forEach((visibleNodeId) => {
+      const visibleNode = visibleNodeById.get(visibleNodeId);
+      if (!visibleNode) return;
+      let topRenderableAncestor: HierNode = visibleNode;
+      while (
+        topRenderableAncestor.parent
+        && !isSyntheticWorkspaceRootNode(topRenderableAncestor.parent)
+      ) {
+        topRenderableAncestor = topRenderableAncestor.parent;
+      }
+      topRenderableAncestor
+        .descendants()
+        .forEach((descendant) => {
+          if (!isSyntheticWorkspaceRootNode(descendant)) {
+            layoutVisibleNodeIds.add(getNodeId(descendant));
+          }
+        });
+      let current: HierNode | null = visibleNode.parent || null;
+      while (current) {
+        if (!isSyntheticWorkspaceRootNode(current)) {
+          layoutVisibleNodeIds.add(getNodeId(current));
+        }
+        current = current.parent;
+      }
+    });
+    const currentRevealIndex = nodesToReveal.findIndex((candidate) => getNodeId(candidate) === nodeId);
+    const pendingRevealNodes = currentRevealIndex >= 0
+      ? nodesToReveal.slice(currentRevealIndex + 1)
+      : [];
+    pendingRevealNodes.forEach((pendingNode) => {
+      let topRenderableAncestor: HierNode = pendingNode;
+      while (
+        topRenderableAncestor.parent
+        && !isSyntheticWorkspaceRootNode(topRenderableAncestor.parent)
+      ) {
+        topRenderableAncestor = topRenderableAncestor.parent;
+      }
+      topRenderableAncestor
+        .descendants()
+        .forEach((descendant) => {
+          if (!isSyntheticWorkspaceRootNode(descendant)) {
+            layoutVisibleNodeIds.add(getNodeId(descendant));
+          }
+        });
+    });
 
-    const replaySnapshot = buildVisibleSyntaxSnapshotFromHierarchy(hierarchy, cumulativeVisibleNodeIds);
-    const workspaceAfter = extractReplayWorkspaceLabels(replaySnapshot);
-    const visibleOvertLeafIds = collectOvertLeafNodeIdsInOrder(replaySnapshot);
+    const visibleWorkspaceSnapshot = buildVisibleSyntaxSnapshotFromHierarchy(
+      hierarchy,
+      cumulativeVisibleNodeIds,
+      detachedAttachmentRootIds.size > 0 ? detachedAttachmentRootIds : undefined,
+      detachedAttachmentRootSideHints.size > 0 ? detachedAttachmentRootSideHints : undefined
+    );
+    const frameReplaySnapshot = buildGrowthReplaySnapshot(
+      forest,
+      frameIndex,
+      movementEvents,
+      resolvedMovementLinks,
+      cumulativeVisibleNodeIds,
+      layoutVisibleNodeIds,
+      growthFrames,
+      detachedAttachmentRootIds.size > 0 ? detachedAttachmentRootIds : undefined,
+      detachedAttachmentRootSideHints.size > 0 ? detachedAttachmentRootSideHints : undefined
+    );
+    const workspaceAfter = extractReplayWorkspaceLabels(visibleWorkspaceSnapshot);
+    const visibleOvertLeafIds = collectOvertLeafNodeIdsInOrder(visibleWorkspaceSnapshot);
     const rawTargetLabel = getReplayNodeLabel(node);
     const childNodes = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)));
     const targetLabel = childNodes.length === 0 && !isTraceLike(surface) && !isNullLike(surface)
       ? maybeLowercaseSentenceInitialFunctionSurface({
           surface: rawTargetLabel,
+          sentenceInitialSurface,
           nodeId,
           parentLabel: String(node.parent?.data?.label || '').trim(),
           tokenIndex: Number(node.data?.tokenIndex),
           visibleOvertLeafIds,
-          isWorkspaceForest: String(replaySnapshot?.label || '').trim() === GROWTH_WORKSPACE_ROOT_LABEL
+          isWorkspaceForest: String(visibleWorkspaceSnapshot?.label || '').trim() === GROWTH_WORKSPACE_ROOT_LABEL
         })
       : rawTargetLabel;
     const sourceNodeIds = childNodes.map((child) => getNodeId(child));
@@ -1597,11 +2514,12 @@ const buildStructuralGrowthPlaybackSteps = (
             ? targetLabel
             : maybeLowercaseSentenceInitialFunctionSurface({
                 surface: String(node.data.word || targetLabel || '').trim(),
+                sentenceInitialSurface,
                 nodeId,
                 parentLabel: String(node.parent?.data?.label || '').trim(),
                 tokenIndex: Number(node.data?.tokenIndex),
                 visibleOvertLeafIds,
-                isWorkspaceForest: String(replaySnapshot?.label || '').trim() === GROWTH_WORKSPACE_ROOT_LABEL
+                isWorkspaceForest: String(visibleWorkspaceSnapshot?.label || '').trim() === GROWTH_WORKSPACE_ROOT_LABEL
               })
         ].filter(Boolean);
     const operation: DerivationStep['operation'] = childNodes.length === 0
@@ -1619,29 +2537,62 @@ const buildStructuralGrowthPlaybackSteps = (
       recipe: buildStructuralReplayFallback(operation, targetLabel, sourceLabels),
       workspaceAfter,
       replayFrameIndex: frameIndex,
-      replayCanvasData: replaySnapshot,
-      replayLayoutCanvasData: replaySnapshot,
-      replayVisibleNodeIds: Array.from(cumulativeVisibleNodeIds),
-      replayMovementLinks: effectiveMovementLinks
+      replayCanvasData: frameReplaySnapshot.canvasData,
+      replayVisibleNodeIds: frameReplaySnapshot.visibleNodeIds,
+      replayMovementLinks: frameReplaySnapshot.movementLinks
     }];
   });
 
-  const parentNodeIdByStepTargetId = new Map<string, string>();
-  visibleNodes.forEach((node) => {
-    const parentId = node.parent ? getNodeId(node.parent) : '';
-    if (!parentId) return;
-    parentNodeIdByStepTargetId.set(getNodeId(node), parentId);
-  });
-
-  for (let index = 0; index < playbackSteps.length - 1; index += 1) {
-    const currentStep = playbackSteps[index];
-    const nextStep = playbackSteps[index + 1];
-    if (currentStep.operation !== 'LexicalSelect') continue;
-    if (!isNullLike(currentStep.targetLabel)) continue;
-    const parentNodeId = parentNodeIdByStepTargetId.get(currentStep.targetNodeId);
-    if (!parentNodeId || nextStep.targetNodeId !== parentNodeId) continue;
-    if (nextStep.operation !== 'Project') continue;
-    currentStep.replayLayoutCanvasData = nextStep.replayCanvasData || currentStep.replayCanvasData;
+  if (detachedAttachmentRootIds.size > 0 && playbackSteps.length > 0) {
+    const fullyVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
+    const detachedSnapshot = buildGrowthReplaySnapshot(
+      forest,
+      frameIndex,
+      movementEvents,
+      resolvedMovementLinks,
+      fullyVisibleNodeIds,
+      fullyVisibleNodeIds,
+      growthFrames,
+      detachedAttachmentRootIds,
+      detachedAttachmentRootSideHints
+    );
+    const attachedSnapshot = buildGrowthReplaySnapshot(
+      forest,
+      frameIndex,
+      movementEvents,
+      resolvedMovementLinks,
+      fullyVisibleNodeIds,
+      fullyVisibleNodeIds,
+      growthFrames,
+      undefined,
+      undefined
+    );
+    const detachedWorkspace = extractReplayWorkspaceLabels(detachedSnapshot.canvasData);
+    const attachedWorkspace = extractReplayWorkspaceLabels(attachedSnapshot.canvasData);
+    const attachmentTargetNode = visibleNodes.find((node) => {
+      const nodeId = getNodeId(node);
+      if (!previousVisibleNodeIds.has(nodeId)) return false;
+      return (node.children || []).some((child) => detachedAttachmentRootIds.has(getNodeId(child)));
+    });
+    const targetNodeId = attachmentTargetNode ? getNodeId(attachmentTargetNode) : String(forest[0]?.id || '').trim();
+    const targetLabel = attachmentTargetNode
+      ? resolveNodeLabel(attachmentTargetNode)
+      : (attachedWorkspace.length === 1 ? attachedWorkspace[0] : 'Workspace');
+    playbackSteps.push({
+      operation: 'ExternalMerge',
+      sourceFrameIndex: frameIndex,
+      visualFrameIndex: frameIndex,
+      targetNodeId: targetNodeId || `__growth_attach_${frameIndex}`,
+      targetLabel: targetLabel || 'Workspace',
+      sourceNodeIds: detachedWorkspace.map((_label, index) => `__workspace_${frameIndex}_${index}`),
+      sourceLabels: detachedWorkspace,
+      recipe: buildStructuralReplayFallback('ExternalMerge', targetLabel || 'Workspace', detachedWorkspace),
+      workspaceAfter: attachedWorkspace,
+      replayFrameIndex: frameIndex,
+      replayCanvasData: attachedSnapshot.canvasData,
+      replayVisibleNodeIds: attachedSnapshot.visibleNodeIds,
+      replayMovementLinks: attachedSnapshot.movementLinks
+    });
   }
 
   return playbackSteps;
@@ -1794,36 +2745,23 @@ const buildPlaybackSteps = (
   derivationSteps?: DerivationStep[],
   labelResolver: (node: HierNode) => string = resolveNodeLabel
 ): PlaybackStep[] => {
-  const visibleIds = new Set(visibleNodes.map((node) => getNodeId(node)));
-  const fallbackSequence = buildBottomUpSequence(root, visibleIds);
-  const inferred = createInferredPlaybackSteps(fallbackSequence, visibleIds, labelResolver);
-
-  if (!derivationSteps || derivationSteps.length === 0) return finalizeReplayStepOrder(inferred);
+  if (!derivationSteps || derivationSteps.length === 0) return [];
 
   const mappedProvidedSteps = mapProvidedStepsToNodes(visibleNodes, derivationSteps);
-  const withProvided = inferred.map((step) => {
-    const provided = mappedProvidedSteps.get(step.targetNodeId);
-    if (!provided) return step;
-    return {
-      ...step,
-      operation: provided.operation || step.operation,
-      microOperations: provided.microOperations && provided.microOperations.length > 0
-        ? provided.microOperations
-        : step.microOperations,
-      sourceNodeIds: provided.sourceNodeIds && provided.sourceNodeIds.length > 0 ? provided.sourceNodeIds : step.sourceNodeIds,
-      sourceLabels: provided.sourceLabels && provided.sourceLabels.length > 0 ? provided.sourceLabels : step.sourceLabels,
-      recipe: provided.recipe || step.recipe,
-      workspaceAfter: provided.workspaceAfter && provided.workspaceAfter.length > 0 ? provided.workspaceAfter : step.workspaceAfter,
-      spelloutOrder: provided.spelloutOrder && provided.spelloutOrder.length > 0 ? provided.spelloutOrder : step.spelloutOrder,
-      featureChecking: provided.featureChecking && provided.featureChecking.length > 0
-        ? provided.featureChecking
-        : step.featureChecking,
-      ledgerBlocks: provided.ledgerBlocks && provided.ledgerBlocks.length > 0
-        ? provided.ledgerBlocks
-        : step.ledgerBlocks,
-      note: provided.note || step.note
-    };
-  });
+  const withProvided = Array.from(mappedProvidedSteps.values()).map((provided) => ({
+    operation: provided.operation || 'Other',
+    microOperations: provided.microOperations,
+    targetNodeId: provided.targetNodeId || '',
+    targetLabel: provided.targetLabel || '',
+    sourceNodeIds: provided.sourceNodeIds,
+    sourceLabels: provided.sourceLabels || [],
+    recipe: provided.recipe,
+    workspaceAfter: provided.workspaceAfter,
+    spelloutOrder: provided.spelloutOrder,
+    featureChecking: provided.featureChecking,
+    ledgerBlocks: provided.ledgerBlocks,
+    note: provided.note
+  }));
   const mappedIds = new Set(withProvided.map((step) => step.targetNodeId));
   const supplementalProvided = derivationSteps
     .filter((step) => step.operation === 'SpellOut' || isMoveLikeOperation(step.operation))
@@ -1962,6 +2900,69 @@ const resolveMovementStepForLink = (
   return undefined;
 };
 
+const resolveVisibleMovementTargetNode = (
+  nodeById: Map<string, HierNode>,
+  link: ResolvedMovementEventLink
+): HierNode | undefined => {
+  const rawTargetId = String(link?.movedAnchorId || '').trim();
+  if (!rawTargetId) return undefined;
+
+  const directTarget = nodeById.get(rawTargetId);
+  if (directTarget) return directTarget;
+
+  const normalizedOperation = normalizeMovementOperationLabel(link?.operation);
+  if (normalizedOperation !== 'headmove') return undefined;
+
+  const headTraceCandidates = [
+    `${rawTargetId}_t`,
+    rawTargetId.replace(/_head$/i, '_head_t'),
+    `${rawTargetId}__shell`
+  ].filter(Boolean);
+
+  for (const candidateId of headTraceCandidates) {
+    const candidate = nodeById.get(candidateId);
+    if (candidate) return candidate;
+  }
+
+  const inferredHeadLabel = (() => {
+    const match = rawTargetId.match(/(?:^|_)(infl|aux|wh|q|c|t|i|v|d|n|a|p)(?:_|$)/i);
+    if (!match?.[1]) return '';
+    const normalized = String(match[1]).trim().toUpperCase();
+    if (normalized === 'I') return 'T';
+    return normalized;
+  })();
+  if (!inferredHeadLabel) return undefined;
+
+  // When a head moves again, the earlier overt landing head disappears.
+  // Keep cumulative arrows anchored to the surviving silent landing shell.
+  let bestMatch: HierNode | undefined;
+  let bestScore = -1;
+  nodeById.forEach((candidate) => {
+    const candidateLabel = normalizeStructuralLabel(candidate.data?.label).toUpperCase();
+    if (candidateLabel !== inferredHeadLabel) return;
+
+    const candidateId = getNodeId(candidate).toLowerCase();
+    const traceLeaf = pickTraceLikeLeafNode(candidate.data);
+    const candidateLooksSilent = isTraceOrNullLikeNode(candidate.data) || Boolean(traceLeaf);
+    if (!candidateLooksSilent) return;
+
+    let score = 10;
+    if (candidate.children && candidate.children.length > 0) score += 30;
+    if (/_trace\b/i.test(candidateId)) score += 40;
+    if (new RegExp(`(?:^|_)${inferredHeadLabel.toLowerCase()}_trace(?:_|$)`, 'i').test(candidateId)) score += 80;
+    if (new RegExp(`(?:^|_)null_${inferredHeadLabel.toLowerCase()}_trace(?:_|$)`, 'i').test(candidateId)) score -= 20;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = candidate;
+    }
+  });
+
+  if (bestMatch) return bestMatch;
+
+  return undefined;
+};
+
 const buildDisplayMovementLinks = (
   resolvedMovementLinks: ResolvedMovementEventLink[] | undefined
 ): ResolvedMovementEventLink[] => {
@@ -1971,19 +2972,126 @@ const buildDisplayMovementLinks = (
     ...link,
     sourceAnchorId: String(link?.sourceAnchorId || '').trim(),
     movedAnchorId: String(link?.movedAnchorId || '').trim(),
-    traceAnchorId: String(link?.traceAnchorId || '').trim() || undefined
+    traceAnchorId: String(link?.traceAnchorId || '').trim() || undefined,
+    chainId: String((link as any)?.chainId || '').trim() || undefined
   }));
 
   const buckets = new Map<string, Array<{ link: ResolvedMovementEventLink; originalIndex: number }>>();
   normalizedLinks.forEach((link, originalIndex) => {
     const normalizedOperation = normalizeMovementOperationLabel(link.operation);
-    if (normalizedOperation === 'headmove') return;
     if (!link.movedAnchorId || !link.sourceAnchorId) return;
-    const bucketKey = `${normalizedOperation}|${link.movedAnchorId}`;
+    const normalizedChainId = String((link as any)?.chainId || '').trim();
+    const bucketKey = normalizedChainId
+      ? `chain|${normalizedChainId}`
+      : (
+          normalizedOperation === 'headmove'
+            ? ''
+            : `${normalizedOperation}|${link.movedAnchorId}`
+        );
+    if (!bucketKey) return;
     const bucket = buckets.get(bucketKey) || [];
     bucket.push({ link, originalIndex });
     buckets.set(bucketKey, bucket);
   });
+
+  const unchainedHeadMoves = normalizedLinks
+    .map((link, originalIndex) => ({ link, originalIndex }))
+    .filter(({ link }) =>
+      normalizeMovementOperationLabel(link.operation) === 'headmove'
+      && !String((link as any)?.chainId || '').trim()
+      && String(link.sourceAnchorId || '').trim()
+      && String(link.movedAnchorId || '').trim()
+    )
+    .sort((left, right) => {
+      const leftStep = Number.isInteger(left.link.stepIndex) ? Number(left.link.stepIndex) : Number.MAX_SAFE_INTEGER;
+      const rightStep = Number.isInteger(right.link.stepIndex) ? Number(right.link.stepIndex) : Number.MAX_SAFE_INTEGER;
+      if (leftStep !== rightStep) return leftStep - rightStep;
+      return left.originalIndex - right.originalIndex;
+    });
+
+  const HEAD_MOVE_CATEGORY_TOKENS = new Set(['v', 't', 'infl', 'i', 'c', 'q', 'wh', 'aux', 'voice', 'neg', 'asp']);
+  const extractHeadMoveCategoryFromId = (value?: string): string => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return '';
+    const explicitTraceMatch = normalized.match(/(?:^|_)(?:null_)?t_([a-z]+)(?:_|$)/);
+    if (explicitTraceMatch?.[1] && HEAD_MOVE_CATEGORY_TOKENS.has(explicitTraceMatch[1])) {
+      return explicitTraceMatch[1];
+    }
+    const parts = normalized.split(/[_-]+/).filter(Boolean);
+    for (let index = parts.length - 1; index >= 0; index -= 1) {
+      if (HEAD_MOVE_CATEGORY_TOKENS.has(parts[index])) return parts[index];
+    }
+    return '';
+  };
+  const extractHeadMoveLexemeStem = (value?: string): string => {
+    const normalized = normalizeMovementStemFromNodeId(value);
+    if (!normalized) return '';
+    return normalized
+      .replace(/(?:[_-](?:v|t|infl|i|c|q|wh|aux|voice|neg|asp))+$/gi, '')
+      .replace(/^[_-]+|[_-]+$/g, '');
+  };
+
+  const areConnectedHeadMoveHops = (
+    previous: ResolvedMovementEventLink,
+    next: ResolvedMovementEventLink
+  ): boolean => {
+    const previousTargets = new Set(
+      [
+        String(previous.movedAnchorId || '').trim(),
+        String(previous.traceAnchorId || '').trim()
+      ].filter(Boolean)
+    );
+    const nextSources = [
+      String(next.sourceAnchorId || '').trim(),
+      String(next.traceAnchorId || '').trim()
+    ].filter(Boolean);
+    if (nextSources.some((id) => previousTargets.has(id))) return true;
+
+    const previousStem = normalizeMovementStemFromNodeId(
+      String(previous.movedAnchorId || previous.traceAnchorId || '').trim()
+    );
+    const nextStem = normalizeMovementStemFromNodeId(
+      String(next.sourceAnchorId || next.traceAnchorId || '').trim()
+    );
+    if (Boolean(previousStem) && previousStem === nextStem) return true;
+
+    const previousLandingCategory = extractHeadMoveCategoryFromId(previous.movedAnchorId);
+    const nextSourceCategory = extractHeadMoveCategoryFromId(next.sourceAnchorId || next.traceAnchorId);
+    const previousLexeme = extractHeadMoveLexemeStem(previous.movedAnchorId);
+    const nextLexeme = extractHeadMoveLexemeStem(next.movedAnchorId || next.sourceAnchorId);
+    return Boolean(previousLandingCategory)
+      && previousLandingCategory === nextSourceCategory
+      && Boolean(previousLexeme)
+      && previousLexeme === nextLexeme;
+  };
+
+  let inferredHeadBucketIndex = 0;
+  let pendingHeadBucket: Array<{ link: ResolvedMovementEventLink; originalIndex: number }> = [];
+  const flushPendingHeadBucket = () => {
+    if (pendingHeadBucket.length <= 1) {
+      pendingHeadBucket = [];
+      return;
+    }
+    const bucketKey = `headchain|${inferredHeadBucketIndex}`;
+    inferredHeadBucketIndex += 1;
+    buckets.set(bucketKey, [...pendingHeadBucket]);
+    pendingHeadBucket = [];
+  };
+
+  unchainedHeadMoves.forEach((entry) => {
+    if (pendingHeadBucket.length === 0) {
+      pendingHeadBucket = [entry];
+      return;
+    }
+    const previous = pendingHeadBucket[pendingHeadBucket.length - 1];
+    if (areConnectedHeadMoveHops(previous.link, entry.link)) {
+      pendingHeadBucket.push(entry);
+      return;
+    }
+    flushPendingHeadBucket();
+    pendingHeadBucket = [entry];
+  });
+  flushPendingHeadBucket();
 
   const displayLinks = [...normalizedLinks];
   buckets.forEach((bucket) => {
@@ -1996,6 +3104,23 @@ const buildDisplayMovementLinks = (
     });
 
     ordered.forEach((entry, index) => {
+      const normalizedOperation = normalizeMovementOperationLabel(entry.link.operation);
+      if (normalizedOperation === 'headmove') {
+        if (index >= ordered.length - 1) return;
+        const next = ordered[index + 1];
+        const currentTraceId = String(entry.link.traceAnchorId || entry.link.sourceAnchorId || '').trim();
+        const nextTraceId = String(next.link.traceAnchorId || next.link.sourceAnchorId || '').trim();
+        if (!currentTraceId || !nextTraceId || currentTraceId === nextTraceId) return;
+        // Once the head moves again, the earlier overt landing disappears.
+        // Show the earlier hop as lower-trace -> higher-trace, and keep the last hop overt.
+        displayLinks[entry.originalIndex] = {
+          ...displayLinks[entry.originalIndex],
+          sourceAnchorId: currentTraceId,
+          movedAnchorId: nextTraceId,
+          traceAnchorId: currentTraceId
+        };
+        return;
+      }
       if (index >= ordered.length - 1) return;
       const next = ordered[index + 1];
       const nextHopTargetId = String(next.link.traceAnchorId || next.link.sourceAnchorId || '').trim();
@@ -2019,20 +3144,81 @@ const buildMovementArrowsFromLinks = (
   if (!resolvedMovementLinks || resolvedMovementLinks.length === 0) return [];
 
   const nodeById = new Map(visibleNodes.map((node) => [getNodeId(node), node]));
+  const pickTraceLikeLeafDescendant = (node?: HierNode): HierNode | undefined => {
+    if (!node) return undefined;
+    return node
+      .descendants()
+      .find((candidate) => {
+        const children = candidate.children || [];
+        if (children.length > 0) return false;
+        const surface = resolveLeafSurface(candidate);
+        return isTraceLike(surface) || isNullLike(surface);
+      });
+  };
+  const pickOvertLeafDescendant = (node?: HierNode): HierNode | undefined => {
+    if (!node) return undefined;
+    return node
+      .descendants()
+      .find((candidate) => {
+        const children = candidate.children || [];
+        if (children.length > 0) return false;
+        const surface = resolveLeafSurface(candidate);
+        return Boolean(surface)
+          && !isTraceLike(surface)
+          && !isNullLike(surface)
+          && !isStructuralCategorySurface(surface);
+      });
+  };
+  const resolveArrowAnchorNode = (node?: HierNode): HierNode | undefined => {
+    if (!node) return undefined;
+    // Keep curved movement links attached to visible leaves or traces, not broad phrase shells.
+    // This avoids arrows "piercing" v'/DP shells in cumulative replay frames.
+    return pickTraceLikeLeafDescendant(node)
+      || pickOvertLeafDescendant(node)
+      || node;
+  };
+  const countRenderableLeafDescendants = (node?: HierNode): number => {
+    if (!node) return 0;
+    return node
+      .descendants()
+      .filter((candidate) => {
+        const children = candidate.children || [];
+        if (children.length > 0) return false;
+        const surface = resolveLeafSurface(candidate);
+        return Boolean(surface) && !isStructuralCategorySurface(surface);
+      })
+      .length;
+  };
+  const resolvePhrasalArrowAnchorNode = (node?: HierNode): HierNode | undefined => {
+    if (!node) return undefined;
+    // For phrase movement, anchor multi-leaf constituents on the phrase shell so
+    // the arrow reads as XP movement rather than as a leaf-to-leaf trace jump.
+    if (countRenderableLeafDescendants(node) > 1) return node;
+    return resolveArrowAnchorNode(node);
+  };
   const displayLinks = buildDisplayMovementLinks(resolvedMovementLinks);
   const arrows: MovementArrow[] = [];
   const seen = new Set<string>();
   const lastStep = playbackSteps.length > 0 ? playbackSteps.length - 1 : 0;
 
   displayLinks.forEach((link) => {
-    const source = nodeById.get(String(link.sourceAnchorId || '').trim());
-    const target = nodeById.get(String(link.movedAnchorId || '').trim());
-    const traceNode = link.traceAnchorId
+    const normalizedOperation = normalizeMovementOperationLabel(link?.operation);
+    const rawSource = nodeById.get(String(link.sourceAnchorId || '').trim());
+    const rawTarget = resolveVisibleMovementTargetNode(nodeById, link);
+    const rawTraceNode = link.traceAnchorId
       ? nodeById.get(String(link.traceAnchorId).trim()) || undefined
       : undefined;
-    if (!source || !target) return;
-    const sourceId = getNodeId(source);
-    const targetId = getNodeId(target);
+    const traceLeaf = rawTraceNode ? pickTraceLikeLeafDescendant(rawTraceNode) : undefined;
+    const traceNode = traceLeaf || rawTraceNode;
+    const displaySource = normalizedOperation === 'headmove'
+      ? (traceLeaf || resolveArrowAnchorNode(rawSource))
+      : (resolvePhrasalArrowAnchorNode(rawSource) || traceLeaf || resolveArrowAnchorNode(rawSource));
+    const displayTarget = normalizedOperation === 'headmove'
+      ? resolveArrowAnchorNode(rawTarget)
+      : resolvePhrasalArrowAnchorNode(rawTarget);
+    if (!displaySource || !displayTarget) return;
+    const sourceId = getNodeId(displaySource);
+    const targetId = getNodeId(displayTarget);
     if (sourceId === targetId) return;
 
     const key = `${sourceId}->${targetId}`;
@@ -2050,15 +3236,29 @@ const buildMovementArrowsFromLinks = (
       lastStep
     );
     if (step === undefined) return;
-    const index = String(link.movementIndex || '').trim().toLowerCase() || null;
-
     arrows.push({
-      source,
-      target,
+      source: displaySource,
+      target: displayTarget,
       traceNode: traceNode || undefined,
       step,
-      index
+      index: null
     });
+  });
+
+  const arrowsByDisplayOrder = [...arrows].sort((a, b) => {
+    if (a.step !== b.step) return a.step - b.step;
+    const aSourceY = Number(a.source?.y || 0);
+    const bSourceY = Number(b.source?.y || 0);
+    if (aSourceY !== bSourceY) return bSourceY - aSourceY;
+    const aSourceX = Number(a.source?.x || 0);
+    const bSourceX = Number(b.source?.x || 0);
+    if (aSourceX !== bSourceX) return aSourceX - bSourceX;
+    const aTargetX = Number(a.target?.x || 0);
+    const bTargetX = Number(b.target?.x || 0);
+    return aTargetX - bTargetX;
+  });
+  arrowsByDisplayOrder.forEach((arrow, index) => {
+    arrow.index = String(index + 1);
   });
 
   return arrows;
@@ -2099,8 +3299,8 @@ const REPLAY_STRUCTURAL_IDENTIFIER_MAP: Record<string, string> = {
   prt: 'Prt',
   t: 'T',
   tp: 'TP',
-  v: 'V',
-  vp: 'VP',
+  v: 'v',
+  vp: 'vP',
   wh: 'Wh'
 };
 
@@ -2127,10 +3327,21 @@ const splitReplayPrimeSuffix = (value?: string): { core: string; suffix: string 
   };
 };
 
+const preserveCommittedReplayLabelCasing = (value?: string): string => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  if (/^[A-Z]$/.test(trimmed)) return trimmed;
+  if (/^[A-Z]{2,}$/.test(trimmed)) return trimmed;
+  if (/[A-Z]/.test(trimmed.slice(1))) return trimmed;
+  return '';
+};
+
 const formatReplayIdentifierWord = (value?: string): string => {
   const { core, suffix } = splitReplayPrimeSuffix(value);
   const trimmed = core;
   if (!trimmed) return suffix;
+  const preserved = preserveCommittedReplayLabelCasing(trimmed);
+  if (preserved) return `${preserved}${suffix}`;
   const normalized = trimmed.toLowerCase();
   if (REPLAY_IDENTIFIER_OVERRIDES[normalized]) return `${REPLAY_IDENTIFIER_OVERRIDES[normalized]}${suffix}`;
   if (REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]) return `${REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]}${suffix}`;
@@ -2148,6 +3359,8 @@ const formatReplayIdentifier = (value?: string): string => {
   const { core, suffix } = splitReplayPrimeSuffix(value);
   const trimmed = core;
   if (!trimmed) return suffix;
+  const preserved = preserveCommittedReplayLabelCasing(trimmed);
+  if (preserved) return `${preserved}${suffix}`;
   const normalized = trimmed.toLowerCase();
   if (REPLAY_IDENTIFIER_OVERRIDES[normalized]) return `${REPLAY_IDENTIFIER_OVERRIDES[normalized]}${suffix}`;
   if (REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]) return `${REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]}${suffix}`;
@@ -2173,8 +3386,12 @@ const formatReplayBlockTitle = (title?: string): string => {
   return toReplayTitleCase(trimmed.replace(/[_-]+/g, ' ').toLowerCase());
 };
 
-const formatReplayBlockLine = (title: string, line: string): string => {
-  const trimmed = String(line || '').trim();
+const formatReplayBlockLine = (
+  title: string,
+  line: string,
+  steps: PlaybackStep[] = []
+): string => {
+  const trimmed = normalizeReplayTextForCommittedInventory(line, steps).trim();
   if (!trimmed) return '';
   const normalizedTitle = String(title || '').trim().toUpperCase();
   if (normalizedTitle === 'SELECTION') {
@@ -2205,14 +3422,145 @@ const formatReplaySupportValue = (value?: string): string =>
       .trim()
   );
 
+const normalizeReplayInventoryLabel = (value?: string): string =>
+  normalizeReplayTargetLabel(value).replace(/['′]+/g, '');
+
+const detectReplayInflectionInventory = (steps: PlaybackStep[] = []): 't' | 'infl' | null => {
+  const labels = new Set<string>();
+  steps.forEach((step) => {
+    [step?.targetLabel, ...(Array.isArray(step?.sourceLabels) ? step.sourceLabels : [])]
+      .map((label) => normalizeReplayInventoryLabel(label))
+      .filter(Boolean)
+      .forEach((label) => labels.add(label));
+  });
+  const usesT = labels.has('T') || labels.has('TP');
+  const usesInfl = labels.has('INFL') || labels.has('INFLP') || labels.has('IP');
+  if (usesT && !usesInfl) return 't';
+  if (usesInfl && !usesT) return 'infl';
+  return null;
+};
+
+const normalizeReplayTextForCommittedInventory = (
+  value?: string,
+  steps: PlaybackStep[] = []
+): string => {
+  const text = String(value || '');
+  if (!text) return '';
+  const inventory = detectReplayInflectionInventory(steps);
+  if (inventory === 't') {
+    return text
+      .replace(/\bInflP\b/gi, 'TP')
+      .replace(/\bIP\b/g, 'TP')
+      .replace(/\bInfl\b/gi, 'T');
+  }
+  if (inventory === 'infl') {
+    return text
+      .replace(/\bTP\b/g, 'InflP')
+      .replace(/\bT\b/g, 'Infl');
+  }
+  return text;
+};
+
+const findReplayNodePathById = (
+  root: SyntaxNode | null | undefined,
+  nodeId: string,
+  trail: SyntaxNode[] = []
+): SyntaxNode[] | null => {
+  if (!root || !nodeId) return null;
+  const currentTrail = [...trail, root];
+  if (String(root.id || '').trim() === nodeId) return currentTrail;
+  const children = Array.isArray(root.children) ? root.children : [];
+  for (const child of children) {
+    const match = findReplayNodePathById(child, nodeId, currentTrail);
+    if (match) return match;
+  }
+  return null;
+};
+
+const describeReplayNodePosition = (
+  root: SyntaxNode | null | undefined,
+  nodeId?: string
+): string => {
+  const normalizedNodeId = String(nodeId || '').trim();
+  if (!root || !normalizedNodeId) return '';
+  const path = findReplayNodePathById(root, normalizedNodeId);
+  if (!path || path.length === 0) return '';
+
+  let node = path[path.length - 1];
+  let parent = path[path.length - 2];
+  const grandparent = path[path.length - 3];
+  const parentLabelRaw = String(parent?.label || '').trim();
+  const nodeLabelRaw = String(node?.label || '').trim();
+  if (
+    parent
+    && grandparent
+    && parentLabelRaw
+    && nodeLabelRaw
+    && normalizeReplayTargetLabel(parentLabelRaw) === normalizeReplayTargetLabel(nodeLabelRaw)
+  ) {
+    node = parent;
+    parent = grandparent;
+  }
+  const nodeLabel = formatReplaySupportValue(node?.label);
+  if (!parent) return nodeLabel;
+
+  const parentLabel = formatReplaySupportValue(parent?.label);
+  const parentChildren = Array.isArray(parent?.children) ? parent.children : [];
+  const childIndex = parentChildren.findIndex((child) => String(child?.id || '').trim() === normalizedNodeId);
+  const sibling = childIndex >= 0
+    ? parentChildren.find((_, index) => index !== childIndex)
+    : null;
+  const siblingLabel = formatReplaySupportValue(sibling?.label);
+  const { core: parentCore, suffix: parentSuffix } = splitReplayPrimeSuffix(parentLabel);
+  const parentHasPrime = Boolean(parentSuffix);
+  const parentIsMaxProjection = /P$/i.test(parentCore);
+  const siblingLooksLikeProjection = Boolean(siblingLabel) && (/[P]$/i.test(splitReplayPrimeSuffix(siblingLabel).core) || /['′]+$/.test(siblingLabel));
+
+  if (childIndex === 0 && parentIsMaxProjection && siblingLooksLikeProjection) {
+    return `Spec,${parentLabel}`;
+  }
+  if (childIndex === 1 && parentHasPrime) {
+    return `complement of ${parentCore}`;
+  }
+  if (childIndex === 0 && parentHasPrime) {
+    return nodeLabel || `head of ${parentCore}`;
+  }
+  return parentLabel ? `${nodeLabel || 'node'} in ${parentLabel}` : nodeLabel;
+};
+
 const formatReplayInputsValue = (labels?: string[]): string =>
   (Array.isArray(labels) ? labels : [])
     .map((label) => formatReplaySupportValue(label))
     .filter(Boolean)
     .join(' + ');
 
+const getReplayNodeLabelFromCanvas = (
+  root: SyntaxNode | null | undefined,
+  nodeId?: string
+): string => {
+  const normalizedNodeId = String(nodeId || '').trim();
+  if (!root || !normalizedNodeId) return '';
+  const node = findNodeByIdInForest([root], normalizedNodeId);
+  if (!node) return '';
+  return formatReplaySupportValue(String(node.label || '').trim());
+};
+
+const getReplayMoveTargetLabel = (step: PlaybackStep | null): string => {
+  if (!step) return '';
+  if (!isMoveLikeOperation(step.operation)) return formatReplaySupportValue(step.targetLabel);
+  return (
+    getReplayNodeLabelFromCanvas(step.replayCanvasData, step.targetNodeId)
+    || formatReplaySupportValue(step.targetLabel)
+  );
+};
+
 const inferReplayLandingValue = (step: PlaybackStep | null): string => {
   if (!step) return '';
+  if (String(step.operation || '').trim() === 'HeadMove') {
+    return getReplayMoveTargetLabel(step);
+  }
+  const positionFromTree = describeReplayNodePosition(step.replayCanvasData, step.targetNodeId);
+  if (positionFromTree) return positionFromTree;
   const moveText = String(step.recipe || step.note || '').trim();
   const landingMatch = moveText.match(/\b(?:to|into)\s+([^.;]+)$/i);
   if (landingMatch?.[1]) {
@@ -2223,35 +3571,35 @@ const inferReplayLandingValue = (step: PlaybackStep | null): string => {
 
 const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string): string => {
   if (!step) return '';
-  const operation = String(step.operation || '').trim();
-  const signalText = [
-    step.chainId,
-    step.recipe,
-    step.note,
-    ...(Array.isArray(step.sourceNodeIds) ? step.sourceNodeIds : []),
-    ...(Array.isArray(step.sourceLabels) ? step.sourceLabels : [])
-  ]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  if (String(step.operation || '').trim() === 'HeadMove') {
+    const sourceFromCanvas = (Array.isArray(step.sourceNodeIds) ? step.sourceNodeIds : [])
+      .map((nodeId) => String(nodeId || '').trim())
+      .filter((nodeId) => nodeId && nodeId !== String(step.targetNodeId || '').trim())
+      .map((nodeId) => getReplayNodeLabelFromCanvas(step.replayCanvasData, nodeId))
+      .find(Boolean);
+    if (sourceFromCanvas) return sourceFromCanvas;
+    const labelSources = (Array.isArray(step.sourceLabels) ? step.sourceLabels : [])
+      .map((label) => formatReplaySupportValue(label))
+      .filter(Boolean);
+    const labelSource = labelSources.find((label) => normalizeReplayTargetLabel(label) !== normalizeReplayTargetLabel(landingValue)) || labelSources[0];
+    if (labelSource) return labelSource;
+    return 'source head';
+  }
+  const structuralSources = (Array.isArray(step.sourceNodeIds) ? step.sourceNodeIds : [])
+    .filter((nodeId) => String(nodeId || '').trim() && String(nodeId || '').trim() !== String(step.targetNodeId || '').trim())
+    .map((nodeId) => describeReplayNodePosition(step.replayCanvasData, nodeId))
+    .filter(Boolean);
+  const normalizedLanding = normalizeReplayTargetLabel(landingValue);
+  const structuralSource = structuralSources.find((label) => normalizeReplayTargetLabel(label) !== normalizedLanding);
+  if (structuralSource) return structuralSource;
 
-  if (operation === 'AbarMove' || /\b(?:chain_wh|wh-phrase|wh\b|obj|object)\b/i.test(signalText)) {
-    return 'object position';
-  }
-  if (operation === 'AMove' || operation === 'A-Move' || /\b(?:chain_subj|subj|subject)\b/i.test(signalText)) {
-    return 'subject position';
-  }
-  if (operation === 'HeadMove') {
-    if (/^(?:c|c'|c′)$/i.test(landingValue)) return 'Infl';
-    if (/^(?:infl|infl'|infl′|t|t'|t′)$/i.test(landingValue)) return 'V';
-  }
-
-  const usefulSource = (Array.isArray(step.sourceLabels) ? step.sourceLabels : [])
+  const labelSources = (Array.isArray(step.sourceLabels) ? step.sourceLabels : [])
     .map((label) => formatReplaySupportValue(label))
-    .find((label) => label && !/^(?:CP|TP|InflP|VP|DP|NP|Workspace)$/i.test(label));
+    .filter(Boolean);
+  const labelSource = labelSources.find((label) => normalizeReplayTargetLabel(label) !== normalizedLanding) || labelSources[0];
+  if (labelSource) return labelSource;
 
-  return usefulSource || 'base position';
+  return 'source position';
 };
 
 const buildReplaySupportLines = (
@@ -2263,16 +3611,19 @@ const buildReplaySupportLines = (
 
   const operation = String(step.operation || '').trim();
   const inputValue = formatReplayInputsValue(step.sourceLabels);
+  const workspaceValue = formatReplayInputsValue(step.workspaceAfter);
   const resultValue = formatReplaySupportValue(step.targetLabel);
 
   if (operation === 'LexicalSelect') {
-    return inputValue ? [{ label: 'Result', value: inputValue }] : [];
+    return (workspaceValue || inputValue)
+      ? [{ label: 'Result', value: workspaceValue || inputValue }]
+      : [];
   }
 
   if (operation === 'Project') {
     const lines: ReplaySupportLine[] = [];
     if (inputValue) lines.push({ label: 'Input', value: inputValue });
-    if (resultValue) lines.push({ label: 'Result', value: resultValue });
+    if (workspaceValue || resultValue) lines.push({ label: 'Result', value: workspaceValue || resultValue });
     return lines;
   }
 
@@ -2326,7 +3677,8 @@ const findReplayCaseDisplayStepIndex = (
   sourceIndex: number,
   line: string
 ): number => {
-  if (/\bby\s+infl\b/i.test(line) || /\bby\s+t\b/i.test(line)) {
+  const normalizedLine = normalizeReplayTextForCommittedInventory(line, steps);
+  if (/\bby\s+infl\b/i.test(normalizedLine) || /\bby\s+t\b/i.test(normalizedLine)) {
     return findReplayDisplayStepIndex(
       steps,
       sourceIndex,
@@ -2335,7 +3687,7 @@ const findReplayCaseDisplayStepIndex = (
         !isMoveLikeOperation(step.operation)
     );
   }
-  if (/\bby\s+v\b/i.test(line)) {
+  if (/\bby\s+v\b/i.test(normalizedLine)) {
     return findReplayDisplayStepIndex(
       steps,
       sourceIndex,
@@ -2352,7 +3704,8 @@ const findReplaySelectionDisplayStepIndex = (
   sourceIndex: number,
   line: string
 ): number => {
-  if (/^\s*v\b/i.test(line)) {
+  const normalizedLine = normalizeReplayTextForCommittedInventory(line, steps);
+  if (/^\s*v\b/i.test(normalizedLine)) {
     return findReplayDisplayStepIndex(
       steps,
       sourceIndex,
@@ -2361,7 +3714,7 @@ const findReplaySelectionDisplayStepIndex = (
         !isMoveLikeOperation(step.operation)
     );
   }
-  if (/^\s*infl\b/i.test(line) || /^\s*t\b/i.test(line)) {
+  if (/^\s*infl\b/i.test(normalizedLine) || /^\s*t\b/i.test(normalizedLine)) {
     return findReplayDisplayStepIndex(
       steps,
       sourceIndex,
@@ -2370,7 +3723,7 @@ const findReplaySelectionDisplayStepIndex = (
         !isMoveLikeOperation(step.operation)
     );
   }
-  if (/^\s*c\b/i.test(line)) {
+  if (/^\s*c\b/i.test(normalizedLine)) {
     return findReplayDisplayStepIndex(
       steps,
       sourceIndex,
@@ -2623,14 +3976,21 @@ const shouldExpandPreterminalLeaf = (node: SyntaxNode): boolean => {
   return true;
 };
 
-const shouldMaterializeExplicitNullLeaf = (label?: string, word?: string): boolean => {
-  const trimmedWord = typeof word === 'string' ? word.trim() : '';
+const shouldMaterializeExplicitNullLeaf = (nodeOrLabel?: SyntaxNode | string, word?: string): boolean => {
+  const node = typeof nodeOrLabel === 'object' && nodeOrLabel !== null ? nodeOrLabel : null;
+  const label = node ? node.label : nodeOrLabel;
+  const trimmedWord = node
+    ? (typeof node.word === 'string' ? node.word.trim() : '')
+    : (typeof word === 'string' ? word.trim() : '');
   if (trimmedWord) return false;
   const trimmedLabel = String(label || '').trim();
   if (isTraceLike(trimmedLabel)) return false;
+  if (node && Array.isArray(node.children) && node.children.length > 0) return false;
+  if (node && Number.isInteger(node.tokenIndex)) return false;
   const normalizedCategory = String(label || '').replace(/['\s]/g, '').toUpperCase();
   return (
     NULLABLE_HEAD_CATEGORIES.has(normalizedCategory) ||
+    isHeadShellLabel(trimmedLabel) ||
     normalizedCategory === 'PRO' ||
     normalizedCategory.startsWith('PRO_') ||
     normalizedCategory.startsWith('PRO')
@@ -2676,7 +4036,7 @@ const materializeNullBearingLeaves = (node: SyntaxNode): SyntaxNode => {
       next.word = EXPLICIT_NULL_TERMINAL;
       return next;
     }
-    if (shouldMaterializeExplicitNullLeaf(current.label, word)) {
+    if (shouldMaterializeExplicitNullLeaf(current)) {
       next.children = [{
         id: buildSyntheticReplayLeafId(current, 'null', EXPLICIT_NULL_TERMINAL),
         label: EXPLICIT_NULL_TERMINAL,
@@ -2720,7 +4080,7 @@ const materializeCanopyPreterminals = (node: SyntaxNode): SyntaxNode => {
       return next;
     }
 
-    if (shouldMaterializeExplicitNullLeaf(current.label, word)) {
+    if (shouldMaterializeExplicitNullLeaf(current)) {
       next.children = [{
         id: buildSyntheticReplayLeafId(current, 'null', EXPLICIT_NULL_TERMINAL),
         label: EXPLICIT_NULL_TERMINAL,
@@ -2899,29 +4259,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       preferredCommittedGrowthLinks,
       Number.MAX_SAFE_INTEGER
     );
-    const rawTraceAliasByIndex = buildResolvedLinkRawTraceAliasMap(
-      workspaceForest,
-      preferredCommittedGrowthLinks,
-      Number.MAX_SAFE_INTEGER
-    );
-    const replayLabelResolver = (node: HierNode): string => {
-      const surface = resolveLeafSurface(node);
-      if (!isTraceLike(surface)) return resolveNodeLabel(node);
-      const inheritedTraceIndex = resolveTraceIndexFromNodeContext(node, traceIndexByNodeId, movementTraceIndexByNodeId);
-      const rawTraceAlias = extractMovementIndex(surface);
-      const aliasedTraceIndex = rawTraceAlias
-        ? rawTraceAliasByIndex.get(String(rawTraceAlias).trim().toLowerCase())
-        : undefined;
-      return formatTraceSurfaceForDisplayValue(
-        surface,
-        inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(surface)
-      );
-    };
     const steps = buildPlaybackStepsFromGrowthFrames(
       growthFrames || [],
       derivationSteps,
       preferredCommittedGrowthLinks,
-      movementEvents
+      movementEvents,
+      sentence
     );
     return applyPreAbarSentenceInitialCasing(
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId),
@@ -2953,6 +4296,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     () => String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim(),
     [sentence]
   );
+  const firstSentenceReplayDisplayToken = useMemo(
+    () => firstSentenceReplayToken
+      ? firstSentenceReplayToken.charAt(0).toUpperCase() + firstSentenceReplayToken.slice(1)
+      : '',
+    [firstSentenceReplayToken]
+  );
   const currentStepIndex = animated && playbackSteps.length > 0
     ? Math.min(activeStepIndex, playbackSteps.length - 1)
     : -1;
@@ -2976,6 +4325,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           : preferredCommittedGrowthLinks
       )
     : [];
+  const activeGrowthArrowLinks = useMemo(() => {
+    if (!usesGrowthFrames) return [];
+    const frameIndex = Number(activeGrowthFrameIndex);
+    if (!Number.isInteger(frameIndex) || frameIndex < 0) return activeGrowthMovementLinks;
+    return activeGrowthMovementLinks.filter((link) => {
+      const stepIndex = Number(link?.stepIndex);
+      return Number.isInteger(stepIndex) ? stepIndex <= frameIndex : true;
+    });
+  }, [activeGrowthFrameIndex, activeGrowthMovementLinks, usesGrowthFrames]);
   const isFinalGrowthReplayStep = usesGrowthFrames
     && activeStepIndex >= playbackSteps.length - 1;
   const replayMovementArrows = useMemo(() => {
@@ -3017,25 +4375,30 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       setActiveStepIndex(bounded);
     };
     target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__ = () => playbackSteps.length;
+    target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__ = (index: number) => {
+      const requested = Number(index);
+      const bounded = Number.isFinite(requested)
+        ? Math.max(0, Math.min(Math.trunc(requested), Math.max(playbackSteps.length - 1, 0)))
+        : 0;
+      return playbackSteps[bounded] || null;
+    };
 
     return () => {
       delete target.__BABEL_DEV_SET_REPLAY_STEP__;
       delete target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__;
+      delete target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__;
     };
   }, [playbackSteps.length]);
 
   const canvasData = useMemo(() => {
     if (usesGrowthFrames) {
-      return activeGrowthReplayStep?.replayLayoutCanvasData
-        || activeGrowthReplayStep?.replayCanvasData
+      return activeGrowthReplayStep?.replayCanvasData
         || committedCanonicalGrowthCanvasData
         || committedGrowthCanvasData
         || data;
     }
     if (animated) return data;
-    return materializeCanopyPreterminals(
-      materializeTraceShellsFromMovementLinks(data, resolvedMovementLinks)
-    );
+    return buildRenderableCommittedCanvasData(data, resolvedMovementLinks);
   }, [
     activeGrowthReplayStep,
     animated,
@@ -3051,7 +4414,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!Array.isArray(nodeIds) || nodeIds.length === 0) return null;
     return new Set(nodeIds.map((id) => String(id || '').trim()).filter(Boolean));
   }, [activeGrowthReplayStep, usesGrowthFrames]);
-
   useEffect(() => {
     if (!containerRef.current) return;
     const observeTarget = containerRef.current;
@@ -3133,6 +4495,29 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           activeGrowthFrameIndex
         )
       : new Map<string, string>();
+    const layoutVisibleOvertLeafIds = collectOvertLeafNodeIdsInOrder(canvasData);
+    const layoutFirstVisibleOvertLeafId = String(layoutVisibleOvertLeafIds[0] || '').trim();
+    const maybeCapitalizeLayoutSentenceInitialLeaf = (node: HierNode, value: string): string => {
+      const trimmed = String(value || '').trim();
+      if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
+      if (Number(node.data?.tokenIndex) !== 0) return trimmed;
+      if (!layoutFirstVisibleOvertLeafId || getNodeId(node) !== layoutFirstVisibleOvertLeafId) return trimmed;
+      const nodeAncestorIds = new Set<string>();
+      let currentAncestor: HierNode | null = node;
+      while (currentAncestor) {
+        const ancestorId = getNodeId(currentAncestor);
+        if (ancestorId) nodeAncestorIds.add(ancestorId);
+        currentAncestor = currentAncestor.parent;
+      }
+      const surfacedByPhraseMovement = activeGrowthArrowLinks.some((link) => {
+        const normalizedOperation = normalizeMovementOperationLabel(link?.operation);
+        if (normalizedOperation === 'headmove') return false;
+        const movedAnchorId = String(link?.movedAnchorId || '').trim();
+        return Boolean(movedAnchorId) && nodeAncestorIds.has(movedAnchorId);
+      });
+      if (!surfacedByPhraseMovement) return trimmed;
+      return firstSentenceReplayDisplayToken || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+    };
 
     svg.selectAll<SVGPathElement, unknown>('.branch')
       .style('opacity', function () {
@@ -3152,8 +4537,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         return step <= effectiveRevealThreshold ? '0.95' : '0';
       });
 
-    svg.selectAll<SVGTextElement, unknown>('.terminal-label')
-      .text(function () {
+    svg.selectAll<SVGTextElement, HierNode>('.terminal-label')
+      .text(function (d) {
         const element = this as SVGTextElement;
         const nodeId = element.getAttribute('data-node-id') || '';
         const fallback = element.getAttribute('data-default-label') || '';
@@ -3172,42 +4557,49 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return isTraceLike(fallback)
             ? formatTraceSurfaceForDisplayValue(
                 fallback,
-                storedTraceIndex || directTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
+                directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
               )
-            : fallback;
+            : maybeCapitalizeLayoutSentenceInitialLeaf(d, fallback);
         }
         if (effectiveRevealThreshold < morph.step) {
-          return morph.hideBefore ? '' : morph.preText;
+          return morph.hideBefore ? '' : maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.preText);
         }
         if (!morph.postText && isTraceLike(fallback)) {
           return formatTraceSurfaceForDisplayValue(
             fallback,
-            storedTraceIndex || directTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
+            directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
           );
+        }
+        if (morph.postText && isDisplayTraceLabel(morph.postText)) {
+          return morph.postText;
         }
         if (morph.postText && isTraceLike(morph.postText)) {
           return formatTraceSurfaceForDisplayValue(
             morph.postText,
-            storedTraceIndex || directTraceIndex || aliasedTraceIndex || extractMovementIndex(morph.postText)
+            directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(morph.postText)
           );
         }
         if (isTraceLike(fallback)) {
           return formatTraceSurfaceForDisplayValue(
             fallback,
-            storedTraceIndex || directTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
+            directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
           );
         }
-        return morph.postText || fallback;
+        return maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.postText || fallback);
       });
   }, [
+    activeGrowthArrowLinks,
     activeGrowthFrame,
     activeGrowthFrameIndex,
     activeGrowthMovementLinks,
     activeStepIndex,
     animated,
+    canvasData,
     data,
     dimensions,
     abstractionMode,
+    firstSentenceReplayDisplayToken,
+    firstSentenceReplayToken,
     usesGrowthFrames,
     playbackSteps.length,
     movementTraceIndexByNodeId
@@ -3252,7 +4644,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .separation((a, b) => (a.parent === b.parent ? 2.5 : 3.5));
 
     const treeData = treeLayout(rootHierarchy);
-    
+    const growthFrameFitNodes = (() => {
+      if (!animated || !usesGrowthFrames || !activeGrowthFrame) return null;
+      const fitCanvasData = buildRenderableGrowthCanvasData(
+        activeGrowthFrame.workspaceForest || [],
+        activeGrowthMovementLinks
+      );
+      const clonedFitCanvasData = cloneSyntaxTree(fitCanvasData);
+      if (!clonedFitCanvasData) return null;
+      const fitHierarchy = d3.hierarchy(clonedFitCanvasData);
+      applyVizIds(fitHierarchy);
+      if (abstractionMode) {
+        markTriangulatedNodes(fitHierarchy, movementProtectedNodeIds);
+      }
+      const fitTreeData = treeLayout(fitHierarchy);
+      return fitTreeData.descendants().filter((node) =>
+        !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
+      );
+    })();
+
     // COLOR PALETTE - ABSOLUTE CONSTANTS
     const BRANCH_COLOR = '#593a0e';
     const PURE_WHITE = '#ffffff';
@@ -3305,7 +4715,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           usesGrowthFrames
             ? buildMovementArrowsFromLinks(
                 visibleNodes,
-                activeGrowthMovementLinks,
+                activeGrowthArrowLinks,
                 nodeStepIndex,
                 timeline
               )
@@ -3329,12 +4739,45 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     ): string => {
       return formatTraceSurfaceForDisplayValue(surface, fallbackIndex);
     };
+    const formatReplayIndexedSilentLeaf = (
+      surface: string,
+      inheritedTraceIndex?: string | null,
+      aliasedTraceIndex?: string | null
+    ): string => {
+      const resolvedIndex = normalizeTraceIndexForDisplay(
+        inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(surface)
+      );
+      if (isTraceLike(surface)) {
+        return formatTraceSurfaceForDisplay(surface, resolvedIndex || extractMovementIndex(surface));
+      }
+      if (isNullLike(surface) && resolvedIndex) {
+        return buildTraceLabel(resolvedIndex);
+      }
+      return surface;
+    };
 
     const unrevealedStep = usesGrowthFrames ? Number.MAX_SAFE_INTEGER : 0;
     const getRevealStepForNodeId = (nodeId: string): number =>
       nodeRevealStepIndex.has(nodeId)
         ? (nodeRevealStepIndex.get(nodeId) as number)
         : unrevealedStep;
+    const findFirstOvertLeafDescendant = (node: HierNode | null): HierNode | null => {
+      if (!node) return null;
+      const stack: HierNode[] = [node];
+      while (stack.length > 0) {
+        const current = stack.shift() as HierNode;
+        const children = current.children || [];
+        if (children.length === 0) {
+          const surface = resolveLeafSurface(current);
+          if (isRenderableTerminalSurface(surface, overtSurfaceSet) && !isTraceLike(surface) && !isNullLike(surface)) {
+            return current;
+          }
+          continue;
+        }
+        stack.unshift(...children);
+      }
+      return null;
+    };
 
     movementArrows.forEach((arrow) => {
       const sourceId = getNodeId(arrow.source);
@@ -3372,6 +4815,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           step: arrow.step,
           hideBefore: false
         });
+      }
+
+      if ((arrow.target.children && arrow.target.children.length > 0)) {
+        const normalizedOperation = normalizeMovementOperationLabel(arrow.operation);
+        if (normalizedOperation !== 'headmove') {
+          const sentenceInitialLeaf = findFirstOvertLeafDescendant(arrow.target);
+          const sentenceInitialSurface = sentenceInitialLeaf
+            ? resolveLeafSurface(sentenceInitialLeaf)
+            : '';
+          const shouldCapitalizeSentenceInitialLeaf =
+            sentenceInitialLeaf
+            && (
+              Number(sentenceInitialLeaf.data?.tokenIndex) === 0
+              || (
+                firstSentenceReplayToken
+                && normalizeToken(sentenceInitialSurface) === normalizeToken(firstSentenceReplayToken)
+              )
+            );
+          if (sentenceInitialLeaf && shouldCapitalizeSentenceInitialLeaf) {
+            terminalMorph.set(getNodeId(sentenceInitialLeaf), {
+              preText: sentenceInitialSurface,
+              postText: firstSentenceReplayDisplayToken || (sentenceInitialSurface.charAt(0).toUpperCase() + sentenceInitialSurface.slice(1)),
+              step: arrow.step,
+              hideBefore: false
+            });
+          }
+        }
       }
 
       if ((arrow.source.children && arrow.source.children.length > 0) || (arrow.target.children && arrow.target.children.length > 0)) {
@@ -3521,6 +4991,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const leafNodes = nodeGroups.filter(d => !d.children || d.children.length === 0);
     const movementTerminalIds = new Set(Array.from(terminalMorphRef.current.keys()));
     const visibleOvertLeafIds = collectOvertLeafNodeIdsInOrder(clonedCanvasData);
+    const maybeCapitalizeSurfacedSentenceInitialLeaf = (node: HierNode, value: string): string => {
+      const trimmed = String(value || '').trim();
+      if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
+      if (Number(node.data?.tokenIndex) !== 0) return trimmed;
+      const firstVisibleOvertLeafId = String(visibleOvertLeafIds[0] || '').trim();
+      if (!firstVisibleOvertLeafId || getNodeId(node) !== firstVisibleOvertLeafId) return trimmed;
+      const nodeAncestorIds = new Set<string>();
+      let currentAncestor: HierNode | null = node;
+      while (currentAncestor) {
+        const ancestorId = getNodeId(currentAncestor);
+        if (ancestorId) nodeAncestorIds.add(ancestorId);
+        currentAncestor = currentAncestor.parent;
+      }
+      const surfacedByPhraseMovement = activeGrowthArrowLinks.some((link) => {
+        const normalizedOperation = normalizeMovementOperationLabel(link?.operation);
+        if (normalizedOperation === 'headmove') return false;
+        const movedAnchorId = String(link?.movedAnchorId || '').trim();
+        return Boolean(movedAnchorId) && nodeAncestorIds.has(movedAnchorId);
+      });
+      if (!surfacedByPhraseMovement) return trimmed;
+      return firstSentenceReplayDisplayToken || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+    };
     const getReplayTerminalSurface = (node: HierNode): string => {
       const fallback = resolveLeafSurface(node);
       if (isTraceLike(fallback) || isNullLike(fallback)) return fallback;
@@ -3552,8 +5044,26 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       if (preAbarSentenceInitialFunction) {
         return fallback.charAt(0).toLowerCase() + fallback.slice(1);
       }
+      const nodeAncestorIds = new Set<string>();
+      let currentAncestor: HierNode | null = node;
+      while (currentAncestor) {
+        const ancestorId = getNodeId(currentAncestor);
+        if (ancestorId) nodeAncestorIds.add(ancestorId);
+        currentAncestor = currentAncestor.parent;
+      }
+      const surfacedByPhraseMovement = activeGrowthArrowLinks.some((link) => {
+        const normalizedOperation = normalizeMovementOperationLabel(link?.operation);
+        if (normalizedOperation === 'headmove') return false;
+        const movedAnchorId = String(link?.movedAnchorId || '').trim();
+        return Boolean(movedAnchorId) && nodeAncestorIds.has(movedAnchorId);
+      });
+      const sentenceInitialSurface =
+        surfacedByPhraseMovement
+          ? (firstSentenceReplayDisplayToken || (fallback.charAt(0).toUpperCase() + fallback.slice(1)))
+          : '';
       return maybeLowercaseSentenceInitialFunctionSurface({
         surface: fallback,
+        sentenceInitialSurface,
         nodeId: getNodeId(node),
         parentLabel: String(node.parent?.data?.label || '').trim() || fallbackParentLabel || committedParentLabel,
         tokenIndex: Number(node.data?.tokenIndex),
@@ -3599,10 +5109,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     terminals.append('text')
       .attr('class', 'terminal-label')
       .attr('data-node-id', (d) => getNodeId(d))
-      .attr('data-default-label', (d) => getReplayTerminalSurface(d))
+      .attr('data-default-label', (d) => maybeCapitalizeSurfacedSentenceInitialLeaf(d, getReplayTerminalSurface(d)))
       .attr('data-trace-index', (d) => {
         const fallback = getReplayTerminalSurface(d);
-        if (!isTraceLike(fallback)) return '';
         const inheritedTraceIndex = resolveTraceIndexFromNodeContext(
           d,
           growthTraceIndexByNodeId,
@@ -3612,6 +5121,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const aliasedTraceIndex = rawTraceAlias
           ? growthRawTraceAliasByIndex.get(String(rawTraceAlias).trim().toLowerCase())
           : undefined;
+        if (!isTraceLike(fallback) && !(isNullLike(fallback) && (inheritedTraceIndex || aliasedTraceIndex))) {
+          return '';
+        }
         return normalizeTraceIndexForDisplay(
           inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
         );
@@ -3625,7 +5137,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .style('fill', TARGET_EMERALD, 'important')
       .text(d => {
         const nodeId = getNodeId(d);
-        const fallback = getReplayTerminalSurface(d);
+        const fallback = maybeCapitalizeSurfacedSentenceInitialLeaf(d, getReplayTerminalSurface(d));
         const morph = terminalMorphRef.current.get(nodeId);
         const inheritedTraceIndex = resolveTraceIndexFromNodeContext(
           d,
@@ -3636,18 +5148,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const aliasedTraceIndex = rawTraceAlias
           ? growthRawTraceAliasByIndex.get(String(rawTraceAlias).trim().toLowerCase())
           : undefined;
+        const formatReplayLeafSurface = (surface: string): string => {
+          const formatted = formatReplayIndexedSilentLeaf(surface, inheritedTraceIndex, aliasedTraceIndex);
+          return (isTraceLike(formatted) || isNullLike(formatted))
+            ? formatted
+            : maybeCapitalizeSurfacedSentenceInitialLeaf(d, formatted);
+        };
         if (!morph) {
-          return isTraceLike(fallback)
-            ? formatTraceSurfaceForDisplay(
-                fallback,
-                inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
-              )
-            : fallback;
+          return formatReplayLeafSurface(fallback);
         }
         if (effectiveRevealThreshold < morph.step) {
-          return morph.hideBefore ? '' : morph.preText;
+          return morph.hideBefore ? '' : formatReplayLeafSurface(morph.preText || fallback);
         }
-        return morph.postText;
+        return formatReplayLeafSurface(morph.postText || fallback);
       });
 
     // Vertical dashed connection for leaf nodes
@@ -3692,8 +5205,34 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .text((d: any) => (d as any).triangulatedWords);
 
     // Initial viewport fit:
-    // Use actual rendered bounds so terminal labels are not clipped/off-canvas.
+    // Growth replay should keep one camera per Growth frame, not refit to each
+    // microstep's partial tree. That prevents fake left/right "movement" for
+    // newly revealed branches like Teresa -> D -> DP before the real merge step.
     const fitToRenderedBounds = () => {
+      if (growthFrameFitNodes && growthFrameFitNodes.length > 0) {
+        const minNodeX = d3.min(growthFrameFitNodes, (node) => node.x) ?? 0;
+        const maxNodeX = d3.max(growthFrameFitNodes, (node) => node.x) ?? 0;
+        const minNodeY = d3.min(growthFrameFitNodes, (node) => node.y) ?? 0;
+        const maxNodeY = d3.max(growthFrameFitNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0;
+        const viewportPadLeft = 40;
+        const viewportPadRight = 136;
+        const viewportPadTop = 34;
+        const viewportPadBottom = animated ? 170 : 250;
+        const availableWidth = Math.max(120, containerWidth - viewportPadLeft - viewportPadRight);
+        const availableHeight = Math.max(120, containerHeight - viewportPadTop - viewportPadBottom);
+        const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
+        const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
+        const scaleX = availableWidth / contentWidth;
+        const scaleY = availableHeight / contentHeight;
+        const initialScale = Math.max(0.06, Math.min(scaleX, scaleY, 1));
+        const centerX = (minNodeX + maxNodeX) / 2;
+        const centerY = (minNodeY + maxNodeY) / 2;
+        const initialX = viewportPadLeft + (availableWidth / 2) - centerX * initialScale;
+        const initialY = viewportPadTop + (availableHeight / 2) - centerY * initialScale;
+        svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+        return true;
+      }
+
       const rendered = g.node() as SVGGElement | null;
       if (!rendered) return false;
 
@@ -3748,6 +5287,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, [
     activeGrowthFrame,
     activeGrowthFrameIndex,
+    activeGrowthArrowLinks,
     activeGrowthMovementLinks,
     activeStepIndex,
     canvasData,
@@ -3805,6 +5345,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const activeDisplayLedgerBlocks = replayDisplayLedgerBlocksByStepIndex.get(activeStepIndex) || [];
   const canStepBackward = animated && playbackSteps.length > 0 && activeStepIndex > 0;
   const canStepForward = animated && playbackSteps.length > 0 && activeStepIndex < playbackSteps.length - 1;
+  const activeGrowthStepLabel = String(activeStep?.stepId || '').trim();
 
   const handlePrevStep = () => {
     setIsScrubbing(false);
@@ -3838,7 +5379,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         </div>
         {animated && playbackSteps.length > 0 && (
           <div className="mt-2 text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.35em]">
-            Step {activeStepIndex + 1}/{playbackSteps.length}
+            Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
+            {activeGrowthStepLabel ? ` · Growth Step ${activeGrowthStepLabel}` : ''}
             {activeStep?.recipe ? ` - ${activeRecipeDisplay}` : ''}
           </div>
         )}
@@ -3872,8 +5414,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             >
               Next
             </button>
-            <div className="ml-auto text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
-              {operationLabel}
+            <div className="ml-auto text-right">
+              <div className="text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
+                Replay {activeStepIndex + 1}/{playbackSteps.length}
+                {activeGrowthStepLabel ? ` · Growth Step ${activeGrowthStepLabel}` : ''}
+              </div>
+              <div className="mt-1 text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
+                {operationLabel}
+              </div>
             </div>
           </div>
           <div className="relative h-8">
@@ -3965,7 +5513,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                     <div className="space-y-1">
                       {block.lines.map((line, lineIndex) => (
                         <div key={`${block.title}-${lineIndex}`} className="text-[11px] text-white/90 leading-relaxed">
-                          {formatReplayBlockLine(block.title, line)}
+                          {formatReplayBlockLine(block.title, line, playbackSteps)}
                         </div>
                       ))}
                     </div>
@@ -4019,5 +5567,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 export default TreeVisualizer;
 export const __TEST_ONLY__ = {
   buildGrowthCanvasData,
-  resolveGrowthMovementTransitions
+  resolveGrowthMovementTransitions,
+  inferMissingHeadMoveTargetId,
+  buildPlaybackStepsFromGrowthFrames,
+  buildDisplayMovementLinks,
+  buildMovementArrowsFromLinks,
+  buildRenderableGrowthCanvasData,
+  buildStructuralGrowthPlaybackSteps,
+  collectVisibleGrowthNodeIds,
+  buildGrowthReplaySnapshot,
+  maybeLowercaseSentenceInitialFunctionSurface
 };

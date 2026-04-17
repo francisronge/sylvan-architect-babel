@@ -123,8 +123,20 @@ export const createDerivationHelpers = ({
     return raw === raw.toUpperCase() || /^[A-Z]/.test(raw) || PRIME_CATEGORY_LABEL_RE.test(raw);
   };
 
+  const traceLikeNodeType = (node) => {
+    const rawType = String(node?.type || '').trim().toLowerCase();
+    if (!rawType) return '';
+    if (rawType === 'trace') return rawType;
+    if (rawType.includes('trace')) return rawType;
+    if (rawType === 'lower-copy' || rawType === 'lower_copy' || rawType === 'silent-copy' || rawType === 'silent_copy') {
+      return rawType;
+    }
+    return '';
+  };
+
   const resolveOvertLeafSurface = (node) => {
     if (node?.silentFeature === true) return '';
+    if (traceLikeNodeType(node)) return '';
     const word = String(node?.word || '').trim();
     if (word) return word;
     const children = Array.isArray(node?.children) ? node.children : [];
@@ -146,7 +158,7 @@ export const createDerivationHelpers = ({
 
   const isNullLikeSurface = (surface) => NULL_LIKE_SURFACE_RE.test(canonicalizeCovertSurface(surface));
 
-  const isTraceLikeNode = (node) => isTraceLikeSurface(resolveNodeSurface(node));
+  const isTraceLikeNode = (node) => Boolean(traceLikeNodeType(node)) || isTraceLikeSurface(resolveNodeSurface(node));
   const isNullLikeNode = (node) => NULL_LIKE_SURFACE_RE.test(resolveNodeSurface(node));
 
   const nodeMovementIndex = (node) =>
@@ -209,10 +221,16 @@ export const createDerivationHelpers = ({
     return node;
   };
 
-  const materializeEmptyStructuralLeaves = (node, sentenceTokens) => {
+  const materializeEmptyStructuralLeaves = (node, sentenceTokens, options = {}, withinProtectedSubtree = false) => {
     if (!node || typeof node !== 'object') return node;
+    const protectedSubtreeIds = options?.protectedSubtreeIds instanceof Set
+      ? options.protectedSubtreeIds
+      : new Set();
+    const currentId = String(node.id || '').trim();
+    const nextWithinProtectedSubtree = withinProtectedSubtree || (currentId && protectedSubtreeIds.has(currentId));
     const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach((child) => materializeEmptyStructuralLeaves(child, sentenceTokens));
+    children.forEach((child) => materializeEmptyStructuralLeaves(child, sentenceTokens, options, nextWithinProtectedSubtree));
+    if (nextWithinProtectedSubtree) return node;
     if (children.length === 0) {
       const label = String(node.label || '').trim();
       const word = String(node.word || '').trim();
@@ -302,11 +320,19 @@ export const createDerivationHelpers = ({
   const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labelIndex) => {
     if (!Array.isArray(value)) return undefined;
     const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
+    const stepIndexById = new Map();
+    steps.forEach((step, index) => {
+      const stepId = normalizeOptionalStepText(step?.stepId);
+      if (stepId && !stepIndexById.has(stepId)) {
+        stepIndexById.set(stepId, index);
+      }
+    });
 
     const events = value
       .map((item) => {
         if (!item || typeof item !== 'object') return null;
-        const operation = normalizeMovementOperation(item.operation || item.type);
+        const explicitStepId = normalizeOptionalStepText(item.stepId);
+        let operation = normalizeMovementOperation(item.operation || item.type);
         const explicitSourceRef = String(item.fromNodeId || item.source || '').trim();
         const explicitTargetRef = String(item.toNodeId || item.target || '').trim();
         const explicitTraceRef = String(item.traceNodeId || item.trace || '').trim();
@@ -321,6 +347,10 @@ export const createDerivationHelpers = ({
           ? stepIndexRaw
           : undefined;
 
+        if (stepIndex === undefined && explicitStepId && stepIndexById.has(explicitStepId)) {
+          stepIndex = stepIndexById.get(explicitStepId);
+        }
+
         if (stepIndex === undefined) {
           stepIndex = resolveMovementEventStepIndex({
             operation,
@@ -333,6 +363,7 @@ export const createDerivationHelpers = ({
         const alignedStep = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
           ? steps[stepIndex]
           : undefined;
+        operation = operation || normalizeMovementOperation(alignedStep?.operation);
 
         if (!fromNodeId && Array.isArray(alignedStep?.sourceNodeIds) && alignedStep.sourceNodeIds.length === 1) {
           fromNodeId = String(alignedStep.sourceNodeIds[0] || '').trim();
@@ -621,48 +652,6 @@ export const createDerivationHelpers = ({
       });
 
     return canonical.length > 0 ? canonical : undefined;
-  };
-
-  const reconcileDerivationStepOperations = (derivationSteps, movementEvents) => {
-    if (!Array.isArray(derivationSteps) || derivationSteps.length === 0) return derivationSteps;
-    if (!Array.isArray(movementEvents) || movementEvents.length === 0) {
-      return derivationSteps.map((step) => {
-        if (!isMoveLikeOperation(step?.operation)) return step;
-        return {
-          ...step,
-          operation: 'Other'
-        };
-      });
-    }
-
-    const eventOpsByStep = new Map();
-    movementEvents.forEach((event) => {
-      const stepIndex = Number(event?.stepIndex);
-      if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= derivationSteps.length) return;
-      const op = normalizeMovementOperation(event?.operation) || 'Move';
-      const bucket = eventOpsByStep.get(stepIndex) || [];
-      bucket.push(op);
-      eventOpsByStep.set(stepIndex, bucket);
-    });
-
-    if (eventOpsByStep.size === 0) return derivationSteps;
-
-    return derivationSteps.map((step, index) => {
-      const ops = eventOpsByStep.get(index);
-      if (!ops || ops.length === 0) {
-        if (!isMoveLikeOperation(step?.operation)) return step;
-        return {
-          ...step,
-          operation: 'Other'
-        };
-      }
-      const uniqueOps = Array.from(new Set(ops));
-      const chosen = uniqueOps.length === 1 ? uniqueOps[0] : 'Move';
-      return {
-        ...step,
-        operation: chosen
-      };
-    });
   };
 
   const cleanExplanationWhitespace = (text) => String(text || '')
@@ -1457,7 +1446,6 @@ export const createDerivationHelpers = ({
     materializeEmptyStructuralLeaves,
     promoteSentenceMatchingLeaves,
     buildCanonicalMovementEvents,
-    reconcileDerivationStepOperations,
     buildGroundedExplanation,
     buildCanonicalDerivationFromTree,
     harmonizeExplanationWithDerivation,

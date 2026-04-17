@@ -13,6 +13,7 @@ export interface ResolvedMovementEventLink {
   traceAnchorId?: string;
   stepIndex?: number;
   operation?: MovementEvent['operation'];
+  chainId?: string;
   note?: string;
 }
 
@@ -94,7 +95,7 @@ const pickTraceAnchor = (node: SyntaxNode): SyntaxNode | null => {
   return (
     leaves.find((leaf) => isTraceLikeSurface(resolveLeafSurface(leaf))) ||
     leaves.find((leaf) => isNullLikeSurface(resolveLeafSurface(leaf))) ||
-    leaves[0]
+    node
   );
 };
 
@@ -238,6 +239,7 @@ export const resolveMovementEventLinks = (
       traceAnchorId: traceAnchor?.id || undefined,
       stepIndex,
       operation: event.operation,
+      chainId: normalizedChainId || undefined,
       note: event.note
     });
   });

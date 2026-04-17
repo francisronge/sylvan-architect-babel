@@ -10,8 +10,11 @@ export const createNoteBindingHelpers = ({
       nodeIds,
       chainIds,
       chainIdAliases,
+      commitmentFactIds,
       researchTraceIds,
       featureEntryIds,
+      phaseIds,
+      morphologyIds,
       caseAssignmentIds,
       argumentIds,
       selectionIds,
@@ -28,7 +31,14 @@ export const createNoteBindingHelpers = ({
       voiceValencyIds,
       linearizationIds,
       localityIds,
-      predicationIds
+      predicationIds,
+      particleIds,
+      evidentialityIds,
+      mirativityIds,
+      honorificityIds,
+      switchReferenceIds,
+      logophoraIds,
+      eventStructureIds
     } = {}
   ) => {
     if (!Array.isArray(value)) return [];
@@ -36,8 +46,11 @@ export const createNoteBindingHelpers = ({
     const allowedNodeIds = nodeIds instanceof Set ? nodeIds : null;
     const allowedChainIds = chainIds instanceof Set ? chainIds : null;
     const aliasMap = chainIdAliases instanceof Map ? chainIdAliases : null;
+    const allowedCommitmentFactIds = commitmentFactIds instanceof Set ? commitmentFactIds : null;
     const allowedResearchTraceIds = researchTraceIds instanceof Set ? researchTraceIds : null;
     const allowedFeatureEntryIds = featureEntryIds instanceof Set ? featureEntryIds : null;
+    const allowedPhaseIds = phaseIds instanceof Set ? phaseIds : null;
+    const allowedMorphologyIds = morphologyIds instanceof Set ? morphologyIds : null;
     const allowedCaseAssignmentIds = caseAssignmentIds instanceof Set ? caseAssignmentIds : null;
     const allowedArgumentIds = argumentIds instanceof Set ? argumentIds : null;
     const allowedSelectionIds = selectionIds instanceof Set ? selectionIds : null;
@@ -55,11 +68,21 @@ export const createNoteBindingHelpers = ({
     const allowedLinearizationIds = linearizationIds instanceof Set ? linearizationIds : null;
     const allowedLocalityIds = localityIds instanceof Set ? localityIds : null;
     const allowedPredicationIds = predicationIds instanceof Set ? predicationIds : null;
+    const allowedParticleIds = particleIds instanceof Set ? particleIds : null;
+    const allowedEvidentialityIds = evidentialityIds instanceof Set ? evidentialityIds : null;
+    const allowedMirativityIds = mirativityIds instanceof Set ? mirativityIds : null;
+    const allowedHonorificityIds = honorificityIds instanceof Set ? honorificityIds : null;
+    const allowedSwitchReferenceIds = switchReferenceIds instanceof Set ? switchReferenceIds : null;
+    const allowedLogophoraIds = logophoraIds instanceof Set ? logophoraIds : null;
+    const allowedEventStructureIds = eventStructureIds instanceof Set ? eventStructureIds : null;
     const allowedSupportIds = (() => {
       const merged = new Set();
       [
         ...(allowedResearchTraceIds ? [...allowedResearchTraceIds] : []),
+        ...(allowedCommitmentFactIds ? [...allowedCommitmentFactIds] : []),
         ...(allowedFeatureEntryIds ? [...allowedFeatureEntryIds] : []),
+        ...(allowedPhaseIds ? [...allowedPhaseIds] : []),
+        ...(allowedMorphologyIds ? [...allowedMorphologyIds] : []),
         ...(allowedCaseAssignmentIds ? [...allowedCaseAssignmentIds] : []),
         ...(allowedArgumentIds ? [...allowedArgumentIds] : []),
         ...(allowedSelectionIds ? [...allowedSelectionIds] : []),
@@ -76,7 +99,14 @@ export const createNoteBindingHelpers = ({
         ...(allowedVoiceValencyIds ? [...allowedVoiceValencyIds] : []),
         ...(allowedLinearizationIds ? [...allowedLinearizationIds] : []),
         ...(allowedLocalityIds ? [...allowedLocalityIds] : []),
-        ...(allowedPredicationIds ? [...allowedPredicationIds] : [])
+        ...(allowedPredicationIds ? [...allowedPredicationIds] : []),
+        ...(allowedParticleIds ? [...allowedParticleIds] : []),
+        ...(allowedEvidentialityIds ? [...allowedEvidentialityIds] : []),
+        ...(allowedMirativityIds ? [...allowedMirativityIds] : []),
+        ...(allowedHonorificityIds ? [...allowedHonorificityIds] : []),
+        ...(allowedSwitchReferenceIds ? [...allowedSwitchReferenceIds] : []),
+        ...(allowedLogophoraIds ? [...allowedLogophoraIds] : []),
+        ...(allowedEventStructureIds ? [...allowedEventStructureIds] : [])
       ]
         .filter(Boolean)
         .forEach((id) => merged.add(id));
@@ -105,7 +135,7 @@ export const createNoteBindingHelpers = ({
         const rawKind = rawKindValue === 'movement'
           ? 'chain'
           : rawKindValue;
-        const text = cleanExplanationWhitespace(String(item.text || item.content || item.note || ''));
+        const text = cleanExplanationWhitespace(String(item.text || item.explanation || item.content || item.note || ''));
         if (!text) return null;
 
         let chainId = normalizeOptionalStepText(
@@ -124,7 +154,10 @@ export const createNoteBindingHelpers = ({
         const supportIdsValue = normalizeSupportIds(item.supportIds);
         const distributedSupportIds = Array.isArray(supportIdsValue)
           ? supportIdsValue.reduce((acc, supportId) => {
+              if (allowedCommitmentFactIds?.has(supportId)) acc.commitmentFactIds.push(supportId);
               if (allowedFeatureEntryIds?.has(supportId)) acc.featureEntryIds.push(supportId);
+              if (allowedPhaseIds?.has(supportId)) acc.phaseIds.push(supportId);
+              if (allowedMorphologyIds?.has(supportId)) acc.morphologyIds.push(supportId);
               if (allowedResearchTraceIds?.has(supportId)) acc.researchTraceIds.push(supportId);
               if (allowedCaseAssignmentIds?.has(supportId)) acc.caseAssignmentIds.push(supportId);
               if (allowedArgumentIds?.has(supportId)) acc.argumentIds.push(supportId);
@@ -143,10 +176,20 @@ export const createNoteBindingHelpers = ({
               if (allowedLinearizationIds?.has(supportId)) acc.linearizationIds.push(supportId);
               if (allowedLocalityIds?.has(supportId)) acc.localityIds.push(supportId);
               if (allowedPredicationIds?.has(supportId)) acc.predicationIds.push(supportId);
+              if (allowedParticleIds?.has(supportId)) acc.particleIds.push(supportId);
+              if (allowedEvidentialityIds?.has(supportId)) acc.evidentialityIds.push(supportId);
+              if (allowedMirativityIds?.has(supportId)) acc.mirativityIds.push(supportId);
+              if (allowedHonorificityIds?.has(supportId)) acc.honorificityIds.push(supportId);
+              if (allowedSwitchReferenceIds?.has(supportId)) acc.switchReferenceIds.push(supportId);
+              if (allowedLogophoraIds?.has(supportId)) acc.logophoraIds.push(supportId);
+              if (allowedEventStructureIds?.has(supportId)) acc.eventStructureIds.push(supportId);
               return acc;
             }, {
+              commitmentFactIds: [],
               researchTraceIds: [],
               featureEntryIds: [],
+              phaseIds: [],
+              morphologyIds: [],
               caseAssignmentIds: [],
               argumentIds: [],
               selectionIds: [],
@@ -163,7 +206,14 @@ export const createNoteBindingHelpers = ({
               voiceValencyIds: [],
               linearizationIds: [],
               localityIds: [],
-              predicationIds: []
+              predicationIds: [],
+              particleIds: [],
+              evidentialityIds: [],
+              mirativityIds: [],
+              honorificityIds: [],
+              switchReferenceIds: [],
+              logophoraIds: [],
+              eventStructureIds: []
             })
           : null;
         const mergeUniqueIds = (...groups) => {
@@ -173,6 +223,18 @@ export const createNoteBindingHelpers = ({
         const featureEntryIdsValue = mergeUniqueIds(
           normalizeLinkedIds(item.featureEntryIds, allowedFeatureEntryIds),
           distributedSupportIds?.featureEntryIds
+        );
+        const commitmentFactIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.commitmentFactIds, allowedCommitmentFactIds),
+          distributedSupportIds?.commitmentFactIds
+        );
+        const phaseIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.phaseIds, allowedPhaseIds),
+          distributedSupportIds?.phaseIds
+        );
+        const morphologyIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.morphologyIds || item.realizationIds, allowedMorphologyIds),
+          distributedSupportIds?.morphologyIds
         );
         const researchTraceIdsValue = mergeUniqueIds(
           normalizeLinkedIds(item.researchTraceIds, allowedResearchTraceIds),
@@ -246,6 +308,34 @@ export const createNoteBindingHelpers = ({
           normalizeLinkedIds(item.predicationIds, allowedPredicationIds),
           distributedSupportIds?.predicationIds
         );
+        const particleIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.particleIds, allowedParticleIds),
+          distributedSupportIds?.particleIds
+        );
+        const evidentialityIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.evidentialityIds, allowedEvidentialityIds),
+          distributedSupportIds?.evidentialityIds
+        );
+        const mirativityIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.mirativityIds, allowedMirativityIds),
+          distributedSupportIds?.mirativityIds
+        );
+        const honorificityIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.honorificityIds, allowedHonorificityIds),
+          distributedSupportIds?.honorificityIds
+        );
+        const switchReferenceIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.switchReferenceIds, allowedSwitchReferenceIds),
+          distributedSupportIds?.switchReferenceIds
+        );
+        const logophoraIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.logophoraIds, allowedLogophoraIds),
+          distributedSupportIds?.logophoraIds
+        );
+        const eventStructureIdsValue = mergeUniqueIds(
+          normalizeLinkedIds(item.eventStructureIds, allowedEventStructureIds),
+          distributedSupportIds?.eventStructureIds
+        );
 
         if (allowedChainIds && allowedChainIds.size > 0 && chainId && !allowedChainIds.has(chainId)) {
           const aliasedChainId = aliasMap?.get(chainId);
@@ -258,7 +348,10 @@ export const createNoteBindingHelpers = ({
           if (rawKind) return rawKind;
           if (chainId) return 'chain';
           if (
+            (commitmentFactIdsValue && commitmentFactIdsValue.length > 0) ||
             (featureEntryIdsValue && featureEntryIdsValue.length > 0) ||
+            (phaseIdsValue && phaseIdsValue.length > 0) ||
+            (morphologyIdsValue && morphologyIdsValue.length > 0) ||
             (caseAssignmentIdsValue && caseAssignmentIdsValue.length > 0) ||
             (argumentIdsValue && argumentIdsValue.length > 0) ||
             (bindingIdsValue && bindingIdsValue.length > 0) ||
@@ -273,7 +366,14 @@ export const createNoteBindingHelpers = ({
             (operatorScopeIdsValue && operatorScopeIdsValue.length > 0) ||
             (voiceValencyIdsValue && voiceValencyIdsValue.length > 0) ||
             (localityIdsValue && localityIdsValue.length > 0) ||
-            (predicationIdsValue && predicationIdsValue.length > 0)
+            (predicationIdsValue && predicationIdsValue.length > 0) ||
+            (particleIdsValue && particleIdsValue.length > 0) ||
+            (evidentialityIdsValue && evidentialityIdsValue.length > 0) ||
+            (mirativityIdsValue && mirativityIdsValue.length > 0) ||
+            (honorificityIdsValue && honorificityIdsValue.length > 0) ||
+            (switchReferenceIdsValue && switchReferenceIdsValue.length > 0) ||
+            (logophoraIdsValue && logophoraIdsValue.length > 0) ||
+            (eventStructureIdsValue && eventStructureIdsValue.length > 0)
           ) {
             return 'licensing';
           }
@@ -290,8 +390,11 @@ export const createNoteBindingHelpers = ({
           ...(stepIdsValue && stepIdsValue.length > 0 ? { stepIds: stepIdsValue } : {}),
           ...(nodeIdsValue && nodeIdsValue.length > 0 ? { nodeIds: nodeIdsValue } : {}),
           ...(supportIdsValue && supportIdsValue.length > 0 ? { supportIds: supportIdsValue } : {}),
+          ...(commitmentFactIdsValue && commitmentFactIdsValue.length > 0 ? { commitmentFactIds: commitmentFactIdsValue } : {}),
           ...(researchTraceIdsValue && researchTraceIdsValue.length > 0 ? { researchTraceIds: researchTraceIdsValue } : {}),
           ...(featureEntryIdsValue && featureEntryIdsValue.length > 0 ? { featureEntryIds: featureEntryIdsValue } : {}),
+          ...(phaseIdsValue && phaseIdsValue.length > 0 ? { phaseIds: phaseIdsValue } : {}),
+          ...(morphologyIdsValue && morphologyIdsValue.length > 0 ? { morphologyIds: morphologyIdsValue } : {}),
           ...(caseAssignmentIdsValue && caseAssignmentIdsValue.length > 0 ? { caseAssignmentIds: caseAssignmentIdsValue } : {}),
           ...(argumentIdsValue && argumentIdsValue.length > 0 ? { argumentIds: argumentIdsValue } : {}),
           ...(selectionIdsValue && selectionIdsValue.length > 0 ? { selectionIds: selectionIdsValue } : {}),
@@ -309,6 +412,13 @@ export const createNoteBindingHelpers = ({
           ...(linearizationIdsValue && linearizationIdsValue.length > 0 ? { linearizationIds: linearizationIdsValue } : {}),
           ...(localityIdsValue && localityIdsValue.length > 0 ? { localityIds: localityIdsValue } : {}),
           ...(predicationIdsValue && predicationIdsValue.length > 0 ? { predicationIds: predicationIdsValue } : {}),
+          ...(particleIdsValue && particleIdsValue.length > 0 ? { particleIds: particleIdsValue } : {}),
+          ...(evidentialityIdsValue && evidentialityIdsValue.length > 0 ? { evidentialityIds: evidentialityIdsValue } : {}),
+          ...(mirativityIdsValue && mirativityIdsValue.length > 0 ? { mirativityIds: mirativityIdsValue } : {}),
+          ...(honorificityIdsValue && honorificityIdsValue.length > 0 ? { honorificityIds: honorificityIdsValue } : {}),
+          ...(switchReferenceIdsValue && switchReferenceIdsValue.length > 0 ? { switchReferenceIds: switchReferenceIdsValue } : {}),
+          ...(logophoraIdsValue && logophoraIdsValue.length > 0 ? { logophoraIds: logophoraIdsValue } : {}),
+          ...(eventStructureIdsValue && eventStructureIdsValue.length > 0 ? { eventStructureIds: eventStructureIdsValue } : {}),
           order: Number.isInteger(item.order) ? item.order : index
         };
       })

@@ -645,7 +645,7 @@ export const createAnalysisNormalizationHelpers = ({
         const controllerNodeId = String(item.controllerNodeId || '').trim();
         const antecedentNodeId = String(item.antecedentNodeId || '').trim();
         const label = normalizeOptionalStepText(item.label || item.surface || item.__entryKey || item.value);
-        const kind = normalizeOptionalStepText(item.kind || item.type);
+        const kind = normalizeOptionalStepText(item.kindValue || item.nullElementKind || item.kind || item.type);
         const controllerLabel = normalizeOptionalStepText(item.controllerLabel || item.controller);
         const antecedentLabel = normalizeOptionalStepText(item.antecedentLabel || item.antecedent);
         const licensing = normalizeOptionalStepText(item.licensing || item.licensedBy || item.license);
@@ -870,6 +870,403 @@ export const createAnalysisNormalizationHelpers = ({
       .filter(Boolean);
   };
 
+  const normalizeParticleLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const nodeId = String(item.nodeId || item.particleNodeId || '').trim();
+        const particleLabel = normalizeOptionalStepText(
+          item.particleLabel
+          || item.particle
+          || item.markerLabel
+          || item.marker
+          || item.__entryKey
+        );
+        const particleType = normalizeOptionalStepText(item.particleType || item.type || item.category);
+        const functionLabel = normalizeOptionalStepText(item.function || item.discourseFunction || item.clauseFunction || item.value);
+        const clauseType = normalizeOptionalStepText(item.clauseType);
+        const scope = normalizeOptionalStepText(item.scope || item.domain);
+        if (!nodeId && !particleLabel && !particleType && !functionLabel && !clauseType && !scope) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          particleId: normalizeOptionalStepText(item.particleId || item.id),
+          nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+          particleLabel,
+          particleType,
+          function: functionLabel,
+          clauseType,
+          scope,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeEvidentialityLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const nodeId = String(item.nodeId || item.markerNodeId || '').trim();
+        const markerLabel = normalizeOptionalStepText(item.markerLabel || item.marker || item.__entryKey);
+        const evidentialType = normalizeOptionalStepText(item.evidentialType || item.type || item.value);
+        const sourceType = normalizeOptionalStepText(item.sourceType || item.source);
+        const scope = normalizeOptionalStepText(item.scope || item.domain);
+        const status = normalizeOptionalStepText(item.status);
+        if (!nodeId && !markerLabel && !evidentialType && !sourceType && !scope && !status) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          evidentialityId: normalizeOptionalStepText(item.evidentialityId || item.id),
+          nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+          markerLabel,
+          evidentialType,
+          sourceType,
+          scope,
+          status,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeMirativityLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const nodeId = String(item.nodeId || item.markerNodeId || '').trim();
+        const markerLabel = normalizeOptionalStepText(item.markerLabel || item.marker || item.__entryKey);
+        const mirativityType = normalizeOptionalStepText(item.mirativityType || item.type || item.value);
+        const scope = normalizeOptionalStepText(item.scope || item.domain);
+        const status = normalizeOptionalStepText(item.status);
+        if (!nodeId && !markerLabel && !mirativityType && !scope && !status) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          mirativityId: normalizeOptionalStepText(item.mirativityId || item.id),
+          nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+          markerLabel,
+          mirativityType,
+          scope,
+          status,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeHonorificityLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const nodeId = String(item.nodeId || item.markerNodeId || '').trim();
+        const markerLabel = normalizeOptionalStepText(item.markerLabel || item.marker || item.__entryKey);
+        const honorificType = normalizeOptionalStepText(item.honorificType || item.type || item.value);
+        const target = normalizeOptionalStepText(item.target || item.targetLabel || item.referent);
+        const status = normalizeOptionalStepText(item.status || item.level);
+        if (!nodeId && !markerLabel && !honorificType && !target && !status) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          honorificityId: normalizeOptionalStepText(item.honorificityId || item.id),
+          nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+          markerLabel,
+          honorificType,
+          target,
+          status,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeSwitchReferenceLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const markerNodeId = String(item.markerNodeId || item.nodeId || '').trim();
+        const controllerClauseNodeId = String(item.controllerClauseNodeId || item.matrixClauseNodeId || '').trim();
+        const dependentClauseNodeId = String(item.dependentClauseNodeId || item.embeddedClauseNodeId || '').trim();
+        const markerLabel = normalizeOptionalStepText(item.markerLabel || item.marker || item.__entryKey);
+        const controllerLabel = normalizeOptionalStepText(item.controllerLabel || item.controller || item.sameSubjectReferent);
+        const dependentLabel = normalizeOptionalStepText(item.dependentLabel || item.dependent || item.differentSubjectReferent);
+        const relation = normalizeOptionalStepText(item.relation || item.type || item.value);
+        const status = normalizeOptionalStepText(item.status);
+        if (!markerNodeId && !controllerClauseNodeId && !dependentClauseNodeId && !markerLabel && !controllerLabel && !dependentLabel && !relation && !status) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          switchReferenceId: normalizeOptionalStepText(item.switchReferenceId || item.id),
+          markerNodeId: markerNodeId && nodeIds.has(markerNodeId) ? markerNodeId : undefined,
+          controllerClauseNodeId: controllerClauseNodeId && nodeIds.has(controllerClauseNodeId) ? controllerClauseNodeId : undefined,
+          dependentClauseNodeId: dependentClauseNodeId && nodeIds.has(dependentClauseNodeId) ? dependentClauseNodeId : undefined,
+          markerLabel,
+          controllerLabel,
+          dependentLabel,
+          relation,
+          status,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeLogophoraLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const nodeId = String(item.nodeId || item.logophoricNodeId || '').trim();
+        const controllerNodeId = String(item.controllerNodeId || item.antecedentNodeId || '').trim();
+        const logophoricLabel = normalizeOptionalStepText(item.logophoricLabel || item.logophor || item.__entryKey);
+        const controllerLabel = normalizeOptionalStepText(item.controllerLabel || item.controller || item.antecedent);
+        const domain = normalizeOptionalStepText(item.domain || item.scope);
+        const status = normalizeOptionalStepText(item.status || item.type || item.value);
+        if (!nodeId && !controllerNodeId && !logophoricLabel && !controllerLabel && !domain && !status) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          logophoraId: normalizeOptionalStepText(item.logophoraId || item.id),
+          nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+          controllerNodeId: controllerNodeId && nodeIds.has(controllerNodeId) ? controllerNodeId : undefined,
+          logophoricLabel,
+          controllerLabel,
+          domain,
+          status,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeEventStructureLedger = (value, nodeIds, stepIds) => {
+    return collectStructuredEntries(value)
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const predicateNodeId = String(item.predicateNodeId || '').trim();
+        const predicateLabel = normalizeOptionalStepText(item.predicateLabel || item.predicate || item.__entryKey);
+        const eventType = normalizeOptionalStepText(item.eventType || item.type);
+        const lexicalAspect = normalizeOptionalStepText(item.lexicalAspect || item.aspect || item.value);
+        const viewpointAspect = normalizeOptionalStepText(item.viewpointAspect);
+        const boundedness = normalizeOptionalStepText(item.boundedness);
+        const telicity = normalizeOptionalStepText(item.telicity);
+        if (!predicateNodeId && !predicateLabel && !eventType && !lexicalAspect && !viewpointAspect && !boundedness && !telicity) return null;
+        return {
+          ...normalizeLedgerSupportAnchors(item, nodeIds, stepIds),
+          eventStructureId: normalizeOptionalStepText(item.eventStructureId || item.id),
+          predicateNodeId: predicateNodeId && nodeIds.has(predicateNodeId) ? predicateNodeId : undefined,
+          predicateLabel,
+          eventType,
+          lexicalAspect,
+          viewpointAspect,
+          boundedness,
+          telicity,
+          evidence: normalizeOptionalStepText(item.evidence),
+          note: normalizeOptionalStepText(item.note)
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizeCommitmentKind = (value) => {
+    const normalized = normalizeKey(value).replace(/_/g, '-');
+    switch (normalized) {
+      case 'case':
+      case 'case-assignment':
+      case 'case-assignments':
+      case 'caseassignment':
+      case 'caseassignments':
+        return 'case';
+      case 'argument-structure':
+      case 'argumentstructure':
+      case 'argument-structures':
+      case 'argumentstructureledger':
+        return 'argument-structure';
+      case 'phase':
+      case 'phaselog':
+      case 'phase-log':
+        return 'phase';
+      case 'morphology':
+      case 'morphology-realization':
+      case 'morphologyrealization':
+        return 'morphology';
+      case 'feature':
+      case 'feature-ledger':
+      case 'featureledger':
+        return 'feature';
+      case 'selection':
+      case 'selection-ledger':
+      case 'selectionledger':
+        return 'selection';
+      case 'binding':
+      case 'binding-ledger':
+      case 'bindingledger':
+        return 'binding';
+      case 'clausal-dependency':
+      case 'clausaldependency':
+      case 'clausal-dependencies':
+      case 'clausaldependencies':
+        return 'clausal-dependency';
+      case 'agreement':
+      case 'agreement-ledger':
+      case 'agreementledger':
+        return 'agreement';
+      case 'predicate-class':
+      case 'predicateclass':
+      case 'predicate-class-ledger':
+      case 'predicateclassledger':
+        return 'predicate-class';
+      case 'probe':
+      case 'probe-ledger':
+      case 'probeledger':
+        return 'probe';
+      case 'null-element':
+      case 'nullelement':
+      case 'null-element-ledger':
+      case 'nullelementledger':
+        return 'null-element';
+      case 'diagnostic':
+      case 'diagnostic-ledger':
+      case 'diagnosticledger':
+        return 'diagnostic';
+      case 'parameter':
+      case 'parameter-ledger':
+      case 'parameterledger':
+        return 'parameter';
+      case 'information-structure':
+      case 'informationstructure':
+      case 'information-structure-ledger':
+      case 'informationstructureledger':
+        return 'information-structure';
+      case 'operator-scope':
+      case 'operatorscope':
+      case 'operator-scope-ledger':
+      case 'operatorscopeledger':
+        return 'operator-scope';
+      case 'voice-valency':
+      case 'voicevalency':
+      case 'voice-valency-ledger':
+      case 'voicevalencyledger':
+        return 'voice-valency';
+      case 'linearization':
+      case 'linearization-ledger':
+      case 'linearizationledger':
+        return 'linearization';
+      case 'locality':
+      case 'locality-ledger':
+      case 'localityledger':
+        return 'locality';
+      case 'predication':
+      case 'predication-ledger':
+      case 'predicationledger':
+        return 'predication';
+      case 'particle':
+      case 'particle-ledger':
+      case 'particleledger':
+        return 'particle';
+      case 'evidentiality':
+      case 'evidentiality-ledger':
+      case 'evidentialityledger':
+        return 'evidentiality';
+      case 'mirativity':
+      case 'mirativity-ledger':
+      case 'mirativityledger':
+        return 'mirativity';
+      case 'honorificity':
+      case 'honorificity-ledger':
+      case 'honorificityledger':
+        return 'honorificity';
+      case 'switch-reference':
+      case 'switchreference':
+      case 'switch-reference-ledger':
+      case 'switchreferenceledger':
+        return 'switch-reference';
+      case 'logophora':
+      case 'logophora-ledger':
+      case 'logophoraledger':
+        return 'logophora';
+      case 'event-structure':
+      case 'eventstructure':
+      case 'event-structure-ledger':
+      case 'eventstructureledger':
+        return 'event-structure';
+      default:
+        return '';
+    }
+  };
+
+  const buildCommitmentLedgerSpecs = () => ([
+    ['caseAssignments', 'case', 'assignmentId', normalizeCaseAssignments],
+    ['argumentStructure', 'argument-structure', 'argumentId', normalizeArgumentStructure],
+    ['phaseLog', 'phase', 'phaseId', normalizePhaseLog],
+    ['morphologyRealization', 'morphology', 'realizationId', normalizeMorphologyRealization],
+    ['featureLedger', 'feature', 'entryId', normalizeFeatureLedger],
+    ['selectionLedger', 'selection', 'selectionId', normalizeSelectionLedger],
+    ['bindingLedger', 'binding', 'bindingId', normalizeBindingLedger],
+    ['clausalDependencies', 'clausal-dependency', 'dependencyId', normalizeClausalDependencies],
+    ['agreementLedger', 'agreement', 'agreementId', normalizeAgreementLedger],
+    ['predicateClassLedger', 'predicate-class', 'predicateClassId', normalizePredicateClassLedger],
+    ['probeLedger', 'probe', 'probeId', normalizeProbeLedger],
+    ['nullElementLedger', 'null-element', 'nullElementId', normalizeNullElementLedger],
+    ['diagnosticLedger', 'diagnostic', 'diagnosticId', normalizeDiagnosticLedger],
+    ['parameterLedger', 'parameter', 'parameterId', normalizeParameterLedger],
+    ['informationStructureLedger', 'information-structure', 'informationStructureId', normalizeInformationStructureLedger],
+    ['operatorScopeLedger', 'operator-scope', 'operatorScopeId', normalizeOperatorScopeLedger],
+    ['voiceValencyLedger', 'voice-valency', 'voiceValencyId', normalizeVoiceValencyLedger],
+    ['linearizationLedger', 'linearization', 'linearizationId', normalizeLinearizationLedger],
+    ['localityLedger', 'locality', 'localityId', normalizeLocalityLedger],
+    ['predicationLedger', 'predication', 'predicationId', normalizePredicationLedger],
+    ['particleLedger', 'particle', 'particleId', normalizeParticleLedger],
+    ['evidentialityLedger', 'evidentiality', 'evidentialityId', normalizeEvidentialityLedger],
+    ['mirativityLedger', 'mirativity', 'mirativityId', normalizeMirativityLedger],
+    ['honorificityLedger', 'honorificity', 'honorificityId', normalizeHonorificityLedger],
+    ['switchReferenceLedger', 'switch-reference', 'switchReferenceId', normalizeSwitchReferenceLedger],
+    ['logophoraLedger', 'logophora', 'logophoraId', normalizeLogophoraLedger],
+    ['eventStructureLedger', 'event-structure', 'eventStructureId', normalizeEventStructureLedger]
+  ]).map(([field, kind, idField, normalize]) => ({ field, kind, idField, normalize }));
+
+  const projectLedgersFromCommitmentGraph = (value, nodeIds, stepIds) => {
+    const entries = collectStructuredEntries(value);
+    const entriesByKind = new Map();
+    entries.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      const kind = normalizeCommitmentKind(entry.kind || entry.commitmentKind || entry.type || entry.ledgerKind);
+      if (!kind) return;
+      if (!entriesByKind.has(kind)) entriesByKind.set(kind, []);
+      entriesByKind.get(kind).push(entry);
+    });
+
+    const projected = {};
+    buildCommitmentLedgerSpecs().forEach(({ field, kind, normalize }) => {
+      projected[field] = normalize(entriesByKind.get(kind) || [], nodeIds, stepIds);
+    });
+    return projected;
+  };
+
+  const buildCommitmentGraphFromNormalizedLedgers = (ledgersByField = {}) => {
+    const graph = [];
+    buildCommitmentLedgerSpecs().forEach(({ field, kind, idField }) => {
+      const entries = Array.isArray(ledgersByField?.[field]) ? ledgersByField[field] : [];
+      entries.forEach((entry) => {
+        if (!entry || typeof entry !== 'object') return;
+        const factId = normalizeOptionalStepText(entry[idField] || entry.id);
+        const { kind: entryKind, ...rest } = entry;
+        graph.push({
+          ...rest,
+          factId: factId || undefined,
+          ...(entryKind ? { kindValue: entryKind } : {}),
+          kind
+        });
+      });
+    });
+    return graph;
+  };
+
+  const normalizeCommitmentGraph = (value, nodeIds, stepIds) => (
+    buildCommitmentGraphFromNormalizedLedgers(
+      projectLedgersFromCommitmentGraph(value, nodeIds, stepIds)
+    )
+  );
+
   const ensureStructuredEntryIds = (entries, idField, prefix) => {
     if (!Array.isArray(entries) || entries.length === 0) return [];
     const usedIds = new Set(
@@ -904,6 +1301,9 @@ export const createAnalysisNormalizationHelpers = ({
   return {
     normalizeChains,
     normalizeResearchTrace,
+    normalizeCommitmentGraph,
+    projectLedgersFromCommitmentGraph,
+    buildCommitmentGraphFromNormalizedLedgers,
     normalizeCaseAssignments,
     normalizeArgumentStructure,
     normalizePhaseLog,
@@ -924,6 +1324,13 @@ export const createAnalysisNormalizationHelpers = ({
     normalizeLinearizationLedger,
     normalizeLocalityLedger,
     normalizePredicationLedger,
+    normalizeParticleLedger,
+    normalizeEvidentialityLedger,
+    normalizeMirativityLedger,
+    normalizeHonorificityLedger,
+    normalizeSwitchReferenceLedger,
+    normalizeLogophoraLedger,
+    normalizeEventStructureLedger,
     ensureStructuredEntryIds
   };
 };

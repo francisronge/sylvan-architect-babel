@@ -80,6 +80,8 @@ export interface GrowthFrameMovement {
   operation?: DerivationOperation;
   sourceNodeId?: string;
   targetNodeId?: string;
+  traceNodeId?: string;
+  chainId?: string;
   note?: string;
 }
 
@@ -117,8 +119,11 @@ export interface NoteBinding {
   stepIds?: string[];
   nodeIds?: string[];
   supportIds?: string[];
+  commitmentFactIds?: string[];
   researchTraceIds?: string[];
   featureEntryIds?: string[];
+  phaseIds?: string[];
+  morphologyIds?: string[];
   caseAssignmentIds?: string[];
   argumentIds?: string[];
   selectionIds?: string[];
@@ -188,6 +193,142 @@ export interface ResearchTraceEntry {
 export interface LedgerSupportAnchors {
   stepIds?: string[];
   nodeIds?: string[];
+}
+
+export type CommitmentKind =
+  | 'case'
+  | 'argument-structure'
+  | 'phase'
+  | 'morphology'
+  | 'feature'
+  | 'selection'
+  | 'binding'
+  | 'clausal-dependency'
+  | 'agreement'
+  | 'predicate-class'
+  | 'probe'
+  | 'null-element'
+  | 'diagnostic'
+  | 'parameter'
+  | 'information-structure'
+  | 'operator-scope'
+  | 'voice-valency'
+  | 'linearization'
+  | 'locality'
+  | 'predication'
+  | 'particle'
+  | 'evidentiality'
+  | 'mirativity'
+  | 'honorificity'
+  | 'switch-reference'
+  | 'logophora'
+  | 'event-structure';
+
+export interface CommitmentGraphEntry extends LedgerSupportAnchors {
+  factId?: string;
+  kind: CommitmentKind;
+  chainId?: string;
+  nodeId?: string;
+  label?: string;
+  nodeLabel?: string;
+  assigneeLabel?: string;
+  case?: string;
+  assigner?: string;
+  mechanism?: string;
+  overt?: boolean;
+  position?: string;
+  role?: string;
+  introducer?: string;
+  predicate?: string;
+  referent?: string;
+  phaseHead?: string;
+  complementDomain?: string;
+  transferredNodes?: string[];
+  edgeNodes?: string[];
+  spelloutDomain?: string;
+  surfaceExponent?: string;
+  featuresRealized?: string[];
+  hostHead?: string;
+  isPortmanteau?: boolean;
+  feature?: string;
+  value?: string;
+  status?: string;
+  sourceStepId?: string;
+  selectorNodeId?: string;
+  selectorHead?: string;
+  selectedNodeId?: string;
+  selectedCategory?: string;
+  selectorLabel?: string;
+  selectedLabel?: string;
+  relation?: string;
+  domainNodeId?: string;
+  antecedentNodeId?: string;
+  dependentNodeId?: string;
+  antecedentLabel?: string;
+  dependentLabel?: string;
+  principle?: string;
+  type?: string;
+  subtype?: string;
+  predicateNodeId?: string;
+  clauseNodeId?: string;
+  controllerNodeId?: string;
+  controllerLabel?: string;
+  clauseLabel?: string;
+  probeNodeId?: string;
+  goalNodeId?: string;
+  probeLabel?: string;
+  goalLabel?: string;
+  morphology?: string;
+  direction?: string;
+  domain?: string;
+  defaultValue?: boolean;
+  classification?: string;
+  diagnostics?: string[];
+  locality?: string;
+  outcome?: string;
+  kindLabel?: string;
+  kindValue?: string;
+  licensing?: string;
+  parameter?: string;
+  language?: string;
+  operatorNodeId?: string;
+  scopeNodeId?: string;
+  operatorLabel?: string;
+  scopeLabel?: string;
+  operatorType?: string;
+  voice?: string;
+  valency?: string;
+  externalArgument?: string;
+  internalArgument?: string;
+  order?: string[];
+  effect?: string;
+  movingNodeId?: string;
+  landingNodeId?: string;
+  movingLabel?: string;
+  landingLabel?: string;
+  subjectNodeId?: string;
+  subjectLabel?: string;
+  particleLabel?: string;
+  particleType?: string;
+  function?: string;
+  clauseType?: string;
+  markerLabel?: string;
+  evidentialType?: string;
+  sourceType?: string;
+  mirativityType?: string;
+  honorificType?: string;
+  target?: string;
+  markerNodeId?: string;
+  controllerClauseNodeId?: string;
+  dependentClauseNodeId?: string;
+  logophoricLabel?: string;
+  eventType?: string;
+  lexicalAspect?: string;
+  viewpointAspect?: string;
+  boundedness?: string;
+  telicity?: string;
+  evidence?: string;
+  note?: string;
 }
 
 export interface CaseAssignment extends LedgerSupportAnchors {
@@ -430,7 +571,7 @@ export interface PredicationLedgerEntry extends LedgerSupportAnchors {
 }
 
 export interface Provenance {
-  modelRoute?: 'local' | 'flash-lite' | 'pro';
+  modelRoute?: 'local' | 'pro';
   framework?: 'xbar' | 'minimalism';
   language?: string;
   timestamp?: string;
@@ -438,6 +579,14 @@ export interface Provenance {
   promptVersion?: string;
   parserVersion?: string;
   uiVersion?: string;
+  payloadIntegrityFlags?: string[];
+  payloadTranscriberUsed?: boolean;
+  payloadTranscriberModel?: string;
+  payloadTranscriberPromptTokenCount?: number;
+  payloadTranscriberOutputTokenCount?: number;
+  payloadTranscriberTotalTokenCount?: number;
+  payloadTranscriberThoughtsTokenCount?: number;
+  hasCommitmentGraph?: boolean;
   hasResearchTrace?: boolean;
   hasGrowthFrames?: boolean;
   hasCaseAssignments?: boolean;
@@ -479,6 +628,8 @@ export interface Provenance {
 }
 
 export interface ParseResult {
+  // There is no `notes` field on committed analyses.
+  // Structured notes live in noteBindings, and explanation is the rendered paragraph built from them.
   tree: SyntaxNode;
   explanation: string;
   surfaceOrder?: string[];
@@ -488,6 +639,7 @@ export interface ParseResult {
   derivationSteps?: DerivationStep[];
   movementEvents?: MovementEvent[];
   chains?: ChainLedgerEntry[];
+  commitmentGraph?: CommitmentGraphEntry[];
   researchTrace?: ResearchTraceEntry[];
   caseAssignments?: CaseAssignment[];
   argumentStructure?: ArgumentStructureEntry[];
@@ -517,6 +669,6 @@ export interface ParseBundle {
   analyses: ParseResult[];
   ambiguityDetected: boolean;
   ambiguityNote?: string;
-  requestedModelRoute?: 'local' | 'flash-lite' | 'pro';
+  requestedModelRoute?: 'local' | 'pro';
   modelUsed?: string;
 }

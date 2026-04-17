@@ -1,4 +1,4 @@
-import { parseStrictModelJson } from './strictJson.js';
+import { parseStrictModelJson, parseStrictModelJsonDetailed } from './strictJson.js';
 import {
   buildNotesSecondPassFrozenAnalysis as buildNotesSecondPassFrozenAnalysisFromContext,
   buildNotesSecondPassSupportInventory as buildNotesSecondPassSupportInventoryFromContext,
@@ -27,6 +27,10 @@ export const createNotesSecondPassHelpers = ({
   normalizeParseBundle
 }) => {
   const parseModelJson = (rawText) => parseStrictModelJson(
+    rawText,
+    (code, message, status) => new ParseApiError(code, message, status)
+  );
+  const parseModelJsonDetailed = (rawText) => parseStrictModelJsonDetailed(
     rawText,
     (code, message, status) => new ParseApiError(code, message, status)
   );
@@ -185,6 +189,7 @@ export const createNotesSecondPassHelpers = ({
 
   return {
     parseModelJson,
+    parseModelJsonDetailed,
     buildNotesSecondPassFrozenAnalysis,
     buildNotesSecondPassSupportInventory,
     buildNotesSecondPassPrompt,

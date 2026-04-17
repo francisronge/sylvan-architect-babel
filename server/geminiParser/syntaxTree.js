@@ -46,74 +46,20 @@ export const createSyntaxTreeHelpers = ({
     return /p$/i.test(raw);
   };
 
-  const inferLexicalChildTemplateForPhrase = (label) => {
-    const raw = String(label || '').trim();
-    const lower = raw.toLowerCase();
-    if (!raw) return null;
-    if (lower === 'dp') return ['NP', 'N'];
-    if (lower === 'np') return ['N'];
-    if (lower === 'vp') return ['V'];
-    if (lower === 'tp') return ['T'];
-    if (lower === 'ip') return ['I'];
-    if (lower === 'inflp') return ['Infl'];
-    if (lower === 'cp') return ['C'];
-    if (lower === 'pp') return ['P'];
-    if (lower === 'ap') return ['A'];
-    if (lower === 'advp') return ['Adv'];
-    return null;
-  };
-
-  const materializeLexicalPhrasalLeaves = (tree) => {
-    if (!tree || typeof tree !== 'object') return tree;
-
-    const existingIds = new Set();
-    const collectIds = (node) => {
-      if (!node || typeof node !== 'object') return;
-      const id = String(node.id || '').trim();
-      if (id) existingIds.add(id);
-      const children = Array.isArray(node.children) ? node.children : [];
-      children.forEach(collectIds);
-    };
-    collectIds(tree);
-    const counterRef = { value: existingIds.size + 1 };
-
-    const visit = (node) => {
-      if (!node || typeof node !== 'object') return;
-      const children = Array.isArray(node.children) ? node.children : [];
-      children.forEach(visit);
-
-      if (children.length > 0) return;
-      if (!isPhrasalLabel(node.label)) return;
-
-      const word = String(node.word || '').trim();
-      if (!word || isTraceLikeSurface(word) || isNullLikeSurface(word)) return;
-
-      const lexicalTemplate = inferLexicalChildTemplateForPhrase(node.label);
-      if (!lexicalTemplate || lexicalTemplate.length === 0) return;
-
-      const makeLexicalChain = (labels) => {
-        if (labels.length === 0) return null;
-        const [headLabel, ...rest] = labels;
-        const childId = nextGeneratedNodeId(existingIds, counterRef);
-        const childNode = { id: childId, label: headLabel };
-        if (rest.length === 0) {
-          childNode.word = word;
-          if (node.tokenIndex !== undefined) childNode.tokenIndex = node.tokenIndex;
-          if (Array.isArray(node.surfaceSpan)) childNode.surfaceSpan = [...node.surfaceSpan];
-          return childNode;
-        }
-        childNode.children = [makeLexicalChain(rest)];
-        if (Array.isArray(node.surfaceSpan)) childNode.surfaceSpan = [...node.surfaceSpan];
-        return childNode;
-      };
-
-      delete node.word;
-      delete node.tokenIndex;
-      node.children = [makeLexicalChain(lexicalTemplate)];
-    };
-
-    visit(tree);
-    return tree;
+  // Empty heads such as Voice/T/v are structural placeholders until an overt
+  // word lands in them. Do not count them as sentence material.
+  const isBareEmptyStructuralHeadLeaf = (node) => {
+    if (!node || typeof node !== 'object') return false;
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length > 0) return false;
+    if (String(node.word || '').trim()) return false;
+    if (normalizeTokenIndex(node.tokenIndex, Number.POSITIVE_INFINITY) !== undefined) return false;
+    if (normalizeSurfaceSpan(node.surfaceSpan)) return false;
+    if (isTraceLikeNode(node) || isNullLikeNode(node)) return false;
+    const rawLabel = String(node.label || '').trim();
+    const profile = getLabelProfile(rawLabel);
+    if (!profile.isHeadLikeStructural) return false;
+    return rawLabel === rawLabel.toUpperCase() || /^[A-Z]/.test(rawLabel) || /^[cvtdnpaqi]$/i.test(rawLabel);
   };
 
   const normalizeSyntaxNode = (value, usedIds, counterRef, context) => {
@@ -269,232 +215,6 @@ export const createSyntaxTreeHelpers = ({
     return { tree, nodeIds };
   };
 
-  const compileFlatNodeTableToTree = (nodesValue, rootIdValue, framework = 'xbar', sentenceTokens = []) => {
-    if (!Array.isArray(nodesValue) || nodesValue.length === 0) {
-      throw new ParseApiError('BAD_MODEL_RESPONSE', 'Flat node table must contain at least one node.', 502);
-    }
-
-    const nodesById = new Map();
-    const childrenByParent = new Map();
-    const normalizedSentenceTokens = sentenceTokens.map(normalizeSurfaceToken).filter(Boolean);
-    const tokenPositionsBySurface = new Map();
-
-    normalizedSentenceTokens.forEach((token, index) => {
-      const positions = tokenPositionsBySurface.get(token) || [];
-      positions.push(index);
-      tokenPositionsBySurface.set(token, positions);
-    });
-
-    nodesValue.forEach((rawNode, index) => {
-      if (!rawNode || typeof rawNode !== 'object' || Array.isArray(rawNode)) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed flat node record from model.', 502);
-      }
-
-      const rawId = typeof rawNode.id === 'string' ? rawNode.id.trim() : '';
-      if (!rawId) throw new ParseApiError('BAD_MODEL_RESPONSE', 'Every flat node must include a non-empty id.', 502);
-      if (nodesById.has(rawId)) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', `Duplicate flat node id: ${rawId}.`, 502);
-      }
-
-      const explicitWordValue = normalizeExplicitSurfaceWord(rawNode);
-      const rawNodeLabel = typeof rawNode.label === 'string' && rawNode.label.trim()
-        ? rawNode.label.trim()
-        : '';
-      const rawLabel = rawNodeLabel
-        ? (/^word$/i.test(rawNodeLabel) && explicitWordValue ? explicitWordValue : rawNodeLabel)
-        : explicitWordValue;
-      const label = normalizeLabelForFramework(rawLabel, framework);
-      if (!label) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node ${rawId} is missing a usable label.`, 502);
-      }
-
-      const structuralProfile = getLabelProfile(label);
-      const word =
-        explicitWordValue
-          ? explicitWordValue
-          : label
-            && !structuralProfile.isPhrasal
-            && !structuralProfile.isHeadLikeStructural
-            && !isTraceLikeSurface(label)
-            && !isNullLikeSurface(label)
-              ? label
-              : undefined;
-      const explicitTokenIndex = normalizeTokenIndex(rawNode.tokenIndex, sentenceTokens.length);
-      const normalizedWordSurface = normalizeSurfaceToken(word);
-      const inferredTokenIndex =
-        explicitTokenIndex === undefined &&
-        normalizedWordSurface &&
-        !isTraceLikeSurface(word) &&
-        !isNullLikeSurface(String(word || '').trim())
-          ? (() => {
-              const positions = tokenPositionsBySurface.get(normalizedWordSurface) || [];
-              return positions.length === 1 ? positions[0] : undefined;
-            })()
-          : undefined;
-      const tokenIndex = explicitTokenIndex ?? inferredTokenIndex;
-      const surfaceSpan = normalizeSurfaceSpan(rawNode.surfaceSpan);
-      const parentId = typeof rawNode.parentId === 'string' && rawNode.parentId.trim()
-        ? rawNode.parentId.trim()
-        : undefined;
-      const caseValue = normalizeOptionalMetadataText(rawNode.case);
-      const assigner = normalizeOptionalMetadataText(rawNode.assigner);
-      const caseEvidence = normalizeOptionalMetadataText(rawNode.caseEvidence);
-      const caseOvert = normalizeOptionalMetadataBoolean(rawNode.caseOvert);
-      const siblingOrder = Number.isInteger(Number(rawNode.siblingOrder))
-        ? Math.max(0, Number(rawNode.siblingOrder))
-        : undefined;
-
-      nodesById.set(rawId, {
-        id: rawId,
-        label,
-        word,
-        tokenIndex,
-        siblingOrder,
-        surfaceSpan,
-        parentId,
-        case: caseValue,
-        assigner,
-        caseEvidence,
-        caseOvert,
-        __order: index
-      });
-    });
-
-    const getNodeInterval = (node) => {
-      if (!node || typeof node !== 'object') return null;
-      if (Array.isArray(node.surfaceSpan)) return node.surfaceSpan;
-      if (node.tokenIndex !== undefined) return [node.tokenIndex, node.tokenIndex];
-      return null;
-    };
-
-    const intervalContains = (parentInterval, childInterval) => {
-      if (!Array.isArray(parentInterval) || !Array.isArray(childInterval)) return false;
-      if (parentInterval[0] > childInterval[0] || parentInterval[1] < childInterval[1]) return false;
-      return true;
-    };
-
-    const explicitRootId = typeof rootIdValue === 'string' && rootIdValue.trim() ? rootIdValue.trim() : '';
-
-    for (const node of nodesById.values()) {
-      if (node.parentId) continue;
-      if (explicitRootId && node.id === explicitRootId) continue;
-
-      const nodeInterval = getNodeInterval(node);
-      if (!nodeInterval) continue;
-
-      const candidates = Array.from(nodesById.values())
-        .filter((candidate) => {
-          if (!candidate || candidate.id === node.id) return false;
-          const candidateInterval = getNodeInterval(candidate);
-          if (!intervalContains(candidateInterval, nodeInterval)) return false;
-          return candidate.__order < node.__order;
-        })
-        .sort((left, right) => {
-          const leftInterval = getNodeInterval(left);
-          const rightInterval = getNodeInterval(right);
-          const leftWidth = leftInterval ? (leftInterval[1] - leftInterval[0]) : Number.POSITIVE_INFINITY;
-          const rightWidth = rightInterval ? (rightInterval[1] - rightInterval[0]) : Number.POSITIVE_INFINITY;
-          if (leftWidth !== rightWidth) return leftWidth - rightWidth;
-          return right.__order - left.__order;
-        });
-
-      if (candidates.length > 0) node.parentId = candidates[0].id;
-    }
-
-    for (const node of nodesById.values()) {
-      if (node.parentId) {
-        if (!nodesById.has(node.parentId)) {
-          throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node ${node.id} points to missing parentId ${node.parentId}.`, 502);
-        }
-        const siblings = childrenByParent.get(node.parentId) || [];
-        siblings.push(node.id);
-        childrenByParent.set(node.parentId, siblings);
-      }
-    }
-
-    let rootId = explicitRootId;
-    if (rootId) {
-      if (!nodesById.has(rootId)) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node rootId ${rootId} does not exist.`, 502);
-      }
-    } else {
-      const rootCandidates = Array.from(nodesById.values()).filter((node) => !node.parentId);
-      if (rootCandidates.length !== 1) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', 'Flat node table must determine exactly one root node.', 502);
-      }
-      rootId = rootCandidates[0].id;
-    }
-
-    const visiting = new Set();
-    const built = new Map();
-
-    const buildNode = (nodeId) => {
-      if (built.has(nodeId)) return built.get(nodeId);
-      if (visiting.has(nodeId)) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', `Flat node table contains a cycle at ${nodeId}.`, 502);
-      }
-      visiting.add(nodeId);
-      const node = nodesById.get(nodeId);
-      const childIds = childrenByParent.get(nodeId) || [];
-      const childEntries = childIds.map((childId) => buildNode(childId));
-      const sortedChildren = childEntries
-        .slice()
-        .sort((left, right) => {
-          const leftSiblingOrder = left.siblingOrder;
-          const rightSiblingOrder = right.siblingOrder;
-          if (Number.isInteger(leftSiblingOrder) || Number.isInteger(rightSiblingOrder)) {
-            if (!Number.isInteger(leftSiblingOrder)) return 1;
-            if (!Number.isInteger(rightSiblingOrder)) return -1;
-            if (leftSiblingOrder !== rightSiblingOrder) return leftSiblingOrder - rightSiblingOrder;
-          }
-          const leftStart = left.sortStart;
-          const rightStart = right.sortStart;
-          if (leftStart === rightStart) return left.order - right.order;
-          if (leftStart === null) return 1;
-          if (rightStart === null) return -1;
-          return leftStart - rightStart;
-        });
-
-      const compiled = { id: node.id, label: node.label };
-      if (typeof node.word === 'string' && node.word.trim()) compiled.word = node.word.trim();
-      if (node.tokenIndex !== undefined) compiled.tokenIndex = node.tokenIndex;
-      if (node.surfaceSpan) compiled.surfaceSpan = node.surfaceSpan;
-      if (node.case) compiled.case = node.case;
-      if (node.assigner) compiled.assigner = node.assigner;
-      if (node.caseEvidence) compiled.caseEvidence = node.caseEvidence;
-      if (node.caseOvert !== undefined) compiled.caseOvert = node.caseOvert;
-      if (sortedChildren.length > 0) compiled.children = sortedChildren.map((entry) => entry.node);
-
-      let sortStart = null;
-      if (node.tokenIndex !== undefined) {
-        sortStart = node.tokenIndex;
-      } else {
-        for (const child of sortedChildren) {
-          if (Number.isInteger(child.sortStart)) {
-            sortStart = child.sortStart;
-            break;
-          }
-        }
-        if (sortStart === null && node.surfaceSpan) {
-          sortStart = node.surfaceSpan[0];
-        }
-      }
-
-      const entry = {
-        node: compiled,
-        sortStart,
-        order: node.__order,
-        siblingOrder: node.siblingOrder
-      };
-      built.set(nodeId, entry);
-      visiting.delete(nodeId);
-      return entry;
-    };
-
-    const rootEntry = buildNode(rootId);
-    return alignCompiledTreeToSentence(rootEntry.node, sentenceTokens);
-  };
-
   const sameTokenSequence = (leftTokens, rightTokens) => {
     if (leftTokens.length !== rightTokens.length) return false;
     for (let index = 0; index < leftTokens.length; index += 1) {
@@ -510,7 +230,7 @@ export const createSyntaxTreeHelpers = ({
     const children = Array.isArray(node.children) ? node.children : [];
     if (children.length === 0) {
       const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-      return Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node);
+      return Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node) && !isBareEmptyStructuralHeadLeaf(node);
     }
     return children.some((child) => subtreeHasOvertYield(child));
   };
@@ -636,7 +356,7 @@ export const createSyntaxTreeHelpers = ({
       const children = Array.isArray(node.children) ? node.children : [];
       if (children.length === 0) {
         const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-        if (!surface || isTraceLikeNode(node) || isNullLikeNode(node)) {
+        if (!surface || isTraceLikeNode(node) || isNullLikeNode(node) || isBareEmptyStructuralHeadLeaf(node)) {
           const silentLeaf = { ...node };
           delete silentLeaf.tokenIndex;
           delete silentLeaf.surfaceSpan;
@@ -711,7 +431,7 @@ export const createSyntaxTreeHelpers = ({
       const children = Array.isArray(node.children) ? node.children : [];
       if (children.length === 0) {
         const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-        if (surface && !isTraceLikeNode(node) && !isNullLikeNode(node)) terminals.push(node);
+        if (surface && !isTraceLikeNode(node) && !isNullLikeNode(node) && !isBareEmptyStructuralHeadLeaf(node)) terminals.push(node);
         return;
       }
       children.forEach(visit);
@@ -745,6 +465,7 @@ export const createSyntaxTreeHelpers = ({
         let surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
         const traceLike = isTraceLikeNode(node);
         const nullLike = isNullLikeNode(node);
+        const bareEmptyStructuralHead = isBareEmptyStructuralHeadLeaf(node);
         const tokenIndex = normalizeTokenIndex(node.tokenIndex, normalizedSentenceTokens.length);
         const singletonSpan = normalizeSurfaceSpan(node.surfaceSpan);
         const spanTokenIndex = singletonSpan && singletonSpan[0] === singletonSpan[1]
@@ -752,7 +473,7 @@ export const createSyntaxTreeHelpers = ({
           : undefined;
         const hintedTokenIndex = tokenIndex ?? spanTokenIndex;
 
-        if (!surface && hintedTokenIndex !== undefined) {
+        if (!surface && hintedTokenIndex !== undefined && !bareEmptyStructuralHead) {
           const hintedSurface = normalizedSentenceTokens[hintedTokenIndex];
           const labelSurface = normalizeSurfaceToken(String(node.label || '').trim());
           if (hintedSurface && labelSurface === hintedSurface && !traceLike && !nullLike) {
@@ -762,7 +483,7 @@ export const createSyntaxTreeHelpers = ({
         }
 
         if (tokenIndex !== undefined) {
-          if (traceLike || nullLike) {
+          if (traceLike || nullLike || bareEmptyStructuralHead) {
             delete node.tokenIndex;
           } else {
             const expectedToken = normalizedSentenceTokens[tokenIndex];
@@ -784,6 +505,7 @@ export const createSyntaxTreeHelpers = ({
           surface &&
           !traceLike &&
           !nullLike &&
+          !bareEmptyStructuralHead &&
           !(isAbstractFeatureSurface(surface) && !sentenceTokenSet.has(surface))
         ) {
           overtLeaves.push(node);
@@ -820,7 +542,7 @@ export const createSyntaxTreeHelpers = ({
       const children = Array.isArray(node.children) ? node.children : [];
       if (children.length === 0) {
         const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-        const overt = Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node);
+        const overt = Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node) && !isBareEmptyStructuralHeadLeaf(node);
         if (!overt) {
           delete node.surfaceSpan;
           return null;
@@ -871,7 +593,7 @@ export const createSyntaxTreeHelpers = ({
       const children = Array.isArray(current.children) ? current.children : [];
       if (children.length === 0) {
         const surface = String(resolveOvertLeafSurface(current) || '').trim();
-        if (!surface || isTraceLikeNode(current) || isNullLikeNode(current)) return null;
+        if (!surface || isTraceLikeNode(current) || isNullLikeNode(current) || isBareEmptyStructuralHeadLeaf(current)) return null;
         return {
           surface,
           keptLeafId: String(current.id || '').trim(),
@@ -888,7 +610,7 @@ export const createSyntaxTreeHelpers = ({
       const childChildren = Array.isArray(child.children) ? child.children : [];
       if (childChildren.length === 0) {
         const surface = String(resolveOvertLeafSurface(child) || '').trim();
-        if (!surface || isTraceLikeNode(child) || isNullLikeNode(child)) return null;
+        if (!surface || isTraceLikeNode(child) || isNullLikeNode(child) || isBareEmptyStructuralHeadLeaf(child)) return null;
         return {
           surface,
           keptLeafId: String(child.id || '').trim(),
@@ -945,26 +667,6 @@ export const createSyntaxTreeHelpers = ({
     return redirects;
   };
 
-  const baseHeadLabelForProjection = (label) => {
-    const raw = String(label || '').trim();
-    if (!raw) return '';
-    if (/^(.+?)(?:'|_bar)$/i.test(raw)) {
-      return raw.replace(/(?:'|_bar)$/i, '');
-    }
-    const lower = raw.toLowerCase();
-    if (lower === 'inflp') return 'Infl';
-    if (lower === 'ip') return 'I';
-    if (lower === 'tp') return 'T';
-    if (lower === 'vp') return 'V';
-    if (lower === 'cp') return 'C';
-    if (lower === 'pp') return 'P';
-    if (lower === 'dp') return 'D';
-    if (lower === 'np') return 'N';
-    if (lower === 'ap') return 'A';
-    if (lower === 'advp') return 'Adv';
-    return '';
-  };
-
   const collectExistingNodeIds = (tree) => {
     const ids = new Set();
     const visit = (node) => {
@@ -976,249 +678,6 @@ export const createSyntaxTreeHelpers = ({
     };
     visit(tree);
     return ids;
-  };
-
-  const canonicalizeHeadMoveSourceShells = (tree, movementEvents) => {
-    if (!tree || !Array.isArray(movementEvents) || movementEvents.length === 0) return [];
-
-    const nodeById = buildNodeIndexFromTree(tree);
-    const parentById = buildParentIndexFromTree(tree);
-    const usedIds = collectExistingNodeIds(tree);
-    const counterRef = { value: usedIds.size + 1 };
-    const remappedEvents = movementEvents.map((event) => ({ ...event }));
-
-    const nextId = () => nextGeneratedNodeId(usedIds, counterRef);
-
-    remappedEvents.forEach((event) => {
-      if (normalizeMovementOperation(event?.operation) !== 'HeadMove') return;
-      const fromNodeId = String(event?.fromNodeId || '').trim();
-      const toNodeId = String(event?.toNodeId || '').trim();
-      const explicitTraceId = String(event?.traceNodeId || '').trim();
-      if (!fromNodeId || !toNodeId) return;
-      if (explicitTraceId && nodeById.has(explicitTraceId)) return;
-
-      const fromNode = nodeById.get(fromNodeId);
-      const toNode = nodeById.get(toNodeId);
-      if (!fromNode || !toNode) return;
-
-      const fromProfile = getLabelProfile(fromNode.label);
-      if (!fromProfile.isPhrasal) return;
-
-      const headLabel = baseHeadLabelForProjection(fromNode.label) || baseHeadLabelForProjection(toNode.label);
-      if (!headLabel) return;
-
-      const children = Array.isArray(fromNode.children) ? fromNode.children : [];
-      const existingHeadChild = children.find((child) => normalizeMovementLabelKey(child?.label) === normalizeMovementLabelKey(headLabel));
-      if (existingHeadChild) {
-        const directNullSource =
-          (isTraceLikeNode(existingHeadChild) || isNullLikeNode(existingHeadChild))
-            ? existingHeadChild
-            : null;
-        const descendantNullSource = directNullSource
-          ? null
-          : collectLeafNodes(existingHeadChild).find((child) => isTraceLikeNode(child) || isNullLikeNode(child));
-        const groundedSource = directNullSource || descendantNullSource;
-        if (groundedSource?.id) {
-          event.fromNodeId = String(groundedSource.id);
-          event.traceNodeId = String(groundedSource.id);
-          return;
-        }
-      }
-
-      const nullLeafId = nextId();
-      const headId = nextId();
-      const nullLeaf = { id: nullLeafId, label: '∅', word: '∅' };
-      const lowerHead = { id: headId, label: headLabel, children: [nullLeaf] };
-
-      fromNode.children = [lowerHead, ...children];
-      event.fromNodeId = nullLeafId;
-      event.traceNodeId = nullLeafId;
-
-      nodeById.set(headId, lowerHead);
-      nodeById.set(nullLeafId, nullLeaf);
-      parentById.set(headId, fromNode.id);
-      parentById.set(nullLeafId, headId);
-    });
-
-    return remappedEvents;
-  };
-
-  const getNodeTokenBounds = (node) => {
-    if (!node || typeof node !== 'object') return null;
-    if (Number.isInteger(node.tokenIndex)) return [node.tokenIndex, node.tokenIndex];
-    const span = normalizeSurfaceSpan(node.surfaceSpan);
-    if (span) return span;
-    const children = Array.isArray(node.children) ? node.children : [];
-    let start = null;
-    let end = null;
-    children.forEach((child) => {
-      const bounds = getNodeTokenBounds(child);
-      if (!bounds) return;
-      start = start === null ? bounds[0] : Math.min(start, bounds[0]);
-      end = end === null ? bounds[1] : Math.max(end, bounds[1]);
-    });
-    return start === null || end === null ? null : [start, end];
-  };
-
-  const findSingleOvertLeafForSplitFronting = (node) => {
-    if (!node || typeof node !== 'object') return null;
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length !== 1) return null;
-    const child = children[0];
-    if (!child || typeof child !== 'object') return null;
-    const grandChildren = Array.isArray(child.children) ? child.children : [];
-    if (grandChildren.length === 0) {
-      const surface = String(resolveOvertLeafSurface(child) || '').trim();
-      if (!surface || isTraceLikeNode(child) || isNullLikeNode(child)) return null;
-      return { carrier: node, leaf: child };
-    }
-    if (grandChildren.length === 1) {
-      const grandChild = grandChildren[0];
-      const greatGrandChildren = Array.isArray(grandChild?.children) ? grandChild.children : [];
-      if (greatGrandChildren.length === 0) {
-        const surface = String(resolveOvertLeafSurface(grandChild) || '').trim();
-        if (!surface || isTraceLikeNode(grandChild) || isNullLikeNode(grandChild)) return null;
-        return { carrier: child, leaf: grandChild };
-      }
-    }
-    return null;
-  };
-
-  const findEmptyHeadSlotForSplitFronting = (node) => {
-    if (!node || typeof node !== 'object') return null;
-    const children = Array.isArray(node.children) ? node.children : [];
-    for (const child of children) {
-      const profile = getLabelProfile(child?.label);
-      if (!profile.isHeadLikeStructural) continue;
-      const grandChildren = Array.isArray(child?.children) ? child.children : [];
-      if (grandChildren.length === 1 && isNullLikeNode(grandChildren[0])) {
-        return { carrier: child, placeholder: grandChildren[0] };
-      }
-    }
-    return null;
-  };
-
-  const canonicalizeSplitClauseEdgeMovedPhrases = (tree, movementEvents) => {
-    if (!tree || typeof tree !== 'object' || !Array.isArray(movementEvents) || movementEvents.length === 0) {
-      return tree;
-    }
-
-    const moveTargetIds = new Set(
-      movementEvents
-        .filter((event) => normalizeMovementOperation(event?.operation) === 'Move')
-        .map((event) => String(event?.toNodeId || '').trim())
-        .filter(Boolean)
-    );
-    if (moveTargetIds.size === 0) return tree;
-
-    const visit = (node) => {
-      if (!node || typeof node !== 'object') return;
-      const children = Array.isArray(node.children) ? node.children : [];
-      children.forEach(visit);
-
-      const nodeProfile = getLabelProfile(node.label);
-      if (nodeProfile.base !== 'c') return;
-      if (children.length < 2) return;
-
-      for (let index = 1; index < children.length; index += 1) {
-        const targetNode = children[index];
-        const leftSibling = children[index - 1];
-        const targetId = String(targetNode?.id || '').trim();
-        if (!targetId || !moveTargetIds.has(targetId)) continue;
-
-        const leftProfile = getLabelProfile(leftSibling?.label);
-        if (leftProfile.base !== 'c' || !leftProfile.isHeadLikeStructural) continue;
-
-        const overtLeafEntry = findSingleOvertLeafForSplitFronting(leftSibling);
-        const emptyHeadSlot = findEmptyHeadSlotForSplitFronting(targetNode);
-        if (!overtLeafEntry || !emptyHeadSlot) continue;
-
-        const leftBounds = getNodeTokenBounds(overtLeafEntry.leaf);
-        const targetBounds = getNodeTokenBounds(targetNode);
-        if (!leftBounds || !targetBounds) continue;
-        if (leftBounds[0] !== leftBounds[1]) continue;
-        if (targetBounds[0] !== targetBounds[1]) continue;
-        if (leftBounds[0] + 1 !== targetBounds[0]) continue;
-
-        const overtLeaf = overtLeafEntry.leaf;
-        const placeholder = emptyHeadSlot.placeholder;
-        emptyHeadSlot.carrier.children = [overtLeaf];
-        overtLeafEntry.carrier.children = [placeholder];
-
-        delete overtLeaf.tokenIndex;
-        delete overtLeaf.surfaceSpan;
-        delete placeholder.tokenIndex;
-        delete placeholder.surfaceSpan;
-        delete emptyHeadSlot.carrier.surfaceSpan;
-        delete leftSibling.surfaceSpan;
-        delete targetNode.surfaceSpan;
-      }
-    };
-
-    visit(tree);
-    return tree;
-  };
-
-  const resolveRedirectedNodeId = (nodeId, redirects) => {
-    let current = String(nodeId || '').trim();
-    const seen = new Set();
-    while (current && redirects?.has(current) && !seen.has(current)) {
-      seen.add(current);
-      current = String(redirects.get(current) || '').trim();
-    }
-    return current;
-  };
-
-  const remapDerivationStepsNodeIds = (steps, redirects) => {
-    if (!Array.isArray(steps) || steps.length === 0 || !(redirects instanceof Map) || redirects.size === 0) {
-      return steps;
-    }
-
-    return steps.map((step) => {
-      const targetNodeId = resolveRedirectedNodeId(step?.targetNodeId, redirects);
-      const microOperations = Array.isArray(step?.microOperations)
-        ? step.microOperations
-        : step?.microOperations;
-      const affectedNodeIds = Array.isArray(step?.affectedNodeIds)
-        ? Array.from(new Set(step.affectedNodeIds
-            .map((id) => resolveRedirectedNodeId(id, redirects))
-            .filter(Boolean)))
-        : step?.affectedNodeIds;
-      const sourceNodeIds = Array.isArray(step?.sourceNodeIds)
-        ? Array.from(new Set(step.sourceNodeIds
-            .map((id) => resolveRedirectedNodeId(id, redirects))
-            .filter(Boolean)))
-        : step?.sourceNodeIds;
-      const featureChecking = Array.isArray(step?.featureChecking)
-        ? step.featureChecking.map((item) => ({
-            ...item,
-            probeNodeId: resolveRedirectedNodeId(item?.probeNodeId, redirects) || item?.probeNodeId,
-            goalNodeId: resolveRedirectedNodeId(item?.goalNodeId, redirects) || item?.goalNodeId
-          }))
-        : step?.featureChecking;
-
-      return {
-        ...step,
-        microOperations,
-        affectedNodeIds,
-        targetNodeId: targetNodeId || undefined,
-        sourceNodeIds,
-        featureChecking
-      };
-    });
-  };
-
-  const remapMovementEventsNodeIds = (events, redirects) => {
-    if (!Array.isArray(events) || events.length === 0 || !(redirects instanceof Map) || redirects.size === 0) {
-      return events;
-    }
-
-    return events.map((event) => ({
-      ...event,
-      fromNodeId: resolveRedirectedNodeId(event?.fromNodeId, redirects) || event?.fromNodeId,
-      toNodeId: resolveRedirectedNodeId(event?.toNodeId, redirects) || event?.toNodeId,
-      traceNodeId: resolveRedirectedNodeId(event?.traceNodeId, redirects) || event?.traceNodeId
-    }));
   };
 
   const validateAndCommitSurfaceOrder = (_surfaceOrder, tree, sentence) => {
@@ -1264,10 +723,8 @@ export const createSyntaxTreeHelpers = ({
   };
 
   return {
-    materializeLexicalPhrasalLeaves,
     normalizeSyntaxNode,
     normalizeSyntaxTreeWithIds,
-    compileFlatNodeTableToTree,
     collectOvertTerminalNodes,
     sameTokenSequence,
     subtreeHasOvertYield,
@@ -1276,10 +733,6 @@ export const createSyntaxTreeHelpers = ({
     deriveCanonicalSurfaceSpans,
     collapseOvertHeadLandingChains,
     collectExistingNodeIds,
-    canonicalizeHeadMoveSourceShells,
-    canonicalizeSplitClauseEdgeMovedPhrases,
-    remapDerivationStepsNodeIds,
-    remapMovementEventsNodeIds,
     validateAndCommitSurfaceOrder,
     validateSpelloutConsistency
   };

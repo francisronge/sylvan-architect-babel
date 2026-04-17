@@ -42,7 +42,7 @@ const parseErrorFromResponse = async (response: Response): Promise<string> => {
 export const parseSentence = async (
   sentence: string,
   framework: 'xbar' | 'minimalism' = 'xbar',
-  modelRoute: 'local' | 'flash-lite' | 'pro' = 'local'
+  modelRoute: 'local' | 'pro' = 'local'
 ): Promise<ParseBundle> => {
   const response = await fetch('/api/parse', {
     method: 'POST',

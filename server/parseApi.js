@@ -1,7 +1,7 @@
 import { ParseApiError, parseSentenceWithGemini, parseSentenceWithLocalModel } from './geminiParser.js';
 
 const FRAMEWORKS = new Set(['xbar', 'minimalism']);
-const MODEL_ROUTES = new Set(['local', 'flash-lite', 'pro']);
+const MODEL_ROUTES = new Set(['local', 'pro']);
 const MAX_SENTENCE_LENGTH = 600;
 const importAtRuntime = new Function('specifier', 'return import(specifier);');
 
@@ -58,7 +58,7 @@ export const validateParseBody = (body) => {
   }
 
   if (!MODEL_ROUTES.has(modelRoute)) {
-    throw new ParseApiError('INVALID_REQUEST', 'Model route must be "local", "flash-lite", or "pro".', 400);
+    throw new ParseApiError('INVALID_REQUEST', 'Model route must be "local" or "pro".', 400);
   }
 
   return { sentence, framework, modelRoute };

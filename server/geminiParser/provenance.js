@@ -1,15 +1,18 @@
 const PROVENANCE_PROMPT_TOKEN_KEYS = [
   'primaryPromptTokenCount',
+  'payloadTranscriberPromptTokenCount',
   'notesSecondPassPromptTokenCount'
 ];
 
 const PROVENANCE_OUTPUT_TOKEN_KEYS = [
   'primaryOutputTokenCount',
+  'payloadTranscriberOutputTokenCount',
   'notesSecondPassOutputTokenCount'
 ];
 
 const PROVENANCE_TOTAL_TOKEN_KEYS = [
   'primaryTotalTokenCount',
+  'payloadTranscriberTotalTokenCount',
   'notesSecondPassTotalTokenCount'
 ];
 

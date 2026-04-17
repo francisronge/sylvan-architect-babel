@@ -238,8 +238,30 @@ export const isTruncatedGeneration = (generation) => {
   return finishReason.includes('MAX_TOKENS') || finishReason.includes('LENGTH');
 };
 
+const unwrapProviderReasoningTransportText = (value) => {
+  let text = String(value || '').trim();
+  if (!text) return '';
+  text = text.replace(/^```(?:json|text|markdown)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith("'") && text.endsWith("'"))
+  ) {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'string' && parsed.trim()) {
+        text = parsed.trim();
+      } else {
+        text = text.slice(1, -1).trim();
+      }
+    } catch {
+      text = text.slice(1, -1).trim();
+    }
+  }
+  return text.trim();
+};
+
 export const summarizeProviderReasoningForDisplay = (text, maxChars = 520) => {
-  const cleaned = String(text || '')
+  const cleaned = unwrapProviderReasoningTransportText(text)
     .replace(/\r/g, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\bSHOW FULL RAW THINKING TRACE\b/gi, '')
@@ -307,7 +329,15 @@ export const summarizeProviderReasoningForDisplay = (text, maxChars = 520) => {
 };
 
 export const summarizeGeneration = (generation) => {
-  const rawText = String(generation?.text || '');
+  const contentParts = Array.isArray(generation?.candidates?.[0]?.content?.parts)
+    ? generation.candidates[0].content.parts
+    : [];
+  const nonThoughtText = contentParts
+    .filter((part) => !part?.thought && typeof part?.text === 'string')
+    .map((part) => String(part.text || ''))
+    .join('')
+    .trim();
+  const rawText = String(nonThoughtText || generation?.text || '');
   const finishReason = String(generation?.candidates?.[0]?.finishReason || '').toUpperCase() || 'UNKNOWN';
   const promptTokenCount = Number(
     generation?.usageMetadata?.promptTokenCount
@@ -326,9 +356,7 @@ export const summarizeGeneration = (generation) => {
     || generation?.usageMetadata?.totalTokens
     || 0
   ) || (promptTokenCount && outputTokenCount ? (promptTokenCount + outputTokenCount) : undefined);
-  const thoughtParts = Array.isArray(generation?.candidates?.[0]?.content?.parts)
-    ? generation.candidates[0].content.parts.filter((part) => Boolean(part?.thought))
-    : [];
+  const thoughtParts = contentParts.filter((part) => Boolean(part?.thought));
   const providerReasoningRaw = thoughtParts
     .map((part) => String(part?.text || '').replace(/\s+/g, ' ').trim())
     .filter(Boolean)

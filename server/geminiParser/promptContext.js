@@ -42,6 +42,7 @@ export const buildNotesSecondPassFrozenAnalysis = (analysis = {}) => (
     derivationSteps: analysis.derivationSteps || [],
     movementEvents: analysis.movementEvents || [],
     chains: analysis.chains || [],
+    commitmentGraph: analysis.commitmentGraph || [],
     researchTrace: analysis.researchTrace || [],
     caseAssignments: analysis.caseAssignments || [],
     argumentStructure: analysis.argumentStructure || [],
@@ -63,6 +64,13 @@ export const buildNotesSecondPassFrozenAnalysis = (analysis = {}) => (
     voiceValencyLedger: analysis.voiceValencyLedger || [],
     localityLedger: analysis.localityLedger || [],
     predicationLedger: analysis.predicationLedger || [],
+    particleLedger: analysis.particleLedger || [],
+    evidentialityLedger: analysis.evidentialityLedger || [],
+    mirativityLedger: analysis.mirativityLedger || [],
+    honorificityLedger: analysis.honorificityLedger || [],
+    switchReferenceLedger: analysis.switchReferenceLedger || [],
+    logophoraLedger: analysis.logophoraLedger || [],
+    eventStructureLedger: analysis.eventStructureLedger || [],
     surfaceOrder: analysis.surfaceOrder || [],
     framework: analysis.provenance?.framework,
     treeSource: analysis.provenance?.treeSource,
@@ -74,6 +82,14 @@ export const buildNotesSecondPassSupportInventory = (
   analysis = {},
   { normalizeChainType }
 ) => {
+  const normalizedCommitmentFacts = (Array.isArray(analysis.commitmentGraph) ? analysis.commitmentGraph : [])
+    .map((entry) => {
+      const factId = normalizeOptionalText(entry?.factId || entry?.id);
+      const kind = normalizeOptionalText(entry?.kind);
+      return factId && kind ? { factId, kind } : null;
+    })
+    .filter(Boolean);
+
   const normalizedEntries = (entries, idFields) =>
     (Array.isArray(entries) ? entries : [])
       .map((entry) => {
@@ -86,6 +102,9 @@ export const buildNotesSecondPassSupportInventory = (
       .filter(Boolean);
 
   const typedIds = pruneEmptyPromptContext({
+    featureEntryIds: normalizedEntries(analysis.featureLedger, ['entryId', 'id']),
+    phaseIds: normalizedEntries(analysis.phaseLog, ['phaseId', 'id']),
+    morphologyIds: normalizedEntries(analysis.morphologyRealization, ['realizationId', 'morphologyId', 'id']),
     caseAssignmentIds: normalizedEntries(analysis.caseAssignments, ['assignmentId', 'caseAssignmentId', 'id']),
     argumentIds: normalizedEntries(analysis.argumentStructure, ['argumentId', 'id']),
     selectionIds: normalizedEntries(analysis.selectionLedger, ['selectionId', 'id']),
@@ -103,8 +122,24 @@ export const buildNotesSecondPassSupportInventory = (
     linearizationIds: normalizedEntries(analysis.linearizationLedger, ['linearizationId', 'id']),
     localityIds: normalizedEntries(analysis.localityLedger, ['localityId', 'id']),
     predicationIds: normalizedEntries(analysis.predicationLedger, ['predicationId', 'id']),
+    particleIds: normalizedEntries(analysis.particleLedger, ['particleId', 'id']),
+    evidentialityIds: normalizedEntries(analysis.evidentialityLedger, ['evidentialityId', 'id']),
+    mirativityIds: normalizedEntries(analysis.mirativityLedger, ['mirativityId', 'id']),
+    honorificityIds: normalizedEntries(analysis.honorificityLedger, ['honorificityId', 'id']),
+    switchReferenceIds: normalizedEntries(analysis.switchReferenceLedger, ['switchReferenceId', 'id']),
+    logophoraIds: normalizedEntries(analysis.logophoraLedger, ['logophoraId', 'id']),
+    eventStructureIds: normalizedEntries(analysis.eventStructureLedger, ['eventStructureId', 'id']),
     researchTraceIds: normalizedEntries(analysis.researchTrace, ['decisionId', 'traceId', 'id'])
   }) || {};
+
+  const commitmentFactIds = normalizedCommitmentFacts.map((entry) => entry.factId);
+  const commitmentFactIdsByKind = pruneEmptyPromptContext(
+    normalizedCommitmentFacts.reduce((acc, entry) => {
+      if (!acc[entry.kind]) acc[entry.kind] = [];
+      acc[entry.kind].push(entry.factId);
+      return acc;
+    }, {})
+  ) || {};
 
   const chains = (Array.isArray(analysis.chains) ? analysis.chains : [])
     .map((chain) => ({
@@ -121,6 +156,8 @@ export const buildNotesSecondPassSupportInventory = (
 
   return pruneEmptyPromptContext({
     chains,
+    commitmentFactIds,
+    commitmentFactIdsByKind,
     typedIds,
     availableTypedDomains,
     missingTypedDomains
@@ -137,26 +174,26 @@ export const buildNotesSecondPassPrompt = (
   const supportInventory = buildNotesSecondPassSupportInventory(analysis, { normalizeChainType });
   return (
     `${NOTES_RAW_JSON_ONLY_INSTRUCTION} ` +
-    `The syntax analysis for the sentence "${sentence}" is already frozen. ` +
-    `Do not change the analysis. Write noteBindings only from the committed derivation and ledgers below. ` +
-    `Return exactly one JSON object of the form {"noteBindings":[...]}. ` +
-    `The noteBindings must explain the derivation encoded in Growth, not propose a different analysis. ` +
     `If researchTrace is present below, treat it as preserved first-pass decision context and, when helpful, summarize that preserved reasoning in one or two noteBindings rather than inventing new rationale. ` +
-    `Use only ids already present in the frozen analysis. ` +
-    `If a typed claim is not supported by a matching typed ledger, simplify the note instead of mentioning that typed domain. ` +
-    `Support is note-local, not global. If one note mentions passive voice, case, theta roles, locality, scope, or another typed domain, that same note must carry the matching typed ids even if another note elsewhere already cites the same ledger entry. ` +
+    `commitmentGraph is the primary theory layer. If a typed claim is not supported by matching commitmentFactIds and is not mirrored in a projected typed ledger, simplify the note instead of mentioning that typed domain. ` +
+    `Support is note-local, not global. If one note mentions passive voice, case, theta roles, locality, scope, or another typed domain, that same note must carry the matching commitmentFactIds and, when present, the matching typed ids even if another note elsewhere already cites the same ledger entry. ` +
     `Self-audit each note before returning it: ` +
-    `case language requires caseAssignmentIds; theta-role / external-argument / internal-argument language requires argumentIds; ` +
-    `scope or question-operator language requires operatorScopeIds; locality or successive-cyclic language requires localityIds; ` +
-    `voice or passive language requires voiceValencyIds; topic/focus/information-structure language requires informationStructureIds; ` +
-    `predicate-class words like unaccusative, control predicate, or raising predicate require predicateClassIds; ` +
-    `null-element words like silent complementizer or expletive require nullElementIds; ` +
-    `parameter/probe language requires parameterIds/probeIds; ` +
-    `word-order / V2 / head-final / head-initial language requires linearizationIds or clear structural anchors; ` +
+    `feature-checking / EPP / valuation language requires commitmentFactIds of kind "feature" and, when present, featureEntryIds; phase / transfer / spell-out-domain language requires commitmentFactIds of kind "phase" and, when present, phaseIds; morphology / exponence / allomorphy language requires commitmentFactIds of kind "morphology" and, when present, morphologyIds; ` +
+    `case language requires commitmentFactIds of kind "case" and, when present, caseAssignmentIds; theta-role / external-argument / internal-argument language requires commitmentFactIds of kind "argument-structure" and, when present, argumentIds; ` +
+    `scope or question-operator language requires commitmentFactIds of kind "operator-scope" and, when present, operatorScopeIds; locality or successive-cyclic language requires commitmentFactIds of kind "locality" and, when present, localityIds; ` +
+    `voice or passive language requires commitmentFactIds of kind "voice-valency" and, when present, voiceValencyIds; topic/focus/information-structure language requires commitmentFactIds of kind "information-structure" and, when present, informationStructureIds; ` +
+    `particle / clause-typing-particle / discourse-particle language requires commitmentFactIds of kind "particle" and, when present, particleIds; evidential language requires commitmentFactIds of kind "evidentiality" and, when present, evidentialityIds; mirative language requires commitmentFactIds of kind "mirativity" and, when present, mirativityIds; honorific / politeness language requires commitmentFactIds of kind "honorificity" and, when present, honorificityIds; ` +
+    `switch-reference language requires commitmentFactIds of kind "switch-reference" and, when present, switchReferenceIds; logophoric language requires commitmentFactIds of kind "logophora" and, when present, logophoraIds; event-structure / lexical-aspect language requires commitmentFactIds of kind "event-structure" and, when present, eventStructureIds; ` +
+    `predicate-class words like unaccusative, control predicate, or raising predicate require commitmentFactIds of kind "predicate-class" and, when present, predicateClassIds; ` +
+    `null-element words like silent complementizer or expletive require commitmentFactIds of kind "null-element" and, when present, nullElementIds; ` +
+    `parameter/probe language requires commitmentFactIds of kind "parameter" or "probe" and, when present, parameterIds/probeIds; ` +
+    `word-order / V1 / V2 / verb-second / head-final / head-initial language requires commitmentFactIds of kind "linearization" and, when present, matching linearizationIds; do not claim those word-order effects from structural anchors alone; ` +
+    `selection/complement language requires commitmentFactIds of kind "selection" and, when present, selectionIds; binding language requires commitmentFactIds of kind "binding" and, when present, bindingIds; clausal dependency language requires commitmentFactIds of kind "clausal-dependency" and, when present, dependencyIds; agreement language requires commitmentFactIds of kind "agreement" and, when present, agreementIds; ` +
     `movement language belongs in chain notes and those notes must carry chainId plus stepIds and/or nodeIds. ` +
     `If a note cannot satisfy those support obligations, rewrite it more simply instead of returning an unsupported claim. ` +
+    `The first returned noteBinding must have kind "architecture" and must summarize the final committed clause architecture, embedding, selection, and headedness rather than movement or closure. Do not use the architecture note as a spellout summary or a generic wrap-up sentence. ` +
     `Architecture notes should stay structural. If an architecture note mentions passive voice, case, theta roles, selection, scope, locality, or information structure, attach the matching typed ids on that same architecture note rather than assuming another note covers them. ` +
-    `Prefer 3-6 noteBindings: one architecture note, one note per major movement dependency when present, optional licensing notes, and optional closure only if it adds no new technical claim. ` +
+    `After the architecture note, include one note per major movement dependency when present, optional licensing notes, and optional closure only if it adds no new technical claim. Prefer 3-6 noteBindings total. ` +
     `Frozen support inventory JSON:\n${JSON.stringify({ framework, sentence, supportInventory })}\n` +
     `Frozen committed analysis JSON:\n${JSON.stringify({ framework, sentence, analysis: frozenAnalysis })}`
   );

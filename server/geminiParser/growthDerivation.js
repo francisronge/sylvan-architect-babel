@@ -443,6 +443,30 @@ export const createGrowthDerivationHelpers = ({
     if (!Array.isArray(growthFrames) || growthFrames.length === 0) return [];
 
     const normalizedFrames = [];
+    const headTraceSourceIds = new Set();
+
+    const canonicalizeHeadTraceSourceInForest = (forest, sourceNodeId) => {
+      const normalizedId = String(sourceNodeId || '').trim();
+      if (!normalizedId) return;
+      const sourceNode = findNodeByIdInForest(forest, normalizedId);
+      if (!sourceNode || typeof sourceNode !== 'object') return;
+
+      const profile = getLabelProfile(sourceNode.label);
+      const children = Array.isArray(sourceNode.children) ? sourceNode.children : [];
+      if (!profile.isHeadLikeStructural || children.length !== 1) return;
+
+      const child = children[0];
+      const grandChildren = Array.isArray(child?.children) ? child.children : [];
+      if (isNullLikeNode(child) && grandChildren.length === 0) {
+        child.label = 't';
+        child.word = 't';
+        return;
+      }
+      if (grandChildren.length === 1 && isNullLikeNode(grandChildren[0])) {
+        grandChildren[0].label = 't';
+        grandChildren[0].word = 't';
+      }
+    };
 
     growthFrames.forEach((frame) => {
       const nextFrame = {
@@ -452,6 +476,16 @@ export const createGrowthDerivationHelpers = ({
 
       const movement = nextFrame?.movement && typeof nextFrame.movement === 'object' ? nextFrame.movement : {};
       const operation = normalizeMovementOperation(movement.operation || nextFrame.operation);
+      const headMoveSourceId = operation === 'HeadMove'
+        ? String(movement.sourceNodeId || '').trim()
+        : '';
+
+      if (headMoveSourceId) {
+        headTraceSourceIds.add(headMoveSourceId);
+      }
+      headTraceSourceIds.forEach((sourceNodeId) => {
+        canonicalizeHeadTraceSourceInForest(nextFrame.workspaceForest, sourceNodeId);
+      });
 
       if (isMoveLikeOperation(operation) && operation !== 'HeadMove') {
         const traceId = String(movement.sourceNodeId || '').trim();
@@ -506,11 +540,6 @@ export const createGrowthDerivationHelpers = ({
         if (strippedProfile.isHeadLikeStructural) return stripped;
       }
       if (parentProfile.isHeadLikeStructural) return parentLabel;
-
-      const targetProfileForHead = getLabelProfile(targetLabel);
-      const targetBase = String(targetProfileForHead.base || '').trim().toLowerCase();
-      if (['c', 'q', 'wh'].includes(targetBase)) return 'Infl';
-      if (['infl', 'i', 't', 'aux'].includes(targetBase)) return 'V';
     }
 
     const traceLabel = String(traceNode?.label || '').trim();
@@ -624,6 +653,26 @@ export const createGrowthDerivationHelpers = ({
   const pickTraceLikeLeaf = (node) =>
     collectLeafNodes(node).find((leaf) => isTraceLikeNode(leaf) || isNullLikeNode(leaf)) || null;
 
+  const canonicalizeHeadMoveSourceNode = (node) => {
+    if (!node || typeof node !== 'object') return null;
+
+    const profile = getLabelProfile(node.label);
+    if (!profile.isHeadLikeStructural) {
+      if (isNullLikeNode(node)) {
+        node.label = 't';
+        node.word = 't';
+      }
+      return node;
+    }
+
+    const traceLeaf = pickTraceLikeLeaf(node);
+    if (traceLeaf && isNullLikeNode(traceLeaf)) {
+      traceLeaf.label = 't';
+      traceLeaf.word = 't';
+    }
+    return node;
+  };
+
   const hasEarlierOvertHeadSourceEvidence = (growthFrames, landingNode) => {
     if (!Array.isArray(growthFrames) || growthFrames.length === 0 || !landingNode) return false;
     const preferredBases = preferredHeadMoveSourceBases(landingNode);
@@ -655,116 +704,6 @@ export const createGrowthDerivationHelpers = ({
       }
     }
     return false;
-  };
-
-  const inferSupplementalHeadMoveEventsFromGrowthFrames = (growthFrames, finalTree, existingMovementEvents = []) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0 || !finalTree) return [];
-
-    const nodeById = buildNodeIndexFromTree(finalTree);
-    const parentById = buildParentIndexFromTree(finalTree);
-    const existingKeys = new Set(
-      (Array.isArray(existingMovementEvents) ? existingMovementEvents : [])
-        .map((event) => {
-          const op = normalizeMovementOperation(event?.operation);
-          const fromNodeId = String(event?.fromNodeId || '').trim();
-          const toNodeId = String(event?.toNodeId || '').trim();
-          return op && fromNodeId && toNodeId ? `${op}:${fromNodeId}->${toNodeId}` : '';
-        })
-        .filter(Boolean)
-    );
-
-    const inferredEvents = [];
-    const landingNodes = Array.from(nodeById.values()).filter((node) => {
-      const profile = getLabelProfile(node?.label);
-      if (!profile.isHeadLikeStructural) return false;
-      if (!isSupplementalHeadMoveLandingBase(profile.base)) return false;
-      if (!subtreeHasOvertYield(node)) return false;
-      const overtSurface = String(getNodeOvertYield(node) || '').trim();
-      if (!overtSurface || isTraceLikeSurface(overtSurface) || isNullLikeSurface(overtSurface)) return false;
-      const resolvedLanding = resolveHeadMovementLandingNode(node, nodeById, parentById);
-      return String(resolvedLanding?.id || '').trim() === String(node?.id || '').trim();
-    });
-
-    landingNodes.forEach((landingNode) => {
-      const landingId = String(landingNode?.id || '').trim();
-      if (!landingId) return;
-      if (Array.isArray(existingMovementEvents)
-        && existingMovementEvents.some((event) =>
-          normalizeMovementOperation(event?.operation) === 'HeadMove'
-          && String(event?.toNodeId || '').trim() === landingId
-        )) {
-        return;
-      }
-
-      if (!hasEarlierOvertHeadSourceEvidence(growthFrames, landingNode)) {
-        return;
-      }
-
-      const preferredBases = preferredHeadMoveSourceBases(landingNode);
-      const landingSurfaceStem = normalizeHeadTraceSurfaceStem(getNodeOvertYield(landingNode));
-      const landingIdStem = normalizeMovementStemFromId(landingId);
-      const candidates = collectComplementDomainHeadCandidates(landingNode, nodeById, parentById)
-        .filter(({ node }) => {
-          const candidateId = String(node?.id || '').trim();
-          if (!candidateId || candidateId === landingId) return false;
-          if (subtreeHasOvertYield(node)) return false;
-          return Boolean(isTraceOrNullOnlySubtree(node) || pickTraceLikeLeaf(node));
-        });
-
-      let best = null;
-      let bestScore = -1;
-      candidates.forEach(({ node, domainDistance }) => {
-        const candidateId = String(node?.id || '').trim();
-        const candidateProfile = getLabelProfile(node?.label);
-        const candidateLeaf = pickTraceLikeLeaf(node);
-        const candidateLeafSurfaceStem = normalizeHeadTraceSurfaceStem(resolveNodeSurface(candidateLeaf || node));
-        const candidateIdStem = normalizeMovementStemFromId(candidateId);
-        let score = 0;
-        const preferredIndex = preferredBases.indexOf(candidateProfile.base);
-        if (preferredIndex >= 0) score += 240 - (preferredIndex * 20);
-        score += Math.max(0, 90 - (domainDistance * 15));
-        if (landingSurfaceStem && candidateLeafSurfaceStem && landingSurfaceStem === candidateLeafSurfaceStem) score += 120;
-        else if (landingIdStem && candidateIdStem && landingIdStem === candidateIdStem) score += 80;
-        else if (landingSurfaceStem && candidateIdStem && landingSurfaceStem === candidateIdStem) score += 60;
-        if (candidateLeaf && isTraceLikeNode(candidateLeaf)) score += 20;
-        if (candidateProfile.base === getLabelProfile(landingNode?.label).base) score -= 40;
-        if (score > bestScore) {
-          bestScore = score;
-          best = { node, traceLeaf: candidateLeaf };
-        }
-      });
-
-      if (!best || bestScore < 100) return;
-
-      const sourceNodeId = String(best.node?.id || '').trim();
-      const traceNodeId = String(best.traceLeaf?.id || '').trim() || undefined;
-      const eventKey = `HeadMove:${sourceNodeId}->${landingId}`;
-      if (!sourceNodeId || existingKeys.has(eventKey)) return;
-
-      let stepIndex = growthFrames.length - 1;
-      for (let frameIndex = 0; frameIndex < growthFrames.length; frameIndex += 1) {
-        const forest = Array.isArray(growthFrames[frameIndex]?.workspaceForest) ? growthFrames[frameIndex].workspaceForest : [];
-        const sourceNode = findNodeByIdInForest(forest, sourceNodeId);
-        const targetNode = findNodeByIdInForest(forest, landingId);
-        if (!sourceNode || !targetNode) continue;
-        if (subtreeHasOvertYield(targetNode) && !subtreeHasOvertYield(sourceNode)) {
-          stepIndex = frameIndex;
-          break;
-        }
-      }
-
-      existingKeys.add(eventKey);
-      inferredEvents.push({
-        operation: 'HeadMove',
-        fromNodeId: sourceNodeId,
-        toNodeId: landingId,
-        traceNodeId,
-        stepIndex,
-        note: 'Head movement recovered from the committed Growth state.'
-      });
-    });
-
-    return inferredEvents;
   };
 
   const findTraceReplacementForLandingCopy = (previousForest, currentForest, landingNode) => {
@@ -889,9 +828,186 @@ export const createGrowthDerivationHelpers = ({
     return backfillOvertLowerCopiesFromMovement(clonedFrames);
   };
 
-  const normalizeGrowthFrames = (value, framework = 'xbar', sentenceTokens = []) => {
+  const buildUniqueMoveLikeOperationsByStepId = (rawItems, stepIdSelector = (item) => item?.stepId) => {
+    const items = normalizeTransportJsonArray(rawItems);
+    if (!Array.isArray(items) || items.length === 0) return new Map();
+
+    const candidatesByStepId = new Map();
+    items.forEach((rawItem) => {
+      const item = parseTransportJsonValue(rawItem);
+      if (!item || typeof item !== 'object') return;
+      const stepId = normalizeOptionalStepText(stepIdSelector(item));
+      const operation = normalizeDerivationOperation(item.operation);
+      if (!stepId || !isMoveLikeOperation(operation)) return;
+      const current = candidatesByStepId.get(stepId) || new Set();
+      current.add(operation);
+      candidatesByStepId.set(stepId, current);
+    });
+
+    const uniqueOperations = new Map();
+    candidatesByStepId.forEach((operations, stepId) => {
+      if (operations.size === 1) {
+        uniqueOperations.set(stepId, [...operations][0]);
+      }
+    });
+    return uniqueOperations;
+  };
+
+  const buildIndexedStepIdCandidates = (rawItems, { moveLikeOnly = false } = {}) => {
+    const items = normalizeTransportJsonArray(rawItems);
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    return items
+      .map((rawItem) => parseTransportJsonValue(rawItem))
+      .filter((item) => item && typeof item === 'object')
+      .filter((item) => {
+        if (!moveLikeOnly) return true;
+        return isMoveLikeOperation(normalizeDerivationOperation(item.operation));
+      })
+      .map((item) => normalizeOptionalStepText(item.stepId));
+  };
+
+  const inferMovementEventStepIdFromStepIndex = ({
+    event,
+    rawDerivationSteps,
+    rawGrowthFrames,
+    operationByStepId
+  }) => {
+    if (!event || typeof event !== 'object') return undefined;
+    const explicitStepId = normalizeOptionalStepText(event.stepId);
+    if (explicitStepId) return explicitStepId;
+
+    const rawStepIndex = Number(event.stepIndex);
+    if (!Number.isInteger(rawStepIndex)) return undefined;
+
+    const normalizedEventOperation = normalizeDerivationOperation(event.operation);
+    const filterCompatibleCandidates = (candidateIds) => candidateIds.filter((stepId) => {
+      const candidateOperation = operationByStepId.get(stepId);
+      if (!candidateOperation) return false;
+      if (!normalizedEventOperation) return true;
+      return candidateOperation === normalizedEventOperation;
+    });
+
+    const candidateGroups = [
+      buildIndexedStepIdCandidates(rawGrowthFrames),
+      buildIndexedStepIdCandidates(rawGrowthFrames, { moveLikeOnly: true }),
+      buildIndexedStepIdCandidates(rawDerivationSteps),
+      buildIndexedStepIdCandidates(rawDerivationSteps, { moveLikeOnly: true })
+    ].map((stepIds) => {
+      if (!Array.isArray(stepIds) || stepIds.length === 0) return [];
+      const zeroBased = normalizeOptionalStepText(stepIds[rawStepIndex]);
+      const oneBased = rawStepIndex > 0
+        ? normalizeOptionalStepText(stepIds[rawStepIndex - 1])
+        : undefined;
+      return Array.from(new Set([zeroBased, oneBased].filter(Boolean)));
+    });
+
+    for (const candidateIds of candidateGroups) {
+      if (candidateIds.length === 0) continue;
+      const compatibleCandidates = filterCompatibleCandidates(candidateIds);
+      if (compatibleCandidates.length === 1) {
+        return compatibleCandidates[0];
+      }
+      if (candidateIds.length === 1) {
+        return candidateIds[0];
+      }
+    }
+
+    return undefined;
+  };
+
+  const buildRawMovementBackfillIndex = (rawMovementEvents, rawDerivationSteps, rawGrowthFrames, integrityFlags = []) => {
+    const events = normalizeTransportJsonArray(rawMovementEvents);
+    if (!Array.isArray(events) || events.length === 0) return new Map();
+    const operationByStepId = new Map([
+      ...buildUniqueMoveLikeOperationsByStepId(rawDerivationSteps),
+      ...buildUniqueMoveLikeOperationsByStepId(rawGrowthFrames)
+    ]);
+
+    const indexed = new Map();
+    events.forEach((rawEvent) => {
+      const item = parseTransportJsonValue(rawEvent);
+      if (!item || typeof item !== 'object') return;
+      const stepId = normalizeOptionalStepText(item.stepId) || inferMovementEventStepIdFromStepIndex({
+        event: item,
+        rawDerivationSteps,
+        rawGrowthFrames,
+        operationByStepId
+      });
+      const operation = normalizeDerivationOperation(item.operation) || operationByStepId.get(stepId);
+      if (!stepId || !isMoveLikeOperation(operation)) return;
+      if (!normalizeOptionalStepText(item.stepId) && stepId) {
+        integrityFlags.push('movement_event_stepid_inferred_from_stepindex');
+      }
+      const current = indexed.get(stepId) || [];
+      current.push({ ...item, operation });
+      indexed.set(stepId, current);
+    });
+    return indexed;
+  };
+
+  const normalizeFrameMovementPayload = ({
+    movementSource,
+    operation,
+    normalizedFrameNodeIds,
+    previousFrameNodeIds
+  }) => {
+    if (!movementSource || typeof movementSource !== 'object') return undefined;
+    const normalizedOperation = normalizeDerivationOperation(
+      movementSource.operation || operation
+    );
+    const sourceNodeId = String(
+      movementSource.sourceNodeId
+      || movementSource.fromNodeId
+      || ''
+    ).trim();
+    const targetNodeId = String(
+      movementSource.targetNodeId
+      || movementSource.toNodeId
+      || ''
+    ).trim();
+    const traceNodeId = String(
+      movementSource.traceNodeId
+      || movementSource.fromNodeId
+      || ''
+    ).trim();
+    const note = normalizeOptionalStepText(movementSource.note);
+    if (!normalizedOperation && !sourceNodeId && !targetNodeId && !note) return undefined;
+    const normalizedTargetNodeId = (
+      sourceNodeId && targetNodeId && sourceNodeId === targetNodeId
+        ? ''
+        : targetNodeId
+    );
+    return {
+      operation: normalizedOperation || undefined,
+      sourceNodeId:
+        sourceNodeId && (normalizedFrameNodeIds.has(sourceNodeId) || previousFrameNodeIds.has(sourceNodeId))
+          ? sourceNodeId
+          : undefined,
+      targetNodeId:
+        normalizedTargetNodeId && normalizedFrameNodeIds.has(normalizedTargetNodeId)
+          ? normalizedTargetNodeId
+          : undefined,
+      traceNodeId:
+        traceNodeId && (normalizedFrameNodeIds.has(traceNodeId) || previousFrameNodeIds.has(traceNodeId))
+          ? traceNodeId
+          : undefined,
+      chainId: normalizeOptionalStepText(movementSource.chainId),
+      note
+    };
+  };
+
+  const normalizeGrowthFrames = (value, framework = 'xbar', sentenceTokens = [], options = {}) => {
     if (!Array.isArray(value)) return [];
     let previousWorkspaceForest = null;
+    const protectedMovementSubtreeIds = new Set();
+    const integrityFlags = Array.isArray(options?.integrityFlags) ? options.integrityFlags : [];
+    const movementBackfillByStepId = buildRawMovementBackfillIndex(
+      options?.rawMovementEvents,
+      options?.rawDerivationSteps,
+      value,
+      integrityFlags
+    );
     const sentenceTokenSet = Array.isArray(sentenceTokens) && sentenceTokens.length > 0
       ? new Set(sentenceTokens.map((token) => normalizeSurfaceToken(token)).filter(Boolean))
       : null;
@@ -903,9 +1019,7 @@ export const createGrowthDerivationHelpers = ({
         const operation = normalizeDerivationOperation(item.operation);
         if (!operation) return null;
         const reusePreviousWorkspace = item.reusePreviousWorkspace === true;
-        const workspaceForestValue = normalizeWorkspaceForestInput(
-          typeof item.workspaceForest !== 'undefined' ? item.workspaceForest : item.workspaceForestJson
-        );
+        const workspaceForestValue = normalizeWorkspaceForestInput(item.workspaceForest);
 
         const frameNodeIds = new Set();
         const counterRef = { value: 1 };
@@ -924,10 +1038,17 @@ export const createGrowthDerivationHelpers = ({
           workspaceForest = previousWorkspaceForest.map((root) => cloneSyntaxNodeDeep(root));
         }
         if (workspaceForest.length === 0) return null;
+        const rawMovementOperation = normalizeMovementOperation(item?.movement?.operation || item?.operation);
+        const rawMovementSourceId = String(item?.movement?.sourceNodeId || '').trim();
+        if (rawMovementOperation && rawMovementOperation !== 'headmove' && rawMovementSourceId) {
+          protectedMovementSubtreeIds.add(rawMovementSourceId);
+        }
         workspaceForest.forEach((root) => {
           promoteSentenceMatchingLeaves(root, sentenceTokenSet);
           stripMovementIndicesFromTree(root);
-          materializeEmptyStructuralLeaves(root, sentenceTokenSet);
+          materializeEmptyStructuralLeaves(root, sentenceTokenSet, {
+            protectedSubtreeIds: protectedMovementSubtreeIds
+          });
         });
         const normalizedFrameNodeIds = new Set();
         workspaceForest.forEach((root) => {
@@ -948,37 +1069,51 @@ export const createGrowthDerivationHelpers = ({
           });
         }
 
-        const movement = item.movement && typeof item.movement === 'object'
-          ? (() => {
-              const normalizedOperation = normalizeDerivationOperation(item.movement.operation);
-              const sourceNodeId = String(item.movement.sourceNodeId || '').trim();
-              const targetNodeId = String(item.movement.targetNodeId || '').trim();
-              const note = normalizeOptionalStepText(item.movement.note);
-              if (!normalizedOperation && !sourceNodeId && !targetNodeId && !note) return undefined;
-              const normalizedTargetNodeId = (
-                sourceNodeId && targetNodeId && sourceNodeId === targetNodeId
-                  ? ''
-                  : targetNodeId
-              );
-              return {
-                operation: normalizedOperation || undefined,
-                sourceNodeId:
-                  sourceNodeId && (normalizedFrameNodeIds.has(sourceNodeId) || previousFrameNodeIds.has(sourceNodeId))
-                    ? sourceNodeId
-                    : undefined,
-                targetNodeId:
-                  normalizedTargetNodeId && normalizedFrameNodeIds.has(normalizedTargetNodeId)
-                    ? normalizedTargetNodeId
-                    : undefined,
-                note
-              };
-            })()
+        let movement = undefined;
+        const legacyFrameMovement = item.movement && typeof item.movement === 'object'
+          ? normalizeFrameMovementPayload({
+              movementSource: item.movement,
+              operation,
+              normalizedFrameNodeIds,
+              previousFrameNodeIds
+            })
           : undefined;
+
+        // movementEvents are the authored source of truth for movement facts.
+        // frame.movement is compiled replay metadata and exists only to attach
+        // the authored move to one local Growth frame for rendering.
+        if (isMoveLikeOperation(operation)) {
+          const stepId = normalizeOptionalStepText(item.stepId);
+          const backfillCandidates = stepId ? (movementBackfillByStepId.get(stepId) || []) : [];
+          if (backfillCandidates.length === 1) {
+            const [candidate] = backfillCandidates;
+            const candidateOperation = normalizeDerivationOperation(candidate?.operation);
+            if (!candidateOperation || candidateOperation === operation) {
+              movement = normalizeFrameMovementPayload({
+                movementSource: candidate,
+                operation,
+                normalizedFrameNodeIds,
+                previousFrameNodeIds
+              });
+              if (movement) {
+                const flagSuffix = stepId || normalizeOptionalStepText(item.frameId) || `f${frameIndex + 1}`;
+                integrityFlags.push(`movement_payload_backfilled_from_event:${flagSuffix}`);
+              }
+            }
+          }
+
+          // frame.movement is optional transport noise from the model, not an
+          // authored contract surface. Accept it as a fallback when no compiled
+          // event exists, and silently ignore it when the compiled event wins.
+          if (!movement && legacyFrameMovement) {
+            movement = legacyFrameMovement;
+          }
+        }
 
         if (isMoveLikeOperation(operation) && !movement) {
           throw new ParseApiError(
             'BAD_MODEL_RESPONSE',
-            `Move-like Growth frame "${normalizeOptionalStepText(item.frameId) || `f${frameIndex + 1}`}" is missing its movement payload.`,
+            `Move-like Growth frame "${normalizeOptionalStepText(item.frameId) || `f${frameIndex + 1}`}" has no compilable movement event.`,
             502
           );
         }
@@ -1035,58 +1170,6 @@ export const createGrowthDerivationHelpers = ({
     return nodeIds;
   };
 
-  const collectOvertLeafReferences = (node, refs = []) => {
-    if (!node || typeof node !== 'object') return refs;
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length === 0) {
-      const surface = String(resolveNodeSurface(node) || '').trim();
-      if (surface && !isSilentLikeMovementNode(node)) {
-        refs.push({
-          node,
-          surface: normalizeSurfaceToken(surface),
-          hasTokenIndex: Number.isInteger(node.tokenIndex)
-        });
-      }
-      return refs;
-    }
-    children.forEach((child) => collectOvertLeafReferences(child, refs));
-    return refs;
-  };
-
-  const suppressExcessUntokenedHeadCopiesForSurfaceMatch = (root, sentenceTokens = []) => {
-    if (!root || typeof root !== 'object') return root;
-    const targetCounts = new Map();
-    (Array.isArray(sentenceTokens) ? sentenceTokens : []).forEach((token) => {
-      const normalized = normalizeSurfaceToken(token);
-      if (!normalized) return;
-      targetCounts.set(normalized, (targetCounts.get(normalized) || 0) + 1);
-    });
-
-    const refs = collectOvertLeafReferences(root);
-    const currentCounts = new Map();
-    refs.forEach(({ surface }) => {
-      if (!surface) return;
-      currentCounts.set(surface, (currentCounts.get(surface) || 0) + 1);
-    });
-
-    for (const [surface, currentCount] of currentCounts.entries()) {
-      const allowedCount = targetCounts.get(surface) || 0;
-      let excess = currentCount - allowedCount;
-      if (excess <= 0) continue;
-      const candidates = refs.filter((ref) => ref.surface === surface && !ref.hasTokenIndex);
-      for (const candidate of candidates) {
-        if (excess <= 0) break;
-        candidate.node.label = '∅';
-        delete candidate.node.word;
-        delete candidate.node.tokenIndex;
-        delete candidate.node.surfaceSpan;
-        excess -= 1;
-      }
-    }
-
-    return root;
-  };
-
   const canonicalizeGrowthRootCandidateForSentence = (root, sentenceTokens = []) => {
     if (!root || typeof root !== 'object') return null;
     const targetTokens = Array.isArray(sentenceTokens)
@@ -1096,7 +1179,6 @@ export const createGrowthDerivationHelpers = ({
 
     const candidate = cloneSyntaxNodeDeep(root);
     try {
-      suppressExcessUntokenedHeadCopiesForSurfaceMatch(candidate, targetTokens);
       anchorOvertLeavesToSentenceTokens(candidate, targetTokens);
       const canonicalCandidate = deriveCanonicalSurfaceSpans(candidate);
       const overtTerminals = collectOvertTerminalNodes(canonicalCandidate)
@@ -1109,147 +1191,17 @@ export const createGrowthDerivationHelpers = ({
     }
   };
 
-  const scoreGrowthRootCandidateAgainstSentence = (root, sentenceTokens = []) => {
-    if (!root || typeof root !== 'object') return { score: -1, candidate: null };
-    const targetTokens = Array.isArray(sentenceTokens)
-      ? sentenceTokens.map((token) => String(token || '').trim()).filter(Boolean)
-      : [];
-    if (targetTokens.length === 0) return { score: -1, candidate: null };
-
-    const candidate = cloneSyntaxNodeDeep(root);
-    try {
-      suppressExcessUntokenedHeadCopiesForSurfaceMatch(candidate, targetTokens);
-      anchorOvertLeavesToSentenceTokens(candidate, targetTokens);
-      const canonicalCandidate = deriveCanonicalSurfaceSpans(candidate);
-      const overtTerminals = collectOvertTerminalNodes(canonicalCandidate)
-        .map((node) => resolveNodeSurface(node))
-        .map((token) => String(token || '').trim())
-        .filter(Boolean);
-      let score = 0;
-      const maxLength = Math.max(targetTokens.length, overtTerminals.length);
-      for (let index = 0; index < maxLength; index += 1) {
-        if (targetTokens[index] && overtTerminals[index] && targetTokens[index] === overtTerminals[index]) score += 1;
-      }
-      return { score, candidate: canonicalCandidate };
-    } catch {
-      return { score: -1, candidate: null };
-    }
-  };
-
-  const explicitHeadMoveFrameCount = (growthFrames = [], frameIndex = -1) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0) return 0;
-    const upperBound = Number.isInteger(frameIndex) ? Math.min(frameIndex, growthFrames.length - 1) : (growthFrames.length - 1);
-    let count = 0;
-    for (let index = 0; index <= upperBound; index += 1) {
-      const frame = growthFrames[index];
-      if (normalizeMovementOperation(frame?.movement?.operation || frame?.operation) === 'HeadMove') {
-        count += 1;
-      }
-    }
-    return count;
-  };
-
-  const replaceHeadRealizationForSurfaceMatch = (landingNode, sourceNode) => {
-    if (!landingNode || !sourceNode) return false;
-    const usedIds = collectExistingNodeIds(landingNode);
-    collectExistingNodeIds(sourceNode).forEach((id) => usedIds.add(id));
-    const counterRef = { value: usedIds.size + 1 };
-    const nextId = () => nextGeneratedNodeId(usedIds, counterRef);
-
-    const movedChildren = Array.isArray(sourceNode.children) && sourceNode.children.length > 0
-      ? sourceNode.children.map((child) => cloneSyntaxNodeDeep(child))
-      : [];
-    if (movedChildren.length === 0) return false;
-
-    delete landingNode.word;
-    delete landingNode.tokenIndex;
-    delete landingNode.surfaceSpan;
-    landingNode.children = movedChildren;
-
-    delete sourceNode.word;
-    delete sourceNode.tokenIndex;
-    delete sourceNode.surfaceSpan;
-    sourceNode.children = [{
-      id: nextId(),
-      label: '∅',
-      word: '∅'
-    }];
-    return true;
-  };
-
-  const applyOneCompressedHeadMoveForSurfaceMatch = (root, sentenceTokens = []) => {
-    if (!root || typeof root !== 'object') return null;
-    const targetTokens = Array.isArray(sentenceTokens)
-      ? sentenceTokens.map((token) => String(token || '').trim()).filter(Boolean)
-      : [];
-    if (targetTokens.length === 0) return null;
-
-    const nodeById = buildNodeIndexFromTree(root);
-    const parentById = buildParentIndexFromTree(root);
-    const currentScore = scoreGrowthRootCandidateAgainstSentence(root, targetTokens).score;
-    let bestRoot = null;
-    let bestScore = currentScore;
-
-    const landingNodes = Array.from(nodeById.values()).filter((node) => {
-      const profile = getLabelProfile(node?.label);
-      if (!profile.isHeadLikeStructural) return false;
-      if (preferredHeadMoveSourceBases(node).length === 0) return false;
-      return !subtreeHasOvertYield(node);
-    });
-
-    landingNodes.forEach((landingNode) => {
-      const preferredBases = preferredHeadMoveSourceBases(landingNode);
-      if (preferredBases.length === 0) return;
-      const candidates = collectComplementDomainHeadCandidates(landingNode, nodeById, parentById)
-        .filter(({ node: sourceNode }) => {
-          if (!sourceNode || !subtreeHasOvertYield(sourceNode)) return false;
-          const base = getLabelProfile(sourceNode?.label).base;
-          return preferredBases.includes(base);
-        });
-
-      candidates.forEach(({ node: sourceNode, domainDistance }) => {
-        const trialRoot = cloneSyntaxNodeDeep(root);
-        const trialLanding = findNodeByIdInForest([trialRoot], String(landingNode.id || '').trim());
-        const trialSource = findNodeByIdInForest([trialRoot], String(sourceNode.id || '').trim());
-        if (!trialLanding || !trialSource) return;
-        if (!replaceHeadRealizationForSurfaceMatch(trialLanding, trialSource)) return;
-        const { score, candidate } = scoreGrowthRootCandidateAgainstSentence(trialRoot, targetTokens);
-        if (!candidate) return;
-        const weightedScore = score - domainDistance;
-        if (weightedScore > bestScore) {
-          bestScore = weightedScore;
-          bestRoot = candidate;
-        }
-      });
-    });
-
-    return bestRoot;
-  };
-
-  const selectCommittedGrowthRoot = (workspaceForest, sentenceTokens = [], options = {}) => {
+  const selectCommittedGrowthRoot = (workspaceForest, sentenceTokens = []) => {
     if (!Array.isArray(workspaceForest) || workspaceForest.length === 0) return null;
     const targetTokens = Array.isArray(sentenceTokens)
       ? sentenceTokens.map((token) => String(token || '').trim()).filter(Boolean)
       : [];
     if (targetTokens.length === 0) return null;
-    const headMoveBudget = Math.max(0, Number.isInteger(options?.headMoveBudget) ? options.headMoveBudget : 0);
 
     const candidates = workspaceForest
       .map((root) => {
         if (!root || typeof root !== 'object') return null;
-        const direct = canonicalizeGrowthRootCandidateForSentence(root, targetTokens);
-        if (direct) return direct;
-        if (headMoveBudget <= 0) return null;
-
-        let transformed = cloneSyntaxNodeDeep(root);
-        for (let attempt = 0; attempt < headMoveBudget; attempt += 1) {
-          const next = applyOneCompressedHeadMoveForSurfaceMatch(transformed, targetTokens);
-          if (!next) break;
-          transformed = next;
-          const committed = canonicalizeGrowthRootCandidateForSentence(transformed, targetTokens);
-          if (committed) return committed;
-        }
-        return null;
+        return canonicalizeGrowthRootCandidateForSentence(root, targetTokens);
       })
       .filter(Boolean);
 
@@ -1260,9 +1212,7 @@ export const createGrowthDerivationHelpers = ({
     if (!Array.isArray(growthFrames) || growthFrames.length === 0) return null;
     for (let index = growthFrames.length - 1; index >= 0; index -= 1) {
       const frame = growthFrames[index];
-      const root = selectCommittedGrowthRoot(frame?.workspaceForest, sentenceTokens, {
-        headMoveBudget: explicitHeadMoveFrameCount(growthFrames, index)
-      });
+      const root = selectCommittedGrowthRoot(frame?.workspaceForest, sentenceTokens);
       if (root) {
         return { frame, frameIndex: index, root };
       }
@@ -1462,9 +1412,6 @@ export const createGrowthDerivationHelpers = ({
         if (!isMoveLikeOperation(operation)) return null;
         const rawSourceId = String(movement.sourceNodeId || '').trim();
         const rawTargetId = String(movement.targetNodeId || '').trim();
-        if (operation === 'HeadMove' && !rawTargetId) {
-          return null;
-        }
 
         const previousForest = index > 0 && Array.isArray(growthFrames[index - 1]?.workspaceForest)
           ? growthFrames[index - 1].workspaceForest
@@ -1518,10 +1465,17 @@ export const createGrowthDerivationHelpers = ({
             committedParentById
           ) || committedLandingNode;
         }
+        if (normalizeMovementOperation(operation) === 'HeadMove' && sourceTraceNode) {
+          sourceTraceNode = canonicalizeHeadMoveSourceNode(sourceTraceNode);
+        }
 
         const fromNodeId = String(sourceTraceNode?.id || rawSourceId || '').trim();
         const toNodeId = String(committedLandingNode?.id || rawTargetId || '').trim();
-        const traceNodeId = String(sourceTraceNode?.id || '').trim() || undefined;
+        const traceNodeId = (
+          normalizeMovementOperation(operation) === 'HeadMove'
+            ? String(sourceTraceNode?.id || rawSourceId || '').trim()
+            : String(sourceTraceNode?.id || '').trim()
+        ) || undefined;
         const sourceIsCovertOnly = sourceTraceNode
           && !subtreeHasOvertYield(sourceTraceNode)
           && subtreeContainsOnlyCovertCategoryLeaves(sourceTraceNode);
@@ -1585,9 +1539,7 @@ export const createGrowthDerivationHelpers = ({
           });
         });
       }
-      const candidateRoot = selectCommittedGrowthRoot(frame?.workspaceForest || [], sentenceTokens, {
-        headMoveBudget: explicitHeadMoveFrameCount(growthFrames, index)
-      })
+      const candidateRoot = selectCommittedGrowthRoot(frame?.workspaceForest || [], sentenceTokens)
         || (Array.isArray(frame?.workspaceForest) && frame.workspaceForest.length === 1 ? frame.workspaceForest[0] : null);
       const movement = frame?.movement;
       const movementTargetNodeId = String(movement?.targetNodeId || '').trim();
@@ -1601,8 +1553,16 @@ export const createGrowthDerivationHelpers = ({
       const targetLabel = isMoveFrame
         ? (String(movementTargetNode?.label || '').trim() || String(candidateRoot?.label || '').trim() || undefined)
         : (String(candidateRoot?.label || '').trim() || undefined);
-      const sourceNodeIds = [];
-      if (String(movement?.sourceNodeId || '').trim()) sourceNodeIds.push(String(movement.sourceNodeId).trim());
+      const sourceNodeIds = Array.from(new Set([
+        String(movement?.traceNodeId || '').trim(),
+        String(movement?.sourceNodeId || '').trim()
+      ].filter(Boolean)));
+      const sourceLabels = sourceNodeIds
+        .map((id) => {
+          const node = workspaceNodeById.get(id);
+          return String(node?.label || node?.word || '').trim();
+        })
+        .filter(Boolean);
       return {
         stepId: normalizeOptionalStepText(frame.stepId) || `gf${index + 1}`,
         operation: frame.operation,
@@ -1621,7 +1581,7 @@ export const createGrowthDerivationHelpers = ({
         targetNodeId,
         targetLabel,
         sourceNodeIds: sourceNodeIds.length > 0 ? sourceNodeIds : undefined,
-        sourceLabels: workspaceLabels.length > 0 ? workspaceLabels : undefined,
+        sourceLabels: sourceLabels.length > 0 ? sourceLabels : (workspaceLabels.length > 0 ? workspaceLabels : undefined),
         recipe: normalizeOptionalStepText(frame.recipe) || `${frame.operation} frame ${index + 1}`,
         workspaceAfter: workspaceLabels.length > 0 ? workspaceLabels : undefined,
         spelloutOrder: Array.isArray(frame?.spelloutOrder) && frame.spelloutOrder.length > 0
@@ -1635,12 +1595,7 @@ export const createGrowthDerivationHelpers = ({
     });
 
     const explicitMovementEvents = buildCanonicalMovementEventsFromGrowthFrames(growthFrames, committedTree);
-    const supplementalHeadMoves = inferSupplementalHeadMoveEventsFromGrowthFrames(
-      growthFrames,
-      committedTree,
-      explicitMovementEvents
-    );
-    const movementEvents = [...explicitMovementEvents, ...supplementalHeadMoves].sort((left, right) => {
+    const movementEvents = [...explicitMovementEvents].sort((left, right) => {
       const leftStep = Number.isInteger(left?.stepIndex) ? left.stepIndex : Number.MAX_SAFE_INTEGER;
       const rightStep = Number.isInteger(right?.stepIndex) ? right.stepIndex : Number.MAX_SAFE_INTEGER;
       if (leftStep !== rightStep) return leftStep - rightStep;
@@ -1695,14 +1650,12 @@ export const createGrowthDerivationHelpers = ({
     normalizeMovementStemFromId,
     materializeImplicitPhrasalTraceShellsInGrowthFrames,
     materializeCommittedTraceShells,
-    inferSupplementalHeadMoveEventsFromGrowthFrames,
     collectGrowthFrameNodeIds,
     canonicalizeGrowthRootCandidateForSentence,
     selectCommittedGrowthRoot,
     findLatestCommittedGrowthFrame,
     buildCanonicalMovementEventsFromGrowthFrames,
     buildCanonicalDerivationFromGrowthFrames,
-    assignDerivationStepIds,
-    suppressExcessUntokenedHeadCopiesForSurfaceMatch
+    assignDerivationStepIds
   };
 };

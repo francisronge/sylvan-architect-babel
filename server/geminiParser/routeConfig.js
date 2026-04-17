@@ -1,5 +1,6 @@
-export const PRIMARY_MODEL = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-flash-lite-preview';
+export const PRIMARY_MODEL = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-pro-preview';
 export const PRO_MODEL = String(process.env.GEMINI_PRO_MODEL || '').trim() || 'gemini-3.1-pro-preview';
+export const PAYLOAD_TRANSCRIBER_MODEL = String(process.env.GEMINI_PAYLOAD_TRANSCRIBER_MODEL || '').trim() || 'gemini-3.1-flash-lite-preview';
 export const LOCAL_MODEL_NAME = String(process.env.BABEL_LOCAL_MODEL_NAME || '').trim() || 'gemma3:4b';
 export const LOCAL_MODEL_URL = String(process.env.BABEL_LOCAL_MODEL_URL || '').trim() || 'http://127.0.0.1:11434/api/generate';
 export const LOCAL_MODEL_COMMAND = String(process.env.BABEL_LOCAL_MODEL_COMMAND || '').trim();
@@ -7,11 +8,11 @@ export const LOCAL_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.BABEL_LOCAL
 export const LOCAL_MODEL_NUM_CTX = Math.max(4096, Number(process.env.BABEL_LOCAL_MODEL_NUM_CTX || 12288));
 export const LOCAL_MODEL_MAX_OUTPUT_TOKENS = Math.max(1024, Number(process.env.BABEL_LOCAL_MODEL_MAX_OUTPUT_TOKENS || 4096));
 export const DEFAULT_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16384);
-export const FLASH_MAX_OUTPUT_TOKENS = Number(
-  process.env.GEMINI_FLASH_MAX_OUTPUT_TOKENS ||
-  process.env.GEMINI_MAX_OUTPUT_TOKENS ||
-  16384
-);
+export const PAYLOAD_TRANSCRIBER_MAX_OUTPUT_TOKENS = Math.max(2048, Number(process.env.GEMINI_PAYLOAD_TRANSCRIBER_MAX_OUTPUT_TOKENS || 16384));
+export const PAYLOAD_TRANSCRIBER_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PAYLOAD_TRANSCRIBER_TIMEOUT_MS || 45000));
+export const PAYLOAD_TRANSCRIBER_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_PAYLOAD_TRANSCRIBER_TEMPERATURE))
+  ? Number(process.env.GEMINI_PAYLOAD_TRANSCRIBER_TEMPERATURE)
+  : 0;
 export const PRO_MAX_OUTPUT_TOKENS = Number(
   process.env.GEMINI_PRO_MAX_OUTPUT_TOKENS ||
   process.env.GEMINI_MAX_OUTPUT_TOKENS ||
@@ -20,9 +21,6 @@ export const PRO_MAX_OUTPUT_TOKENS = Number(
 export const MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_TEMPERATURE))
   ? Number(process.env.GEMINI_TEMPERATURE)
   : 0.2;
-const FLASH_LITE_MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_FLASH_LITE_TEMPERATURE))
-  ? Number(process.env.GEMINI_FLASH_LITE_TEMPERATURE)
-  : 0;
 const PRO_MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_PRO_TEMPERATURE))
   ? Number(process.env.GEMINI_PRO_TEMPERATURE)
   : MODEL_TEMPERATURE;
@@ -34,23 +32,20 @@ const PRO_ROUTE_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRO_ROUTE_TIM
 const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 0));
 const PRO_ROUTE_REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_PRO_REQUEST_BUDGET_MS || 0));
 
-export const routeUnavailableMessage = (modelRoute = 'flash-lite') =>
-  modelRoute === 'pro'
-    ? 'The canopy is noisy right now. The selected Gemini 3.1 Pro route is unavailable; please plant your sentence again in a moment.'
-    : 'The canopy is noisy right now. The selected Gemini 3.1 Flash Lite route is unavailable; please plant your sentence again in a moment.';
+export const routeUnavailableMessage = () =>
+  'The canopy is noisy right now. The selected Gemini 3.1 Pro route is unavailable; please plant your sentence again in a moment.';
 
 export const localRouteUnavailableMessage = () =>
   'The local model route is unavailable. Start the configured local runtime and try again.';
 
-export const resolveRouteTemperature = (modelRoute = 'flash-lite') =>
-  modelRoute === 'pro' ? PRO_MODEL_TEMPERATURE : FLASH_LITE_MODEL_TEMPERATURE;
+export const resolveRouteTemperature = () => PRO_MODEL_TEMPERATURE;
 
 export const estimateProOutputBudget = () => PRO_MAX_OUTPUT_TOKENS;
 
-export const resolveRouteMaxOutputTokens = (modelRoute = 'flash-lite', sentence = '') =>
-  modelRoute === 'pro' ? estimateProOutputBudget(sentence) : FLASH_MAX_OUTPUT_TOKENS;
+export const resolveRouteMaxOutputTokens = (_modelRoute = 'pro', sentence = '') =>
+  estimateProOutputBudget(sentence);
 
-export const resolveModelTimeoutMs = (model, modelRoute = 'flash-lite') => {
+export const resolveModelTimeoutMs = (model, modelRoute = 'pro') => {
   if (modelRoute === 'pro' && PRO_ROUTE_TIMEOUT_MS > 0) {
     return PRO_ROUTE_TIMEOUT_MS;
   }
@@ -63,7 +58,7 @@ export const resolveModelTimeoutMs = (model, modelRoute = 'flash-lite') => {
   return model === PRIMARY_MODEL ? PRIMARY_MODEL_TIMEOUT_MS : PRO_MODEL_TIMEOUT_MS;
 };
 
-export const getRemainingRequestBudgetMs = (requestStartedAt, modelRoute = 'flash-lite') => {
+export const getRemainingRequestBudgetMs = (requestStartedAt, modelRoute = 'pro') => {
   if (modelRoute === 'pro' && PRO_ROUTE_REQUEST_BUDGET_MS > 0) {
     return Math.max(0, PRO_ROUTE_REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));
   }

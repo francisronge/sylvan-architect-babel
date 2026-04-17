@@ -38,6 +38,10 @@ skills/
 .env
 .env.*
 !.env.example
+.codex-handoff/
+test/debug_reorder.mjs
+server/geminiParser/proPromptNeutralizationArchive.md
+server/geminiParser/proRouteRecoveryArchive.md
 
 # Editor directories and files
 .vscode/*
