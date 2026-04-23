@@ -7,8 +7,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.turbo/
 dist-ssr
 .artifacts/*
 !.artifacts/README.md
@@ -36,6 +40,7 @@ skills/
 .vercel/
 *.local
 .env
+.env.local
 .env.*
 !.env.example
 .codex-handoff/
