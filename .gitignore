@@ -13,6 +13,9 @@ build/
 coverage/
 .cache/
 .turbo/
+.local-tests/
+.local-fixtures/
+.local-tools/
 dist-ssr
 .artifacts/*
 !.artifacts/README.md
