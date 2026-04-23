@@ -12,11 +12,13 @@ dist/
 build/
 coverage/
 .cache/
+.vite/
 .turbo/
 .local-tests/
 .local-fixtures/
 .local-tools/
 .local-docs/
+.codex-sync-workspace.json
 dist-ssr
 .artifacts/*
 !.artifacts/README.md
