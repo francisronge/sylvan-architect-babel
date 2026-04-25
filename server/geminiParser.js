@@ -51,6 +51,7 @@ const {
   normalizeIndexedText,
   extractMovementIndex,
   stripMovementIndex,
+  normalizeOpenChainType,
   normalizeChainType,
   mergeChainTypes,
   deriveChainTypeFromOperation
@@ -146,6 +147,7 @@ const {
 
 const {
   normalizeNoteBindings,
+  compileNoteBindingsFromGrowthFrames,
   buildNoteBindingChainIdAliases,
   buildExplanationFromNoteBindings
 } = createNoteBindingHelpers({
@@ -156,6 +158,7 @@ const {
 
 const {
   normalizeTransportJsonArray,
+  normalizeDerivationStagesToGrowthFrames,
   normalizeGrowthFrames,
   normalizeMovementStemFromId,
   materializeImplicitPhrasalTraceShellsInGrowthFrames,
@@ -229,7 +232,8 @@ const {
   validateNoteBindingsAgainstStructuredAnalysis,
   runSemanticValidation,
   auditNoteConsistency,
-  computeCompletenessStatus
+  computeCompletenessStatus,
+  collectCompletenessWarnings
 } = createSemanticValidationHelpers({
   ParseApiError,
   cleanExplanationWhitespace,
@@ -244,8 +248,8 @@ const {
 
 const {
   normalizeChains,
-  normalizeResearchTrace,
   normalizeCommitmentGraph,
+  isProjectedCommitmentKind,
   projectLedgersFromCommitmentGraph,
   buildCommitmentGraphFromNormalizedLedgers,
   normalizeCaseAssignments,
@@ -277,6 +281,7 @@ const {
   normalizeEventStructureLedger,
   ensureStructuredEntryIds
 } = createAnalysisNormalizationHelpers({
+  normalizeOpenChainType,
   normalizeChainType,
   normalizeKey,
   normalizeNodeIdArray,
@@ -293,20 +298,25 @@ const {
 } = createParseNormalizationHelpers({
   ParseApiError,
   normalizeKey,
+  normalizeOpenChainType,
   normalizeChainType,
   normalizeMovementOperation,
   normalizeOptionalStepText,
   normalizeOptionalStringArray,
+  getLabelProfile,
   tokenizeSentenceSurfaceOrder,
   normalizeSurfaceToken,
   normalizeNoteBindings,
+  compileNoteBindingsFromGrowthFrames,
   buildExplanationFromNoteBindings,
+  normalizeDerivationStagesToGrowthFrames,
   normalizeGrowthFrames,
   materializeImplicitPhrasalTraceShellsInGrowthFrames,
   buildCanonicalDerivationFromGrowthFrames,
   collectNodeReferencesById,
   normalizeSyntaxTreeWithIds,
   buildNodeIndexFromTree,
+  buildParentIndexFromTree,
   buildNodeLabelIndexFromTree,
   assignDerivationStepIds,
   normalizeDerivationSteps,
@@ -317,14 +327,15 @@ const {
   stripMovementIndicesFromTree,
   collectOvertTerminalNodes,
   resolveNodeSurface,
+  resolveHeadMovementLandingNode,
   materializeCommittedTraceShells,
   buildGroundedExplanation,
   harmonizeExplanationWithDerivation,
   buildCanonicalDerivationFromTree,
   collectGrowthFrameNodeIds,
   normalizeChains,
-  normalizeResearchTrace,
   normalizeCommitmentGraph,
+  isProjectedCommitmentKind,
   projectLedgersFromCommitmentGraph,
   buildCommitmentGraphFromNormalizedLedgers,
   normalizeCaseAssignments,
@@ -361,6 +372,7 @@ const {
   validateNoteBindingsAgainstStructuredAnalysis,
   auditNoteConsistency,
   computeCompletenessStatus,
+  collectCompletenessWarnings,
   deriveImplicitGrowthChainId,
   deriveChainTypeFromOperation,
   mergeChainTypes,
@@ -388,15 +400,14 @@ export const {
   normalizeParseBundle,
   validateFinalProNoteBindings,
   parseModelJson,
-  parseModelJsonDetailed,
-  regenerateCommittedNoteBindings,
-  regenerateCommittedNoteBindingsWithLocalModel
+  parseModelJsonDetailed
 });
 
 export const __test__ = {
   normalizeParseBundle,
   normalizeParseResult,
   validateFinalProNoteBindings,
+  normalizeDerivationStagesToGrowthFrames,
   normalizeGrowthFrames,
   validateAndCommitSurfaceOrder,
   canonicalizeGrowthRootCandidateForSentence,
@@ -418,6 +429,7 @@ export const __test__ = {
   resolveRouteMaxOutputTokens,
   parseModelJson,
   normalizeNoteBindings,
+  compileNoteBindingsFromGrowthFrames,
   normalizeCaseAssignments,
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder,

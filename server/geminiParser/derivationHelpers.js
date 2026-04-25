@@ -12,8 +12,12 @@ export const createDerivationHelpers = ({
   extractMovementIndex,
   stripMovementIndex
 }) => {
-  const MOVE_LIKE_OPERATION_RE = /^(move|internal[\s-]*merge|head[\s-]*move|a[\s-]*move|a(?:bar)?[\s-]*move)$/i;
-  const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|(?:t|trace)(?:_[a-z0-9]+)+|[a-z]+_trace(?:_[a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+  const normalizeMoveLikeOperationKey = (operation) =>
+    String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+
+  const MOVE_LIKE_OPEN_OPERATION_RE = /(?:move|raise|lower|front|displac|extract|shift|scrambl|rollup|sideward|incorpor|clitic|affix|remnant|piedpip|topicaliz|focaliz|extraposit|atb|remerge)/i;
+  const HEAD_LIKE_OPEN_OPERATION_RE = /(?:headmove|headmovement|lower|lowering|affix|clitic|incorpor)/i;
+  const TRACE_LIKE_SURFACE_RE = /^(?:t|trace|copy|t\d+|trace\d+|copy\d+|(?:t|trace|copy)(?:_[a-z0-9]+)+|[a-z]+_(?:trace|copy)(?:_[a-z0-9]+)*|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\}|\(copy\)|\{copy\})$/i;
   const NULL_LIKE_SURFACE_RE = /^(?:∅|Ø|ε|null|epsilon|pro)(?:[_-][a-z0-9]+)*$/i;
   const ABSTRACT_FEATURE_SURFACE_RE = /^(?:past|present|pres|future|fut|finite|nonfinite|infinitive|inf|perfect|perf|progressive|prog|passive|active|nom(?:inative)?|acc(?:usative)?|dat(?:ive)?|gen(?:itive)?|erg(?:ative)?|abs(?:olutive)?|epp|phi|wh|focus|topic|tense|agreement|agr)$/i;
   const TRACE_ID_RE = /^trace[_-]?(\d+)?$/i;
@@ -26,7 +30,25 @@ export const createDerivationHelpers = ({
     Other: 'movement'
   };
 
-  const isMoveLikeOperation = (operation) => MOVE_LIKE_OPERATION_RE.test(String(operation || '').trim());
+  const humanizeOperationLabel = (operation) =>
+    String(operation || '')
+      .trim()
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ');
+
+  const isMoveLikeOperation = (operation) => {
+    const key = normalizeMoveLikeOperationKey(operation);
+    if (!key) return false;
+    if (key === 'move' || key === 'internalmerge' || key === 'headmove' || key === 'amove' || key === 'abarmove') {
+      return true;
+    }
+    return MOVE_LIKE_OPEN_OPERATION_RE.test(key);
+  };
+
+  const isHeadLikeOperation = (operation) => {
+    const key = normalizeMoveLikeOperationKey(operation);
+    return Boolean(key) && HEAD_LIKE_OPEN_OPERATION_RE.test(key);
+  };
 
   const normalizeTraceLikeSurface = (surface) =>
     String(surface || '')
@@ -136,6 +158,7 @@ export const createDerivationHelpers = ({
 
   const resolveOvertLeafSurface = (node) => {
     if (node?.silentFeature === true) return '';
+    if (node?.silent === true) return '';
     if (traceLikeNodeType(node)) return '';
     const word = String(node?.word || '').trim();
     if (word) return word;
@@ -147,7 +170,22 @@ export const createDerivationHelpers = ({
     return label;
   };
 
-  const isAbstractFeatureSurface = (surface) => ABSTRACT_FEATURE_SURFACE_RE.test(String(surface || '').trim());
+  const normalizeAbstractFeatureSurface = (surface) =>
+    String(surface || '')
+      .trim()
+      .replace(/^[\[\(\{<⟨]+|[\]\)\}>⟩]+$/g, '')
+      .replace(/^[+-]+/, '')
+      .trim()
+      .toLowerCase();
+
+  const isAbstractFeatureSurface = (surface) => {
+    const raw = String(surface || '').trim();
+    if (!raw) return false;
+    const normalized = normalizeAbstractFeatureSurface(raw);
+    if (!normalized) return false;
+    if (normalized === 'fin' || normalized === 'nfin' || normalized === 'nonfin') return true;
+    return ABSTRACT_FEATURE_SURFACE_RE.test(normalized);
+  };
 
   const isTraceLikeSurface = (surface) => {
     const raw = String(surface || '').trim();
@@ -332,13 +370,32 @@ export const createDerivationHelpers = ({
       .map((item) => {
         if (!item || typeof item !== 'object') return null;
         const explicitStepId = normalizeOptionalStepText(item.stepId);
-        let operation = normalizeMovementOperation(item.operation || item.type);
-        const explicitSourceRef = String(item.fromNodeId || item.source || '').trim();
-        const explicitTargetRef = String(item.toNodeId || item.target || '').trim();
-        const explicitTraceRef = String(item.traceNodeId || item.trace || '').trim();
+        const preserveOperationLabel = item.preserveOperationLabel === true || Boolean(normalizeOptionalStepText(item.label));
+        let operation = preserveOperationLabel
+          ? normalizeOptionalStepText(item.label || item.operation || item.type)
+          : normalizeMovementOperation(item.operation || item.type);
+        const explicitMovingRef = String(item.movingNodeId || '').trim();
+        const explicitSourceRef = String(item.fromNodeId || item.sourceNodeId || item.source || '').trim();
+        const explicitLandingRef = String(item.landingNodeId || item.toNodeId || item.targetNodeId || item.target || explicitMovingRef).trim();
+        const explicitHostRef = String(item.hostNodeId || item.host || '').trim();
+        const explicitTraceRef = String(item.traceNodeId || item.lowerCopyNodeId || item.trace || '').trim();
         let fromNodeId = resolveMovementNodeReference(explicitSourceRef, nodeIds, labelIndex);
-        let toNodeId = resolveMovementNodeReference(explicitTargetRef, nodeIds, labelIndex);
+        let toNodeId = resolveMovementNodeReference(explicitLandingRef, nodeIds, labelIndex);
+        const movingNodeId = resolveMovementNodeReference(explicitMovingRef, nodeIds, labelIndex);
+        const hostNodeId = resolveMovementNodeReference(explicitHostRef, nodeIds, labelIndex);
         let traceNodeId = resolveMovementNodeReference(explicitTraceRef, nodeIds, labelIndex);
+        const selfTargetResolvedViaTrace = Boolean(
+          fromNodeId
+          && toNodeId
+          && fromNodeId === toNodeId
+          && traceNodeId
+          && traceNodeId !== fromNodeId
+        );
+        if (selfTargetResolvedViaTrace) {
+          fromNodeId = traceNodeId;
+        } else if (fromNodeId && toNodeId && fromNodeId === toNodeId) {
+          toNodeId = '';
+        }
         const stepIndexRaw = Number(item.stepIndex);
         const hasDerivationTimeline = steps.length > 0;
         let stepIndex = Number.isInteger(stepIndexRaw) &&
@@ -363,33 +420,37 @@ export const createDerivationHelpers = ({
         const alignedStep = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
           ? steps[stepIndex]
           : undefined;
-        operation = operation || normalizeMovementOperation(alignedStep?.operation);
-
-        if (!fromNodeId && Array.isArray(alignedStep?.sourceNodeIds) && alignedStep.sourceNodeIds.length === 1) {
-          fromNodeId = String(alignedStep.sourceNodeIds[0] || '').trim();
-        }
-        if (!toNodeId && alignedStep?.targetNodeId) {
-          toNodeId = String(alignedStep.targetNodeId || '').trim();
-        }
-        if (!traceNodeId && fromNodeId) {
-          const sourceNode = nodeById.get(fromNodeId);
-          if (sourceNode && (isTraceLikeNode(sourceNode) || isNullLikeNode(sourceNode))) {
-            traceNodeId = fromNodeId;
-          }
-        }
-
-        if (!fromNodeId || !toNodeId) return null;
-        if (!nodeIds.has(fromNodeId) || !nodeIds.has(toNodeId)) return null;
+        operation = operation || (preserveOperationLabel
+          ? normalizeOptionalStepText(alignedStep?.operation)
+          : normalizeMovementOperation(alignedStep?.operation));
+        const diagnostics = [];
+        if (explicitMovingRef && !movingNodeId) diagnostics.push(`Saved moving node "${explicitMovingRef}" is not present in the authored tree inventory.`);
+        if (explicitSourceRef && !fromNodeId) diagnostics.push(`Saved source node "${explicitSourceRef}" is not present in the authored tree inventory.`);
+        if (explicitLandingRef && !toNodeId) diagnostics.push(`Saved landing node "${explicitLandingRef}" is not present in the authored tree inventory.`);
+        if (explicitHostRef && !hostNodeId) diagnostics.push(`Saved host node "${explicitHostRef}" is not present in the authored tree inventory.`);
+        if (explicitTraceRef && !traceNodeId) diagnostics.push(`Saved trace node "${explicitTraceRef}" is not present in the authored tree inventory.`);
+        if (!fromNodeId) diagnostics.push('Source omitted in saved movement.');
+        if (!toNodeId) diagnostics.push('Landing omitted in saved movement.');
 
         const chainId = normalizeOptionalStepText(item.chainId) || normalizeOptionalStepText(alignedStep?.chainId);
         return {
           operation,
+          ...(preserveOperationLabel ? { label: operation } : {}),
+          ...(movingNodeId ? { movingNodeId } : {}),
           fromNodeId,
+          sourceNodeId: fromNodeId || undefined,
+          landingNodeId: toNodeId || undefined,
+          hostNodeId: hostNodeId || undefined,
           toNodeId,
           traceNodeId: traceNodeId && nodeIds.has(traceNodeId) ? traceNodeId : undefined,
           ...(chainId ? { chainId } : {}),
+          ...(explicitStepId ? { stepId: explicitStepId } : {}),
           stepIndex,
-          note: typeof item.note === 'string' ? item.note : undefined
+          note: typeof item.note === 'string' ? item.note : undefined,
+          ...(item.participants && typeof item.participants === 'object' && !Array.isArray(item.participants) ? { participants: item.participants } : {}),
+          ...(preserveOperationLabel ? { preserveOperationLabel: true } : {}),
+          serializationStatus: diagnostics.length > 0 ? 'underspecified' : 'complete',
+          diagnostics: diagnostics.length > 0 ? Array.from(new Set(diagnostics)) : undefined
         };
       })
       .filter(Boolean);
@@ -467,7 +528,7 @@ export const createDerivationHelpers = ({
       ? explicitTraceNode
       : null;
 
-    if (op === 'HeadMove') {
+    if (isHeadLikeOperation(op)) {
       if (groundedExplicitTrace) {
         return {
           ...event,
@@ -594,61 +655,109 @@ export const createDerivationHelpers = ({
     const rawEvents = Array.isArray(rawMovementEvents) ? rawMovementEvents : [];
     const canonical = [];
     const seen = new Set();
-    const claimedLaunchSites = new Set();
+    const mergeDiagnostics = (...collections) => {
+      const merged = [];
+      const seenDiagnostics = new Set();
+      collections.flat().forEach((value) => {
+        const text = normalizeOptionalStepText(value);
+        if (!text) return;
+        const parts = text
+          .split(/,(?=[A-Z"])/g)
+          .map((part) => normalizeOptionalStepText(part))
+          .filter(Boolean);
+        (parts.length > 0 ? parts : [text]).forEach((part) => {
+          if (seenDiagnostics.has(part)) return;
+          seenDiagnostics.add(part);
+          merged.push(part);
+        });
+      });
+      return merged.length > 0 ? merged : undefined;
+    };
+    const isNodeOrImmediateParentHeadLike = (nodeId) => {
+      const normalizedNodeId = String(nodeId || '').trim();
+      if (!normalizedNodeId) return false;
+      const node = nodeById.get(normalizedNodeId);
+      if (node && getLabelProfile(node.label).isHeadLikeStructural) return true;
+      const parentId = String(parentById.get(normalizedNodeId) || '').trim();
+      if (!parentId) return false;
+      const parent = nodeById.get(parentId);
+      return Boolean(parent && getLabelProfile(parent.label).isHeadLikeStructural);
+    };
 
     const pushEvent = (event, stepForContext) => {
       if (!event) return;
       const fromNodeId = String(event.fromNodeId || '').trim();
       const toNodeId = String(event.toNodeId || '').trim();
-      if (!fromNodeId || !toNodeId) return;
-      if (!nodeById.has(fromNodeId) || !nodeById.has(toNodeId)) return;
-      if (fromNodeId === toNodeId) return;
       const stepIndex = Number(event.stepIndex);
       const safeStepIndex = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
         ? stepIndex
         : undefined;
-      const explicitOperation = normalizeMovementOperation(event.operation) || 'Move';
+      const preserveOperationLabel = event.preserveOperationLabel === true || Boolean(normalizeOptionalStepText(event.label));
+      const explicitOperation = (preserveOperationLabel
+        ? normalizeOptionalStepText(event.label || event.operation)
+        : normalizeMovementOperation(event.operation)) || 'Move';
       const traceNodeId = (() => {
         const trace = String(event.traceNodeId || '').trim();
         if (trace && nodeById.has(trace)) return trace;
         return undefined;
       })();
-      const launchSiteId = traceNodeId || fromNodeId;
-      if (launchSiteId && claimedLaunchSites.has(launchSiteId)) return;
-      const key = `${fromNodeId}->${toNodeId}@${safeStepIndex ?? 'na'}:${explicitOperation}`;
+      const key = `${fromNodeId || 'missing'}->${toNodeId || 'missing'}@${safeStepIndex ?? 'na'}:${explicitOperation}:${String(event.chainId || '').trim()}`;
       if (seen.has(key)) return;
       seen.add(key);
-      if (launchSiteId) claimedLaunchSites.add(launchSiteId);
       const chainId = normalizeOptionalStepText(event.chainId) || normalizeOptionalStepText(stepForContext?.chainId);
+      const diagnostics = [];
+      if (!fromNodeId) diagnostics.push('Source omitted in saved movement.');
+      if (!toNodeId) diagnostics.push('Landing omitted in saved movement.');
+      if (fromNodeId && !nodeById.has(fromNodeId)) diagnostics.push(`Saved source node "${fromNodeId}" is not present in the committed tree.`);
+      if (toNodeId && !nodeById.has(toNodeId)) diagnostics.push(`Saved landing node "${toNodeId}" is not present in the committed tree.`);
+      if (fromNodeId && toNodeId && fromNodeId === toNodeId) diagnostics.push('Source and landing collapse to the same saved node.');
+      const sourceHeadLike = isNodeOrImmediateParentHeadLike(fromNodeId);
+      const targetHeadLike = isNodeOrImmediateParentHeadLike(toNodeId);
+      if (
+        explicitOperation === 'HeadMove'
+        && fromNodeId
+        && toNodeId
+        && (
+          !sourceHeadLike
+          || !targetHeadLike
+        )
+      ) {
+        diagnostics.push('Head-like movement does not connect head-compatible saved nodes.');
+      }
+      const mergedDiagnostics = mergeDiagnostics(event.diagnostics, diagnostics);
+      const headMovementIncoherent = diagnostics.some((message) => /head-like movement does not connect head-compatible saved nodes/i.test(String(message || '')));
+      const serializationStatus = normalizeOptionalStepText(event.serializationStatus) === 'incoherent' || headMovementIncoherent
+        ? 'incoherent'
+        : mergedDiagnostics
+          ? 'underspecified'
+          : 'complete';
       canonical.push({
         operation: explicitOperation,
-        fromNodeId,
-        toNodeId,
+        ...(preserveOperationLabel ? { label: explicitOperation } : {}),
+        ...(normalizeOptionalStepText(event.movingNodeId) ? { movingNodeId: normalizeOptionalStepText(event.movingNodeId) } : {}),
+        fromNodeId: fromNodeId || undefined,
+        ...(normalizeOptionalStepText(event.sourceNodeId) ? { sourceNodeId: normalizeOptionalStepText(event.sourceNodeId) } : {}),
+        landingNodeId: String(event.landingNodeId || event.toNodeId || '').trim() || undefined,
+        ...(normalizeOptionalStepText(event.hostNodeId) ? { hostNodeId: normalizeOptionalStepText(event.hostNodeId) } : {}),
+        toNodeId: toNodeId || undefined,
         traceNodeId,
         ...(chainId ? { chainId } : {}),
+        ...(normalizeOptionalStepText(event.stepId) ? { stepId: normalizeOptionalStepText(event.stepId) } : {}),
         stepIndex: safeStepIndex,
-        note: typeof event.note === 'string' ? event.note : undefined
+        note: typeof event.note === 'string' ? event.note : undefined,
+        ...(event.participants && typeof event.participants === 'object' && !Array.isArray(event.participants) ? { participants: event.participants } : {}),
+        ...(preserveOperationLabel ? { preserveOperationLabel: true } : {}),
+        serializationStatus,
+        diagnostics: mergedDiagnostics
       });
     };
 
-    rawEvents
-      .filter((event) => isPlausibleRawMovementEvent(event, nodeById))
-      .forEach((event) => {
+    rawEvents.forEach((event) => {
         const stepIndex = Number(event?.stepIndex);
         const step = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length
           ? steps[stepIndex]
           : undefined;
-        const op = normalizeMovementOperation(event?.operation) || 'Move';
-        const grounded = op === 'HeadMove'
-          ? event
-          : groundMovementEvent({
-              event,
-              step,
-              tree,
-              nodeById,
-              parentById
-            });
-        pushEvent(grounded, step);
+        pushEvent(event, step);
       });
 
     return canonical.length > 0 ? canonical : undefined;
@@ -767,7 +876,7 @@ export const createDerivationHelpers = ({
   };
 
   const preferExplicitMovementSiteNode = (rawNode, resolvedNode, operation) => {
-    if (operation === 'HeadMove') return resolvedNode || rawNode || null;
+    if (isHeadLikeOperation(operation)) return resolvedNode || rawNode || null;
     if (rawNode) {
       const profile = getLabelProfile(rawNode?.label);
       if (profile.isPhrasal || profile.isHeadLikeStructural) {
@@ -779,12 +888,12 @@ export const createDerivationHelpers = ({
 
   const buildMovementDetail = ({ event, nodeById, parentById }) => {
     const operation = normalizeMovementOperation(event?.operation) || 'Other';
-    const phrase = MOVEMENT_OPERATION_PHRASE[operation] || 'movement';
+    const phrase = MOVEMENT_OPERATION_PHRASE[operation] || humanizeOperationLabel(operation) || 'movement';
     const rawSourceNode = nodeById.get(String(event?.fromNodeId || event?.traceNodeId || '').trim()) || null;
     const traceNode = nodeById.get(String(event?.traceNodeId || '').trim()) || null;
     const rawToNode = nodeById.get(String(event?.toNodeId || '').trim()) || null;
     const resolvedToNode = resolveMovementSiteNode(nodeById, parentById, event?.toNodeId) || null;
-    const toNode = operation === 'HeadMove'
+    const toNode = isHeadLikeOperation(operation)
       ? resolveHeadMovementLandingNode(resolvedToNode, nodeById, parentById) || resolvedToNode
       : preferExplicitMovementSiteNode(rawToNode, resolvedToNode, operation);
     const note = cleanExplanationWhitespace(String(event?.note || ''));
@@ -799,7 +908,7 @@ export const createDerivationHelpers = ({
     const landingLabel = getMovementDisplayLabel(toNode, { preserveIndex: true });
     const movedDescriptor = buildMovedPhraseDescriptor(toNode, { preserveIndex: true });
 
-    if (operation === 'HeadMove') {
+    if (isHeadLikeOperation(operation)) {
       const movedHeadSurface = getNodeOvertYield(toNode) || getNodeOvertYield(resolvedToNode);
       const movedHead = movedHeadSurface ? `"${movedHeadSurface}"` : buildMovedPhraseDescriptor(toNode);
       const landingHead = getMovementDisplayLabel(toNode);

@@ -11,7 +11,8 @@ import {
 } from './prompts.js';
 import {
   LOCAL_MODEL_TIMEOUT_MS,
-  getRemainingRequestBudgetMs
+  getRemainingRequestBudgetMs,
+  resolveModelTimeoutMs
 } from './routeConfig.js';
 import {
   generateStructuredContent,
@@ -70,7 +71,10 @@ export const createNotesSecondPassHelpers = ({
         includeThoughts: false,
         abortSignal
       }),
-      Math.min(Math.max(remainingBudgetMs - 500, 2500), 90000),
+      Math.min(
+        Math.max(remainingBudgetMs - 500, 2500),
+        Math.max(resolveModelTimeoutMs(model, 'pro'), 2500)
+      ),
       `Note generation (${model})`
     );
     const generationMeta = summarizeGeneration(generation);

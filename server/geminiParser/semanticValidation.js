@@ -9,6 +9,19 @@ export const createSemanticValidationHelpers = ({
   collectOvertTerminalNodes,
   subtreeContainsNamedCovertCategoryLeaf
 }) => {
+  const GENERIC_OPERATION_ECHO_FACT_KINDS = new Set([
+    'merge',
+    'externalmerge',
+    'internalmerge',
+    'project',
+    'label',
+    'lexicalselect',
+    'spellout',
+    'spelloutdomain',
+    'move',
+    'movement',
+    'other'
+  ]);
   const NOTE_TEXT_RAISING_RE = /\braising\b/i;
   const NOTE_TEXT_CONTROL_RE = /\bcontrol\b|\bcontrolled\b/i;
   const NOTE_TEXT_SUBJECT_CONTROL_RE = /\bsubject[- ]control\b/i;
@@ -101,17 +114,45 @@ export const createSemanticValidationHelpers = ({
   };
 
   const hasMovementSupport = ({ movementEvents = [], chains = [] }, kind) => {
+    const movementOperationMatchesKind = (operation, expectedKind) => {
+      const normalized = normalizeMovementOperation(operation);
+      const raw = normalizeKey(operation);
+      if (expectedKind === 'AbarMove') {
+        return normalized === 'AbarMove' || /abar|wh|front|focus|topic|operator|displac|extract|scrambl|rollup|sideward/.test(raw);
+      }
+      if (expectedKind === 'A-Move') {
+        return normalized === 'A-Move' || /amove|raise|raising/.test(raw);
+      }
+      if (expectedKind === 'HeadMove') {
+        return normalized === 'HeadMove' || /head.*move|head.*raise|head.*lower|lower|lowering|affix|clitic|incorpor/.test(raw);
+      }
+      return false;
+    };
+    const chainMatchesKind = (chain, expectedKind) => {
+      const family = normalizeChainType(chain?.family || chain?.type);
+      const raw = normalizeKey(chain?.type);
+      if (expectedKind === 'AbarMove') {
+        return family === 'A-bar' || /abar|wh|front|focus|topic|operator|displac|extract|scrambl|rollup|sideward/.test(raw);
+      }
+      if (expectedKind === 'A-Move') {
+        return family === 'A' || /amove|raise|raising/.test(raw);
+      }
+      if (expectedKind === 'HeadMove') {
+        return family === 'head' || /head.*move|head.*raise|head.*lower|lower|lowering|affix|clitic|incorpor/.test(raw);
+      }
+      return false;
+    };
     if (kind === 'AbarMove') {
-      return movementEvents.some((event) => normalizeMovementOperation(event?.operation) === 'AbarMove')
-        || chains.some((chain) => normalizeChainType(chain?.type) === 'A-bar');
+      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+        || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     if (kind === 'A-Move') {
-      return movementEvents.some((event) => normalizeMovementOperation(event?.operation) === 'A-Move')
-        || chains.some((chain) => normalizeChainType(chain?.type) === 'A');
+      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+        || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     if (kind === 'HeadMove') {
-      return movementEvents.some((event) => normalizeMovementOperation(event?.operation) === 'HeadMove')
-        || chains.some((chain) => normalizeChainType(chain?.type) === 'head');
+      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+        || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     return false;
   };
@@ -196,33 +237,31 @@ export const createSemanticValidationHelpers = ({
     if (!Array.isArray(noteBindings) || noteBindings.length === 0) return;
     const NOTE_TEXT_BANNED_BOILERPLATE_RE = /\b(?:initial logic and parameters are validated|standard processing applied|final transformation)\b/i;
 
-    const dependencyTypes = new Set(
-      (clausalDependencies || [])
-        .map((entry) => normalizeKey(entry?.type))
-        .filter(Boolean)
-    );
-    const dependencySubtypes = new Set(
-      (clausalDependencies || [])
-        .map((entry) => normalizeKey(entry?.subtype))
-        .filter(Boolean)
-    );
     const buildLedgerIdSet = (entries, ...fields) => new Set(
       (Array.isArray(entries) ? entries : [])
         .flatMap((entry) => fields.map((field) => normalizeOptionalStepText(entry?.[field])))
         .filter(Boolean)
     );
-    const commitmentFactsById = new Map(
+    const commitmentFactMetaById = new Map(
       (Array.isArray(commitmentGraph) ? commitmentGraph : [])
         .map((entry) => {
           const factId = normalizeOptionalStepText(entry?.factId || entry?.id);
           const kind = normalizeKey(entry?.kind);
-          return factId && kind ? [factId, kind] : null;
+          const subtype = normalizeKey(entry?.subtype);
+          return factId && kind ? [factId, { kind, subtype }] : null;
         })
         .filter(Boolean)
     );
-    const commitmentKinds = new Set(commitmentFactsById.values());
-    const hasCommitmentKindSupport = (...kinds) =>
-      kinds.some((kind) => commitmentKinds.has(normalizeKey(kind)));
+    const commitmentKinds = new Set(
+      Array.from(commitmentFactMetaById.values())
+        .map((entry) => entry?.kind)
+        .filter(Boolean)
+    );
+    const commitmentSubtypes = new Set(
+      Array.from(commitmentFactMetaById.values())
+        .map((entry) => entry?.subtype)
+        .filter(Boolean)
+    );
     const supportIdsForBinding = (binding) =>
       Array.isArray(binding?.supportIds)
         ? binding.supportIds.map((value) => normalizeOptionalStepText(value)).filter(Boolean)
@@ -246,10 +285,15 @@ export const createSemanticValidationHelpers = ({
         ...explicitIdsForBinding(binding, 'commitmentFactIds'),
         ...supportIdsForBinding(binding)
       ];
-      return ids.some((id) => allowedKinds.has(commitmentFactsById.get(id)));
+      return ids.some((id) => allowedKinds.has(commitmentFactMetaById.get(id)?.kind));
     };
-    const hasTypedOrCommitmentSupport = (binding, { fields = [], supportSets = [], commitmentKinds: requiredKinds = [] } = {}) =>
-      hasTypedSupport(binding, fields, supportSets) || hasCommitmentFactSupport(binding, ...requiredKinds);
+    const hasAnyCommitmentFactSupport = (binding) => {
+      const ids = [
+        ...explicitIdsForBinding(binding, 'commitmentFactIds'),
+        ...supportIdsForBinding(binding)
+      ];
+      return ids.some((id) => commitmentFactMetaById.has(id));
+    };
     const caseAssignmentIdSet = buildLedgerIdSet(caseAssignments, 'assignmentId', 'caseAssignmentId', 'id');
     const featureEntryIdSet = buildLedgerIdSet(featureLedger, 'entryId', 'id');
     const phaseIdSet = buildLedgerIdSet(phaseLog, 'phaseId', 'id');
@@ -277,13 +321,6 @@ export const createSemanticValidationHelpers = ({
     const switchReferenceIdSet = buildLedgerIdSet(switchReferenceLedger, 'switchReferenceId', 'id');
     const logophoraIdSet = buildLedgerIdSet(logophoraLedger, 'logophoraId', 'id');
     const eventStructureIdSet = buildLedgerIdSet(eventStructureLedger, 'eventStructureId', 'id');
-    const hasAnyClausalDependencySupport =
-      dependencyTypes.size > 0
-      || dependencySubtypes.size > 0
-      || hasCommitmentKindSupport('clausal-dependency');
-    const hasControlDependency = dependencyTypes.has('control') || Array.from(dependencySubtypes).some((key) => key.includes('control'));
-    const hasRaisingDependency = dependencyTypes.has('raising') || Array.from(dependencySubtypes).some((key) => key.includes('raising'));
-    const hasEcmDependency = dependencyTypes.has('ecm') || Array.from(dependencySubtypes).some((key) => key === 'ecm' || key.includes('exceptionalcasemarking'));
     const hasPhaseLog = Array.isArray(phaseLog) && phaseLog.length > 0;
     const hasMorphologyRealization = Array.isArray(morphologyRealization) && morphologyRealization.length > 0;
     const hasFeatureLedger = Array.isArray(featureLedger) && featureLedger.length > 0;
@@ -315,8 +352,67 @@ export const createSemanticValidationHelpers = ({
     const hasStructuralAnchor = (binding) =>
       Boolean(normalizeOptionalStepText(binding?.chainId))
       || hasBindingLinks(binding, 'stepIds', 'nodeIds');
-    const hasStructuralOrTypedSupport = (binding, config = {}) =>
-      hasStructuralAnchor(binding) || hasTypedOrCommitmentSupport(binding, config);
+    const legacyTypedSupportSpecs = [
+      { fields: ['caseAssignmentIds'], supportSets: [caseAssignmentIdSet] },
+      { fields: ['featureEntryIds'], supportSets: [featureEntryIdSet] },
+      { fields: ['phaseIds'], supportSets: [phaseIdSet] },
+      { fields: ['morphologyIds'], supportSets: [morphologyIdSet] },
+      { fields: ['argumentIds'], supportSets: [argumentIdSet] },
+      { fields: ['selectionIds'], supportSets: [selectionIdSet] },
+      { fields: ['bindingIds'], supportSets: [bindingIdSet] },
+      { fields: ['dependencyIds'], supportSets: [dependencyIdSet] },
+      { fields: ['agreementIds'], supportSets: [agreementIdSet] },
+      { fields: ['predicateClassIds'], supportSets: [predicateClassIdSet] },
+      { fields: ['probeIds'], supportSets: [probeIdSet] },
+      { fields: ['nullElementIds'], supportSets: [nullElementIdSet] },
+      { fields: ['diagnosticIds'], supportSets: [diagnosticIdSet] },
+      { fields: ['parameterIds'], supportSets: [parameterIdSet] },
+      { fields: ['informationStructureIds'], supportSets: [informationStructureIdSet] },
+      { fields: ['operatorScopeIds'], supportSets: [operatorScopeIdSet] },
+      { fields: ['voiceValencyIds'], supportSets: [voiceValencyIdSet] },
+      { fields: ['linearizationIds'], supportSets: [linearizationIdSet] },
+      { fields: ['localityIds'], supportSets: [localityIdSet] },
+      { fields: ['predicationIds'], supportSets: [predicationIdSet] },
+      { fields: ['particleIds'], supportSets: [particleIdSet] },
+      { fields: ['evidentialityIds'], supportSets: [evidentialityIdSet] },
+      { fields: ['mirativityIds'], supportSets: [mirativityIdSet] },
+      { fields: ['honorificityIds'], supportSets: [honorificityIdSet] },
+      { fields: ['switchReferenceIds'], supportSets: [switchReferenceIdSet] },
+      { fields: ['logophoraIds'], supportSets: [logophoraIdSet] },
+      { fields: ['eventStructureIds'], supportSets: [eventStructureIdSet] }
+    ];
+    const hasAnyLegacyTypedSupport = (binding) =>
+      legacyTypedSupportSpecs.some((spec) => hasTypedSupport(binding, spec.fields, spec.supportSets));
+    const hasAnyTheorySupport = (binding) =>
+      hasAnyLegacyTypedSupport(binding) || hasAnyCommitmentFactSupport(binding);
+    const hasAnyCanonicalSupport = (binding) =>
+      hasStructuralAnchor(binding) || hasAnyTheorySupport(binding);
+    const noteMentionsGenericTheoryClaim = (text) =>
+      NOTE_TEXT_CASE_RE.test(text)
+      || NOTE_TEXT_THETA_RE.test(text)
+      || NOTE_TEXT_FEATURE_RE.test(text)
+      || NOTE_TEXT_PHASE_RE.test(text)
+      || NOTE_TEXT_MORPHOLOGY_RE.test(text)
+      || NOTE_TEXT_SELECTION_RE.test(text)
+      || NOTE_TEXT_BINDING_RE.test(text)
+      || NOTE_TEXT_AGREEMENT_RE.test(text)
+      || NOTE_TEXT_PREDICATE_CLASS_RE.test(text)
+      || NOTE_TEXT_PROBE_RE.test(text)
+      || NOTE_TEXT_NULL_ELEMENT_RE.test(text)
+      || NOTE_TEXT_DIAGNOSTIC_RE.test(text)
+      || NOTE_TEXT_PARAMETER_RE.test(text)
+      || NOTE_TEXT_INFORMATION_STRUCTURE_RE.test(text)
+      || NOTE_TEXT_OPERATOR_SCOPE_RE.test(text)
+      || NOTE_TEXT_VOICE_VALENCY_RE.test(text)
+      || NOTE_TEXT_LOCALITY_RE.test(text)
+      || NOTE_TEXT_PREDICATION_RE.test(text)
+      || NOTE_TEXT_PARTICLE_RE.test(text)
+      || NOTE_TEXT_EVIDENTIALITY_RE.test(text)
+      || NOTE_TEXT_MIRATIVITY_RE.test(text)
+      || NOTE_TEXT_HONORIFICITY_RE.test(text)
+      || NOTE_TEXT_SWITCH_REFERENCE_RE.test(text)
+      || NOTE_TEXT_LOGOPHORA_RE.test(text)
+      || NOTE_TEXT_EVENT_STRUCTURE_RE.test(text);
 
     for (const binding of noteBindings) {
       const kind = normalizeKey(binding?.kind);
@@ -332,57 +428,11 @@ export const createSemanticValidationHelpers = ({
         );
       }
 
-      if (noteAssertsRaising(text) && hasAnyClausalDependencySupport && !hasRaisingDependency) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention raising but clausalDependencies do not encode a raising relation.',
-          502
-        );
-      }
-
-      if (noteAssertsControl(text) && hasAnyClausalDependencySupport && !hasControlDependency) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention control but clausalDependencies do not encode a control relation.',
-          502
-        );
-      }
-
       if (
-        NOTE_TEXT_SUBJECT_CONTROL_RE.test(text)
-        && hasControlDependency
-        && dependencySubtypes.size > 0
-        && !dependencySubtypes.has(normalizeKey('subject-control'))
+        NOTE_TEXT_WH_CHAIN_RE.test(text)
+        && !hasMovementSupport({ movementEvents, chains }, 'AbarMove')
+        && !hasStructuralAnchor(binding)
       ) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention subject control but clausalDependencies do not encode subtype "subject-control".',
-          502
-        );
-      }
-
-      if (
-        NOTE_TEXT_OBJECT_CONTROL_RE.test(text)
-        && hasControlDependency
-        && dependencySubtypes.size > 0
-        && !dependencySubtypes.has(normalizeKey('object-control'))
-      ) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention object control but clausalDependencies do not encode subtype "object-control".',
-          502
-        );
-      }
-
-      if (noteAssertsEcm(text) && hasAnyClausalDependencySupport && !hasEcmDependency) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention ECM but clausalDependencies do not encode an ECM relation.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_WH_CHAIN_RE.test(text) && !hasMovementSupport({ movementEvents, chains }, 'AbarMove')) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
           'A chain note mentions wh/A-bar movement but the structured derivation does not encode an A-bar chain.',
@@ -397,7 +447,12 @@ export const createSemanticValidationHelpers = ({
         );
       }
 
-      if (NOTE_TEXT_A_CHAIN_RE.test(text) && !NOTE_TEXT_CONTROL_RE.test(text) && !hasMovementSupport({ movementEvents, chains }, 'A-Move')) {
+      if (
+        NOTE_TEXT_A_CHAIN_RE.test(text)
+        && !NOTE_TEXT_CONTROL_RE.test(text)
+        && !hasMovementSupport({ movementEvents, chains }, 'A-Move')
+        && !hasStructuralAnchor(binding)
+      ) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
           'Notes mention A-movement but the structured derivation does not encode an A-chain.',
@@ -412,7 +467,11 @@ export const createSemanticValidationHelpers = ({
         );
       }
 
-      if (NOTE_TEXT_HEAD_CHAIN_RE.test(text) && !hasMovementSupport({ movementEvents, chains }, 'HeadMove')) {
+      if (
+        NOTE_TEXT_HEAD_CHAIN_RE.test(text)
+        && !hasMovementSupport({ movementEvents, chains }, 'HeadMove')
+        && !hasStructuralAnchor(binding)
+      ) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
           'Notes mention head movement but the structured derivation does not encode a head-movement chain.',
@@ -427,515 +486,36 @@ export const createSemanticValidationHelpers = ({
         );
       }
 
-      if (NOTE_TEXT_CASE_RE.test(text) && !hasCaseLedger && !hasCommitmentKindSupport('case')) {
+      if (NOTE_TEXT_LINEARIZATION_RE.test(text) && !isClosureBinding && !hasAnyCanonicalSupport(binding)) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
-          'Notes mention case but the structured derivation does not encode case commitments in commitmentGraph or caseAssignments.',
-          502
-        );
-      }
-      if (NOTE_TEXT_CASE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['caseAssignmentIds'],
-        supportSets: [caseAssignmentIdSet],
-        commitmentKinds: ['case']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention case but do not cite supporting commitmentGraph facts or caseAssignments.',
+          'Notes mention linearization or word-order facts but are neither anchored to the derivation nor supported by commitment facts or explicit support ids.',
           502
         );
       }
 
-      if (NOTE_TEXT_FEATURE_RE.test(text) && !hasFeatureLedger && !hasCommitmentKindSupport('feature')) {
+      if (noteMentionsGenericTheoryClaim(text) && !hasAnyCanonicalSupport(binding)) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
-          'Notes mention feature-checking facts but the structured derivation does not encode feature commitments in commitmentGraph or featureLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_FEATURE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['featureEntryIds'],
-        supportSets: [featureEntryIdSet],
-        commitmentKinds: ['feature']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention feature-checking facts but do not cite supporting commitmentGraph facts or featureLedger entries.',
+          'Notes mention public theory facts but are not anchored to the derivation and do not cite supporting commitment facts or explicit support ids.',
           502
         );
       }
 
-      if (NOTE_TEXT_PHASE_RE.test(text) && !hasPhaseLog && !hasCommitmentKindSupport('phase') && !hasStructuralAnchor(binding)) {
+      if (
+        (noteAssertsRaising(text) || noteAssertsControl(text) || noteAssertsEcm(text))
+        && !hasAnyCanonicalSupport(binding)
+      ) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
-          'Notes mention phase or transfer facts but the structured derivation does not encode phase commitments in commitmentGraph or phaseLog.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PHASE_RE.test(text) && !hasStructuralOrTypedSupport(binding, {
-        fields: ['phaseIds'],
-        supportSets: [phaseIdSet],
-        commitmentKinds: ['phase']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention phase or transfer facts but are not anchored to the derivation or supporting commitmentGraph/phaseLog entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_MORPHOLOGY_RE.test(text) && !hasMorphologyRealization && !hasCommitmentKindSupport('morphology')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention morphology/exponence facts but the structured derivation does not encode morphology commitments in commitmentGraph or morphologyRealization.',
-          502
-        );
-      }
-      if (NOTE_TEXT_MORPHOLOGY_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['morphologyIds'],
-        supportSets: [morphologyIdSet],
-        commitmentKinds: ['morphology']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention morphology/exponence facts but do not cite supporting commitmentGraph facts or morphologyRealization entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_THETA_RE.test(text) && !hasArgumentLedger && !hasCommitmentKindSupport('argument-structure')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention theta-role or argument-structure facts but the structured derivation does not encode argument-structure commitments in commitmentGraph or argumentStructure.',
-          502
-        );
-      }
-      if (NOTE_TEXT_THETA_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['argumentIds'],
-        supportSets: [argumentIdSet],
-        commitmentKinds: ['argument-structure']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention theta-role facts but do not cite supporting commitmentGraph facts or argumentStructure entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_SELECTION_RE.test(text) && !hasSelectionLedger && !hasCommitmentKindSupport('selection') && !hasStructuralAnchor(binding)) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention selection/complement structure but the structured derivation does not encode selection commitments in commitmentGraph or selectionLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_SELECTION_RE.test(text) && !hasStructuralOrTypedSupport(binding, {
-        fields: ['selectionIds'],
-        supportSets: [selectionIdSet],
-        commitmentKinds: ['selection']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention selection but are not anchored to the derivation or supporting commitmentGraph/selectionLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_BINDING_RE.test(text) && !hasBindingLedger && !hasCommitmentKindSupport('binding')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention binding-domain facts but the structured derivation does not encode binding commitments in commitmentGraph or bindingLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_BINDING_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['bindingIds'],
-        supportSets: [bindingIdSet],
-        commitmentKinds: ['binding']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention binding facts but do not cite supporting commitmentGraph facts or bindingLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_AGREEMENT_RE.test(text) && !hasAgreementLedger && !hasCommitmentKindSupport('agreement')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention agreement or noun-class facts but the structured derivation does not encode agreement commitments in commitmentGraph or agreementLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_AGREEMENT_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['agreementIds'],
-        supportSets: [agreementIdSet],
-        commitmentKinds: ['agreement']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention agreement facts but do not cite supporting commitmentGraph facts or agreementLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_PREDICATE_CLASS_RE.test(text) && !hasPredicateClassLedger && !hasCommitmentKindSupport('predicate-class')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention predicate-class facts but the structured derivation does not encode predicate-class commitments in commitmentGraph or predicateClassLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PREDICATE_CLASS_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['predicateClassIds'],
-        supportSets: [predicateClassIdSet],
-        commitmentKinds: ['predicate-class']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention predicate-class facts but do not cite supporting commitmentGraph facts or predicateClassLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_PROBE_RE.test(text) && !hasProbeLedger && !hasCommitmentKindSupport('probe')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention probing or probe directionality but the structured derivation does not encode probe commitments in commitmentGraph or probeLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PROBE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['probeIds'],
-        supportSets: [probeIdSet],
-        commitmentKinds: ['probe']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention probing facts but do not cite supporting commitmentGraph facts or probeLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_NULL_ELEMENT_RE.test(text) && !hasNullElementLedger && !hasCommitmentKindSupport('null-element') && !hasStructuralAnchor(binding)) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention silent/null elements but the structured derivation does not encode null-element commitments in commitmentGraph or nullElementLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_NULL_ELEMENT_RE.test(text) && !hasStructuralOrTypedSupport(binding, {
-        fields: ['nullElementIds'],
-        supportSets: [nullElementIdSet],
-        commitmentKinds: ['null-element']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention null-element facts but are not anchored to the derivation or supporting commitmentGraph/nullElementLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_DIAGNOSTIC_RE.test(text) && !hasDiagnosticLedger && !hasCommitmentKindSupport('diagnostic')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention diagnostics but the structured derivation does not encode diagnostic commitments in commitmentGraph or diagnosticLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_DIAGNOSTIC_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['diagnosticIds'],
-        supportSets: [diagnosticIdSet],
-        commitmentKinds: ['diagnostic']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention diagnostics but do not cite supporting commitmentGraph facts or diagnosticLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_PARAMETER_RE.test(text) && !hasParameterLedger && !hasCommitmentKindSupport('parameter')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention parameterization but the structured derivation does not encode parameter commitments in commitmentGraph or parameterLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PARAMETER_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['parameterIds'],
-        supportSets: [parameterIdSet, probeIdSet],
-        commitmentKinds: ['parameter', 'probe']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention parameter facts but do not cite supporting commitmentGraph facts or parameter/probe ledger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_INFORMATION_STRUCTURE_RE.test(text) && !hasInformationStructureLedger && !hasCommitmentKindSupport('information-structure')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention information-structure facts but the structured derivation does not encode information-structure commitments in commitmentGraph or informationStructureLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_INFORMATION_STRUCTURE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['informationStructureIds'],
-        supportSets: [informationStructureIdSet],
-        commitmentKinds: ['information-structure']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention information-structure facts but do not cite supporting commitmentGraph facts or informationStructureLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_OPERATOR_SCOPE_RE.test(text) && !hasOperatorScopeLedger && !hasCommitmentKindSupport('operator-scope')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention operator/scope facts but the structured derivation does not encode operator-scope commitments in commitmentGraph or operatorScopeLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_OPERATOR_SCOPE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['operatorScopeIds'],
-        supportSets: [operatorScopeIdSet],
-        commitmentKinds: ['operator-scope']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention scope facts but do not cite supporting commitmentGraph facts or operatorScopeLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_VOICE_VALENCY_RE.test(text) && !hasVoiceValencyLedger && !hasCommitmentKindSupport('voice-valency')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention voice/valency facts but the structured derivation does not encode voice-valency commitments in commitmentGraph or voiceValencyLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_VOICE_VALENCY_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['voiceValencyIds'],
-        supportSets: [voiceValencyIdSet],
-        commitmentKinds: ['voice-valency']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention voice/valency facts but do not cite supporting commitmentGraph facts or voiceValencyLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_LINEARIZATION_RE.test(text) && !hasLinearizationLedger && !hasCommitmentKindSupport('linearization') && !hasStructuralAnchor(binding)) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention linearization/word-order facts but the structured derivation does not encode linearization commitments in commitmentGraph or linearizationLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_LINEARIZATION_RE.test(text) && !isClosureBinding && !hasStructuralOrTypedSupport(binding, {
-        fields: ['linearizationIds'],
-        supportSets: [linearizationIdSet],
-        commitmentKinds: ['linearization']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention linearization facts but are not anchored to the derivation or supporting commitmentGraph/linearizationLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_LOCALITY_RE.test(text) && !hasLocalityLedger && !hasCommitmentKindSupport('locality') && !hasStructuralAnchor(binding)) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention locality facts but the structured derivation does not encode locality commitments in commitmentGraph or localityLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_LOCALITY_RE.test(text) && !isClosureBinding && !hasStructuralOrTypedSupport(binding, {
-        fields: ['localityIds'],
-        supportSets: [localityIdSet],
-        commitmentKinds: ['locality']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention locality facts but are not anchored to the derivation or supporting commitmentGraph/localityLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_PREDICATION_RE.test(text) && !hasPredicationLedger && !hasCommitmentKindSupport('predication')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention predication facts but the structured derivation does not encode predication commitments in commitmentGraph or predicationLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PREDICATION_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['predicationIds'],
-        supportSets: [predicationIdSet],
-        commitmentKinds: ['predication']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention predication facts but do not cite supporting commitmentGraph facts or predicationLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_PARTICLE_RE.test(text) && !hasParticleLedger && !hasCommitmentKindSupport('particle')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention particle facts but the structured derivation does not encode particle commitments in commitmentGraph or particleLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_PARTICLE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['particleIds'],
-        supportSets: [particleIdSet],
-        commitmentKinds: ['particle']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention particle facts but do not cite supporting commitmentGraph facts or particleLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_EVIDENTIALITY_RE.test(text) && !hasEvidentialityLedger && !hasCommitmentKindSupport('evidentiality')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention evidentiality facts but the structured derivation does not encode evidentiality commitments in commitmentGraph or evidentialityLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_EVIDENTIALITY_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['evidentialityIds'],
-        supportSets: [evidentialityIdSet],
-        commitmentKinds: ['evidentiality']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention evidentiality facts but do not cite supporting commitmentGraph facts or evidentialityLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_MIRATIVITY_RE.test(text) && !hasMirativityLedger && !hasCommitmentKindSupport('mirativity')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention mirativity facts but the structured derivation does not encode mirativity commitments in commitmentGraph or mirativityLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_MIRATIVITY_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['mirativityIds'],
-        supportSets: [mirativityIdSet],
-        commitmentKinds: ['mirativity']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention mirativity facts but do not cite supporting commitmentGraph facts or mirativityLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_HONORIFICITY_RE.test(text) && !hasHonorificityLedger && !hasCommitmentKindSupport('honorificity')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention honorificity facts but the structured derivation does not encode honorificity commitments in commitmentGraph or honorificityLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_HONORIFICITY_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['honorificityIds'],
-        supportSets: [honorificityIdSet],
-        commitmentKinds: ['honorificity']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention honorificity facts but do not cite supporting commitmentGraph facts or honorificityLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_SWITCH_REFERENCE_RE.test(text) && !hasSwitchReferenceLedger && !hasCommitmentKindSupport('switch-reference')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention switch-reference facts but the structured derivation does not encode switch-reference commitments in commitmentGraph or switchReferenceLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_SWITCH_REFERENCE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['switchReferenceIds'],
-        supportSets: [switchReferenceIdSet],
-        commitmentKinds: ['switch-reference']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention switch-reference facts but do not cite supporting commitmentGraph facts or switchReferenceLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_LOGOPHORA_RE.test(text) && !hasLogophoraLedger && !hasCommitmentKindSupport('logophora')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention logophoric facts but the structured derivation does not encode logophora commitments in commitmentGraph or logophoraLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_LOGOPHORA_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['logophoraIds'],
-        supportSets: [logophoraIdSet],
-        commitmentKinds: ['logophora']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention logophoric facts but do not cite supporting commitmentGraph facts or logophoraLedger entries.',
-          502
-        );
-      }
-
-      if (NOTE_TEXT_EVENT_STRUCTURE_RE.test(text) && !hasEventStructureLedger && !hasCommitmentKindSupport('event-structure')) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention event-structure or lexical-aspect facts but the structured derivation does not encode event-structure commitments in commitmentGraph or eventStructureLedger.',
-          502
-        );
-      }
-      if (NOTE_TEXT_EVENT_STRUCTURE_RE.test(text) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['eventStructureIds'],
-        supportSets: [eventStructureIdSet],
-        commitmentKinds: ['event-structure']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention event-structure or lexical-aspect facts but do not cite supporting commitmentGraph facts or eventStructureLedger entries.',
-          502
-        );
-      }
-
-      if ((noteAssertsRaising(text) || noteAssertsControl(text) || noteAssertsEcm(text)) && !hasTypedOrCommitmentSupport(binding, {
-        fields: ['dependencyIds'],
-        supportSets: [dependencyIdSet],
-        commitmentKinds: ['clausal-dependency']
-      })) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          'Notes mention clausal dependency facts but do not cite supporting commitmentGraph facts or clausalDependencies entries.',
+          'Notes mention clausal dependency facts but are not anchored to the frozen derivation and do not cite supporting commitment facts or support ids.',
           502
         );
       }
     }
   };
 
-  const shouldWarnOnSemanticValidationFailure = () => process.env.NODE_ENV === 'production';
+  const shouldWarnOnSemanticValidationFailure = () => true;
   const shouldStrictlyEnforceNoteConsistency = () => String(process.env.BABEL_STRICT_NOTE_VALIDATION || '').trim() === '1';
 
   const runSemanticValidation = (label, validator) => {
@@ -979,7 +559,6 @@ export const createSemanticValidationHelpers = ({
     rawDerivationSteps,
     chains,
     commitmentGraph,
-    researchTrace,
     caseAssignments,
     argumentStructure,
     phaseLog,
@@ -1025,7 +604,6 @@ export const createSemanticValidationHelpers = ({
       hasRichSteps,
       Array.isArray(chains) && chains.length > 0,
       Array.isArray(commitmentGraph) && commitmentGraph.length > 0,
-      Array.isArray(researchTrace) && researchTrace.length > 0,
       Array.isArray(caseAssignments) && caseAssignments.length > 0,
       Array.isArray(argumentStructure) && argumentStructure.length > 0,
       Array.isArray(phaseLog) && phaseLog.length > 0,
@@ -1060,11 +638,207 @@ export const createSemanticValidationHelpers = ({
     return 'minimal';
   };
 
+  const hasMeaningfulFactValue = (value) => {
+    if (value === undefined || value === null) return false;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (typeof value === 'number' || typeof value === 'boolean') return true;
+    if (Array.isArray(value)) return value.some((item) => hasMeaningfulFactValue(item));
+    if (typeof value === 'object') return Object.values(value).some((item) => hasMeaningfulFactValue(item));
+    return false;
+  };
+
+  const hasMeaningfulFactAnchors = (fact) => {
+    if (!fact || typeof fact !== 'object') return false;
+    if (normalizeOptionalStepText(fact?.chainId)) return true;
+    if (Array.isArray(fact?.nodeIds) && fact.nodeIds.some((value) => String(value || '').trim())) return true;
+    if (
+      Array.isArray(fact?.participants)
+      && fact.participants.some((participant) =>
+        participant
+        && typeof participant === 'object'
+        && (
+          normalizeOptionalStepText(participant.role)
+          || normalizeOptionalStepText(participant.nodeId)
+          || normalizeOptionalStepText(participant.label)
+          || normalizeOptionalStepText(participant.value)
+        )
+      )
+    ) {
+      return true;
+    }
+    return Object.entries(fact).some(([field, value]) => (
+      /(?:^|[A-Z])nodeId$/i.test(field)
+      || field === 'nodeId'
+    ) && hasMeaningfulFactValue(value));
+  };
+
+  const factHasNonAnchorDescriptor = (fact) => {
+    if (!fact || typeof fact !== 'object') return false;
+    const ignoredFields = new Set([
+      'factId',
+      'kind',
+      'family',
+      'frameworkLabel',
+      'subtype',
+      'stepIds',
+      'nodeIds',
+      'participants',
+      'chainId',
+      'sourceStepId',
+      'note',
+      'diagnostics'
+    ]);
+    return Object.entries(fact).some(([field, value]) => {
+      if (ignoredFields.has(field)) return false;
+      if (field === 'nodeId' || /(?:^|[A-Z])nodeId$/i.test(field)) return false;
+      if (field === 'label' || /(?:^|[A-Z])label$/i.test(field)) return false;
+      return hasMeaningfulFactValue(value);
+    });
+  };
+
+  const isWeakOperationEchoFact = (fact, frame) => {
+    if (!fact || typeof fact !== 'object') return false;
+    const normalizedKind = normalizeKey(fact?.kind || fact?.family || fact?.type);
+    if (!GENERIC_OPERATION_ECHO_FACT_KINDS.has(normalizedKind)) return false;
+    const change = frame?.change && typeof frame.change === 'object' && !Array.isArray(frame.change)
+      ? frame.change
+      : null;
+    const anchors = Array.isArray(change?.anchors) ? change.anchors : [];
+    const moveLikeFrame = anchors.some((anchor) => {
+      const role = normalizeKey(anchor?.role);
+      const nodeId = normalizeOptionalStepText(anchor?.nodeId);
+      return Boolean(nodeId) && /source|from|origin|lower|landing|target|destination|host|targethead|trace|residue|lowercopy|copy/.test(role);
+    }) || (Array.isArray(change?.continuityIds) && change.continuityIds.length > 0);
+    if (moveLikeFrame && (normalizedKind === 'move' || normalizedKind === 'movement')) {
+      return false;
+    }
+    if (factHasNonAnchorDescriptor(fact)) return false;
+    if (!hasMeaningfulFactAnchors(fact)) return true;
+    const hasSpecificLabel = Boolean(
+      normalizeOptionalStepText(fact?.frameworkLabel)
+      || normalizeOptionalStepText(fact?.subtype)
+    );
+    return !hasSpecificLabel || !moveLikeFrame;
+  };
+
+  const collectFrameAuthoredCommitments = (frame) => {
+    const change = frame?.change && typeof frame.change === 'object' && !Array.isArray(frame.change)
+      ? frame.change
+      : null;
+    return change ? [change] : [];
+  };
+
+  const hasMeaningfulCommitmentAnchors = (commitment) => {
+    if (!commitment || typeof commitment !== 'object') return false;
+    if (Array.isArray(commitment?.anchors) && commitment.anchors.some((anchor) => {
+      const nodeId = normalizeOptionalStepText(anchor?.nodeId);
+      const value = normalizeOptionalStepText(anchor?.value);
+      const text = normalizeOptionalStepText(anchor?.text);
+      return Boolean(nodeId || value || text);
+    })) {
+      return true;
+    }
+    if (Array.isArray(commitment?.continuityIds) && commitment.continuityIds.some((value) => normalizeOptionalStepText(value))) {
+      return true;
+    }
+    return hasMeaningfulFactAnchors(commitment);
+  };
+
+  const isWeakOperationEchoCommitment = (commitment, frame) => {
+    if (!commitment || typeof commitment !== 'object') return false;
+    const statement = normalizeOptionalStepText(
+      commitment?.statement
+      || commitment?.summary
+      || commitment?.claim
+      || commitment?.note
+    );
+    const hasEventShape = Array.isArray(commitment?.anchors) || Array.isArray(commitment?.continuityIds);
+    if (!statement) {
+      return hasEventShape ? true : isWeakOperationEchoFact(commitment, frame);
+    }
+    const normalizedStatement = normalizeKey(statement);
+    const genericEcho = GENERIC_OPERATION_ECHO_FACT_KINDS.has(normalizedStatement);
+    if (!genericEcho) return false;
+    return !hasMeaningfulCommitmentAnchors(commitment);
+  };
+
+  const collectCompletenessWarnings = ({
+    noteBindings,
+    commitmentGraph,
+    growthFrames,
+    chains
+  }) => {
+    const warnings = [];
+    const hasCommitmentFacts = Array.isArray(commitmentGraph) && commitmentGraph.length > 0;
+    const hasAnchoredNotes = Array.isArray(noteBindings) && noteBindings.some((binding) => {
+      const kind = normalizeOptionalStepText(binding?.kind);
+      if (kind === 'closure') return false;
+      const text = normalizeOptionalStepText(binding?.text);
+      if (!text) return false;
+      return Boolean(
+        normalizeOptionalStepText(binding?.chainId)
+        || (Array.isArray(binding?.stepIds) && binding.stepIds.length > 0)
+        || (Array.isArray(binding?.nodeIds) && binding.nodeIds.length > 0)
+        || (Array.isArray(binding?.supportIds) && binding.supportIds.length > 0)
+        || (Array.isArray(binding?.commitmentFactIds) && binding.commitmentFactIds.length > 0)
+      );
+    });
+    const hasNonTrivialStructure = (
+      (Array.isArray(growthFrames) && growthFrames.length > 1)
+      || (Array.isArray(chains) && chains.length > 0)
+    );
+
+    if (!hasCommitmentFacts && hasAnchoredNotes && hasNonTrivialStructure) {
+      warnings.push('Anchored noteBindings are present but commitmentFacts are empty.');
+    }
+
+    const framesMissingCommitments = (Array.isArray(growthFrames) ? growthFrames : [])
+      .map((frame, index) => {
+        const commitments = collectFrameAuthoredCommitments(frame);
+        if (commitments.length > 0) return null;
+        return normalizeOptionalStepText(frame?.stepId)
+          || normalizeOptionalStepText(frame?.frameId)
+          || `frame-${index + 1}`;
+      })
+      .filter(Boolean);
+
+    if (framesMissingCommitments.length > 0) {
+      const preview = framesMissingCommitments.slice(0, 8).join(', ');
+      const overflow = framesMissingCommitments.length - Math.min(framesMissingCommitments.length, 8);
+      warnings.push(
+        `Growth frames are missing required frame-local event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
+      );
+    }
+
+    const framesWithWeakCommitments = (Array.isArray(growthFrames) ? growthFrames : [])
+      .map((frame, index) => {
+        const commitments = collectFrameAuthoredCommitments(frame);
+        if (commitments.length === 0) return null;
+        const hasUsefulCommitment = commitments.some((commitment) => !isWeakOperationEchoCommitment(commitment, frame));
+        if (hasUsefulCommitment) return null;
+        return normalizeOptionalStepText(frame?.stepId)
+          || normalizeOptionalStepText(frame?.frameId)
+          || `frame-${index + 1}`;
+      })
+      .filter(Boolean);
+
+    if (framesWithWeakCommitments.length > 0) {
+      const preview = framesWithWeakCommitments.slice(0, 8).join(', ');
+      const overflow = framesWithWeakCommitments.length - Math.min(framesWithWeakCommitments.length, 8);
+      warnings.push(
+        `Growth frames contain weak operation-echo event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
+      );
+    }
+
+    return warnings;
+  };
+
   return {
     validatePronouncedCopiesAgainstCommittedTree,
     validateNoteBindingsAgainstStructuredAnalysis,
     runSemanticValidation,
     auditNoteConsistency,
-    computeCompletenessStatus
+    computeCompletenessStatus,
+    collectCompletenessWarnings
   };
 };

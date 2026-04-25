@@ -33,25 +33,107 @@ import {
 } from './modelRuntime.js';
 import {
   buildPayloadFingerprint,
+  buildPayloadFingerprintAllowingStageFieldRelocation,
   payloadRespectsRawStructuralAnchors
 } from './payloadFirewall.js';
+
+export const classifyGeminiRouteError = ({
+  error,
+  ParseApiError,
+  modelRoute = 'pro',
+  model
+}) => {
+  if (error instanceof ParseApiError) {
+    return error;
+  }
+
+  const { msg, haystack, statusCode } = getErrorMeta(error);
+  const providerMessage = String(msg || '').trim() || undefined;
+
+  if (
+    haystack.includes('api key expired') ||
+    haystack.includes('api_key_expired') ||
+    haystack.includes('invalid api key') ||
+    haystack.includes('api_key_invalid') ||
+    haystack.includes('unauthenticated') ||
+    haystack.includes('permission_denied') ||
+    statusCode === 401 ||
+    statusCode === 403
+  ) {
+    return new ParseApiError('API_KEY_INVALID', 'Server API key is invalid or expired.', 500);
+  }
+
+  if (haystack.includes('resource_exhausted') || haystack.includes('quota') || statusCode === 429) {
+    return new ParseApiError('GEMINI_QUOTA', 'Rate limit or quota reached for this server key.', 429);
+  }
+
+  if (
+    statusCode === 404 ||
+    (haystack.includes('model') && (
+      haystack.includes('not found') ||
+      haystack.includes('not available') ||
+      haystack.includes('unsupported')
+    ))
+  ) {
+    return new ParseApiError('MODEL_UNAVAILABLE', 'Requested model is unavailable for this project/key.', 503);
+  }
+
+  if (haystack.includes('invalid_argument') || statusCode === 400) {
+    return new ParseApiError('INVALID_REQUEST', 'Request was rejected by Gemini (invalid argument).', 400);
+  }
+
+  if (
+    statusCode === 408 ||
+    haystack.includes('timed out') ||
+    haystack.includes('timeout') ||
+    haystack.includes('aborterror')
+  ) {
+    return new ParseApiError(
+      'GEMINI_TIMEOUT',
+      `Gemini parse timed out before ${model || 'the model'} returned a result.`,
+      504,
+      providerMessage ? { providerMessage } : undefined
+    );
+  }
+
+  if (
+    statusCode === 503 ||
+    haystack.includes('service unavailable') ||
+    haystack.includes('backend error')
+  ) {
+    return new ParseApiError(
+      'GEMINI_UNAVAILABLE',
+      routeUnavailableMessage(modelRoute),
+      503
+    );
+  }
+
+  if (isNetworkTransportError(error)) {
+    return new ParseApiError(
+      'GEMINI_TRANSPORT',
+      `Gemini transport failed before ${model || 'the model'} returned a result.`,
+      502,
+      providerMessage ? { providerMessage } : undefined
+    );
+  }
+
+  return new ParseApiError('PARSE_FAILED', msg || 'Syntactic parsing failed.', 500);
+};
 
 export const createParseRoutes = ({
   ParseApiError,
   normalizeParseBundle,
   validateFinalProNoteBindings,
   parseModelJson,
-  parseModelJsonDetailed,
-  regenerateCommittedNoteBindings,
-  regenerateCommittedNoteBindingsWithLocalModel
+  parseModelJsonDetailed
 }) => {
   const buildPayloadTranscriberSystemInstruction = () => (
     'Return raw JSON only. ' +
     'You are Babel\'s structural payload transcriber. ' +
     'Your job is to repair transport or field-placement problems without changing the linguistic analysis. ' +
-    'Preserve all overt terminals, node ids, step ids, movement events, chains, commitmentGraph facts, token indices, and structural relations. ' +
-    'Do not invent movement, do not reorder terminals, do not add or remove nodes, do not change case, theta roles, selection, locality, or any commitmentGraph content. ' +
-    'If the payload is already parseable JSON, preserve that authored content exactly apart from harmless transport-canonical notation repair. ' +
+    'Preserve all overt terminals, node ids, step ids, frame.after, frame.change, compatibility chains if they are present, any compatibility movementEvents/commitmentGraph mirrors if they are present, token indices, and structural relations. ' +
+    'Do not invent movement, do not invent change content, do not reorder terminals, do not add or remove nodes, do not change case, theta roles, selection, locality, or any authored change/commitmentGraph content. ' +
+    'If the payload is already parseable JSON, preserve that authored content exactly apart from harmless transport-canonical notation repair and mechanical field-placement repair. ' +
     'Output exactly one top-level JSON object and nothing else.'
   );
 
@@ -78,9 +160,11 @@ export const createParseRoutes = ({
       'Forbidden repairs:\n' +
       '- changing tree shape\n' +
       '- changing derivationSteps\n' +
-      '- changing movementEvents\n' +
+      '- changing frame.after\n' +
+      '- changing frame.change\n' +
+      '- changing movementEvents when present\n' +
       '- changing chains\n' +
-      '- changing commitmentGraph\n' +
+      '- changing commitmentGraph when present\n' +
       '- changing overt terminal order or token indices\n' +
       `${originalPayloadText}` +
       'Original raw payload:\n' +
@@ -210,7 +294,12 @@ export const createParseRoutes = ({
     if (originalPayload) {
       const originalFingerprint = buildPayloadFingerprint(originalPayload);
       const transcribedFingerprint = buildPayloadFingerprint(parsedTranscribed.payload);
-      if (originalFingerprint !== transcribedFingerprint) {
+      const relocationSafeOriginalFingerprint = buildPayloadFingerprintAllowingStageFieldRelocation(originalPayload);
+      const relocationSafeTranscribedFingerprint = buildPayloadFingerprintAllowingStageFieldRelocation(parsedTranscribed.payload);
+      if (
+        originalFingerprint !== transcribedFingerprint
+        && relocationSafeOriginalFingerprint !== relocationSafeTranscribedFingerprint
+      ) {
         writeDebugModelPayload({
           stage: `payload-transcriber-drift-${failureStage}`,
           model: PAYLOAD_TRANSCRIBER_MODEL,
@@ -320,35 +409,6 @@ export const createParseRoutes = ({
       }
 
       if (normalized?.analyses?.[0]) {
-        try {
-          const priorProvenance = normalized.analyses[0].provenance || {};
-          const regeneratedAnalysis = await regenerateCommittedNoteBindingsWithLocalModel({
-            framework,
-            sentence,
-            analysis: normalized.analyses[0],
-            requestStartedAt,
-            modelUsed
-          });
-          if (regeneratedAnalysis) {
-            normalized = {
-              ...normalized,
-              analyses: [
-                {
-                  ...regeneratedAnalysis,
-                  provenance: attachAggregateParseTokenCounts({
-                    ...priorProvenance,
-                    ...(regeneratedAnalysis.provenance || {}),
-                    modelRoute: 'local',
-                    notesSecondPass: true
-                  })
-                }
-              ]
-            };
-          }
-        } catch (error) {
-          const meta = summarizeErrorForLog(error);
-          console.warn(`[local] second-pass note generation failed on ${modelUsed}: ${meta.message ?? 'no message'}`);
-        }
         normalized = validateFinalProNoteBindings(normalized);
       }
 
@@ -417,7 +477,10 @@ export const createParseRoutes = ({
           systemInstruction,
           temperature: routeTemperature,
           maxOutputTokens: routeMaxOutputTokens,
-          includeThoughts: normalizedModelRoute === 'pro',
+          // First-pass Pro needs machine-valid JSON more than provider reasoning traces.
+          // Keeping thoughts off here reduces latency and truncation pressure on Growth output.
+          // Do not force a lower provider thinking mode on the live route.
+          includeThoughts: false,
           abortSignal
         }),
         resolveRequestTimeoutMs({
@@ -437,13 +500,10 @@ export const createParseRoutes = ({
           ? parseModelJsonDetailed(generationMeta.rawText)
           : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [] };
         payload = parsedPayload.payload;
-        payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
-          ? parsedPayload.integrityFlags
-          : [];
+          payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
+            ? parsedPayload.integrityFlags
+            : [];
       } catch (error) {
-        if (truncatedGeneration) {
-          throw new ParseApiError('BAD_MODEL_RESPONSE', 'Model output was truncated before JSON completion.', 502);
-        }
         if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
           const transcribed = await attemptPayloadTranscriber({
             ai,
@@ -452,7 +512,7 @@ export const createParseRoutes = ({
             modelRoute: normalizedModelRoute,
             rawText: generationMeta.rawText,
             requestStartedAt,
-            failureStage: 'json_parse',
+            failureStage: truncatedGeneration ? 'truncated_json_parse' : 'json_parse',
             originalPayload: null,
             existingIntegrityFlags: []
           });
@@ -470,38 +530,6 @@ export const createParseRoutes = ({
               ]
             };
             if (normalizedModelRoute === 'pro' && recovered?.analyses?.[0]) {
-              try {
-                const priorProvenance = recovered.analyses[0].provenance || {};
-                const regeneratedAnalysis = await regenerateCommittedNoteBindings({
-                  ai,
-                  model: selectedModel,
-                  framework,
-                  sentence,
-                  modelRoute: normalizedModelRoute,
-                  analysis: recovered.analyses[0],
-                  requestStartedAt
-                });
-                if (regeneratedAnalysis) {
-                  recovered = {
-                    ...recovered,
-                    analyses: [
-                      {
-                        ...regeneratedAnalysis,
-                        provenance: attachAggregateParseTokenCounts({
-                          ...priorProvenance,
-                          ...(regeneratedAnalysis.provenance || {}),
-                          notesSecondPass: true
-                        })
-                      }
-                    ]
-                  };
-                }
-              } catch (transcriberNoteError) {
-                const meta = summarizeErrorForLog(transcriberNoteError);
-                console.warn(
-                  `[gemini] second-pass note generation failed after payload transcription on ${selectedModel}: ${meta.message ?? 'no message'}`
-                );
-              }
               recovered = validateFinalProNoteBindings(recovered);
             }
             return {
@@ -529,6 +557,9 @@ export const createParseRoutes = ({
               debugPayloadPath
             }
           );
+        }
+        if (truncatedGeneration) {
+          throw new ParseApiError('BAD_MODEL_RESPONSE', 'Model output was truncated before JSON completion.', 502);
         }
         throw error;
       }
@@ -615,38 +646,6 @@ export const createParseRoutes = ({
       }
 
       if (normalizedModelRoute === 'pro' && normalized?.analyses?.[0]) {
-        try {
-          const priorProvenance = normalized.analyses[0].provenance || {};
-          const regeneratedAnalysis = await regenerateCommittedNoteBindings({
-            ai,
-            model: selectedModel,
-            framework,
-            sentence,
-            modelRoute: normalizedModelRoute,
-            analysis: normalized.analyses[0],
-            requestStartedAt
-          });
-          if (regeneratedAnalysis) {
-            normalized = {
-              ...normalized,
-              analyses: [
-                {
-                  ...regeneratedAnalysis,
-                  provenance: attachAggregateParseTokenCounts({
-                    ...priorProvenance,
-                    ...(regeneratedAnalysis.provenance || {}),
-                    notesSecondPass: true
-                  })
-                }
-              ]
-            };
-          }
-        } catch (error) {
-          const meta = summarizeErrorForLog(error);
-          console.warn(
-            `[gemini] second-pass note generation failed on ${selectedModel}: ${meta.message ?? 'no message'}`
-          );
-        }
         normalized = validateFinalProNoteBindings(normalized);
       }
 
@@ -656,65 +655,12 @@ export const createParseRoutes = ({
         modelUsed: selectedModel
       };
     } catch (error) {
-      if (error instanceof ParseApiError) {
-        throw error;
-      }
-
-      const { msg, haystack, statusCode } = getErrorMeta(error);
-
-      if (
-        haystack.includes('api key expired') ||
-        haystack.includes('api_key_expired') ||
-        haystack.includes('invalid api key') ||
-        haystack.includes('api_key_invalid') ||
-        haystack.includes('unauthenticated') ||
-        haystack.includes('permission_denied') ||
-        statusCode === 401 ||
-        statusCode === 403
-      ) {
-        throw new ParseApiError('API_KEY_INVALID', 'Server API key is invalid or expired.', 500);
-      }
-
-      if (
-        statusCode === 503 ||
-        haystack.includes('service unavailable') ||
-        haystack.includes('backend error')
-      ) {
-        throw new ParseApiError(
-          'GEMINI_UNAVAILABLE',
-          routeUnavailableMessage(normalizedModelRoute),
-          503
-        );
-      }
-
-      if (isNetworkTransportError(error)) {
-        throw new ParseApiError(
-          'GEMINI_UNAVAILABLE',
-          routeUnavailableMessage(normalizedModelRoute),
-          503
-        );
-      }
-
-      if (haystack.includes('resource_exhausted') || haystack.includes('quota') || statusCode === 429) {
-        throw new ParseApiError('GEMINI_QUOTA', 'Rate limit or quota reached for this server key.', 429);
-      }
-
-      if (
-        statusCode === 404 ||
-        (haystack.includes('model') && (
-          haystack.includes('not found') ||
-          haystack.includes('not available') ||
-          haystack.includes('unsupported')
-        ))
-      ) {
-        throw new ParseApiError('MODEL_UNAVAILABLE', 'Requested model is unavailable for this project/key.', 503);
-      }
-
-      if (haystack.includes('invalid_argument') || statusCode === 400) {
-        throw new ParseApiError('INVALID_REQUEST', 'Request was rejected by Gemini (invalid argument).', 400);
-      }
-
-      throw new ParseApiError('PARSE_FAILED', msg || 'Syntactic parsing failed.', 500);
+      throw classifyGeminiRouteError({
+        error,
+        ParseApiError,
+        modelRoute: normalizedModelRoute,
+        model: selectedModel
+      });
     }
   };
 

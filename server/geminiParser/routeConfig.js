@@ -16,7 +16,7 @@ export const PAYLOAD_TRANSCRIBER_TEMPERATURE = Number.isFinite(Number(process.en
 export const PRO_MAX_OUTPUT_TOKENS = Number(
   process.env.GEMINI_PRO_MAX_OUTPUT_TOKENS ||
   process.env.GEMINI_MAX_OUTPUT_TOKENS ||
-  65536
+  8192
 );
 export const MODEL_TEMPERATURE = Number.isFinite(Number(process.env.GEMINI_TEMPERATURE))
   ? Number(process.env.GEMINI_TEMPERATURE)
@@ -31,6 +31,8 @@ const PRO_MODEL_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRO_TIMEOUT_M
 const PRO_ROUTE_TIMEOUT_MS = Math.max(0, Number(process.env.GEMINI_PRO_ROUTE_TIMEOUT_MS || 0));
 const REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_REQUEST_BUDGET_MS || 0));
 const PRO_ROUTE_REQUEST_BUDGET_MS = Math.max(0, Number(process.env.GEMINI_PRO_REQUEST_BUDGET_MS || 0));
+const DEFAULT_PRIMARY_MODEL_TIMEOUT_MS = 45000;
+const DEFAULT_PRO_MODEL_TIMEOUT_MS = 180000;
 
 export const routeUnavailableMessage = () =>
   'The canopy is noisy right now. The selected Gemini 3.1 Pro route is unavailable; please plant your sentence again in a moment.';
@@ -49,23 +51,30 @@ export const resolveModelTimeoutMs = (model, modelRoute = 'pro') => {
   if (modelRoute === 'pro' && PRO_ROUTE_TIMEOUT_MS > 0) {
     return PRO_ROUTE_TIMEOUT_MS;
   }
-  if (modelRoute === 'pro' && !(Number.isFinite(MODEL_CALL_TIMEOUT_MS) && MODEL_CALL_TIMEOUT_MS > 0)) {
-    return 0;
-  }
   if (Number.isFinite(MODEL_CALL_TIMEOUT_MS) && MODEL_CALL_TIMEOUT_MS > 0) {
     return MODEL_CALL_TIMEOUT_MS;
   }
-  return model === PRIMARY_MODEL ? PRIMARY_MODEL_TIMEOUT_MS : PRO_MODEL_TIMEOUT_MS;
+  const routeSpecificTimeoutMs = modelRoute === 'pro'
+    ? PRO_MODEL_TIMEOUT_MS
+    : model === PRIMARY_MODEL
+      ? PRIMARY_MODEL_TIMEOUT_MS
+      : PRO_MODEL_TIMEOUT_MS;
+  if (routeSpecificTimeoutMs > 0) {
+    return routeSpecificTimeoutMs;
+  }
+  // Never return 0 here. withTimeout() treats non-finite/zero as "no timeout",
+  // which lets a hung provider call block the entire Pro route forever.
+  return modelRoute === 'pro' ? DEFAULT_PRO_MODEL_TIMEOUT_MS : DEFAULT_PRIMARY_MODEL_TIMEOUT_MS;
 };
 
 export const getRemainingRequestBudgetMs = (requestStartedAt, modelRoute = 'pro') => {
   if (modelRoute === 'pro' && PRO_ROUTE_REQUEST_BUDGET_MS > 0) {
     return Math.max(0, PRO_ROUTE_REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));
   }
-  if (modelRoute === 'pro') {
-    return Number.POSITIVE_INFINITY;
-  }
   if (!(Number.isFinite(REQUEST_BUDGET_MS) && REQUEST_BUDGET_MS > 0)) {
+    if (modelRoute === 'pro') {
+      return Number.POSITIVE_INFINITY;
+    }
     return Number.POSITIVE_INFINITY;
   }
   return Math.max(0, REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));

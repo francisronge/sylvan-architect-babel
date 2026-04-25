@@ -4,13 +4,16 @@ export interface SyntaxNode {
   word?: string;
   surfaceSpan?: [number, number];
   id?: string; // Optional ID for D3 indexing
+  lineageId?: string;
   case?: string;
   assigner?: string;
   caseEvidence?: string;
   caseOvert?: boolean;
 }
 
-export type DerivationOperation =
+export type OpenOntologyLabel = string & {};
+
+export type KnownDerivationOperation =
   | 'LexicalSelect'
   | 'ExternalMerge'
   | 'InternalMerge'
@@ -31,6 +34,8 @@ export type DerivationOperation =
   | 'SpellOut'
   | 'Other';
 
+export type DerivationOperation = KnownDerivationOperation | OpenOntologyLabel;
+
 export interface ReplayLedgerBlock {
   title: string;
   lines: string[];
@@ -45,6 +50,28 @@ export interface FeatureCheckEvent {
   probeLabel?: string;
   goalLabel?: string;
   note?: string;
+}
+
+export interface GrowthFrameAnchor {
+  role?: string;
+  nodeId?: string;
+  lineageId?: string;
+  value?: string;
+  text?: string;
+  [key: string]: unknown;
+}
+
+export interface GrowthFrameChange {
+  statement?: string;
+  anchors?: GrowthFrameAnchor[];
+  continuityIds?: string[];
+  details?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface GrowthFrameAfterState {
+  workspaceForest?: SyntaxNode[];
+  reusePreviousWorkspace?: boolean;
 }
 
 export interface DerivationStep {
@@ -76,39 +103,25 @@ export interface DerivationStep {
   note?: string;
 }
 
-export interface GrowthFrameMovement {
-  operation?: DerivationOperation;
-  sourceNodeId?: string;
-  targetNodeId?: string;
-  traceNodeId?: string;
-  chainId?: string;
-  note?: string;
-}
-
 export interface GrowthFrame {
   frameId?: string;
   stepId?: string;
-  operation: DerivationOperation;
-  microOperations?: DerivationOperation[];
-  affectedNodeIds?: string[];
-  reusePreviousWorkspace?: boolean;
-  recipe?: string;
-  trigger?: string;
-  chainId?: string;
-  spelloutDomain?: string;
-  preFeatures?: string[];
-  postFeatures?: string[];
-  thetaRole?: string;
-  introducerHead?: string;
-  phase?: string;
-  labelDecision?: string;
-  linearizationEffect?: string;
-  morphologyEffect?: string;
-  spelloutOrder?: string[];
-  featureChecking?: FeatureCheckEvent[];
+  after: GrowthFrameAfterState;
+  change: GrowthFrameChange;
   note?: string;
-  movement?: GrowthFrameMovement;
+}
+
+export interface DerivationStage {
+  stepId?: string;
+  statement: string;
+  stageRecord: string;
+  visualRelations: DerivationStageVisualRelation[];
   workspaceForest: SyntaxNode[];
+}
+
+export interface DerivationStageVisualRelation {
+  relation: OpenOntologyLabel;
+  anchors: Record<string, string | string[]>;
 }
 
 export interface NoteBinding {
@@ -120,73 +133,41 @@ export interface NoteBinding {
   nodeIds?: string[];
   supportIds?: string[];
   commitmentFactIds?: string[];
-  researchTraceIds?: string[];
-  featureEntryIds?: string[];
-  phaseIds?: string[];
-  morphologyIds?: string[];
-  caseAssignmentIds?: string[];
-  argumentIds?: string[];
-  selectionIds?: string[];
-  bindingIds?: string[];
-  dependencyIds?: string[];
-  agreementIds?: string[];
-  predicateClassIds?: string[];
-  probeIds?: string[];
-  nullElementIds?: string[];
-  diagnosticIds?: string[];
-  parameterIds?: string[];
-  informationStructureIds?: string[];
-  operatorScopeIds?: string[];
-  voiceValencyIds?: string[];
-  linearizationIds?: string[];
-  localityIds?: string[];
-  predicationIds?: string[];
   order?: number;
 }
 
+export type KnownMovementOperation = 'Move' | 'InternalMerge' | 'HeadMove' | 'A-Move' | 'AbarMove' | 'Other';
+
 export interface MovementEvent {
-  operation?: 'Move' | 'InternalMerge' | 'HeadMove' | 'A-Move' | 'AbarMove' | 'Other';
-  fromNodeId: string;
-  toNodeId: string;
+  operation?: KnownMovementOperation | OpenOntologyLabel;
+  label?: OpenOntologyLabel;
+  movingNodeId?: string;
+  fromNodeId?: string;
+  sourceNodeId?: string;
+  landingNodeId?: string;
+  hostNodeId?: string;
+  toNodeId?: string;
   traceNodeId?: string;
   chainId?: string;
+  stepId?: string;
   stepIndex?: number;
   note?: string;
+  participants?: Record<string, unknown>;
+  preserveOperationLabel?: boolean;
+  serializationStatus?: 'complete' | 'underspecified' | 'incoherent';
+  diagnostics?: string[];
 }
 
 export type DerivationCompleteness = 'minimal' | 'partial' | 'full';
 
 export interface ChainLedgerEntry {
   chainId: string;
-  type?: 'A' | 'A-bar' | 'head' | 'other';
+  type?: OpenOntologyLabel;
+  family?: 'A' | 'A-bar' | 'head' | 'other';
   copies?: string[];
   pronouncedCopy?: string;
   silentCopies?: string[];
   features?: string[];
-  note?: string;
-}
-
-export interface ResearchTraceAlternative {
-  id: string;
-  status?: 'selected' | 'rejected' | 'considered' | 'other';
-  reason?: string;
-}
-
-export interface ResearchTraceSupport {
-  nodeIds?: string[];
-  chainIds?: string[];
-  stepIds?: string[];
-}
-
-export interface ResearchTraceEntry {
-  decisionId: string;
-  stage: string;
-  decisionPoint: string;
-  observations?: string[];
-  alternatives?: ResearchTraceAlternative[];
-  commitment?: string;
-  supports?: ResearchTraceSupport;
-  status?: 'committed' | 'partial' | 'minimal' | 'other';
   note?: string;
 }
 
@@ -195,38 +176,21 @@ export interface LedgerSupportAnchors {
   nodeIds?: string[];
 }
 
-export type CommitmentKind =
-  | 'case'
-  | 'argument-structure'
-  | 'phase'
-  | 'morphology'
-  | 'feature'
-  | 'selection'
-  | 'binding'
-  | 'clausal-dependency'
-  | 'agreement'
-  | 'predicate-class'
-  | 'probe'
-  | 'null-element'
-  | 'diagnostic'
-  | 'parameter'
-  | 'information-structure'
-  | 'operator-scope'
-  | 'voice-valency'
-  | 'linearization'
-  | 'locality'
-  | 'predication'
-  | 'particle'
-  | 'evidentiality'
-  | 'mirativity'
-  | 'honorificity'
-  | 'switch-reference'
-  | 'logophora'
-  | 'event-structure';
+export type CommitmentKind = OpenOntologyLabel;
+
+export interface CommitmentFactParticipant {
+  role?: string;
+  nodeId?: string;
+  label?: string;
+  value?: string;
+}
 
 export interface CommitmentGraphEntry extends LedgerSupportAnchors {
   factId?: string;
   kind: CommitmentKind;
+  family?: string;
+  frameworkLabel?: string;
+  participants?: CommitmentFactParticipant[];
   chainId?: string;
   nodeId?: string;
   label?: string;
@@ -329,6 +293,7 @@ export interface CommitmentGraphEntry extends LedgerSupportAnchors {
   telicity?: string;
   evidence?: string;
   note?: string;
+  [key: string]: unknown;
 }
 
 export interface CaseAssignment extends LedgerSupportAnchors {
@@ -575,7 +540,7 @@ export interface Provenance {
   framework?: 'xbar' | 'minimalism';
   language?: string;
   timestamp?: string;
-  treeSource?: 'growthFrames' | 'committedTree';
+  treeSource?: 'derivationStages' | 'growthFrames' | 'committedTree';
   promptVersion?: string;
   parserVersion?: string;
   uiVersion?: string;
@@ -587,7 +552,8 @@ export interface Provenance {
   payloadTranscriberTotalTokenCount?: number;
   payloadTranscriberThoughtsTokenCount?: number;
   hasCommitmentGraph?: boolean;
-  hasResearchTrace?: boolean;
+  hasCommitmentFacts?: boolean;
+  hasDerivationStages?: boolean;
   hasGrowthFrames?: boolean;
   hasCaseAssignments?: boolean;
   hasArgumentStructure?: boolean;
@@ -624,6 +590,9 @@ export interface Provenance {
   notesSecondPassOutputTokenCount?: number;
   notesSecondPassTotalTokenCount?: number;
   notesSecondPassThoughtsTokenCount?: number;
+  notesSource?: string;
+  notesCompiledFromGrowthFrames?: boolean;
+  notesCompiledFromDerivationStages?: boolean;
   completenessStatus?: DerivationCompleteness;
 }
 
@@ -633,14 +602,15 @@ export interface ParseResult {
   tree: SyntaxNode;
   explanation: string;
   surfaceOrder?: string[];
+  derivationStages?: DerivationStage[];
   growthFrames?: GrowthFrame[];
   noteBindings?: NoteBinding[];
   rawDerivationSteps?: DerivationStep[];
   derivationSteps?: DerivationStep[];
   movementEvents?: MovementEvent[];
   chains?: ChainLedgerEntry[];
+  commitmentFacts?: CommitmentGraphEntry[];
   commitmentGraph?: CommitmentGraphEntry[];
-  researchTrace?: ResearchTraceEntry[];
   caseAssignments?: CaseAssignment[];
   argumentStructure?: ArgumentStructureEntry[];
   phaseLog?: PhaseLogEntry[];

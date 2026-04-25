@@ -1,4 +1,5 @@
 export const createAnalysisNormalizationHelpers = ({
+  normalizeOpenChainType,
   normalizeChainType,
   normalizeKey,
   normalizeNodeIdArray,
@@ -30,107 +31,13 @@ export const createAnalysisNormalizationHelpers = ({
           : copies.filter((copyId) => copyId && copyId !== pronouncedCopy);
         return {
           chainId,
-          type: normalizeChainType(item.type),
+          type: normalizeOpenChainType(item.type) || normalizeChainType(item.type),
+          family: normalizeChainType(item.family || item.type),
           copies,
           pronouncedCopy,
           silentCopies,
           features: normalizeOptionalStringArray(item.features),
           note: normalizeOptionalStepText(item.note || item.description)
-        };
-      })
-      .filter(Boolean);
-  };
-
-  const normalizeResearchTrace = (value, nodeIds, stepIds, chainIds) => {
-    const parsedValue = normalizeTransportJsonArray(value);
-    if (!Array.isArray(parsedValue)) return [];
-    return parsedValue
-      .map((item) => {
-        if (!item || typeof item !== 'object') return null;
-        const decisionId = normalizeOptionalStepText(item.decisionId);
-        const stage = normalizeOptionalStepText(item.stage || item.phase || item.domain || item.context || 'analysis');
-        const decisionPoint = normalizeOptionalStepText(item.decisionPoint || item.issue || item.question);
-        if (!decisionId || !stage || !decisionPoint) return null;
-        const alternatives = Array.isArray(item.alternatives)
-          ? item.alternatives
-              .map((alt) => {
-                const primitiveId = normalizeOptionalStepText(alt);
-                if (primitiveId) {
-                  return {
-                    id: primitiveId,
-                    status: 'considered',
-                    reason: undefined
-                  };
-                }
-                if (!alt || typeof alt !== 'object') return null;
-                const id = normalizeOptionalStepText(alt.id || alt.option || alt.label || alt.value);
-                if (!id) return null;
-                const statusKey = normalizeKey(alt.status);
-                const status = statusKey === 'selected'
-                  ? 'selected'
-                  : statusKey === 'rejected'
-                    ? 'rejected'
-                    : statusKey === 'considered'
-                      ? 'considered'
-                      : statusKey
-                        ? 'other'
-                        : undefined;
-                return {
-                  id,
-                  status,
-                  reason: normalizeOptionalStepText(alt.reason || alt.note || alt.explanation)
-                };
-              })
-              .filter(Boolean)
-          : Array.isArray(item.options)
-            ? item.options
-                .map((option) => {
-                  const id = normalizeOptionalStepText(option);
-                  return id ? { id, status: 'considered', reason: undefined } : null;
-                })
-                .filter(Boolean)
-            : undefined;
-        const rawSupports = item?.supports && typeof item.supports === 'object' ? item.supports : {};
-        const supportsNodeIds = normalizeNodeIdArray(
-          rawSupports.nodeIds || (rawSupports.nodeId ? [rawSupports.nodeId] : undefined),
-          nodeIds
-        );
-        const supportsChainIds = Array.isArray(rawSupports.chainIds) || rawSupports.chainId
-          ? (Array.isArray(rawSupports.chainIds) ? rawSupports.chainIds : [rawSupports.chainId])
-              .map((chainId) => normalizeOptionalStepText(chainId))
-              .filter((chainId) => chainId && chainIds.has(chainId))
-          : undefined;
-        const supportsStepIds = Array.isArray(rawSupports.stepIds) || rawSupports.stepId
-          ? (Array.isArray(rawSupports.stepIds) ? rawSupports.stepIds : [rawSupports.stepId])
-              .map((stepId) => normalizeOptionalStepText(stepId))
-              .filter((stepId) => stepId && stepIds.has(stepId))
-          : undefined;
-        const statusKey = normalizeKey(item.status);
-        const status = statusKey === 'committed'
-          ? 'committed'
-          : statusKey === 'partial'
-            ? 'partial'
-            : statusKey === 'minimal'
-              ? 'minimal'
-              : statusKey
-                ? 'other'
-                : undefined;
-        return {
-          decisionId,
-          stage,
-          decisionPoint,
-          observations: normalizeOptionalStringArray(item.observations),
-          alternatives,
-          commitment: normalizeOptionalStepText(item.commitment || item.selected || item.conclusion),
-          supports: (supportsNodeIds || supportsChainIds || supportsStepIds)
-            ? {
-                nodeIds: supportsNodeIds,
-                chainIds: supportsChainIds,
-                stepIds: supportsStepIds
-              }
-            : undefined,
-          status,
-          note: normalizeOptionalStepText(item.note || item.support || item.evidence)
         };
       })
       .filter(Boolean);
@@ -1067,131 +974,78 @@ export const createAnalysisNormalizationHelpers = ({
       .filter(Boolean);
   };
 
+  const normalizeOpenOntologyLabel = (value) => {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const COMMITMENT_KIND_ALIASES = new Map([
+    ['case', 'case'],
+    ['caseassignment', 'case'],
+    ['caseassignments', 'case'],
+    ['argumentstructure', 'argument-structure'],
+    ['argumentstructures', 'argument-structure'],
+    ['argumentstructureledger', 'argument-structure'],
+    ['phase', 'phase'],
+    ['phaselog', 'phase'],
+    ['morphology', 'morphology'],
+    ['morphologyrealization', 'morphology'],
+    ['feature', 'feature'],
+    ['featureledger', 'feature'],
+    ['selection', 'selection'],
+    ['selectionledger', 'selection'],
+    ['binding', 'binding'],
+    ['bindingledger', 'binding'],
+    ['clausaldependency', 'clausal-dependency'],
+    ['clausaldependencies', 'clausal-dependency'],
+    ['agreement', 'agreement'],
+    ['agreementledger', 'agreement'],
+    ['predicateclass', 'predicate-class'],
+    ['predicateclassledger', 'predicate-class'],
+    ['probe', 'probe'],
+    ['probeledger', 'probe'],
+    ['nullelement', 'null-element'],
+    ['nullelementledger', 'null-element'],
+    ['diagnostic', 'diagnostic'],
+    ['diagnosticledger', 'diagnostic'],
+    ['parameter', 'parameter'],
+    ['parameterledger', 'parameter'],
+    ['informationstructure', 'information-structure'],
+    ['informationstructureledger', 'information-structure'],
+    ['operatorscope', 'operator-scope'],
+    ['operatorscopeledger', 'operator-scope'],
+    ['voicevalency', 'voice-valency'],
+    ['voicevalencyledger', 'voice-valency'],
+    ['linearization', 'linearization'],
+    ['linearizationledger', 'linearization'],
+    ['locality', 'locality'],
+    ['localityledger', 'locality'],
+    ['predication', 'predication'],
+    ['predicationledger', 'predication'],
+    ['particle', 'particle'],
+    ['particleledger', 'particle'],
+    ['evidentiality', 'evidentiality'],
+    ['evidentialityledger', 'evidentiality'],
+    ['mirativity', 'mirativity'],
+    ['mirativityledger', 'mirativity'],
+    ['honorificity', 'honorificity'],
+    ['honorificityledger', 'honorificity'],
+    ['switchreference', 'switch-reference'],
+    ['switchreferenceledger', 'switch-reference'],
+    ['logophora', 'logophora'],
+    ['logophoraledger', 'logophora'],
+    ['eventstructure', 'event-structure'],
+    ['eventstructureledger', 'event-structure']
+  ]);
+
   const normalizeCommitmentKind = (value) => {
-    const normalized = normalizeKey(value).replace(/_/g, '-');
-    switch (normalized) {
-      case 'case':
-      case 'case-assignment':
-      case 'case-assignments':
-      case 'caseassignment':
-      case 'caseassignments':
-        return 'case';
-      case 'argument-structure':
-      case 'argumentstructure':
-      case 'argument-structures':
-      case 'argumentstructureledger':
-        return 'argument-structure';
-      case 'phase':
-      case 'phaselog':
-      case 'phase-log':
-        return 'phase';
-      case 'morphology':
-      case 'morphology-realization':
-      case 'morphologyrealization':
-        return 'morphology';
-      case 'feature':
-      case 'feature-ledger':
-      case 'featureledger':
-        return 'feature';
-      case 'selection':
-      case 'selection-ledger':
-      case 'selectionledger':
-        return 'selection';
-      case 'binding':
-      case 'binding-ledger':
-      case 'bindingledger':
-        return 'binding';
-      case 'clausal-dependency':
-      case 'clausaldependency':
-      case 'clausal-dependencies':
-      case 'clausaldependencies':
-        return 'clausal-dependency';
-      case 'agreement':
-      case 'agreement-ledger':
-      case 'agreementledger':
-        return 'agreement';
-      case 'predicate-class':
-      case 'predicateclass':
-      case 'predicate-class-ledger':
-      case 'predicateclassledger':
-        return 'predicate-class';
-      case 'probe':
-      case 'probe-ledger':
-      case 'probeledger':
-        return 'probe';
-      case 'null-element':
-      case 'nullelement':
-      case 'null-element-ledger':
-      case 'nullelementledger':
-        return 'null-element';
-      case 'diagnostic':
-      case 'diagnostic-ledger':
-      case 'diagnosticledger':
-        return 'diagnostic';
-      case 'parameter':
-      case 'parameter-ledger':
-      case 'parameterledger':
-        return 'parameter';
-      case 'information-structure':
-      case 'informationstructure':
-      case 'information-structure-ledger':
-      case 'informationstructureledger':
-        return 'information-structure';
-      case 'operator-scope':
-      case 'operatorscope':
-      case 'operator-scope-ledger':
-      case 'operatorscopeledger':
-        return 'operator-scope';
-      case 'voice-valency':
-      case 'voicevalency':
-      case 'voice-valency-ledger':
-      case 'voicevalencyledger':
-        return 'voice-valency';
-      case 'linearization':
-      case 'linearization-ledger':
-      case 'linearizationledger':
-        return 'linearization';
-      case 'locality':
-      case 'locality-ledger':
-      case 'localityledger':
-        return 'locality';
-      case 'predication':
-      case 'predication-ledger':
-      case 'predicationledger':
-        return 'predication';
-      case 'particle':
-      case 'particle-ledger':
-      case 'particleledger':
-        return 'particle';
-      case 'evidentiality':
-      case 'evidentiality-ledger':
-      case 'evidentialityledger':
-        return 'evidentiality';
-      case 'mirativity':
-      case 'mirativity-ledger':
-      case 'mirativityledger':
-        return 'mirativity';
-      case 'honorificity':
-      case 'honorificity-ledger':
-      case 'honorificityledger':
-        return 'honorificity';
-      case 'switch-reference':
-      case 'switchreference':
-      case 'switch-reference-ledger':
-      case 'switchreferenceledger':
-        return 'switch-reference';
-      case 'logophora':
-      case 'logophora-ledger':
-      case 'logophoraledger':
-        return 'logophora';
-      case 'event-structure':
-      case 'eventstructure':
-      case 'event-structure-ledger':
-      case 'eventstructureledger':
-        return 'event-structure';
-      default:
-        return '';
-    }
+    const normalized = normalizeKey(value);
+    if (!normalized) return '';
+    return COMMITMENT_KIND_ALIASES.get(normalized) || normalizeOpenOntologyLabel(value);
   };
 
   const buildCommitmentLedgerSpecs = () => ([
@@ -1224,19 +1078,219 @@ export const createAnalysisNormalizationHelpers = ({
     ['eventStructureLedger', 'event-structure', 'eventStructureId', normalizeEventStructureLedger]
   ]).map(([field, kind, idField, normalize]) => ({ field, kind, idField, normalize }));
 
+  const commitmentLedgerSpecs = buildCommitmentLedgerSpecs();
+  const commitmentLedgerSpecByKind = new Map(
+    commitmentLedgerSpecs.map((spec) => [spec.kind, spec])
+  );
+
+  const isProjectedCommitmentKind = (value) =>
+    commitmentLedgerSpecByKind.has(normalizeCommitmentKind(value));
+
+  const normalizeCommitmentGraphIdArray = (items, allowedIds) => {
+    if (!Array.isArray(items)) return undefined;
+    const values = items
+      .map((item) => normalizeOptionalStepText(item))
+      .filter((item) => item && (!allowedIds || allowedIds.has(item)));
+    return values.length > 0 ? Array.from(new Set(values)) : undefined;
+  };
+
+  const normalizeCommitmentParticipant = (participant, nodeIds) => {
+    if (!participant || typeof participant !== 'object') return null;
+    const nodeId = String(participant.nodeId || '').trim();
+    const normalized = {
+      role: normalizeOptionalStepText(participant.role),
+      nodeId: nodeId && nodeIds.has(nodeId) ? nodeId : undefined,
+      label: normalizeOptionalStepText(participant.label),
+      value: normalizeOptionalStepText(participant.value)
+    };
+    return Object.values(normalized).some(Boolean) ? normalized : null;
+  };
+
+  const normalizeCommitmentParticipantsForMerge = (participants = []) => (
+    Array.from(
+      (Array.isArray(participants) ? participants : [])
+        .filter((participant) => participant && typeof participant === 'object')
+        .reduce((acc, participant) => {
+          const normalized = {
+            ...(normalizeOptionalStepText(participant.role) ? { role: normalizeOptionalStepText(participant.role) } : {}),
+            ...(normalizeOptionalStepText(participant.nodeId) ? { nodeId: normalizeOptionalStepText(participant.nodeId) } : {}),
+            ...(normalizeOptionalStepText(participant.label) ? { label: normalizeOptionalStepText(participant.label) } : {}),
+            ...(normalizeOptionalStepText(participant.value) ? { value: normalizeOptionalStepText(participant.value) } : {})
+          };
+          if (Object.keys(normalized).length === 0) return acc;
+          const mergeKey = `${normalized.role || ''}|${normalized.nodeId || ''}|${normalized.value || ''}`;
+          const existing = acc.get(mergeKey);
+          acc.set(mergeKey, {
+            ...(existing || {}),
+            ...normalized,
+            ...(existing?.label || !normalized.label ? {} : { label: normalized.label }),
+            ...(existing?.value || !normalized.value ? {} : { value: normalized.value })
+          });
+          return acc;
+        }, new Map()).values()
+    ).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+  );
+
+  const deriveRoleNameFromNodeField = (field, entry) => {
+    if (field === 'nodeId') return normalizeOptionalStepText(entry?.role);
+    if (!/NodeId$/.test(field)) return undefined;
+    const rawRole = field.replace(/NodeId$/, '').replace(/([a-z])([A-Z])/g, '$1-$2');
+    return normalizeOptionalStepText(rawRole);
+  };
+
+  const deriveOpenCommitmentSupportFromNodeFields = (entry, nodeIds) => {
+    if (!entry || typeof entry !== 'object') return {};
+    const derivedNodeIds = [];
+    const derivedParticipants = [];
+
+    const pushNodeId = (nodeId) => {
+      const normalizedNodeId = String(nodeId || '').trim();
+      if (!normalizedNodeId || !nodeIds.has(normalizedNodeId)) return undefined;
+      derivedNodeIds.push(normalizedNodeId);
+      return normalizedNodeId;
+    };
+
+    Object.entries(entry).forEach(([field, rawValue]) => {
+      if (Array.isArray(rawValue) && /NodeIds$/.test(field)) {
+        (normalizeNodeIdArray(rawValue, nodeIds) || []).forEach((nodeId) => {
+          derivedNodeIds.push(nodeId);
+        });
+        return;
+      }
+
+      if (typeof rawValue !== 'string' || !/NodeId$/.test(field)) return;
+      const nodeId = pushNodeId(rawValue);
+      if (!nodeId) return;
+
+      if (
+        (field === 'hostNodeId' || field === 'targetNodeId')
+        && String(entry.landingNodeId || '').trim()
+        && String(entry.landingNodeId || '').trim() === nodeId
+      ) {
+        return;
+      }
+
+      const role = deriveRoleNameFromNodeField(field, entry);
+      if (!role) return;
+      derivedParticipants.push({ role, nodeId });
+    });
+
+    return {
+      nodeIds: derivedNodeIds.length > 0 ? Array.from(new Set(derivedNodeIds)) : undefined,
+      participants: derivedParticipants.length > 0
+        ? normalizeCommitmentParticipantsForMerge(derivedParticipants)
+        : undefined
+    };
+  };
+
+  const normalizeOpenCommitmentFieldValue = (field, value, nodeIds, stepIds) => {
+    if (value === undefined || value === null) return undefined;
+    if (field === 'participants' && Array.isArray(value)) {
+      const participants = value
+        .map((item) => normalizeCommitmentParticipant(item, nodeIds))
+        .filter(Boolean);
+      return participants.length > 0 ? participants : undefined;
+    }
+    if (field === 'nodeIds') return normalizeNodeIdArray(value, nodeIds);
+    if (field === 'stepIds') return normalizeCommitmentGraphIdArray(value, stepIds);
+    if (field === 'chainId') return normalizeOptionalStepText(value);
+    if (field === 'family') return normalizeCommitmentKind(value);
+    if (field === 'frameworkLabel') return normalizeOptionalStepText(value);
+    if (field === 'factId') return normalizeOptionalStepText(value);
+    if (field === 'kind') return normalizeCommitmentKind(value);
+    if (field === 'subtype') return normalizeOptionalStepText(value);
+    if (typeof value === 'boolean' || typeof value === 'number') return value;
+    if (Array.isArray(value)) {
+      if (/NodeIds?$/.test(field) || field === 'order' || /Nodes$/.test(field)) {
+        return normalizeNodeIdArray(value, nodeIds);
+      }
+      return normalizeOptionalStringArray(value);
+    }
+    if (typeof value === 'string') {
+      if (/NodeId$/.test(field)) {
+        const nodeId = String(value || '').trim();
+        return nodeId && nodeIds.has(nodeId) ? nodeId : undefined;
+      }
+      if (/StepId$/.test(field)) {
+        const stepId = normalizeOptionalStepText(value);
+        return stepId && (!stepIds || stepIds.has(stepId)) ? stepId : undefined;
+      }
+      return normalizeOptionalStepText(value);
+    }
+    return undefined;
+  };
+
+  const normalizeOpenCommitmentGraphEntry = (entry, nodeIds, stepIds) => {
+    if (!entry || typeof entry !== 'object') return null;
+    const kind = normalizeCommitmentKind(
+      entry.kind
+      || entry.family
+      || entry.commitmentKind
+      || entry.ledgerKind
+      || entry.type
+    );
+    if (!kind) return null;
+
+    const normalized = {
+      ...normalizeLedgerSupportAnchors(entry, nodeIds, stepIds),
+      factId: normalizeOptionalStepText(entry.factId || entry.id),
+      kind,
+      family: normalizeCommitmentKind(entry.family) || kind,
+      frameworkLabel: normalizeOptionalStepText(entry.frameworkLabel || entry.kindLabel),
+      chainId: normalizeOptionalStepText(entry.chainId),
+      subtype: normalizeOptionalStepText(entry.subtype)
+    };
+
+    Object.entries(entry).forEach(([field, rawValue]) => {
+      if (field === '__entryKey' || field === 'id') return;
+      if (field in normalized) return;
+      if (
+        field === 'commitmentKind'
+        || field === 'ledgerKind'
+        || field === 'kindLabel'
+      ) return;
+      const normalizedValue = normalizeOpenCommitmentFieldValue(field, rawValue, nodeIds, stepIds);
+      if (normalizedValue !== undefined) normalized[field] = normalizedValue;
+    });
+
+    const derivedSupport = deriveOpenCommitmentSupportFromNodeFields(normalized, nodeIds);
+    const normalizedParticipants = normalizeCommitmentParticipantsForMerge([
+      ...(Array.isArray(normalized.participants) ? normalized.participants : []),
+      ...(Array.isArray(derivedSupport.participants) ? derivedSupport.participants : [])
+    ]);
+    const participantNodeIds = normalizedParticipants
+      .map((participant) => String(participant?.nodeId || '').trim())
+      .filter(Boolean);
+    const mergedNodeIds = Array.from(new Set([
+      ...((Array.isArray(normalized.nodeIds) ? normalized.nodeIds : []).map((nodeId) => String(nodeId || '').trim()).filter(Boolean)),
+      ...((Array.isArray(derivedSupport.nodeIds) ? derivedSupport.nodeIds : []).map((nodeId) => String(nodeId || '').trim()).filter(Boolean)),
+      ...participantNodeIds
+    ]));
+    if (mergedNodeIds.length > 0) normalized.nodeIds = mergedNodeIds;
+    if (normalizedParticipants.length > 0) normalized.participants = normalizedParticipants;
+
+    return normalized;
+  };
+
   const projectLedgersFromCommitmentGraph = (value, nodeIds, stepIds) => {
     const entries = collectStructuredEntries(value);
     const entriesByKind = new Map();
     entries.forEach((entry) => {
       if (!entry || typeof entry !== 'object') return;
-      const kind = normalizeCommitmentKind(entry.kind || entry.commitmentKind || entry.type || entry.ledgerKind);
-      if (!kind) return;
+      const kind = normalizeCommitmentKind(
+        entry.kind
+        || entry.family
+        || entry.commitmentKind
+        || entry.ledgerKind
+        || entry.type
+      );
+      if (!kind || !commitmentLedgerSpecByKind.has(kind)) return;
       if (!entriesByKind.has(kind)) entriesByKind.set(kind, []);
       entriesByKind.get(kind).push(entry);
     });
 
     const projected = {};
-    buildCommitmentLedgerSpecs().forEach(({ field, kind, normalize }) => {
+    commitmentLedgerSpecs.forEach(({ field, kind, normalize }) => {
       projected[field] = normalize(entriesByKind.get(kind) || [], nodeIds, stepIds);
     });
     return projected;
@@ -1244,7 +1298,7 @@ export const createAnalysisNormalizationHelpers = ({
 
   const buildCommitmentGraphFromNormalizedLedgers = (ledgersByField = {}) => {
     const graph = [];
-    buildCommitmentLedgerSpecs().forEach(({ field, kind, idField }) => {
+    commitmentLedgerSpecs.forEach(({ field, kind, idField }) => {
       const entries = Array.isArray(ledgersByField?.[field]) ? ledgersByField[field] : [];
       entries.forEach((entry) => {
         if (!entry || typeof entry !== 'object') return;
@@ -1253,6 +1307,7 @@ export const createAnalysisNormalizationHelpers = ({
         graph.push({
           ...rest,
           factId: factId || undefined,
+          family: kind,
           ...(entryKind ? { kindValue: entryKind } : {}),
           kind
         });
@@ -1261,11 +1316,12 @@ export const createAnalysisNormalizationHelpers = ({
     return graph;
   };
 
-  const normalizeCommitmentGraph = (value, nodeIds, stepIds) => (
-    buildCommitmentGraphFromNormalizedLedgers(
-      projectLedgersFromCommitmentGraph(value, nodeIds, stepIds)
-    )
-  );
+  const normalizeCommitmentGraph = (value, nodeIds, stepIds) => {
+    const entries = collectStructuredEntries(value);
+    return entries
+      .map((entry) => normalizeOpenCommitmentGraphEntry(entry, nodeIds, stepIds))
+      .filter(Boolean);
+  };
 
   const ensureStructuredEntryIds = (entries, idField, prefix) => {
     if (!Array.isArray(entries) || entries.length === 0) return [];
@@ -1300,8 +1356,10 @@ export const createAnalysisNormalizationHelpers = ({
 
   return {
     normalizeChains,
-    normalizeResearchTrace,
     normalizeCommitmentGraph,
+    normalizeCommitmentKind,
+    normalizeOpenCommitmentGraphEntry,
+    isProjectedCommitmentKind,
     projectLedgersFromCommitmentGraph,
     buildCommitmentGraphFromNormalizedLedgers,
     normalizeCaseAssignments,

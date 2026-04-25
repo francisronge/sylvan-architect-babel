@@ -270,7 +270,7 @@ export const summarizeProviderReasoningForDisplay = (text, maxChars = 520) => {
   if (!cleaned) return '';
   if (
     /^[{\[]/.test(cleaned) &&
-    /"(?:analyses|analysis|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(cleaned)
+    /"(?:analyses|analysis|derivationStages|stageRecord|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(cleaned)
   ) {
     return '';
   }
@@ -414,8 +414,10 @@ export const generateStructuredContent = async ({
   systemInstruction,
   temperature = MODEL_TEMPERATURE,
   maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
+  responseJsonSchema,
   abortSignal,
-  includeThoughts = false
+  includeThoughts = false,
+  thinkingConfig
 }) => {
   return ai.models.generateContent({
     model,
@@ -425,7 +427,10 @@ export const generateStructuredContent = async ({
       responseMimeType: 'application/json',
       maxOutputTokens,
       temperature,
-      ...(includeThoughts ? { thinkingConfig: { includeThoughts: true } } : {}),
+      ...(responseJsonSchema ? { responseJsonSchema } : {}),
+      ...(thinkingConfig
+        ? { thinkingConfig }
+        : (includeThoughts ? { thinkingConfig: { includeThoughts: true } } : {})),
       abortSignal
     }
   });

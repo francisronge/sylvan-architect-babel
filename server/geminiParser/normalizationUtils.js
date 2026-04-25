@@ -1,7 +1,15 @@
 export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
   const normalizeKey = (value) => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const isABarLikeText = (value) => /^(?:a\s*(?:['’′]|-?\s*bar)(?:\s*-\s*|\s*)?(?:move(?:ment)?|chain)?|wh(?:\s*-\s*)?(?:move(?:ment)?|chain)?)$/i.test(String(value || '').trim());
+  const isALikeText = (value) => /^(?:a(?:\s*-\s*|\s*)?(?:move(?:ment)?|chain)?)$/i.test(String(value || '').trim());
+  const normalizeOpenOperationLabel = (value) => {
+    const text = String(value || '').trim();
+    return text || undefined;
+  };
 
   const normalizeDerivationOperation = (value) => {
+    if (isABarLikeText(value)) return 'AbarMove';
+    if (isALikeText(value)) return 'A-Move';
     const key = normalizeKey(value);
     if (!key) return undefined;
     if (key === 'lexicalselect' || key === 'select' || key === 'lexicalitemselect') return 'LexicalSelect';
@@ -17,7 +25,7 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
     if (key === 'spelloutdomain' || key === 'transferdomain' || key === 'phasetransfer') return 'SpellOutDomain';
     if (key === 'spellout' || key === 'spelloutphase') return 'SpellOut';
     if (key === 'other') return 'Other';
-    return 'Other';
+    return normalizeOpenOperationLabel(value);
   };
 
   const normalizeSpelloutOrder = (value) => {
@@ -50,6 +58,8 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
   };
 
   const normalizeMovementOperation = (value) => {
+    if (isABarLikeText(value)) return 'AbarMove';
+    if (isALikeText(value)) return 'A-Move';
     const key = normalizeKey(value);
     if (!key) return undefined;
     if (key === 'move' || key === 'movement') return 'Move';
@@ -58,7 +68,12 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
     if (key === 'amove' || key === 'amovement') return 'A-Move';
     if (key === 'abarmove' || key === 'abarmovement' || key === 'whmove') return 'AbarMove';
     if (key === 'other') return 'Other';
-    return 'Other';
+    return normalizeOpenOperationLabel(value);
+  };
+
+  const normalizeOpenChainType = (value) => {
+    const text = String(value || '').trim();
+    return text || undefined;
   };
 
   const normalizeIndexedText = (value) =>
@@ -93,6 +108,8 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
   };
 
   const normalizeChainType = (value) => {
+    if (isABarLikeText(value)) return 'A-bar';
+    if (isALikeText(value)) return 'A';
     const key = normalizeKey(value);
     if (!key) return undefined;
     if (key === 'a' || key === 'amove' || key === 'amovement' || key === 'achain') return 'A';
@@ -104,7 +121,19 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
       || key === 'wh'
       || key === 'whmovement'
     ) return 'A-bar';
-    if (key === 'head' || key === 'headchain' || key === 'headmove' || key === 'headmovement') return 'head';
+    if (
+      key === 'head'
+      || key === 'headchain'
+      || key === 'headmove'
+      || key === 'headmovement'
+      || key === 'lower'
+      || key === 'lowering'
+      || key === 'headlowering'
+      || key === 'affixhop'
+      || key === 'cliticclimbing'
+      || key === 'cliticraising'
+      || key === 'incorporation'
+    ) return 'head';
     if (key === 'other') return 'other';
     return 'other';
   };
@@ -121,10 +150,16 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
   };
 
   const deriveChainTypeFromOperation = (operation) => {
+    if (isABarLikeText(operation)) return 'A-bar';
+    if (isALikeText(operation)) return 'A';
     const normalized = normalizeMovementOperation(operation);
     if (normalized === 'A-Move') return 'A';
-    if (normalized === 'AbarMove' || normalized === 'Move' || normalized === 'InternalMerge') return 'A-bar';
+    if (normalized === 'AbarMove') return 'A-bar';
     if (normalized === 'HeadMove') return 'head';
+    const key = normalizeKey(operation);
+    if (/head.*move|head.*raise|head.*lower|lower|lowering|affix|clitic|incorpor/.test(key)) return 'head';
+    if (/amove|raise|raising/.test(key)) return 'A';
+    if (/abar|wh|focus|topic|operator|front|displac|extract|scrambl|topicaliz|focaliz/.test(key)) return 'A-bar';
     return 'other';
   };
 
@@ -139,6 +174,7 @@ export const createNormalizationUtils = ({ MOVEMENT_INDEX_SUBSCRIPT_MAP }) => {
     normalizeIndexedText,
     extractMovementIndex,
     stripMovementIndex,
+    normalizeOpenChainType,
     normalizeChainType,
     mergeChainTypes,
     deriveChainTypeFromOperation

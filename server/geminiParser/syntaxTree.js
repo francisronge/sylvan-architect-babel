@@ -46,6 +46,59 @@ export const createSyntaxTreeHelpers = ({
     return /p$/i.test(raw);
   };
 
+  const cloneReferencedSyntaxSubtree = (node, usedIds, counterRef, currentPath, isRoot = false) => {
+    if (!node || typeof node !== 'object') return node;
+    const cloned = { ...node };
+    const nodeId = String(node.id || '').trim();
+    if (nodeId) {
+      if (usedIds.has(nodeId)) {
+        cloned.id = nextGeneratedNodeId(usedIds, counterRef);
+      } else {
+        usedIds.add(nodeId);
+      }
+    }
+    if (Array.isArray(node.children)) {
+      cloned.children = node.children.map((child, childIndex) => (
+        cloneReferencedSyntaxSubtree(
+          child,
+          usedIds,
+          counterRef,
+          `${currentPath}.children[${childIndex}]`,
+          false
+        )
+      ));
+    }
+    return cloned;
+  };
+
+  const resolveReferencedSyntaxSubtree = (referenceId, usedIds, counterRef, context, currentPath) => {
+    const normalizedReferenceId = String(referenceId || '').trim();
+    if (!normalizedReferenceId) {
+      throw new ParseApiError(
+        'BAD_MODEL_RESPONSE',
+        `Malformed tree node from model at ${currentPath} (empty refId).`,
+        502
+      );
+    }
+    const referencedNode =
+      context?.subtreeReferences?.get(normalizedReferenceId)
+      || context?.nodeReferences?.get(normalizedReferenceId);
+    if (!referencedNode) {
+      throw new ParseApiError(
+        'BAD_MODEL_RESPONSE',
+        `Malformed tree node from model at ${currentPath} (unresolved subtree refId: ${normalizedReferenceId}).`,
+        502
+      );
+    }
+    return cloneReferencedSyntaxSubtree(
+      referencedNode,
+      usedIds,
+      counterRef,
+      currentPath,
+      true
+    );
+  };
+
   // Empty heads such as Voice/T/v are structural placeholders until an overt
   // word lands in them. Do not count them as sentence material.
   const isBareEmptyStructuralHeadLeaf = (node) => {
@@ -129,6 +182,12 @@ export const createSyntaxTreeHelpers = ({
     }
 
     const node = value;
+    const refId = typeof node.refId === 'string'
+      ? node.refId.trim()
+      : (typeof node.subtreeRefId === 'string' ? node.subtreeRefId.trim() : '');
+    if (refId) {
+      return resolveReferencedSyntaxSubtree(refId, usedIds, counterRef, context, currentPath);
+    }
     const explicitWord = normalizeExplicitSurfaceWord(node);
     const indexedExplicitWord = parseIndexedSurfaceLeaf(explicitWord, context?.sentenceTokens?.length);
     const canonicalExplicitWord = canonicalizeCovertSurface(indexedExplicitWord?.word || explicitWord);
@@ -157,6 +216,26 @@ export const createSyntaxTreeHelpers = ({
     }
 
     const normalized = { id, label };
+    const lineageId = normalizeOptionalMetadataText(
+      node.lineageId
+      || node.lineage
+      || node.copyLineageId
+      || node.movementLineageId
+      || (
+        node.identity
+        && typeof node.identity === 'object'
+        && !Array.isArray(node.identity)
+          ? (node.identity.lineageId || node.identity.lineage)
+          : undefined
+      )
+    );
+    if (lineageId) normalized.lineageId = lineageId;
+    const explicitSilent = normalizeOptionalMetadataBoolean(node.silent);
+    if (explicitSilent !== undefined) {
+      // Growth frames may author lower copies as ordinary leaves with silent:true.
+      // Preserve that flag so overt-token anchoring does not later reinterpret them as pronounced material.
+      normalized.silent = explicitSilent;
+    }
     if (node.silentFeature === true) {
       normalized.silentFeature = true;
     }
@@ -597,6 +676,7 @@ export const createSyntaxTreeHelpers = ({
         return {
           surface,
           keptLeafId: String(current.id || '').trim(),
+          lineageId: normalizeOptionalMetadataText(current.lineageId),
           tokenIndex: Number.isInteger(current.tokenIndex) ? current.tokenIndex : undefined,
           surfaceSpan: normalizeSurfaceSpan(current.surfaceSpan),
           removed
@@ -614,6 +694,7 @@ export const createSyntaxTreeHelpers = ({
         return {
           surface,
           keptLeafId: String(child.id || '').trim(),
+          lineageId: normalizeOptionalMetadataText(child.lineageId || current.lineageId),
           tokenIndex: Number.isInteger(child.tokenIndex) ? child.tokenIndex : undefined,
           surfaceSpan: normalizeSurfaceSpan(child.surfaceSpan),
           removed
@@ -649,6 +730,7 @@ export const createSyntaxTreeHelpers = ({
 
       const directLeafId = collapsed.keptLeafId || `${String(node.id || 'node').trim() || 'node'}__lex`;
       const overtLeaf = { id: directLeafId, label: surface, word: surface };
+      if (collapsed.lineageId) overtLeaf.lineageId = collapsed.lineageId;
       if (collapsed.tokenIndex !== undefined) overtLeaf.tokenIndex = collapsed.tokenIndex;
       if (collapsed.surfaceSpan) overtLeaf.surfaceSpan = collapsed.surfaceSpan;
       node.children = [overtLeaf];

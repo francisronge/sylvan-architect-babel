@@ -18,6 +18,7 @@ coverage/
 .local-fixtures/
 .local-tools/
 .local-docs/
+test/
 .codex-sync-workspace.json
 dist-ssr
 .artifacts/*
