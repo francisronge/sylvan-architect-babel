@@ -13,6 +13,7 @@ export interface ResolvedMovementEventLink {
   traceAnchorId?: string;
   stepIndex?: number;
   operation?: MovementEvent['operation'];
+  movementKind?: 'head' | 'phrasal';
   chainId?: string;
   note?: string;
 }
@@ -23,8 +24,8 @@ export const EMPTY_MOVEMENT_INDEX_MAPS: MovementIndexMaps = {
 };
 
 const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
-const TRACE_SURFACE_RE = /^(?:t|trace|t\\d+|trace\\d+|t[_-][a-z0-9]+|trace[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\\(t\\)|\\{t\\})$/i;
-const HEAD_MOVE_OPERATION_RE = /^head[\s-]*move$/i;
+const TRACE_SURFACE_RE = /^(?:t|trace|copy|t\\d+|trace\\d+|copy\\d+|(?:t|trace|copy)[_-][a-z0-9]+|<[^>]+>|⟨[^⟩]+⟩|\\(t\\)|\\{t\\}|\\(copy\\)|\\{copy\\})$/i;
+const HEAD_LIKE_OPERATION_RE = /(?:headmove|headmovement|lower|lowering|affix|clitic|incorpor)/i;
 const STRUCTURAL_HEAD_LABEL_RE = /^(?:c|q|wh|t|infl|i|v|d|n|a|p|aux)$/i;
 
 const normalizeMovementOperation = (operation?: MovementEvent['operation']): string =>
@@ -136,6 +137,73 @@ const isTraceOrNullAnchor = (node?: SyntaxNode | null): boolean => {
   return isTraceLikeSurface(surface) || isNullLikeSurface(surface);
 };
 
+const isHeadLikeNode = (node?: SyntaxNode | null): boolean => {
+  if (!node) return false;
+  const label = String(node.label || '').trim();
+  if (STRUCTURAL_HEAD_LABEL_RE.test(label)) return true;
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length !== 1) return false;
+  return STRUCTURAL_HEAD_LABEL_RE.test(String(children[0]?.label || '').trim());
+};
+
+const buildParentIndex = (root: SyntaxNode): Map<string, string> => {
+  const parents = new Map<string, string>();
+  const visit = (node: SyntaxNode, parentId?: string) => {
+    const nodeId = String(node?.id || '').trim();
+    if (nodeId && parentId) {
+      parents.set(nodeId, parentId);
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    children.forEach((child) => visit(child, nodeId || parentId));
+  };
+  visit(root);
+  return parents;
+};
+
+const isNodeOrImmediateParentHeadLike = (
+  nodeId: string,
+  nodeById: Map<string, SyntaxNode>,
+  parentById: Map<string, string>
+): boolean => {
+  const normalizedNodeId = String(nodeId || '').trim();
+  if (!normalizedNodeId) return false;
+
+  const node = nodeById.get(normalizedNodeId);
+  if (isHeadLikeNode(node)) return true;
+
+  const parentId = String(parentById.get(normalizedNodeId) || '').trim();
+  if (!parentId) return false;
+  return isHeadLikeNode(nodeById.get(parentId));
+};
+
+const inferMovementKind = ({
+  operation,
+  fromNodeId,
+  toNodeId,
+  traceNodeId,
+  nodeById,
+  parentById
+}: {
+  operation?: MovementEvent['operation'];
+  fromNodeId?: string;
+  toNodeId?: string;
+  traceNodeId?: string;
+  nodeById: Map<string, SyntaxNode>;
+  parentById: Map<string, string>;
+}): 'head' | 'phrasal' => {
+  const normalizedOperation = normalizeMovementOperation(operation);
+  if (HEAD_LIKE_OPERATION_RE.test(normalizedOperation)) {
+    return 'head';
+  }
+
+  const targetLooksHeadLike = isNodeOrImmediateParentHeadLike(String(toNodeId || '').trim(), nodeById, parentById);
+  const sourceLooksHeadLike =
+    isNodeOrImmediateParentHeadLike(String(fromNodeId || '').trim(), nodeById, parentById)
+    || isNodeOrImmediateParentHeadLike(String(traceNodeId || '').trim(), nodeById, parentById);
+
+  return targetLooksHeadLike && sourceLooksHeadLike ? 'head' : 'phrasal';
+};
+
 export const resolveMovementEventLinks = (
   tree: SyntaxNode,
   movementEvents?: MovementEvent[],
@@ -144,6 +212,7 @@ export const resolveMovementEventLinks = (
   if (!movementEvents || movementEvents.length === 0) return [];
 
   const nodeById = buildNodeIndex(tree);
+  const parentById = buildParentIndex(tree);
   const links: ResolvedMovementEventLink[] = [];
   const seenPairs = new Set<string>();
   const chainIndexById = new Map<string, string>();
@@ -155,7 +224,15 @@ export const resolveMovementEventLinks = (
     if (!toNode || !fromNode) return;
 
     const normalizedOperation = normalizeMovementOperation(event.operation);
-    const isHeadMove = HEAD_MOVE_OPERATION_RE.test(normalizedOperation);
+    const movementKind = inferMovementKind({
+      operation: event.operation,
+      fromNodeId: String(event.fromNodeId || '').trim(),
+      toNodeId: String(event.toNodeId || '').trim(),
+      traceNodeId: String(event.traceNodeId || '').trim(),
+      nodeById,
+      parentById
+    });
+    const isHeadMove = movementKind === 'head';
     const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
     const fromLexicalAnchor = pickLexicalAnchor(fromNode);
     const prefersPhraseShellAnchor =
@@ -239,6 +316,7 @@ export const resolveMovementEventLinks = (
       traceAnchorId: traceAnchor?.id || undefined,
       stepIndex,
       operation: event.operation,
+      movementKind,
       chainId: normalizedChainId || undefined,
       note: event.note
     });

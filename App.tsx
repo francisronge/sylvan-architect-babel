@@ -2663,8 +2663,9 @@ const App: React.FC = () => {
           {!loading && activeParse && (activeTab === 'tree' || activeTab === 'growth') ? (
             <TreeVisualizer 
               data={activeParse.tree} 
-              animated={activeTab === 'growth'} 
+              animated={activeTab === 'growth'}
               derivationSteps={replayDerivationSteps}
+              derivationStages={activeParse.derivationStages}
               growthFrames={activeParse.growthFrames}
               movementEvents={activeParse.movementEvents}
               resolvedMovementLinks={resolvedMovementLinks}
