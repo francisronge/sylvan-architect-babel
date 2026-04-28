@@ -34,6 +34,7 @@ import {
 import {
   buildPayloadFingerprint,
   buildPayloadFingerprintAllowingStageFieldRelocation,
+  payloadPreservesRawAuthoredText,
   payloadRespectsRawStructuralAnchors
 } from './payloadFirewall.js';
 
@@ -131,7 +132,7 @@ export const createParseRoutes = ({
     'Return raw JSON only. ' +
     'You are Babel\'s structural payload transcriber. ' +
     'Your job is to repair transport or field-placement problems without changing the linguistic analysis. ' +
-    'Preserve all overt terminals, node ids, step ids, frame.after, frame.change, compatibility chains if they are present, any compatibility movementEvents/commitmentGraph mirrors if they are present, token indices, and structural relations. ' +
+    'Preserve all overt terminals, node ids, step ids, frame.after, frame.change, visualRelations, compatibility chains or commitmentGraph mirrors if they are present, token indices, and structural relations. ' +
     'Do not invent movement, do not invent change content, do not reorder terminals, do not add or remove nodes, do not change case, theta roles, selection, locality, or any authored change/commitmentGraph content. ' +
     'If the payload is already parseable JSON, preserve that authored content exactly apart from harmless transport-canonical notation repair and mechanical field-placement repair. ' +
     'Output exactly one top-level JSON object and nothing else.'
@@ -162,7 +163,7 @@ export const createParseRoutes = ({
       '- changing derivationSteps\n' +
       '- changing frame.after\n' +
       '- changing frame.change\n' +
-      '- changing movementEvents when present\n' +
+      '- changing visualRelations\n' +
       '- changing chains\n' +
       '- changing commitmentGraph when present\n' +
       '- changing overt terminal order or token indices\n' +
@@ -325,6 +326,16 @@ export const createParseRoutes = ({
         });
         return null;
       }
+      const rawAuthoredTextGate = payloadPreservesRawAuthoredText(parsedTranscribed.payload, rawText);
+      if (!rawAuthoredTextGate.ok) {
+        writeDebugModelPayload({
+          stage: `payload-transcriber-authored-text-reject-${failureStage}`,
+          model: PAYLOAD_TRANSCRIBER_MODEL,
+          sentence,
+          rawText: JSON.stringify(rawAuthoredTextGate, null, 2)
+        });
+        return null;
+      }
     }
 
     const payloadIntegrityFlags = Array.from(new Set([
@@ -478,7 +489,7 @@ export const createParseRoutes = ({
           temperature: routeTemperature,
           maxOutputTokens: routeMaxOutputTokens,
           // First-pass Pro needs machine-valid JSON more than provider reasoning traces.
-          // Keeping thoughts off here reduces latency and truncation pressure on Growth output.
+          // Keeping thoughts off here reduces latency and truncation pressure on derivation output.
           // Do not force a lower provider thinking mode on the live route.
           includeThoughts: false,
           abortSignal

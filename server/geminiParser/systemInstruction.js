@@ -9,15 +9,15 @@ Write the derivation the way a syntactician would record it in serious derivatio
 Preserve the analytic content of each stage, not just the finished tree.
 Derive structure from framework principles, not memorized templates.
 Use only the framework-internal commitments that this derivation actually needs.
-Assume endocentric phrase structure: every XP or X' must be projected from a head X, and the category of the projection must come from that head.
+Assume endocentric phrase structure: every XP or X' projects from a head X, which determines the projection category.
 
 Output conventions:
 - Use X-bar style constituent structure.
 - Use labels consistently.
 - Keep the committed analysis and its justification inside X-bar Theory. Do not justify an X-bar parse by appealing to Minimalist, cartographic, or other alternative frameworks.
-- Keep the X-bar label inventory minimal, framework-internal, and internally consistent throughout the derivation.
-- Do not introduce additional articulated functional projections unless the committed X-bar derivation makes them structurally necessary.
-- If the committed analysis contains an overt higher left-peripheral phrase, keep that structure explicit and keep X-bar branching binary; do not collapse it into a positional placeholder or an unlabeled attachment.
+- Keep X-bar labels minimal, framework-internal, and internally consistent.
+- Do not add articulated functional projections unless the X-bar derivation needs them.
+- If the analysis contains an overt higher left-peripheral phrase, keep it explicit and binary; do not collapse it into a positional placeholder or unlabeled attachment.
 - On the X-bar route, every phrasal node in every derivation stage must be unary or binary only. Do not emit any XP/X'/head configuration where one mother directly has more than two children, even in intermediate derivational frames.
 - Head movement must not destroy X-bar structure. After head movement into a higher head position, keep the lower head inside its original bar-level shell as a trace/copy and keep the landing head in the higher head position; do not leave both the moved head and its bar-level shell as separate sisters under the maximal projection.
 - Keep overt lexical projections explicit; X-bar/GB I stays connected to the pronounced predicate, not absorbed into V.
@@ -72,7 +72,9 @@ General rules for the Pro route:
 - Never put statement, stageRecord, or visualRelations on the analysis object.
 - "workspaceForest" stores the visible derivational workspace after the stage.
 - Keep workspaceForest compact: reuse unchanged introduced subtrees with {"refId":"existingNodeId"}; rewrite only new or structurally changed material. Do not use refId for changed subtrees, and do not use the same refId twice in one stage.
-- Every item in workspaceForest and every item in any children array must be either a full syntax node {"id":"...","label":"...","children":[...]} or an unchanged-subtree stub {"refId":"existingNodeId"}. Never emit {}. For a true leaf, use "children":[].
+- Node ids are derivational identities, not per-stage serials; reuse each id while its object persists.
+- Do not rename unchanged leaves; true new copies/occurrences get new ids linked by lineageId.
+- Every workspaceForest item and child must be either {"id":"...","label":"...","children":[...]} or {"refId":"existingNodeId"}. Leaves still need id, label, and "children":[]; never emit word-only leaves or {}.
 - "statement" is a concise reader-facing headline for the stage. It names what became derivationally public without carrying the full analysis.
 - "stageRecord" is a required prose string. It is the written syntactic record of that stage, not metadata and not key-value bookkeeping, and not a restatement of statement.
 - "visualRelations" is a required array for relations from this stageRecord that should be visually marked on this stage; use [] only when no relation should be visually marked.
@@ -96,7 +98,7 @@ General rules for the Pro route:
 - If the same derivational object is represented across multiple positions or copies, those nodes must share a lineageId.
 - Lower trace/copy nodes are silent. Do not assign overt text, word, or tokenIndex to a lower trace/copy node.
 - If a lower copy survives in derivationStages or in the committed tree, represent it as an explicit trace/copy node rather than a generic null leaf.
-- Do not author continuityIds, movementEvents, chains, commitmentGraph, noteBindings, frame.movement, frame.publicFacts, after, or change on new derivationStages output.
+- Do not author fields outside the requested derivationStages contract.
 `;
 
 export const buildSystemInstruction = (
@@ -106,6 +108,3 @@ export const buildSystemInstruction = (
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
   '\n\n' +
   PRO_BASE_INSTRUCTION;
-
-export const NOTES_RAW_JSON_ONLY_INSTRUCTION = `${RAW_JSON_ONLY_INSTRUCTION}
-The top-level object for this pass must contain exactly one key: "noteBindings".`;

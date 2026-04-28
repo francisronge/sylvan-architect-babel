@@ -29,14 +29,14 @@ import {
 import { createDerivationHelpers } from './geminiParser/derivationHelpers.js';
 import { createNoteBindingHelpers } from './geminiParser/noteBindings.js';
 import { createSemanticValidationHelpers } from './geminiParser/semanticValidation.js';
-import { createNotesSecondPassHelpers } from './geminiParser/notesSecondPass.js';
 import { createParseRoutes } from './geminiParser/parseRoutes.js';
 import { createAnalysisNormalizationHelpers } from './geminiParser/analysisNormalization.js';
 import { createParseNormalizationHelpers } from './geminiParser/parseNormalization.js';
-import { createGrowthDerivationHelpers } from './geminiParser/growthDerivation.js';
+import { createDerivationCompilerHelpers } from './geminiParser/derivationCompiler.js';
 import { createNormalizationUtils } from './geminiParser/normalizationUtils.js';
 import { createStepNormalizationHelpers } from './geminiParser/stepNormalization.js';
 import { createSyntaxTreeHelpers } from './geminiParser/syntaxTree.js';
+import { parseStrictModelJson, parseStrictModelJsonDetailed } from './geminiParser/strictJson.js';
 
 export { ParseApiError } from './geminiParser/error.js';
 
@@ -71,7 +71,7 @@ const subtreeHasOvertYield = (...args) => {
 const {
   isMoveLikeOperation,
   buildNodeLabelIndexFromTree,
-  normalizeMovementEvents,
+  normalizeVisualRelationEvents,
   isAbstractFeatureSurface,
   cleanExplanationWhitespace,
   ensureExplanationTerminator,
@@ -91,7 +91,7 @@ const {
   stripMovementIndicesFromTree,
   materializeEmptyStructuralLeaves,
   promoteSentenceMatchingLeaves,
-  buildCanonicalMovementEvents,
+  buildCanonicalVisualRelationEvents,
   buildGroundedExplanation,
   buildCanonicalDerivationFromTree,
   harmonizeExplanationWithDerivation,
@@ -146,9 +146,7 @@ const {
 } = syntaxTreeHelpersRef;
 
 const {
-  normalizeNoteBindings,
-  compileNoteBindingsFromGrowthFrames,
-  buildNoteBindingChainIdAliases,
+  compileNoteBindingsFromDerivationFrames,
   buildExplanationFromNoteBindings
 } = createNoteBindingHelpers({
   normalizeOptionalStepText,
@@ -158,19 +156,19 @@ const {
 
 const {
   normalizeTransportJsonArray,
-  normalizeDerivationStagesToGrowthFrames,
-  normalizeGrowthFrames,
+  normalizeDerivationStagesToDerivationFrames,
+  normalizeDerivationFrames,
   normalizeMovementStemFromId,
-  materializeImplicitPhrasalTraceShellsInGrowthFrames,
+  materializeImplicitPhrasalTraceShellsInDerivationFrames,
   materializeCommittedTraceShells,
-  collectGrowthFrameNodeIds,
-  canonicalizeGrowthRootCandidateForSentence,
-  selectCommittedGrowthRoot,
-  findLatestCommittedGrowthFrame,
-  buildCanonicalMovementEventsFromGrowthFrames,
-  buildCanonicalDerivationFromGrowthFrames,
+  collectDerivationFrameNodeIds,
+  canonicalizeDerivationRootCandidateForSentence,
+  selectCommittedDerivationRoot,
+  findLatestCommittedDerivationFrame,
+  buildCanonicalVisualRelationEventsFromDerivationFrames,
+  buildCanonicalDerivationFromDerivationFrames,
   assignDerivationStepIds
-} = createGrowthDerivationHelpers({
+} = createDerivationCompilerHelpers({
   ParseApiError,
   nextGeneratedNodeId,
   normalizeSurfaceToken,
@@ -216,7 +214,7 @@ const {
 const {
   normalizeFeatureChecking,
   normalizeDerivationSteps,
-  deriveImplicitGrowthChainId
+  deriveImplicitDerivationChainId
 } = createStepNormalizationHelpers({
   normalizeTransportJsonArray,
   normalizeDerivationOperation,
@@ -306,13 +304,12 @@ const {
   getLabelProfile,
   tokenizeSentenceSurfaceOrder,
   normalizeSurfaceToken,
-  normalizeNoteBindings,
-  compileNoteBindingsFromGrowthFrames,
+  compileNoteBindingsFromDerivationFrames,
   buildExplanationFromNoteBindings,
-  normalizeDerivationStagesToGrowthFrames,
-  normalizeGrowthFrames,
-  materializeImplicitPhrasalTraceShellsInGrowthFrames,
-  buildCanonicalDerivationFromGrowthFrames,
+  normalizeDerivationStagesToDerivationFrames,
+  normalizeDerivationFrames,
+  materializeImplicitPhrasalTraceShellsInDerivationFrames,
+  buildCanonicalDerivationFromDerivationFrames,
   collectNodeReferencesById,
   normalizeSyntaxTreeWithIds,
   buildNodeIndexFromTree,
@@ -320,10 +317,10 @@ const {
   buildNodeLabelIndexFromTree,
   assignDerivationStepIds,
   normalizeDerivationSteps,
-  normalizeMovementEvents,
+  normalizeVisualRelationEvents,
   validateAndCommitSurfaceOrder,
   validateSpelloutConsistency,
-  buildCanonicalMovementEvents,
+  buildCanonicalVisualRelationEvents,
   stripMovementIndicesFromTree,
   collectOvertTerminalNodes,
   resolveNodeSurface,
@@ -332,7 +329,7 @@ const {
   buildGroundedExplanation,
   harmonizeExplanationWithDerivation,
   buildCanonicalDerivationFromTree,
-  collectGrowthFrameNodeIds,
+  collectDerivationFrameNodeIds,
   normalizeChains,
   normalizeCommitmentGraph,
   isProjectedCommitmentKind,
@@ -368,29 +365,26 @@ const {
   ensureStructuredEntryIds,
   runSemanticValidation,
   validatePronouncedCopiesAgainstCommittedTree,
-  buildNoteBindingChainIdAliases,
   validateNoteBindingsAgainstStructuredAnalysis,
   auditNoteConsistency,
   computeCompletenessStatus,
   collectCompletenessWarnings,
-  deriveImplicitGrowthChainId,
+  deriveImplicitDerivationChainId,
   deriveChainTypeFromOperation,
   mergeChainTypes,
   normalizeMovementStemFromId,
   subtreeContainsNamedCovertCategoryLeaf
 });
 
-const {
-  parseModelJson,
-  parseModelJsonDetailed,
-  buildNotesSecondPassPrompt,
-  regenerateCommittedNoteBindings,
-  regenerateCommittedNoteBindingsWithLocalModel
-} = createNotesSecondPassHelpers({
-  ParseApiError,
-  normalizeChainType,
-  normalizeParseBundle
-});
+const parseModelJson = (rawText) => parseStrictModelJson(
+  rawText,
+  (code, message, status) => new ParseApiError(code, message, status)
+);
+
+const parseModelJsonDetailed = (rawText) => parseStrictModelJsonDetailed(
+  rawText,
+  (code, message, status) => new ParseApiError(code, message, status)
+);
 
 export const {
   parseSentenceWithLocalModel,
@@ -407,29 +401,26 @@ export const __test__ = {
   normalizeParseBundle,
   normalizeParseResult,
   validateFinalProNoteBindings,
-  normalizeDerivationStagesToGrowthFrames,
-  normalizeGrowthFrames,
+  normalizeDerivationStagesToDerivationFrames,
+  normalizeDerivationFrames,
   validateAndCommitSurfaceOrder,
-  canonicalizeGrowthRootCandidateForSentence,
-  selectCommittedGrowthRoot,
-  findLatestCommittedGrowthFrame,
-  buildCanonicalMovementEvents,
-  buildCanonicalMovementEventsFromGrowthFrames,
-  buildCanonicalDerivationFromGrowthFrames,
+  canonicalizeDerivationRootCandidateForSentence,
+  selectCommittedDerivationRoot,
+  findLatestCommittedDerivationFrame,
+  buildCanonicalVisualRelationEvents,
+  buildCanonicalVisualRelationEventsFromDerivationFrames,
+  buildCanonicalDerivationFromDerivationFrames,
   buildCanonicalDerivationFromTree,
   harmonizeExplanationWithDerivation,
   buildSystemInstruction,
   buildParseContentsPrompt,
-  buildNotesSecondPassPrompt,
-  regenerateCommittedNoteBindings,
   summarizeProviderReasoningForDisplay,
   summarizeGeneration,
   extractLocalModelResponseText,
   estimateProOutputBudget,
   resolveRouteMaxOutputTokens,
   parseModelJson,
-  normalizeNoteBindings,
-  compileNoteBindingsFromGrowthFrames,
+  compileNoteBindingsFromDerivationFrames,
   normalizeCaseAssignments,
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder,

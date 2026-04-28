@@ -20,6 +20,12 @@ const TRANSCRIBER_GATE_STRING_KEYS = [
   'label'
 ];
 
+const TRANSCRIBER_AUTHORED_TEXT_KEYS = [
+  'statement',
+  'stageRecord',
+  'relation'
+];
+
 const decodeJsonLikeString = (value) => {
   if (typeof value !== 'string') return '';
   try {
@@ -52,7 +58,7 @@ const firstPresentValue = (...values) => values.find((value) => {
   return value !== undefined && value !== null;
 });
 
-const looksLikeMovementEvent = (value) => Boolean(
+const looksLikeVisualRelationEvent = (value) => Boolean(
   value
   && typeof value === 'object'
   && (
@@ -85,7 +91,7 @@ const looksLikeNoteBinding = (value) => Boolean(
   )
 );
 
-const canonicalizeMovementEventForGate = (value) => {
+const canonicalizeVisualRelationEventForGate = (value) => {
   const canonical = {};
   Object.keys(value).forEach((key) => {
     if (['type', 'source', 'sourceNodeId', 'target', 'targetNodeId', 'landingNodeId', 'hostNodeId', 'trace'].includes(key)) return;
@@ -139,8 +145,8 @@ export const canonicalizeTransportValueForGate = (value) => {
   }
   if (!value || typeof value !== 'object') return value;
 
-  if (looksLikeMovementEvent(value)) {
-    return canonicalizeMovementEventForGate(value);
+  if (looksLikeVisualRelationEvent(value)) {
+    return canonicalizeVisualRelationEventForGate(value);
   }
   if (looksLikeNoteBinding(value)) {
     return canonicalizeNoteBindingForGate(value);
@@ -276,6 +282,88 @@ export const payloadRespectsRawStructuralAnchors = (payload, rawText) => {
         return {
           ok: false,
           reason: 'transcriber_structural_drift',
+          key,
+          value
+        };
+      }
+    }
+  }
+
+  return { ok: true };
+};
+
+export const extractRawAuthoredText = (rawText) => {
+  const text = String(rawText || '');
+  const authoredText = Object.fromEntries(
+    TRANSCRIBER_AUTHORED_TEXT_KEYS.map((key) => [key, new Set()])
+  );
+
+  for (const key of TRANSCRIBER_AUTHORED_TEXT_KEYS) {
+    const pattern = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 'g');
+    let match = pattern.exec(text);
+    while (match) {
+      const decoded = decodeJsonLikeString(match[1]).trim();
+      if (decoded) authoredText[key].add(decoded);
+      match = pattern.exec(text);
+    }
+  }
+
+  return authoredText;
+};
+
+export const collectPayloadAuthoredText = (value) => {
+  const authoredText = Object.fromEntries(
+    TRANSCRIBER_AUTHORED_TEXT_KEYS.map((key) => [key, new Set()])
+  );
+
+  const visit = (entry) => {
+    if (Array.isArray(entry)) {
+      entry.forEach(visit);
+      return;
+    }
+    if (!entry || typeof entry !== 'object') return;
+    Object.entries(entry).forEach(([key, child]) => {
+      if (TRANSCRIBER_AUTHORED_TEXT_KEYS.includes(key) && typeof child === 'string') {
+        const normalized = child.trim();
+        if (normalized) authoredText[key].add(normalized);
+      }
+      visit(child);
+    });
+  };
+
+  visit(value);
+  return authoredText;
+};
+
+export const payloadPreservesRawAuthoredText = (payload, rawText) => {
+  const rawAuthoredText = extractRawAuthoredText(rawText);
+  const transcribedAuthoredText = collectPayloadAuthoredText(payload);
+
+  for (const key of TRANSCRIBER_AUTHORED_TEXT_KEYS) {
+    const rawValues = rawAuthoredText[key];
+    const transcribedValues = transcribedAuthoredText[key];
+    if (transcribedValues.size > 0 && rawValues.size === 0) {
+      return {
+        ok: false,
+        reason: 'no_raw_authored_text',
+        key
+      };
+    }
+    for (const value of transcribedValues) {
+      if (!rawValues.has(value)) {
+        return {
+          ok: false,
+          reason: 'transcriber_authored_text_drift',
+          key,
+          value
+        };
+      }
+    }
+    for (const value of rawValues) {
+      if (!transcribedValues.has(value)) {
+        return {
+          ok: false,
+          reason: 'transcriber_authored_text_deleted',
           key,
           value
         };

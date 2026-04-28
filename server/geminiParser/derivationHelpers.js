@@ -228,20 +228,20 @@ export const createDerivationHelpers = ({
     return leaves.some((leaf) => isCovertCategorySurface(resolveNodeSurface(leaf)));
   };
 
-  const hasSameIndexedAncestor = (nodeId, movementIndex, nodeById, parentById) => {
+  const hasSameIndexedAncestor = (nodeId, relationIndex, nodeById, parentById) => {
     let currentId = String(parentById.get(String(nodeId || '').trim()) || '').trim();
     while (currentId) {
       const current = nodeById.get(currentId);
-      if (current && nodeMovementIndex(current) === movementIndex) return true;
+      if (current && nodeMovementIndex(current) === relationIndex) return true;
       currentId = String(parentById.get(currentId) || '').trim();
     }
     return false;
   };
 
-  const findIndexedTraceLeaf = (node, movementIndex) =>
+  const findIndexedTraceLeaf = (node, relationIndex) =>
     collectLeafNodes(node).find((leaf) => {
       const index = nodeMovementIndex(leaf);
-      if (index && index === movementIndex && isIndexedTraceOrNullNode(leaf)) return true;
+      if (index && index === relationIndex && isIndexedTraceOrNullNode(leaf)) return true;
       return !index && (isTraceLikeNode(leaf) || isNullLikeNode(leaf));
     }) || null;
 
@@ -302,7 +302,7 @@ export const createDerivationHelpers = ({
     visit(tree);
   };
 
-  const resolveMovementEventStepIndex = (event, derivationSteps) => {
+  const resolveVisualRelationEventStepIndex = (event, derivationSteps) => {
     if (!Array.isArray(derivationSteps) || derivationSteps.length === 0) return undefined;
 
     const explicitStep = Number(event.stepIndex);
@@ -355,7 +355,7 @@ export const createDerivationHelpers = ({
     return '';
   };
 
-  const normalizeMovementEvents = (value, nodeIds, derivationSteps, nodeById, labelIndex) => {
+  const normalizeVisualRelationEvents = (value, nodeIds, derivationSteps, nodeById, labelIndex) => {
     if (!Array.isArray(value)) return undefined;
     const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
     const stepIndexById = new Map();
@@ -409,7 +409,7 @@ export const createDerivationHelpers = ({
         }
 
         if (stepIndex === undefined) {
-          stepIndex = resolveMovementEventStepIndex({
+          stepIndex = resolveVisualRelationEventStepIndex({
             operation,
             fromNodeId,
             toNodeId,
@@ -504,7 +504,7 @@ export const createDerivationHelpers = ({
     return null;
   };
 
-  const groundMovementEvent = ({
+  const groundVisualRelationEvent = ({
     event,
     step,
     tree,
@@ -636,7 +636,7 @@ export const createDerivationHelpers = ({
     };
   };
 
-  const isPlausibleRawMovementEvent = (event, nodeById) => {
+  const isPlausibleRawVisualRelationEvent = (event, nodeById) => {
     const fromNodeId = String(event?.fromNodeId || '').trim();
     const toNodeId = String(event?.toNodeId || '').trim();
     if (!fromNodeId || !toNodeId) return false;
@@ -644,15 +644,15 @@ export const createDerivationHelpers = ({
     return fromNodeId !== toNodeId;
   };
 
-  const buildCanonicalMovementEvents = ({
+  const buildCanonicalVisualRelationEvents = ({
     tree,
     derivationSteps,
-    rawMovementEvents
+    rawVisualRelationEvents
   }) => {
     const nodeById = buildNodeIndexFromTree(tree);
     const parentById = buildParentIndexFromTree(tree);
     const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
-    const rawEvents = Array.isArray(rawMovementEvents) ? rawMovementEvents : [];
+    const rawEvents = Array.isArray(rawVisualRelationEvents) ? rawVisualRelationEvents : [];
     const canonical = [];
     const seen = new Set();
     const mergeDiagnostics = (...collections) => {
@@ -993,12 +993,12 @@ export const createDerivationHelpers = ({
     return phrase;
   };
 
-  const summarizeGroundedMovement = (movementEvents, tree = null) => {
-    if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
+  const summarizeGroundedTrajectoryRelations = (visualRelationEvents, tree = null) => {
+    if (!Array.isArray(visualRelationEvents) || visualRelationEvents.length === 0) return '';
 
     const nodeById = tree ? buildNodeIndexFromTree(tree) : null;
     const parentById = tree ? buildParentIndexFromTree(tree) : null;
-    const eventDetails = movementEvents
+    const eventDetails = visualRelationEvents
       .map((event) => (nodeById && parentById ? buildMovementDetail({ event, nodeById, parentById }) : null))
       .map((detail) => cleanExplanationWhitespace(detail || ''))
       .filter(Boolean)
@@ -1255,15 +1255,15 @@ export const createDerivationHelpers = ({
     return '';
   };
 
-  const buildGroundedExplanation = ({ tree, derivationSteps, movementEvents, framework = 'xbar' }) => {
+  const buildGroundedExplanation = ({ tree, derivationSteps, visualRelationEvents, framework = 'xbar' }) => {
     const parts = [
       buildRootArchitectureSentence(tree, framework),
       buildClausalEdgeSentence(tree),
       buildMatrixOrganizationSentence(tree),
       buildEmbeddedClauseSentence(tree),
       summarizeDerivationFacts({ derivationSteps }),
-      Array.isArray(movementEvents) && movementEvents.length > 0
-        ? summarizeGroundedMovement(movementEvents, tree)
+      Array.isArray(visualRelationEvents) && visualRelationEvents.length > 0
+        ? summarizeGroundedTrajectoryRelations(visualRelationEvents, tree)
         : 'No displacement operation is encoded in the derivation.'
     ]
       .map((part) => ensureExplanationTerminator(part))
@@ -1274,7 +1274,7 @@ export const createDerivationHelpers = ({
 
   const buildCanonicalDerivationFromTree = ({
     tree,
-    movementEvents,
+    visualRelationEvents,
     surfaceOrder,
     modelDerivationSteps
   }) => {
@@ -1408,8 +1408,8 @@ export const createDerivationHelpers = ({
     });
 
     const rootLabel = String(tree?.label || 'Tree').trim() || 'Tree';
-    const canonicalMovementEvents = Array.isArray(movementEvents) ? movementEvents : [];
-    canonicalMovementEvents
+    const canonicalVisualRelationEvents = Array.isArray(visualRelationEvents) ? visualRelationEvents : [];
+    canonicalVisualRelationEvents
       .slice()
       .sort((left, right) => {
         const a = Number(left?.stepIndex);
@@ -1500,7 +1500,7 @@ export const createDerivationHelpers = ({
       });
     });
 
-    const movementEventsWithCanonicalSteps = canonicalMovementEvents.map((event) => {
+    const visualRelationEventsWithCanonicalSteps = canonicalVisualRelationEvents.map((event) => {
       const fromNodeId = String(event?.fromNodeId || '').trim();
       const toNodeId = String(event?.toNodeId || '').trim();
       const traceNodeId = String(event?.traceNodeId || '').trim();
@@ -1515,15 +1515,15 @@ export const createDerivationHelpers = ({
 
     return {
       derivationSteps,
-      movementEvents: movementEventsWithCanonicalSteps
+      visualRelationEvents: visualRelationEventsWithCanonicalSteps
     };
   };
 
-  const harmonizeExplanationWithDerivation = (explanation, derivationSteps, movementEvents, tree, framework = 'xbar') => {
+  const harmonizeExplanationWithDerivation = (explanation, derivationSteps, visualRelationEvents, tree, framework = 'xbar') => {
     const groundedFallback = buildGroundedExplanation({
       tree,
       derivationSteps,
-      movementEvents,
+      visualRelationEvents,
       framework
     });
     const cleaned = cleanExplanationWhitespace(String(explanation || ''));
@@ -1534,7 +1534,7 @@ export const createDerivationHelpers = ({
   return {
     isMoveLikeOperation,
     buildNodeLabelIndexFromTree,
-    normalizeMovementEvents,
+    normalizeVisualRelationEvents,
     isAbstractFeatureSurface,
     cleanExplanationWhitespace,
     ensureExplanationTerminator,
@@ -1554,7 +1554,7 @@ export const createDerivationHelpers = ({
     stripMovementIndicesFromTree,
     materializeEmptyStructuralLeaves,
     promoteSentenceMatchingLeaves,
-    buildCanonicalMovementEvents,
+    buildCanonicalVisualRelationEvents,
     buildGroundedExplanation,
     buildCanonicalDerivationFromTree,
     harmonizeExplanationWithDerivation,

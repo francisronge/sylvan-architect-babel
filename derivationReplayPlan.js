@@ -193,7 +193,7 @@ const addStageProgress = (stages) => {
 };
 
 export const buildDerivationReplayPlan = (input = {}) => {
-  const rawStages = asArray(input.derivationStages || input.growthFrames);
+  const rawStages = asArray(input.derivationStages);
   const stages = rawStages.map(normalizeStage).map((stage) => {
     const microsteps = buildStageMicrosteps(stage);
     const relationSteps = buildRelationSteps(stage);

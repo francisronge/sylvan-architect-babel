@@ -105,7 +105,7 @@ export const createStepNormalizationHelpers = ({
     return steps.length > 0 ? steps : undefined;
   };
 
-  const deriveImplicitGrowthChainId = (step, event, eventIndex = 0) => {
+  const deriveImplicitDerivationChainId = (step, event, eventIndex = 0) => {
     const explicitEvent = normalizeOptionalStepText(event?.chainId);
     if (explicitEvent) return explicitEvent;
     const explicit = normalizeOptionalStepText(step?.chainId);
@@ -120,6 +120,6 @@ export const createStepNormalizationHelpers = ({
   return {
     normalizeFeatureChecking,
     normalizeDerivationSteps,
-    deriveImplicitGrowthChainId
+    deriveImplicitDerivationChainId
   };
 };

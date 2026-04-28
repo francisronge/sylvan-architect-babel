@@ -9,13 +9,12 @@ export const createParseNormalizationHelpers = ({
   getLabelProfile,
   tokenizeSentenceSurfaceOrder,
   normalizeSurfaceToken,
-  normalizeNoteBindings,
-  compileNoteBindingsFromGrowthFrames,
+  compileNoteBindingsFromDerivationFrames,
   buildExplanationFromNoteBindings,
-  normalizeDerivationStagesToGrowthFrames,
-  normalizeGrowthFrames,
-  materializeImplicitPhrasalTraceShellsInGrowthFrames,
-  buildCanonicalDerivationFromGrowthFrames,
+  normalizeDerivationStagesToDerivationFrames,
+  normalizeDerivationFrames,
+  materializeImplicitPhrasalTraceShellsInDerivationFrames,
+  buildCanonicalDerivationFromDerivationFrames,
   collectNodeReferencesById,
   normalizeSyntaxTreeWithIds,
   buildNodeIndexFromTree,
@@ -23,10 +22,10 @@ export const createParseNormalizationHelpers = ({
   buildNodeLabelIndexFromTree,
   assignDerivationStepIds,
   normalizeDerivationSteps,
-  normalizeMovementEvents,
+  normalizeVisualRelationEvents,
   validateAndCommitSurfaceOrder,
   validateSpelloutConsistency,
-  buildCanonicalMovementEvents,
+  buildCanonicalVisualRelationEvents,
   stripMovementIndicesFromTree,
   collectOvertTerminalNodes,
   resolveNodeSurface,
@@ -34,7 +33,7 @@ export const createParseNormalizationHelpers = ({
   materializeCommittedTraceShells,
   buildGroundedExplanation,
   harmonizeExplanationWithDerivation,
-  collectGrowthFrameNodeIds,
+  collectDerivationFrameNodeIds,
   normalizeChains,
   normalizeCommitmentGraph,
   isProjectedCommitmentKind,
@@ -70,26 +69,25 @@ export const createParseNormalizationHelpers = ({
   ensureStructuredEntryIds,
   runSemanticValidation,
   validatePronouncedCopiesAgainstCommittedTree,
-  buildNoteBindingChainIdAliases,
   validateNoteBindingsAgainstStructuredAnalysis,
   auditNoteConsistency,
   computeCompletenessStatus,
   collectCompletenessWarnings,
-  deriveImplicitGrowthChainId,
+  deriveImplicitDerivationChainId,
   deriveChainTypeFromOperation,
   mergeChainTypes,
   normalizeMovementStemFromId,
   subtreeContainsNamedCovertCategoryLeaf
 }) => {
-  const deriveChainsFromCommittedAnalysis = (derivationSteps, movementEvents, nodeIds) => {
-    if (!Array.isArray(movementEvents) || movementEvents.length === 0) return [];
+  const deriveChainsFromCommittedAnalysis = (derivationSteps, visualRelationEvents, nodeIds) => {
+    if (!Array.isArray(visualRelationEvents) || visualRelationEvents.length === 0) return [];
     const steps = Array.isArray(derivationSteps) ? derivationSteps : [];
     const chainsById = new Map();
 
-    movementEvents.forEach((event, eventIndex) => {
+    visualRelationEvents.forEach((event, eventIndex) => {
       const stepIndex = Number.isInteger(event?.stepIndex) ? event.stepIndex : -1;
       const step = stepIndex >= 0 && stepIndex < steps.length ? steps[stepIndex] : null;
-      const chainId = deriveImplicitGrowthChainId(step, event, eventIndex);
+      const chainId = deriveImplicitDerivationChainId(step, event, eventIndex);
       const pronouncedCopy = String(event?.toNodeId || '').trim();
       const sourceCopy = String(event?.traceNodeId || event?.fromNodeId || '').trim();
       if (!chainId || !pronouncedCopy || !nodeIds.has(pronouncedCopy)) return;
@@ -207,9 +205,9 @@ export const createParseNormalizationHelpers = ({
     };
   };
 
-  const buildCanonicalChains = ({ suppliedChains, derivationSteps, movementEvents, nodeIds, nodeById }) => {
+  const buildCanonicalChains = ({ suppliedChains, derivationSteps, visualRelationEvents, nodeIds, nodeById }) => {
     const modelChains = Array.isArray(suppliedChains) ? suppliedChains : [];
-    const derivedChains = deriveChainsFromCommittedAnalysis(derivationSteps, movementEvents, nodeIds);
+    const derivedChains = deriveChainsFromCommittedAnalysis(derivationSteps, visualRelationEvents, nodeIds);
     const orderedChainIds = [];
     const seenChainIds = new Set();
     const derivedAliasById = new Map();
@@ -361,10 +359,10 @@ export const createParseNormalizationHelpers = ({
       .filter(Boolean);
   };
 
-  // Keep low-level movementEvents aligned with the public chains ledger when the
+  // Keep low-level visualRelationEvents aligned with the public chains ledger when the
   // model omitted event.chainId but already supplied a coherent chain entry.
-  const backfillMovementEventChainIds = ({ movementEvents, chains, derivationSteps }) => {
-    const events = Array.isArray(movementEvents) ? movementEvents : [];
+  const backfillVisualRelationEventChainIds = ({ visualRelationEvents, chains, derivationSteps }) => {
+    const events = Array.isArray(visualRelationEvents) ? visualRelationEvents : [];
     const chainEntries = Array.isArray(chains) ? chains : [];
     if (events.length === 0 || chainEntries.length === 0) return events;
 
@@ -400,7 +398,7 @@ export const createParseNormalizationHelpers = ({
       const sourceNodeId = normalizeOptionalStepText(event?.fromNodeId);
       const stepIndex = Number.isInteger(event?.stepIndex) ? event.stepIndex : -1;
       const step = stepIndex >= 0 && stepIndex < steps.length ? steps[stepIndex] : null;
-      const implicitChainId = deriveImplicitGrowthChainId(step, event, eventIndex);
+      const implicitChainId = deriveImplicitDerivationChainId(step, event, eventIndex);
 
       const targetIsPronounced = Boolean(targetNodeId && candidate.pronouncedCopy === targetNodeId);
       const targetIsSilent = Boolean(targetNodeId && candidate.silentCopySet.has(targetNodeId));
@@ -459,7 +457,7 @@ export const createParseNormalizationHelpers = ({
 
       const stepIndex = Number.isInteger(event?.stepIndex) ? event.stepIndex : -1;
       const step = stepIndex >= 0 && stepIndex < steps.length ? steps[stepIndex] : null;
-      const implicitChainId = deriveImplicitGrowthChainId(step, event, eventIndex);
+      const implicitChainId = deriveImplicitDerivationChainId(step, event, eventIndex);
       if (implicitChainId && chainIdSet.has(implicitChainId)) {
         return { ...event, chainId: implicitChainId };
       }
@@ -582,10 +580,10 @@ export const createParseNormalizationHelpers = ({
     return nodeId && nodeIds.has(nodeId) ? nodeId : undefined;
   };
 
-  const normalizeGrowthAnchorRoleKey = (value) =>
+  const normalizeDerivationAnchorRoleKey = (value) =>
     String(value || '').trim().toLowerCase().replace(/[^a-z]/g, '');
 
-  const growthAnchorRoleMatchesAny = (roleKey, normalizedMatchers = []) =>
+  const derivationAnchorRoleMatchesAny = (roleKey, normalizedMatchers = []) =>
     normalizedMatchers.some((matcher) => roleKey === matcher);
 
   const getFrameChange = (frame) => (
@@ -718,8 +716,6 @@ export const createParseNormalizationHelpers = ({
       : null;
     const explicitOperation = normalizeMovementOperation(
       details?.operation
-      || details?.movementOperation
-      || details?.movementKind
       || details?.type
       || details?.kind
     );
@@ -819,16 +815,153 @@ export const createParseNormalizationHelpers = ({
   const findFrameChangeAnchorNodeId = (frame, roleMatchers = []) => {
     const change = getFrameChange(frame);
     const anchors = Array.isArray(change?.anchors) ? change.anchors : [];
-    const normalizedMatchers = roleMatchers.map((matcher) => normalizeGrowthAnchorRoleKey(matcher)).filter(Boolean);
+    const normalizedMatchers = roleMatchers.map((matcher) => normalizeDerivationAnchorRoleKey(matcher)).filter(Boolean);
     if (normalizedMatchers.length === 0) return undefined;
     for (const anchor of anchors) {
-      const roleKey = normalizeGrowthAnchorRoleKey(anchor?.role);
+      const roleKey = normalizeDerivationAnchorRoleKey(anchor?.role);
       if (!roleKey) continue;
-      if (!growthAnchorRoleMatchesAny(roleKey, normalizedMatchers)) continue;
+      if (!derivationAnchorRoleMatchesAny(roleKey, normalizedMatchers)) continue;
       const nodeId = String(anchor?.nodeId || '').trim();
       if (nodeId) return nodeId;
     }
     return undefined;
+  };
+
+  const VISUAL_RELATION_TRAJECTORY_SOURCE_ROLES = new Set(
+    ['source', 'from', 'origin', 'lower', 'sourcecopy', 'lowercopy']
+      .map((role) => normalizeDerivationAnchorRoleKey(role))
+  );
+  const VISUAL_RELATION_TRAJECTORY_TARGET_ROLES = new Set(
+    ['landing', 'target', 'to', 'destination', 'higher', 'highercopy', 'moved', 'operator']
+      .map((role) => normalizeDerivationAnchorRoleKey(role))
+  );
+  const VISUAL_RELATION_TRAJECTORY_WITNESS_ROLES = new Set(
+    ['trace', 'residue', 'gap', 'copy', 'sourcecopy', 'lowercopy']
+      .map((role) => normalizeDerivationAnchorRoleKey(role))
+  );
+
+  const normalizeVisualRelationAnchorValues = (value) => {
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => normalizeVisualRelationAnchorValues(item));
+    }
+    if (value && typeof value === 'object') {
+      const nodeId = normalizeOptionalStepText(value.nodeId || value.id || value.refId);
+      const displayValue = normalizeOptionalStepText(value.value || value.text || nodeId);
+      return nodeId || displayValue
+        ? [{ nodeId, value: displayValue || nodeId }]
+        : [];
+    }
+    const text = normalizeOptionalStepText(value);
+    return text ? [{ nodeId: text, value: text }] : [];
+  };
+
+  const resolveVisualRelationAnchors = (anchors, frameNodeById) => {
+    if (!anchors || typeof anchors !== 'object' || Array.isArray(anchors)) return [];
+    return Object.entries(anchors).flatMap(([role, rawValue]) => {
+      const normalizedRole = normalizeOptionalStepText(role);
+      if (!normalizedRole) return [];
+      return normalizeVisualRelationAnchorValues(rawValue)
+        .map((anchorValue) => {
+          const nodeId = normalizeOptionalStepText(anchorValue.nodeId);
+          const value = normalizeOptionalStepText(anchorValue.value || nodeId);
+          const node = nodeId ? frameNodeById.get(nodeId) : null;
+          return {
+            role: normalizedRole,
+            ...(nodeId ? { nodeId } : {}),
+            ...(value ? { value } : {}),
+            ...(node?.label ? { label: String(node.label) } : {}),
+            resolved: Boolean(node),
+            visibleInStage: Boolean(node)
+          };
+        });
+    });
+  };
+
+  const firstResolvedRelationAnchorNodeId = (anchors, roleKeys) => {
+    for (const anchor of anchors) {
+      const roleKey = normalizeDerivationAnchorRoleKey(anchor?.role);
+      if (!roleKeys.has(roleKey)) continue;
+      const nodeId = normalizeOptionalStepText(anchor?.nodeId);
+      if (nodeId) return nodeId;
+    }
+    return '';
+  };
+
+  const relationHasTrajectoryShape = ({ relation, sourceNodeId, targetNodeId, witnessNodeId }) => {
+    if (!targetNodeId || (!sourceNodeId && !witnessNodeId)) return false;
+    const relationKey = normalizeKey(relation);
+    return (
+      !relationKey
+      || /move|movement|raise|raising|lower|lowering|front|displac|extract|copy|trace|gap|chain|clitic|affix|scrambl|rollup|sideward|head/.test(relationKey)
+    );
+  };
+
+  const buildResolvedVisualRelationsFromDerivationFrames = (frames) => {
+    const resolvedRelations = [];
+    (Array.isArray(frames) ? frames : []).forEach((frame, frameIndex) => {
+      const change = getFrameChange(frame);
+      const details = change?.details && typeof change.details === 'object' && !Array.isArray(change.details)
+        ? change.details
+        : {};
+      const visualRelations = Array.isArray(details.derivationStageVisualRelations)
+        ? details.derivationStageVisualRelations
+        : [];
+      if (visualRelations.length === 0) return;
+
+      const frameNodeById = buildFrameNodeById(frame);
+      const stageId = normalizeOptionalStepText(frame?.stepId || frame?.frameId) || `d${frameIndex + 1}`;
+      const evidence = normalizeOptionalStepText(details.stageRecord || details.note || frame?.note || change?.statement);
+
+      visualRelations.forEach((visualRelation, relationIndex) => {
+        if (!visualRelation || typeof visualRelation !== 'object') return;
+        const relation = normalizeOptionalStepText(
+          visualRelation.relation
+          || visualRelation.kind
+          || visualRelation.type
+          || visualRelation.label
+        ) || 'visual relation';
+        const anchors = resolveVisualRelationAnchors(visualRelation.anchors, frameNodeById);
+        const sourceNodeId = firstResolvedRelationAnchorNodeId(anchors, VISUAL_RELATION_TRAJECTORY_SOURCE_ROLES);
+        const targetNodeId = firstResolvedRelationAnchorNodeId(anchors, VISUAL_RELATION_TRAJECTORY_TARGET_ROLES);
+        const witnessNodeId = firstResolvedRelationAnchorNodeId(anchors, VISUAL_RELATION_TRAJECTORY_WITNESS_ROLES);
+        const hasUnresolvedAnchors = anchors.some((anchor) => !anchor.resolved);
+        const hasTrajectoryShape = relationHasTrajectoryShape({
+          relation,
+          sourceNodeId,
+          targetNodeId,
+          witnessNodeId
+        });
+        const renderable = hasTrajectoryShape && !hasUnresolvedAnchors;
+        const renderStatus = renderable
+          ? 'trajectory-compatible'
+          : hasTrajectoryShape
+            ? 'trajectory-anchor-unresolved'
+            : hasUnresolvedAnchors
+              ? 'anchors-unresolved'
+              : 'anchors-resolved-not-rendered';
+        const relationId = normalizeOptionalStepText(
+          visualRelation.relationId
+          || visualRelation.visualRelationId
+          || visualRelation.id
+        ) || `${stageId}:visualRelation:${relationIndex + 1}`;
+
+        resolvedRelations.push({
+          relationId,
+          stageId,
+          stageIndex: frameIndex,
+          relation,
+          anchors,
+          ...(sourceNodeId ? { sourceNodeId } : {}),
+          ...(targetNodeId ? { targetNodeId } : {}),
+          ...(witnessNodeId ? { witnessNodeId } : {}),
+          renderFamily: hasTrajectoryShape ? 'trajectory' : 'unknown',
+          renderable,
+          renderStatus,
+          ...(evidence ? { evidence } : {})
+        });
+      });
+    });
+    return resolvedRelations;
   };
 
   const deriveFrameChangeKind = (frame, previousFrame = null) => {
@@ -961,7 +1094,7 @@ export const createParseNormalizationHelpers = ({
       .filter((claim) => normalizeKey(claim) !== normalizeKey(baseStatement))
       .map((claim, claimIndex) => ({
         kind: 'analytic',
-        frameworkLabel: 'growth-frame-prose',
+        frameworkLabel: 'derivation-stage-prose',
         subtype: 'grounded-local-claim',
         statement: claim,
         ...(Array.isArray(baseFact.stepIds) && baseFact.stepIds.length > 0 ? { stepIds: [...baseFact.stepIds] } : {}),
@@ -973,8 +1106,8 @@ export const createParseNormalizationHelpers = ({
       }));
   };
 
-  const compileFrameChangeCommitments = ({ growthFrames, nodeIds, stepIds }) => {
-    const frames = Array.isArray(growthFrames) ? growthFrames : [];
+  const compileFrameChangeCommitments = ({ derivationFrames, nodeIds, stepIds }) => {
+    const frames = Array.isArray(derivationFrames) ? derivationFrames : [];
     const mergedFactsByKey = new Map();
     frames.forEach((frame, index) => {
       const compiledFact = buildFrameChangeCommitmentFact({
@@ -1004,7 +1137,7 @@ export const createParseNormalizationHelpers = ({
     const mergedFacts = Array.from(mergedFactsByKey.values());
     const identifiedFacts = ensureStructuredEntryIds(mergedFacts, 'factId', 'fact');
     return {
-      growthFrames: frames,
+      derivationFrames: frames,
       frameCommitmentFacts: identifiedFacts
     };
   };
@@ -1021,9 +1154,9 @@ export const createParseNormalizationHelpers = ({
     return ensureStructuredEntryIds(Array.from(mergedByKey.values()), 'factId', 'fact');
   };
 
-  const enrichMovementCommitmentFactsFromEvents = (facts, movementEvents, nodeById) => {
+  const enrichMovementCommitmentFactsFromEvents = (facts, visualRelationEvents, nodeById) => {
     const normalizedFacts = Array.isArray(facts) ? facts : [];
-    const normalizedEvents = Array.isArray(movementEvents) ? movementEvents : [];
+    const normalizedEvents = Array.isArray(visualRelationEvents) ? visualRelationEvents : [];
     if (normalizedFacts.length === 0 || normalizedEvents.length === 0) return normalizedFacts;
 
     const buildParticipantsFromEvent = (event) => normalizeCommitmentParticipantsForMerge([
@@ -1100,7 +1233,7 @@ export const createParseNormalizationHelpers = ({
     });
   };
 
-  const buildRawMovementEventIdentityKey = (event) => {
+  const buildRawVisualRelationEventIdentityKey = (event) => {
     if (!event || typeof event !== 'object') return '';
     return JSON.stringify({
       stepId: normalizeOptionalStepText(event.stepId),
@@ -1148,9 +1281,9 @@ export const createParseNormalizationHelpers = ({
     return operationByStepId;
   };
 
-  const inferRawMovementEventStepIdFromStepIndex = ({
+  const inferRawVisualRelationEventStepIdFromStepIndex = ({
     event,
-    rawGrowthFrames,
+    rawDerivationFrames,
     rawDerivationSteps,
     operationByStepId
   }) => {
@@ -1169,8 +1302,8 @@ export const createParseNormalizationHelpers = ({
     });
 
     const candidateGroups = [
-      buildIndexedRawStepIdCandidates(rawGrowthFrames),
-      buildIndexedRawStepIdCandidates(rawGrowthFrames, { moveLikeOnly: true }),
+      buildIndexedRawStepIdCandidates(rawDerivationFrames),
+      buildIndexedRawStepIdCandidates(rawDerivationFrames, { moveLikeOnly: true }),
       buildIndexedRawStepIdCandidates(rawDerivationSteps),
       buildIndexedRawStepIdCandidates(rawDerivationSteps, { moveLikeOnly: true })
     ].map((stepIds) => {
@@ -1196,25 +1329,25 @@ export const createParseNormalizationHelpers = ({
     return undefined;
   };
 
-  const mergeRawMovementEvents = ({
-    topLevelMovementEvents,
-    rawGrowthFrames,
+  const mergeRawVisualRelationEvents = ({
+    topLevelVisualRelationEvents,
+    rawDerivationFrames,
     rawDerivationSteps,
     payloadIntegrityFlags
   }) => {
     const merged = [];
     const seen = new Set();
-    let harvestedFromGrowthFrames = false;
+    let harvestedFromDerivationFrames = false;
     let harvestedFromDerivationSteps = false;
     let inferredStepIdFromStepIndex = false;
-    const operationByStepId = buildRawStepOperationByStepId(rawGrowthFrames, rawDerivationSteps);
+    const operationByStepId = buildRawStepOperationByStepId(rawDerivationFrames, rawDerivationSteps);
 
     const pushEvent = (event, inheritedStepId = '') => {
       if (!event || typeof event !== 'object') return;
       const normalizedInheritedStepId = normalizeOptionalStepText(inheritedStepId);
-      const inferredStepId = normalizedInheritedStepId || inferRawMovementEventStepIdFromStepIndex({
+      const inferredStepId = normalizedInheritedStepId || inferRawVisualRelationEventStepIdFromStepIndex({
         event,
-        rawGrowthFrames,
+        rawDerivationFrames,
         rawDerivationSteps,
         operationByStepId
       });
@@ -1224,7 +1357,7 @@ export const createParseNormalizationHelpers = ({
       if (!normalizedInheritedStepId && inferredStepId && !normalizeOptionalStepText(event.stepId)) {
         inferredStepIdFromStepIndex = true;
       }
-      const key = buildRawMovementEventIdentityKey(enrichedEvent);
+      const key = buildRawVisualRelationEventIdentityKey(enrichedEvent);
       if (!key || seen.has(key)) return;
       seen.add(key);
       merged.push(enrichedEvent);
@@ -1232,34 +1365,34 @@ export const createParseNormalizationHelpers = ({
 
     // Use a wrapper so Array#forEach does not leak the element index into the
     // inheritedStepId slot. That index leak can silently fabricate step ids like "1".
-    parseRawTransportArray(topLevelMovementEvents).forEach((event) => pushEvent(event));
+    parseRawTransportArray(topLevelVisualRelationEvents).forEach((event) => pushEvent(event));
 
-    parseRawTransportArray(rawGrowthFrames).forEach((frame) => {
+    parseRawTransportArray(rawDerivationFrames).forEach((frame) => {
       if (!frame || typeof frame !== 'object') return;
       const frameStepId = normalizeOptionalStepText(frame.stepId);
-      const nestedEvents = parseRawTransportArray(frame.movementEvents);
+      const nestedEvents = parseRawTransportArray(frame.visualRelationEvents);
       if (nestedEvents.length === 0) return;
-      harvestedFromGrowthFrames = true;
+      harvestedFromDerivationFrames = true;
       nestedEvents.forEach((event) => pushEvent(event, frameStepId));
     });
 
     parseRawTransportArray(rawDerivationSteps).forEach((step) => {
       if (!step || typeof step !== 'object') return;
       const stepId = normalizeOptionalStepText(step.stepId);
-      const nestedEvents = parseRawTransportArray(step.movementEvents);
+      const nestedEvents = parseRawTransportArray(step.visualRelationEvents);
       if (nestedEvents.length === 0) return;
       harvestedFromDerivationSteps = true;
       nestedEvents.forEach((event) => pushEvent(event, stepId));
     });
 
-    if (harvestedFromGrowthFrames) {
-      payloadIntegrityFlags.push('nested_movement_events_lifted_from_growth_frames');
+    if (harvestedFromDerivationFrames) {
+      payloadIntegrityFlags.push('nested_visual_relation_events_lifted_from_derivation_frames');
     }
     if (harvestedFromDerivationSteps) {
-      payloadIntegrityFlags.push('nested_movement_events_lifted_from_derivation_steps');
+      payloadIntegrityFlags.push('nested_visual_relation_events_lifted_from_derivation_steps');
     }
     if (inferredStepIdFromStepIndex) {
-      payloadIntegrityFlags.push('movement_event_stepid_inferred_from_stepindex');
+      payloadIntegrityFlags.push('visual_relation_event_stepid_inferred_from_stepindex');
     }
 
     return merged.length > 0 ? merged : undefined;
@@ -1270,7 +1403,7 @@ export const createParseNormalizationHelpers = ({
     framework = 'xbar',
     sentence = '',
     modelRoute = 'pro',
-    enforceGrowthRouteContract = false,
+    enforceDerivationRouteContract = false,
     options = {}
   ) => {
     const parsed = value;
@@ -1280,69 +1413,68 @@ export const createParseNormalizationHelpers = ({
     const payloadIntegrityFlags = Array.isArray(options?.payloadIntegrityFlags)
       ? options.payloadIntegrityFlags.slice()
       : [];
-    const requireFullGrowthFrameContract = enforceGrowthRouteContract;
-    const minGrowthFrames = 3;
+    const requireFullDerivationFrameContract = enforceDerivationRouteContract;
+    const minDerivationFrames = 3;
     const rawDerivationStages = Array.isArray(parsed.derivationStages) ? parsed.derivationStages : [];
     const usesDerivationStages = rawDerivationStages.length > 0;
-    const rawGrowthFrames = usesDerivationStages
-      ? normalizeDerivationStagesToGrowthFrames(rawDerivationStages, {
-          integrityFlags: payloadIntegrityFlags
-        })
-      : (Array.isArray(parsed.growthFrames) ? parsed.growthFrames : []);
+    const rawDerivationFrames = normalizeDerivationStagesToDerivationFrames(rawDerivationStages, {
+      integrityFlags: payloadIntegrityFlags
+    });
     if (usesDerivationStages) {
-      payloadIntegrityFlags.push('derivation_stages_compiled_to_growth_frames');
+      payloadIntegrityFlags.push('derivation_stages_compiled_to_derivation_frames');
     }
-    const rawMovementEvents = mergeRawMovementEvents({
-      topLevelMovementEvents: parsed.movementEvents,
-      rawGrowthFrames,
-      rawDerivationSteps: parsed.derivationSteps,
+    // New derivation-stage parses compile renderable relations from visualRelations.
+    // Legacy model-authored visualRelationEvents must not override those authored anchors.
+    const rawVisualRelationEvents = mergeRawVisualRelationEvents({
+      topLevelVisualRelationEvents: undefined,
+      rawDerivationFrames,
+      rawDerivationSteps: undefined,
       payloadIntegrityFlags
     });
-    if (requireFullGrowthFrameContract && rawGrowthFrames.length < minGrowthFrames) {
+    if (requireFullDerivationFrameContract && rawDerivationFrames.length < minDerivationFrames) {
       throw new ParseApiError(
         'BAD_MODEL_RESPONSE',
-        `Pro analysis must include at least ${minGrowthFrames} derivationStages or growthFrames.`,
+        `Pro analysis must include at least ${minDerivationFrames} derivationStages.`,
         502
       );
     }
-    if (requireFullGrowthFrameContract && rawGrowthFrames.length === minGrowthFrames) {
+    if (requireFullDerivationFrameContract && rawDerivationFrames.length === minDerivationFrames) {
       payloadIntegrityFlags.push('preferred_derivation_stage_count_underfilled:3');
     }
 
-    const rawNoteBindings = normalizeNoteBindings(parsed.noteBindings);
     const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
-    let growthFrames = materializeImplicitPhrasalTraceShellsInGrowthFrames(
-      normalizeGrowthFrames(rawGrowthFrames, framework, sentenceTokens, {
+    let derivationFrames = materializeImplicitPhrasalTraceShellsInDerivationFrames(
+      normalizeDerivationFrames(rawDerivationFrames, framework, sentenceTokens, {
         integrityFlags: payloadIntegrityFlags
       })
     );
-    const growthPrimaryBundle = growthFrames.length > 0
-      ? buildCanonicalDerivationFromGrowthFrames(growthFrames, sentenceTokens, framework)
+    const derivationPrimaryBundle = derivationFrames.length > 0
+      ? buildCanonicalDerivationFromDerivationFrames(derivationFrames, sentenceTokens, framework)
       : null;
-    if (!growthPrimaryBundle?.tree) {
+    if (!derivationPrimaryBundle?.tree) {
       throw new ParseApiError(
         'BAD_MODEL_RESPONSE',
-        growthFrames.length > 0
-          ? 'Growth frames never produced a committed final structure whose overt terminals match the input sentence.'
-          : 'Growth-route analysis failed to produce a committed tree from derivationStages or growthFrames.',
+        derivationFrames.length > 0
+          ? 'Derivation frames never produced a committed final structure whose overt terminals match the input sentence.'
+          : 'Derivation analysis failed to produce a committed tree from derivationStages.',
         502
       );
     }
-    const treeSource = growthPrimaryBundle.tree;
+    const treeSource = derivationPrimaryBundle.tree;
     const nodeReferences = collectNodeReferencesById(treeSource);
     const { tree: rawTree, nodeIds } = normalizeSyntaxTreeWithIds(treeSource, nodeReferences, framework, sentenceTokens);
     const nodeById = buildNodeIndexFromTree(rawTree);
     const labelIndex = buildNodeLabelIndexFromTree(rawTree);
     const modelDerivationSteps = assignDerivationStepIds(normalizeDerivationSteps(parsed.derivationSteps, nodeIds));
-    const normalizedRawMovementEvents = normalizeMovementEvents(rawMovementEvents, nodeIds, modelDerivationSteps, nodeById, labelIndex);
+    const normalizedRawVisualRelationEvents = normalizeVisualRelationEvents(rawVisualRelationEvents, nodeIds, modelDerivationSteps, nodeById, labelIndex);
     const { tree, surfaceOrder } = validateAndCommitSurfaceOrder(parsed.surfaceOrder, rawTree, sentence);
     validateSpelloutConsistency(modelDerivationSteps, tokenizeSentenceSurfaceOrder(sentence), surfaceOrder);
-    const movementEvents = buildCanonicalMovementEvents({
+    const visualRelationEvents = buildCanonicalVisualRelationEvents({
       tree,
       derivationSteps: modelDerivationSteps,
-      rawMovementEvents: normalizedRawMovementEvents
+      rawVisualRelationEvents: normalizedRawVisualRelationEvents
     });
-    const committedTree = growthPrimaryBundle.tree;
+    const committedTree = derivationPrimaryBundle.tree;
     stripMovementIndicesFromTree(tree);
     if (committedTree !== tree) {
       stripMovementIndicesFromTree(committedTree);
@@ -1355,29 +1487,29 @@ export const createParseNormalizationHelpers = ({
     const committedSurfaceOrder = cleanSurfaceOrder.length > 0
       ? cleanSurfaceOrder
       : surfaceOrder;
-    const movementEventsForCommittedTree = Array.isArray(growthPrimaryBundle?.movementEvents) && growthPrimaryBundle.movementEvents.length > 0
-      ? growthPrimaryBundle.movementEvents
-      : movementEvents;
-    materializeCommittedTraceShells(committedTree, movementEventsForCommittedTree);
-    const authoritativeMovementEvents = movementEventsForCommittedTree;
-    const growthDerivedSteps = Array.isArray(growthPrimaryBundle?.derivationSteps) && growthPrimaryBundle.derivationSteps.length > 0
-      ? growthPrimaryBundle.derivationSteps
+    const visualRelationEventsForCommittedTree = Array.isArray(derivationPrimaryBundle?.visualRelationEvents) && derivationPrimaryBundle.visualRelationEvents.length > 0
+      ? derivationPrimaryBundle.visualRelationEvents
+      : visualRelationEvents;
+    materializeCommittedTraceShells(committedTree, visualRelationEventsForCommittedTree);
+    const authoritativeVisualRelationEvents = visualRelationEventsForCommittedTree;
+    const derivationDerivedSteps = Array.isArray(derivationPrimaryBundle?.derivationSteps) && derivationPrimaryBundle.derivationSteps.length > 0
+      ? derivationPrimaryBundle.derivationSteps
       : Array.isArray(modelDerivationSteps) && modelDerivationSteps.length > 0
         ? modelDerivationSteps
         : [];
-    const identifiedDerivationSteps = assignDerivationStepIds(growthDerivedSteps);
+    const identifiedDerivationSteps = assignDerivationStepIds(derivationDerivedSteps);
     const committedNodeById = buildNodeIndexFromTree(committedTree);
     const finalNodeIds = new Set(committedNodeById.keys());
-    const growthNodeIds = collectGrowthFrameNodeIds(growthFrames);
-    const chainNodeIds = new Set([...finalNodeIds, ...growthNodeIds]);
+    const derivationNodeIds = collectDerivationFrameNodeIds(derivationFrames);
+    const chainNodeIds = new Set([...finalNodeIds, ...derivationNodeIds]);
     // Top-level chains are compatibility mirrors only. The canonical chain
-    // view is compiled from growth-frame changes and movement normalization,
+    // view is compiled from derivation-frame changes and movement normalization,
     // then optionally enriched with any compatible legacy chain payload.
     const suppliedChains = normalizeChains(parsed.chains, chainNodeIds);
     const canonicalChainEntries = buildCanonicalChains({
       suppliedChains,
       derivationSteps: identifiedDerivationSteps,
-      movementEvents: authoritativeMovementEvents,
+      visualRelationEvents: authoritativeVisualRelationEvents,
       nodeIds: chainNodeIds,
       nodeById: committedNodeById
     });
@@ -1386,8 +1518,8 @@ export const createParseNormalizationHelpers = ({
       canonicalChains: canonicalChainEntries,
       nodeIds: chainNodeIds
     });
-    const authoritativeMovementEventsWithChainIds = backfillMovementEventChainIds({
-      movementEvents: authoritativeMovementEvents,
+    const authoritativeVisualRelationEventsWithChainIds = backfillVisualRelationEventChainIds({
+      visualRelationEvents: authoritativeVisualRelationEvents,
       chains: chainsWithFieldFallback,
       derivationSteps: identifiedDerivationSteps
     });
@@ -1395,11 +1527,10 @@ export const createParseNormalizationHelpers = ({
       validatePronouncedCopiesAgainstCommittedTree({
         chains: chainsWithFieldFallback,
         tree: committedTree,
-        movementEvents: authoritativeMovementEventsWithChainIds
+        visualRelationEvents: authoritativeVisualRelationEventsWithChainIds
       });
     });
     const chainIds = new Set(chainsWithFieldFallback.map((entry) => entry.chainId).filter(Boolean));
-    const chainIdAliases = buildNoteBindingChainIdAliases(rawNoteBindings, chainsWithFieldFallback);
     const identifiedStepIds = new Set(
       (identifiedDerivationSteps || [])
         .map((step) => normalizeOptionalStepText(step?.stepId))
@@ -1410,14 +1541,15 @@ export const createParseNormalizationHelpers = ({
       ...(identifiedDerivationSteps || []).map((step) => normalizeOptionalStepText(step?.stepId)).filter(Boolean)
     ]);
     const {
-      growthFrames: growthFramesWithCompiledChanges,
+      derivationFrames: derivationFramesWithCompiledChanges,
       frameCommitmentFacts
     } = compileFrameChangeCommitments({
-      growthFrames,
+      derivationFrames,
       nodeIds: chainNodeIds,
       stepIds: rawStepIds
     });
-    growthFrames = growthFramesWithCompiledChanges;
+    derivationFrames = derivationFramesWithCompiledChanges;
+    const resolvedVisualRelations = buildResolvedVisualRelationsFromDerivationFrames(derivationFrames);
     const directFeatureLedger = ensureStructuredEntryIds(
       normalizeFeatureLedger(parsed.featureLedger, finalNodeIds, rawStepIds),
       'entryId',
@@ -1546,7 +1678,7 @@ export const createParseNormalizationHelpers = ({
       'eventstruct'
     );
     const compatibilityCommitmentGraph = normalizeCommitmentGraph(parsed.commitmentGraph, chainNodeIds, rawStepIds);
-    // Growth frame change transactions are the authored source of truth.
+    // Derivation frame change transactions are the authored source of truth.
     // Top-level commitmentGraph remains compatibility input only for older
     // payloads that do not yet carry frame.change.
     const rawCommitmentGraph = frameCommitmentFacts.length > 0
@@ -1669,7 +1801,7 @@ export const createParseNormalizationHelpers = ({
       rawCommitmentGraph.length > 0
         ? rawCommitmentGraph
         : projectedCommitmentGraph,
-      authoritativeMovementEventsWithChainIds,
+      authoritativeVisualRelationEventsWithChainIds,
       committedNodeById
     );
     // Keep note support generic. Projected helper ids can still back notes, but
@@ -1704,30 +1836,19 @@ export const createParseNormalizationHelpers = ({
       ...logophoraLedger.map((entry) => normalizeOptionalStepText(entry?.logophoraId)),
       ...eventStructureLedger.map((entry) => normalizeOptionalStepText(entry?.eventStructureId))
     ].filter(Boolean));
-    const modelNoteBindings = normalizeNoteBindings(parsed.noteBindings, {
+    const compiledDerivationFrameNoteBindings = compileNoteBindingsFromDerivationFrames(derivationFrames, {
       stepIds: identifiedStepIds,
       nodeIds: finalNodeIds,
       chainIds,
-      chainIdAliases,
-      commitmentFactIds: new Set(commitmentGraph.map((entry) => normalizeOptionalStepText(entry?.factId)).filter(Boolean)),
-      supportIds: noteSupportIds
-    });
-    const compiledGrowthFrameNoteBindings = compileNoteBindingsFromGrowthFrames(growthFrames, {
-      stepIds: identifiedStepIds,
-      nodeIds: finalNodeIds,
-      chainIds,
-      chainIdAliases,
       commitmentFacts: commitmentGraph,
       commitmentFactIds: new Set(commitmentGraph.map((entry) => normalizeOptionalStepText(entry?.factId)).filter(Boolean)),
       supportIds: noteSupportIds
     });
-    const noteBindings = compiledGrowthFrameNoteBindings.length > 0
-      ? compiledGrowthFrameNoteBindings
-      : modelNoteBindings;
-    const notesSource = compiledGrowthFrameNoteBindings.length > 0
-      ? (usesDerivationStages ? 'derivationStages' : 'growthFrames')
-      : (modelNoteBindings.length > 0 ? 'model-noteBindings' : 'none');
-    const derivationStages = growthFrames.map((frame, index) => {
+    const noteBindings = compiledDerivationFrameNoteBindings;
+    const notesSource = compiledDerivationFrameNoteBindings.length > 0
+      ? 'derivationStages'
+      : 'none';
+    const derivationStages = derivationFrames.map((frame, index) => {
       const details = frame?.change?.details && typeof frame.change.details === 'object' && !Array.isArray(frame.change.details)
         ? frame.change.details
         : {};
@@ -1748,11 +1869,11 @@ export const createParseNormalizationHelpers = ({
       buildGroundedExplanation({
         tree: committedTree,
         derivationSteps: identifiedDerivationSteps,
-        movementEvents: authoritativeMovementEventsWithChainIds,
+        visualRelationEvents: authoritativeVisualRelationEventsWithChainIds,
         framework
       }),
       identifiedDerivationSteps,
-      authoritativeMovementEventsWithChainIds,
+      authoritativeVisualRelationEventsWithChainIds,
       committedTree,
       framework
     );
@@ -1763,7 +1884,7 @@ export const createParseNormalizationHelpers = ({
       if (noteBindings.length === 0) return;
       validateNoteBindingsAgainstStructuredAnalysis({
         noteBindings,
-        movementEvents: authoritativeMovementEventsWithChainIds,
+        visualRelationEvents: authoritativeVisualRelationEventsWithChainIds,
         chains: chainsWithFieldFallback,
         commitmentGraph,
         clausalDependencies,
@@ -1796,7 +1917,7 @@ export const createParseNormalizationHelpers = ({
       });
     });
     const rawCompletenessStatus = computeCompletenessStatus({
-      growthFrames,
+      derivationFrames,
       rawDerivationSteps: modelDerivationSteps,
       chains: chainsWithFieldFallback,
       commitmentGraph,
@@ -1831,7 +1952,7 @@ export const createParseNormalizationHelpers = ({
     const validationWarnings = collectCompletenessWarnings({
       noteBindings,
       commitmentGraph,
-      growthFrames,
+      derivationFrames,
       chains: chainsWithFieldFallback
     });
     const completenessStatus = validationWarnings.length > 0 && rawCompletenessStatus === 'full'
@@ -1841,7 +1962,7 @@ export const createParseNormalizationHelpers = ({
       modelRoute,
       framework,
       timestamp: new Date().toISOString(),
-      treeSource: usesDerivationStages ? 'derivationStages' : 'growthFrames',
+      treeSource: 'derivationStages',
       promptVersion: normalizeOptionalStepText(process.env.BABEL_PROMPT_VERSION),
       parserVersion: normalizeOptionalStepText(process.env.BABEL_PARSER_VERSION || process.env.VERCEL_GIT_COMMIT_SHA),
       uiVersion: normalizeOptionalStepText(process.env.BABEL_UI_VERSION || process.env.VERCEL_GIT_COMMIT_SHA),
@@ -1854,7 +1975,7 @@ export const createParseNormalizationHelpers = ({
       hasCommitmentGraph: commitmentGraph.length > 0,
       hasCommitmentFacts: commitmentGraph.length > 0,
       hasDerivationStages: derivationStages.length > 0,
-      hasGrowthFrames: growthFrames.length > 0,
+      hasResolvedVisualRelations: resolvedVisualRelations.length > 0,
       hasCaseAssignments: caseAssignments.length > 0,
       hasArgumentStructure: argumentStructure.length > 0,
       hasPhaseLog: phaseLog.length > 0,
@@ -1882,8 +2003,7 @@ export const createParseNormalizationHelpers = ({
       hasLogophoraLedger: logophoraLedger.length > 0,
       hasEventStructureLedger: eventStructureLedger.length > 0,
       notesSource,
-      notesCompiledFromGrowthFrames: compiledGrowthFrameNoteBindings.length > 0,
-      notesCompiledFromDerivationStages: usesDerivationStages && compiledGrowthFrameNoteBindings.length > 0,
+      notesCompiledFromDerivationStages: usesDerivationStages && compiledDerivationFrameNoteBindings.length > 0,
       completenessStatus
     };
 
@@ -1893,11 +2013,10 @@ export const createParseNormalizationHelpers = ({
       explanation: coherentExplanation,
       surfaceOrder: committedSurfaceOrder,
       derivationStages,
-      growthFrames,
+      resolvedVisualRelations,
       noteBindings,
       rawDerivationSteps: modelDerivationSteps,
       derivationSteps: identifiedDerivationSteps,
-      movementEvents: authoritativeMovementEventsWithChainIds,
       chains: chainsWithFieldFallback,
       commitmentFacts: commitmentGraph,
       commitmentGraph,
@@ -1938,7 +2057,7 @@ export const createParseNormalizationHelpers = ({
     framework = 'xbar',
     sentence = '',
     modelRoute = 'pro',
-    enforceGrowthRouteContract = false,
+    enforceDerivationRouteContract = false,
     options = {}
   ) => {
     const parsed = value;
@@ -1954,7 +2073,7 @@ export const createParseNormalizationHelpers = ({
         framework,
         sentence,
         modelRoute,
-        enforceGrowthRouteContract,
+        enforceDerivationRouteContract,
         options
       ))
       .slice(0, 1);
@@ -1977,14 +2096,14 @@ export const createParseNormalizationHelpers = ({
     if (noteBindings.length > 0) return bundle;
     throw new ParseApiError(
       'BAD_MODEL_RESPONSE',
-      'Pro analyses must include non-empty noteBindings compiled from growthFrames or supplied by a legacy payload.',
+      'Pro analyses must include non-empty noteBindings compiled from derivationStages.',
       422
     );
   };
 
   return {
     deriveChainsFromCommittedAnalysis,
-    backfillMovementEventChainIds,
+    backfillVisualRelationEventChainIds,
     normalizeParseResult,
     normalizeParseBundle,
     validateFinalProNoteBindings

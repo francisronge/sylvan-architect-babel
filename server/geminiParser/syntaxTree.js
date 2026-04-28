@@ -232,7 +232,7 @@ export const createSyntaxTreeHelpers = ({
     if (lineageId) normalized.lineageId = lineageId;
     const explicitSilent = normalizeOptionalMetadataBoolean(node.silent);
     if (explicitSilent !== undefined) {
-      // Growth frames may author lower copies as ordinary leaves with silent:true.
+      // Derivation frames may author lower copies as ordinary leaves with silent:true.
       // Preserve that flag so overt-token anchoring does not later reinterpret them as pronounced material.
       normalized.silent = explicitSilent;
     }

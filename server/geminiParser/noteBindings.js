@@ -147,12 +147,8 @@ export const createNoteBindingHelpers = ({
       .filter(Boolean);
   };
 
-  const buildNoteBindingChainIdAliases = (_rawNoteBindings = [], _chainEntries = []) => {
-    return new Map();
-  };
-
-  const compileNoteBindingsFromGrowthFrames = (
-    growthFrames = [],
+  const compileNoteBindingsFromDerivationFrames = (
+    derivationFrames = [],
     {
       stepIds,
       nodeIds,
@@ -163,7 +159,7 @@ export const createNoteBindingHelpers = ({
       supportIds
     } = {}
   ) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0) return [];
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0) return [];
     const allowedStepIds = stepIds instanceof Set ? stepIds : null;
     const allowedNodeIds = nodeIds instanceof Set ? nodeIds : null;
     const allowedChainIds = chainIds instanceof Set ? chainIds : null;
@@ -273,7 +269,7 @@ export const createNoteBindingHelpers = ({
       return 'architecture';
     };
 
-    const compiled = growthFrames
+    const compiled = derivationFrames
       .map((frame, index) => {
         if (!frame || typeof frame !== 'object') return null;
         const text = getFrameRichNoteText(frame);
@@ -287,7 +283,7 @@ export const createNoteBindingHelpers = ({
         const frameFactIds = rawStepId ? factIdsForStep(rawStepId) : [];
         const kind = inferCompiledKind({ text, chainId, frameFactIds });
         return {
-          noteId: `growth_note_${index + 1}`,
+          noteId: `derivation_note_${index + 1}`,
           kind,
           text,
           ...(chainId ? { chainId } : {}),
@@ -331,8 +327,7 @@ export const createNoteBindingHelpers = ({
 
   return {
     normalizeNoteBindings,
-    compileNoteBindingsFromGrowthFrames,
-    buildNoteBindingChainIdAliases,
+    compileNoteBindingsFromDerivationFrames,
     buildExplanationFromNoteBindings
   };
 };

@@ -52,7 +52,7 @@ export interface FeatureCheckEvent {
   note?: string;
 }
 
-export interface GrowthFrameAnchor {
+export interface DerivationFrameAnchor {
   role?: string;
   nodeId?: string;
   lineageId?: string;
@@ -61,15 +61,15 @@ export interface GrowthFrameAnchor {
   [key: string]: unknown;
 }
 
-export interface GrowthFrameChange {
+export interface DerivationFrameChange {
   statement?: string;
-  anchors?: GrowthFrameAnchor[];
+  anchors?: DerivationFrameAnchor[];
   continuityIds?: string[];
   details?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-export interface GrowthFrameAfterState {
+export interface DerivationFrameAfterState {
   workspaceForest?: SyntaxNode[];
   reusePreviousWorkspace?: boolean;
 }
@@ -103,11 +103,11 @@ export interface DerivationStep {
   note?: string;
 }
 
-export interface GrowthFrame {
+export interface DerivationFrame {
   frameId?: string;
   stepId?: string;
-  after: GrowthFrameAfterState;
-  change: GrowthFrameChange;
+  after: DerivationFrameAfterState;
+  change: DerivationFrameChange;
   note?: string;
 }
 
@@ -124,6 +124,35 @@ export interface DerivationStageVisualRelation {
   anchors: Record<string, string | string[]>;
 }
 
+export type VisualRelationRenderFamily =
+  | 'trajectory'
+  | 'unknown'
+  | OpenOntologyLabel;
+
+export interface ResolvedVisualRelationAnchor {
+  role: string;
+  nodeId?: string;
+  value?: string;
+  label?: string;
+  resolved: boolean;
+  visibleInStage: boolean;
+}
+
+export interface ResolvedVisualRelationRecord {
+  relationId: string;
+  stageId?: string;
+  stageIndex: number;
+  relation: OpenOntologyLabel;
+  anchors: ResolvedVisualRelationAnchor[];
+  sourceNodeId?: string;
+  targetNodeId?: string;
+  witnessNodeId?: string;
+  renderFamily: VisualRelationRenderFamily;
+  renderable: boolean;
+  renderStatus: OpenOntologyLabel;
+  evidence?: string;
+}
+
 export interface NoteBinding {
   noteId?: string;
   kind: 'architecture' | 'chain' | 'licensing' | 'closure' | 'other';
@@ -134,28 +163,6 @@ export interface NoteBinding {
   supportIds?: string[];
   commitmentFactIds?: string[];
   order?: number;
-}
-
-export type KnownMovementOperation = 'Move' | 'InternalMerge' | 'HeadMove' | 'A-Move' | 'AbarMove' | 'Other';
-
-export interface MovementEvent {
-  operation?: KnownMovementOperation | OpenOntologyLabel;
-  label?: OpenOntologyLabel;
-  movingNodeId?: string;
-  fromNodeId?: string;
-  sourceNodeId?: string;
-  landingNodeId?: string;
-  hostNodeId?: string;
-  toNodeId?: string;
-  traceNodeId?: string;
-  chainId?: string;
-  stepId?: string;
-  stepIndex?: number;
-  note?: string;
-  participants?: Record<string, unknown>;
-  preserveOperationLabel?: boolean;
-  serializationStatus?: 'complete' | 'underspecified' | 'incoherent';
-  diagnostics?: string[];
 }
 
 export type DerivationCompleteness = 'minimal' | 'partial' | 'full';
@@ -540,7 +547,7 @@ export interface Provenance {
   framework?: 'xbar' | 'minimalism';
   language?: string;
   timestamp?: string;
-  treeSource?: 'derivationStages' | 'growthFrames' | 'committedTree';
+  treeSource?: 'derivationStages' | 'committedTree';
   promptVersion?: string;
   parserVersion?: string;
   uiVersion?: string;
@@ -554,7 +561,7 @@ export interface Provenance {
   hasCommitmentGraph?: boolean;
   hasCommitmentFacts?: boolean;
   hasDerivationStages?: boolean;
-  hasGrowthFrames?: boolean;
+  hasResolvedVisualRelations?: boolean;
   hasCaseAssignments?: boolean;
   hasArgumentStructure?: boolean;
   hasPhaseLog?: boolean;
@@ -583,15 +590,7 @@ export interface Provenance {
   providerReasoningRaw?: string;
   providerReasoningSummary?: string;
   providerThoughtsTokenCount?: number;
-  notesSecondPass?: boolean;
-  notesSecondPassReasoningRaw?: string;
-  notesSecondPassReasoningSummary?: string;
-  notesSecondPassPromptTokenCount?: number;
-  notesSecondPassOutputTokenCount?: number;
-  notesSecondPassTotalTokenCount?: number;
-  notesSecondPassThoughtsTokenCount?: number;
   notesSource?: string;
-  notesCompiledFromGrowthFrames?: boolean;
   notesCompiledFromDerivationStages?: boolean;
   completenessStatus?: DerivationCompleteness;
 }
@@ -603,11 +602,10 @@ export interface ParseResult {
   explanation: string;
   surfaceOrder?: string[];
   derivationStages?: DerivationStage[];
-  growthFrames?: GrowthFrame[];
+  resolvedVisualRelations?: ResolvedVisualRelationRecord[];
   noteBindings?: NoteBinding[];
   rawDerivationSteps?: DerivationStep[];
   derivationSteps?: DerivationStep[];
-  movementEvents?: MovementEvent[];
   chains?: ChainLedgerEntry[];
   commitmentFacts?: CommitmentGraphEntry[];
   commitmentGraph?: CommitmentGraphEntry[];

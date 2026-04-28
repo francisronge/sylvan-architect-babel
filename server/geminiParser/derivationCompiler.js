@@ -1,4 +1,4 @@
-export const createGrowthDerivationHelpers = ({
+export const createDerivationCompilerHelpers = ({
   ParseApiError,
   nextGeneratedNodeId,
   normalizeSurfaceToken,
@@ -92,7 +92,7 @@ export const createGrowthDerivationHelpers = ({
     return entries.length > 0 ? entries : undefined;
   };
 
-  const normalizeGrowthFrameAnchors = (value, nodeIds) => {
+  const normalizeDerivationFrameAnchors = (value, nodeIds) => {
     const parsedValue = normalizeTransportJsonArray(value);
     if (!Array.isArray(parsedValue)) return undefined;
 
@@ -120,7 +120,7 @@ export const createGrowthDerivationHelpers = ({
     return anchors.length > 0 ? anchors : undefined;
   };
 
-  const normalizeGrowthFrameChange = (value, nodeIds) => {
+  const normalizeDerivationFrameChange = (value, nodeIds) => {
     const parsedValue = parseTransportJsonValue(value);
     if (!parsedValue || typeof parsedValue !== 'object') return undefined;
 
@@ -130,7 +130,7 @@ export const createGrowthDerivationHelpers = ({
       || parsedValue.claim
       || parsedValue.note
     );
-    const anchors = normalizeGrowthFrameAnchors(
+    const anchors = normalizeDerivationFrameAnchors(
       parsedValue.anchors
       || parsedValue.participants
       || parsedValue.supportAnchors,
@@ -176,7 +176,7 @@ export const createGrowthDerivationHelpers = ({
     };
   };
 
-  const normalizeGrowthFrameAfter = (value) => {
+  const normalizeDerivationFrameAfter = (value) => {
     const parsedValue = parseTransportJsonValue(value);
     const after = parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue)
       ? parsedValue
@@ -309,23 +309,100 @@ export const createGrowthDerivationHelpers = ({
     return '';
   };
 
-  const buildMovementEventsFromDerivationStageVisualRelations = (visualRelations, statement) => (
+  const normalizeAnchorRole = (role) => String(role || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+  const getFirstVisualAnchorMatchingRole = (anchors, predicate) => {
+    if (!anchors || typeof anchors !== 'object' || Array.isArray(anchors)) return '';
+    for (const [role, value] of Object.entries(anchors)) {
+      if (!predicate(normalizeAnchorRole(role))) continue;
+      if (Array.isArray(value)) {
+        const first = value.map((item) => normalizeOptionalStepText(item)).find(Boolean);
+        if (first) return first;
+      }
+      const normalizedValue = normalizeOptionalStepText(value);
+      if (normalizedValue) return normalizedValue;
+    }
+    return '';
+  };
+
+  const buildVisualRelationEventsFromDerivationStageVisualRelations = (visualRelations, statement) => (
     Array.isArray(visualRelations)
       ? visualRelations.map((visualRelation) => {
           const anchors = visualRelation?.anchors || {};
-          const movingNodeId = getFirstVisualAnchor(anchors, ['moving', 'moved', 'operator', 'phrase', 'head']);
-          const sourceNodeId = getFirstVisualAnchor(anchors, ['source', 'from', 'origin', 'lower', 'lowerCopy']);
-          const landingNodeId = getFirstVisualAnchor(anchors, ['landing', 'to', 'target', 'destination', 'operator']);
-          const traceNodeId = getFirstVisualAnchor(anchors, ['trace', 'copy', 'lowerCopy', 'gap']);
+          const headCopyNodeId = getFirstVisualAnchorMatchingRole(
+            anchors,
+            (role) => (role.includes('head') || role.includes('higher') || role.includes('front')) && role.includes('copy')
+          );
+          const tailCopyNodeId = getFirstVisualAnchorMatchingRole(
+            anchors,
+            (role) => (role.includes('tail') || role.includes('lower') || role.includes('source')) && role.includes('copy')
+          );
+          const explicitMovingNodeId = getFirstVisualAnchor(anchors, ['moving', 'moved', 'operator', 'phrase'])
+            || getFirstVisualAnchorMatchingRole(
+              anchors,
+              (role) => (
+                role.includes('movedcopy')
+                || role.includes('highestcopy')
+                || role.includes('frontcopy')
+                || role.includes('pronouncedhighest')
+              )
+            );
+          const sourceNodeId = getFirstVisualAnchor(anchors, ['source', 'from', 'origin', 'lower', 'lowerCopy'])
+            || getFirstVisualAnchorMatchingRole(
+              anchors,
+              (role) => (
+                role.includes('sourcecopy')
+                || role.includes('lowercopy')
+                || role.includes('tailcopy')
+                || role.includes('basecopy')
+                || role.includes('intermediatecopy')
+                || role.includes('silentlower')
+              )
+            )
+            || tailCopyNodeId;
+          const landingNodeId = getFirstVisualAnchor(anchors, ['landing', 'to', 'target', 'destination', 'operator'])
+            || headCopyNodeId
+            || explicitMovingNodeId;
+          const movingNodeId = explicitMovingNodeId
+            || headCopyNodeId
+            || landingNodeId;
+          const traceNodeId = getFirstVisualAnchor(anchors, ['trace', 'copy', 'lowerCopy', 'gap'])
+            || getFirstVisualAnchorMatchingRole(
+              anchors,
+              (role) => (
+                role.includes('sourcecopy')
+                || role.includes('lowercopy')
+                || role.includes('tailcopy')
+                || role.includes('basecopy')
+                || role.includes('intermediatecopy')
+                || role.includes('silentlower')
+              )
+            )
+            || tailCopyNodeId
+            || sourceNodeId;
           const hostNodeId = getFirstVisualAnchor(anchors, ['host', 'domain', 'container']);
           if (!movingNodeId || (!sourceNodeId && !traceNodeId) || !landingNodeId) return null;
           const fromNodeId = sourceNodeId || traceNodeId;
+          const relationLabel = normalizeOptionalStepText(visualRelation.relation);
+          const relationAnchors = Object.entries(anchors)
+            .flatMap(([role, value]) => {
+              const values = Array.isArray(value) ? value : [value];
+              return values
+                .map((item) => normalizeOptionalStepText(item))
+                .filter(Boolean)
+                .map((nodeId) => ({ role, nodeId }));
+            });
           return {
-            operation: visualRelation.relation,
-            label: visualRelation.relation,
+            relation: relationLabel,
+            anchors: relationAnchors,
+            sourceNodeId,
+            targetNodeId: landingNodeId,
+            witnessNodeId: traceNodeId,
+            renderFamily: 'trajectory',
+            operation: relationLabel,
+            label: relationLabel,
             movingNodeId,
             fromNodeId,
-            sourceNodeId,
             landingNodeId,
             toNodeId: landingNodeId,
             traceNodeId,
@@ -339,7 +416,7 @@ export const createGrowthDerivationHelpers = ({
       : []
   );
 
-  const normalizeDerivationStagesToGrowthFrames = (value, options = {}) => {
+  const normalizeDerivationStagesToDerivationFrames = (value, options = {}) => {
     if (!Array.isArray(value)) return [];
     const integrityFlags = Array.isArray(options?.integrityFlags) ? options.integrityFlags : [];
 
@@ -392,7 +469,7 @@ export const createGrowthDerivationHelpers = ({
               derivationStageVisualRelationsContract: true
             }
           },
-          movementEvents: buildMovementEventsFromDerivationStageVisualRelations(visualRelations, statement)
+          visualRelationEvents: buildVisualRelationEventsFromDerivationStageVisualRelations(visualRelations, statement)
         };
       })
       .filter(Boolean);
@@ -460,8 +537,6 @@ export const createGrowthDerivationHelpers = ({
       : null;
     const explicitOperation = normalizeMovementOperation(
       details?.operation
-      || details?.movementOperation
-      || details?.movementKind
       || details?.type
       || details?.kind
     );
@@ -663,14 +738,14 @@ export const createGrowthDerivationHelpers = ({
       .map((token) => String(token || '').trim())
       .filter(Boolean);
 
-  const normalizeGrowthTargetLabel = (label) =>
+  const normalizeDerivationTargetLabel = (label) =>
     String(label || '').trim().replace(/[\s']/g, '').toUpperCase();
 
   const isBroadProjectionLikeNode = (node) => {
     if (!node || typeof node !== 'object') return false;
     const children = Array.isArray(node.children) ? node.children : [];
     if (children.length === 0) return false;
-    const normalized = normalizeGrowthTargetLabel(node.label);
+    const normalized = normalizeDerivationTargetLabel(node.label);
     return (
       normalized.endsWith('P') ||
       normalized.endsWith('BAR') ||
@@ -1163,8 +1238,8 @@ export const createGrowthDerivationHelpers = ({
     return bestPair;
   };
 
-  const materializeImplicitPhrasalTraceShellsInGrowthFrames = (growthFrames) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0) return [];
+  const materializeImplicitPhrasalTraceShellsInDerivationFrames = (derivationFrames) => {
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0) return [];
 
     const normalizedFrames = [];
     const headTraceSourceIds = new Set();
@@ -1192,7 +1267,7 @@ export const createGrowthDerivationHelpers = ({
       }
     };
 
-    growthFrames.forEach((frame) => {
+    derivationFrames.forEach((frame) => {
       const nextWorkspaceForest = cloneSyntaxForestDeep(getFrameWorkspaceForest(frame));
       const change = getFrameChange(frame);
       const nodeById = new Map();
@@ -1282,8 +1357,8 @@ export const createGrowthDerivationHelpers = ({
     return traceLabel;
   };
 
-  const materializeCommittedTraceShells = (tree, movementEvents) => {
-    if (!tree || typeof tree !== 'object' || !Array.isArray(movementEvents) || movementEvents.length === 0) {
+  const materializeCommittedTraceShells = (tree, visualRelationEvents) => {
+    if (!tree || typeof tree !== 'object' || !Array.isArray(visualRelationEvents) || visualRelationEvents.length === 0) {
       return tree;
     }
 
@@ -1301,7 +1376,7 @@ export const createGrowthDerivationHelpers = ({
     };
 
     const forest = [tree];
-    movementEvents.forEach((event) => {
+    visualRelationEvents.forEach((event) => {
       const traceId = String(event?.traceNodeId || event?.fromNodeId || '').trim();
       const targetId = String(event?.landingNodeId || event?.toNodeId || '').trim();
       if (!traceId || !targetId) return;
@@ -1422,14 +1497,14 @@ export const createGrowthDerivationHelpers = ({
     return node;
   };
 
-  const hasEarlierOvertHeadSourceEvidence = (growthFrames, landingNode) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0 || !landingNode) return false;
+  const hasEarlierOvertHeadSourceEvidence = (derivationFrames, landingNode) => {
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0 || !landingNode) return false;
     const preferredBases = preferredHeadMoveSourceBases(landingNode);
     if (preferredBases.length === 0) return false;
     const landingSurfaceStem = normalizeHeadTraceSurfaceStem(getNodeOvertYield(landingNode));
     if (!landingSurfaceStem) return false;
 
-    for (const frame of growthFrames) {
+    for (const frame of derivationFrames) {
       const forest = getFrameWorkspaceForest(frame);
       const stack = [...forest];
       while (stack.length > 0) {
@@ -1523,7 +1598,7 @@ export const createGrowthDerivationHelpers = ({
     return node;
   };
 
-  const canonicalizeGrowthWorkspaceForest = (forest) => {
+  const canonicalizeDerivationWorkspaceForest = (forest) => {
     const clonedForest = cloneSyntaxForestDeep(forest);
     clonedForest.forEach((root) => {
       collapseMalformedHeadMoveLandings(root);
@@ -1532,13 +1607,13 @@ export const createGrowthDerivationHelpers = ({
     return clonedForest;
   };
 
-  const canonicalizeGrowthFrames = (frames) => {
+  const canonicalizeDerivationFrames = (frames) => {
     if (!Array.isArray(frames) || frames.length === 0) return [];
     return frames.map((frame) => ({
       ...frame,
       after: {
         ...getFrameAfterState(frame),
-        workspaceForest: canonicalizeGrowthWorkspaceForest(getFrameWorkspaceForest(frame))
+        workspaceForest: canonicalizeDerivationWorkspaceForest(getFrameWorkspaceForest(frame))
       }
     }));
   };
@@ -1571,8 +1646,6 @@ export const createGrowthDerivationHelpers = ({
       : null;
     const explicitOperation = normalizeMovementOperation(
       details?.operation
-      || details?.movementOperation
-      || details?.movementKind
       || details?.type
       || details?.kind
     );
@@ -1704,7 +1777,7 @@ export const createGrowthDerivationHelpers = ({
     return merged.length > 0 ? merged : undefined;
   };
 
-  const normalizeGrowthFrames = (value, framework = 'xbar', sentenceTokens = [], options = {}) => {
+  const normalizeDerivationFrames = (value, framework = 'xbar', sentenceTokens = [], options = {}) => {
     if (!Array.isArray(value)) return [];
     let previousWorkspaceForest = null;
     const persistentSubtreeReferences = new Map();
@@ -1718,7 +1791,7 @@ export const createGrowthDerivationHelpers = ({
       .map((rawItem, frameIndex) => {
         const item = parseTransportJsonValue(rawItem);
         if (!item || typeof item !== 'object') return null;
-        const normalizedAfter = normalizeGrowthFrameAfter(item.after);
+        const normalizedAfter = normalizeDerivationFrameAfter(item.after);
         if (!normalizedAfter) return null;
         const reusePreviousWorkspace = normalizedAfter.reusePreviousWorkspace === true;
         const workspaceForestValue = expandSameStageSubtreeRefs(
@@ -1781,7 +1854,7 @@ export const createGrowthDerivationHelpers = ({
         currentNodeById.forEach((node, nodeId) => {
           persistentSubtreeReferences.set(nodeId, cloneSyntaxNodeDeep(node));
         });
-        const normalizedChange = normalizeGrowthFrameChange(item.change, normalizedFrameNodeIds);
+        const normalizedChange = normalizeDerivationFrameChange(item.change, normalizedFrameNodeIds);
         if (!normalizedChange) {
           const flagSuffix = normalizeOptionalStepText(item.stepId)
             || normalizeOptionalStepText(item.frameId)
@@ -1799,7 +1872,7 @@ export const createGrowthDerivationHelpers = ({
           },
           change: normalizedChange,
           note: normalizeOptionalStepText(item.note),
-          ...(Array.isArray(item.movementEvents) ? { movementEvents: item.movementEvents } : {}),
+          ...(Array.isArray(item.visualRelationEvents) ? { visualRelationEvents: item.visualRelationEvents } : {}),
           ...(item.featureChecking ? {
             change: {
               ...(normalizedChange || {}),
@@ -1813,13 +1886,13 @@ export const createGrowthDerivationHelpers = ({
       })
       .filter(Boolean);
 
-    return canonicalizeGrowthFrames(normalizedFrames);
+    return canonicalizeDerivationFrames(normalizedFrames);
   };
 
-  const collectGrowthFrameNodeIds = (growthFrames) => {
+  const collectDerivationFrameNodeIds = (derivationFrames) => {
     const nodeIds = new Set();
-    if (!Array.isArray(growthFrames)) return nodeIds;
-    growthFrames.forEach((frame) => {
+    if (!Array.isArray(derivationFrames)) return nodeIds;
+    derivationFrames.forEach((frame) => {
       const forest = getFrameWorkspaceForest(frame);
       forest.forEach((root) => {
         collectNodeReferencesById(root).forEach((_, nodeId) => {
@@ -1832,7 +1905,7 @@ export const createGrowthDerivationHelpers = ({
     return nodeIds;
   };
 
-  const canonicalizeGrowthRootCandidateForSentence = (root, sentenceTokens = []) => {
+  const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = []) => {
     if (!root || typeof root !== 'object') return null;
     const targetTokens = Array.isArray(sentenceTokens)
       ? sentenceTokens.map((token) => String(token || '').trim()).filter(Boolean)
@@ -1853,7 +1926,7 @@ export const createGrowthDerivationHelpers = ({
     }
   };
 
-  const selectCommittedGrowthRoot = (workspaceForest, sentenceTokens = []) => {
+  const selectCommittedDerivationRoot = (workspaceForest, sentenceTokens = []) => {
     if (!Array.isArray(workspaceForest) || workspaceForest.length === 0) return null;
     const targetTokens = Array.isArray(sentenceTokens)
       ? sentenceTokens.map((token) => String(token || '').trim()).filter(Boolean)
@@ -1863,18 +1936,18 @@ export const createGrowthDerivationHelpers = ({
     const candidates = workspaceForest
       .map((root) => {
         if (!root || typeof root !== 'object') return null;
-        return canonicalizeGrowthRootCandidateForSentence(root, targetTokens);
+        return canonicalizeDerivationRootCandidateForSentence(root, targetTokens);
       })
       .filter(Boolean);
 
     return candidates.length === 1 ? candidates[0] : null;
   };
 
-  const findLatestCommittedGrowthFrame = (growthFrames, sentenceTokens = []) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0) return null;
-    for (let index = growthFrames.length - 1; index >= 0; index -= 1) {
-      const frame = growthFrames[index];
-      const root = selectCommittedGrowthRoot(getFrameWorkspaceForest(frame), sentenceTokens);
+  const findLatestCommittedDerivationFrame = (derivationFrames, sentenceTokens = []) => {
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0) return null;
+    for (let index = derivationFrames.length - 1; index >= 0; index -= 1) {
+      const frame = derivationFrames[index];
+      const root = selectCommittedDerivationRoot(getFrameWorkspaceForest(frame), sentenceTokens);
       if (root) {
         return { frame, frameIndex: index, root };
       }
@@ -1882,12 +1955,12 @@ export const createGrowthDerivationHelpers = ({
     return null;
   };
 
-  const buildCanonicalMovementEventsFromGrowthFrames = (growthFrames, finalTree) => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0 || !finalTree) return [];
+  const buildCanonicalVisualRelationEventsFromDerivationFrames = (derivationFrames, finalTree) => {
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0 || !finalTree) return [];
     const committedNodeById = buildNodeIndexFromTree(finalTree);
     const committedParentById = buildParentIndexFromTree(finalTree);
     const allNodeById = new Map(committedNodeById);
-    growthFrames.forEach((frame) => {
+    derivationFrames.forEach((frame) => {
       const forest = getFrameWorkspaceForest(frame);
       forest.forEach((root) => {
         collectNodeReferencesById(root).forEach((node, nodeId) => {
@@ -1898,22 +1971,50 @@ export const createGrowthDerivationHelpers = ({
       });
     });
 
-    const hasDerivationStageVisualRelationContract = growthFrames.some((frame) => {
+    const hasDerivationStageVisualRelationContract = derivationFrames.some((frame) => {
       const details = frame?.change?.details && typeof frame.change.details === 'object'
         ? frame.change.details
         : null;
       return details?.derivationStageVisualRelationsContract === true;
     });
-    const authoredMovementEvents = growthFrames.flatMap((frame, index) => {
-      const frameEvents = Array.isArray(frame?.movementEvents) ? frame.movementEvents : [];
+    const authoredVisualRelationEvents = derivationFrames.flatMap((frame, index) => {
+      const frameEvents = Array.isArray(frame?.visualRelationEvents) ? frame.visualRelationEvents : [];
+      const currentForest = getFrameWorkspaceForest(frame);
+      const previousForest = index > 0 ? getFrameWorkspaceForest(derivationFrames[index - 1]) : [];
+      const change = getFrameChange(frame);
       return frameEvents.map((event) => {
         const label = normalizeOptionalStepText(event?.label || event?.operation || event?.type);
         if (!label) return null;
         const rawMovingNodeId = normalizeOptionalStepText(event?.movingNodeId);
-        const landingNodeId = normalizeOptionalStepText(event?.landingNodeId || event?.toNodeId || rawMovingNodeId);
-        const fromNodeId = normalizeOptionalStepText(event?.fromNodeId || event?.sourceNodeId || event?.traceNodeId);
-        const traceNodeId = normalizeOptionalStepText(event?.traceNodeId);
+        const rawLandingNodeId = normalizeOptionalStepText(event?.landingNodeId || event?.toNodeId || rawMovingNodeId);
+        const rawFromNodeId = normalizeOptionalStepText(event?.fromNodeId || event?.sourceNodeId || event?.traceNodeId);
+        const rawTraceNodeId = normalizeOptionalStepText(event?.traceNodeId);
         const hostNodeId = normalizeOptionalStepText(event?.hostNodeId);
+        const needsStructuralAnchorResolution =
+          isMoveLikeOperation(normalizeMovementOperation(label))
+          && (
+            (rawLandingNodeId && !allNodeById.has(rawLandingNodeId))
+            || (rawMovingNodeId && !allNodeById.has(rawMovingNodeId))
+            || (!rawLandingNodeId && !rawMovingNodeId)
+          );
+        const inferredPair = needsStructuralAnchorResolution
+          ? inferMovementPairFromStateTransition({
+              previousForest,
+              currentForest,
+              operation: label,
+              rawTargetId: rawLandingNodeId || rawMovingNodeId,
+              surfaceForms: extractQuotedMovementSurfaceForms(change)
+            })
+          : null;
+        const landingNodeId = rawLandingNodeId && allNodeById.has(rawLandingNodeId)
+          ? rawLandingNodeId
+          : normalizeOptionalStepText(inferredPair?.landingNode?.id) || rawLandingNodeId;
+        const fromNodeId = rawFromNodeId && allNodeById.has(rawFromNodeId)
+          ? rawFromNodeId
+          : normalizeOptionalStepText(inferredPair?.sourceTraceNode?.id) || rawFromNodeId;
+        const traceNodeId = rawTraceNodeId && allNodeById.has(rawTraceNodeId)
+          ? rawTraceNodeId
+          : normalizeOptionalStepText(inferredPair?.sourceTraceNode?.id) || rawTraceNodeId;
         const movingNodeId = rawMovingNodeId && allNodeById.has(rawMovingNodeId)
           ? rawMovingNodeId
           : landingNodeId && allNodeById.has(landingNodeId)
@@ -1958,7 +2059,7 @@ export const createGrowthDerivationHelpers = ({
       }).filter(Boolean);
     });
     if (hasDerivationStageVisualRelationContract) {
-      return authoredMovementEvents;
+      return authoredVisualRelationEvents;
     }
 
     const isHeadCompatibleNodeId = (nodeId) => {
@@ -1973,11 +2074,11 @@ export const createGrowthDerivationHelpers = ({
       return getLabelProfile(String(parentNode?.label || '').trim()).isHeadLikeStructural;
     };
 
-    return growthFrames
+    return derivationFrames
       .flatMap((frame, index) => {
         const change = getFrameChange(frame);
         const currentForest = getFrameWorkspaceForest(frame);
-        const previousForest = index > 0 ? getFrameWorkspaceForest(growthFrames[index - 1]) : [];
+        const previousForest = index > 0 ? getFrameWorkspaceForest(derivationFrames[index - 1]) : [];
         const inferredOperations = inferMovementOperationsFromChange(change, allNodeById);
         if (inferredOperations.length === 0) return [];
         const currentParentById = buildParentIndexFromForest(currentForest);
@@ -2054,7 +2155,7 @@ export const createGrowthDerivationHelpers = ({
               : [],
             rawHostId && !authoredHostNodeId ? [`Saved host node "${rawHostId}" is not present in the authored tree inventory.`] : [],
             !rawHostId && !authoredLandingNodeId && recoveredHostNodeId && operation === 'HeadMove'
-              ? ['Recovered head-movement landing from the overt head in the current Growth frame.']
+              ? ['Recovered head-movement landing from the overt head in the current Derivation frame.']
               : [],
             rawTraceId && !allNodeById.has(rawTraceId) ? [`Saved trace node "${rawTraceId}" is not present in the authored tree inventory.`] : []
           );
@@ -2116,10 +2217,10 @@ export const createGrowthDerivationHelpers = ({
       .filter(Boolean);
   };
 
-  const buildCanonicalDerivationFromGrowthFrames = (growthFrames, sentenceTokens = [], framework = 'xbar') => {
-    if (!Array.isArray(growthFrames) || growthFrames.length === 0) return null;
+  const buildCanonicalDerivationFromDerivationFrames = (derivationFrames, sentenceTokens = [], framework = 'xbar') => {
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0) return null;
 
-    const committedFrameInfo = findLatestCommittedGrowthFrame(growthFrames, sentenceTokens);
+    const committedFrameInfo = findLatestCommittedDerivationFrame(derivationFrames, sentenceTokens);
     if (!committedFrameInfo?.root) return null;
     const committedRootSource = committedFrameInfo.root;
 
@@ -2132,9 +2233,9 @@ export const createGrowthDerivationHelpers = ({
       .filter(Boolean);
     if (!sameTokenSequence(surfaceOrder, sentenceTokens)) return null;
 
-    const derivationSteps = growthFrames.map((frame, index) => {
+    const derivationSteps = derivationFrames.map((frame, index) => {
       const currentForest = getFrameWorkspaceForest(frame);
-      const previousForest = index > 0 ? getFrameWorkspaceForest(growthFrames[index - 1]) : [];
+      const previousForest = index > 0 ? getFrameWorkspaceForest(derivationFrames[index - 1]) : [];
       const workspaceLabels = currentForest
             .map((node) => String(node?.label || node?.word || '').trim())
             .filter(Boolean);
@@ -2144,7 +2245,7 @@ export const createGrowthDerivationHelpers = ({
           workspaceNodeById.set(nodeId, node);
         });
       });
-      const candidateRoot = selectCommittedGrowthRoot(currentForest, sentenceTokens)
+      const candidateRoot = selectCommittedDerivationRoot(currentForest, sentenceTokens)
         || (currentForest.length === 1 ? currentForest[0] : null);
       const change = getFrameChange(frame);
       const operation = inferFrameOperation({
@@ -2207,8 +2308,8 @@ export const createGrowthDerivationHelpers = ({
       };
     });
 
-    const explicitMovementEvents = buildCanonicalMovementEventsFromGrowthFrames(growthFrames, committedTree);
-    const movementEvents = [...explicitMovementEvents].sort((left, right) => {
+    const explicitVisualRelationEvents = buildCanonicalVisualRelationEventsFromDerivationFrames(derivationFrames, committedTree);
+    const visualRelationEvents = [...explicitVisualRelationEvents].sort((left, right) => {
       const leftStep = Number.isInteger(left?.stepIndex) ? left.stepIndex : Number.MAX_SAFE_INTEGER;
       const rightStep = Number.isInteger(right?.stepIndex) ? right.stepIndex : Number.MAX_SAFE_INTEGER;
       if (leftStep !== rightStep) return leftStep - rightStep;
@@ -2229,7 +2330,7 @@ export const createGrowthDerivationHelpers = ({
         recipe: `SpellOut(${String(committedTree?.label || 'Tree').trim() || 'Tree'})`,
         workspaceAfter: [String(committedTree?.label || '').trim() || 'Tree'],
         spelloutOrder: surfaceOrder,
-        note: 'Final spellout of the committed Growth state.'
+        note: 'Final spellout of the committed derivation state.'
       });
     }
 
@@ -2237,7 +2338,7 @@ export const createGrowthDerivationHelpers = ({
       tree: committedTree,
       surfaceOrder,
       derivationSteps,
-      movementEvents
+      visualRelationEvents
     };
   };
 
@@ -2259,17 +2360,17 @@ export const createGrowthDerivationHelpers = ({
   return {
     parseTransportJsonValue,
     normalizeTransportJsonArray,
-    normalizeDerivationStagesToGrowthFrames,
-    normalizeGrowthFrames,
+    normalizeDerivationStagesToDerivationFrames,
+    normalizeDerivationFrames,
     normalizeMovementStemFromId,
-    materializeImplicitPhrasalTraceShellsInGrowthFrames,
+    materializeImplicitPhrasalTraceShellsInDerivationFrames,
     materializeCommittedTraceShells,
-    collectGrowthFrameNodeIds,
-    canonicalizeGrowthRootCandidateForSentence,
-    selectCommittedGrowthRoot,
-    findLatestCommittedGrowthFrame,
-    buildCanonicalMovementEventsFromGrowthFrames,
-    buildCanonicalDerivationFromGrowthFrames,
+    collectDerivationFrameNodeIds,
+    canonicalizeDerivationRootCandidateForSentence,
+    selectCommittedDerivationRoot,
+    findLatestCommittedDerivationFrame,
+    buildCanonicalVisualRelationEventsFromDerivationFrames,
+    buildCanonicalDerivationFromDerivationFrames,
     assignDerivationStepIds
   };
 };

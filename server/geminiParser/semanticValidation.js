@@ -113,8 +113,8 @@ export const createSemanticValidationHelpers = ({
     return true;
   };
 
-  const hasMovementSupport = ({ movementEvents = [], chains = [] }, kind) => {
-    const movementOperationMatchesKind = (operation, expectedKind) => {
+  const hasTrajectoryRelationSupport = ({ visualRelationEvents = [], chains = [] }, kind) => {
+    const trajectoryOperationMatchesKind = (operation, expectedKind) => {
       const normalized = normalizeMovementOperation(operation);
       const raw = normalizeKey(operation);
       if (expectedKind === 'AbarMove') {
@@ -143,15 +143,15 @@ export const createSemanticValidationHelpers = ({
       return false;
     };
     if (kind === 'AbarMove') {
-      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+      return visualRelationEvents.some((event) => trajectoryOperationMatchesKind(event?.operation, kind))
         || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     if (kind === 'A-Move') {
-      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+      return visualRelationEvents.some((event) => trajectoryOperationMatchesKind(event?.operation, kind))
         || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     if (kind === 'HeadMove') {
-      return movementEvents.some((event) => movementOperationMatchesKind(event?.operation, kind))
+      return visualRelationEvents.some((event) => trajectoryOperationMatchesKind(event?.operation, kind))
         || chains.some((chain) => chainMatchesKind(chain, kind));
     }
     return false;
@@ -160,12 +160,12 @@ export const createSemanticValidationHelpers = ({
   const validatePronouncedCopiesAgainstCommittedTree = ({
     chains = [],
     tree = null,
-    movementEvents = []
+    visualRelationEvents = []
   }) => {
     if (!tree || !Array.isArray(chains) || chains.length === 0) return;
     const nodeById = buildNodeIndexFromTree(tree);
     const laterMovedCopyIds = new Set(
-      (Array.isArray(movementEvents) ? movementEvents : [])
+      (Array.isArray(visualRelationEvents) ? visualRelationEvents : [])
         .flatMap((event) => [String(event?.fromNodeId || '').trim(), String(event?.traceNodeId || '').trim()])
         .filter(Boolean)
     );
@@ -203,7 +203,7 @@ export const createSemanticValidationHelpers = ({
 
   const validateNoteBindingsAgainstStructuredAnalysis = ({
     noteBindings = [],
-    movementEvents = [],
+    visualRelationEvents = [],
     chains = [],
     commitmentGraph = [],
     clausalDependencies = [],
@@ -430,7 +430,7 @@ export const createSemanticValidationHelpers = ({
 
       if (
         NOTE_TEXT_WH_CHAIN_RE.test(text)
-        && !hasMovementSupport({ movementEvents, chains }, 'AbarMove')
+        && !hasTrajectoryRelationSupport({ visualRelationEvents, chains }, 'AbarMove')
         && !hasStructuralAnchor(binding)
       ) {
         throw new ParseApiError(
@@ -450,7 +450,7 @@ export const createSemanticValidationHelpers = ({
       if (
         NOTE_TEXT_A_CHAIN_RE.test(text)
         && !NOTE_TEXT_CONTROL_RE.test(text)
-        && !hasMovementSupport({ movementEvents, chains }, 'A-Move')
+        && !hasTrajectoryRelationSupport({ visualRelationEvents, chains }, 'A-Move')
         && !hasStructuralAnchor(binding)
       ) {
         throw new ParseApiError(
@@ -469,7 +469,7 @@ export const createSemanticValidationHelpers = ({
 
       if (
         NOTE_TEXT_HEAD_CHAIN_RE.test(text)
-        && !hasMovementSupport({ movementEvents, chains }, 'HeadMove')
+        && !hasTrajectoryRelationSupport({ visualRelationEvents, chains }, 'HeadMove')
         && !hasStructuralAnchor(binding)
       ) {
         throw new ParseApiError(
@@ -555,7 +555,7 @@ export const createSemanticValidationHelpers = ({
   };
 
   const computeCompletenessStatus = ({
-    growthFrames,
+    derivationFrames,
     rawDerivationSteps,
     chains,
     commitmentGraph,
@@ -587,7 +587,7 @@ export const createSemanticValidationHelpers = ({
     logophoraLedger,
     eventStructureLedger
   }) => {
-    const hasGrowthFrames = Array.isArray(growthFrames) && growthFrames.length > 0;
+    const hasDerivationFrames = Array.isArray(derivationFrames) && derivationFrames.length > 0;
     const hasRichSteps = Array.isArray(rawDerivationSteps) && rawDerivationSteps.some((step) =>
       Array.isArray(step?.preFeatures)
       || Array.isArray(step?.postFeatures)
@@ -600,7 +600,7 @@ export const createSemanticValidationHelpers = ({
       || Array.isArray(step?.affectedNodeIds)
     );
     const signals = [
-      hasGrowthFrames,
+      hasDerivationFrames,
       hasRichSteps,
       Array.isArray(chains) && chains.length > 0,
       Array.isArray(commitmentGraph) && commitmentGraph.length > 0,
@@ -765,7 +765,7 @@ export const createSemanticValidationHelpers = ({
   const collectCompletenessWarnings = ({
     noteBindings,
     commitmentGraph,
-    growthFrames,
+    derivationFrames,
     chains
   }) => {
     const warnings = [];
@@ -784,7 +784,7 @@ export const createSemanticValidationHelpers = ({
       );
     });
     const hasNonTrivialStructure = (
-      (Array.isArray(growthFrames) && growthFrames.length > 1)
+      (Array.isArray(derivationFrames) && derivationFrames.length > 1)
       || (Array.isArray(chains) && chains.length > 0)
     );
 
@@ -792,7 +792,7 @@ export const createSemanticValidationHelpers = ({
       warnings.push('Anchored noteBindings are present but commitmentFacts are empty.');
     }
 
-    const framesMissingCommitments = (Array.isArray(growthFrames) ? growthFrames : [])
+    const framesMissingCommitments = (Array.isArray(derivationFrames) ? derivationFrames : [])
       .map((frame, index) => {
         const commitments = collectFrameAuthoredCommitments(frame);
         if (commitments.length > 0) return null;
@@ -806,11 +806,11 @@ export const createSemanticValidationHelpers = ({
       const preview = framesMissingCommitments.slice(0, 8).join(', ');
       const overflow = framesMissingCommitments.length - Math.min(framesMissingCommitments.length, 8);
       warnings.push(
-        `Growth frames are missing required frame-local event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
+        `Derivation frames are missing required frame-local event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
       );
     }
 
-    const framesWithWeakCommitments = (Array.isArray(growthFrames) ? growthFrames : [])
+    const framesWithWeakCommitments = (Array.isArray(derivationFrames) ? derivationFrames : [])
       .map((frame, index) => {
         const commitments = collectFrameAuthoredCommitments(frame);
         if (commitments.length === 0) return null;
@@ -826,7 +826,7 @@ export const createSemanticValidationHelpers = ({
       const preview = framesWithWeakCommitments.slice(0, 8).join(', ');
       const overflow = framesWithWeakCommitments.length - Math.min(framesWithWeakCommitments.length, 8);
       warnings.push(
-        `Growth frames contain weak operation-echo event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
+        `Derivation frames contain weak operation-echo event commitments on: ${preview}${overflow > 0 ? ` (+${overflow} more)` : ''}.`
       );
     }
 

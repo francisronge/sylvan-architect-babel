@@ -1,37 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
-import { DerivationStep, MovementEvent, ParseBundle, ParseResult, ReplayLedgerBlock, SyntaxNode } from './types';
+import { DerivationStep, ParseBundle, ParseResult, ReplayLedgerBlock, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import RootLogo from './components/RootLogo';
 import {
-  buildMovementIndexMaps,
-  resolveMovementEventLinks,
-  MovementIndexMaps,
-  EMPTY_MOVEMENT_INDEX_MAPS
-} from './movementEvents';
-import {
   stringifyLedgerAtom,
-  hasMeaningfulLedgerText,
   normalizeLedgerDisplay,
-  humanizeLedgerFallbackId,
-  humanizeLedgerStructuralHead,
-  formatAgreementReplayEntry,
-  formatSelectionReplayEntry,
-  formatCaseAssignmentReplayEntry,
-  formatThetaAssignmentReplayEntry,
-  formatBindingReplayEntry,
-  formatClausalDependencyReplayEntry,
-  formatPredicateClassReplayEntry,
-  formatProbeReplayEntry,
-  formatNullElementReplayEntry,
-  formatDiagnosticReplayEntry,
-  formatParameterReplayEntry,
-  formatInformationStructureReplayEntry,
-  formatOperatorScopeReplayEntry,
-  formatVoiceValencyReplayEntry,
-  formatLinearizationReplayEntry,
-  formatLocalityReplayEntry,
-  formatPredicationReplayEntry
+  humanizeLedgerFallbackId
 } from './replayLedgerDisplay';
 import { 
   RotateCcw, 
@@ -60,11 +35,11 @@ import {
   Clock3
 } from 'lucide-react';
 
-type AppTab = 'tree' | 'growth' | 'notes';
+type AppTab = 'tree' | 'derivation' | 'notes';
 
 const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
-  { id: 'growth', icon: FlameKindling, label: 'Growth Simulation' },
+  { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
   { id: 'notes', icon: FileText, label: 'Notes' },
 ];
 
@@ -85,7 +60,7 @@ const resolveUiError = (err: unknown): { needsKey: boolean; keyPromptMode: KeyPr
   return {
     needsKey: false,
     keyPromptMode: 'none',
-    message: message || 'Linguistic growth interrupted.'
+    message: message || 'Derivation interrupted.'
   };
 };
 
@@ -145,6 +120,8 @@ const MODEL_MODE_PILLS: Array<{
   }
 ];
 
+const MODEL_MODE_SEQUENCE: ModelMode[] = ['local', 'pro', 'gpt-5.4', 'claude-4.6'];
+
 const isBackendModelMode = (value: ModelMode): value is 'local' | 'pro' =>
   value === 'local' || value === 'pro';
 
@@ -168,9 +145,17 @@ const inferModelRouteFromModel = (modelUsed?: string): ModelMode => {
   return 'pro';
 };
 
-type MilesMode = 'canopy' | 'growth';
-type CopyCodeKey = 'canopy' | 'growth';
+type MilesMode = 'canopy' | 'derivation';
+type CopyCodeKey = 'canopy' | 'derivation';
 type WorkspaceView = 'arboretum' | 'treeBank';
+type DevReplayTarget = number | 'last' | null;
+
+interface DevBundleConfig {
+  bundlePath: string;
+  tab: AppTab;
+  replayStep: DevReplayTarget;
+  captureMode: boolean;
+}
 
 interface TreeBankEntry {
   id: string;
@@ -291,6 +276,20 @@ const normalizeTreeBankEntry = (value: unknown): TreeBankEntry | null => {
   };
 };
 
+const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, unknown>;
+  const response = candidate.response;
+  if (response && typeof response === 'object' && Array.isArray((response as ParseBundle).analyses)) {
+    return response as ParseBundle;
+  }
+  const result = candidate.result;
+  if (result && typeof result === 'object' && Array.isArray((result as ParseBundle).analyses)) {
+    return result as ParseBundle;
+  }
+  return Array.isArray((candidate as ParseBundle).analyses) ? candidate as ParseBundle : null;
+};
+
 const openTreeBankDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
@@ -365,8 +364,8 @@ const removeTreeBankEntry = async (id: string): Promise<void> => {
   });
 };
 
-const NULL_SURFACE_RE = /^(∅|Ø|ε|null|epsilon)$/i;
-const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9{}]+|trace[_-][a-z0-9{}]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
+const NULL_SURFACE_RE = /^(âˆ…|Ã˜|Îµ|null|epsilon)$/i;
+const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9{}]+|trace[_-][a-z0-9{}]+|<[^>]+>|âŸ¨[^âŸ©]+âŸ©|\(t\)|\{t\})$/i;
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
   "A'",
@@ -410,7 +409,7 @@ const KNOWN_CATEGORY_LABELS = new Set([
 const normalizeCategoryToken = (token: string): string =>
   token
     .trim()
-    .replace(/’/g, "'")
+    .replace(/â€™/g, "'")
     .replace(/\s+/g, '')
     .toUpperCase();
 
@@ -429,196 +428,7 @@ const sanitizeMilesToken = (token: string): string =>
     .replace(/\[/g, '(')
     .replace(/\]/g, ')');
 
-const appendMovementIndex = (token: string, movementIndex?: string): string => {
-  const base = String(token || '').trim();
-  if (!base || !movementIndex) return base;
-  if (/_([a-z0-9]+)$/i.test(base)) return base;
-  return `${base}_${movementIndex}`;
-};
-
-const resolveLeafSurface = (node: SyntaxNode): string =>
-  String(node.word || node.label || '').trim();
-
-const TRACE_SUBSCRIPT_TO_ASCII: Record<string, string> = {
-  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
-  'ᵢ': 'i', 'ⱼ': 'j', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm',
-  'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't'
-};
-
-const normalizeTraceSymbol = (value?: string): string =>
-  [...String(value || '').trim()].map((ch) => TRACE_SUBSCRIPT_TO_ASCII[ch] || ch).join('');
-
-const extractRawTraceMovementIndex = (value?: string): string | null => {
-  const normalized = normalizeTraceSymbol(value);
-  if (!normalized || !/^(?:t|trace)/i.test(normalized)) return null;
-  const suffix = normalized.replace(/^(?:t|trace)/i, '').replace(/^[_-]/, '').trim();
-  return suffix || null;
-};
-
-const collectLeafSyntaxNodes = (node: SyntaxNode, out: SyntaxNode[] = []): SyntaxNode[] => {
-  if (!node || typeof node !== 'object') return out;
-  const children = Array.isArray(node.children)
-    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
-    : [];
-  if (children.length === 0) {
-    out.push(node);
-    return out;
-  }
-  children.forEach((child) => collectLeafSyntaxNodes(child, out));
-  return out;
-};
-
-const collectForestLeafSyntaxNodes = (forest?: SyntaxNode[] | null): SyntaxNode[] =>
-  (Array.isArray(forest) ? forest : []).flatMap((node) => collectLeafSyntaxNodes(node));
-
-const findNodeById = (node: SyntaxNode | null | undefined, targetId: string): SyntaxNode | null => {
-  if (!node || typeof node !== 'object') return null;
-  const normalizedTargetId = String(targetId || '').trim();
-  if (!normalizedTargetId) return null;
-  if (String(node.id || '').trim() === normalizedTargetId) return node;
-  const children = Array.isArray(node.children)
-    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
-    : [];
-  for (const child of children) {
-    const found = findNodeById(child, normalizedTargetId);
-    if (found) return found;
-  }
-  return null;
-};
-
-const buildGrowthFirstMovementMaps = (
-  parse: ParseResult,
-  baseMaps: MovementIndexMaps
-): MovementIndexMaps => {
-  const frames = Array.isArray(parse.growthFrames) ? parse.growthFrames : [];
-
-  const movedByNodeId = new Map(baseMaps.movedByNodeId);
-  const traceByNodeId = new Map(baseMaps.traceByNodeId);
-  const chainIndexById = new Map<string, string>();
-  let nextIndex = 1;
-
-  const registerChain = (candidate?: string): string => {
-    const key = String(candidate || '').trim();
-    if (!key) return '';
-    const existing = chainIndexById.get(key);
-    if (existing) return existing;
-    const assigned = String(nextIndex);
-    nextIndex += 1;
-    chainIndexById.set(key, assigned);
-    return assigned;
-  };
-
-  (Array.isArray(parse.movementEvents) ? parse.movementEvents : []).forEach((event) => {
-    registerChain(event.chainId);
-  });
-  (Array.isArray(parse.chains) ? parse.chains : []).forEach((chain) => {
-    registerChain(chain?.chainId);
-  });
-  frames.forEach((frame) => {
-    registerChain(frame?.chainId);
-  });
-
-  const assignIndexToNodeAndLeaves = (
-    nodeId: string,
-    index: string,
-    destination: Map<string, string>
-  ) => {
-    const normalizedNodeId = String(nodeId || '').trim();
-    const normalizedIndex = String(index || '').trim();
-    if (!normalizedNodeId || !normalizedIndex) return;
-    destination.set(normalizedNodeId, normalizedIndex);
-    const node = findNodeById(parse.tree, normalizedNodeId);
-    if (!node) return;
-    collectLeafSyntaxNodes(node)
-      .map((leaf) => String(leaf.id || '').trim())
-      .filter(Boolean)
-      .forEach((leafId) => destination.set(leafId, normalizedIndex));
-  };
-
-  // Some live bundles omit movement events for a chain even though the final
-  // ledger already names the pronounced and silent copies. Use that ledger to
-  // decorate traces in growth mode without inventing a new replay step.
-  (Array.isArray(parse.chains) ? parse.chains : []).forEach((chain) => {
-    const canonicalIndex = registerChain(chain?.chainId);
-    if (!canonicalIndex) return;
-    const pronouncedCopy = String(chain?.pronouncedCopy || '').trim();
-    if (pronouncedCopy && !movedByNodeId.has(pronouncedCopy)) {
-      assignIndexToNodeAndLeaves(pronouncedCopy, canonicalIndex, movedByNodeId);
-    }
-    const silentCopies = Array.isArray(chain?.silentCopies) ? chain.silentCopies : [];
-    silentCopies.forEach((silentCopyId) => {
-      const normalizedSilentCopyId = String(silentCopyId || '').trim();
-      if (!normalizedSilentCopyId || traceByNodeId.has(normalizedSilentCopyId)) return;
-      assignIndexToNodeAndLeaves(normalizedSilentCopyId, canonicalIndex, traceByNodeId);
-    });
-  });
-
-  if (frames.length === 0) return { movedByNodeId, traceByNodeId };
-
-  const rawTraceAlias = new Map<string, string>();
-  let previousTraceLeafIds = new Set<string>();
-  frames.forEach((frame) => {
-    const canonicalIndex = registerChain(frame?.chainId);
-    const traceLeaves = collectForestLeafSyntaxNodes(frame?.workspaceForest)
-      .map((leaf) => ({
-        id: String(leaf.id || '').trim(),
-        rawIndex: extractRawTraceMovementIndex(resolveLeafSurface(leaf))
-      }))
-      .filter((entry) => entry.id && entry.rawIndex);
-
-    if (frame?.movement && canonicalIndex) {
-      traceLeaves.forEach(({ id, rawIndex }) => {
-        if (!previousTraceLeafIds.has(id) && rawIndex && !rawTraceAlias.has(rawIndex)) {
-          rawTraceAlias.set(rawIndex, canonicalIndex);
-        }
-      });
-    }
-
-    previousTraceLeafIds = new Set(traceLeaves.map(({ id }) => id));
-  });
-
-  const finalFrame = frames[frames.length - 1];
-  collectForestLeafSyntaxNodes(finalFrame?.workspaceForest).forEach((leaf) => {
-    const nodeId = String(leaf.id || '').trim();
-    if (!nodeId || traceByNodeId.has(nodeId)) return;
-    const rawIndex = extractRawTraceMovementIndex(resolveLeafSurface(leaf));
-    if (!rawIndex) return;
-    const canonicalIndex = rawTraceAlias.get(rawIndex) || (/^\d+$/.test(rawIndex) ? rawIndex : '');
-    if (canonicalIndex) {
-      traceByNodeId.set(nodeId, canonicalIndex);
-    }
-  });
-
-  return { movedByNodeId, traceByNodeId };
-};
-
-const applyGrowthMovementNotation = (
-  node: SyntaxNode,
-  surface: string,
-  movementMaps: MovementIndexMaps
-): string => {
-  const nodeId = String(node.id || '').trim();
-  if (!nodeId || !surface) return surface;
-
-  const movedIndex = movementMaps.movedByNodeId.get(nodeId);
-  if (movedIndex) {
-    return appendMovementIndex(surface, movedIndex);
-  }
-
-  const traceIndex = movementMaps.traceByNodeId.get(nodeId);
-  if (traceIndex) {
-    if (/^<[^>]+>$/.test(surface) || /^⟨[^⟩]+⟩$/.test(surface)) return surface;
-    return `<${traceIndex}>`;
-  }
-
-  return surface;
-};
-
-const serializeMilesNode = (
-  node: SyntaxNode,
-  mode: MilesMode,
-  movementMaps: MovementIndexMaps
-): string => {
+const serializeMilesNode = (node: SyntaxNode): string => {
   if (!node || typeof node !== 'object') return '';
   const label = String(node.label || '').trim();
   const word = String(node.word || '').trim();
@@ -628,71 +438,17 @@ const serializeMilesNode = (
 
   if (children.length === 0) {
     const rawSurface = (word || label || '∅').trim();
-    const nodeId = String(node.id || '').trim();
-    const movedIndex = mode === 'growth' && nodeId
-      ? movementMaps.movedByNodeId.get(nodeId)
-      : undefined;
-    const hasRenderableLabelToken = Boolean(
-      label &&
-      word &&
-      label !== word &&
-      (
-        isLikelySyntacticCategory(label) ||
-        (mode === 'growth' && Boolean(movedIndex))
-      )
-    );
-    const attachMovementToLabel = Boolean(
-      mode === 'growth' &&
-      movedIndex &&
-      hasRenderableLabelToken
-    );
-    const surfaced = mode === 'growth'
-      ? (attachMovementToLabel ? rawSurface : applyGrowthMovementNotation(node, rawSurface, movementMaps))
-      : rawSurface;
-    const token = sanitizeMilesToken(surfaced || '∅');
-
-    if (word) {
-      if (hasRenderableLabelToken) {
-        const categoryToken = attachMovementToLabel
-          ? sanitizeMilesToken(appendMovementIndex(label, movedIndex))
-          : sanitizeMilesToken(label);
-        return `[${categoryToken} ${token}]`;
-      }
-      return token;
-    }
-
+    const token = sanitizeMilesToken(rawSurface || '∅');
+    if (word) return token;
     if (label && isLikelySyntacticCategory(label)) {
       return `[${sanitizeMilesToken(label)} ${token === sanitizeMilesToken(label) ? '∅' : token}]`;
     }
-
     return token;
   }
 
-  const promotedMovementIndex = (() => {
-    if (mode !== 'growth' || children.length !== 1) return undefined;
-    const parentLabel = String(label || word || '').trim();
-    if (!parentLabel) return undefined;
-    const onlyChild = children[0];
-    const childChildren = Array.isArray(onlyChild.children) ? onlyChild.children : [];
-    if (childChildren.length > 0) return undefined;
-    const parentId = String(node.id || '').trim();
-    if (parentId && movementMaps.movedByNodeId.has(parentId)) return undefined;
-    const childId = String(onlyChild.id || '').trim();
-    if (!childId) return undefined;
-    return movementMaps.movedByNodeId.get(childId);
-  })();
-
-  if (promotedMovementIndex) {
-    const onlyChild = children[0];
-    const childSurface = sanitizeMilesToken(String(onlyChild.word || onlyChild.label || '∅').trim() || '∅');
-    const promotedLabel = sanitizeMilesToken(appendMovementIndex(label || word || 'X', promotedMovementIndex));
-    return `[${promotedLabel} ${childSurface}]`;
-  }
-
   const serializedChildren = children
-    .map((child) => serializeMilesNode(child, mode, movementMaps))
+    .map((child) => serializeMilesNode(child))
     .filter((value) => value.length > 0);
-
   const nodeLabel = sanitizeMilesToken(label || word || 'X');
   if (serializedChildren.length === 0) return `[${nodeLabel}]`;
   return `[${nodeLabel} ${serializedChildren.join(' ')}]`;
@@ -700,30 +456,13 @@ const serializeMilesNode = (
 
 const buildMilesNotation = (
   tree: SyntaxNode,
-  mode: MilesMode,
-  movementEvents?: MovementEvent[],
-  precomputedMovementMaps?: MovementIndexMaps
+  _mode: MilesMode
 ): string => {
   if (!tree || typeof tree !== 'object') return '';
-  const movementMaps = mode === 'growth'
-    ? (precomputedMovementMaps || buildMovementIndexMaps(tree, movementEvents))
-    : EMPTY_MOVEMENT_INDEX_MAPS;
-  return serializeMilesNode(tree, mode, movementMaps).trim();
+  return serializeMilesNode(tree).trim();
 };
 
-const EXPLANATION_MOVEMENT_RE = /\b(move(?:ment|d|s|ing)?|internal\s*merge|head[\s-]*move(?:ment)?|raising|raised|trace|copy|a-?bar|a-?move|wh-?move|spec(?:ifier)?[, ]*(?:cp|tp|inflp|ip)|epp)\b/i;
 const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
-const EXPLANATION_HEADMOVE_RE = /\b(head[\s-]*move(?:ment)?|v\s*-?to\s*-?[ct]|t\s*-?to\s*-?c)\b/i;
-const EXPLANATION_WHMOVE_RE = /\b(wh-?move|wh-?movement|wh-?fronting|\[\+wh\]|a-?bar|spec[, ]*cp)\b/i;
-const EXPLANATION_AMOVE_RE = /\b(a-?move|a-?movement|spec(?:ifier)?[, ]*tp|epp)\b/i;
-const EXPLANATION_INTERNALMERGE_RE = /\binternal\s*merge\b/i;
-
-const splitExplanationSentences = (text: string): string[] =>
-  String(text || '')
-    .split(/(?<=[.!?])\s+/)
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0);
-
 const cleanExplanationWhitespace = (text: string): string =>
   String(text || '')
     .replace(/\s+/g, ' ')
@@ -739,339 +478,9 @@ const ensureExplanationTerminator = (text: string): string => {
 const removeWeakHedging = (text: string): string =>
   cleanExplanationWhitespace(String(text || '').replace(EXPLANATION_HEDGE_RE, ''));
 
-const extractMovementClaimsFromSentence = (sentence: string): {
-  mentionsMovement: boolean;
-  claimsHeadMove: boolean;
-  claimsWhMove: boolean;
-  claimsAMove: boolean;
-  claimsInternalMerge: boolean;
-} => {
-  const text = String(sentence || '');
-  return {
-    mentionsMovement: EXPLANATION_MOVEMENT_RE.test(text),
-    claimsHeadMove: EXPLANATION_HEADMOVE_RE.test(text),
-    claimsWhMove: EXPLANATION_WHMOVE_RE.test(text),
-    claimsAMove: EXPLANATION_AMOVE_RE.test(text),
-    claimsInternalMerge: EXPLANATION_INTERNALMERGE_RE.test(text)
-  };
-};
-
-const normalizeMovementOperationForSummary = (operation?: MovementEvent['operation']): string =>
-  String(operation || '').trim().toLowerCase().replace(/[^a-z]/g, '');
-
-const extractMovementEventKinds = (movementEvents?: MovementEvent[]): Set<string> => {
-  const kinds = new Set<string>();
-  (Array.isArray(movementEvents) ? movementEvents : []).forEach((event) => {
-    const op = normalizeMovementOperationForSummary(event.operation);
-    if (op === 'headmove') kinds.add('head');
-    if (op === 'move' || op === 'abarmove' || op === 'amove' || op === 'internalmerge') {
-      kinds.add('generic');
-    }
-    if (op === 'abarmove') kinds.add('wh');
-    if (op === 'amove') kinds.add('a');
-    if (op === 'internalmerge') kinds.add('internal');
-  });
-  return kinds;
-};
-
-const movementKindFromOperation = (operation?: MovementEvent['operation']): string | null => {
-  const op = normalizeMovementOperationForSummary(operation);
-  if (op === 'headmove') return 'head';
-  if (op === 'abarmove') return 'wh';
-  if (op === 'amove') return 'a';
-  if (op === 'internalmerge') return 'internal';
-  return null;
-};
-
-const extractClaimedMovementKindsFromText = (text: string): Set<string> => {
-  const kinds = new Set<string>();
-  splitExplanationSentences(text).forEach((sentence) => {
-    const claims = extractMovementClaimsFromSentence(sentence);
-    if (claims.claimsHeadMove) kinds.add('head');
-    if (claims.claimsWhMove) kinds.add('wh');
-    if (claims.claimsAMove) kinds.add('a');
-    if (claims.claimsInternalMerge) kinds.add('internal');
-    if (
-      claims.mentionsMovement
-      && !claims.claimsHeadMove
-      && !claims.claimsWhMove
-      && !claims.claimsAMove
-      && !claims.claimsInternalMerge
-    ) {
-      kinds.add('generic');
-    }
-  });
-  return kinds;
-};
-
-const isCompatibleMovementSentence = (sentence: string, movementKinds: Set<string>): boolean => {
-  const claims = extractMovementClaimsFromSentence(sentence);
-  if (!claims.mentionsMovement) return true;
-  if (/\bor\b/i.test(sentence)) return false;
-  const hasGenericPhrasalMovement = movementKinds.has('generic');
-  if (claims.claimsHeadMove && !movementKinds.has('head')) return false;
-  if (claims.claimsWhMove && !(movementKinds.has('wh') || hasGenericPhrasalMovement)) return false;
-  if (claims.claimsAMove && !(movementKinds.has('a') || hasGenericPhrasalMovement)) return false;
-  if (claims.claimsInternalMerge && !(movementKinds.has('internal') || hasGenericPhrasalMovement)) return false;
-  return true;
-};
-
-const joinWithAnd = (items: string[]): string => {
-  const values = items.filter(Boolean);
-  if (values.length === 0) return '';
-  if (values.length === 1) return values[0];
-  if (values.length === 2) return `${values[0]} and ${values[1]}`;
-  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
-};
-
-const isNullLikeSurface = (surface: string): boolean => NULL_SURFACE_RE.test(surface);
-const isTraceLikeSurface = (surface: string): boolean => TRACE_SURFACE_RE.test(surface);
-
-const stripMovementIndex = (label: string): string =>
-  String(label || '')
-    .trim()
-    .replace(/[_-]\{?[a-z0-9]+\}?$/i, '');
-
-const normalizeMovementLabelKey = (label?: string): string =>
-  stripMovementIndex(String(label || ''))
-    .replace(/[’']+$/g, '')
-    .replace(/_bar$/i, '')
-    .toLowerCase();
-
-const buildNodeIndexForExplanation = (tree?: SyntaxNode | null): Map<string, SyntaxNode> => {
-  const byId = new Map<string, SyntaxNode>();
-  const visit = (node?: SyntaxNode | null) => {
-    if (!node) return;
-    const id = String(node.id || '').trim();
-    if (id) byId.set(id, node);
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(visit);
-  };
-  visit(tree || undefined);
-  return byId;
-};
-
-const buildParentIndexForExplanation = (tree?: SyntaxNode | null): Map<string, SyntaxNode> => {
-  const parentById = new Map<string, SyntaxNode>();
-  const visit = (node?: SyntaxNode | null) => {
-    if (!node) return;
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach((child) => {
-      const childId = String(child?.id || '').trim();
-      if (childId) parentById.set(childId, node);
-      visit(child);
-    });
-  };
-  visit(tree || undefined);
-  return parentById;
-};
-
-const collectOvertYieldForExplanation = (node?: SyntaxNode | null, words: string[] = []): string[] => {
-  if (!node) return words;
-  const children = Array.isArray(node.children) ? node.children : [];
-  if (children.length === 0) {
-    const surface = String(node.word || node.label || '').trim();
-    if (surface && !isNullLikeSurface(surface) && !isTraceLikeSurface(surface)) {
-      words.push(surface);
-    }
-    return words;
-  }
-  children.forEach((child) => collectOvertYieldForExplanation(child, words));
-  return words;
-};
-
-const getNodeOvertYieldForExplanation = (node?: SyntaxNode | null): string =>
-  collectOvertYieldForExplanation(node, []).join(' ').trim();
-
-const isNullLikeNodeForExplanation = (node?: SyntaxNode | null): boolean => {
-  if (!node) return false;
-  const surface = String(node.word || node.label || '').trim();
-  return Boolean(surface) && isNullLikeSurface(surface);
-};
-
-const isTraceLikeNodeForExplanation = (node?: SyntaxNode | null): boolean => {
-  if (!node) return false;
-  const surface = String(node.word || node.label || '').trim();
-  return Boolean(surface) && isTraceLikeSurface(surface);
-};
-
-const getMovementDisplayLabelForExplanation = (node?: SyntaxNode | null): string => {
-  if (!node) return '';
-  const stripped = stripMovementIndex(String(node.label || '').trim());
-  return stripped || String(node.label || '').trim();
-};
-
-const resolveHeadMoveSourceLabel = (
-  node: SyntaxNode | undefined,
-  parentById: Map<string, SyntaxNode>
-): string => {
-  if (!node) return '';
-  if (!isNullLikeNodeForExplanation(node) && !isTraceLikeNodeForExplanation(node)) {
-    return getMovementDisplayLabelForExplanation(node);
-  }
-  let current = parentById.get(String(node.id || '').trim());
-  while (current) {
-    const label = getMovementDisplayLabelForExplanation(current);
-    if (label && label !== '∅') return label;
-    current = parentById.get(String(current.id || '').trim());
-  }
-  return '';
-};
-
-const buildMovementDetailForExplanation = (
-  event: MovementEvent,
-  nodeById: Map<string, SyntaxNode>,
-  parentById: Map<string, SyntaxNode>
-): string => {
-  const operation = normalizeMovementOperationForSummary(event.operation);
-  const fromNode = nodeById.get(String(event.fromNodeId || '').trim());
-  const toNode = nodeById.get(String(event.toNodeId || '').trim());
-  const traceNode = event.traceNodeId ? nodeById.get(String(event.traceNodeId).trim()) : undefined;
-  const note = cleanExplanationWhitespace(String(event.note || ''));
-
-  if (!toNode) {
-    return note || 'movement';
-  }
-
-  if (operation === 'headmove') {
-    const movedHeadSurface = getNodeOvertYieldForExplanation(toNode);
-    const movedHead = movedHeadSurface ? `"${movedHeadSurface}"` : 'the head';
-    const landingHead = getMovementDisplayLabelForExplanation(toNode);
-    const sourceHead = resolveHeadMoveSourceLabel(traceNode || fromNode, parentById);
-    const normalizedSource = normalizeMovementLabelKey(sourceHead);
-    const normalizedLanding = normalizeMovementLabelKey(landingHead);
-    const phrase =
-      normalizedSource === 'c' && /^(?:infl|i|t)$/.test(normalizedLanding)
-        ? 'lowering'
-        : 'head movement';
-    if (sourceHead && landingHead && normalizedSource && normalizedLanding && normalizedSource !== normalizedLanding) {
-      return `${phrase} of ${movedHead} from ${sourceHead} to ${landingHead}`;
-    }
-    if (landingHead) {
-      return `${phrase} of ${movedHead} to ${landingHead}`;
-    }
-    return note || 'head movement';
-  }
-
-  const movedYield = getNodeOvertYieldForExplanation(toNode);
-  const movedLabel = getMovementDisplayLabelForExplanation(toNode);
-  const movedDescriptor = movedYield ? `${movedLabel} "${movedYield}"` : movedLabel;
-  if (
-    traceNode
-    && (isTraceLikeNodeForExplanation(traceNode) || isNullLikeNodeForExplanation(traceNode))
-    && movedDescriptor
-  ) {
-    return `movement of ${movedDescriptor} from its lower copy`;
-  }
-  if (
-    fromNode
-    && (isTraceLikeNodeForExplanation(fromNode) || isNullLikeNodeForExplanation(fromNode))
-    && movedDescriptor
-  ) {
-    return `movement of ${movedDescriptor} from its lower copy`;
-  }
-  const sourceLabel = getMovementDisplayLabelForExplanation(fromNode);
-  const landingLabel = getMovementDisplayLabelForExplanation(toNode);
-  if (sourceLabel && landingLabel) {
-    return `movement from ${sourceLabel} to ${landingLabel}`;
-  }
-  return note || 'movement';
-};
-
-const summarizeMovementFromEvents = (tree: SyntaxNode | null | undefined, movementEvents?: MovementEvent[]): string => {
-  if (!Array.isArray(movementEvents) || movementEvents.length === 0) return 'No movement is posited in this analysis.';
-
-  const nodeById = buildNodeIndexForExplanation(tree);
-  const parentById = buildParentIndexForExplanation(tree);
-  const details = movementEvents
-    .slice(0, 3)
-    .map((event) => buildMovementDetailForExplanation(event, nodeById, parentById))
-    .filter(Boolean);
-  if (details.length > 0) {
-    return `The derivation explicitly records ${details.join('; ')}.`;
-  }
-
-  const operationOrder: string[] = [];
-  movementEvents.forEach((event) => {
-    const op = normalizeMovementOperationForSummary(event.operation);
-    const key = op || 'move';
-    if (!operationOrder.includes(key)) operationOrder.push(key);
-  });
-
-  const labelForOperation = (op: string): string => {
-    if (op === 'headmove') return 'head movement';
-    if (op === 'internalmerge') return 'internal merge';
-    if (op === 'amove') return 'A-movement';
-    if (op === 'abarmove') return 'A-bar movement';
-    return 'movement';
-  };
-
-  const parts = operationOrder.map((op) => labelForOperation(op));
-  const summary = parts.length > 0
-    ? `Movement in this derivation includes ${joinWithAnd(parts)}.`
-    : 'Movement is present in this derivation.';
-  return summary;
-};
-
-const buildSupplementalMovementSummary = (
-  compatibleText: string,
-  tree: SyntaxNode | null | undefined,
-  movementEvents?: MovementEvent[]
-): string => {
-  if (!Array.isArray(movementEvents) || movementEvents.length === 0) return '';
-  const claimedKinds = extractClaimedMovementKindsFromText(compatibleText);
-  if (claimedKinds.size === 0) {
-    return summarizeMovementFromEvents(tree, movementEvents);
-  }
-
-  const missingEvents = movementEvents.filter((event) => {
-    const kind = movementKindFromOperation(event.operation);
-    if (!kind) return false;
-    return !claimedKinds.has(kind);
-  });
-  if (missingEvents.length === 0) return '';
-  return summarizeMovementFromEvents(tree, missingEvents);
-};
-
-const movementSignatureForSentence = (sentence: string): string => {
-  const claims = extractMovementClaimsFromSentence(sentence);
-  if (!claims.mentionsMovement) return '';
-  const tags: string[] = [];
-  if (claims.claimsHeadMove) tags.push('head');
-  if (claims.claimsWhMove) tags.push('wh');
-  if (claims.claimsAMove) tags.push('a');
-  if (claims.claimsInternalMerge) tags.push('internal');
-  if (tags.length === 0) tags.push('generic');
-  return tags.sort().join('+');
-};
-
-const dedupeMovementSentences = (sentences: string[]): string[] => {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  sentences.forEach((sentence) => {
-    const signature = movementSignatureForSentence(sentence);
-    if (!signature) {
-      out.push(sentence);
-      return;
-    }
-    if (seen.has(signature)) return;
-    seen.add(signature);
-    out.push(sentence);
-  });
-  return out;
-};
-
-const normalizeExplanationForDisplay = (
-  explanation: string,
-  movementEvents?: MovementEvent[],
-  tree?: SyntaxNode | null
-): string => {
+const normalizeExplanationForDisplay = (explanation: string): string => {
   const cleaned = ensureExplanationTerminator(removeWeakHedging(explanation));
-  if (cleaned) return cleaned;
-  if (Array.isArray(movementEvents) && movementEvents.length > 0) {
-    return summarizeMovementFromEvents(tree, movementEvents);
-  }
-  return 'No explanation provided.';
+  return cleaned || 'No explanation provided.';
 };
 
 const unwrapQuotedProviderText = (value: string): string => {
@@ -1101,7 +510,7 @@ const normalizeProviderSummaryForDisplay = (summary: string): string => {
   if (!text) return '';
   if (
     /^[{\[]/.test(text) &&
-    /"(?:analyses|analysis|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(text)
+    /"(?:analyses|analysis|derivationStages|stageRecord|visualRelations|workspaceForest|noteBindings|tree)"/.test(text)
   ) {
     return '';
   }
@@ -1120,7 +529,7 @@ const summarizeProviderReasoningForDisplay = (summary: string, raw: string, maxC
   if (!base) return '';
 
   const metaIntroRe =
-    /^(?:analysis of[^:]*:\s*|deep dive into[^:]*:?|okay[, ]+|here(?:'|’)s how i(?:'|’)m thinking(?: about this sentence)?[, ]*|my immediate thought\??|first[, ]+|let(?:'|’)s\s+)/i;
+    /^(?:analysis of[^:]*:\s*|deep dive into[^:]*:?|okay[, ]+|here(?:'|â€™)s how i(?:'|â€™)m thinking(?: about this sentence)?[, ]*|my immediate thought\??|first[, ]+|let(?:'|â€™)s\s+)/i;
   const sentenceParts = base
     .replace(/\bSHOW FULL RAW THINKING TRACE\b/gi, '')
     .split(/(?<=[.!?])\s+/)
@@ -1176,7 +585,7 @@ const normalizeProviderRawForDisplay = (summary: string): string => {
   if (!text) return '';
   if (
     /^[{\[]/.test(text) &&
-    /"(?:analyses|analysis|growthFrames|workspaceForest|noteBindings|movementEvents|tree)"/.test(text)
+    /"(?:analyses|analysis|derivationStages|stageRecord|visualRelations|workspaceForest|noteBindings|tree)"/.test(text)
   ) {
     return '';
   }
@@ -1200,7 +609,7 @@ const truncateReasoningSummary = (summary: string, limit = 900): string => {
   return `${text.slice(0, cut).trim()}...`;
 };
 
-const getPreferredGrowthSteps = (parse: ParseResult | null): DerivationStep[] => {
+const getPreferredDerivationSteps = (parse: ParseResult | null): DerivationStep[] => {
   if (!parse) return [];
   const raw = Array.isArray(parse.rawDerivationSteps) ? parse.rawDerivationSteps : [];
   if (raw.length > 0) return raw;
@@ -1212,7 +621,7 @@ const normalizeToken = (value?: string): string =>
     .trim()
     .toLowerCase()
     .replace(/^<|>$/g, '')
-    .replace(/^⟨|⟩$/g, '')
+    .replace(/^âŸ¨|âŸ©$/g, '')
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 
 const buildReadableNodeResolvers = (tree?: SyntaxNode | null) => {
@@ -1258,7 +667,7 @@ const buildReadableNodeResolvers = (tree?: SyntaxNode | null) => {
       const label = stringifyLedgerAtom(node.label);
       const surface = word || (!isStructuralLeafLabel(label) ? label : '');
       if (!surface) return [];
-      if (/^(∅|Ø|ε|null|epsilon)$/i.test(surface)) return [];
+      if (/^(âˆ…|Ã˜|Îµ|null|epsilon)$/i.test(surface)) return [];
       if (/^(?:t|trace)(?:[_-]?[A-Za-z0-9]+)?$/i.test(surface)) return [];
       return [surface];
     }
@@ -1337,6 +746,155 @@ interface ReplayLedgerAttachment {
   block: ReplayLedgerBlock;
 }
 
+const COMMITMENT_FACT_HIDDEN_FIELDS = new Set([
+  'factId',
+  'kind',
+  'family',
+  'frameworkLabel',
+  'kindValue',
+  'chainId',
+  'stepIds',
+  'nodeIds'
+]);
+
+const humanizeOpenOntologyLabel = (value?: string): string => {
+  const raw = stringifyLedgerAtom(value);
+  if (!raw) return 'Derivational Record';
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+};
+
+const formatCommitmentFactFieldLabel = (key: string): string =>
+  key
+    .replace(/Ids?$/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+
+const formatCommitmentParticipant = (participant: Record<string, unknown>): string => {
+  const role = stringifyLedgerAtom(participant.role);
+  const label = stringifyLedgerAtom(participant.label);
+  const value = stringifyLedgerAtom(participant.value);
+  const nodeId = stringifyLedgerAtom(participant.nodeId);
+  const referent = label || value || nodeId;
+  if (!referent) return '';
+  return role ? `${formatCommitmentFactFieldLabel(role)}: ${referent}` : referent;
+};
+
+const collectCommitmentFactFieldLines = (
+  entry: Record<string, unknown>,
+  resolveReadableReference: (preferred?: string, fallbackNodeRef?: string, options?: { structural?: boolean }) => string
+): string[] => {
+  const consumed = new Set<string>();
+  const lines: string[] = [];
+  const pushLine = (label: string, value: string) => {
+    const cleanedValue = stringifyLedgerAtom(value);
+    if (!cleanedValue) return;
+    lines.push(`${label}: ${cleanedValue}`);
+  };
+
+  if (Array.isArray(entry.participants)) {
+    const participants = entry.participants
+      .map((participant) => formatCommitmentParticipant(participant as Record<string, unknown>))
+      .filter(Boolean);
+    if (participants.length > 0) {
+      pushLine('Participants', participants.join('; '));
+    }
+    consumed.add('participants');
+  }
+
+  Object.entries(entry).forEach(([key, rawValue]) => {
+    if (consumed.has(key) || COMMITMENT_FACT_HIDDEN_FIELDS.has(key)) return;
+    if (key.endsWith('Id') || key.endsWith('Ids')) return;
+    if (rawValue === undefined || rawValue === null) return;
+
+    if (key.endsWith('Label')) {
+      const labelValue = stringifyLedgerAtom(rawValue);
+      if (!labelValue) return;
+      const nodeIdKey = `${key.slice(0, -5)}NodeId`;
+      const resolvedValue = resolveReadableReference(
+        labelValue,
+        stringifyLedgerAtom(entry[nodeIdKey]),
+        { structural: true }
+      ) || labelValue;
+      pushLine(formatCommitmentFactFieldLabel(key), resolvedValue);
+      consumed.add(key);
+      consumed.add(nodeIdKey);
+      return;
+    }
+
+    if (Array.isArray(rawValue)) {
+      const values = rawValue
+        .map((item) => stringifyLedgerAtom(item))
+        .filter(Boolean);
+      if (values.length === 0) return;
+      pushLine(
+        formatCommitmentFactFieldLabel(key),
+        key === 'order' ? values.join(' > ') : values.join(', ')
+      );
+      return;
+    }
+
+    if (typeof rawValue === 'boolean') {
+      pushLine(formatCommitmentFactFieldLabel(key), rawValue ? 'Yes' : 'No');
+      return;
+    }
+
+    if (typeof rawValue === 'number') {
+      pushLine(formatCommitmentFactFieldLabel(key), String(rawValue));
+      return;
+    }
+
+    if (typeof rawValue === 'string') {
+      const text = stringifyLedgerAtom(rawValue);
+      if (!text) return;
+      pushLine(formatCommitmentFactFieldLabel(key), text);
+    }
+  });
+
+  return lines;
+};
+
+const formatCommitmentFactReplayEntry = (
+  entry: Record<string, unknown>,
+  resolveReadableReference: (preferred?: string, fallbackNodeRef?: string, options?: { structural?: boolean }) => string
+): string => {
+  const family = humanizeOpenOntologyLabel(
+    stringifyLedgerAtom(entry.frameworkLabel) || stringifyLedgerAtom(entry.family) || stringifyLedgerAtom(entry.kind)
+  );
+  const subtype = stringifyLedgerAtom(entry.subtype);
+  const detailLines = collectCommitmentFactFieldLines(entry, resolveReadableReference)
+    .filter((line) => !/^Subtype:/i.test(line));
+  const summary = detailLines.slice(0, 3).join('; ');
+  const title = subtype ? `${family} (${subtype})` : family;
+  if (!summary) return title;
+  return `${title}: ${summary}`;
+};
+
+const fallbackReadableReference = (preferred?: string, fallbackNodeRef?: string): string =>
+  stringifyLedgerAtom(preferred) || stringifyLedgerAtom(fallbackNodeRef) || '';
+
+const buildCommitmentFactSupportBadges = (entry: Record<string, unknown>): Array<{ label: string; value: string }> => {
+  const badges = [
+    { label: 'Fact', value: stringifyLedgerAtom(entry.factId) },
+    { label: 'Chain', value: stringifyLedgerAtom(entry.chainId) },
+    {
+      label: 'Steps',
+      value: Array.isArray(entry.stepIds)
+        ? entry.stepIds.map((stepId) => stringifyLedgerAtom(stepId)).filter(Boolean).join(', ')
+        : ''
+    },
+    {
+      label: 'Nodes',
+      value: Array.isArray(entry.nodeIds)
+        ? entry.nodeIds.map((nodeId) => stringifyLedgerAtom(nodeId)).filter(Boolean).join(', ')
+        : ''
+    }
+  ].filter((badge) => badge.value);
+  return badges;
+};
+
 const REPLAY_LEDGER_OPERATIONS = new Set<DerivationStep['operation']>([
   'FeatureLedger',
   'CaseAssignment',
@@ -1402,453 +960,10 @@ const buildReplayLedgerAttachments = (
     appendLedgerBlock(title, unanchoredLines);
   };
 
-  const featureLinesByStep = new Map<string, string[]>();
-  const unanchoredFeatureLines: string[] = [];
-  (parse.featureLedger || []).forEach((entry) => {
-      const line = (() => {
-      const node = stringifyLedgerAtom(entry.nodeId);
-      const value = stringifyLedgerAtom(entry.value);
-      const status = stringifyLedgerAtom(entry.status);
-      const source = stringifyLedgerAtom(entry.sourceStepId);
-      const parts = [
-        node ? `${node}: ` : '',
-        entry.feature,
-        value ? `=${value}` : '',
-        status ? ` [${status}]` : '',
-        source ? ` @ ${source}` : '',
-        entry.note ? ` - ${entry.note}` : ''
-      ];
-      return parts.join('');
-      })();
-      if (!line) return;
-      const sourceStepId = stringifyLedgerAtom(entry.sourceStepId);
-      if (sourceStepId) {
-        const existing = featureLinesByStep.get(sourceStepId) || [];
-        existing.push(line);
-        featureLinesByStep.set(sourceStepId, existing);
-      } else {
-        unanchoredFeatureLines.push(line);
-      }
-    });
-  featureLinesByStep.forEach((lines, stepId) => appendLedgerBlock('Feature Ledger', lines, stepId));
-  appendLedgerBlock('Feature Ledger', unanchoredFeatureLines);
-
   appendAnchoredLedgerEntries(
-    'Case Assignment',
-    parse.caseAssignments || [],
-    (entry) => {
-      const assignee =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.assigneeLabel),
-          stringifyLedgerAtom(entry.nodeId),
-          { structural: false }
-        ) ||
-        'Unspecified node';
-      const assigner =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.assigner),
-          stringifyLedgerAtom(entry.assigner),
-          { structural: true }
-        );
-      return formatCaseAssignmentReplayEntry({
-        assignee,
-        assignedCase: entry.case,
-        assigner,
-        mechanism: entry.mechanism,
-        position: entry.position
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Theta Roles',
-    parse.argumentStructure || [],
-    (entry) => {
-      const referent =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.referent),
-          stringifyLedgerAtom(entry.nodeId),
-          { structural: true }
-        ) ||
-        '';
-      const predicate =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.predicate),
-          stringifyLedgerAtom(entry.predicate),
-          { structural: true }
-        );
-      const introducer =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.introducer),
-          stringifyLedgerAtom(entry.introducer),
-          { structural: true }
-        );
-      return formatThetaAssignmentReplayEntry({
-        referent,
-        role: entry.role,
-        predicate,
-          introducer,
-          position: entry.position
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Selection',
-    parse.selectionLedger || [],
-    (entry) => {
-      const selector =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.selectorHead) || stringifyLedgerAtom(entry.selectorLabel),
-          stringifyLedgerAtom(entry.selectorNodeId),
-          { structural: true }
-        ) ||
-        'Unspecified selector';
-      const selectedLabel =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.selectedLabel),
-          stringifyLedgerAtom(entry.selectedNodeId),
-          { structural: true }
-        );
-      return formatSelectionReplayEntry({
-        selector,
-        selectedLabel,
-        selectedCategory: entry.selectedCategory,
-        relation: entry.relation
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Binding',
-    parse.bindingLedger || [],
-    (entry) => {
-      const antecedent =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.antecedentLabel),
-          stringifyLedgerAtom(entry.antecedentNodeId),
-          { structural: false }
-        ) ||
-        'Unspecified antecedent';
-      const dependent =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.dependentLabel),
-          stringifyLedgerAtom(entry.dependentNodeId),
-          { structural: false }
-        ) ||
-        'unspecified dependent';
-      return formatBindingReplayEntry({
-        antecedent,
-        dependent,
-        principle: entry.principle,
-        relation: entry.relation,
-        status: entry.status
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Clausal Dependencies',
-    parse.clausalDependencies || [],
-    (entry) => {
-      const subtype = stringifyLedgerAtom(entry.subtype);
-      const type = stringifyLedgerAtom(entry.type) || 'dependency';
-      const label = subtype || type;
-      const controller =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.controllerLabel),
-          stringifyLedgerAtom(entry.controllerNodeId),
-          { structural: false }
-        );
-      const dependent =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.dependentLabel),
-          stringifyLedgerAtom(entry.dependentNodeId),
-          { structural: true }
-        );
-      const predicate =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.predicateLabel),
-          stringifyLedgerAtom(entry.predicateNodeId),
-          { structural: true }
-        );
-      const clause =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.clauseLabel),
-          stringifyLedgerAtom(entry.clauseNodeId),
-          { structural: true }
-        );
-      return formatClausalDependencyReplayEntry({
-        label,
-        controller,
-        dependent,
-        predicate,
-        clause,
-        evidence: entry.evidence
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Agreement',
-    parse.agreementLedger || [],
-    (entry) => {
-      const probe =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.probeLabel),
-          stringifyLedgerAtom(entry.probeNodeId),
-          { structural: true }
-        );
-      const goal =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.goalLabel),
-          stringifyLedgerAtom(entry.goalNodeId),
-          { structural: false }
-        );
-      return formatAgreementReplayEntry({
-        probe,
-        goal,
-        feature: entry.feature,
-        value: entry.value,
-        morphology: entry.morphology,
-        status: entry.status,
-        direction: entry.direction,
-        domain: entry.domain,
-        defaultValue: entry.defaultValue
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Predicate Class',
-    parse.predicateClassLedger || [],
-    (entry) => {
-      const predicate =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.predicateLabel),
-          stringifyLedgerAtom(entry.predicateNodeId),
-          { structural: true }
-        );
-      return formatPredicateClassReplayEntry({
-        predicate,
-        classification: entry.classification,
-        subtype: entry.subtype,
-        diagnostics: entry.diagnostics,
-        evidence: entry.evidence
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Probe Ledger',
-    parse.probeLedger || [],
-    (entry) => {
-      const probe =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.probeLabel),
-          stringifyLedgerAtom(entry.probeNodeId),
-          { structural: true }
-        );
-      const goal =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.goalLabel),
-          stringifyLedgerAtom(entry.goalNodeId),
-          { structural: true }
-        );
-      return formatProbeReplayEntry({
-        probe,
-        goal,
-        feature: entry.feature,
-        direction: entry.direction,
-        domain: entry.domain,
-        locality: entry.locality,
-        outcome: entry.outcome
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Null Elements',
-    parse.nullElementLedger || [],
-    (entry) => {
-      const controller =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.controllerLabel),
-          stringifyLedgerAtom(entry.controllerNodeId),
-          { structural: false }
-        );
-      const antecedent =
-        resolveReadableReference(
-          stringifyLedgerAtom(entry.antecedentLabel),
-          stringifyLedgerAtom(entry.antecedentNodeId),
-          { structural: false }
-        );
-      return formatNullElementReplayEntry({
-        label: entry.label,
-        kind: entry.kind,
-        controller,
-        antecedent,
-        licensing: entry.licensing,
-        evidence: entry.evidence
-      });
-    }
-  );
-
-  appendAnchoredLedgerEntries(
-    'Diagnostics',
-    parse.diagnosticLedger || [],
-    (entry) =>
-      formatDiagnosticReplayEntry({
-        diagnostic: entry.diagnostic,
-        observation: entry.observation,
-        supports: entry.supports,
-        status: entry.status,
-        evidence: entry.evidence
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Parameters',
-    parse.parameterLedger || [],
-    (entry) =>
-      formatParameterReplayEntry({
-        parameter: entry.parameter,
-        value: entry.value,
-        domain: entry.domain,
-        language: entry.language,
-        evidence: entry.evidence
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Information Structure',
-    parse.informationStructureLedger || [],
-    (entry) =>
-      formatInformationStructureReplayEntry({
-        label:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.label),
-            stringifyLedgerAtom(entry.nodeId),
-            { structural: false }
-          ),
-        role: entry.role,
-        scope: entry.scope,
-        evidence: entry.evidence
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Operator Scope',
-    parse.operatorScopeLedger || [],
-    (entry) =>
-      formatOperatorScopeReplayEntry({
-        operator:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.operatorLabel),
-            stringifyLedgerAtom(entry.operatorNodeId),
-            { structural: true }
-          ),
-        scope:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.scopeLabel),
-            stringifyLedgerAtom(entry.scopeNodeId),
-            { structural: true }
-          ),
-        operatorType: entry.operatorType,
-        relation: entry.relation,
-        evidence: entry.evidence
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Voice & Valency',
-    parse.voiceValencyLedger || [],
-    (entry) =>
-      formatVoiceValencyReplayEntry({
-        predicate:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.predicateLabel),
-            stringifyLedgerAtom(entry.predicateNodeId),
-            { structural: true }
-          ),
-        voice: entry.voice,
-        valency: entry.valency,
-        externalArgument: entry.externalArgument,
-        internalArgument: entry.internalArgument,
-        evidence: entry.evidence
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Linearization',
-    parse.linearizationLedger || [],
-    (entry) =>
-      formatLinearizationReplayEntry({
-        domain:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.domainLabel),
-            stringifyLedgerAtom(entry.domainNodeId),
-            { structural: true }
-          ),
-        order: entry.order,
-        mechanism: entry.mechanism,
-        effect: entry.effect,
-        evidence: entry.evidence || entry.note
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Locality',
-    parse.localityLedger || [],
-    (entry) =>
-      formatLocalityReplayEntry({
-        dependencyType: entry.dependencyType,
-        moving:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.movingLabel),
-            stringifyLedgerAtom(entry.movingNodeId),
-            { structural: false }
-          ),
-        landing:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.landingLabel),
-            stringifyLedgerAtom(entry.landingNodeId),
-            { structural: true }
-          ),
-        boundary: entry.boundary,
-        status: entry.status,
-        evidence: entry.evidence || entry.note
-      })
-    
-  );
-
-  appendAnchoredLedgerEntries(
-    'Predication',
-    parse.predicationLedger || [],
-    (entry) =>
-      formatPredicationReplayEntry({
-        predicate:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.predicateLabel),
-            stringifyLedgerAtom(entry.predicateNodeId),
-            { structural: true }
-          ),
-        subject:
-          resolveReadableReference(
-            stringifyLedgerAtom(entry.subjectLabel),
-            stringifyLedgerAtom(entry.subjectNodeId),
-            { structural: false }
-          ),
-        relation: entry.relation,
-        evidence: entry.evidence
-      })
-    
+    'Derivational Record',
+    (parse.commitmentFacts || parse.commitmentGraph || []) as Array<{ stepIds?: string[] } & Record<string, unknown>>,
+    (entry) => formatCommitmentFactReplayEntry(entry, resolveReadableReference)
   );
 
   return ledgerAttachments;
@@ -1895,7 +1010,7 @@ const attachReplayLedgerBlocksToStructuralSteps = (
 
 const ensureReplaySpelloutStep = (parse: ParseResult | null): DerivationStep[] | undefined => {
   if (!parse) return undefined;
-  const existing = getPreferredGrowthSteps(parse);
+  const existing = getPreferredDerivationSteps(parse);
   const spelloutSteps = existing.filter((step) => String(step?.operation || '').trim() === 'SpellOut');
   const structuralSteps = existing.filter((step) => {
     const operation = String(step?.operation || '').trim();
@@ -1967,6 +1082,24 @@ const App: React.FC = () => {
     const value = new URLSearchParams(window.location.search).get('showcase');
     return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
   }, []);
+  const devBundleConfig = useMemo<DevBundleConfig | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const bundlePath = String(params.get('devBundle') || '').trim();
+    if (!bundlePath) return null;
+    const rawTab = String(params.get('devTab') || '').trim();
+    const tab: AppTab =
+      rawTab === 'derivation' || rawTab === 'notes' || rawTab === 'tree' ? rawTab : 'tree';
+    const rawReplayStep = String(params.get('devReplayStep') || '').trim().toLowerCase();
+    const replayStep: DevReplayTarget =
+      rawReplayStep === 'last'
+        ? 'last'
+        : (rawReplayStep !== '' && Number.isInteger(Number(rawReplayStep)) && Number(rawReplayStep) >= 0
+          ? Number(rawReplayStep)
+          : null);
+    const captureMode = ['1', 'true', 'yes'].includes(String(params.get('devCapture') || '').toLowerCase());
+    return { bundlePath, tab, replayStep, captureMode };
+  }, []);
   const spores = useMemo(
     () =>
       Array.from({ length: 12 }, () => ({
@@ -2005,29 +1138,24 @@ const App: React.FC = () => {
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) === 2;
   const selectedModelLabel = MODEL_ROUTE_LABELS[modelRoute];
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
+  const activeModelOption = MODEL_MODE_PILLS.find((option) => option.id === modelRoute) || MODEL_MODE_PILLS[0];
+  const nextModelOption = MODEL_MODE_PILLS[
+    (MODEL_MODE_SEQUENCE.indexOf(activeModelOption.id) + 1 + MODEL_MODE_SEQUENCE.length) % MODEL_MODE_SEQUENCE.length
+  ] || MODEL_MODE_PILLS[0];
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
-  const resolvedMovementLinks = useMemo(() => {
-    if (!activeParse) return [];
-    return resolveMovementEventLinks(activeParse.tree, activeParse.movementEvents, framework);
-  }, [activeParse, framework]);
-  const growthMovementMaps = useMemo(() => {
-    if (!activeParse) return EMPTY_MOVEMENT_INDEX_MAPS;
-    const baseMaps = buildMovementIndexMaps(activeParse.tree, activeParse.movementEvents, framework);
-    return buildGrowthFirstMovementMaps(activeParse, baseMaps);
-  }, [activeParse, framework]);
   const replayDerivationSteps = useMemo(() => ensureReplaySpelloutStep(activeParse), [activeParse]);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
     return buildMilesNotation(activeParse.tree, 'canopy');
   }, [activeParse]);
-  const growthMilesNotation = useMemo(() => {
+  const derivationMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeParse.tree, 'growth', activeParse.movementEvents, growthMovementMaps);
-  }, [activeParse, growthMovementMaps]);
+    return buildMilesNotation(activeParse.tree, 'derivation');
+  }, [activeParse]);
   const normalizedExplanation = useMemo(() => {
     if (!activeParse) return '';
-    return normalizeExplanationForDisplay(activeParse.explanation, activeParse.movementEvents, activeParse.tree);
+    return normalizeExplanationForDisplay(activeParse.explanation);
   }, [activeParse]);
   const providerReasoningRaw = useMemo(
     () => normalizeProviderRawForDisplay(String(activeParse?.provenance?.providerReasoningRaw || '')),
@@ -2044,22 +1172,6 @@ const App: React.FC = () => {
     () => truncateReasoningSummary(providerReasoningSummary, 780),
     [providerReasoningSummary]
   );
-  const notesSecondPassReasoningRaw = useMemo(
-    () => normalizeProviderRawForDisplay(String(activeParse?.provenance?.notesSecondPassReasoningRaw || '')),
-    [activeParse]
-  );
-  const notesSecondPassReasoningSummary = useMemo(
-    () => summarizeProviderReasoningForDisplay(
-      String(activeParse?.provenance?.notesSecondPassReasoningSummary || ''),
-      String(activeParse?.provenance?.notesSecondPassReasoningRaw || '')
-    ),
-    [activeParse]
-  );
-  const notesSecondPassReasoningPreview = useMemo(
-    () => truncateReasoningSummary(notesSecondPassReasoningSummary, 420),
-    [notesSecondPassReasoningSummary]
-  );
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const target = window as any;
@@ -2088,7 +1200,7 @@ const App: React.FC = () => {
       setLoading(false);
     };
     target.__BABEL_DEV_SET_TAB__ = (tab: AppTab) => {
-      if (tab === 'tree' || tab === 'growth' || tab === 'notes') {
+      if (tab === 'tree' || tab === 'derivation' || tab === 'notes') {
         setActiveTab(tab);
       }
     };
@@ -2120,6 +1232,103 @@ const App: React.FC = () => {
     };
     checkKeyStatus();
   }, []);
+
+  useEffect(() => {
+    if (!devBundleConfig) return;
+    let cancelled = false;
+
+    const loadDevBundle = async () => {
+      try {
+        const response = await fetch(devBundleConfig.bundlePath, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const saved = await response.json();
+        const bundle = unwrapDevBundlePayload(saved);
+        if (!bundle || !Array.isArray(bundle.analyses) || bundle.analyses.length === 0) {
+          throw new Error('Saved bundle does not contain analyses.');
+        }
+        if (cancelled) return;
+
+        const savedRecord = saved && typeof saved === 'object' ? saved as Record<string, any> : {};
+        const requestRecord = savedRecord.request && typeof savedRecord.request === 'object'
+          ? savedRecord.request as Record<string, any>
+          : {};
+        const firstAnalysis = bundle.analyses[0];
+        const surfaceOrderSentence = Array.isArray(firstAnalysis?.surfaceOrder)
+          ? firstAnalysis.surfaceOrder.map((token) => String(token || '').trim()).filter(Boolean).join(' ')
+          : '';
+        const nextSentence =
+          String(requestRecord.sentence || savedRecord.sentence || bundle.sentence || '').trim()
+          || surfaceOrderSentence
+          || 'Sentence unavailable';
+        const nextFramework = requestRecord.framework === 'minimalism'
+          ? 'minimalism'
+          : (requestRecord.framework === 'xbar' ? 'xbar' : firstAnalysis?.provenance?.framework === 'minimalism' ? 'minimalism' : 'xbar');
+        const nextModelRoute =
+          String(requestRecord.modelRoute || savedRecord.requestedRoute || bundle.requestedModelRoute || '').trim()
+          || inferModelRouteFromModel(bundle.modelUsed);
+
+        setAnalysisBundle(bundle);
+        setParsedSentence(nextSentence);
+        setInput(nextSentence);
+        setFramework(nextFramework);
+        setModelRoute(coerceModelRoute(nextModelRoute));
+        setActiveParseIndex(0);
+        setActiveTab(devBundleConfig.tab);
+        setError(null);
+        setCopiedCodeKey(null);
+        setNeedsKey(false);
+        setKeyPromptMode('none');
+        setWorkspaceView('arboretum');
+        setLoading(false);
+        setDevCaptureMode(devBundleConfig.captureMode);
+        setIsInputVisible(!(showcaseMode || devBundleConfig.captureMode));
+        setIsInputExpanded(!(showcaseMode || devBundleConfig.captureMode));
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err || 'Unknown error');
+        setError(`Unable to load preview bundle: ${message}`);
+      }
+    };
+
+    loadDevBundle();
+    return () => {
+      cancelled = true;
+    };
+  }, [devBundleConfig, showcaseMode]);
+
+  useEffect(() => {
+    if (!devBundleConfig || devBundleConfig.replayStep === null || typeof window === 'undefined' || !analysisBundle) {
+      return;
+    }
+    let attempts = 0;
+    const target = window as any;
+    const timer = window.setInterval(() => {
+      const getReplayCount = target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__;
+      const setReplayStep = target.__BABEL_DEV_SET_REPLAY_STEP__;
+      if (typeof getReplayCount !== 'function' || typeof setReplayStep !== 'function') {
+        attempts += 1;
+        if (attempts > 40) window.clearInterval(timer);
+        return;
+      }
+      const replayCount = Number(getReplayCount()) || 0;
+      if (replayCount <= 0) {
+        attempts += 1;
+        if (attempts > 40) window.clearInterval(timer);
+        return;
+      }
+      const nextStep = devBundleConfig.replayStep === 'last'
+        ? replayCount - 1
+        : Math.min(Math.max(devBundleConfig.replayStep, 0), replayCount - 1);
+      setReplayStep(nextStep);
+      window.clearInterval(timer);
+    }, 180);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [analysisBundle, devBundleConfig]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -2386,7 +1595,7 @@ const App: React.FC = () => {
                           }`}
                           aria-hidden="true"
                         >
-                          {framework === 'xbar' ? 'X̄' : 'vP'}
+                          {framework === 'xbar' ? 'XÌ„' : 'vP'}
                         </span>
                         {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
                       </button>
@@ -2450,27 +1659,19 @@ const App: React.FC = () => {
                           : 'Choose parsing model route'
                       }
                     >
-                      {MODEL_MODE_PILLS.map((option) => {
-                        const active = modelRoute === option.id;
-                        return (
-                          <button
-                            key={option.id}
-                            onClick={() => {
-                              setModelRoute(option.id);
-                              setError(null);
-                              setNeedsKey(false);
-                              setKeyPromptMode('none');
-                            }}
-                            className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-4 py-2 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap transition-all ${
-                              active ? option.activeClassName : option.className
-                            }`}
-                            title={option.keyRequired ? `${option.label} requires an API key and is not wired yet.` : option.label}
-                          >
-                            {option.keyRequired ? <Key size={10} /> : <Zap size={10} className={active ? 'fill-current' : ''} />}
-                            {option.label}
-                          </button>
-                        );
-                      })}
+                      <button
+                        onClick={() => {
+                          setModelRoute(nextModelOption.id);
+                          setError(null);
+                          setNeedsKey(false);
+                          setKeyPromptMode('none');
+                        }}
+                        className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-4 py-2 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap transition-all ${activeModelOption.activeClassName}`}
+                        title={`Current route: ${MODEL_ROUTE_LABELS[activeModelOption.id]}. Click to switch to ${MODEL_ROUTE_LABELS[nextModelOption.id]}.`}
+                      >
+                        {activeModelOption.keyRequired ? <Key size={10} /> : <Zap size={10} className="fill-current" />}
+                        {MODEL_ROUTE_LABELS[activeModelOption.id]}
+                      </button>
                     </div>
                   )}
 
@@ -2536,7 +1737,6 @@ const App: React.FC = () => {
                       Math.max((entry.bundle.analyses?.length ?? 1) - 1, 0)
                     );
                     const activeSavedParse = entry.bundle.analyses?.[safeParseIndex];
-                    const movementCount = activeSavedParse?.movementEvents?.length ?? 0;
                     const derivationCount = activeSavedParse?.derivationSteps?.length ?? 0;
 
                     return (
@@ -2563,9 +1763,6 @@ const App: React.FC = () => {
                           </span>
                           <span className="px-3 py-1.5 rounded-full border border-white/15 text-white/70 bg-white/5">
                             {derivationCount} Derivation Steps
-                          </span>
-                          <span className="px-3 py-1.5 rounded-full border border-white/15 text-white/70 bg-white/5">
-                            {movementCount} Movements
                           </span>
                         </div>
 
@@ -2660,16 +1857,12 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {!loading && activeParse && (activeTab === 'tree' || activeTab === 'growth') ? (
+          {!loading && activeParse && (activeTab === 'tree' || activeTab === 'derivation') ? (
             <TreeVisualizer 
               data={activeParse.tree} 
-              animated={activeTab === 'growth'}
+              animated={activeTab === 'derivation'}
               derivationSteps={replayDerivationSteps}
               derivationStages={activeParse.derivationStages}
-              growthFrames={activeParse.growthFrames}
-              movementEvents={activeParse.movementEvents}
-              resolvedMovementLinks={resolvedMovementLinks}
-              movementMaps={growthMovementMaps}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
             />
@@ -2708,29 +1901,83 @@ const App: React.FC = () => {
                               </pre>
                             </details>
                           )}
-                          {notesSecondPassReasoningSummary && (
-                            <div className="mt-5 pt-5 border-t border-white/5">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/65 mb-2">Notes Pass Summary</p>
-                              <p className="text-emerald-50/65 leading-relaxed serif text-sm md:text-lg whitespace-pre-wrap">
-                                {notesSecondPassReasoningPreview || notesSecondPassReasoningSummary}
-                              </p>
-                              {notesSecondPassReasoningRaw && notesSecondPassReasoningRaw !== (notesSecondPassReasoningPreview || notesSecondPassReasoningSummary) && (
-                                <details className="mt-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                                  <summary className="cursor-pointer text-[11px] font-black uppercase tracking-[0.24em] text-emerald-300/60">
-                                    Show Full Raw Notes Pass Reasoning
-                                  </summary>
-                                  <pre className="mt-3 whitespace-pre-wrap break-words text-xs md:text-sm leading-relaxed text-emerald-50/60 serif">
-                                    {notesSecondPassReasoningRaw}
-                                  </pre>
-                                </details>
-                              )}
-                            </div>
-                          )}
                         </div>
                       )}
                   </div>
 
-                  {(canopyMilesNotation || growthMilesNotation) && (
+                  {((activeParse.commitmentFacts || activeParse.commitmentGraph || []).length > 0) && (
+                    <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
+                      <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-400 border border-white/10">
+                          <Layers size={24} />
+                        </div>
+                        <div>
+                          <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Derivational Records</h2>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Compiled Analysis Layer</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {((activeParse.commitmentFacts || activeParse.commitmentGraph || []) as Array<Record<string, unknown>>).map((fact, index) => {
+                          const familyLabel = humanizeOpenOntologyLabel(
+                            stringifyLedgerAtom(fact.frameworkLabel) || stringifyLedgerAtom(fact.family) || stringifyLedgerAtom(fact.kind)
+                          );
+                          const subtype = stringifyLedgerAtom(fact.subtype);
+                          const fieldLines = collectCommitmentFactFieldLines(fact, fallbackReadableReference);
+                          const supportBadges = buildCommitmentFactSupportBadges(fact);
+                          return (
+                            <div
+                              key={stringifyLedgerAtom(fact.factId) || `commitment-fact-${index}`}
+                              className="rounded-[1.5rem] border border-white/10 bg-black/35 p-5 md:p-6 shadow-inner"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-400/75">
+                                    {familyLabel}
+                                  </p>
+                                  {subtype && (
+                                    <p className="mt-2 text-sm md:text-base text-emerald-50/70 serif italic">
+                                      {subtype}
+                                    </p>
+                                  )}
+                                </div>
+                                {stringifyLedgerAtom(fact.factId) && (
+                                  <span className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-[0.22em] text-white/55">
+                                    {stringifyLedgerAtom(fact.factId)}
+                                  </span>
+                                )}
+                              </div>
+                              {fieldLines.length > 0 && (
+                                <div className="space-y-2">
+                                  {fieldLines.map((line, lineIndex) => (
+                                    <p
+                                      key={`${stringifyLedgerAtom(fact.factId) || index}-${lineIndex}`}
+                                      className="text-emerald-50/85 leading-relaxed text-sm md:text-base"
+                                    >
+                                      {line}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              {supportBadges.length > 0 && (
+                                <div className="mt-5 flex flex-wrap gap-2">
+                                  {supportBadges.map((badge) => (
+                                    <span
+                                      key={`${stringifyLedgerAtom(fact.factId) || index}-${badge.label}`}
+                                      className="px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300/80"
+                                    >
+                                      {badge.label}: {badge.value}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {(canopyMilesNotation || derivationMilesNotation) && (
                     <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
                        <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
                           <div className="flex items-center gap-4 md:gap-5">
@@ -2739,7 +1986,7 @@ const App: React.FC = () => {
                             </div>
                             <div>
                               <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Growth Miles Shang Formalism</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Derivation Miles Shang Formalism</p>
                             </div>
                           </div>
                           <a 
@@ -2775,24 +2022,24 @@ const App: React.FC = () => {
                             </div>
                           )}
 
-                          {growthMilesNotation && (
+                          {derivationMilesNotation && (
                             <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
                               <div className="flex items-center justify-between mb-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Growth Code (Movement Indexed)</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Derivation Code (Movement Indexed)</p>
                                 <button 
-                                  onClick={() => copyMilesCode(growthMilesNotation, 'growth')}
+                                  onClick={() => copyMilesCode(derivationMilesNotation, 'derivation')}
                                   className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
-                                    copiedCodeKey === 'growth'
+                                    copiedCodeKey === 'derivation'
                                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
                                     : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
                                   }`}
                                 >
-                                  {copiedCodeKey === 'growth' ? <Check size={13} /> : <Copy size={13} />}
-                                  {copiedCodeKey === 'growth' ? 'Copied to Soil' : 'Copy Growth'}
+                                  {copiedCodeKey === 'derivation' ? <Check size={13} /> : <Copy size={13} />}
+                                  {copiedCodeKey === 'derivation' ? 'Copied to Soil' : 'Copy Derivation'}
                                 </button>
                               </div>
                               <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                                {growthMilesNotation}
+                                {derivationMilesNotation}
                               </code>
                             </div>
                           )}
