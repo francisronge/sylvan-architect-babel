@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence } from './services/geminiService';
-import { DerivationStep, ParseBundle, ParseResult, ReplayLedgerBlock, SyntaxNode } from './types';
+import { DerivationStage, DerivationStep, ParseBundle, ParseResult, ReplayLedgerBlock, SyntaxNode } from './types';
 import TreeVisualizer from './components/TreeVisualizer';
 import RootLogo from './components/RootLogo';
 import {
@@ -462,7 +462,6 @@ const buildMilesNotation = (
   return serializeMilesNode(tree).trim();
 };
 
-const EXPLANATION_HEDGE_RE = /\b(may|might|possibly|can)\b/gi;
 const cleanExplanationWhitespace = (text: string): string =>
   String(text || '')
     .replace(/\s+/g, ' ')
@@ -475,12 +474,18 @@ const ensureExplanationTerminator = (text: string): string => {
   return /[.!?]$/.test(value) ? value : `${value}.`;
 };
 
-const removeWeakHedging = (text: string): string =>
-  cleanExplanationWhitespace(String(text || '').replace(EXPLANATION_HEDGE_RE, ''));
+const buildDerivationalNoteParagraphs = (
+  stages: DerivationStage[] | undefined,
+  fallbackExplanation: string
+): string[] => {
+  const stageParagraphs = (Array.isArray(stages) ? stages : [])
+    .map((stage) => ensureExplanationTerminator(String(stage?.stageRecord || '')))
+    .filter(Boolean);
 
-const normalizeExplanationForDisplay = (explanation: string): string => {
-  const cleaned = ensureExplanationTerminator(removeWeakHedging(explanation));
-  return cleaned || 'No explanation provided.';
+  if (stageParagraphs.length > 0) return stageParagraphs;
+
+  const fallback = ensureExplanationTerminator(String(fallbackExplanation || ''));
+  return [fallback || 'No explanation provided.'];
 };
 
 const unwrapQuotedProviderText = (value: string): string => {
@@ -1153,9 +1158,9 @@ const App: React.FC = () => {
     if (!activeParse) return '';
     return buildMilesNotation(activeParse.tree, 'derivation');
   }, [activeParse]);
-  const normalizedExplanation = useMemo(() => {
-    if (!activeParse) return '';
-    return normalizeExplanationForDisplay(activeParse.explanation);
+  const derivationalNoteParagraphs = useMemo(() => {
+    if (!activeParse) return [];
+    return buildDerivationalNoteParagraphs(activeParse.derivationStages, activeParse.explanation);
   }, [activeParse]);
   const providerReasoningRaw = useMemo(
     () => normalizeProviderRawForDisplay(String(activeParse?.provenance?.providerReasoningRaw || '')),
@@ -1595,7 +1600,12 @@ const App: React.FC = () => {
                           }`}
                           aria-hidden="true"
                         >
-                          {framework === 'xbar' ? 'XÌ„' : 'vP'}
+                          {framework === 'xbar' ? (
+                            <span className="relative inline-flex w-4 items-center justify-center leading-none">
+                              X
+                              <span className="absolute left-1/2 top-[-0.16rem] h-[2px] w-3 -translate-x-1/2 rounded-full bg-current" />
+                            </span>
+                          ) : 'vP'}
                         </span>
                         {framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
                       </button>
@@ -1877,18 +1887,27 @@ const App: React.FC = () => {
                         <div className="w-10 h-10 md:w-12 md:h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
                           <Info size={24} />
                         </div>
-                        <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Structural Genealogy ({framework === 'xbar' ? 'X-Bar' : 'Minimalism'})</h2>
+                        <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Derivational Notes</h2>
                       </div>
-                      <p className="text-emerald-50/90 leading-relaxed italic serif text-lg md:text-2xl border-l-2 border-emerald-500/20 pl-5 md:pl-8">"{normalizedExplanation}"</p>
+                      <div className="space-y-5 md:space-y-6">
+                        {derivationalNoteParagraphs.map((paragraph, index) => (
+                          <p
+                            key={`derivational-note-${index}`}
+                            className="text-emerald-50/90 leading-relaxed italic serif text-lg md:text-2xl border-l-2 border-emerald-500/20 pl-5 md:pl-8"
+                          >
+                            &quot;{paragraph}&quot;
+                          </p>
+                        ))}
+                      </div>
                       {providerReasoningSummary && (
-                        <div className="mb-6 md:mb-8 bg-black/35 border border-emerald-500/10 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-inner">
-                          <div className="flex items-center gap-3 mb-3">
+                        <details className="mt-6 md:mt-8 bg-black/35 border border-emerald-500/10 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-inner">
+                          <summary className="cursor-pointer list-none flex items-center gap-3">
                             <div className="w-9 h-9 rounded-2xl bg-white/5 border border-white/10 text-emerald-400 flex items-center justify-center">
                               <Brain size={18} />
                             </div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Provider Reasoning Summary</p>
-                          </div>
-                          <p className="text-emerald-50/85 leading-relaxed serif text-base md:text-xl whitespace-pre-wrap">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Provider Reasoning Trace</span>
+                          </summary>
+                          <p className="mt-4 text-emerald-50/85 leading-relaxed serif text-base md:text-xl whitespace-pre-wrap">
                             {providerReasoningPreview || providerReasoningSummary}
                           </p>
                           {providerReasoningRaw && providerReasoningRaw !== (providerReasoningPreview || providerReasoningSummary) && (
@@ -1901,7 +1920,7 @@ const App: React.FC = () => {
                               </pre>
                             </details>
                           )}
-                        </div>
+                        </details>
                       )}
                   </div>
 
