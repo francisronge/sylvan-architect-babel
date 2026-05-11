@@ -106,6 +106,11 @@ export const collectNodeReferencesById = (value) => {
     if (id && label && !references.has(id)) {
       references.set(id, current);
     }
+    normalizeNodeAliasIds(current.aliasIds).forEach((aliasId) => {
+      if (!references.has(aliasId)) {
+        references.set(aliasId, current);
+      }
+    });
 
     Object.values(current).forEach(walk);
   };
@@ -153,6 +158,28 @@ export const normalizeOptionalMetadataText = (value) => {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed || undefined;
+};
+
+export const normalizeNodeAliasIds = (value) => (
+  Array.isArray(value)
+    ? Array.from(new Set(
+        value
+          .map((item) => normalizeOptionalMetadataText(item))
+          .filter(Boolean)
+      ))
+    : []
+);
+
+export const addNodeAliasIds = (node, aliases) => {
+  if (!node || typeof node !== 'object') return;
+  const nodeId = normalizeOptionalMetadataText(node.id);
+  const nextAliases = normalizeNodeAliasIds([
+    ...normalizeNodeAliasIds(node.aliasIds),
+    ...normalizeNodeAliasIds(aliases)
+  ]).filter((aliasId) => aliasId !== nodeId);
+  if (nextAliases.length > 0) {
+    node.aliasIds = nextAliases;
+  }
 };
 
 export const normalizeOptionalMetadataBoolean = (value) =>

@@ -38,7 +38,8 @@ export const createDerivationCompilerHelpers = ({
   deriveCanonicalSurfaceSpans,
   subtreeContainsOnlyCovertCategoryLeaves,
   subtreeContainsNamedCovertCategoryLeaf,
-  collapseOvertHeadLandingChains
+  collapseOvertHeadLandingChains,
+  addNodeAliasIds
 }) => {
   const parseTransportJsonValue = (value) => {
     if (typeof value !== 'string') return value;
@@ -410,6 +411,7 @@ export const createDerivationCompilerHelpers = ({
             stepId: visualRelation.stepId,
             stepIndex: visualRelation.stepIndex,
             note: statement,
+            exactAnchorsOnly: true,
             preserveOperationLabel: true
           };
         }).filter(Boolean)
@@ -1568,6 +1570,19 @@ export const createDerivationCompilerHelpers = ({
     return bestMatch;
   };
 
+  const collectCollapsedNodeIds = (node) => {
+    const ids = [];
+    const visit = (current) => {
+      if (!current || typeof current !== 'object') return;
+      const id = normalizeOptionalStepText(current.id);
+      if (id) ids.push(id);
+      const children = Array.isArray(current.children) ? current.children : [];
+      children.forEach(visit);
+    };
+    visit(node);
+    return ids;
+  };
+
   const collapseMalformedHeadMoveLandings = (node) => {
     if (!node || typeof node !== 'object') return node;
     const children = Array.isArray(node.children) ? node.children : [];
@@ -1592,6 +1607,7 @@ export const createDerivationCompilerHelpers = ({
     const overtSurface = String(overtYield[0] || '').trim();
     if (!overtSurface) return node;
 
+    addNodeAliasIds(node, collectCollapsedNodeIds(overtChild));
     node.word = overtSurface;
     delete node.children;
     delete node.surfaceSpan;
@@ -1607,15 +1623,50 @@ export const createDerivationCompilerHelpers = ({
     return clonedForest;
   };
 
+  const addTraceReplacementAliasesFromPreviousWorkspace = (previousForest, currentForest) => {
+    if (!Array.isArray(previousForest) || previousForest.length === 0 || !Array.isArray(currentForest) || currentForest.length === 0) {
+      return;
+    }
+    const previousNodeById = new Map();
+    previousForest.forEach((root) => {
+      collectNodeReferencesById(root).forEach((node, nodeId) => {
+        if (typeof nodeId === 'string' && nodeId.trim() && !previousNodeById.has(nodeId)) {
+          previousNodeById.set(nodeId, node);
+        }
+      });
+    });
+    const visit = (node) => {
+      if (!node || typeof node !== 'object') return;
+      const nodeId = normalizeOptionalStepText(node.id);
+      const traceMatch = nodeId.match(/^(.+)_trace$/i);
+      const previousNode = traceMatch?.[1] ? previousNodeById.get(traceMatch[1]) : null;
+      if (previousNode) {
+        addNodeAliasIds(node, [
+          traceMatch[1],
+          ...(Array.isArray(previousNode.aliasIds) ? previousNode.aliasIds : [])
+        ]);
+      }
+      const children = Array.isArray(node.children) ? node.children : [];
+      children.forEach(visit);
+    };
+    currentForest.forEach(visit);
+  };
+
   const canonicalizeDerivationFrames = (frames) => {
     if (!Array.isArray(frames) || frames.length === 0) return [];
-    return frames.map((frame) => ({
-      ...frame,
-      after: {
-        ...getFrameAfterState(frame),
-        workspaceForest: canonicalizeDerivationWorkspaceForest(getFrameWorkspaceForest(frame))
-      }
-    }));
+    let previousWorkspaceForest = [];
+    return frames.map((frame) => {
+      const workspaceForest = canonicalizeDerivationWorkspaceForest(getFrameWorkspaceForest(frame));
+      addTraceReplacementAliasesFromPreviousWorkspace(previousWorkspaceForest, workspaceForest);
+      previousWorkspaceForest = cloneSyntaxForestDeep(workspaceForest);
+      return {
+        ...frame,
+        after: {
+          ...getFrameAfterState(frame),
+          workspaceForest
+        }
+      };
+    });
   };
 
   const inferMovementOperationFromChange = (change, nodeById = new Map()) => {
@@ -1985,12 +2036,21 @@ export const createDerivationCompilerHelpers = ({
       return frameEvents.map((event) => {
         const label = normalizeOptionalStepText(event?.label || event?.operation || event?.type);
         if (!label) return null;
+        const exactAnchorsOnly = event?.exactAnchorsOnly === true;
         const rawMovingNodeId = normalizeOptionalStepText(event?.movingNodeId);
         const rawLandingNodeId = normalizeOptionalStepText(event?.landingNodeId || event?.toNodeId || rawMovingNodeId);
         const rawFromNodeId = normalizeOptionalStepText(event?.fromNodeId || event?.sourceNodeId || event?.traceNodeId);
         const rawTraceNodeId = normalizeOptionalStepText(event?.traceNodeId);
         const hostNodeId = normalizeOptionalStepText(event?.hostNodeId);
+        const resolveAuthoredNodeId = (nodeId) => {
+          const normalizedNodeId = normalizeOptionalStepText(nodeId);
+          if (!normalizedNodeId) return '';
+          const node = allNodeById.get(normalizedNodeId);
+          return node ? normalizeOptionalStepText(node.id) || normalizedNodeId : '';
+        };
         const needsStructuralAnchorResolution =
+          !exactAnchorsOnly
+          &&
           isMoveLikeOperation(normalizeMovementOperation(label))
           && (
             (rawLandingNodeId && !allNodeById.has(rawLandingNodeId))
@@ -2004,19 +2064,23 @@ export const createDerivationCompilerHelpers = ({
               operation: label,
               rawTargetId: rawLandingNodeId || rawMovingNodeId,
               surfaceForms: extractQuotedMovementSurfaceForms(change)
-            })
+          })
           : null;
-        const landingNodeId = rawLandingNodeId && allNodeById.has(rawLandingNodeId)
-          ? rawLandingNodeId
+        const resolvedRawLandingNodeId = resolveAuthoredNodeId(rawLandingNodeId);
+        const resolvedRawFromNodeId = resolveAuthoredNodeId(rawFromNodeId);
+        const resolvedRawTraceNodeId = resolveAuthoredNodeId(rawTraceNodeId);
+        const resolvedRawMovingNodeId = resolveAuthoredNodeId(rawMovingNodeId);
+        const landingNodeId = resolvedRawLandingNodeId
+          ? resolvedRawLandingNodeId
           : normalizeOptionalStepText(inferredPair?.landingNode?.id) || rawLandingNodeId;
-        const fromNodeId = rawFromNodeId && allNodeById.has(rawFromNodeId)
-          ? rawFromNodeId
+        const fromNodeId = resolvedRawFromNodeId
+          ? resolvedRawFromNodeId
           : normalizeOptionalStepText(inferredPair?.sourceTraceNode?.id) || rawFromNodeId;
-        const traceNodeId = rawTraceNodeId && allNodeById.has(rawTraceNodeId)
-          ? rawTraceNodeId
+        const traceNodeId = resolvedRawTraceNodeId
+          ? resolvedRawTraceNodeId
           : normalizeOptionalStepText(inferredPair?.sourceTraceNode?.id) || rawTraceNodeId;
-        const movingNodeId = rawMovingNodeId && allNodeById.has(rawMovingNodeId)
-          ? rawMovingNodeId
+        const movingNodeId = resolvedRawMovingNodeId
+          ? resolvedRawMovingNodeId
           : landingNodeId && allNodeById.has(landingNodeId)
             ? landingNodeId
             : rawMovingNodeId;
@@ -2052,6 +2116,7 @@ export const createDerivationCompilerHelpers = ({
           stepId: normalizeOptionalStepText(event?.stepId) || normalizeOptionalStepText(frame?.stepId) || undefined,
           stepIndex: Number.isInteger(event?.stepIndex) ? event.stepIndex : index,
           note: normalizeOptionalStepText(event?.note) || normalizeOptionalStepText(frame?.change?.statement) || normalizeOptionalStepText(frame?.note),
+          ...(exactAnchorsOnly ? { exactAnchorsOnly: true } : {}),
           preserveOperationLabel: true,
           serializationStatus,
           diagnostics

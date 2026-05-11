@@ -4,6 +4,7 @@ export interface SyntaxNode {
   word?: string;
   surfaceSpan?: [number, number];
   id?: string; // Optional ID for D3 indexing
+  aliasIds?: string[];
   lineageId?: string;
   case?: string;
   assigner?: string;

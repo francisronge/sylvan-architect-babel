@@ -55,6 +55,7 @@ Each Pro analysis on the first pass must include:
 
 General rules for the Pro route:
 - Return one analysis unless there is clear structural ambiguity.
+- For clear structural ambiguity, return one complete analysis for each structurally distinct reading, up to two analyses.
 - Do not add extra top-level analysis views. Babel derives downstream views, ledgers, and final notes from derivationStages.
 - Within the chosen framework, choose any structurally supported analysis and commitment that the sentence justifies.
 - Choose the strongest supported analysis, not the most familiar one and not the most exotic one for its own sake.
@@ -71,17 +72,25 @@ General rules for the Pro route:
 - Each derivation stage has exactly four authored fields, written inside the stage object in this order: "statement", "stageRecord", "visualRelations", "workspaceForest".
 - Never put statement, stageRecord, or visualRelations on the analysis object.
 - "workspaceForest" stores the visible derivational workspace after the stage.
+- In terminal leaves, "label" is the syntactic item and "word" is the exact pronounced input token when those differ.
+- Every pronounced terminal must carry tokenIndex. Every terminal without tokenIndex must include "silent": true.
 - Keep workspaceForest compact: reuse unchanged introduced subtrees with {"refId":"existingNodeId"}; rewrite only new or structurally changed material. Do not use refId for changed subtrees, and do not use the same refId twice in one stage.
 - Node ids are derivational identities, not per-stage serials; reuse each id while its object persists.
 - Do not rename unchanged leaves; true new copies/occurrences get new ids linked by lineageId.
 - Every workspaceForest item and child must be either {"id":"...","label":"...","children":[...]} or {"refId":"existingNodeId"}. Leaves still need id, label, and "children":[]; never emit word-only leaves or {}.
 - "statement" is a concise reader-facing headline for the stage. It names what became derivationally public without carrying the full analysis.
 - "stageRecord" is a required prose string. It is the written syntactic record of that stage, not metadata and not key-value bookkeeping, and not a restatement of statement.
-- "visualRelations" is a required array for relations from this stageRecord that should be visually marked on this stage; use [] only when no relation should be visually marked.
+- "visualRelations" is a required array for relations from this stageRecord that should be visually marked on this stage; use [] when the stage needs no extra drawn relation beyond ordinary tree geometry.
 - Each visualRelations item has a short open "relation" string and an "anchors" object whose open role names point to node ids in this stage's expanded workspace. Anchor values may be node ids or arrays of node ids.
+- Every visualRelations anchor value must be the exact id of a node present in that same stage's expanded workspaceForest. Expanded means after resolving any refId used by that stage.
+- Do not create anchor ids by naming an intended copy, future landing, or old occurrence. If the visual relation belongs to this stage, first make both endpoints real in workspaceForest, then point anchors to those exact ids.
+- Before returning JSON, check every visualRelations anchor against its own stage workspaceForest. If any anchor does not resolve there, repair the stage before answering.
 - Do not introduce a visualRelation whose relation is absent from stageRecord.
 - visualRelations is not prose and not a second analysis.
+- An empty visualRelations array is complete and correct when the stage needs no extra drawn relation beyond the ordinary tree geometry.
 - The tree is the machine witness. statement is the orientation line. stageRecord is the public syntactic record. visualRelations is visual intent grounded in that record.
+- visualRelations is only for relations that need an additional visual mark beyond ordinary workspaceForest branching. If ordinary tree geometry already shows the relation, keep it in stageRecord and workspaceForest and do not repeat it in visualRelations.
+- Do not use visualRelations for ordinary mother-daughter or sisterhood relations already encoded by workspaceForest branching. A relation that is visible solely by reading the branches belongs in stageRecord and workspaceForest, not visualRelations.
 - derivationStages are Babel's analysis. Downstream views and final notes compile from the ordered stage record.
 - Each stageRecord must explain why this workspace is a legitimate next derivational state.
 - Preserve the argument a serious syntactician would need when the tree alone is not enough.
@@ -92,6 +101,9 @@ General rules for the Pro route:
 - If one stage contains several local operations, stageRecord must say what single syntactic claim they jointly establish. If no single claim unifies them, separate the material into different derivationStages.
 - derivationStages are substantive derivational stages, not atomic replay steps; Babel compiles smaller replay operations downstream.
 - Describe each stage from its own present derivational state. Do not use a later outcome to name, justify, or structure earlier material.
+- A stage workspaceForest is not an inventory of future lexical items. Do not include a head or subtree until that stage has selected it, projected it, merged it, copied it, moved it, or otherwise made it part of the public derivational state. Do not park future material as detached workspace roots.
+- The highest root may appear only after the lower workspace it dominates has already been built. Do not introduce a full clausal root before the stage sequence has publicly built its dominated lexical and functional spine.
+- If a stage introduces a high functional shell, it must preserve lower structure that is already public in earlier stages or build that lower structure inside the same coherent stage; it must not be the first unexplained appearance of the whole derivation.
 - Keep derivational claims grounded in the visible stage sequence. Do not write prose that the ordered trees, lineage, or earlier stages cannot support.
 - Long JSON strings are valid; keep substantive derivational prose.
 - Do not use bare operation labels or occupancy alone as the whole analytical content of a stage.

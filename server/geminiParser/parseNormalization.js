@@ -865,9 +865,12 @@ export const createParseNormalizationHelpers = ({
           const nodeId = normalizeOptionalStepText(anchorValue.nodeId);
           const value = normalizeOptionalStepText(anchorValue.value || nodeId);
           const node = nodeId ? frameNodeById.get(nodeId) : null;
+          const resolvedNodeId = normalizeOptionalStepText(node?.id) || nodeId;
+          const authoredNodeId = nodeId && resolvedNodeId && nodeId !== resolvedNodeId ? nodeId : '';
           return {
             role: normalizedRole,
-            ...(nodeId ? { nodeId } : {}),
+            ...(resolvedNodeId ? { nodeId: resolvedNodeId } : {}),
+            ...(authoredNodeId ? { authoredNodeId } : {}),
             ...(value ? { value } : {}),
             ...(node?.label ? { label: String(node.label) } : {}),
             resolved: Boolean(node),
@@ -2062,7 +2065,7 @@ export const createParseNormalizationHelpers = ({
   ) => {
     const parsed = value;
     const analysesSource = Array.isArray(parsed?.analyses)
-      ? parsed.analyses.slice(0, 1)
+      ? parsed.analyses.slice(0, 2)
       : parsed
         ? [parsed]
         : [];
@@ -2076,16 +2079,18 @@ export const createParseNormalizationHelpers = ({
         enforceDerivationRouteContract,
         options
       ))
-      .slice(0, 1);
+      .slice(0, 2);
 
     if (analyses.length === 0) {
       throw new ParseApiError('BAD_MODEL_RESPONSE', 'No valid analyses returned by model.', 502);
     }
 
+    const ambiguityDetected = analyses.length > 1 || Boolean(parsed?.ambiguityDetected);
+
     return {
       analyses,
-      ambiguityDetected: false,
-      ambiguityNote: undefined
+      ambiguityDetected,
+      ambiguityNote: ambiguityDetected ? String(parsed?.ambiguityNote || '').trim() || undefined : undefined
     };
   };
 

@@ -346,10 +346,11 @@ export const createDerivationHelpers = ({
     return undefined;
   };
 
-  const resolveMovementNodeReference = (rawRef, nodeIds, labelIndex) => {
+  const resolveMovementNodeReference = (rawRef, nodeIds, labelIndex, exactAnchorsOnly = false) => {
     const ref = String(rawRef || '').trim();
     if (!ref) return '';
     if (nodeIds.has(ref)) return ref;
+    if (exactAnchorsOnly) return '';
     const labelMatches = labelIndex.get(ref) || [];
     if (labelMatches.length === 1) return String(labelMatches[0] || '').trim();
     return '';
@@ -370,6 +371,7 @@ export const createDerivationHelpers = ({
       .map((item) => {
         if (!item || typeof item !== 'object') return null;
         const explicitStepId = normalizeOptionalStepText(item.stepId);
+        const exactAnchorsOnly = item.exactAnchorsOnly === true;
         const preserveOperationLabel = item.preserveOperationLabel === true || Boolean(normalizeOptionalStepText(item.label));
         let operation = preserveOperationLabel
           ? normalizeOptionalStepText(item.label || item.operation || item.type)
@@ -379,11 +381,11 @@ export const createDerivationHelpers = ({
         const explicitLandingRef = String(item.landingNodeId || item.toNodeId || item.targetNodeId || item.target || explicitMovingRef).trim();
         const explicitHostRef = String(item.hostNodeId || item.host || '').trim();
         const explicitTraceRef = String(item.traceNodeId || item.lowerCopyNodeId || item.trace || '').trim();
-        let fromNodeId = resolveMovementNodeReference(explicitSourceRef, nodeIds, labelIndex);
-        let toNodeId = resolveMovementNodeReference(explicitLandingRef, nodeIds, labelIndex);
-        const movingNodeId = resolveMovementNodeReference(explicitMovingRef, nodeIds, labelIndex);
-        const hostNodeId = resolveMovementNodeReference(explicitHostRef, nodeIds, labelIndex);
-        let traceNodeId = resolveMovementNodeReference(explicitTraceRef, nodeIds, labelIndex);
+        let fromNodeId = resolveMovementNodeReference(explicitSourceRef, nodeIds, labelIndex, exactAnchorsOnly);
+        let toNodeId = resolveMovementNodeReference(explicitLandingRef, nodeIds, labelIndex, exactAnchorsOnly);
+        const movingNodeId = resolveMovementNodeReference(explicitMovingRef, nodeIds, labelIndex, exactAnchorsOnly);
+        const hostNodeId = resolveMovementNodeReference(explicitHostRef, nodeIds, labelIndex, exactAnchorsOnly);
+        let traceNodeId = resolveMovementNodeReference(explicitTraceRef, nodeIds, labelIndex, exactAnchorsOnly);
         const selfTargetResolvedViaTrace = Boolean(
           fromNodeId
           && toNodeId
@@ -449,6 +451,7 @@ export const createDerivationHelpers = ({
           note: typeof item.note === 'string' ? item.note : undefined,
           ...(item.participants && typeof item.participants === 'object' && !Array.isArray(item.participants) ? { participants: item.participants } : {}),
           ...(preserveOperationLabel ? { preserveOperationLabel: true } : {}),
+          ...(exactAnchorsOnly ? { exactAnchorsOnly: true } : {}),
           serializationStatus: diagnostics.length > 0 ? 'underspecified' : 'complete',
           diagnostics: diagnostics.length > 0 ? Array.from(new Set(diagnostics)) : undefined
         };
@@ -747,6 +750,7 @@ export const createDerivationHelpers = ({
         note: typeof event.note === 'string' ? event.note : undefined,
         ...(event.participants && typeof event.participants === 'object' && !Array.isArray(event.participants) ? { participants: event.participants } : {}),
         ...(preserveOperationLabel ? { preserveOperationLabel: true } : {}),
+        ...(event.exactAnchorsOnly === true ? { exactAnchorsOnly: true } : {}),
         serializationStatus,
         diagnostics: mergedDiagnostics
       });

@@ -12,6 +12,7 @@ import {
   nextGeneratedNodeId,
   canonicalizeCovertSurface,
   collectNodeReferencesById,
+  addNodeAliasIds,
   getLabelProfile
 } from './geminiParser/treeBasics.js';
 import {
@@ -208,7 +209,8 @@ const {
   deriveCanonicalSurfaceSpans,
   subtreeContainsOnlyCovertCategoryLeaves,
   subtreeContainsNamedCovertCategoryLeaf,
-  collapseOvertHeadLandingChains
+  collapseOvertHeadLandingChains,
+  addNodeAliasIds
 });
 
 const {

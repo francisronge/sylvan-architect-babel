@@ -1,5 +1,6 @@
 const EDGE_PUNCTUATION_OR_SYMBOL_RE = /[\p{P}\p{S}]/u;
 const WORDLIKE_CONTENT_RE = /[\p{L}\p{M}\p{N}]/u;
+const POSSESSIVE_SUFFIX_RE = /^(.+?)(['\u2019]s)$/iu;
 
 export const stripEdgePunctuationAndSymbols = (value) => {
   const text = String(value || '').normalize('NFC').trim();
@@ -15,14 +16,25 @@ export const stripEdgePunctuationAndSymbols = (value) => {
 export const normalizeSurfaceToken = (value) =>
   stripEdgePunctuationAndSymbols(value).toLocaleLowerCase('und');
 
+const splitSyntacticSurfaceToken = (token) => {
+  const cleaned = stripEdgePunctuationAndSymbols(token);
+  if (!cleaned || !WORDLIKE_CONTENT_RE.test(cleaned)) return [];
+
+  const possessiveMatch = cleaned.match(POSSESSIVE_SUFFIX_RE);
+  if (possessiveMatch?.[1] && possessiveMatch?.[2]) {
+    return [possessiveMatch[1], possessiveMatch[2].replace(/\u2019/g, "'")];
+  }
+
+  return [cleaned];
+};
+
 export const tokenizeSentenceSurfaceOrder = (sentence) => {
   const input = String(sentence || '').normalize('NFC');
   if (!input.trim()) return [];
 
   const whitespaceTokens = input
     .split(/\s+/)
-    .map(stripEdgePunctuationAndSymbols)
-    .filter((token) => token && WORDLIKE_CONTENT_RE.test(token));
+    .flatMap(splitSyntacticSurfaceToken);
   if (/\s/u.test(input) || whitespaceTokens.length > 1) {
     return whitespaceTokens;
   }
@@ -31,10 +43,10 @@ export const tokenizeSentenceSurfaceOrder = (sentence) => {
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
     const tokens = [];
     for (const part of segmenter.segment(input)) {
-      const cleaned = stripEdgePunctuationAndSymbols(part.segment);
-      if (!cleaned) continue;
-      if (part.isWordLike || WORDLIKE_CONTENT_RE.test(cleaned)) {
-        tokens.push(cleaned);
+      const pieces = splitSyntacticSurfaceToken(part.segment);
+      if (pieces.length === 0) continue;
+      if (part.isWordLike || pieces.some((piece) => WORDLIKE_CONTENT_RE.test(piece))) {
+        tokens.push(...pieces);
       }
     }
     if (tokens.length > 0) return tokens;

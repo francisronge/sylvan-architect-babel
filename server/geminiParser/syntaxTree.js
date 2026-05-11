@@ -16,6 +16,7 @@ import {
   normalizeSingletonTokenHint,
   normalizeOptionalMetadataText,
   normalizeOptionalMetadataBoolean,
+  addNodeAliasIds,
   normalizeExplicitSurfaceWord,
   parseIndexedSurfaceLeaf,
   looksLikeSyntaxNodeObject,
@@ -733,6 +734,7 @@ export const createSyntaxTreeHelpers = ({
       if (collapsed.lineageId) overtLeaf.lineageId = collapsed.lineageId;
       if (collapsed.tokenIndex !== undefined) overtLeaf.tokenIndex = collapsed.tokenIndex;
       if (collapsed.surfaceSpan) overtLeaf.surfaceSpan = collapsed.surfaceSpan;
+      addNodeAliasIds(node, collapsed.removed.map((removedNode) => removedNode?.id));
       node.children = [overtLeaf];
       delete node.word;
       delete node.surfaceSpan;
