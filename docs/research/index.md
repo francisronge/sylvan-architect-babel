@@ -5,6 +5,20 @@ permalink: /research/
 
 This section collects short papers and devlogs produced from Babel benchmark batches.
 
+## May 2026
+
+### [Three Frontier Models Under One Babel Prompt](./frontier-provider-wh-question-2026-05/)
+
+Mini research devlog: a one-sentence Babel comparison of Gemini 3.1 Pro, GPT-5.5, and Claude Opus 4.7 on a Minimalist wh-question.
+
+- Date: May 16, 2026
+- Assets: [frontier-provider-wh-question-2026-05](./assets/frontier-provider-wh-question-2026-05/)
+- Focus: frontier-model syntactic commitment, derivation-stage prose, wh movement, do-support, and cost/time comparison
+
+| Gemini 3.1 Pro | GPT-5.5 | Claude Opus 4.7 |
+| --- | --- | --- |
+| ![Gemini replay](./assets/frontier-provider-wh-question-2026-05/gemini-replay.gif) | ![GPT replay](./assets/frontier-provider-wh-question-2026-05/gpt-replay.gif) | ![Claude replay](./assets/frontier-provider-wh-question-2026-05/claude-replay.gif) |
+
 ## April 2026
 
 ### [From Tree-First to Derivation-First](./from-tree-first-to-derivation-first/)
