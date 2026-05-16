@@ -102,7 +102,7 @@ That is what makes Babel useful as a benchmark. It does not only ask whether a m
 
 | Gemini 3.1 Pro | GPT-5.5 | Claude Opus 4.7 |
 | --- | --- | --- |
-| ![Gemini Canopy](../assets/frontier-provider-wh-question-2026-05/gemini-canopy.png) | ![GPT Canopy](../assets/frontier-provider-wh-question-2026-05/gpt-canopy.png) | ![Claude Canopy](../assets/frontier-provider-wh-question-2026-05/claude-canopy.png) |
+| ![Gemini Canopy](../assets/frontier-provider-wh-question-2026-05/gemini-canopy-final-replay-20260517.png) | ![GPT Canopy](../assets/frontier-provider-wh-question-2026-05/gpt-canopy-final-replay-20260517.png) | ![Claude Canopy](../assets/frontier-provider-wh-question-2026-05/claude-canopy-final-replay-20260517.png) |
 
 ## Notes
 
