@@ -84,40 +84,25 @@ The main limitation is that Claude compresses do-support into the final CP stage
 
 ### Full Stage Record
 
-<details open>
-<summary>Claude Opus 4.7 stageRecord</summary>
-
 #### Stage 1: Build the wh-DP object Which book.
 
-```text
 The interrogative determiner selects the nominal complement to form a wh-marked DP. This DP carries an unvalued wh-feature that will need to be checked against an interrogative C in the matrix left periphery, and it also bears the internal theta role assigned by the verb of acquisition. Establishing this constituent now is what makes the later object-selection step and the later wh-displacement step coherent.
-```
 
 #### Stage 2: Merge the verb with its internal argument to form VP.
 
-```text
 The transitive verb of acquisition selects a DP complement and discharges its internal theta role to the wh-DP. This forms the lexical verbal projection. The wh-DP is in its theta position here; any later displacement of the wh-phrase will leave a copy in this complement slot, which is why this base position must be established explicitly before the higher functional spine is built.
-```
 
 #### Stage 3: Introduce v and merge the external argument in its specifier.
 
-```text
 A light verbal head is merged above the lexical verb, projecting the layer that introduces the external argument and is responsible for accusative case on the object. The proper-name subject is merged in the specifier of this light verbal projection, where it receives the agent theta role. The lexical verb does not need to raise overtly in English finite clauses, so it remains in situ; the object remains in its complement position, where it will be visible to a higher probe.
-```
 
 #### Stage 4: Merge finite T, raise the subject, and value nominative.
 
-```text
 A finite tense head is merged above the light verbal projection. Because English finite T does not host lexical verbs, the verb stays low; T's EPP and phi requirements are met by raising the external argument from the specifier of the light verbal projection into the specifier of the tense projection, leaving a copy in its theta position. T values nominative on the raised subject. Tense itself is unpronounced at this point and will only become audible after it associates with the supporting auxiliary at the C layer.
-```
 
 #### Stage 5: Merge interrogative C, raise T-to-C as do-support, and front the wh-phrase.
 
-```text
 An interrogative complementizer is merged above the tense projection. This C bears a feature that probes for a matching wh-element and an Aux/EPP feature that triggers subject-auxiliary inversion. Since the lexical verb cannot raise to C in English, the stranded finite tense feature is supported by do, which spells out the T-to-C complex in the head position of the complementizer projection. The wh-DP, which received its theta role and case in the lower clause, is then attracted to the specifier of the complementizer projection to check the interrogative feature, leaving a copy in its original complement position. The result is a single rooted clause whose overt terminals, read left-to-right, spell the input string exactly.
-```
-
-</details>
 
 ## GPT-5.5
 
@@ -139,46 +124,29 @@ GPT's Canopy is the most visibly abstract. It labels projections through bare he
 
 ### Full Stage Record
 
-<details open>
-<summary>GPT-5.5 stageRecord</summary>
-
 #### Stage 1: The wh nominal is built as a D-headed phrase.
 
-```text
 The derivation begins with the nominal expression which book. In Bare Phrase Structure, the wh determiner is the selecting head and the nominal book supplies its restrictor. The resulting object is a D-phrase: its label is supplied by the determiner, and the wh feature is carried on the D-headed phrase rather than on an independently projected left-peripheral position.
-```
 
 #### Stage 2: The lexical verb selects the wh D-phrase as its internal argument.
 
-```text
 The verb buy enters as a lexical V and merges with the already constructed D-phrase. The V head determines the label of the new syntactic object, giving a V projection with the wh phrase in complement position. At this point the wh phrase is still in its theta-position, where it satisfies the internal argument requirement of buy.
-```
 
 #### Stage 3: Little v introduces the external argument John above the verbal predicate.
 
-```text
 A light verbal head selects the V projection and forms the verbal event domain. The D item John is merged as the external argument of this v-domain, so the workspace now contains the full argument structure for John buy which book. The label of the larger object is v, because the light verbal head is the projecting head of the transitive verbal domain.
-```
 
 #### Stage 4: Finite T is introduced and the subject satisfies the T-edge requirement.
 
-```text
 Finite T with past tense selects the v-domain. Since this T bears the ordinary clausal edge requirement for a finite English clause, the closest available nominal with the relevant agreement properties is the external argument John. John is internally merged at the edge of T, leaving a lower silent copy in the v-domain. The support form did realizes finite T in this workspace state, while the lexical verb remains in V.
-```
 
 #### Stage 5: Interrogative C is merged and finite T raises to C.
 
-```text
 An interrogative C selects the finite T projection. The C head bears the finite-clause requirement responsible for subject-auxiliary inversion in the matrix question. The finite T head is therefore internally merged with C: the higher C-headed occurrence is pronounced as did, and the lower T occurrence remains as a silent copy. This keeps the functional head responsible for tense explicit while also deriving the surface auxiliary position without treating did buy as a single lexical verb.
-```
 
 #### Stage 6: The wh D-phrase moves to the C edge and the question converges.
 
-```text
 The interrogative C head also has an edge requirement tied to the wh feature. It probes its complement domain and finds the wh D-phrase in the complement of V; no closer wh phrase intervenes. The wh D-phrase is internally merged at the edge of C, producing the operator position for the matrix wh question. The lower object occurrence is retained as a silent copy in the verbal complement position, preserving the argument relation with buy. The resulting single rooted structure spells the pronounced terminals in the order Which book did John buy.
-```
-
-</details>
 
 ## Gemini 3.1 Pro
 
@@ -200,34 +168,21 @@ The positive lesson is that Gemini still converges on the main derivational arch
 
 ### Full Stage Record
 
-<details open>
-<summary>Gemini 3.1 Pro stageRecord</summary>
-
 #### Stage 1: Formation of the object DP and lexical VP
 
-```text
 The derivation begins by merging the interrogative determiner 'Which' with the noun 'book' to form the wh-object DP. This DP is then merged as the complement of the lexical verb 'buy', satisfying the verb's internal argument selection and forming the VP.
-```
 
 #### Stage 2: Introduction of the little-v phase and the external argument
 
-```text
 A functional little-v head is merged with the VP. The lexical verb 'buy' undergoes head movement to little-v to check its affixal features. The subject DP 'John' is then merged into the specifier of vP, completing the thematic domain and assigning the external argument role.
-```
 
 #### Stage 3: Tense projection and subject raising
 
-```text
 The Tense head 'did' is merged with the vP. To satisfy the EPP feature of T, the subject DP 'John' moves from its base position in the specifier of vP to the specifier of TP, leaving a silent copy in the thematic domain.
-```
 
 #### Stage 4: CP phase, T-to-C movement, and wh-movement
 
-```text
 The interrogative C head is merged with TP. The T head 'did' undergoes head movement to C to check the clause-typing feature. Finally, the wh-object 'Which book' moves from its base position inside the VP to the specifier of CP to satisfy the [wh] feature of C, completing the interrogative clause structure.
-```
-
-</details>
 
 ## Cross-Model Comparison
 
