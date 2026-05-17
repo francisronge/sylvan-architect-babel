@@ -104,6 +104,16 @@ A finite tense head is merged above the light verbal projection. Because English
 
 An interrogative complementizer is merged above the tense projection. This C bears a feature that probes for a matching wh-element and an Aux/EPP feature that triggers subject-auxiliary inversion. Since the lexical verb cannot raise to C in English, the stranded finite tense feature is supported by do, which spells out the T-to-C complex in the head position of the complementizer projection. The wh-DP, which received its theta role and case in the lower clause, is then attracted to the specifier of the complementizer projection to check the interrogative feature, leaving a copy in its original complement position. The result is a single rooted clause whose overt terminals, read left-to-right, spell the input string exactly.
 
+### Visual Relations
+
+These are the model-authored visualRelations for Claude's derivation.
+
+| Stage | Relation | Anchors |
+| --- | --- | --- |
+| Stage 4 | Move (A, EPP/nominative) | source: `DPsubj_low`; target: `DPsubj_high` |
+| Stage 5 | Move (A-bar, wh) | source: `DP1_low`; target: `DP1_high` |
+| Stage 5 | Head movement (T-to-C, do-support) | source: `T1`; target: `C1` |
+
 ## GPT-5.5
 
 GPT produced the most expansive analysis. It leaned into Bare Phrase Structure language, saying that the wh determiner supplies the D-headed label and that `book` supplies the restrictor. It separated the derivation into six stages: wh nominal, VP, little-v domain, finite T and subject movement, interrogative C and T-to-C, then final wh movement.
@@ -148,6 +158,16 @@ An interrogative C selects the finite T projection. The C head bears the finite-
 
 The interrogative C head also has an edge requirement tied to the wh feature. It probes its complement domain and finds the wh D-phrase in the complement of V; no closer wh phrase intervenes. The wh D-phrase is internally merged at the edge of C, producing the operator position for the matrix wh question. The lower object occurrence is retained as a silent copy in the verbal complement position, preserving the argument relation with buy. The resulting single rooted structure spells the pronounced terminals in the order Which book did John buy.
 
+### Visual Relations
+
+These are the model-authored visualRelations for GPT's derivation.
+
+| Stage | Relation | Anchors |
+| --- | --- | --- |
+| Stage 4 | A-movement copy chain | raisedSubject: `d_john_2`; lowerSubjectCopy: `d_john_1` |
+| Stage 5 | T-to-C head-movement copy chain | higherCHead: `C_T_head_2`; lowerTHeadCopy: `T_past_1` |
+| Stage 6 | wh-movement copy chain | whOperator: `dp_which_book_2`; lowerObjectCopy: `dp_which_book_1`; attractingCHead: `C_T_head_2` |
+
 ## Gemini 3.1 Pro
 
 Gemini returned the most compact analysis. It built the wh-object and lexical VP, introduced little-v and the subject, raised the subject to TP, then built the CP phase with T-to-C and wh movement. The analysis captured the surface string and the main dependencies.
@@ -183,6 +203,17 @@ The Tense head 'did' is merged with the vP. To satisfy the EPP feature of T, the
 #### Stage 4: CP phase, T-to-C movement, and wh-movement
 
 The interrogative C head is merged with TP. The T head 'did' undergoes head movement to C to check the clause-typing feature. Finally, the wh-object 'Which book' moves from its base position inside the VP to the specifier of CP to satisfy the [wh] feature of C, completing the interrogative clause structure.
+
+### Visual Relations
+
+These are the model-authored visualRelations for Gemini's derivation.
+
+| Stage | Relation | Anchors |
+| --- | --- | --- |
+| Stage 2 | V-to-v Movement | source: `v_buy_copy`; target: `v_buy_raised` |
+| Stage 3 | Subject Raising | source: `dp_subj_copy`; target: `dp_subj_raised` |
+| Stage 4 | T-to-C Movement | source: `t_did_copy`; target: `t_did_raised` |
+| Stage 4 | Wh-Movement | source: `dp_obj_copy`; target: `dp_obj_raised` |
 
 ## Cross-Model Comparison
 
