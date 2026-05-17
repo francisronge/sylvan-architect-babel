@@ -68,20 +68,9 @@ That is the correct broad family of analyses for this sentence. The decisive dif
 
 Claude gave the cleanest linguistic analysis. It built the wh-DP first, merged it as the complement of `buy`, introduced the light-verbal layer, raised the subject to satisfy finite T, and then formed the interrogative left edge. Its strongest choice was restraint: it explicitly said that the lexical verb does not need to raise overtly in English finite clauses, so `buy` remains low. That avoids an unnecessary V-to-v commitment for this simple English clause.
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1.25rem 0 1.75rem;">
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/claude-replay.gif" alt="Claude Opus 4.7 Babel derivation replay">
-    <figcaption>Claude Opus 4.7 derivation replay.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/claude-canopy-final-replay-20260517.png" alt="Claude Opus 4.7 final Canopy">
-    <figcaption>Claude Opus 4.7 Canopy.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/claude-notes.png" alt="Claude Opus 4.7 Notes">
-    <figcaption>Claude Opus 4.7 Notes.</figcaption>
-  </figure>
-</div>
+| Replay | Canopy | Notes |
+| --- | --- | --- |
+| ![Claude Opus 4.7 derivation replay](../assets/frontier-provider-wh-question-2026-05/claude-replay.gif) | ![Claude Opus 4.7 Canopy](../assets/frontier-provider-wh-question-2026-05/claude-canopy-final-replay-20260517.png) | ![Claude Opus 4.7 Notes](../assets/frontier-provider-wh-question-2026-05/claude-notes.png) |
 
 ### Linguistic Audit
 
@@ -134,20 +123,9 @@ An interrogative complementizer is merged above the tense projection. This C bea
 
 GPT produced the most expansive analysis. It leaned into Bare Phrase Structure language, saying that the wh determiner supplies the D-headed label and that `book` supplies the restrictor. It separated the derivation into six stages: wh nominal, VP, little-v domain, finite T and subject movement, interrogative C and T-to-C, then final wh movement.
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1.25rem 0 1.75rem;">
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gpt-replay.gif" alt="GPT-5.5 Babel derivation replay">
-    <figcaption>GPT-5.5 derivation replay.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gpt-canopy-final-replay-20260517.png" alt="GPT-5.5 final Canopy">
-    <figcaption>GPT-5.5 Canopy.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gpt-notes.png" alt="GPT-5.5 Notes">
-    <figcaption>GPT-5.5 Notes.</figcaption>
-  </figure>
-</div>
+| Replay | Canopy | Notes |
+| --- | --- | --- |
+| ![GPT-5.5 derivation replay](../assets/frontier-provider-wh-question-2026-05/gpt-replay.gif) | ![GPT-5.5 Canopy](../assets/frontier-provider-wh-question-2026-05/gpt-canopy-final-replay-20260517.png) | ![GPT-5.5 Notes](../assets/frontier-provider-wh-question-2026-05/gpt-notes.png) |
 
 ### Linguistic Audit
 
@@ -206,20 +184,9 @@ The interrogative C head also has an edge requirement tied to the wh feature. It
 
 Gemini returned the most compact analysis. It built the wh-object and lexical VP, introduced little-v and the subject, raised the subject to TP, then built the CP phase with T-to-C and wh movement. The analysis captured the surface string and the main dependencies.
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1.25rem 0 1.75rem;">
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gemini-replay.gif" alt="Gemini 3.1 Pro Babel derivation replay">
-    <figcaption>Gemini 3.1 Pro derivation replay.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gemini-canopy-final-replay-20260517.png" alt="Gemini 3.1 Pro final Canopy">
-    <figcaption>Gemini 3.1 Pro Canopy.</figcaption>
-  </figure>
-  <figure>
-    <img src="../assets/frontier-provider-wh-question-2026-05/gemini-notes.png" alt="Gemini 3.1 Pro Notes">
-    <figcaption>Gemini 3.1 Pro Notes.</figcaption>
-  </figure>
-</div>
+| Replay | Canopy | Notes |
+| --- | --- | --- |
+| ![Gemini 3.1 Pro derivation replay](../assets/frontier-provider-wh-question-2026-05/gemini-replay.gif) | ![Gemini 3.1 Pro Canopy](../assets/frontier-provider-wh-question-2026-05/gemini-canopy-final-replay-20260517.png) | ![Gemini 3.1 Pro Notes](../assets/frontier-provider-wh-question-2026-05/gemini-notes.png) |
 
 ### Linguistic Audit
 
