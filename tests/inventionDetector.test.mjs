@@ -227,13 +227,7 @@ test('compiler rejects anchor-value aliases instead of silently rewriting them',
 
 test('renderer expands authored lexical preterminals but never materializes an unauthored null', () => {
   const bareHead = { id: 't', label: 'T', children: [] };
-  for (const materialize of [
-    __TEST_ONLY__.materializeReplayPreterminals,
-    __TEST_ONLY__.materializeNullBearingLeaves,
-    __TEST_ONLY__.materializeCanopyPreterminals
-  ]) {
-    assert.deepEqual(materialize(bareHead), bareHead);
-  }
+  assert.deepEqual(__TEST_ONLY__.materializeReplayPreterminals(bareHead), bareHead);
 
   const overtHead = {
     id: 'v',

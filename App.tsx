@@ -435,9 +435,6 @@ const removeTreeBankEntry = async (id: string): Promise<void> => {
     tx.onabort = () => db.close();
   });
 };
-
-const NULL_SURFACE_RE = /^(?:∅|Ø|ε|null|epsilon)$/i;
-const TRACE_SURFACE_RE = /^(?:t|trace|t\d+|trace\d+|t[_-][a-z0-9{}]+|trace[_-][a-z0-9{}]+|<[^>]+>|⟨[^⟩]+⟩|\(t\)|\{t\})$/i;
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
   "A'",

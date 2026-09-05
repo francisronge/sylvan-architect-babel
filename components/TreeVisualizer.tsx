@@ -1,7 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { DerivationStage, SyntaxNode } from '../types';
-import { ResolvedRelationLink } from '../relationLinks';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
 import {
@@ -278,7 +277,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (abstractionMode) {
       markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
     }
-    const visibleNodes = hierarchy.descendants().filter((node) => !isUnderTriangulation(node));
     const workspaceForest = committedDerivationFrame.workspaceForest || [];
     const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
       workspaceForest,
@@ -915,9 +913,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       : revealThreshold;
     const nodeRevealStepIndex = new Map(firstRevealNodeStepIndex);
     const terminalMorph = new Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>();
-    const normalizeMovementTraceIndex = (index?: string | null): string => {
-      return normalizeTraceIndexForDisplay(index);
-    };
     /*
      * A lower occurrence is authored as silent lexical material so Replay can
      * show it overtly before movement. Occupant-as-authored ruling: once its
@@ -1781,25 +1776,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .map((rect) => new DOMPoint(rect.left, rect.top).matrixTransform(inverse).y);
         return d3.min(tops) ?? -90;
       };
-      const positionFor: PlanPositionProvider = (nodeId, attachment = 'position') => {
-        const anchor = resolveOverlayAnchor(String(nodeId || '').trim());
-        if (!anchor) return null;
-        if (attachment === 'terminal') {
-          const terminal = resolveMaterializedTerminal(anchor, String(nodeId || '').trim());
-          return terminal ? measuredTerminalBottom(terminal) : null;
-        }
-        if (attachment === 'parent') {
-          const parent = anchor.parent;
-          return parent ? { x: parent.x, y: parent.y } : null;
-        }
-        if (attachment === 'shell-top') {
-          return measuredShellTop(String(nodeId || '').trim(), anchor);
-        }
-        if (attachment === 'shell-bottom') {
-          return measuredShellBottom(String(nodeId || '').trim(), anchor);
-        }
-        return { x: anchor.x, y: anchor.y };
-      };
       /*
        * Replay-step timing: a same-stage relation's marks appear only once
        * its own Replay relation moment has played. Structural microsteps
@@ -2049,54 +2025,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .nodes();
         return measureGraphicsElementsInTreeSpace(labels);
       };
-      const measuredVisualElementsInTreeSpaceNow = (elements: SVGGraphicsElement[]) => {
-        if (elements.length === 0) return null;
-        const rects: Array<{ x: number; y: number; width: number; height: number }> = [];
-        elements.forEach((element) => {
-          const datum = d3.select<SVGGraphicsElement, HierNode>(element).datum();
-          const box = element.getBBox();
-          if (!datum || (!box.width && !box.height)) return;
-          rects.push({
-            x: datum.x + box.x,
-            y: datum.y + box.y,
-            width: box.width,
-            height: box.height
-          });
-        });
-        if (rects.length === 0) return null;
-        const xs = rects.flatMap((rect) => [rect.x, rect.x + rect.width]);
-        const ys = rects.flatMap((rect) => [rect.y, rect.y + rect.height]);
-        return {
-          x: Math.min(...xs),
-          y: Math.min(...ys),
-          width: Math.max(...xs) - Math.min(...xs),
-          height: Math.max(...ys) - Math.min(...ys)
-        };
-      };
-      const exactTreeLabelRectNow = (nodeId: string, subtree: boolean) => {
-        const anchor = subtree ? overlayNodeById.get(nodeId) : null;
-        const nodeIds = new Set([
-          nodeId,
-          ...(anchor
-            ? anchor.descendants().map((candidate) => getNodeId(candidate as unknown as HierNode))
-            : [])
-        ]);
-        return measuredVisualElementsInTreeSpaceNow(
-          g.selectAll<SVGTextElement, HierNode>(
-            subtree ? '.category-label, .terminal-label' : '.category-label'
-          )
-            .filter(function exactAuthoredNodeLabel() {
-              const categoryId = this.getAttribute('data-category-node-id') || '';
-              const terminalId = this.getAttribute('data-node-id') || '';
-              return [...nodeIds].some((candidateId) =>
-                categoryId === candidateId
-                || terminalId === candidateId
-                || terminalId.startsWith(`${candidateId}::`)
-                || terminalId.startsWith(`${candidateId}__`));
-            })
-            .nodes()
-        );
-      };
       const exactScreenTreeLabelRectNow = (nodeId: string, subtree: boolean) => {
         const anchor = subtree ? overlayNodeById.get(nodeId) : null;
         const nodeIds = new Set([
@@ -2223,26 +2151,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           width: Math.max(...xs) - Math.min(...xs),
           height: Math.max(...ys) - Math.min(...ys)
         };
-      };
-      const exactTerminalSubtreeRectNow = (nodeId: string) => {
-        const anchor = overlayNodeById.get(nodeId);
-        const nodeIds = new Set([
-          nodeId,
-          ...(anchor
-            ? anchor.descendants().map((candidate) => getNodeId(candidate as unknown as HierNode))
-            : [])
-        ]);
-        return measuredVisualElementsInTreeSpaceNow(
-          g.selectAll<SVGTextElement, HierNode>('.terminal-label')
-            .filter(function exactAuthoredTerminal() {
-              const terminalId = this.getAttribute('data-node-id') || '';
-              return [...nodeIds].some((candidateId) =>
-                terminalId === candidateId
-                || terminalId.startsWith(`${candidateId}::`)
-                || terminalId.startsWith(`${candidateId}__`));
-            })
-            .nodes()
-        );
       };
       let trajectoryRelationLayer: AcceptedRelationLayer | null = null;
       const trajectoryMarkerIds = {
@@ -8996,7 +8904,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const activeRecipeDisplay = stepRepresentsMovement(activeStep)
     ? formatOperationLabel(activeStep?.operation)
     : (String(activeStep?.recipe || '').trim() || `${activeStep?.targetLabel || 'Node'} created`);
-  const activeReplaySupportLines = buildReplaySupportLines(activeStep, sentence);
+  const activeReplaySupportLines = buildReplaySupportLines(activeStep);
   const activeNoteDisplay = (() => {
     const note = String(activeStep?.note || '').trim();
     if (!note) return '';

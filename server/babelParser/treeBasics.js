@@ -1,13 +1,3 @@
-export const FORBIDDEN_STRING_LEAF_TOKENS = new Set([
-  'id',
-  'label',
-  'word',
-  'children',
-  'tree',
-  'analysis',
-  'analyses'
-]);
-
 export const STRUCTURAL_LEAF_LABELS = new Set([
   'c', "c'", 'cp',
   'i', 'infl', "infl'", 'inflp', 'ip',
@@ -31,17 +21,6 @@ export const PRIME_MARK_RE = /[’']/g;
 
 const NULL_SYMBOL_LABEL = /^(?:∅|Ø|ε|null|epsilon)(?:[_-][a-z0-9]+)*$/i;
 const PRO_LIKE_SURFACE_RE = /^(?:pro)(?:[_-][a-z0-9]+)*$/i;
-
-export const nextGeneratedNodeId = (usedIds, counterRef) => {
-  let candidate = `n${counterRef.value}`;
-  while (usedIds.has(candidate)) {
-    counterRef.value += 1;
-    candidate = `n${counterRef.value}`;
-  }
-  usedIds.add(candidate);
-  counterRef.value += 1;
-  return candidate;
-};
 
 export const canonicalizeCovertSurface = (surface) => {
   const raw = String(surface || '').trim();
@@ -83,14 +62,6 @@ export const collectNodeReferencesById = (value) => {
   return references;
 };
 
-export const normalizeLabelForFramework = (rawLabel, framework) => {
-  let label = String(rawLabel || '').trim();
-  label = label.replace(/^([A-Za-z]+)_bar$/i, "$1'");
-  if (framework !== 'minimalism') return label;
-  if (!PRIME_CATEGORY_LABEL_RE.test(label)) return label;
-  return label.slice(0, -1);
-};
-
 export const normalizeSurfaceSpan = (value) => {
   if (!Array.isArray(value) || value.length !== 2) return undefined;
   if (value[0] === null || value[0] === undefined || value[1] === null || value[1] === undefined) {
@@ -111,13 +82,6 @@ export const normalizeTokenIndex = (value, sentenceLength) => {
   return numeric;
 };
 
-export const normalizeSingletonTokenHint = (value, sentenceLength) => {
-  if (Array.isArray(value) && value.length === 1) {
-    return normalizeTokenIndex(value[0], sentenceLength);
-  }
-  return normalizeTokenIndex(value, sentenceLength);
-};
-
 export const normalizeOptionalMetadataText = (value) => {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
@@ -132,79 +96,6 @@ export const normalizeNodeAliasIds = (value) => (
           .filter(Boolean)
       ))
     : []
-);
-
-export const addNodeAliasIds = (node, aliases) => {
-  if (!node || typeof node !== 'object') return;
-  const nodeId = normalizeOptionalMetadataText(node.id);
-  const nextAliases = normalizeNodeAliasIds([
-    ...normalizeNodeAliasIds(node.aliasIds),
-    ...normalizeNodeAliasIds(aliases)
-  ]).filter((aliasId) => aliasId !== nodeId);
-  if (nextAliases.length > 0) {
-    node.aliasIds = nextAliases;
-  }
-};
-
-export const normalizeOptionalMetadataBoolean = (value) =>
-  typeof value === 'boolean' ? value : undefined;
-
-export const normalizeExplicitSurfaceWord = (value) => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
-  const candidateKeys = [
-    'word',
-    'surfaceWord',
-    'surface',
-    'text',
-    'overtWord',
-    'pronunciation',
-    'pronouncedWord',
-    'token'
-  ];
-  for (const key of candidateKeys) {
-    if (typeof value[key] === 'string' && value[key].trim()) {
-      return value[key].trim();
-    }
-  }
-  return '';
-};
-
-export const parseIndexedSurfaceLeaf = (value, sentenceLength) => {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  const bracketMatch = trimmed.match(/^(.+?)\[(\d+)\]$/);
-  if (bracketMatch) {
-    const boundedSentenceLength = Number.isFinite(sentenceLength) ? sentenceLength : Number.POSITIVE_INFINITY;
-    const tokenIndex = normalizeTokenIndex(bracketMatch[2], boundedSentenceLength);
-    if (tokenIndex === undefined) return null;
-
-    const word = bracketMatch[1].trim();
-    if (!word) return null;
-    return { word, tokenIndex };
-  }
-
-  const prefixedMatch = trimmed.match(/^(\d+):(.+)$/);
-  if (!prefixedMatch) return null;
-
-  const boundedSentenceLength = Number.isFinite(sentenceLength) ? sentenceLength : Number.POSITIVE_INFINITY;
-  const tokenIndex = normalizeTokenIndex(prefixedMatch[1], boundedSentenceLength);
-  if (tokenIndex === undefined) return null;
-
-  const word = prefixedMatch[2].trim();
-  if (!word) return null;
-  return { word, tokenIndex };
-};
-
-export const looksLikeSyntaxNodeObject = (value) => (
-  value
-  && typeof value === 'object'
-  && !Array.isArray(value)
-  && (
-    typeof value.label === 'string'
-    || typeof value.word === 'string'
-    || Array.isArray(value.children)
-    || !!normalizeExplicitSurfaceWord(value)
-  )
 );
 
 export const getLabelProfile = (label) => {

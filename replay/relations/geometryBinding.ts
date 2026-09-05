@@ -16,7 +16,6 @@ import {
   planAnchorSetLayout
 } from './overlayGeometry.ts';
 import {
-  ELBOW_ENDPOINT_RADIUS,
   barCapPath,
   blockedEdgeDoubleSlash,
   caseAssignmentPath,
