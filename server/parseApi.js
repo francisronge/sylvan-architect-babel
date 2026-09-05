@@ -2,8 +2,10 @@
   ParseApiError,
   parseSentenceWithClaude,
   parseSentenceWithGemini,
-  parseSentenceWithOpenAI
+  parseSentenceWithOpenAI,
+  parseSentenceWithResearchModel
 } from './babelParser.js';
+import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
 import {
   createFailure,
@@ -15,7 +17,7 @@ const MODEL_ROUTES = new Set(['gemini', 'gpt', 'claude']);
 const MAX_SENTENCE_LENGTH = 600;
 
 export const validateParseBody = (body) => {
-  if (!body || typeof body !== 'object') {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw new ParseApiError(
       'INVALID_REQUEST',
       'Request body must be a JSON object.',
@@ -79,6 +81,21 @@ export const validateParseBody = (body) => {
     );
   }
 
+  if (Object.hasOwn(body, 'modelId')) {
+    if (!GENERATION_MODEL_IDS.includes(body.modelId)) {
+      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
+    }
+    if (Object.hasOwn(body, 'modelRoute') || Object.hasOwn(body, 'reasoningEffort')) {
+      throw new ParseApiError('INVALID_REQUEST', 'Use modelId and native settings, without modelRoute or reasoningEffort.', 400);
+    }
+    try {
+      const selection = resolveResearchModelSelection(body.modelId, body.settings);
+      return { sentence, framework, modelId: selection.catalogId, settings: selection.nativeSettings };
+    } catch (error) {
+      throw new ParseApiError('INVALID_REQUEST', error.message, 400);
+    }
+  }
+
   if (!MODEL_ROUTES.has(modelRoute)) {
     throw new ParseApiError(
       'INVALID_REQUEST',
@@ -101,10 +118,12 @@ export const parseFromBodyWithProviders = async (
   providers = {
     gemini: parseSentenceWithGemini,
     gpt: parseSentenceWithOpenAI,
-    claude: parseSentenceWithClaude
+    claude: parseSentenceWithClaude,
+    research: parseSentenceWithResearchModel
   }
   ) => {
-  const { sentence, framework, modelRoute, reasoningEffort } = validateParseBody(body);
+  const { sentence, framework, modelId, settings, modelRoute, reasoningEffort } = validateParseBody(body);
+  if (modelId) return providers.research(sentence, framework, modelId, { settings });
   return providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort });
 };
 

@@ -56,7 +56,21 @@ export interface SentGenerationConfig {
 
 export interface GenerationRecord {
   schemaVersion: 2;
-  provider: 'gemini' | 'gpt' | 'claude' | 'local';
+  provider: 'gemini' | 'gpt' | 'claude' | 'local' | 'kimi' | 'grok';
+  sentRequestSha256?: string;
+  modelSelection?: {
+    catalogId: string;
+    label: string;
+    provider: string;
+    providerRoute: string;
+    providerModel: string;
+    qualificationStatus: string;
+    nativeSettings: Record<string, string>;
+    requestPolicy: Record<string, unknown>;
+    constraints?: Record<string, unknown>;
+  };
+  returnedModel?: string;
+  rawProviderResponse?: RawOutputArtifact;
   promptContract: GenerationPromptContract;
   sentGenerationConfig: SentGenerationConfig;
   timing: {
@@ -127,7 +141,7 @@ export interface PayloadRepairDiagnostic {
 }
 
 export interface Provenance {
-  modelRoute?: 'gemini' | 'gpt' | 'claude' | 'local';
+  modelRoute?: 'gemini' | 'gpt' | 'claude' | 'local' | 'kimi' | 'grok';
   framework?: 'xbar' | 'minimalism';
   language?: string;
   timestamp?: string;
@@ -157,8 +171,10 @@ export interface ParseBundle {
   ambiguityDetected: boolean;
   ambiguityNote?: string;
   sentence?: string;
-  requestedModelRoute?: 'gemini' | 'gpt' | 'claude';
-  requestedReasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  requestedModelRoute?: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'grok';
+  requestedModelId?: string;
+  requestedReasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  rawModelOutput?: RawOutputArtifact;
   modelUsed?: string;
   generationRecord?: GenerationRecord;
 }

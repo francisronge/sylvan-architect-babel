@@ -217,7 +217,7 @@ export const resolveModelTimeoutMs = (_model, modelRoute = 'gemini') => {
 };
 
 export const getRemainingRequestBudgetMs = (requestStartedAt, modelRoute = 'gemini') => {
-  if (['gpt', 'claude'].includes(String(modelRoute || '').toLowerCase())) {
+  if (['gpt', 'claude', 'kimi', 'grok'].includes(String(modelRoute || '').toLowerCase())) {
     return Math.max(0, EXTERNAL_PROVIDER_REQUEST_BUDGET_MS - (Date.now() - requestStartedAt));
   }
   if (modelRoute !== 'local' && GEMINI_ROUTE_REQUEST_BUDGET_MS > 0) {

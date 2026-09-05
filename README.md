@@ -63,7 +63,7 @@ Babel has two primary users:
 
 #### Babel as a benchmark framework
 
-With Babel's current Gemini, GPT, and Claude routes in the local runtime, you can run controlled syntax sweeps, for example:
+With Babel's model routes in the local runtime, you can run controlled syntax sweeps, for example:
 
 - hundreds of syntactic test sentences in a short evaluation window.
 - Multi-phenomenon suites covering `wh-movement`, `island constraints`, `agreement`, `control`, `raising`, and `attachment ambiguity`.
@@ -112,17 +112,30 @@ Click the active theory pill in the header to toggle between them.
 
 Switching theory changes the analysis behavior, tree style, replay, and explanatory framing.
 
-### 2) Model route switch
+### 2) Model selection
 
-Babel includes a model switch in the header:
+Babel's local model menu selects an exact model:
 
-- `Gemini 3.1 Pro`: the Gemini route.
-- `GPT 5.5`: the OpenAI frontier route.
-- `Claude Opus`: the Anthropic frontier route.
+- GPT-6 Astra and GPT 5.6 Sol (OpenAI)
+- Claude Opus 5 and Claude Fable 5.1 (Anthropic)
+- Kimi K3 (Moonshot)
+- Grok 4.6 (xAI)
 
-Click the active model pill in the header to switch routes.
+The adjacent effort menu offers the selected model's supported settings, starting
+at `high`. Meta and GLM are on hold; Gemini is not offered in the menu.
 
-Babel is now a cross-model benchmark environment rather than a single-provider syntax demo.
+Configure server-side keys using `.env.example`. The app sends `modelId` and
+native `settings` to `/api/parse`; the server rejects unsupported choices without
+switching models. Older `modelRoute` API callers remain unchanged. Their environment
+overrides do not change an explicitly selected model.
+
+These integrations have offline transport and parser tests, not live model
+qualification. The model-facing derivation contract and renderer are unchanged.
+Generation records preserve the selected and returned model, settings, request
+hash, timing, token usage, stop state, and raw provider response. Raw artifacts use
+the existing bounded-copy format, with byte counts, a hash, and an explicit
+truncation flag. Tree Bank retains this evidence; failed requests offer a
+downloadable failure record.
 
 ### 3) Constituent Glyphing toggle
 

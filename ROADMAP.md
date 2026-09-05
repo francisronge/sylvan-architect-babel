@@ -141,12 +141,16 @@ set are frozen in
 [`program-1.item-set.json`](contractQualification/program-1.item-set.json).
 [`frozen-item-set-contract.manifest.json`](docs/implementation/contract-qualification/frozen-item-set-contract.manifest.json)
 binds that set and the audited contract to source commit `732e0fa`.
-The admission roster now contains GPT 5.6 Sol, Claude Opus 5, Claude Fable 5,
+Roster update, 2026-09-05: the eight candidates are GPT-6 Astra, GPT 5.6 Sol,
+Claude Opus 5, Claude Fable 5.1,
 Kimi K3, Muse Spark 1.2, Grok 4.6, and GLM 5.3 Flash. Gemini remains excluded.
-GLM 5.3 Flash uses `high` for qualification; `/research` will retain its native
-`low`, `high`, and `max` choices. Kimi K3, Muse Spark 1.2, and Grok 4.6 remain
-unschedulable until their settings are chosen, followed by an approved run
-limit or spend. No provider was called and no live route changed.
+The current local app exposes Astra, Sol, Opus 5, Fable 5.1, Kimi K3, and Grok 4.6
+through exact model IDs and each model's native effort settings, initially `high`.
+Meta and GLM are on hold and cannot be selected for generation. Request routing,
+normalization, Replay, and saved evidence are tested with mocked provider replies;
+all models remain unqualified until approved real runs. No paid generation was
+performed during integration. The frozen manifests above remain historical
+baselines; capture the current source and request configuration before a live run.
 See
 [`pre-provider-preparation-2026-08-28.md`](docs/implementation/contract-qualification/pre-provider-preparation-2026-08-28.md).
 

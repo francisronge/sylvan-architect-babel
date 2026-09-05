@@ -8,6 +8,33 @@ const EFFORT_LEVELS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
 export const RESEARCH_MODEL_CATALOG = deepFreeze([
   {
+    id: 'openai:gpt-6-astra',
+    label: 'GPT-6 Astra',
+    provider: 'openai',
+    providerRoute: 'gpt',
+    providerModel: 'gpt-6-astra',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'responses',
+    controls: [
+      {
+        id: 'reasoning.effort',
+        label: 'Reasoning effort',
+        values: ['low', 'medium', 'high', 'xhigh', 'max'],
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: {
+      maxOutputTokens: 128000,
+      background: true,
+      store: true
+    },
+    documentation: {
+      retrievedOn: '2026-09-05',
+      url: 'https://developers.openai.com/api/docs/models/gpt-6-astra'
+    }
+  },
+  {
     id: 'openai:gpt-5.6-sol',
     label: 'GPT 5.6 Sol',
     provider: 'openai',
@@ -30,8 +57,8 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
       store: true
     },
     documentation: {
-      retrievedOn: '2026-08-28',
-      url: 'https://platform.openai.com/docs/models'
+      retrievedOn: '2026-09-05',
+      url: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol'
     }
   },
   {
@@ -60,16 +87,16 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
       omitSamplingParameters: true
     },
     documentation: {
-      retrievedOn: '2026-08-28',
-      url: 'https://docs.anthropic.com/en/docs/about-claude/models/migrating-to-claude-4'
+      retrievedOn: '2026-09-05',
+      url: 'https://platform.claude.com/docs/en/models/overview'
     }
   },
   {
-    id: 'anthropic:claude-fable-5',
-    label: 'Claude Fable 5',
+    id: 'anthropic:claude-fable-5-1',
+    label: 'Claude Fable 5.1',
     provider: 'anthropic',
     providerRoute: 'claude',
-    providerModel: 'claude-fable-5',
+    providerModel: 'claude-fable-5-1',
     qualificationStatus: 'unqualified',
     qualificationConfiguration: 'configured',
     api: 'messages',
@@ -90,11 +117,11 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     },
     constraints: {
       dataRetention: '30-days-required',
-      zeroDataRetentionAvailable: false
+      zeroDataRetention: 'requires-explicit-authorization'
     },
     documentation: {
-      retrievedOn: '2026-08-28',
-      url: 'https://docs.anthropic.com/en/docs/about-claude/models/migrating-to-claude-4'
+      retrievedOn: '2026-09-05',
+      url: 'https://platform.claude.com/docs/en/models/fable-5-1/migration-guide'
     }
   },
   {
@@ -104,14 +131,14 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     providerRoute: 'kimi',
     providerModel: 'kimi-k3',
     qualificationStatus: 'unqualified',
-    qualificationConfiguration: 'pending-settings',
+    qualificationConfiguration: 'configured',
     api: 'chat-completions',
     controls: [
       {
         id: 'reasoning_effort',
         label: 'Reasoning effort',
         values: ['low', 'high', 'max'],
-        qualificationDefault: null
+        qualificationDefault: 'high'
       }
     ],
     requestPolicy: {
@@ -121,8 +148,8 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
       }
     },
     documentation: {
-      retrievedOn: '2026-08-30',
-      url: 'https://www.kimi.ai/help/kimi-api/api-model-selection'
+      retrievedOn: '2026-09-05',
+      url: 'https://platform.kimi.ai/docs/guide/kimi-k3-quickstart'
     }
   },
   {
@@ -148,22 +175,24 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     providerRoute: 'grok',
     providerModel: 'grok-4.6',
     qualificationStatus: 'unqualified',
-    qualificationConfiguration: 'pending-settings',
+    qualificationConfiguration: 'configured',
     api: 'responses',
     controls: [
       {
         id: 'reasoning.effort',
         label: 'Reasoning effort',
         values: ['low', 'medium', 'high', 'xhigh'],
-        qualificationDefault: null
+        qualificationDefault: 'high'
       }
     ],
     requestPolicy: {
+      maxOutputTokens: 128000,
+      store: false,
       reasoningCannotBeDisabled: true,
       omitParameters: ['presencePenalty', 'frequencyPenalty', 'stop']
     },
     documentation: {
-      retrievedOn: '2026-08-30',
+      retrievedOn: '2026-09-05',
       url: 'https://docs.x.ai/developers/model-capabilities/text/reasoning'
     }
   },
@@ -198,6 +227,16 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
 ]);
 
 const MODEL_BY_ID = new Map(RESEARCH_MODEL_CATALOG.map((entry) => [entry.id, entry]));
+
+// Available for local integration testing, not yet qualified for public release.
+export const GENERATION_MODEL_IDS = Object.freeze([
+  'openai:gpt-6-astra',
+  'openai:gpt-5.6-sol',
+  'anthropic:claude-opus-5',
+  'anthropic:claude-fable-5-1',
+  'moonshot:kimi-k3',
+  'xai:grok-4.6'
+]);
 
 export const getResearchModel = (modelId) => MODEL_BY_ID.get(String(modelId || '').trim()) || null;
 

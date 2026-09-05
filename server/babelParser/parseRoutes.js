@@ -3,6 +3,7 @@ import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
+import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './researchModelCatalog.js';
 import {
   buildGeminiThinkingConfig,
   GEMINI_MODEL,
@@ -25,10 +26,14 @@ import {
   buildGeminiGenerationRequest,
   buildLocalRequestBody,
   buildOpenAIRequestBody,
+  buildKimiRequestBody,
+  buildGrokRequestBody,
   assertGenerationComplete,
   buildGenerationOutcome,
   generateAnthropicStructuredContent,
   generateOpenAIStructuredContent,
+  generateKimiStructuredContent,
+  generateGrokStructuredContent,
   generateStructuredContent,
   generateStructuredLocalContent,
   getErrorMeta,
@@ -259,7 +264,9 @@ export const createParseRoutes = ({
   generateLocal = generateStructuredLocalContent,
   generateGemini = generateStructuredContent,
   generateOpenAI = generateOpenAIStructuredContent,
-  generateClaude = generateAnthropicStructuredContent
+  generateClaude = generateAnthropicStructuredContent,
+  generateKimi = generateKimiStructuredContent,
+  generateGrok = generateGrokStructuredContent
 }) => {
   const attachPrimaryParseProvenance = (analysis, generationMeta, extraProvenance = {}) => ({
     ...analysis,
@@ -391,6 +398,7 @@ export const createParseRoutes = ({
           sentRequest,
           generationStartedAt
         }),
+        ...(rawText ? { rawProviderResponse: createRawOutputArtifact(rawText) } : {}),
         outcome: {
           sentMaxOutputTokens,
           finishReason,
@@ -782,6 +790,7 @@ export const createParseRoutes = ({
     selectedModel,
     providerLabel,
     generate,
+    selection,
     reasoningEffort: requestedReasoningEffort
   }) => {
     if (!apiKey) {
@@ -790,25 +799,32 @@ export const createParseRoutes = ({
 
     const systemInstruction = buildSystemInstruction(framework, modelRoute);
     const fullContents = buildParseContentsPrompt(sentence, framework, modelRoute);
-    const routeTemperature = resolveRouteTemperature(modelRoute);
-    const routeMaxOutputTokens = resolveRouteMaxOutputTokens(modelRoute);
+    const routeMaxOutputTokens = selection
+      ? selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens
+      : resolveRouteMaxOutputTokens(modelRoute);
     const requestStartedAt = Date.now();
-    const reasoningEffort = normalizeProviderReasoningEffort(modelRoute, requestedReasoningEffort);
-    const sentRequest = modelRoute === 'gpt'
-      ? buildOpenAIRequestBody({
-          model: selectedModel,
-          contents: fullContents,
-          systemInstruction,
-          maxOutputTokens: routeMaxOutputTokens,
-          reasoningEffort
-        })
-      : buildAnthropicRequestBody({
-          model: selectedModel,
-          contents: fullContents,
-          systemInstruction,
-          maxOutputTokens: routeMaxOutputTokens,
-          effort: reasoningEffort
-        });
+    const reasoningEffort = selection
+      ? Object.values(selection.nativeSettings)[0]
+      : normalizeProviderReasoningEffort(modelRoute, requestedReasoningEffort);
+    const generationOptions = {
+      model: selectedModel,
+      contents: fullContents,
+      systemInstruction,
+      maxOutputTokens: routeMaxOutputTokens,
+      reasoningEffort,
+      effort: reasoningEffort,
+      ...(selection?.provider === 'openai' ? { background: selection.requestPolicy.background } : {}),
+      ...(selection?.provider === 'anthropic' ? {
+        thinking: selection.requestPolicy.thinking?.value ?? null
+      } : {})
+    };
+    const requestBuilder = {
+      gpt: buildOpenAIRequestBody,
+      claude: buildAnthropicRequestBody,
+      kimi: buildKimiRequestBody,
+      grok: buildGrokRequestBody
+    }[modelRoute];
+    const sentRequest = requestBuilder(generationOptions);
 
     let generationFailureEvidence = null;
     let generationStartedAt = null;
@@ -836,13 +852,7 @@ export const createParseRoutes = ({
           return withTimeout(
             (abortSignal) => generate({
               apiKey,
-              model: selectedModel,
-              contents: fullContents,
-              systemInstruction,
-              temperature: routeTemperature,
-              maxOutputTokens: routeMaxOutputTokens,
-              reasoningEffort,
-              effort: reasoningEffort,
+              ...generationOptions,
               abortSignal
             }),
             resolveRequestTimeoutMs({
@@ -863,6 +873,11 @@ export const createParseRoutes = ({
           sentRequest,
           generationStartedAt
         }),
+        ...(selection ? { modelSelection: selection } : {}),
+        ...(generation.returnedModel ? { returnedModel: generation.returnedModel } : {}),
+        ...(typeof generation.rawProviderResponse === 'string' ? {
+          rawProviderResponse: createRawOutputArtifact(generation.rawProviderResponse)
+        } : {}),
         outcome: buildGenerationOutcome({
           generationMeta,
           sentMaxOutputTokens: routeMaxOutputTokens,
@@ -967,8 +982,10 @@ export const createParseRoutes = ({
       return {
         ...normalized,
         requestedModelRoute: modelRoute,
+        ...(selection ? { requestedModelId: selection.catalogId } : {}),
         requestedReasoningEffort: reasoningEffort,
-        modelUsed: selectedModel,
+        modelUsed: generation.returnedModel || selectedModel,
+        ...(selection ? { rawModelOutput: createRawOutputArtifact(generationMeta.rawText) } : {}),
         generationRecord
       };
     } catch (error) {
@@ -982,6 +999,9 @@ export const createParseRoutes = ({
         generationStartedAt,
         sentMaxOutputTokens: routeMaxOutputTokens
       });
+      if (selection && generationFailureEvidence) {
+        generationFailureEvidence.generationRecord.modelSelection = selection;
+      }
       const classified = classifyProviderRouteError({
         error,
         ParseApiError,
@@ -1021,10 +1041,34 @@ export const createParseRoutes = ({
       reasoningEffort: options.reasoningEffort
     });
 
+  const parseSentenceWithResearchModel = async (sentence, framework, modelId, options = {}) => {
+    if (!GENERATION_MODEL_IDS.includes(modelId)) {
+      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
+    }
+    const selection = resolveResearchModelSelection(modelId, options.settings);
+    const provider = {
+      openai: { key: 'OPENAI_API_KEY', label: 'OpenAI', generate: generateOpenAI },
+      anthropic: { key: 'ANTHROPIC_API_KEY', label: 'Anthropic', generate: generateClaude },
+      moonshot: { key: 'MOONSHOT_API_KEY', label: 'Kimi', generate: generateKimi },
+      xai: { key: 'XAI_API_KEY', label: 'xAI', generate: generateGrok }
+    }[selection.provider];
+    return parseSentenceWithExternalProvider({
+      sentence,
+      framework,
+      modelRoute: selection.providerRoute,
+      apiKey: String(process.env[provider.key] || '').trim(),
+      selectedModel: selection.providerModel,
+      providerLabel: provider.label,
+      generate: provider.generate,
+      selection
+    });
+  };
+
   return {
     parseSentenceWithLocalModel,
     parseSentenceWithGemini,
     parseSentenceWithOpenAI,
-    parseSentenceWithClaude
+    parseSentenceWithClaude,
+    parseSentenceWithResearchModel
   };
 };

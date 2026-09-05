@@ -101,7 +101,8 @@ export const {
   parseSentenceWithLocalModel,
   parseSentenceWithGemini,
   parseSentenceWithOpenAI,
-  parseSentenceWithClaude
+  parseSentenceWithClaude,
+  parseSentenceWithResearchModel
 } = createParseRoutes({
   ParseApiError,
   normalizeParseBundle,

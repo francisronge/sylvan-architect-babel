@@ -574,7 +574,10 @@ const delayWithAbort = (ms, abortSignal) => new Promise((resolve, reject) => {
     reject(abortSignal.reason || new Error('Operation aborted.'));
     return;
   }
-  const timeout = setTimeout(resolve, Math.max(0, ms));
+  const timeout = setTimeout(() => {
+    abortSignal?.removeEventListener?.('abort', onAbort);
+    resolve();
+  }, Math.max(0, ms));
   const onAbort = () => {
     clearTimeout(timeout);
     reject(abortSignal.reason || new Error('Operation aborted.'));
@@ -582,7 +585,7 @@ const delayWithAbort = (ms, abortSignal) => new Promise((resolve, reject) => {
   abortSignal?.addEventListener?.('abort', onAbort, { once: true });
 });
 
-const OPENAI_RESPONSE_TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'incomplete']);
+const OPENAI_RESPONSE_PENDING_STATUSES = new Set(['queued', 'in_progress']);
 
 const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
   const response = await fetch(`https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`, {
@@ -652,7 +655,7 @@ const waitForOpenAIResponseCompletion = async ({
   if (!responseId) return payload;
   writeOpenAIDebugResponseState({ model, responseId, stage: 'created', payload: json });
 
-  while (json && !OPENAI_RESPONSE_TERMINAL_STATUSES.has(String(json.status || '').toLowerCase())) {
+  while (OPENAI_RESPONSE_PENDING_STATUSES.has(String(json?.status || '').toLowerCase())) {
     await delayWithAbort(pollIntervalMs, abortSignal);
     payload = await fetchOpenAIResponseJson({ apiKey, responseId, abortSignal });
     json = payload.json;
@@ -665,7 +668,8 @@ const extractOpenAIOutputText = (payloadJson) => String(payloadJson?.output_text
   || (Array.isArray(payloadJson?.output)
     ? payloadJson.output
       .flatMap((item) => Array.isArray(item?.content) ? item.content : [])
-      .map((part) => String(part?.text || ''))
+      .filter((part) => part?.type === 'output_text')
+      .map((part) => String(part.text || ''))
       .join('')
     : '');
 
@@ -752,8 +756,12 @@ export const generateOpenAIStructuredContent = async ({
     throw error;
   }
 
+  return responsesGeneration(payload);
+};
+
+const responsesGeneration = (payload) => {
   const outputText = extractOpenAIOutputText(payload.json);
-  const responseStatus = String(payload.json?.status || 'completed').toLowerCase();
+  const responseStatus = String(payload.json?.status || 'unknown').toLowerCase();
   const incompleteReason = String(payload.json?.incomplete_details?.reason || '').trim();
   const finishReason = responseStatus === 'incomplete'
     ? `INCOMPLETE_${incompleteReason || 'UNKNOWN'}`
@@ -761,6 +769,8 @@ export const generateOpenAIStructuredContent = async ({
 
   return {
     text: outputText,
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
     status: responseStatus,
     candidates: [{ finishReason: finishReason.toUpperCase() }],
     usageMetadata: {
@@ -783,7 +793,7 @@ export const buildAnthropicRequestBody = ({
   model,
   system: `${systemInstruction}\n\nReturn exactly one valid JSON object and no prose.`,
   messages: [{ role: 'user', content: contents }],
-  thinking,
+  ...(thinking ? { thinking } : {}),
   output_config: { effort },
   max_tokens: maxOutputTokens
 });
@@ -827,14 +837,17 @@ export const generateAnthropicStructuredContent = async ({
 
   const outputText = Array.isArray(payload.json?.content)
     ? payload.json.content
-      .map((part) => String(part?.text || ''))
+      .filter((part) => part?.type === 'text')
+      .map((part) => String(part.text || ''))
       .join('')
     : '';
 
   return {
     text: outputText,
-    status: String(payload.json?.stop_reason || 'STOP').toUpperCase(),
-    candidates: [{ finishReason: String(payload.json?.stop_reason || 'STOP').toUpperCase() }],
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
+    status: String(payload.json?.stop_reason || 'UNKNOWN').toUpperCase(),
+    candidates: [{ finishReason: String(payload.json?.stop_reason || 'UNKNOWN').toUpperCase() }],
     usageMetadata: {
       inputTokenCount: payload.json?.usage?.input_tokens,
       outputTokenCount: payload.json?.usage?.output_tokens,
@@ -845,4 +858,73 @@ export const generateAnthropicStructuredContent = async ({
       ) || undefined
     }
   };
+};
+
+export const buildKimiRequestBody = ({ model, contents, systemInstruction, maxOutputTokens, reasoningEffort }) => ({
+  model,
+  messages: [
+    { role: 'system', content: systemInstruction },
+    { role: 'user', content: contents }
+  ],
+  response_format: { type: 'json_object' },
+  reasoning_effort: reasoningEffort,
+  max_completion_tokens: maxOutputTokens
+});
+
+export const buildGrokRequestBody = ({ model, contents, systemInstruction, maxOutputTokens, reasoningEffort }) => ({
+  model,
+  input: [
+    { role: 'system', content: systemInstruction },
+    { role: 'user', content: contents }
+  ],
+  text: { format: { type: 'json_object' } },
+  reasoning: { effort: reasoningEffort },
+  max_output_tokens: maxOutputTokens,
+  store: false
+});
+
+const requestProviderJson = async (url, apiKey, body, abortSignal, provider) => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: abortSignal
+  });
+  const payload = await readResponseText(response);
+  if (!response.ok) {
+    const error = new Error(`${provider} request failed (${response.status}).`);
+    error.status = response.status;
+    error.responseBody = payload.text;
+    throw error;
+  }
+  return payload;
+};
+
+export const generateKimiStructuredContent = async (options) => {
+  const payload = await requestProviderJson(
+    'https://api.moonshot.ai/v1/chat/completions', options.apiKey,
+    buildKimiRequestBody(options), options.abortSignal, 'Kimi'
+  );
+  const choice = payload.json?.choices?.[0];
+  return {
+    text: typeof choice?.message?.content === 'string' ? choice.message.content : '',
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
+    status: String(choice?.finish_reason || 'UNKNOWN').toUpperCase(),
+    candidates: [{ finishReason: String(choice?.finish_reason || 'UNKNOWN').toUpperCase() }],
+    usageMetadata: {
+      inputTokenCount: payload.json?.usage?.prompt_tokens,
+      outputTokenCount: payload.json?.usage?.completion_tokens,
+      totalTokenCount: payload.json?.usage?.total_tokens,
+      reasoningTokenCount: payload.json?.usage?.completion_tokens_details?.reasoning_tokens
+    }
+  };
+};
+
+export const generateGrokStructuredContent = async (options) => {
+  const payload = await requestProviderJson(
+    'https://api.x.ai/v1/responses', options.apiKey,
+    buildGrokRequestBody(options), options.abortSignal, 'xAI'
+  );
+  return responsesGeneration(payload);
 };

@@ -1,5 +1,6 @@
-import {
+import type {
   ParseBundle,
+  GenerationRecord,
   ParseFailure,
   RawOutputArtifact
 } from '../types';
@@ -8,23 +9,27 @@ export class ParseServiceError extends Error {
   code: string;
   failure?: ParseFailure;
   rawOutput?: RawOutputArtifact;
+  generationRecord?: GenerationRecord;
 
   constructor({
     code,
     message,
     failure,
-    rawOutput
+    rawOutput,
+    generationRecord
   }: {
     code: string;
     message: string;
     failure?: ParseFailure;
     rawOutput?: RawOutputArtifact;
+    generationRecord?: GenerationRecord;
   }) {
     super(message);
     this.name = 'ParseServiceError';
     this.code = code;
     this.failure = failure;
     this.rawOutput = rawOutput;
+    this.generationRecord = generationRecord;
   }
 }
 
@@ -37,7 +42,8 @@ const parseErrorFromResponse = async (response: Response): Promise<ParseServiceE
       code: code || 'HTTP_ERROR',
       message: message || code || `Request failed with status ${response.status}.`,
       failure: payload?.error?.failure,
-      rawOutput: payload?.error?.rawOutput
+      rawOutput: payload?.error?.rawOutput,
+      generationRecord: payload?.error?.generationRecord
     });
   } catch {
     return new ParseServiceError({
@@ -50,15 +56,15 @@ const parseErrorFromResponse = async (response: Response): Promise<ParseServiceE
 export const parseSentence = async (
   sentence: string,
   framework: 'xbar' | 'minimalism' = 'xbar',
-  modelRoute: 'gemini' | 'gpt' | 'claude' = 'gemini',
-  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' = 'high'
+  modelId: string,
+  settings: Record<string, string>
 ): Promise<ParseBundle> => {
   const response = await fetch('/api/parse', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ sentence, framework, modelRoute, reasoningEffort })
+    body: JSON.stringify({ sentence, framework, modelId, settings })
   });
 
   if (!response.ok) {

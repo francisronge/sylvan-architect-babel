@@ -7,13 +7,14 @@ import {
   resolveResearchModelSelection
 } from '../server/babelParser/researchModelCatalog.js';
 
-test('the research catalog contains the seven approved unqualified candidates', () => {
+test('the research catalog contains the approved unqualified candidates', () => {
   assert.deepEqual(
     RESEARCH_MODEL_CATALOG.map((entry) => entry.id),
     [
+      'openai:gpt-6-astra',
       'openai:gpt-5.6-sol',
       'anthropic:claude-opus-5',
-      'anthropic:claude-fable-5',
+      'anthropic:claude-fable-5-1',
       'moonshot:kimi-k3',
       'meta:muse-spark-1.2',
       'xai:grok-4.6',
@@ -25,11 +26,11 @@ test('the research catalog contains the seven approved unqualified candidates', 
     RESEARCH_MODEL_CATALOG.filter(
       (entry) => entry.qualificationConfiguration === 'pending-settings'
     ).length,
-    3
+    1
   );
   assert.equal(RESEARCH_MODEL_CATALOG.some((entry) => entry.provider === 'google'), false);
   assert.equal(RESEARCH_MODEL_CATALOG.some((entry) => /gemini/i.test(entry.providerModel)), false);
-  assert.equal(new Set(RESEARCH_MODEL_CATALOG.map((entry) => entry.id)).size, 7);
+  assert.equal(new Set(RESEARCH_MODEL_CATALOG.map((entry) => entry.id)).size, RESEARCH_MODEL_CATALOG.length);
   assert.equal(Object.isFrozen(RESEARCH_MODEL_CATALOG), true);
 });
 
@@ -47,10 +48,30 @@ test('catalog settings retain each provider native parameter name', () => {
   assert.deepEqual(opus.nativeSettings, { 'output_config.effort': 'xhigh' });
   assert.equal(opus.requestPolicy.thinking.requestMode, 'explicit-adaptive');
 
-  const fable = resolveResearchModelSelection('anthropic:claude-fable-5');
+  const fable = resolveResearchModelSelection('anthropic:claude-fable-5-1');
   assert.deepEqual(fable.nativeSettings, { 'output_config.effort': 'high' });
   assert.equal(fable.requestPolicy.thinking.requestMode, 'implicit-always-on');
   assert.equal(fable.constraints.dataRetention, '30-days-required');
+  assert.equal(fable.constraints.zeroDataRetention, 'requires-explicit-authorization');
+});
+
+test('Astra qualifies at high and accepts only its supported reasoning efforts', () => {
+  const astra = resolveResearchModelSelection('openai:gpt-6-astra');
+  assert.equal(astra.providerModel, 'gpt-6-astra');
+  assert.equal(astra.providerRoute, 'gpt');
+  assert.deepEqual(astra.nativeSettings, { 'reasoning.effort': 'high' });
+  assert.equal(astra.requestPolicy.maxOutputTokens, 128000);
+
+  for (const effort of ['low', 'medium', 'high', 'xhigh', 'max']) {
+    assert.deepEqual(
+      resolveResearchModelSelection('openai:gpt-6-astra', { 'reasoning.effort': effort }).nativeSettings,
+      { 'reasoning.effort': effort }
+    );
+  }
+  assert.throws(
+    () => resolveResearchModelSelection('openai:gpt-6-astra', { 'reasoning.effort': 'none' }),
+    /must be one of/
+  );
 });
 
 test('candidate identities and pending-settings gates remain exact', () => {
@@ -75,9 +96,7 @@ test('candidate identities and pending-settings gates remain exact', () => {
   assert.equal(glm?.requestPolicy.thinking.requestMode, 'implicit-always-on');
 
   for (const id of [
-    'moonshot:kimi-k3',
-    'meta:muse-spark-1.2',
-    'xai:grok-4.6'
+    'meta:muse-spark-1.2'
   ]) {
     assert.throws(
       () => resolveResearchModelSelection(id),

@@ -1,11 +1,12 @@
 import React from 'react';
 import { AlertTriangle, Download } from 'lucide-react';
-import { ParseFailure, RawOutputArtifact } from '../types';
+import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
 
 interface FailurePanelProps {
   message: string;
   failure?: ParseFailure;
   rawOutput?: RawOutputArtifact;
+  generationRecord?: GenerationRecord;
   children?: React.ReactNode;
 }
 
@@ -18,23 +19,28 @@ const formatOffendingValue = (value: unknown): string => {
   }
 };
 
-const downloadRawOutput = (artifact: RawOutputArtifact) => {
-  const binary = window.atob(artifact.data);
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  const url = URL.createObjectURL(new Blob([bytes], { type: artifact.mediaType }));
+const downloadFile = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `babel-model-output-${artifact.sha256.slice(0, 12)}.txt`;
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
+const downloadRawOutput = (artifact: RawOutputArtifact) => {
+  const binary = window.atob(artifact.data);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  downloadFile(new Blob([bytes], { type: artifact.mediaType }), `babel-model-output-${artifact.sha256.slice(0, 12)}.txt`);
+};
+
 const FailurePanel: React.FC<FailurePanelProps> = ({
   message,
   failure,
   rawOutput,
+  generationRecord,
   children
 }) => (
   <div className="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs text-rose-300 shadow-inner">
@@ -76,6 +82,18 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
           </button>
         )}
         {children}
+        {generationRecord && (
+          <button
+            type="button"
+            onClick={() => downloadFile(
+              new Blob([JSON.stringify({ message, failure, rawOutput, generationRecord }, null, 2)], { type: 'application/json' }),
+              'babel-failed-generation.json'
+            )}
+            className="flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 text-[10px] font-bold text-rose-100 hover:bg-rose-500/25"
+          >
+            <Download size={12} /> Download failure record
+          </button>
+        )}
       </div>
     </div>
   </div>

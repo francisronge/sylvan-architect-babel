@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence, ParseServiceError } from './services/parseService';
 import {
   ParseBundle,
+  GenerationRecord,
   ParseFailure,
   ParseResult,
   RawOutputArtifact,
@@ -11,6 +12,7 @@ import TreeVisualizer from './components/TreeVisualizer';
 import RootLogo from './components/RootLogo';
 import FailurePanel from './components/FailurePanel';
 import { collectDerivationStageRecords } from './derivationNotes.js';
+import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { collectPronouncedTerminalSequence } from './replay/pronouncedTerminals.ts';
 import {
   createTreeBankBundleSnapshot,
@@ -52,18 +54,16 @@ const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>
 
 const KEY_ERROR_CODES = new Set(['API_KEY_EXPIRED', 'API_KEY_MISSING', 'API_KEY_INVALID']);
 
-type KeyPromptMode = 'none' | 'gemini' | 'external';
-
 interface UiErrorState {
   message: string;
   code?: string;
   failure?: ParseFailure;
   rawOutput?: RawOutputArtifact;
+  generationRecord?: GenerationRecord;
 }
 
-const resolveUiError = (err: unknown, modelRoute: ModelMode): {
+const resolveUiError = (err: unknown): {
   needsKey: boolean;
-  keyPromptMode: KeyPromptMode;
   error: UiErrorState;
 } => {
   const message = err instanceof Error ? err.message : String(err || '');
@@ -71,30 +71,33 @@ const resolveUiError = (err: unknown, modelRoute: ModelMode): {
   if (KEY_ERROR_CODES.has(code || message)) {
     return {
       needsKey: true,
-      keyPromptMode: modelRoute === 'gemini' ? 'gemini' : 'external',
       error: {
-        message: 'Your API key is missing or invalid. Please update it below.',
+        message: 'The selected provider API key is missing or invalid on the server.',
         code: code || message,
-        ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {})
+        ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {}),
+        ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {}),
+        ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {})
       }
     };
   }
 
   return {
     needsKey: false,
-    keyPromptMode: 'none',
     error: {
       message: message || 'Derivation interrupted.',
       ...(code ? { code } : {}),
       ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {}),
-      ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {})
+      ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {}),
+      ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {})
     }
   };
 };
 
 const formatModelLabel = (modelUsed?: string): string => {
   const model = String(modelUsed || '').trim();
-  if (!model) return 'Gemini 3.1 Pro';
+  if (!model) return 'Model unavailable';
+  const catalogModel = MODEL_OPTIONS.find((entry) => entry.providerModel === model);
+  if (catalogModel) return catalogModel.label;
   if (/^gpt/i.test(model)) return model.toUpperCase();
   if (/^claude/i.test(model)) return model.replace(/^claude/i, 'Claude');
   if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
@@ -102,53 +105,13 @@ const formatModelLabel = (modelUsed?: string): string => {
   return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
 };
 
-type ModelMode = 'gemini' | 'gpt' | 'claude';
-type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-
-const MODEL_ROUTE_LABELS: Record<ModelMode, string> = {
-  gemini: 'Gemini 3.1 Pro',
-  gpt: 'GPT 5.5',
-  claude: 'Claude Opus'
-};
-
-const MODEL_MODE_PILLS: Array<{
-  id: ModelMode;
-  label: string;
-  className: string;
-  activeClassName: string;
-  keyRequired?: boolean;
-}> = [
-  {
-    id: 'gemini',
-    label: 'Gemini Pro',
-    className: 'border-purple-900/40 bg-purple-950/20 text-purple-200 hover:border-purple-600/50 hover:bg-purple-900/30',
-    activeClassName: 'border-purple-500/70 bg-purple-500/20 text-purple-100 shadow-[0_0_18px_rgba(168,85,247,0.22)]'
-  },
-  {
-    id: 'gpt',
-    label: 'GPT 5.5',
-    className: 'border-blue-900/40 bg-blue-950/20 text-blue-200 hover:border-blue-600/50 hover:bg-blue-900/30',
-    activeClassName: 'border-blue-500/70 bg-blue-500/20 text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.24)]'
-  },
-  {
-    id: 'claude',
-    label: 'Claude Opus',
-    className: 'border-orange-900/40 bg-orange-950/20 text-orange-200 hover:border-orange-600/50 hover:bg-orange-900/30',
-    activeClassName: 'border-orange-500/70 bg-orange-500/20 text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.24)]'
-  }
-];
-
-const MODEL_MODE_SEQUENCE: ModelMode[] = ['gemini', 'gpt', 'claude'];
-
-const REASONING_OPTIONS_BY_MODEL: Record<ModelMode, ReasoningEffort[]> = {
-  gemini: ['low', 'medium', 'high'],
-  gpt: ['low', 'medium', 'high', 'xhigh'],
-  claude: ['low', 'medium', 'high', 'xhigh', 'max']
-};
-
-const REASONING_EFFORT_ORDER: ReasoningEffort[] = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+type ModelMode = string;
+type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+const MODEL_OPTIONS = GENERATION_MODEL_IDS.map((id) => getResearchModel(id)!);
+const DEFAULT_MODEL_ID = GENERATION_MODEL_IDS[0];
 
 const REASONING_EFFORT_LABELS: Record<ReasoningEffort, string> = {
+  none: 'None',
   minimal: 'Minimal',
   low: 'Low',
   medium: 'Medium',
@@ -158,6 +121,7 @@ const REASONING_EFFORT_LABELS: Record<ReasoningEffort, string> = {
 };
 
 const REASONING_PILL_STYLES: Record<ReasoningEffort, string> = {
+  none: 'border-white/20 bg-white/5 text-white/70',
   minimal: 'border-slate-500/35 bg-slate-500/10 text-slate-200 shadow-[0_0_16px_rgba(148,163,184,0.12)]',
   low: 'border-cyan-700/35 bg-cyan-950/20 text-cyan-200 shadow-[0_0_16px_rgba(8,145,178,0.14)]',
   medium: 'border-teal-500/45 bg-teal-500/15 text-teal-200 shadow-[0_0_16px_rgba(20,184,166,0.16)]',
@@ -166,51 +130,17 @@ const REASONING_PILL_STYLES: Record<ReasoningEffort, string> = {
   max: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]'
 };
 
-const normalizeReasoningEffort = (value?: string): ReasoningEffort | null => {
-  const normalized = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  if (normalized === 'extra_high' || normalized === 'extra') return 'xhigh';
-  if (normalized === 'minimal' || normalized === 'low' || normalized === 'medium' || normalized === 'high' || normalized === 'xhigh' || normalized === 'max') {
-    return normalized as ReasoningEffort;
-  }
-  return null;
-};
-
 const coerceReasoningEffortForRoute = (route: ModelMode, value?: string): ReasoningEffort => {
-  const options = REASONING_OPTIONS_BY_MODEL[route];
-  const requested = normalizeReasoningEffort(value) || 'high';
-  if (options.includes(requested)) return requested;
-
-  const requestedRank = REASONING_EFFORT_ORDER.indexOf(requested);
-  if (requestedRank >= 0) {
-    for (let index = requestedRank; index >= 0; index -= 1) {
-      const candidate = REASONING_EFFORT_ORDER[index];
-      if (options.includes(candidate)) return candidate;
-    }
-    for (let index = requestedRank + 1; index < REASONING_EFFORT_ORDER.length; index += 1) {
-      const candidate = REASONING_EFFORT_ORDER[index];
-      if (options.includes(candidate)) return candidate;
-    }
-  }
-  return options.includes('high') ? 'high' : options[0];
+  const control = getResearchModel(route)!.controls[0];
+  return (control.values.includes(value || '') ? value : control.qualificationDefault) as ReasoningEffort;
 };
-
-const reasoningControlLabelForRoute = (route: ModelMode): string =>
-  route === 'gpt' ? 'Reasoning' : 'Thinking';
 
 const coerceModelRoute = (value?: string): ModelMode => {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'gemini') return 'gemini';
-  if (normalized === 'gpt' || normalized === 'gpt-5.5' || normalized === 'gpt-5.4') return 'gpt';
-  if (normalized === 'claude' || normalized === 'claude-4.8' || normalized === 'claude-4.7' || normalized === 'claude-4.6') return 'claude';
-  return 'gemini';
+  return GENERATION_MODEL_IDS.includes(value || '') ? value! : DEFAULT_MODEL_ID;
 };
 
 const inferModelRouteFromModel = (modelUsed?: string): ModelMode => {
-  const model = String(modelUsed || '').trim().toLowerCase();
-  if (!model) return 'gemini';
-  if (model.includes('claude')) return 'claude';
-  if (model.includes('gpt')) return 'gpt';
-  return 'gemini';
+  return MODEL_OPTIONS.find((model) => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
 };
 
 type MilesMode = 'canopy' | 'derivation';
@@ -578,10 +508,9 @@ const App: React.FC = () => {
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [devCaptureMode, setDevCaptureMode] = useState(false);
   const [needsKey, setNeedsKey] = useState(false);
-  const [keyPromptMode, setKeyPromptMode] = useState<KeyPromptMode>('none');
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
-  const [modelRoute, setModelRoute] = useState<ModelMode>('gemini');
+  const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -595,18 +524,12 @@ const App: React.FC = () => {
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
-  const selectedModelLabel = MODEL_ROUTE_LABELS[modelRoute];
+  const selectedModel = getResearchModel(modelRoute)!;
+  const selectedModelLabel = selectedModel.label;
   const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
-  const activeModelOption = MODEL_MODE_PILLS.find((option) => option.id === modelRoute) || MODEL_MODE_PILLS[0];
-  const nextModelOption = MODEL_MODE_PILLS[
-    (MODEL_MODE_SEQUENCE.indexOf(activeModelOption.id) + 1 + MODEL_MODE_SEQUENCE.length) % MODEL_MODE_SEQUENCE.length
-  ] || MODEL_MODE_PILLS[0];
   const activeReasoningEffort = coerceReasoningEffortForRoute(modelRoute, reasoningEffort);
-  const activeReasoningOptions = REASONING_OPTIONS_BY_MODEL[modelRoute];
-  const nextReasoningEffort = activeReasoningOptions[
-    (activeReasoningOptions.indexOf(activeReasoningEffort) + 1 + activeReasoningOptions.length) % activeReasoningOptions.length
-  ] || activeReasoningOptions[0];
-  const reasoningControlLabel = reasoningControlLabelForRoute(modelRoute);
+  const activeReasoningOptions = selectedModel.controls[0].values as ReasoningEffort[];
+  const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const canopyMilesNotation = useMemo(() => {
@@ -649,7 +572,6 @@ const App: React.FC = () => {
       setError(null);
       setCopiedCodeKey(null);
       setNeedsKey(false);
-      setKeyPromptMode('none');
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
@@ -678,20 +600,6 @@ const App: React.FC = () => {
   useEffect(() => {
     setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
   }, [modelRoute]);
-
-  useEffect(() => {
-    const checkKeyStatus = async () => {
-      const aistudio = (window as any).aistudio;
-      if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
-        const hasKey = await aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          setNeedsKey(true);
-          setKeyPromptMode('gemini');
-        }
-      }
-    };
-    checkKeyStatus();
-  }, []);
 
   useEffect(() => {
     if (!devBundleConfig) return;
@@ -724,7 +632,7 @@ const App: React.FC = () => {
           ? 'minimalism'
           : (requestRecord.framework === 'xbar' ? 'xbar' : firstAnalysis?.provenance?.framework === 'minimalism' ? 'minimalism' : 'xbar');
         const nextModelRoute =
-          String(requestRecord.modelRoute || savedRecord.requestedRoute || bundle.requestedModelRoute || '').trim()
+          String(requestRecord.modelId || bundle.requestedModelId || '').trim()
           || inferModelRouteFromModel(bundle.modelUsed);
         const coercedModelRoute = coerceModelRoute(nextModelRoute);
         const nextReasoningEffort = String(requestRecord.reasoningEffort || bundle.requestedReasoningEffort || '').trim();
@@ -740,7 +648,6 @@ const App: React.FC = () => {
         setError(null);
         setCopiedCodeKey(null);
         setNeedsKey(false);
-        setKeyPromptMode('none');
         setWorkspaceView('arboretum');
         setLoading(false);
         setDevCaptureMode(devBundleConfig.captureMode);
@@ -851,21 +758,6 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleOpenKeySelection = async () => {
-    const aistudio = (window as any).aistudio;
-    if (aistudio && typeof aistudio.openSelectKey === 'function') {
-      try {
-        await aistudio.openSelectKey();
-        setNeedsKey(false);
-        setKeyPromptMode('none');
-        setError(null);
-        if (loading) handleParse();
-      } catch (err) {
-        console.error("Key selection failed", err);
-      }
-    }
-  };
-
   const handleParse = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (loading) return;
@@ -875,9 +767,11 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const data = await parseSentence(input, framework, modelRoute, activeReasoningEffort);
+      const data = await parseSentence(input, framework, modelRoute, {
+        [selectedModel.controls[0].id]: activeReasoningEffort
+      });
       setAnalysisBundle(data);
-      const nextModelRoute = coerceModelRoute(data.requestedModelRoute || modelRoute);
+      const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
       setModelRoute(nextModelRoute);
       setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, data.requestedReasoningEffort || activeReasoningEffort));
       setParsedSentence(input.trim());
@@ -885,11 +779,9 @@ const App: React.FC = () => {
       setActiveTab('tree');
       setCopiedCodeKey(null);
       setNeedsKey(false);
-      setKeyPromptMode('none');
     } catch (err: unknown) {
-      const uiError = resolveUiError(err, modelRoute);
+      const uiError = resolveUiError(err);
       setNeedsKey(uiError.needsKey);
-      setKeyPromptMode(uiError.keyPromptMode);
       setError(uiError.error);
     } finally {
       setLoading(false);
@@ -948,7 +840,7 @@ const App: React.FC = () => {
     setParsedSentence(entry.sentence);
     setInput(entry.sentence);
     setFramework(entry.framework);
-    const nextModelRoute = coerceModelRoute(entry.bundle.requestedModelRoute || inferModelRouteFromModel(entry.bundle.modelUsed));
+    const nextModelRoute = coerceModelRoute(entry.bundle.requestedModelId || inferModelRouteFromModel(entry.bundle.modelUsed));
     setModelRoute(nextModelRoute);
     setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, entry.bundle.requestedReasoningEffort || reasoningEffort));
     setActiveParseIndex(nextParseIndex);
@@ -956,7 +848,6 @@ const App: React.FC = () => {
     setError(null);
     setCopiedCodeKey(null);
     setNeedsKey(false);
-    setKeyPromptMode('none');
     setIsInputVisible(true);
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
@@ -1118,36 +1009,42 @@ const App: React.FC = () => {
                       className="flex flex-wrap items-center gap-2"
                       title={
                         analysisBundle?.modelUsed
-                          ? `Selected route: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
-                          : 'Choose parsing model route'
+                          ? `Selected model: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
+                          : 'Choose parsing model'
                       }
                     >
-                      <button
-                        onClick={() => {
-                          const nextRoute = nextModelOption.id;
-                          setModelRoute(nextRoute);
-                          setReasoningEffort((current) => coerceReasoningEffortForRoute(nextRoute, current));
-                          setError(null);
-                          setNeedsKey(false);
-                          setKeyPromptMode('none');
-                        }}
-                        className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-4 py-2 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap transition-all ${activeModelOption.activeClassName}`}
-                        title={`Current route: ${MODEL_ROUTE_LABELS[activeModelOption.id]}. Click to switch to ${MODEL_ROUTE_LABELS[nextModelOption.id]}.`}
-                      >
+                      <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/40 bg-emerald-950/40 text-emerald-100">
                         <Zap size={10} className="fill-current" />
-                        {MODEL_ROUTE_LABELS[activeModelOption.id]}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReasoningEffort(nextReasoningEffort);
-                          setError(null);
-                        }}
-                        className={`flex items-center gap-2 text-[9px] font-black px-3.5 md:px-4 py-2 rounded-full border tracking-[0.18em] md:tracking-widest uppercase shadow-inner whitespace-nowrap transition-all ${REASONING_PILL_STYLES[activeReasoningEffort]}`}
-                        title={`${reasoningControlLabel}: ${REASONING_EFFORT_LABELS[activeReasoningEffort]}. Click to switch to ${REASONING_EFFORT_LABELS[nextReasoningEffort]}.`}
-                      >
+                        <select
+                          aria-label="Generation model"
+                          value={modelRoute}
+                          disabled={loading}
+                          onChange={(event) => {
+                            setModelRoute(event.target.value);
+                            setReasoningEffort('high');
+                            setError(null);
+                            setNeedsKey(false);
+                          }}
+                          className="w-40 bg-transparent text-[11px] font-bold focus:outline-emerald-400 disabled:opacity-50"
+                        >
+                          {MODEL_OPTIONS.map((model) => <option key={model.id} value={model.id} className="bg-[#061810]">{model.label}</option>)}
+                        </select>
+                      </label>
+                      <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${REASONING_PILL_STYLES[activeReasoningEffort]}`} title={reasoningControlLabel}>
                         <Brain size={10} className="fill-current" />
-                        {reasoningControlLabel}: {REASONING_EFFORT_LABELS[activeReasoningEffort]}
-                      </button>
+                        <select
+                          aria-label={reasoningControlLabel}
+                          value={activeReasoningEffort}
+                          disabled={loading}
+                          onChange={(event) => {
+                            setReasoningEffort(event.target.value as ReasoningEffort);
+                            setError(null);
+                          }}
+                          className="w-24 bg-transparent text-[11px] font-bold focus:outline-emerald-400 disabled:opacity-50"
+                        >
+                          {activeReasoningOptions.map((effort) => <option key={effort} value={effort} className="bg-[#061810]">{REASONING_EFFORT_LABELS[effort]}</option>)}
+                        </select>
+                      </label>
                     </div>
                   )}
 
@@ -1508,17 +1405,9 @@ const App: React.FC = () => {
                           message={error.message}
                           failure={error.failure}
                           rawOutput={error.rawOutput}
+                          generationRecord={error.generationRecord}
                         >
-                          {needsKey && keyPromptMode === 'gemini' && (
-                            <button
-                              onClick={handleOpenKeySelection}
-                              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/40 transition-all font-black uppercase tracking-widest text-[10px] text-rose-200 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                            >
-                              <Key size={12} />
-                              Renew API Credentials
-                            </button>
-                          )}
-                          {needsKey && keyPromptMode === 'external' && (
+                          {needsKey && (
                             <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200">
                               <Key size={12} />
                               External API Key Required
@@ -1618,15 +1507,7 @@ const App: React.FC = () => {
             <span className="flex items-center gap-3"><TreeDeciduous size={12} /> Deep Structural Formalism</span>
           </div>
           <div className="flex items-center gap-6">
-            {needsKey && keyPromptMode === 'gemini' && (
-              <button 
-                onClick={handleOpenKeySelection}
-                className="flex items-center gap-2 text-rose-500/80 hover:text-rose-400 transition-colors"
-              >
-                <Key size={10} /> Key Missing/Invalid - Update
-              </button>
-            )}
-            {needsKey && keyPromptMode === 'external' && (
+            {needsKey && (
               <div className="flex items-center gap-2 text-amber-400/80">
                 <Key size={10} /> External API Key Required
               </div>
