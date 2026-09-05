@@ -5,3 +5,5 @@ export {
   stableQualificationJson,
   validateQualificationPlan
 } from './run.js';
+
+export { buildQualificationAnalysisEvidence } from './review.js';

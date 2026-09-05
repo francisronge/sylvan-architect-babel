@@ -45,7 +45,13 @@ const rawBytesForAttempt = (attempt) => {
   if (!fixture || typeof fixture.payload !== 'object' || fixture.payload === null) {
     throw new Error(`${attempt.source.path} does not contain a fixture payload.`);
   }
-  return Buffer.from(`${JSON.stringify(fixture.payload, null, 2)}\n`, 'utf8');
+  const payload = `${JSON.stringify(fixture.payload, null, 2)}\n`;
+  return Buffer.from(
+    attempt.source.kind === 'committed-fixture-payload-missing-final-closer'
+      ? payload.replace(/\}\s*$/u, '')
+      : payload,
+    'utf8'
+  );
 };
 
 if (fs.existsSync(outputPath) && fs.readdirSync(outputPath).length > 0) {
@@ -95,6 +101,17 @@ for (const attempt of plan.attempts) {
     'utf8'
   );
 
+  const reviewEntry = {
+    attemptId: attempt.id,
+    sentence: attempt.request.sentence,
+    framework: attempt.request.framework,
+    model: attempt.model,
+    outcome: receipt.outcome,
+    rawOutput: receipt.rawOutput.artifact,
+    receipt: `attempts/${attempt.id}/attempt-receipt.json`,
+    analyses: []
+  };
+
   if (result.bundle) {
     const bundleWrapper = {
       request: {
@@ -111,23 +128,29 @@ for (const attempt of plan.attempts) {
       'utf8'
     );
     result.replayProjections.forEach((projection, analysisIndex) => {
+      const replayArtifact = `attempts/${attempt.id}/replay-analysis-${analysisIndex + 1}.json`;
+      const evidenceArtifact = `attempts/${attempt.id}/evidence-analysis-${analysisIndex + 1}.json`;
       fs.writeFileSync(
-        path.join(attemptRoot, `replay-analysis-${analysisIndex + 1}.json`),
+        path.join(outputPath, replayArtifact),
         stableQualificationJson(projection),
         'utf8'
       );
-      reviewEntries.push({
-        attemptId: attempt.id,
+      fs.writeFileSync(
+        path.join(outputPath, evidenceArtifact),
+        stableQualificationJson(result.analysisEvidence[analysisIndex]),
+        'utf8'
+      );
+      reviewEntry.analyses.push({
         analysisIndex,
-        sentence: attempt.request.sentence,
-        framework: attempt.request.framework,
-        model: attempt.model,
-        bundle: `attempts/${attempt.id}/bundle.json`,
+        replay: replayArtifact,
+        evidence: evidenceArtifact,
         output: `review/${attempt.id}/analysis-${analysisIndex + 1}`
       });
     });
+    reviewEntry.bundle = `attempts/${attempt.id}/bundle.json`;
   }
 
+  reviewEntries.push(reviewEntry);
   attemptReceipts.push(receipt);
 }
 
@@ -148,8 +171,9 @@ const runReceiptBase = {
   })),
   review: {
     status: 'not-captured',
-    entryCount: reviewEntries.length,
-    plan: 'review-plan.json'
+    attemptCount: reviewEntries.length,
+    analysisCount: reviewEntries.reduce((count, entry) => count + entry.analyses.length, 0),
+    manifest: 'review-manifest.json'
   },
   providerCallsMade: false
 };
@@ -159,7 +183,7 @@ const runReceipt = {
 };
 
 fs.writeFileSync(
-  path.join(outputPath, 'review-plan.json'),
+  path.join(outputPath, 'review-manifest.json'),
   stableQualificationJson({ schemaVersion: 1, entries: reviewEntries }),
   'utf8'
 );

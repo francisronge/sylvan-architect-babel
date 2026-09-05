@@ -122,7 +122,19 @@ test('a valid saved response preserves raw bytes and prepares every analysis for
   assert.equal(result.bundle.analyses.length, 1);
   assert.equal(result.analysisBundles.length, 1);
   assert.equal(result.replayProjections.length, 1);
+  assert.equal(result.analysisEvidence.length, 1);
   assert.ok(result.replayProjections[0].stepCount > 0);
+  assert.equal(
+    result.analysisEvidence[0].replay.frameCount,
+    result.replayProjections[0].stepCount
+  );
+  assert.equal(
+    Object.values(result.analysisEvidence[0].renderer.tierCounts)
+      .reduce((sum, count) => sum + count, 0),
+    result.analysisEvidence[0].renderer.relations
+      .reduce((sum, relation) => sum + relation.claims.length, 0)
+  );
+  assert.match(result.receipt.artifacts.analyses[0].evidenceSha256, /^[0-9a-f]{64}$/u);
   assert.equal(result.bundle.modelUsed, 'gpt-5.6-sol');
   assert.equal(result.bundle.analyses[0].provenance.timestamp, undefined);
 });
@@ -148,6 +160,7 @@ test('JSON repairs and typed failures remain visible in qualification receipts',
   assert.equal(malformed.receipt.outcome.status, 'failed');
   assert.equal(malformed.receipt.outcome.phase, 'json-ingress');
   assert.equal(malformed.receipt.outcome.failure.class, 'transport_serialization');
+  assert.deepEqual(malformed.analysisEvidence, []);
 
   const wrongEnvelope = runQualificationAttempt({
     attempt,
@@ -156,6 +169,7 @@ test('JSON repairs and typed failures remain visible in qualification receipts',
   assert.equal(wrongEnvelope.receipt.outcome.status, 'failed');
   assert.equal(wrongEnvelope.receipt.outcome.phase, 'normalization');
   assert.equal(wrongEnvelope.receipt.outcome.failure.class, 'contract_misunderstanding');
+  assert.deepEqual(wrongEnvelope.analysisEvidence, []);
 });
 
 test('non-UTF-8 output fails before JSON parsing without changing the bytes', () => {

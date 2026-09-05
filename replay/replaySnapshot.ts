@@ -24,6 +24,11 @@ export interface ReplaySnapshotProjection {
   steps: ReplayStepProjection[];
 }
 
+export interface ReplayPlayback {
+  sentence: string;
+  steps: PlaybackStep[];
+}
+
 const projectReplayStep = (step: PlaybackStep): ReplayStepProjection => ({
   operation: String(step.operation || ''),
   replayKind: step.replayKind || null,
@@ -35,7 +40,7 @@ const projectReplayStep = (step: PlaybackStep): ReplayStepProjection => ({
     .map((nodeId) => String(nodeId || ''))
 });
 
-export const buildReplaySnapshotProjection = (bundle: ParseBundle): ReplaySnapshotProjection => {
+export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
   const analysis = bundle?.analyses?.[0];
   if (!analysis) throw new Error('Replay snapshot requires at least one analysis.');
   const derivationStages = Array.isArray(analysis.derivationStages)
@@ -50,6 +55,12 @@ export const buildReplaySnapshotProjection = (bundle: ParseBundle): ReplaySnapsh
     sentence,
     replayPlan
   );
+
+  return { sentence, steps };
+};
+
+export const buildReplaySnapshotProjection = (bundle: ParseBundle): ReplaySnapshotProjection => {
+  const { sentence, steps } = buildReplayPlayback(bundle);
 
   return {
     schemaVersion: 1,

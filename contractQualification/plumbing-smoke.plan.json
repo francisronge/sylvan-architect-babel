@@ -38,6 +38,57 @@
         "kind": "committed-fixture-payload",
         "path": "fixtures/raw/what-did-mia-see.xbar.json"
       }
+    },
+    {
+      "id": "smoke-repaired-mia-laughed-xbar",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "committed-fixture-payload-missing-final-closer",
+        "path": "fixtures/raw/mia-laughed.xbar.json"
+      }
+    },
+    {
+      "id": "smoke-malformed-json",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "raw-text-file",
+        "path": "fixtures/qualification/malformed-json.txt"
+      }
+    },
+    {
+      "id": "smoke-wrong-envelope",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "raw-text-file",
+        "path": "fixtures/qualification/wrong-envelope.json"
+      }
     }
   ]
 }

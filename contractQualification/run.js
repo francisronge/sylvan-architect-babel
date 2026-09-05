@@ -8,6 +8,7 @@ import {
   createFailure
 } from '../server/babelParser/validationErrors.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
+import { buildQualificationAnalysisEvidence } from './review.js';
 
 export const QUALIFICATION_ITEM_SET_STATUSES = Object.freeze([
   'unselected',
@@ -107,9 +108,13 @@ export const validateQualificationPlan = (input) => {
     );
 
     requireExactFields(attempt.source, ['kind', 'path'], `${path}.source`);
-    if (!['committed-fixture-payload', 'raw-text-file'].includes(attempt.source.kind)) {
+    if (![
+      'committed-fixture-payload',
+      'committed-fixture-payload-missing-final-closer',
+      'raw-text-file'
+    ].includes(attempt.source.kind)) {
       throw new TypeError(
-        `${path}.source.kind must be committed-fixture-payload or raw-text-file.`
+        `${path}.source.kind must name a supported saved-output source.`
       );
     }
 
@@ -197,11 +202,13 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       }),
       bundle: null,
       analysisBundles: [],
-      replayProjections: []
+      replayProjections: [],
+      analysisEvidence: []
     };
   }
 
   let ingress = { integrityFlags: [], repairDiagnostics: [] };
+  let phase = 'json-ingress';
   try {
     const parsed = parserTest.parseModelJsonDetailed(rawOutput);
     ingress = {
@@ -210,6 +217,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
         ? parsed.repairDiagnostics
         : []
     };
+    phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
     const normalized = stripVolatileProvenance(parserTest.normalizeParseBundle(
       parsed.payload,
@@ -235,15 +243,21 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       ambiguityDetected: false,
       ambiguityNote: undefined
     }));
+    phase = 'evidence-compilation';
     const replayProjections = analysisBundles.map((analysisBundle) =>
       buildReplaySnapshotProjection(analysisBundle)
+    );
+    const analysisEvidence = analysisBundles.map((analysisBundle) =>
+      buildQualificationAnalysisEvidence(analysisBundle)
     );
     const bundleBytes = Buffer.from(stableQualificationJson(bundle), 'utf8');
     const analysisArtifacts = analysisBundles.map((analysisBundle, index) => ({
       analysisIndex: index,
       bundleSha256: sha256(Buffer.from(stableQualificationJson(analysisBundle), 'utf8')),
       replaySha256: sha256(Buffer.from(stableQualificationJson(replayProjections[index]), 'utf8')),
-      replayStepCount: replayProjections[index].stepCount
+      replayStepCount: replayProjections[index].stepCount,
+      evidenceSha256: sha256(Buffer.from(stableQualificationJson(analysisEvidence[index]), 'utf8')),
+      tierCounts: analysisEvidence[index].renderer.tierCounts
     }));
     return {
       receipt: receiptWithHash({
@@ -261,7 +275,8 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       }),
       bundle,
       analysisBundles,
-      replayProjections
+      replayProjections,
+      analysisEvidence
     };
   } catch (error) {
     const repairDiagnostics = Array.isArray(error?.details?.payloadRepairDiagnostics)
@@ -278,13 +293,14 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
           status: 'failed',
           phase: error?.failure?.class === FAILURE_CLASSES.TRANSPORT_SERIALIZATION
             ? 'json-ingress'
-            : 'normalization',
+            : phase,
           failure: normalizeFailure(error)
         }
       }),
       bundle: null,
       analysisBundles: [],
-      replayProjections: []
+      replayProjections: [],
+      analysisEvidence: []
     };
   }
 };

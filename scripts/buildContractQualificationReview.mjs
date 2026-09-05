@@ -4,6 +4,8 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
+import { buildQualificationReviewHtml } from '../contractQualification/reviewPage.js';
+
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
 
@@ -18,20 +20,16 @@ const runRoot = path.resolve(repoRoot, readArg(
 ));
 const outputRoot = path.resolve(runRoot, readArg('out', 'review'));
 const browserArgument = readArg('browser').trim();
-if (!browserArgument) throw new Error('Provide --browser with an existing browser executable.');
-const browserPath = path.resolve(browserArgument);
-if (!fs.existsSync(browserPath)) throw new Error('Provide --browser with an existing browser executable.');
+const browserPath = browserArgument ? path.resolve(browserArgument) : '';
+if (browserPath && !fs.existsSync(browserPath)) {
+  throw new Error('Provide --browser with an existing browser executable.');
+}
 if (fs.existsSync(outputRoot) && fs.readdirSync(outputRoot).length > 0) {
   throw new Error(`Review output is not empty: ${outputRoot}`);
 }
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8'));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
-const escapeHtml = (value) => String(value || '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;');
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const findFreePort = () => new Promise((resolve, reject) => {
@@ -51,7 +49,7 @@ const waitForServer = async (url) => {
       const response = await fetch(url);
       if (response.ok) return;
     } catch {
-      // Vite is still starting.
+      // Readiness is confirmed by the first successful HTTP response.
     }
     await wait(150);
   }
@@ -84,115 +82,149 @@ const collectFiles = (root) => {
   return files.sort();
 };
 
-const reviewPlan = readJson(path.join(runRoot, 'review-plan.json'));
-const runReceiptBytes = fs.readFileSync(path.join(runRoot, 'run-receipt.json'));
-if (!Array.isArray(reviewPlan.entries) || reviewPlan.entries.length === 0) {
-  throw new Error('Review plan contains no successful analyses.');
+const relativeWebPath = (from, to) => path.relative(from, to).split(path.sep).join('/');
+
+const reviewManifest = readJson(path.join(runRoot, 'review-manifest.json'));
+const runReceiptPath = path.join(runRoot, 'run-receipt.json');
+const runReceiptBytes = fs.readFileSync(runReceiptPath);
+const runReceipt = JSON.parse(runReceiptBytes.toString('utf8'));
+if (!Array.isArray(reviewManifest.entries) || reviewManifest.entries.length === 0) {
+  throw new Error('Review manifest contains no attempts.');
 }
 
 fs.mkdirSync(outputRoot, { recursive: true });
-const port = await findFreePort();
-const appUrl = `http://127.0.0.1:${port}`;
-const vite = spawn(
-  process.execPath,
-  [
-    path.join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
-    '--host',
-    '127.0.0.1',
-    '--port',
-    String(port),
-    '--strictPort'
-  ],
-  { cwd: repoRoot, stdio: 'ignore' }
-);
 
-try {
-  await waitForServer(appUrl);
-  for (const entry of reviewPlan.entries) {
-    const bundlePath = path.join(runRoot, entry.bundle);
-    const destination = path.join(
-      outputRoot,
-      entry.attemptId,
-      `analysis-${entry.analysisIndex + 1}`
-    );
-    fs.mkdirSync(destination, { recursive: true });
-    const capture = spawnSync(
+if (browserPath) {
+  const successfulAnalyses = reviewManifest.entries.flatMap((entry) => (
+    entry.analyses.map((analysis) => ({ entry, analysis }))
+  ));
+  if (successfulAnalyses.length > 0) {
+    const port = await findFreePort();
+    const appUrl = `http://127.0.0.1:${port}`;
+    const vite = spawn(
       process.execPath,
       [
-        path.join(repoRoot, 'scripts', 'captureReplayArtifact.mjs'),
-        '--bundle', bundlePath,
-        '--analysis-index', String(entry.analysisIndex),
-        '--out', destination,
-        '--browser', browserPath,
-        '--app-url', appUrl
+        path.join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
+        '--host',
+        '127.0.0.1',
+        '--port',
+        String(port),
+        '--strictPort'
       ],
-      { cwd: repoRoot, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 }
+      { cwd: repoRoot, stdio: 'ignore' }
     );
-    if (capture.status !== 0 || capture.signal || capture.error) {
-      throw new Error(
-        `Capture failed for ${entry.attemptId} analysis ${entry.analysisIndex + 1}: `
-        + `${capture.error?.message || capture.stderr || capture.signal || capture.status}`
-      );
+
+    try {
+      await waitForServer(appUrl);
+      for (const { entry, analysis } of successfulAnalyses) {
+        const destination = path.join(
+          outputRoot,
+          entry.attemptId,
+          `analysis-${analysis.analysisIndex + 1}`
+        );
+        fs.mkdirSync(destination, { recursive: true });
+        const capture = spawnSync(
+          process.execPath,
+          [
+            path.join(repoRoot, 'scripts', 'captureReplayArtifact.mjs'),
+            '--bundle', path.join(runRoot, entry.bundle),
+            '--analysis-index', String(analysis.analysisIndex),
+            '--out', destination,
+            '--browser', browserPath,
+            '--app-url', appUrl
+          ],
+          { cwd: repoRoot, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 }
+        );
+        if (capture.status !== 0 || capture.signal || capture.error) {
+          throw new Error(
+            `Capture failed for ${entry.attemptId} analysis ${analysis.analysisIndex + 1}: `
+            + `${capture.error?.message || capture.stderr || capture.signal || capture.status}`
+          );
+        }
+      }
+    } finally {
+      await stopOwnedProcess(vite);
     }
   }
-} finally {
-  await stopOwnedProcess(vite);
 }
 
-const rows = reviewPlan.entries.map((entry) => {
-  const viewer = path.relative(
-    outputRoot,
-    path.join(
-      outputRoot,
-      entry.attemptId,
-      `analysis-${entry.analysisIndex + 1}`,
-      'replay-viewer.html'
-    )
-  ).split(path.sep).join('/');
-  return `<tr>
-    <td>${escapeHtml(entry.attemptId)}</td>
-    <td>${escapeHtml(entry.sentence)}</td>
-    <td>${escapeHtml(entry.framework)}</td>
-    <td>${escapeHtml(entry.model.label)}</td>
-    <td>Parse ${entry.analysisIndex + 1}</td>
-    <td><a href="${escapeHtml(viewer)}">Open Replay</a></td>
-  </tr>`;
-}).join('\n');
+const loadRawOutput = (artifactPath, receipt) => {
+  const bytes = fs.readFileSync(path.join(runRoot, artifactPath));
+  const text = bytes.toString('utf8');
+  const isUtf8 = Buffer.from(text, 'utf8').equals(bytes);
+  return {
+    encoding: isUtf8 ? 'utf8' : 'base64',
+    ...(isUtf8 ? { text } : { base64: bytes.toString('base64') }),
+    byteLength: bytes.byteLength,
+    sha256: receipt.rawOutput.sha256
+  };
+};
 
-const html = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Babel contract qualification review</title>
-  <style>
-    body { margin: 0; padding: 32px; color: #dffcf2; background: #06110e; font: 15px/1.5 system-ui, sans-serif; }
-    main { max-width: 1200px; margin: 0 auto; }
-    h1 { font-size: 26px; letter-spacing: 0; }
-    p { color: #9cc7b9; }
-    table { width: 100%; border-collapse: collapse; margin-top: 24px; }
-    th, td { padding: 12px; border-bottom: 1px solid #17483b; text-align: left; vertical-align: top; }
-    th { color: #73e3be; font-size: 12px; text-transform: uppercase; }
-    a { color: #7df1c9; font-weight: 750; }
-  </style>
-</head>
-<body><main>
-  <h1>Contract qualification review</h1>
-  <p>Provider-free plumbing proof. These are fixture responses, not qualification items or model results.</p>
-  <table>
-    <thead><tr><th>Attempt</th><th>Sentence</th><th>Framework</th><th>Model setting</th><th>Analysis</th><th>Viewer</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-</main></body>
-</html>`;
-fs.writeFileSync(path.join(outputRoot, 'index.html'), html, 'utf8');
+const reviewData = {
+  schemaVersion: 1,
+  runReceipt,
+  attempts: reviewManifest.entries.map((entry) => {
+    const receipt = readJson(path.join(runRoot, entry.receipt));
+    const normalizedRecord = entry.bundle
+      ? readJson(path.join(runRoot, entry.bundle))
+      : null;
+    return {
+      attemptId: entry.attemptId,
+      sentence: entry.sentence,
+      framework: entry.framework,
+      model: entry.model,
+      outcome: entry.outcome,
+      receipt,
+      rawOutput: loadRawOutput(entry.rawOutput, receipt),
+      normalizedRecord,
+      analyses: entry.analyses.map((analysis) => {
+        const replay = readJson(path.join(runRoot, analysis.replay));
+        const evidence = readJson(path.join(runRoot, analysis.evidence));
+        const captureRoot = path.join(
+          outputRoot,
+          entry.attemptId,
+          `analysis-${analysis.analysisIndex + 1}`
+        );
+        const frameFiles = fs.existsSync(captureRoot)
+          ? fs.readdirSync(captureRoot)
+            .filter((name) => /^replay-\d+\.png$/u.test(name))
+            .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+          : [];
+        if (frameFiles.length > 0 && frameFiles.length !== evidence.replay.frameCount) {
+          throw new Error(
+            `Capture count mismatch for ${entry.attemptId} analysis ${analysis.analysisIndex + 1}: `
+            + `${frameFiles.length} image(s) for ${evidence.replay.frameCount} Replay frame(s).`
+          );
+        }
+        return {
+          analysisIndex: analysis.analysisIndex,
+          replay,
+          evidence,
+          capture: {
+            available: frameFiles.length > 0,
+            frames: frameFiles.map((name) => relativeWebPath(
+              outputRoot,
+              path.join(captureRoot, name)
+            ))
+          }
+        };
+      })
+    };
+  })
+};
+
+fs.writeFileSync(
+  path.join(outputRoot, 'index.html'),
+  buildQualificationReviewHtml(reviewData),
+  'utf8'
+);
 
 const artifactFiles = collectFiles(outputRoot)
   .filter((filePath) => path.basename(filePath) !== 'review-receipt.json')
   .map((filePath) => {
     const bytes = fs.readFileSync(filePath);
     return {
-      path: path.relative(outputRoot, filePath).split(path.sep).join('/'),
+      path: relativeWebPath(outputRoot, filePath),
       byteLength: bytes.byteLength,
       sha256: sha256(bytes)
     };
@@ -201,7 +233,12 @@ const receiptBase = {
   schemaVersion: 1,
   runReceiptSha256: sha256(runReceiptBytes),
   providerCallsMade: false,
-  analysisCount: reviewPlan.entries.length,
+  attemptCount: reviewData.attempts.length,
+  analysisCount: reviewData.attempts.reduce(
+    (count, attempt) => count + attempt.analyses.length,
+    0
+  ),
+  visualCaptureMade: Boolean(browserPath),
   artifacts: artifactFiles
 };
 const reviewReceipt = {

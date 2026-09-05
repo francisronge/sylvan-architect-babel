@@ -1,0 +1,92 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import test from 'node:test';
+
+const repoRoot = path.resolve(import.meta.dirname, '..');
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+const runScript = (script, args) => {
+  const result = spawnSync(process.execPath, [script, ...args], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 20 * 1024 * 1024
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+};
+
+test('the provider-free review preserves success, repair, and failure evidence', () => {
+  const runRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-qualification-review-'));
+  try {
+    runScript('scripts/buildContractQualificationDryRun.mjs', ['--out', runRoot]);
+    runScript('scripts/buildContractQualificationReview.mjs', ['--run', runRoot]);
+
+    const manifest = readJson(path.join(runRoot, 'review-manifest.json'));
+    assert.equal(manifest.entries.length, 5);
+
+    const valid = manifest.entries.find(({ attemptId }) => (
+      attemptId === 'smoke-what-did-mia-see-xbar'
+    ));
+    assert.equal(valid.outcome.status, 'valid-pending-review');
+    assert.equal(valid.analyses.length, 1);
+    const evidence = readJson(path.join(runRoot, valid.analyses[0].evidence));
+    const replay = readJson(path.join(runRoot, valid.analyses[0].replay));
+    assert.equal(evidence.replay.frameCount, replay.stepCount);
+    assert.deepEqual(evidence.renderer.tierCounts, { tier1: 2, tier2: 0, tier3: 0 });
+    assert.deepEqual(
+      evidence.replay.frames.map(({ frameIndex }) => frameIndex),
+      Array.from({ length: evidence.replay.frameCount }, (_, index) => index)
+    );
+
+    const repaired = manifest.entries.find(({ attemptId }) => (
+      attemptId === 'smoke-repaired-mia-laughed-xbar'
+    ));
+    const repairedReceipt = readJson(path.join(runRoot, repaired.receipt));
+    assert.equal(repaired.outcome.status, 'valid-pending-review');
+    assert.equal(
+      repairedReceipt.ingress.repairDiagnostics[0].kind,
+      'append_closers_at_end_of_output'
+    );
+    assert.equal(repairedReceipt.ingress.repairDiagnostics[0].insertedText, '}');
+
+    const malformed = manifest.entries.find(({ attemptId }) => (
+      attemptId === 'smoke-malformed-json'
+    ));
+    const malformedReceipt = readJson(path.join(runRoot, malformed.receipt));
+    const malformedBytes = fs.readFileSync(path.join(runRoot, malformed.rawOutput));
+    assert.equal(malformed.outcome.status, 'failed');
+    assert.equal(malformed.outcome.phase, 'json-ingress');
+    assert.equal(malformed.analyses.length, 0);
+    assert.equal(malformedReceipt.rawOutput.sha256, sha256(malformedBytes));
+
+    const wrongEnvelope = manifest.entries.find(({ attemptId }) => (
+      attemptId === 'smoke-wrong-envelope'
+    ));
+    assert.equal(wrongEnvelope.outcome.status, 'failed');
+    assert.equal(wrongEnvelope.outcome.phase, 'normalization');
+
+    const html = fs.readFileSync(path.join(runRoot, 'review', 'index.html'), 'utf8');
+    assert.match(html, /id="frame-scrubber"/u);
+    assert.match(html, /Raw response/u);
+    assert.match(html, /Tier coverage/u);
+    assert.match(html, /smoke-malformed-json/u);
+    assert.match(html, /smoke-wrong-envelope/u);
+    assert.match(html, /class="replay-view"/u);
+    assert.match(html, /class="select attempt-select"/u);
+    assert.doesNotMatch(html, /<aside/u);
+    assert.doesNotMatch(html, /class="heading"/u);
+    assert.doesNotMatch(html, /class="tabs"/u);
+
+    const reviewReceipt = readJson(path.join(runRoot, 'review', 'review-receipt.json'));
+    assert.equal(reviewReceipt.providerCallsMade, false);
+    assert.equal(reviewReceipt.visualCaptureMade, false);
+    assert.equal(reviewReceipt.attemptCount, 5);
+    assert.equal(reviewReceipt.analysisCount, 3);
+  } finally {
+    fs.rmSync(runRoot, { recursive: true, force: true });
+  }
+});
