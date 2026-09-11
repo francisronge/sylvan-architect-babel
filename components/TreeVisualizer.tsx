@@ -1,8 +1,13 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
+import { availableTreeViewport, linearizationViewport } from './treeViewport';
+import { buildStageCameraBounds, treeLayoutSize } from '../replay/stageCamera.ts';
+import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
+import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
   MOVEMENT_ARC_STROKE,
@@ -21,7 +26,7 @@ import {
   buildRenderableCommittedCanvasData,
   buildRenderableDerivationCanvasData,
   buildReplayDisplayDetailBlocks,
-  buildReplaySupportLines,
+  buildReplayPanelContent,
   buildResolvedLinkOperatorVariableIndexMap,
   buildResolvedLinkRawTraceAliasMap,
   buildResolvedLinkTraceIndexMap,
@@ -31,7 +36,6 @@ import {
   extractMovementIndex,
   findParentLabelInForest,
   formatOperationLabel,
-  formatPlaybackOperationTitle,
   formatReplayBlockLine,
   formatReplayBlockTitle,
   formatIndexedSurfaceForDisplayValue,
@@ -46,8 +50,8 @@ import {
   isHeadLikeResolvedRelation,
   isNullLike,
   isOvertLeafNode,
-  isRenderableTerminalSurface,
-  isStructuralCategorySurface,
+  isPronouncedHierLeaf,
+  isWordlessCategoryLeaf,
   isSyntheticWorkspaceRootNode,
   isTraceLike,
   isUnderTriangulation,
@@ -69,10 +73,13 @@ import {
 } from '../replay/replayCompiler.ts';
 import {
   compileRelationRenderPlan,
+  resolveDisplayedTrajectoryAttachments,
   planItemOwnsRelationMoment,
   planItemRelationRefs,
   planItemDependencyNodeIds,
   type RelationRenderPlan,
+  type DirectedPathPlanItem,
+  type NodePlaquePlanItem,
   type RelationPlanItem
 } from '../replay/relations/renderPlanCompiler.ts';
 import {
@@ -128,6 +135,40 @@ import {
   type AnalysisVerdictAnchor,
   type Rect
 } from '../replay/relations/overlayGeometry.ts';
+import { nativeLinearizationPlateHeight } from '../replay/relations/nativeDrawingContent.ts';
+
+const withPlaqueTextMeasure = <T,>(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  useMeasure: (measure: PlaqueTextMeasure) => T
+): T => {
+  const text = svg.append('text').attr('visibility', 'hidden')
+    .attr('aria-hidden', 'true').attr('x', 0).attr('y', 0).style('white-space', 'pre');
+  try {
+    return useMeasure((value, style) => {
+      text.style('font-family', style.fontFamily).style('font-size', `${style.fontSize}px`)
+        .style('font-weight', style.fontWeight).style('letter-spacing', `${style.letterSpacing}px`).text(value);
+      const element = text.node()!;
+      const box = element.getBBox();
+      return { width: Math.max(element.getComputedTextLength(), box.x + box.width), ascent: Math.max(0, -box.y), descent: Math.max(0, box.y + box.height) };
+    });
+  } finally {
+    text.remove();
+  }
+};
+
+const drawPlaqueText = (
+  parent: d3.Selection<SVGGElement, unknown, null, undefined>,
+  block: PlaqueTextBlock,
+  className: string,
+  origin = { x: 0, y: 0 }
+) => {
+  const text = parent.append('text').attr('class', className)
+    .style('font-family', block.style.fontFamily).style('font-size', `${block.style.fontSize}px`)
+    .style('font-weight', block.style.fontWeight).style('letter-spacing', `${block.style.letterSpacing}px`)
+    .style('white-space', 'pre').attr('xml:space', 'preserve');
+  block.lines.forEach(line => text.append('tspan')
+    .attr('x', origin.x + line.x).attr('y', origin.y + line.y).text(line.text));
+};
 
 interface TreeVisualizerProps {
   data: SyntaxNode;
@@ -158,11 +199,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const replayHeaderRef = useRef<HTMLDivElement>(null);
+  const replayPanelRef = useRef<HTMLDivElement>(null);
+  const [uiBounds, setUiBounds] = useState({ top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity });
+  const manualCameraRef = useRef<{ data: SyntaxNode; signature: string; width: number; height: number; transform: d3.ZoomTransform } | null>(null);
   const relationPointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const relationHoverResolutionFrameRef = useRef<number | null>(null);
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
+  const [fitRevision, setFitRevision] = useState(0);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -172,11 +218,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const settle = () => {
       if (!cancelled) setFontLayoutPass((pass) => pass + 1);
     };
-    const timer = window.setTimeout(settle, 900);
     document.fonts?.ready.then(settle);
+    document.fonts?.addEventListener('loadingdone', settle);
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      document.fonts?.removeEventListener('loadingdone', settle);
     };
   }, []);
   const replayDerivationFrames = useMemo(
@@ -422,13 +468,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ), [traceDisplayFrame, traceDisplayFrameIndex, traceDisplayRelationLinks]);
   const isFinalDerivationReplayStep = usesDerivationFrames
     && activeStepIndex >= playbackSteps.length - 1;
-  const overtSurfaceSet = useMemo(() => {
-    const tokens = tokenizeReplaySentenceSurface(sentence)
-      .map((token) => normalizeToken(token))
-      .filter(Boolean);
-    return tokens.length > 0 ? new Set(tokens) : null;
-  }, [sentence]);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const target = window as any;
@@ -481,6 +520,62 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!Array.isArray(nodeIds) || nodeIds.length === 0) return null;
     return new Set(nodeIds.map((id) => String(id || '').trim()).filter(Boolean));
   }, [activeDerivationReplayStep, usesDerivationFrames]);
+  const acceptedCompositionIsTreeFirst = (relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []).some((item) =>
+    item.familyId === 'copy.multiple-pronunciation'
+    || item.familyId === 'copy.partial-deletion'
+    || item.familyId === 'multidominance.shared-node'
+    || item.familyId === 'argument-sharing.domains'
+    || item.familyId === 'pf.phrasal-spellout'
+    || item.familyId === 'pf.correspondence'
+    || item.familyId === 'pf.fission'
+    || item.familyId === 'pf.impoverishment'
+    || item.familyId === 'pf.local-dislocation'
+    || item.familyId === 'pf.cyclic-linearization'
+    || item.familyId === 'cooper-storage.ledger'
+    || item.familyId === 'scope.operator-variable'
+    || item.familyId === 'accord.link'
+    || item.familyId === 'accord.strong-npi'
+    || item.familyId === 'focus.prominence'
+    || item.familyId === 'focus.f-projection'
+    || item.familyId === 'theta.grid');
+  const stageCameraBounds = useMemo(() => {
+    if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
+    return buildStageCameraBounds({
+      steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
+      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
+      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst
+    });
+  }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
+    playbackSteps, relationRenderPlan, dimensions, abstractionMode,
+    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst]);
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const controls = Array.from<HTMLElement>(container.closest('[data-babel-workspace]')?.querySelectorAll<HTMLElement>('[data-babel-tree-controls]') || []);
+    const measure = () => {
+      const canvas = container.getBoundingClientRect();
+      const next = { top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity };
+      controls.forEach((element) => {
+        if (element.getAttribute('aria-hidden') === 'true' || !element.getClientRects().length) return;
+        const rect = element.getBoundingClientRect();
+        if (element.dataset.babelTreeControls === 'right') next.right = Math.max(next.right, canvas.right - rect.left + 12);
+        if (element.dataset.babelTreeControls === 'bottom') next.bottom = Math.max(next.bottom, canvas.bottom - rect.top + 12);
+        if (element.dataset.babelTreeControls === 'top') next.top = Math.max(next.top, rect.bottom - canvas.top + 12);
+      });
+      next.headerBottom = replayHeaderRef.current ? replayHeaderRef.current.getBoundingClientRect().bottom - canvas.top : 0;
+      next.panelTop = replayPanelRef.current ? replayPanelRef.current.getBoundingClientRect().top - canvas.top : Infinity;
+      setUiBounds(previous => Object.keys(next).every(key => Math.abs(next[key as keyof typeof next] - previous[key as keyof typeof next]) < 0.5 || next[key as keyof typeof next] === previous[key as keyof typeof next]) ? previous : next);
+    };
+    const observer = new ResizeObserver(measure);
+    [container, replayHeaderRef.current, replayPanelRef.current, ...controls].forEach(element => { if (element) observer.observe(element); });
+    controls.forEach(element => element.addEventListener('transitionend', measure));
+    measure();
+    return () => {
+      observer.disconnect();
+      controls.forEach(element => element.removeEventListener('transitionend', measure));
+    };
+  });
   useEffect(() => {
     if (!containerRef.current) return;
     const observeTarget = containerRef.current;
@@ -723,6 +818,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
+    svg.attr('data-babel-rendered-step', null);
 
     const { width: containerWidth, height: containerHeight } = dimensions;
     const clonedCanvasData = cloneSyntaxTree(canvasData);
@@ -737,12 +833,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     }
 
     const nodeCount = rootHierarchy.descendants().length;
-    const width = Math.max(containerWidth * 1.5, nodeCount * 180);
-    const height = Math.max(containerHeight, (maxDepth + 2) * 220);
-    
-    const margin = { top: 120, right: 300, bottom: 400, left: 300 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    const [innerWidth, innerHeight] = treeLayoutSize(nodeCount, maxDepth, containerWidth, containerHeight);
 
     const g = svg.attr('width', '100%').attr('height', '100%').append('g');
 
@@ -760,6 +851,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .scaleExtent([0.05, 10])
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
+        if (event.sourceEvent) {
+          manualCameraRef.current = { data, signature: derivationStagesSignature, width: containerWidth, height: containerHeight, transform: event.transform };
+        }
         // Overlay markers keep a stable screen size: their world position is
         // carried on data attributes and their local scale counteracts zoom.
         g.selectAll<SVGGElement, unknown>('.vr-overlay-marker').attr('transform', function () {
@@ -797,15 +891,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         if (!child) return;
         if (isSyntheticWorkspaceRootNode(node) || isSyntheticWorkspaceRootNode(child)) return;
         const childHasChildren = Array.isArray(child.children) && child.children.length > 0;
-        const surface = resolveLeafSurface(child);
-        const isTerminalLeaf =
-          !childHasChildren
-          && Boolean(surface)
-          && (
-            isTraceLike(surface)
-            || isNullLike(surface)
-            || !isStructuralCategorySurface(surface)
-          );
+        const isTerminalLeaf = !childHasChildren && !isWordlessCategoryLeaf(child.data);
         if (isTerminalLeaf) {
           child.x = node.x;
         }
@@ -952,10 +1038,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const current = stack.shift() as HierNode;
         const children = current.children || [];
         if (children.length === 0) {
-          const surface = resolveLeafSurface(current);
-          if (isRenderableTerminalSurface(surface, overtSurfaceSet) && !isTraceLike(surface) && !isNullLike(surface)) {
-            return current;
-          }
+          if (isPronouncedHierLeaf(current)) return current;
           continue;
         }
         stack.unshift(...children);
@@ -1049,9 +1132,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
       if (!targetSurface) return;
 
-      const targetIsRenderableTerminal = isRenderableTerminalSurface(targetSurface, overtSurfaceSet)
-        || isTraceLike(targetSurface)
-        || isNullLike(targetSurface);
+      const targetIsRenderableTerminal = !isWordlessCategoryLeaf(arrow.target.data as SyntaxNode);
       if (!targetIsRenderableTerminal) return;
 
       terminalMorph.set(targetId, {
@@ -1183,10 +1264,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       })
       .style('transition', 'opacity 260ms ease');
 
-    // 3. CATEGORY LABELS (Internal Nodes) - PURE WHITE
+    // Wordless categories keep category geometry, even when authored silent.
     const categories = nodeGroups.filter((d) =>
       (Boolean(d.children) && d.children.length > 0) || shouldExpandPreterminalLeaf(d.data)
+        || isWordlessCategoryLeaf(d.data)
     );
+    const categoryInk = (d: HierNode) =>
+      isWordlessCategoryLeaf(d.data) && isReplaySilentTerminalLeaf(d) ? SILENT_SAGE : PURE_WHITE;
     categories.append('text')
       .attr('class', 'category-label')
       .attr('data-category-node-id', (d) => getNodeId(d))
@@ -1194,8 +1278,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .attr('text-anchor', 'middle')
       .attr('font-size', '42px') // Slightly reduced to balance visuals
       .attr('font-weight', '900')
-      .attr('fill', PURE_WHITE)
-      .style('fill', PURE_WHITE, 'important')
+      .attr('fill', categoryInk)
+      .style('fill', categoryInk, 'important')
+      .style('font-style', 'normal')
       .style('font-family', 'Quicksand, sans-serif')
       .style('paint-order', 'stroke')
       .style('stroke', '#020806')
@@ -1203,8 +1288,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .text(d => d.data.label);
 
     // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
-    const leafNodes = nodeGroups.filter(d => !d.children || d.children.length === 0);
-    const movementTerminalIds = new Set(Array.from(terminalMorphRef.current.keys()));
+    const leafNodes = nodeGroups.filter(d => (!d.children || d.children.length === 0)
+      && !isWordlessCategoryLeaf(d.data));
     const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(clonedCanvasData);
     const maybeCapitalizeSurfacedSentenceInitialLeaf = (node: HierNode, value: string): string => {
       const trimmed = String(value || '').trim();
@@ -1303,22 +1388,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         hasNominalComplement: replayDeterminerHasNominalComplement(node)
       });
     };
-    const isReplayAuthoredWordLeaf = (node: HierNode): boolean => {
-      if (!usesDerivationFrames) return false;
-      let current: HierNode | null = node;
-      while (current) {
-        if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) return false;
-        current = current.parent;
-      }
-      const word = String((node.data as SyntaxNode)?.word || '').trim();
-      const surface = resolveLeafSurface(node);
-      return Boolean(word)
-        && Boolean(surface)
-        && !isTraceLike(surface)
-        && !isNullLike(surface)
-        && !isStructuralCategorySurface(surface);
-    };
-    const isReplaySilentTerminalLeaf = (node: HierNode): boolean => {
+    function isReplaySilentTerminalLeaf(node: HierNode): boolean {
+      if (isPronouncedHierLeaf(node)) return false;
       const surface = resolveLeafSurface(node);
       if (isTraceLike(surface) || isNullLike(surface)) return true;
       let current: HierNode | null = node;
@@ -1327,7 +1398,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         current = current.parent;
       }
       return false;
-    };
+    }
     const getMovementCopyTraceIndex = (d: HierNode): string => {
       const arrowTraceIndex = movedFromCopyTraceIndexByTerminalId.get(getNodeId(d));
       if (arrowTraceIndex) return arrowTraceIndex;
@@ -1337,30 +1408,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         resolveTraceIndexFromNodeContext(d, derivationTraceIndexByNodeId)
       );
     };
-    const abstractLeaves = leafNodes.filter((d) => {
-      const nodeId = getNodeId(d);
-      const surface = resolveLeafSurface(d);
-      return !movementTerminalIds.has(nodeId)
-        && !isReplayAuthoredWordLeaf(d)
-        && !isOvertLeafNode(d, overtSurfaceSet)
-        && !isTraceLike(surface)
-        && !isNullLike(surface)
-        && !isReplaySilentTerminalLeaf(d);
-    });
-    const terminals = leafNodes.filter((d) => {
-      const nodeId = getNodeId(d);
-      const surface = resolveLeafSurface(d);
-      const canRenderAsTerminal = !isStructuralCategorySurface(surface)
-        || isTraceLike(surface)
-        || isNullLike(surface)
-        || isOvertLeafNode(d, overtSurfaceSet);
-      return (movementTerminalIds.has(nodeId) && canRenderAsTerminal)
-        || isReplayAuthoredWordLeaf(d)
-        || isReplaySilentTerminalLeaf(d)
-        || isOvertLeafNode(d, overtSurfaceSet)
-        || isTraceLike(surface)
-        || isNullLike(surface);
-    });
+    // Every leaf that is not a wordless category is terminal material: a
+    // pronounced word, a silent copy, or authored notation.
+    const terminals = leafNodes;
     const overtTerminals = terminals.filter((d) => {
       return !isRenderedReplaySilentTerminalLeaf(d);
     });
@@ -1450,8 +1500,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .style('fill', fill, 'important')
       .text(d => getReplayRenderedTerminalText(d));
 
-    // Pronounced leaves stay emerald; silent and abstract leaves stay muted.
-    appendTerminalText(abstractLeaves, SILENT_SAGE);
+    // Pronounced leaves stay emerald; silent leaves stay muted.
     appendTerminalText(overtTerminals, TARGET_EMERALD);
     appendTerminalText(silentTerminals, SILENT_SAGE);
     g.selectAll<SVGTextElement, HierNode>('.terminal-label')
@@ -1476,9 +1525,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     // Vertical dashed connection for leaf nodes
     terminals.append('line')
-      .attr('x1', 0).attr('y1', 20).attr('x2', 0).attr('y2', 65)
-      .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
-    abstractLeaves.append('line')
       .attr('x1', 0).attr('y1', 20).attr('x2', 0).attr('y2', 65)
       .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
 
@@ -1822,14 +1868,39 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         }
         return { x: anchor.x, y: anchor.y };
       };
-      const frameItems = relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? [];
+      const frameItems = (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
+        resolveDisplayedTrajectoryAttachments(item, (nodeId) => overlayNodeById.get(nodeId)?.data));
+      const displayedRelationPlan = {
+        ...relationRenderPlan,
+        frames: relationRenderPlan.frames.map((frame, index) => index === activeDerivationFrameIndex
+          ? { ...frame, items: frameItems } : frame)
+      };
       const zoomK = svgRef.current ? (d3.zoomTransform(svgRef.current).k || 1) : 1;
       // Screen-stable marker sizing, capped so far-out zoom never lets the
       // markers dwarf the tree they annotate.
       const markerScale = Math.min(1 / zoomK, 3);
       const frameMaxNodeY = d3.max([...frameLayoutById.values()], (frameNode) => frameNode.y) ?? 0;
-      const boundFrame = bindRelationPlanFrame(
-        relationRenderPlan,
+      // Share the exact displayed-notation decision between slot allocation and painting.
+      const hasExistingGapNotation = (nodeId: string, text: string): boolean => Boolean(
+        g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+          .filter(function exactGapOccurrence() {
+            return this.getAttribute('data-category-node-id') === nodeId
+              || this.getAttribute('data-node-id') === nodeId;
+          })
+          .filter(function sameGapNotation() {
+            if (!text) return false;
+            if (this.textContent === text) return true;
+            if (this.getAttribute('data-default-label') !== text) return false;
+            const index = this.getAttribute('data-trace-index');
+            const formatted = isTraceLike(text)
+              ? formatAuthoredWitnessSurface(text, index)
+              : formatIndexedSurfaceForDisplayValue(text, index);
+            return this.textContent === formatted;
+          })
+          .node()
+      );
+      const boundFrame = withPlaqueTextMeasure(svg, measurePlaqueText => bindRelationPlanFrame(
+        displayedRelationPlan,
         activeDerivationFrameIndex,
         framePositionFor,
         {
@@ -1838,6 +1909,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           badgeGap: 46,
           laneGap: 60,
           markerScale,
+          hasExistingGapNotation,
+          plaqueTextLayout: { measureText: measurePlaqueText },
           trajectoryCeilingY: measuredTreeTextTopY() - 90,
           trajectoryFloorY: frameMaxNodeY + 180,
           // Frame-stable measured baselines: connector lanes just below the
@@ -1846,7 +1919,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           connectorBaselineY: frameMaxNodeY + 130,
           railBaseY: frameMaxNodeY + 240
         }
-      );
+      ));
       const revealedItemIndices = new Set<number>();
       frameItems.forEach((planItem, planItemIndex) => {
         const superseded = playedRelationIndices === null
@@ -1929,24 +2002,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
        * once per frame and never re-fits when a relation is revealed.
        * Nominal marker scale keeps the bounds zoom-independent.
        */
-      const acceptedCompositionIsTreeFirst = frameItems.some((item) =>
-        item.familyId === 'copy.multiple-pronunciation'
-        || item.familyId === 'copy.partial-deletion'
-        || item.familyId === 'multidominance.shared-node'
-        || item.familyId === 'argument-sharing.domains'
-        || item.familyId === 'pf.phrasal-spellout'
-        || item.familyId === 'pf.correspondence'
-        || item.familyId === 'pf.fission'
-        || item.familyId === 'pf.impoverishment'
-        || item.familyId === 'pf.local-dislocation'
-        || item.familyId === 'pf.cyclic-linearization'
-        || item.familyId === 'cooper-storage.ledger'
-        || item.familyId === 'scope.operator-variable'
-        || item.familyId === 'accord.link'
-        || item.familyId === 'accord.strong-npi'
-        || item.familyId === 'focus.prominence'
-        || item.familyId === 'focus.f-projection'
-        || item.familyId === 'theta.grid');
       overlayFitBounds = acceptedCompositionIsTreeFirst
         ? null
         : boundOverlayBounds(boundFrame, { markerScale: 1 });
@@ -2176,6 +2231,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const parasiticGapCoindexLayers = new Map<string, AcceptedRelationLayer>();
       const relationLayerKey = (item: RelationPlanItem) =>
         `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`;
+      // Companion pieces share a draw; independent families within one relation do not.
+      const acceptedRelationDrawingKey = (item: RelationPlanItem) =>
+        JSON.stringify([relationLayerKey(item), item.familyId]);
       const decorateRelationElement = (
         element: SVGElement,
         item: RelationPlanItem,
@@ -2419,32 +2477,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const domainItem = relatedItems.find((candidate) =>
               candidate.kind === 'domain-mark'
               && candidate.domainStyle === 'forbidden-region');
-            const licensedPathItem = relatedItems.find((candidate) =>
+            const candidatePaths = relatedItems.filter((candidate): candidate is DirectedPathPlanItem =>
               candidate.kind === 'directed-path'
-              && candidate.pathStyle === 'anti-locality');
-            const hostItem = relatedItems.find((candidate) =>
-              candidate.kind === 'node-badges'
-              && candidate.badgeStyle === 'improper-hosts');
-            if (
-              !domainItem
-              || domainItem.kind !== 'domain-mark'
-              || !licensedPathItem
-              || licensedPathItem.kind !== 'directed-path'
-            ) return;
-            const relationAnchors = item.relationRef.anchors;
-            const firstAnchor = (role: string) => {
-              const value = relationAnchors[role];
-              return Array.isArray(value) ? value[0] || '' : value || '';
-            };
-            const sourceNodeId = firstAnchor('source');
-            const landingNodeId = firstAnchor('licensedLanding') || licensedPathItem.toNodeId;
-            const movementItem = frameItems.find((candidate) =>
-              candidate.kind === 'trajectory'
-              && candidate.sourceNodeId === sourceNodeId
-              && candidate.targetNodeId === landingNodeId);
-            if (!sourceNodeId || !landingNodeId || !movementItem || movementItem.kind !== 'trajectory') {
-              return;
-            }
+              && ['anti-locality', 'improper-candidate'].includes(candidate.pathStyle)
+              && (candidate.outcome === 'licensed' || candidate.outcome === 'blocked'));
+            if (!candidatePaths.length) return;
+            const sourceNodeId = candidatePaths[0].sourceOccurrenceNodeId || candidatePaths[0].fromNodeId;
+            if (candidatePaths.some((path) => (path.sourceOccurrenceNodeId || path.fromNodeId) !== sourceNodeId)) return;
             const unionRects = (
               rects: Array<{ x: number; y: number; width: number; height: number }>
             ) => {
@@ -2455,34 +2494,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const bottom = Math.max(...rects.map((rect) => rect.y + rect.height));
               return { x: left, y: top, width: right - left, height: bottom - top };
             };
-            const region = unionRects(
+            const region = domainItem?.kind === 'domain-mark' ? unionRects(
               domainItem.memberNodeIds
                 .map((nodeId) => measuredTreeLabelRectNow(nodeId, true))
                 .filter((rect): rect is { x: number; y: number; width: number; height: number } => Boolean(rect))
-            );
+            ) : null;
             const source = measuredTreeLabelRectNow(sourceNodeId, false)
               || measuredTreeLabelRectNow(sourceNodeId, true);
-            const actualLanding = measuredTreeLabelRectNow(landingNodeId, false);
-            if (!region || !source || !actualLanding) return;
+            if (!source) return;
 
-            const forbiddenBox = {
+            const forbiddenBox = region ? {
               x: region.x - 38,
               y: region.y - 32,
               width: region.width + 76,
               height: region.height + 64
-            };
-            const licensedHosts = hostItem?.kind === 'node-badges'
-              ? hostItem.badges.filter((badge) => badge.text === '✓').map((badge) => badge.nodeId)
-              : [];
-            const rejectedHosts = hostItem?.kind === 'node-badges'
-              ? hostItem.badges.filter((badge) => badge.text === '✗').map((badge) => badge.nodeId)
-              : [];
-            const candidates = [
-              { nodeId: landingNodeId, outcome: 'licensed' as const },
-              ...licensedHosts.map((nodeId) => ({ nodeId, outcome: 'licensed' as const })),
-              ...rejectedHosts.map((nodeId) => ({ nodeId, outcome: 'blocked' as const }))
-            ].filter((candidate, index, all) =>
-              all.findIndex((entry) => entry.nodeId === candidate.nodeId) === index)
+            } : null;
+            const candidates = candidatePaths.map((path) => ({ nodeId: path.toNodeId, outcome: path.outcome! }))
               .map((candidate) => ({
                 ...candidate,
                 rect: measuredTreeLabelRectNow(candidate.nodeId, false)
@@ -2495,6 +2522,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (candidates.length === 0) return;
 
             const { background, foreground, markerId } = ensureDomainLocalityLayers();
+            if (forbiddenBox) {
             const gradientId = `babel-improper-region-gradient-${activeDerivationFrameIndex}-${item.relationRef.relationIndex}`;
             const gradient = background.append('defs').append('linearGradient')
               .attr('id', gradientId)
@@ -2516,6 +2544,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('height', forbiddenBox.height.toFixed(1))
               .attr('opacity', emphasis === 'quiet' ? 0.3 : null)
               .style('fill', `url(#${gradientId})`);
+            }
 
             const endpoints = candidates.map((candidate) => ({
               ...candidate,
@@ -2530,7 +2559,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             };
             const laneY = Math.max(
               sourcePoint.y + 68,
-              forbiddenBox.y + forbiddenBox.height + 240,
+              forbiddenBox ? forbiddenBox.y + forbiddenBox.height + 240 : sourcePoint.y,
               ...endpoints.map((entry) => entry.point.y + 170)
             );
             const railLeft = Math.min(...endpoints.map((entry) => entry.point.x));
@@ -2550,13 +2579,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                     ? 'babel-improper-candidate-path-blocked'
                     : 'babel-improper-candidate-path-licensed'
                 ].join(' '))
+                .attr('data-candidate-node', entry.nodeId)
+                .attr('data-candidate-outcome', entry.outcome)
                 .attr('d', [
                   `M ${entry.point.x.toFixed(1)} ${laneY.toFixed(1)}`,
                   `L ${entry.point.x.toFixed(1)} ${entry.point.y.toFixed(1)}`
                 ].join(' '))
-                .attr('marker-end', `url(#${markerId})`)
+                .attr('marker-end', entry.outcome === 'blocked' ? null : `url(#${markerId})`)
                 .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
               if (entry.outcome !== 'blocked') return;
+              const crossY = forbiddenBox ? forbiddenBox.y + forbiddenBox.height : entry.point.y + 28;
               [
                 [-17, -17, 17, 17],
                 [17, -17, -17, 17]
@@ -2564,16 +2596,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 foreground.append('line')
                   .attr('class', 'babel-domain-locality-x-shadow')
                   .attr('x1', (entry.point.x + x1).toFixed(1))
-                  .attr('y1', (forbiddenBox.y + forbiddenBox.height + y1).toFixed(1))
+                  .attr('y1', (crossY + y1).toFixed(1))
                   .attr('x2', (entry.point.x + x2).toFixed(1))
-                  .attr('y2', (forbiddenBox.y + forbiddenBox.height + y2).toFixed(1))
+                  .attr('y2', (crossY + y2).toFixed(1))
                   .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
                 foreground.append('line')
                   .attr('class', 'babel-domain-locality-x')
                   .attr('x1', (entry.point.x + x1).toFixed(1))
-                  .attr('y1', (forbiddenBox.y + forbiddenBox.height + y1).toFixed(1))
+                  .attr('y1', (crossY + y1).toFixed(1))
                   .attr('x2', (entry.point.x + x2).toFixed(1))
-                  .attr('y2', (forbiddenBox.y + forbiddenBox.height + y2).toFixed(1))
+                  .attr('y2', (crossY + y2).toFixed(1))
                   .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
               });
             });
@@ -2591,8 +2623,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           && item.familyId !== 'argument-sharing.domains'
         ) return false;
         const key = relationLayerKey(item);
-        if (!scheduledAcceptedSharingRelations.has(key)) {
-          scheduledAcceptedSharingRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedSharingRelations.has(drawingKey)) {
+          scheduledAcceptedSharingRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             const root = g.node();
             if (!root) return;
@@ -2675,19 +2708,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               candidate.familyId === 'argument-sharing.domains'
               && relationLayerKey(candidate) === key);
             const domains = relatedItems.filter((candidate) => candidate.kind === 'domain-mark');
-            const roleItem = relatedItems.find((candidate) =>
-              candidate.kind === 'node-badges'
-              && candidate.badgeStyle === 'shared-object');
-            const roleLabel = roleItem?.kind === 'node-badges'
-              ? roleItem.badges[0]?.text || 'ARG'
-              : 'ARG';
-            const sharedNodeId = Array.isArray(item.relationRef.anchors.shared)
-              ? item.relationRef.anchors.shared[0]
-              : item.relationRef.anchors.shared;
-            if (domains.length < 2 || !sharedNodeId) {
+            const sharedNodeId = domains[0]?.sharedNodeId;
+            if (domains.length < 2 || !sharedNodeId
+              || domains.some((domain) => domain.sharedNodeId !== sharedNodeId)) {
               layer.remove();
               return;
             }
+            const roleItem = relatedItems.find((candidate) =>
+              candidate.kind === 'node-badges'
+              && candidate.badgeStyle === 'shared-object'
+              && candidate.badges.length === 1
+              && candidate.badges[0].nodeId === sharedNodeId);
+            const roleLabel = roleItem?.kind === 'node-badges'
+              ? roleItem.badges[0]?.text || ''
+              : '';
             const firstNodeGroup = g.select<SVGGElement>('.node-group').node();
             if (firstNodeGroup?.parentNode === root) root.insertBefore(layerNode, firstNodeGroup);
             else root.appendChild(layerNode);
@@ -2707,6 +2741,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               layer.append('ellipse')
                 .attr('class', 'babel-argument-sharing-domain')
                 .attr('data-argument-domain', String(domainIndex + 1))
+                .attr('data-shared-node', sharedNodeId)
                 .attr('cx', cx.toFixed(1))
                 .attr('cy', cy.toFixed(1))
                 .attr('rx', rx.toFixed(1))
@@ -2714,6 +2749,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('transform', `rotate(${rotation} ${cx.toFixed(1)} ${cy.toFixed(1)})`)
                 .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
             });
+            if (!roleLabel) return;
             const sharedRect = exactScreenTreeLabelRectNow(sharedNodeId, false);
             if (!sharedRect) {
               layer.remove();
@@ -2757,9 +2793,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           item.familyId !== 'pf.phrasal-spellout'
           && item.familyId !== 'pf.correspondence'
         ) return false;
-        const key = relationLayerKey(item);
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             if (item.kind !== 'node-plaque') return;
             const root = g.node();
@@ -2781,19 +2817,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             };
             const screenScale = Math.max(0.001, Math.hypot(matrix.a, matrix.b));
             const localPx = (pixels: number) => pixels / screenScale;
-            const values = item.relationRef.values || {};
-            const scalar = (name: string) => {
-              const value = values[name];
-              return Array.isArray(value) ? String(value[0] || '') : String(value || '');
-            };
-            const list = (name: string) => {
-              const value = values[name];
-              return Array.isArray(value)
-                ? value.map(String)
-                : value === undefined || value === null || value === ''
-                  ? []
-                  : [String(value)];
-            };
             const layer = g.append('g')
               .attr('class', 'babel-pf-relation-layer babel-pf-specialization-layer')
               .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
@@ -2805,7 +2828,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (item.familyId === 'pf.phrasal-spellout') {
               const phrase = item.anchorNodeIds[0];
               const categoryRect = phrase ? exactScreenTreeLabelRectNow(phrase, false) : null;
-              const exponent = scalar('exponent') || item.title || '';
+              const exponent = item.title || '';
               if (!categoryRect || !exponent) {
                 layer.remove();
                 return;
@@ -2822,16 +2845,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
             const anchor = item.anchorNodeIds[0];
             const anchorRect = anchor ? exactScreenTreeLabelRectNow(anchor, true) : null;
-            const sources = list('sources');
-            const exponents = list('exponents');
-            const correspondence = list('correspondence').flatMap((entry) => {
-              const separator = entry.indexOf('=>');
-              if (separator < 1 || separator >= entry.length - 2) return [];
-              return [{
-                source: entry.slice(0, separator).trim(),
-                exponent: entry.slice(separator + 2).trim()
-              }];
-            });
+            const content = item.nativeContent;
+            if (content?.kind !== 'correspondence') { layer.remove(); return; }
+            const { sources, exponents, links: correspondence } = content;
             if (!anchorRect || sources.length === 0 || exponents.length === 0) {
               layer.remove();
               return;
@@ -2862,21 +2878,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .style('font-size', `${localPx(9)}px`)
               .text('LEXICAL REPRESENTATION');
             const positions = (labels: string[], y: number, sidePaddingPx: number) =>
-              new Map(labels.map((label, index) => [
-                label,
-                {
+              labels.map((label, index) => ({
+                  label,
                   x: origin.x + localPx(sidePaddingPx)
                     + (labels.length === 1
                       ? (width - localPx(sidePaddingPx * 2)) / 2
                       : index * (width - localPx(sidePaddingPx * 2)) / (labels.length - 1)),
                   y
-                }
-              ]));
+              }));
             const sourcePositions = positions(sources, origin.y + localPx(49), 38);
             const exponentPositions = positions(exponents, origin.y + localPx(128), 50);
             correspondence.forEach((link) => {
-              const from = sourcePositions.get(link.source);
-              const to = exponentPositions.get(link.exponent);
+              const from = sourcePositions[link.sourceIndex];
+              const to = exponentPositions[link.exponentIndex];
               if (!from || !to) return;
               layer.append('line')
                 .attr('class', 'babel-pf-correspondence-link')
@@ -2899,11 +2913,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .style('font-size', `${localPx(pixels)}px`)
               .style('stroke-width', `${localPx(2.5)}px`)
               .text(label);
-            sourcePositions.forEach((point, label) => {
-              appendLabel('babel-pf-correspondence-source', label, point, 13);
+            sourcePositions.forEach((point) => {
+              appendLabel('babel-pf-correspondence-source', point.label, point, 13);
             });
-            exponentPositions.forEach((point, label) => {
-              appendLabel('babel-pf-correspondence-exponent', label, point, 13);
+            exponentPositions.forEach((point) => {
+              appendLabel('babel-pf-correspondence-exponent', point.label, point, 13);
             });
             const fittedLayer = layer.node();
             if (fittedLayer) fitDeferredOverlayToCompactViewport(fittedLayer);
@@ -2920,9 +2934,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           && item.familyId !== 'pf.impoverishment'
           && item.familyId !== 'pf.local-dislocation'
         ) return false;
-        const key = relationLayerKey(item);
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             if (item.kind !== 'node-plaque') return;
             const root = g.node();
@@ -2942,19 +2956,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             };
             const screenScale = Math.max(0.001, Math.hypot(matrix.a, matrix.b));
             const localPx = (pixels: number) => pixels / screenScale;
-            const values = item.relationRef.values || {};
             const scalar = (name: string) => {
-              const value = values[name];
-              return Array.isArray(value) ? String(value[0] || '') : String(value || '');
+              return item.rows.find((row) => row.label === name)?.value || '';
             };
-            const list = (name: string) => {
-              const value = values[name];
-              return Array.isArray(value)
-                ? value.map(String)
-                : value === undefined || value === null || value === ''
-                  ? []
-                  : [String(value)];
-            };
+            const list = (name: string) => item.rows.filter((row) => row.label === name).map((row) => row.value);
             const displayLabelForAnchor = (nodeId: string) => {
               const anchor = overlayNodeById.get(nodeId);
               if (!anchor) return nodeId;
@@ -2962,8 +2967,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .filter((candidate) => (candidate.children || []).length === 0)
                 .map((candidate) => resolveLeafSurface(candidate as unknown as HierNode).trim())
                 .filter((surface) => surface && surface !== '∅' && !/^\[.*\]$/.test(surface));
-              const unique = surfaces.filter((surface, index) => surfaces.indexOf(surface) === index);
-              return unique.join(' ') || String(anchor.data.word || anchor.data.label || nodeId);
+              return surfaces.join(' ') || String(anchor.data.word || anchor.data.label || nodeId);
             };
             const layer = g.append('g')
               .attr('class', 'babel-pf-morphology-relation-layer')
@@ -3018,13 +3022,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             }
 
             if (item.familyId === 'pf.fission') {
-              if (item.anchorNodeIds.length !== 2
+              const content = item.nativeContent;
+              if (content?.kind !== 'fission' || item.anchorNodeIds.length !== 2
                 || !exactScreenTreeLabelRectForNodeIdsNow(item.anchorNodeIds)) {
                 layer.remove();
                 return;
               }
               const widthPx = 300;
-              const heightPx = 112;
+              const bundleRows = Math.max(content.inputFeatures.length, ...content.outputFeatures.map((rows) => rows.length));
+              const heightPx = Math.max(112, 64 + (bundleRows - 1) * 10.5);
               const width = localPx(widthPx);
               const height = localPx(heightPx);
               const replayPanelRect = containerRef.current
@@ -3081,7 +3087,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                     .attr('x', x.toFixed(1))
                     .attr('y', (origin.y + localPx(30)).toFixed(1))
                     .attr('width', localPx(bundleWidthPx).toFixed(1))
-                    .attr('height', localPx(72).toFixed(1))
+                    .attr('height', localPx(heightPx - 40).toFixed(1))
                     .attr('rx', localPx(4).toFixed(1)),
                   1
                 );
@@ -3102,7 +3108,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   );
                 });
               };
-              drawBundle(10, 'PRIOR TERMINAL', list('inputFeatures'), 82);
+              drawBundle(10, 'PRIOR TERMINAL', content.inputFeatures, 82);
               setScreenFont(
                 appendText(layer, 'babel-fission-arrow', origin.x + localPx(98), origin.y + localPx(72), '→'),
                 14
@@ -3110,26 +3116,27 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               drawBundle(
                 112,
                 displayLabelForAnchor(item.anchorNodeIds[0]),
-                list('outputOneFeatures'),
+                content.outputFeatures[0],
                 82
               );
               drawBundle(
                 208,
                 displayLabelForAnchor(item.anchorNodeIds[1]),
-                list('outputTwoFeatures'),
+                content.outputFeatures[1],
                 82
               );
               return;
             }
 
             if (item.familyId === 'pf.impoverishment') {
-              const features = list('featureHierarchy');
-              if (features.length < 2 || !item.anchorNodeIds[0]) {
+              const content = item.nativeContent;
+              if (content?.kind !== 'impoverishment' || !item.anchorNodeIds[0]) {
                 layer.remove();
                 return;
               }
+              const { features, delinkIndex } = content;
               const width = 450;
-              const height = 252;
+              const height = Math.max(252, 120 + (features.length - 1) * 56);
               const origin = {
                 x: Math.max(viewport.left, Math.min(rootRect.x + rootRect.width + 48, viewport.right - width)),
                 y: Math.max(
@@ -3149,7 +3156,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const inputX = origin.x + 112;
               const firstY = origin.y + 88;
               const featureGap = 56;
-              const delinkIndex = Math.max(0, features.indexOf(scalar('delinkAfter')));
               features.forEach((feature, index) => {
                 const y = firstY + index * featureGap;
                 appendText(layer, 'babel-impoverishment-feature', inputX, y, feature);
@@ -3276,9 +3282,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const anchorSetItem = frameItems.find((candidate) =>
           candidate.kind === 'anchor-set'
           && relationLayerKey(candidate) === key);
-        if (!cyclicItem || !anchorSetItem || anchorSetItem.kind !== 'anchor-set') return false;
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        if (cyclicItem?.kind !== 'node-plaque' || cyclicItem.nativeContent?.kind !== 'linearization') return false;
+        const content = cyclicItem.nativeContent;
+        const drawingKey = acceptedRelationDrawingKey(cyclicItem);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             const root = g.node();
             const matrix = root?.getScreenCTM();
@@ -3293,32 +3301,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               getNodeId(treeData as unknown as HierNode),
               true
             );
-            const visibleTreeClientRects = g
-              .selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
-              .nodes()
-              .filter((label) => {
-                const nodeGroup = label.closest('.node-group');
-                const style = nodeGroup ? getComputedStyle(nodeGroup) : getComputedStyle(label);
-                return style.display !== 'none'
-                  && style.visibility !== 'hidden'
-                  && Number(style.opacity || 1) > 0.1;
-              })
-              .map((label) => label.getBoundingClientRect())
-              .filter((rect) => rect.width > 0 || rect.height > 0);
-            const treeClientRight = visibleTreeClientRects.length > 0
-              ? Math.max(...visibleTreeClientRects.map((rect) => rect.right))
-              : null;
-            const displayLabelForAnchor = (nodeId: string) => {
-              const anchor = overlayNodeById.get(nodeId);
-              if (!anchor) return nodeId;
-              const surfaces = anchor.descendants()
-                .filter((candidate) => (candidate.children || []).length === 0)
-                .map((candidate) => resolveLeafSurface(candidate as unknown as HierNode).trim())
-                .filter((surface) => surface && surface !== '∅' && !/^\[.*\]$/.test(surface));
-              const unique = surfaces.filter((surface, index) => surfaces.indexOf(surface) === index);
-              return unique.join(' ') || String(anchor.data.word || anchor.data.label || nodeId);
-            };
-            const anchorPlan = planAnchorSetLayout(
+            const anchorPlan = anchorSetItem?.kind === 'anchor-set' ? planAnchorSetLayout(
               [anchorSetItem.set],
               (nodeId) => exactScreenDirectTreeLabelRectNow(nodeId)
                 || exactScreenTreeLabelRectNow(nodeId, true),
@@ -3326,8 +3309,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 badgeOffsetY: localPx(16),
                 railGap: localPx(14)
               }
-            );
-            if (anchorPlan.badges.length > 0) {
+            ) : { badges: [], rails: [] };
+            if (anchorSetItem?.kind === 'anchor-set' && anchorPlan.badges.length > 0) {
               const anchorLayer = g.append('g')
                 .attr('class', 'babel-anchor-set-relation-layer')
                 .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
@@ -3385,52 +3368,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               });
             }
 
-            const values = cyclicItem.relationRef.values || {};
-            const flattenAnchorRole = (value: string | string[] | undefined) =>
-              (Array.isArray(value) ? value : [value])
-                .map((candidate) => String(candidate || '').trim())
-                .filter(Boolean);
-            const priorLabels = flattenAnchorRole(cyclicItem.relationRef.priorAnchors?.order)
-              .map(displayLabelForAnchor);
-            const currentLabels = flattenAnchorRole(cyclicItem.relationRef.anchors.order)
-              .map(displayLabelForAnchor);
-            const pairs = (labels: string[]) => labels.slice(0, -1).map((label, index) =>
-              `${label} < ${labels[index + 1]}`);
-            const priorPairs = pairs(priorLabels);
-            const currentPairs = pairs(currentLabels);
-            if (priorPairs.length === 0 || currentPairs.length === 0) return;
-            const outcomeValue = values.outcome;
-            const outcome = String(Array.isArray(outcomeValue) ? outcomeValue[0] || '' : outcomeValue || '');
-            const conflict = outcome === 'conflict';
-            const widthPx = Math.min(350, Math.max(240, svgRect.width - 48));
+            const { priorRows: priorPairs, currentRows: currentPairs, conflict } = content;
+            const widthPx = 350;
             const rowGapPx = 17;
-            const heightPx = 70 + Math.max(priorPairs.length, currentPairs.length) * rowGapPx;
+            const heightPx = nativeLinearizationPlateHeight(content);
             const width = localPx(widthPx);
             const height = localPx(heightPx);
-            const rightBoundedOriginX = svgRect.right - widthPx - 24;
-            const treeAdjacentOriginX = treeClientRight !== null
-              ? treeClientRight + 24
-              : rightBoundedOriginX;
-            const sideBySideMinimumWidthPx = 40 + 136 + widthPx + 260;
-            const useStackedPlacement = svgRect.width < sideBySideMinimumWidthPx
-              || treeAdjacentOriginX > rightBoundedOriginX;
-            const originClientX = useStackedPlacement
-              ? svgRect.left + (svgRect.width - widthPx) / 2
-              : Math.max(svgRect.left + 24, Math.min(rightBoundedOriginX, treeAdjacentOriginX));
-            const replayHeaderRect = useStackedPlacement
-              ? containerRef.current
-                ?.querySelector<HTMLElement>('[data-babel-replay-header="true"]')
-                ?.getBoundingClientRect()
-              : null;
-            const originClientY = useStackedPlacement && replayHeaderRect
-              ? Math.max(svgRect.top + 54, replayHeaderRect.bottom + 24)
-              : svgRect.top + 54;
+            const placement = linearizationViewport(availableTreeViewport(svgRect.width, svgRect.height, uiBounds), heightPx);
             const origin = toLocal(
-              originClientX,
-              originClientY
+              svgRect.left + placement.left,
+              svgRect.top + placement.top
             );
             const layer = g.append('g')
               .attr('class', 'babel-pf-morphology-relation-layer')
+              .attr('transform', `translate(${origin.x} ${origin.y}) scale(${placement.scale}) translate(${-origin.x} ${-origin.y})`)
               .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
             const layerNode = layer.node();
             if (layerNode) {
@@ -3503,13 +3454,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           && item.familyId !== 'focus.f-projection'
         ) return false;
         if (item.familyId === 'accord.strong-npi') {
-          const focusOperator = item.relationRef.anchors.focusOperator;
-          const focusAssociate = item.relationRef.anchors.focusAssociate;
-          if (!focusOperator || !focusAssociate) return false;
+          if (item.kind !== 'undirected-link' || item.pairs.length !== 2) return false;
         }
         const key = relationLayerKey(item);
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             const root = g.node();
             const matrix = root?.getScreenCTM();
@@ -3638,30 +3588,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('text-anchor', anchor)
               .attr('opacity', quietOpacity)
               .text(value);
-            const scalar = (name: string) => {
-              const value = item.relationRef.values?.[name];
-              return String(Array.isArray(value) ? value[0] || '' : value || '');
-            };
-            const list = (name: string) => {
-              const value = item.relationRef.values?.[name];
-              return Array.isArray(value)
-                ? value.map(String)
-                : value === undefined || value === null || value === ''
-                  ? []
-                  : [String(value)];
-            };
             const treeRect = exactScreenTreeLabelRectNow(
               getNodeId(treeData as unknown as HierNode),
               true
             );
 
             if (item.familyId === 'cooper-storage.ledger' && item.kind === 'node-plaque') {
+              const content = item.nativeContent;
+              if (content?.kind !== 'cooper-storage') return;
               const scope = item.anchorNodeIds[0];
               const rect = scope ? anchorRect(scope) : null;
               const svgRect = svg.node()?.getBoundingClientRect();
               if (!rect || !svgRect) return;
               const width = 420;
-              const height = 150;
+              const height = 12 + content.rows.length * 46;
               const preferredX = treeRect ? treeRect.x + treeRect.width + 54 : rect.x + rect.width + 54;
               const viewportRight = new DOMPoint(svgRect.right - 12, svgRect.top).matrixTransform(inverse).x;
               const x = containerWidth < 500
@@ -3682,12 +3622,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               plaque.append('path')
                 .attr('class', 'babel-cooper-storage-bracket')
                 .attr('d', `M ${x + width - 18} ${y} H ${x + width} V ${y + height} H ${x + width - 18}`);
-              const rows = [
-                ['category:', scalar('category')],
-                ['qstore:', `[${list('qstore').join(', ')}]`],
-                ['retrieved:', `[${list('retrieved').join(', ')}]`]
-              ];
-              rows.forEach(([label, value], index) => {
+              content.rows.forEach(({ label, value }, index) => {
                 plaque.append('text')
                   .attr('class', 'babel-cooper-storage-key')
                   .attr('x', (x + 34).toFixed(1))
@@ -3729,9 +3664,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('markerHeight', 18)
                 .attr('orient', 'auto');
               marker.append('path').attr('class', 'babel-accord-arrowhead').attr('d', 'M 0 0 L 10 5 L 0 10 Z');
-              const relationIndexValue = scalar('index');
-              const feature = scalar('feature');
-              const value = scalar('value');
+              const relationIndexValue = item.secondaryLabel || '';
+              const feature = item.featureRow?.label || '';
+              const value = item.featureRow?.value || '';
               const appendFeature = (x: number, y: number) => {
                 markLayer.append('rect')
                   .attr('class', 'babel-accord-index-box')
@@ -3768,22 +3703,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             }
 
             if (item.familyId === 'accord.strong-npi' && item.kind === 'undirected-link') {
-              const anchors = item.relationRef.anchors;
-              const anchorId = (role: string) => {
-                const value = anchors[role];
-                return String(Array.isArray(value) ? value[0] || '' : value || '');
-              };
-              const exhaustifierId = anchorId('licensor');
-              const npiId = anchorId('npi');
-              const onlyId = anchorId('focusOperator');
-              const associateId = anchorId('focusAssociate');
+              const [licensing, focus] = item.pairs;
+              if (!licensing || !focus) return;
+              const exhaustifierId = licensing.fromNodeId;
+              const npiId = licensing.toNodeId;
+              const onlyId = focus.fromNodeId;
+              const associateId = focus.toNodeId;
               const exhaustifier = anchorRect(exhaustifierId);
               const npi = anchorRect(npiId, true);
               const only = anchorRect(onlyId, true);
               const associate = anchorRect(associateId, true);
               if (!exhaustifier || !npi || !only || !associate || !treeRect) return;
               markPreterminalLensNode(onlyId, 'focus-operator');
-              const feature = scalar('feature');
+              const feature = item.label || '';
               const exhaustifierFeatureText = appendText(
                 'babel-strong-npi-feature-mark',
                 exhaustifier.x - 20,
@@ -3862,22 +3794,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               return;
             }
 
-            if (item.familyId === 'focus.f-projection' && item.kind === 'directed-path') {
-              const anchors = item.relationRef.anchors;
-              const accentValue = anchors.accentBearer;
-              const projectionValue = anchors.projections;
-              const accentId = String(Array.isArray(accentValue) ? accentValue[0] || '' : accentValue || '');
-              const projectionIds = (Array.isArray(projectionValue) ? projectionValue : [projectionValue])
-                .map((value) => String(value || ''))
-                .filter(Boolean);
+            if (item.familyId === 'focus.f-projection') {
+              const hops = frameItems.filter((candidate): candidate is DirectedPathPlanItem =>
+                candidate.kind === 'directed-path' && candidate.pathStyle === 'f-projection'
+                && relationLayerKey(candidate) === key);
+              if (!hops.length) return;
+              const accentId = hops[0].fromNodeId;
+              const projectionIds = hops.map((hop) => hop.toNodeId);
               const accentBearer = anchorRect(accentId, true);
-              const projectionRects = projectionIds.flatMap((nodeId) => {
-                const rect = anchorRect(nodeId, nodeId.startsWith('v_'));
+              const projectionRects = projectionIds.flatMap((nodeId, index) => {
+                const rect = anchorRect(nodeId, hops[index].projectionTargetAttachment === 'terminal');
                 return rect ? [{ nodeId, rect }] : [];
               });
               if (!accentBearer || projectionRects.length !== projectionIds.length) return;
               markPreterminalLensNode(accentId, 'focus-target');
-              const feature = scalar('feature');
+              const feature = hops[0].projectionFeature || '';
               appendText(
                 'babel-f-projection-feature',
                 accentBearer.x + accentBearer.width + 8,
@@ -3888,7 +3819,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 'babel-f-projection-accent',
                 accentBearer.x + accentBearer.width / 2,
                 accentBearer.y + accentBearer.height + 50,
-                scalar('accent'),
+                hops[0].label || '',
                 'middle'
               );
               projectionRects.forEach(({ rect }) => {
@@ -3919,6 +3850,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 const bendY = (start.y + end.y) / 2;
                 pathLayer.append('path')
                   .attr('class', 'babel-f-projection-path')
+                  .attr('data-projection-from', hops[index].fromNodeId)
+                  .attr('data-projection-to', hops[index].toNodeId)
                   .attr('marker-end', `url(#${markerId})`)
                   .attr('d', [
                     `M ${start.x.toFixed(1)} ${start.y.toFixed(1)}`,
@@ -3938,9 +3871,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         emphasis: 'active' | 'quiet' | null
       ) => {
         if (item.familyId !== 'focus.prominence' || item.kind !== 'branch-emphasis') return false;
-        const key = relationLayerKey(item);
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
             const root = g.node();
             if (!root) return;
@@ -3986,8 +3919,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (firstNodeGroup?.parentNode === root) root.insertBefore(layerNode, firstNodeGroup);
             else root.appendChild(layerNode);
 
-            const focusValue = item.relationRef.anchors.focus;
-            const focusNodeId = String(Array.isArray(focusValue) ? focusValue[0] || '' : focusValue || '');
+            const focusNodeId = item.focusNodeId || '';
             const focusAnchor = resolveOverlayAnchor(focusNodeId);
             const focusTerminals = focusAnchor?.descendants()
               .filter((candidate) => isDisplayTerminalNode(candidate as unknown as HierNode)) || [];
@@ -4002,9 +3934,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ) => {
         if (item.familyId !== 'theta.grid') return false;
         const key = relationLayerKey(item);
-        if (!scheduledAcceptedPfRelations.has(key)) {
-          scheduledAcceptedPfRelations.add(key);
+        const drawingKey = acceptedRelationDrawingKey(item);
+        if (!scheduledAcceptedPfRelations.has(drawingKey)) {
+          scheduledAcceptedPfRelations.add(drawingKey);
           queueAcceptedRelationDraw(item, emphasis, () => {
+            const grid = frameItems.find((candidate): candidate is NodePlaquePlanItem =>
+              candidate.kind === 'node-plaque' && candidate.plaqueStyle === 'theta-grid'
+              && relationLayerKey(candidate) === key);
+            if (!grid?.thetaRoles?.length) return;
             const root = g.node();
             const matrix = root?.getScreenCTM();
             if (!root || !matrix) return;
@@ -4030,11 +3967,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 height: Math.max(...ys) - Math.min(...ys)
               };
             };
-            const anchorValue = (role: string) => {
-              const value = item.relationRef.anchors[role];
-              return String(Array.isArray(value) ? value[0] || '' : value || '');
-            };
-            const predicateId = anchorValue('predicate');
+            const predicateId = grid.anchorNodeIds[0];
             const predicateAnchor = resolveOverlayAnchor(predicateId);
             if (!predicateAnchor) return;
             const predicateNodeIds = new Set(
@@ -4056,16 +3989,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             );
             if (!treeRect) return;
 
-            const roleEntries = Object.entries(item.relationRef.anchors)
-              .filter(([role]) => role.toLowerCase() !== 'predicate')
-              .flatMap(([role, value]) => {
-                const nodeId = String(Array.isArray(value) ? value[0] || '' : value || '');
+            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, label }) => {
                 const anchor = resolveOverlayAnchor(nodeId);
                 const terminal = anchor?.leaves().at(-1);
                 return nodeId && terminal
                   ? [{
-                      role: role.charAt(0).toUpperCase() + role.slice(1),
-                      roleKey: role.toLowerCase(),
+                      role: label,
                       nodeId,
                       terminalId: getNodeId(terminal as unknown as HierNode)
                     }]
@@ -4485,7 +4414,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('orient', 'auto')
             .attr('markerUnits', 'userSpaceOnUse')
             .attr('overflow', 'visible');
-          marker.append('path').attr('d', 'M 10 9 L 43 26 L 10 43');
+          marker.append('path').attr('fill', 'none').attr('d', 'M 10 9 L 43 26 L 10 43');
         }
         return layer;
       };
@@ -4889,6 +4818,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             'parasitic-gap'
           ].includes(primitive.trajectoryKind);
           const canonicalAttributes = (path: d3.Selection<SVGPathElement, unknown, null, undefined>) => path
+            .classed('babel-locality-path-failed', trajectoryPlanItem?.outcome === 'blocked')
             .attr('data-trajectory-relation', trajectoryPlanItem?.relationRef.relation || '')
             .attr('data-trajectory-kind', primitive.trajectoryKind)
             .attr('data-trajectory-from', trajectoryPlanItem?.sourceNodeId || '')
@@ -4913,7 +4843,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('data-trajectory-target-attachment', trajectoryPlanItem?.targetAttachment || '')
             .attr(
               'marker-end',
-              `url(#${primitive.trajectoryKind === 'smuggling'
+              trajectoryPlanItem?.outcome === 'blocked' ? null : `url(#${primitive.trajectoryKind === 'smuggling'
                 ? trajectoryMarkerIds.carrier
                 : (usesBabelMovementCurve ? trajectoryMarkerIds.movement : trajectoryMarkerIds.open)})`
             )
@@ -5509,17 +5439,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             queueAcceptedRelationDraw(planItem, emphasis, () => {
               const pathItem = planItem.kind === 'directed-path' ? planItem : null;
               if (!pathItem) return;
-              const assignmentEntry = frameItems
+              const assignmentEntries = frameItems
               .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-              .find(({ candidate }) =>
+              .filter(({ candidate }) =>
                 candidate.kind === 'directed-path'
                 && candidate.pathStyle === 'case-assignment'
+                && candidate.relationRef.stageIndex === pathItem.relationRef.stageIndex
                 && candidate.toNodeId === (pathItem.pathStyle === 'case-assignment'
                   ? pathItem.toNodeId
                   : pathItem.fromNodeId));
+            const assignmentEntry = pathItem.pathStyle === 'case-assignment'
+              ? assignmentEntries.find(({ candidate }) => candidate === pathItem)
+              : assignmentEntries.length === 1 ? assignmentEntries[0] : undefined;
+            if (!assignmentEntry && pathItem.pathStyle === 'case-agree') {
+              const layer = ensureAgreementCaseRelationLayer();
+              layer.append('path').attr('class', 'babel-case-collection-path').attr('d', primitive.d);
+              const target = acceptedAnchorRect(pathItem.toNodeId);
+              const row = pathItem.featureRow;
+              if (target && (row?.label || row?.value || pathItem.label)) {
+                layer.append('text').attr('class', 'babel-feature-text')
+                  .attr('x', target.x).attr('y', target.y + target.height + 36)
+                  .text(row ? [row.label, row.value].filter(Boolean).join(': ') : pathItem.label || '');
+              }
+              return;
+            }
             if (!assignmentEntry || assignmentEntry.candidate.kind !== 'directed-path') return;
             const assignment = assignmentEntry.candidate;
-            const compositionKey = `${assignment.relationRef.stageIndex}:${assignment.toNodeId}`;
+            const compositionKey = `${relationLayerKey(assignment)}:${assignment.fromNodeId}:${assignment.toNodeId}`;
             if (renderedCaseCompositions.has(compositionKey)) return;
             renderedCaseCompositions.add(compositionKey);
             if (!revealedItemIndices.has(assignmentEntry.candidateIndex)) return;
@@ -5534,22 +5480,24 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .filter(({ candidate }) =>
                 candidate.kind === 'directed-path'
                 && candidate.pathStyle === 'case-agree'
+                && assignmentEntries.length === 1
+                && candidate.relationRef.stageIndex === assignment.relationRef.stageIndex
                 && candidate.fromNodeId === assignment.toNodeId);
-            const bundleEntry = frameItems
+            const bundleEntries = frameItems
               .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-              .find(({ candidate }) =>
+              .filter(({ candidate }) =>
                 candidate.kind === 'node-plaque'
                 && candidate.plaqueStyle === 'feature'
+                && candidate.relationRef.stageIndex === assignment.relationRef.stageIndex
                 && candidate.anchorNodeIds[0] === assignment.toNodeId);
-            const parsePair = (label = '') => {
-              const [name, ...parts] = label.split(':');
-              return { label: name.trim(), value: parts.join(':').trim() };
-            };
-            const assignmentPair = parsePair(assignment.label);
+            const bundleEntry = bundleEntries.length === 1 && assignmentEntries.length === 1 ? bundleEntries[0] : undefined;
+            const assignmentPair = assignment.featureRow || { label: '', value: assignment.label || '' };
             const collectionPairs = collectionEntries.map(({ candidate, candidateIndex }) => ({
               candidate,
               candidateIndex,
-              pair: parsePair(candidate.kind === 'directed-path' ? candidate.label : '')
+              pair: candidate.kind === 'directed-path'
+                ? candidate.featureRow || { label: '', value: candidate.label || '' }
+                : { label: '', value: '' }
             }));
             const authoredRows = bundleEntry?.candidate.kind === 'node-plaque'
               ? bundleEntry.candidate.rows
@@ -5568,7 +5516,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 feature: row.label,
                 value: collection && revealedItemIndices.has(collection.candidateIndex)
                   ? collection.pair.value
-                  : '__'
+                  : collection ? '__' : row.value
               };
             });
             const plaqueWidth = 310;
@@ -5751,7 +5699,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               probeRect.y + probeRect.height / 2
               <= goalCategoryRect.y + goalCategoryRect.height / 2
             );
-            const step = refValue('step', '2');
+            const step = pathItem.dependentCaseStep || '2';
             let endpoints: Array<{ x: number; y: number }>;
             let commands: string[];
             if (step === '1') {
@@ -5828,6 +5776,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const markerId = `babel-control-arrow-${planItem.relationRef.stageIndex}-${planItem.relationRef.relationIndex}`;
             layer.append('path')
               .attr('class', 'babel-control-dependency')
+              .attr('fill', 'none')
               .attr('data-control-controller', planItem.fromNodeId)
               .attr('data-control-controllee', planItem.toNodeId)
               .attr('marker-end', `url(#${markerId})`)
@@ -5903,7 +5852,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               if (
                 edgeTerminal
                 && !isNullLike(edgeSurface)
-                && isOvertLeafNode(edgeTerminal as unknown as HierNode, overtSurfaceSet)
+                && isOvertLeafNode(edgeTerminal as unknown as HierNode)
               ) {
                 markPreterminalLensNode(phaseItem.phaseEdgeNodeId, 'edge');
               }
@@ -6093,12 +6042,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 ? planItem
                 : null;
               if (!edgeItem) return;
-              const edgeRect = measuredTreeLabelRectNow(edgeItem.rootNodeId || '', false);
+              const { background, foreground } = ensureDomainLocalityLayers();
+              const edgeNodeIds = edgeItem.memberNodeIds.length ? edgeItem.memberNodeIds
+                : edgeItem.rootNodeId ? [edgeItem.rootNodeId] : [];
+              edgeNodeIds.forEach((edgeNodeId) => {
+              const edgeRect = measuredTreeLabelRectNow(edgeNodeId, false);
               if (!edgeRect) return;
               const outline = fongEdgeOutlineRect(edgeRect);
-              const { background, foreground } = ensureDomainLocalityLayers();
               background.append('rect')
                 .attr('class', 'babel-transfer-edge-outline')
+                .attr('data-transfer-edge-node', edgeNodeId)
                 .attr('x', outline.x.toFixed(1))
                 .attr('y', outline.y.toFixed(1))
                 .attr('width', outline.width.toFixed(1))
@@ -6110,7 +6063,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('y', (outline.y + outline.height / 2 + 8).toFixed(1))
                 .attr('opacity', emphasis === 'quiet' ? 0.3 : null)
                 .text(edgeItem.label || 'Phase edge');
-              markPreterminalLensNode(edgeItem.rootNodeId || '', 'edge');
+              markPreterminalLensNode(edgeNodeId, 'edge');
+              });
             });
             return;
           }
@@ -6162,12 +6116,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         }
         if (primitive.type === 'plaque') {
           if (primitive.plaqueStyle === 'feature') {
-            const authoredFeatureValues = planItem.relationRef.values || {};
-            if (
-              planItem.relationRef.relation === 'FeatureBundle'
-              && Object.prototype.hasOwnProperty.call(authoredFeatureValues, 'CASE 1')
-              && Object.prototype.hasOwnProperty.call(authoredFeatureValues, 'CASE 2')
-            ) {
+            if (planItem.relationRef.relation === 'FeatureBundle'
+              && primitive.rows.some((row) => row.label === 'CASE 1')
+              && primitive.rows.some((row) => row.label === 'CASE 2')) {
               g.selectAll<SVGTextElement, HierNode>('.terminal-label')
                 .filter((candidate) => isDisplayTraceLabel(resolveLeafSurface(candidate)))
                 .classed('babel-moved-from-copy', false);
@@ -6175,47 +6126,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             queueAcceptedRelationDraw(planItem, emphasis, () => {
               const plaqueItem = planItem.kind === 'node-plaque' ? planItem : null;
               const anchorId = plaqueItem?.anchorNodeIds[0] || '';
-              const composedWithCase = frameItems.some((candidate) =>
+              const assignments = frameItems.filter((candidate) =>
               candidate.kind === 'directed-path'
               && candidate.pathStyle === 'case-assignment'
+              && candidate.relationRef.stageIndex === planItem.relationRef.stageIndex
               && candidate.toNodeId === anchorId);
-            if (composedWithCase) return;
-            const anchorRect = measuredTerminalSubtreeRectNow(anchorId);
+            const bundles = frameItems.filter((candidate) => candidate.kind === 'node-plaque'
+              && candidate.plaqueStyle === 'feature' && candidate.anchorNodeIds[0] === anchorId
+              && candidate.relationRef.stageIndex === planItem.relationRef.stageIndex);
+            if (assignments.length === 1 && bundles.length === 1) return;
+            const anchorRect = measuredTerminalSubtreeRectNow(anchorId)
+              || measuredTreeLabelRectNow(anchorId, false);
             if (!anchorId || !anchorRect) return;
-            const wrapFeatureText = (text: string) => {
-              const splitLongWord = (word: string) => {
-                const chunks: string[] = [];
-                for (let index = 0; index < word.length; index += 22) {
-                  chunks.push(word.slice(index, index + 22));
-                }
-                return chunks;
-              };
-              const words = text
-                .split(/(\s+)/)
-                .filter(Boolean)
-                .flatMap((word) => word.trim().length > 22 ? splitLongWord(word) : [word]);
-              const lines: string[] = [];
-              let current = '';
-              words.forEach((word) => {
-                const candidate = `${current}${word}`;
-                if (candidate.trim().length > 22 && current.trim()) {
-                  lines.push(current.trimEnd());
-                  current = word.trimStart();
-                } else {
-                  current = candidate;
-                }
-              });
-              if (current.trim()) lines.push(current.trimEnd());
-              return lines.length ? lines : [text];
-            };
-            const rows = primitive.rows.slice(0, 8).map((row) => ({
-              ...row,
-              lines: wrapFeatureText(`[${row.label}: ${row.value}]`)
-            }));
-            const plaqueWidth = 360;
-            const plaqueHeight = 46
-              + rows.reduce((height, row) => height + row.lines.length * 32 + 12, 0)
-              + 16;
+            const layout = primitive.textLayout;
+            const { width: plaqueWidth, height: plaqueHeight } = layout;
             const treeRect = measuredTreeLabelRectNow(
               getNodeId(treeData as unknown as HierNode),
               true
@@ -6254,27 +6178,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('width', plaqueWidth.toFixed(1))
               .attr('height', plaqueHeight.toFixed(1))
               .attr('rx', 14);
-            plaque.append('text')
-              .attr('class', 'babel-feature-plaque-title')
-              .attr('x', (origin.x + 18).toFixed(1))
-              .attr('y', (origin.y + 25).toFixed(1))
-              .text(primitive.title || '');
-            let rowY = origin.y + 46;
-            rows.forEach((row) => {
+            if (layout.title) drawPlaqueText(plaque, layout.title, 'babel-feature-plaque-title', origin);
+            layout.rows.forEach((row) => {
               const rowGroup = plaque.append('g')
                 .attr('class', 'babel-feature-row')
-                .attr('data-feature-label', row.label);
-              const text = rowGroup.append('text')
-                .attr('class', 'babel-feature-text')
-                .attr('x', (origin.x + 18).toFixed(1))
-                .attr('y', (rowY + 25).toFixed(1));
-              row.lines.forEach((line, lineIndex) => {
-                text.append('tspan')
-                  .attr('x', (origin.x + 18).toFixed(1))
-                  .attr('dy', lineIndex === 0 ? '0' : '32.0')
-                  .text(line);
-              });
-              rowY += row.lines.length * 32 + 12;
+                .attr('data-feature-label', primitive.rows[row.rowIndex].label)
+                .attr('data-plaque-row-index', row.rowIndex);
+              drawPlaqueText(rowGroup, row, 'babel-feature-text', origin);
             });
             });
             return;
@@ -6304,11 +6214,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('class', 'babel-pf-relation-layer')
               .attr('data-pf-targets', JSON.stringify(planItem.kind === 'node-plaque' ? planItem.anchorNodeIds : []))
               .attr('data-pf-rows', JSON.stringify(primitive.rows))
+              .attr('data-pf-row-kinds', JSON.stringify(planItem.kind === 'node-plaque' ? planItem.realizationRowKinds || [] : []))
               .attr('data-pf-row-refs', JSON.stringify(primitive.rowRefs || []));
             return;
           }
           const marker = appendMarker(primitive.x, primitive.y);
-          const rows = primitive.rows.slice(0, 8);
           marker.append('rect')
             .attr('class', `vr-plaque vr-plaque-${primitive.plaqueStyle}`)
             .attr('x', 0)
@@ -6319,23 +6229,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('fill', 'rgba(2,24,15,0.94)')
             .attr('stroke', '#34d399')
             .attr('stroke-width', 1);
-          if (primitive.title) {
-            marker.append('text')
-              .attr('x', 8)
-              .attr('y', 14)
-              .attr('font-size', '11px')
-              .attr('fill', '#6ee7b7')
-              .attr('font-family', "'IBM Plex Mono', monospace")
-              .text(primitive.title);
-          }
-          rows.forEach((row, rowIndex) => {
-            marker.append('text')
-              .attr('x', 8)
-              .attr('y', 28 + rowIndex * 15)
-              .attr('font-size', '10px')
-              .attr('fill', '#a7f3d0')
-              .attr('font-family', "'IBM Plex Mono', monospace")
-              .text(row.value ? `${row.label}: ${row.value}` : row.label);
+          if (primitive.textLayout.title) drawPlaqueText(marker, primitive.textLayout.title, 'babel-plaque-title');
+          primitive.textLayout.rows.forEach(row => {
+            const rowGroup = marker.append('g').attr('data-plaque-row-index', row.rowIndex);
+            drawPlaqueText(rowGroup, row, 'babel-plaque-row');
           });
           return;
         }
@@ -6451,10 +6348,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             return;
           }
           if (primitive.badgeStyle === 'idiom-chunk') {
+            acceptedLayerInHost(idiomChunkLayers, planItem, 'babel-idiom-chunk-relation-layer', host);
             host.append('g')
               .attr('class', 'vr-idiom-chunk-anchor')
               .attr('data-idiom-chunk', primitive.nodeId);
             markPreterminalLensNode(primitive.nodeId, 'idiom-chunk');
+            return;
+          }
+          if (primitive.badgeStyle === 'gap-notation' && primitive.reuseExistingNotation) {
+            host.attr('data-gap-notation-reuses', primitive.nodeId);
             return;
           }
           if (primitive.badgeStyle === 'gap-notation'
@@ -6660,6 +6562,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             ).attr('data-binding-outcome', planItem.outcome || 'licensed');
             layer.append('ellipse')
               .attr('class', 'babel-binding-domain')
+              .attr('fill', 'none')
               .attr('data-binding-domain', planItem.domainNodeId)
               .attr('cx', primitive.cx)
               .attr('cy', primitive.cy)
@@ -7171,69 +7074,53 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     ).find((item) =>
       item.familyId === 'pf.cyclic-linearization'
       && item.kind === 'node-plaque'
+      && item.nativeContent?.kind === 'linearization'
     );
     const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlateItem);
     const compactViewport = containerWidth < 500;
-    const standardViewportPadRight = compactViewport ? 28 : 136;
-    const cyclicLinearizationSideBySideMinimumWidth =
-      40 + standardViewportPadRight + 350 + 260;
-    const cyclicLinearizationUsesStackedPlate = hasCyclicLinearizationPlate
-      && containerWidth < cyclicLinearizationSideBySideMinimumWidth;
-    const cyclicLinearizationPlateRightReserve = hasCyclicLinearizationPlate
-      && !cyclicLinearizationUsesStackedPlate
-      ? 350
-      : 0;
-    const replayHeaderRect = cyclicLinearizationUsesStackedPlate
-      ? containerRef.current
-        ?.querySelector<HTMLElement>('[data-babel-replay-header="true"]')
-        ?.getBoundingClientRect()
-      : null;
-    const canvasRect = cyclicLinearizationUsesStackedPlate
-      ? containerRef.current?.getBoundingClientRect()
-      : null;
-    const stackedPlateOriginOffset = replayHeaderRect && canvasRect
-      ? Math.max(54, replayHeaderRect.bottom - canvasRect.top + 24)
-      : 54;
-    const relationNodeIdCount = (value: string | string[] | undefined) => (
-      Array.isArray(value) ? value : [value]
-    ).filter((nodeId) => String(nodeId || '').trim()).length;
-    const cyclicLinearizationPlateHeight = cyclicLinearizationPlateItem?.kind === 'node-plaque'
-      ? 70 + Math.max(
-          Math.max(0, relationNodeIdCount(cyclicLinearizationPlateItem.relationRef.priorAnchors?.order) - 1),
-          Math.max(0, relationNodeIdCount(cyclicLinearizationPlateItem.relationRef.anchors.order) - 1)
-        ) * 17
-      : 0;
-    const stackedTreeTopOffset = stackedPlateOriginOffset + cyclicLinearizationPlateHeight + 40;
-    const cyclicLinearizationPlateTopReserve = cyclicLinearizationUsesStackedPlate
-      ? 246 + (stackedPlateOriginOffset - 54)
-      : 0;
+    const cyclicLinearizationPlateHeight = nativeLinearizationPlateHeight(
+      cyclicLinearizationPlateItem?.kind === 'node-plaque' ? cyclicLinearizationPlateItem.nativeContent : undefined
+    );
+    const treeViewport = availableTreeViewport(containerWidth, containerHeight, uiBounds);
+    const cyclicPlacement = hasCyclicLinearizationPlate ? linearizationViewport(treeViewport, cyclicLinearizationPlateHeight) : null;
+    const fitLeft = treeViewport.left;
+    const fitRight = cyclicPlacement?.treeRight ?? treeViewport.right;
+    const fitTop = cyclicPlacement?.treeTop ?? treeViewport.top;
+    const fitBottom = treeViewport.bottom;
+    const applyFittedCamera = (fitted: d3.ZoomTransform) => {
+      const manual = manualCameraRef.current;
+      if (manual?.data === data && manual.signature === derivationStagesSignature) {
+        const transform = d3.zoomIdentity.translate(
+          manual.transform.x + (containerWidth - manual.width) / 2,
+          manual.transform.y + (containerHeight - manual.height) / 2
+        ).scale(manual.transform.k);
+        manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
+        svg.call(zoom.transform as any, transform);
+        return;
+      }
+      svg.call(zoom.transform as any, fitted);
+    };
     const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;
     const fitToRenderedBounds = () => {
       if (derivationFrameFitNodes && derivationFrameFitNodes.length > 0) {
-        const minNodeX = Math.min(
+        const minNodeX = stageCameraBounds?.minX ?? Math.min(
           d3.min(derivationFrameFitNodes, (node) => node.x) ?? 0,
           overlayFitBounds?.minX ?? Infinity
         );
-        const maxNodeX = Math.max(
+        const maxNodeX = stageCameraBounds?.maxX ?? Math.max(
           d3.max(derivationFrameFitNodes, (node) => node.x) ?? 0,
           overlayFitBounds?.maxX ?? -Infinity
         );
-        const minNodeY = Math.min(
+        const minNodeY = stageCameraBounds?.minY ?? Math.min(
           d3.min(derivationFrameFitNodes, (node) => node.y) ?? 0,
           overlayFitBounds?.minY ?? Infinity
         );
-        const maxNodeY = Math.max(
+        const maxNodeY = stageCameraBounds?.maxY ?? Math.max(
           d3.max(derivationFrameFitNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0,
           overlayFitBounds?.maxY ?? -Infinity
         );
-        const viewportPadLeft = cyclicLinearizationUsesStackedPlate ? 36 : 40;
-        const viewportPadRight = cyclicLinearizationUsesStackedPlate
-          ? 18
-          : standardViewportPadRight + cyclicLinearizationPlateRightReserve;
-        const viewportPadTop = 34 + cyclicLinearizationPlateTopReserve;
-        const viewportPadBottom = animated ? 170 : 250;
-        const availableWidth = Math.max(120, containerWidth - viewportPadLeft - viewportPadRight);
-        const availableHeight = Math.max(120, containerHeight - viewportPadTop - viewportPadBottom);
+        const availableWidth = Math.max(1, fitRight - fitLeft);
+        const availableHeight = Math.max(1, fitBottom - fitTop);
         const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
         const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
         const scaleX = availableWidth / contentWidth;
@@ -7241,11 +7128,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const initialScale = Math.max(minimumInitialScale, Math.min(scaleX, scaleY, 1));
         const centerX = (minNodeX + maxNodeX) / 2;
         const centerY = (minNodeY + maxNodeY) / 2;
-        const initialX = viewportPadLeft + (availableWidth / 2) - centerX * initialScale;
-        const initialY = cyclicLinearizationUsesStackedPlate
-          ? stackedTreeTopOffset - minNodeY * initialScale
-          : viewportPadTop + (availableHeight / 2) - centerY * initialScale;
-        svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+        const initialX = fitLeft + (availableWidth / 2) - centerX * initialScale;
+        const initialY = fitTop + (availableHeight / 2) - centerY * initialScale;
+        applyFittedCamera(d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
         return true;
       }
 
@@ -7257,15 +7142,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         return false;
       }
 
-      const viewportPadLeft = cyclicLinearizationUsesStackedPlate ? 36 : 40;
-      const viewportPadRight = cyclicLinearizationUsesStackedPlate
-        ? 18
-        : standardViewportPadRight + cyclicLinearizationPlateRightReserve;
-      const viewportPadTop = 34 + cyclicLinearizationPlateTopReserve;
-      // Reserve space for bottom overlays (input tray / derivation controls) so terminals remain visible.
-      const viewportPadBottom = animated ? 170 : 250;
-      const availableWidth = Math.max(120, containerWidth - viewportPadLeft - viewportPadRight);
-      const availableHeight = Math.max(120, containerHeight - viewportPadTop - viewportPadBottom);
+      const availableWidth = Math.max(1, fitRight - fitLeft);
+      const availableHeight = Math.max(1, fitBottom - fitTop);
 
       const scaleX = availableWidth / bbox.width;
       const scaleY = availableHeight / bbox.height;
@@ -7273,14 +7151,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
       const bboxCenterX = bbox.x + bbox.width / 2;
       const bboxCenterY = bbox.y + bbox.height / 2;
-      const targetCenterX = viewportPadLeft + availableWidth / 2;
-      const targetCenterY = viewportPadTop + availableHeight / 2;
+      const targetCenterX = fitLeft + availableWidth / 2;
+      const targetCenterY = fitTop + availableHeight / 2;
       const initialX = targetCenterX - bboxCenterX * initialScale;
-      const initialY = cyclicLinearizationUsesStackedPlate
-        ? stackedTreeTopOffset - bbox.y * initialScale
-        : targetCenterY - bboxCenterY * initialScale;
+      const initialY = targetCenterY - bboxCenterY * initialScale;
 
-      svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+      applyFittedCamera(d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
       return true;
     };
 
@@ -7292,10 +7168,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const maxNodeY = d3.max(visibleNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0;
       const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
       const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
-      const fallbackViewportPadLeft = 40;
-      const fallbackViewportPadRight = standardViewportPadRight + cyclicLinearizationPlateRightReserve;
-      const fallbackViewportPadTop = 34 + cyclicLinearizationPlateTopReserve;
-      const fallbackViewportPadBottom = 170;
+      const fallbackViewportPadLeft = fitLeft;
+      const fallbackViewportPadRight = containerWidth - fitRight;
+      const fallbackViewportPadTop = fitTop;
+      const fallbackViewportPadBottom = containerHeight - fitBottom;
       const scaleX = Math.max(0.01, (containerWidth - fallbackViewportPadLeft - fallbackViewportPadRight) / contentWidth);
       const scaleY = Math.max(
         0.01,
@@ -7308,7 +7184,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const initialY = fallbackViewportPadTop
         + ((containerHeight - fallbackViewportPadTop - fallbackViewportPadBottom) / 2)
         - centerY * initialScale;
-      svg.call(zoom.transform as any, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+      applyFittedCamera(d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
     }
 
     /*
@@ -7535,21 +7411,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const layer = d3.select(this);
           const domain = layer.select<SVGRectElement>('.babel-control-domain');
           const path = layer.select<SVGPathElement>('.babel-control-dependency');
-          const domainNodeId = domain.attr('data-control-domain');
+          const domainNodeId = domain.empty() ? '' : domain.attr('data-control-domain');
           const controllerNodeId = path.attr('data-control-controller');
           const controlleeNodeId = path.attr('data-control-controllee');
-          const domainRect = measuredTerminalSubtreesRect([domainNodeId])
-            || measuredSubtreeRect(domainNodeId);
+          const domainRect = domainNodeId ? measuredTerminalSubtreesRect([domainNodeId])
+            || measuredSubtreeRect(domainNodeId) : null;
           const controllerRect = measuredAcceptedAnchorRect(controllerNodeId);
           const controlleeRect = measuredAcceptedAnchorRect(controlleeNodeId);
-          if (!domainRect || !controllerRect || !controlleeRect) return;
-          const domainBox = {
+          if (!controllerRect || !controlleeRect || (domainNodeId && !domainRect)) return;
+          const domainBox = domainRect ? {
             x: domainRect.x - 34,
             y: domainRect.y - 26,
             width: domainRect.width + 68,
             height: domainRect.height + 52
-          };
-          domain
+          } : null;
+          if (domainBox) domain
             .attr('x', domainBox.x.toFixed(1))
             .attr('y', domainBox.y.toFixed(1))
             .attr('width', domainBox.width.toFixed(1))
@@ -7565,8 +7441,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             y: controlleeRect.y + controlleeRect.height / 2
           };
           const dependencySource = {
-            x: Math.max(domainBox.x + 12, Math.min(domainBox.x + domainBox.width - 12, controllee.x)),
-            y: domainBox.y
+            x: domainBox ? Math.max(domainBox.x + 12, Math.min(domainBox.x + domainBox.width - 12, controllee.x)) : controllee.x,
+            y: domainBox ? domainBox.y : controlleeRect.y - 12
           };
           const elbowY = Math.max(
             controller.y + 128,
@@ -7956,24 +7832,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const targetNodeIds = JSON.parse(layer.attr('data-pf-targets') || '[]') as string[];
         const targetKey = JSON.stringify([...targetNodeIds].sort());
         const allRows = JSON.parse(layer.attr('data-pf-rows') || '[]') as Array<{ label: string; value: string }>;
+        const rowKinds = JSON.parse(layer.attr('data-pf-row-kinds') || '[]') as Array<'rewrite' | 'literal'>;
         const rowRefs = JSON.parse(layer.attr('data-pf-row-refs') || '[]') as Array<{
           stageIndex: number;
           relationIndex: number;
         } | null>;
-        const visibleRows = allRows.filter((_row, rowIndex) => {
+        const visibleRows = allRows.flatMap((row, rowIndex) => {
           const ref = rowRefs[rowIndex];
-          return playedRelationIndices === null
+          const visible = playedRelationIndices === null
             || !ref
             || ref.stageIndex < activeDerivationFrameIndex
             || (ref.stageIndex === activeDerivationFrameIndex && playedRelationIndices.has(ref.relationIndex));
+          return visible ? [{ ...row, rowIndex, kind: rowKinds[rowIndex], isFinal: rowIndex === allRows.length - 1 }] : [];
         });
-        const finalOutput = allRows.at(-1)?.value || '';
-        if (finalOutput && finalOutput !== '∅') {
-          const renderedTerminals = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
-            .nodes()
-            .map((label) => String(label.textContent || '').trim());
-          if (!renderedTerminals.includes(finalOutput)) return;
-        }
+        const finalOutput = rowKinds.at(-1) === 'rewrite' ? allRows.at(-1)?.value || '' : '';
         const isZeroRealization = finalOutput === '∅' && allRows.length === 1;
         const targetRect = isZeroRealization
           ? measuredTerminalSubtreesRect(targetNodeIds)
@@ -7984,11 +7856,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             }));
         if (!targetRect) return;
 
-        const plateWidth = isZeroRealization ? 360 : 590;
+        const layout = withPlaqueTextMeasure(svg, measureText =>
+          preparePfPlaqueTextLayout(visibleRows, { isZeroRealization, measureText }));
+        const { width: plateWidth, height: plateHeight } = layout;
         const platePadX = 26;
-        const titleHeight = 54;
-        const rowHeight = 48;
-        const plateHeight = titleHeight + visibleRows.length * rowHeight + 30;
         const svgRect = svg.node()?.getBoundingClientRect();
         const treeInverse = treeMatrix.inverse();
         const viewportLeft = svgRect
@@ -8079,40 +7950,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .attr('width', plateWidth.toFixed(1))
           .attr('height', plateHeight.toFixed(1))
           .attr('rx', 8);
-        layer.append('text')
-          .attr('class', 'babel-pf-plate-title')
-          .attr('x', (origin.x + platePadX).toFixed(1))
-          .attr('y', (origin.y + 34).toFixed(1))
-          .text('PF REALIZATION');
+        drawPlaqueText(layer, layout.title, 'babel-pf-plate-title', origin);
         const appendRule = (y: number) => layer.append('line')
           .attr('class', 'babel-pf-plate-rule')
           .attr('x1', (origin.x + platePadX).toFixed(1))
           .attr('x2', (origin.x + plateWidth - platePadX).toFixed(1))
           .attr('y1', y.toFixed(1))
           .attr('y2', y.toFixed(1));
-        appendRule(origin.y + titleHeight);
-        visibleRows.forEach((row, index) => {
-          const rowY = origin.y + titleHeight + 34 + index * rowHeight;
-          const isFinal = allRows.indexOf(row) === allRows.length - 1;
-          if (isFinal) appendRule(rowY - 31);
-          const appendText = (
-            className: string,
-            x: number,
-            text: string,
-            _output = false,
-            final = isFinal
-          ) => layer.append('text')
-            .attr('class', `${className}${final ? ' babel-pf-plate-text-final' : ''}`)
-            .attr('x', x.toFixed(1))
-            .attr('y', rowY.toFixed(1))
-            .text(text);
-          appendText('babel-pf-plate-text', origin.x + platePadX, row.label);
-          appendText('babel-pf-plate-arrow', origin.x + (isZeroRealization ? 190 : 314), '→', true, false);
-          appendText('babel-pf-plate-text babel-pf-plate-output', origin.x + (isZeroRealization ? 246 : 370), row.value, true);
+        appendRule(origin.y + layout.titleRuleY);
+        layout.rows.forEach(row => {
+          const rowGroup = layer.append('g').attr('data-plaque-row-index', row.rowIndex);
+          if (row.ruleY !== undefined) appendRule(origin.y + row.ruleY);
+          row.parts.forEach(part => {
+            const className = part.kind === 'arrow' ? 'babel-pf-plate-arrow'
+              : `babel-pf-plate-text${part.kind === 'output' ? ' babel-pf-plate-output' : ''}`;
+            drawPlaqueText(rowGroup, part.block,
+              `${className}${row.isFinal && part.kind !== 'arrow' ? ' babel-pf-plate-text-final' : ''}`, origin);
+          });
         });
         layer
           .attr('data-pf-targets', null)
           .attr('data-pf-rows', null)
+          .attr('data-pf-row-kinds', null)
           .attr('data-pf-row-refs', null);
       });
       g.selectAll<SVGPathElement, unknown>('.babel-blocked-extraction-path').each(function refineBlockedExtractionPath() {
@@ -8192,14 +8051,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         updateScreenStableText(fittedScale);
         layoutAnalysisVerdicts(fittedScale);
       }
-      g.selectAll<SVGPathElement, unknown>('.babel-idiom-domain-bracket').each(function refineIdiomChunkRelation() {
-        const bracket = d3.select(this);
-        const layer = d3.select(this.parentElement as SVGGElement);
+      g.selectAll<SVGGElement, unknown>('.babel-idiom-chunk-relation-layer').each(function refineIdiomChunkRelation() {
+        const layer = d3.select(this);
+        const bracket = layer.select<SVGPathElement>('.babel-idiom-domain-bracket');
         const relationHost = this.closest('.vr-item');
         const stageIndex = relationHost?.getAttribute('data-vr-stage-index') || '';
         const relationIndex = relationHost?.getAttribute('data-vr-relation-index') || '';
-        const domainRect = measuredSubtreeRect(bracket.attr('data-idiom-domain'));
-        if (!domainRect) return;
+        const domainRect = bracket.empty() ? null : measuredSubtreeRect(bracket.attr('data-idiom-domain'));
 
         const chunkElements = g.selectAll<SVGGElement, unknown>('.vr-idiom-chunk-anchor')
           .filter(function sameRelation() {
@@ -8260,6 +8118,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           });
         });
 
+        if (!domainRect) return;
         const bracketX = domainRect.x + domainRect.width + 320;
         const bracketTop = domainRect.y - 80;
         const bracketBottom = domainRect.y + domainRect.height + 80;
@@ -8565,10 +8424,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         '.vr-trajectory-head, .vr-trajectory-lowering'
       ).each(function refineTerminalTrajectory() {
         const path = d3.select(this);
-        const sourceRect = measuredTrajectoryTerminalRect(
-          path.attr('data-trajectory-from-witness') || path.attr('data-trajectory-from')
-        );
-        const targetRect = measuredTrajectoryTerminalRect(path.attr('data-trajectory-to'));
+        const sourceRect = path.attr('data-trajectory-source-attachment') === 'shell-bottom'
+          ? measuredTrajectoryShellRect(path.attr('data-trajectory-from'))
+          : measuredTrajectoryTerminalRect(path.attr('data-trajectory-from-witness') || path.attr('data-trajectory-from'));
+        const targetRect = path.attr('data-trajectory-target-attachment') === 'shell-bottom'
+          ? measuredTrajectoryShellRect(path.attr('data-trajectory-to'))
+          : measuredTrajectoryTerminalRect(path.attr('data-trajectory-to'));
         if (!sourceRect || !targetRect) return;
         const sourceCenter = {
           x: sourceRect.x + sourceRect.width / 2,
@@ -8820,6 +8681,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       deferredAcceptedRelationDraws.forEach((draw) => draw());
       installRelationHitTargets();
       startIdentityForestLight();
+      svg.attr('data-babel-rendered-step', activeStepIndex);
     });
     return () => {
       window.cancelAnimationFrame(deferredRelationFrame);
@@ -8834,8 +8696,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     activeStepIndex,
     canvasData,
     currentReplayUsesFutureLayoutScaffold,
+    stageCameraBounds,
+    acceptedCompositionIsTreeFirst,
     dimensions,
     fontLayoutPass,
+    fitRevision,
+    uiBounds,
     animated,
     abstractionMode,
     derivationFramesSignature,
@@ -8901,14 +8767,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
   const activeStepRaw = currentReplayStep;
   const activeStep = activeStepRaw;
-  const activeRecipeDisplay = stepRepresentsMovement(activeStep)
-    ? formatOperationLabel(activeStep?.operation)
-    : (String(activeStep?.recipe || '').trim() || `${activeStep?.targetLabel || 'Node'} created`);
-  const activeReplaySupportLines = buildReplaySupportLines(activeStep);
+  const activePanelContent = buildReplayPanelContent(activeStep, derivationStages);
+  const activeReplaySupportLines = activePanelContent.supportLines;
+  const replayDisplayDetailBlocksByStepIndex = useMemo(
+    () => buildReplayDisplayDetailBlocks(playbackSteps),
+    [playbackSteps]
+  );
+  const activeDisplayDetailBlocks = (
+    replayDisplayDetailBlocksByStepIndex.get(activeStepIndex) || []
+  ).filter((block) => !(
+    activeReplaySupportLines.length > 0
+    && String(block.title || '').trim().toLowerCase() === 'relations'
+  ));
   const activeNoteDisplay = (() => {
-    const note = String(activeStep?.note || '').trim();
-    if (!note) return '';
-    if (note === activeRecipeDisplay) return '';
+    const note = String(activeStep?.note ?? '');
+    if (!note.trim()) return '';
+    if (note === activePanelContent.heading
+      || activeReplaySupportLines.some(line => line.value === note)
+      || activeDisplayDetailBlocks.some(block => block.lines.some(line =>
+        formatReplayBlockLine(block.title, line, playbackSteps) === note))) return '';
     const normalizeSurfaceText = (value?: string): string =>
       String(value || '')
         .toLowerCase()
@@ -8927,18 +8804,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const stepPercent = playbackSteps.length > 1
     ? (activeStepIndex / (playbackSteps.length - 1)) * 100
     : 0;
-  const operationLabel = formatPlaybackOperationTitle(activeStep);
-  const showOperationLabel = Boolean(operationLabel) && operationLabel !== activeRecipeDisplay;
-  const replayDisplayDetailBlocksByStepIndex = useMemo(
-    () => buildReplayDisplayDetailBlocks(playbackSteps),
-    [playbackSteps]
-  );
-  const activeDisplayDetailBlocks = (
-    replayDisplayDetailBlocksByStepIndex.get(activeStepIndex) || []
-  ).filter((block) => !(
-    activeReplaySupportLines.length > 0
-    && String(block.title || '').trim().toLowerCase() === 'relations'
-  ));
   const canStepBackward = animated && playbackSteps.length > 0 && activeStepIndex > 0;
   const canStepForward = animated && playbackSteps.length > 0 && activeStepIndex < playbackSteps.length - 1;
   const activeDerivationStepLabel = String(activeStep?.stepId || '').trim();
@@ -9029,6 +8894,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       tabIndex={animated ? 0 : undefined}
       onKeyDown={(event) => {
         if (!animated || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.target instanceof HTMLElement && event.target.closest('input, button, select, textarea, [contenteditable="true"]')) return;
         if (event.key === 'ArrowLeft' && canStepBackward) {
           event.preventDefault();
           handlePrevStep();
@@ -9054,8 +8920,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       className="w-full h-full overflow-hidden border-2 border-white/5 rounded-[3rem] tree-canvas-bg shadow-2xl relative focus:outline-none"
     >
       <div
+        ref={replayHeaderRef}
         data-babel-replay-header="true"
-        className="absolute top-8 left-10 pointer-events-none z-10 opacity-75 select-none"
+        className="babel-replay-header absolute pointer-events-none z-10 opacity-75 select-none"
+        style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right }}
       >
         <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.6em] flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${abstractionMode ? 'bg-amber-500 shadow-[0_0_15px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_15px_#10b981]'}`}></div>
@@ -9065,20 +8933,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           <div className="mt-2 text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.35em]">
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
-            {activeStep?.recipe ? ` - ${activeRecipeDisplay}` : ''}
           </div>
         )}
       </div>
       {animated && playbackSteps.length > 0 && (
         <div
+          ref={replayPanelRef}
           data-babel-replay-panel="true"
           data-babel-replay-kind={currentReplayKind || undefined}
           data-babel-active-relation-stage-index={activeRelationMoment?.stageIndex}
           data-babel-active-relation-index={activeRelationMoment?.relationIndex}
           data-babel-played-relation-indices={playedRelationIndicesAttribute}
-          className="absolute left-8 bottom-24 z-40 flex max-h-[44vh] w-[min(880px,calc(100%-4rem))] flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/96 p-4 shadow-2xl"
+          className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
+          style={{ bottom: uiBounds.bottom, right: uiBounds.right }}
         >
-          <div className="flex items-center gap-2 mb-3">
+          <div className="babel-replay-controls flex items-center gap-2 mb-3">
             <button
               type="button"
               onClick={handlePrevStep}
@@ -9102,19 +8971,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             >
               Next
             </button>
+            <button type="button" title="Fit tree" aria-label="Fit tree"
+              className="shrink-0 rounded-lg border border-white/10 p-1.5 text-white/70 hover:text-emerald-300"
+              onClick={() => { manualCameraRef.current = null; setFitRevision(value => value + 1); }}>
+              <Scan size={14} />
+            </button>
             <div className="ml-auto text-right">
               <div className="text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
                 Replay {activeStepIndex + 1}/{playbackSteps.length}
                 {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
               </div>
-              {showOperationLabel && (
-                <div className="mt-1 text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
-                  {operationLabel}
-                </div>
-              )}
             </div>
           </div>
-          <div data-babel-replay-timeline="true" className="relative h-8">
+          <div data-babel-replay-timeline="true" className="relative h-8 shrink-0">
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 bg-black/50 rounded-full border border-white/5" />
             <div
               className={`absolute left-0 top-1/2 -translate-y-1/2 h-2 bg-[#064e3b] rounded-full ${isScrubbing ? '' : 'transition-all duration-150'}`}
@@ -9122,6 +8991,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             />
             <input
               type="range"
+              aria-label="Replay frame"
               min={0}
               max={Math.max(playbackSteps.length - 1, 0)}
               value={activeStepIndex}
@@ -9153,15 +9023,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             data-babel-replay-details="true"
             className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1 space-y-3"
           >
-            {!showOperationLabel && (
-              <div data-babel-replay-summary="true" className="text-[11px] text-white font-semibold">
-                {activeRecipeDisplay}
-              </div>
-            )}
+            <div data-babel-replay-summary="true" className="text-[11px] text-white font-semibold">
+              {activePanelContent.heading}
+            </div>
             {activeReplaySupportLines.length > 0 && (
               <div className="space-y-1 text-[10px] tracking-[0.12em] text-emerald-300/90">
                 {activeReplaySupportLines.map((line) => (
-                  <div key={`${line.label}:${line.value}`} className="leading-relaxed">
+                  <div key={line.key} className="leading-relaxed">
                     <span>{line.label}:</span>
                     <span className="ml-2 text-[11px] tracking-normal text-white/92">{line.value}</span>
                   </div>
@@ -9169,7 +9037,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               </div>
             )}
             {activeDisplayDetailBlocks.length > 0 && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
                 {activeDisplayDetailBlocks.map((block, blockIndex) => (
                   <div key={`${block.title}-${blockIndex}`}>
                     <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90 mb-2">

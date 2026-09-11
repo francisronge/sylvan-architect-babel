@@ -62,13 +62,15 @@ const offsetTokenIndices = (tree: SyntaxNode, offset: number): SyntaxNode => ({
     : {})
 });
 
+// Lexical content lives in `word`, as the authored contract requires; the
+// leaf label repeats it so the card keeps its two-level category/terminal shape.
 const silentLexicalNode = (
   id: string,
   category: string,
   surface: string,
   extra: Record<string, unknown> = {}
 ): SyntaxNode => node(id, category, [
-  leaf(`${id}__silent`, surface, undefined, { silent: true, ...extra })
+  leaf(`${id}__silent`, surface, surface, { silent: true, ...extra })
 ], { silent: true, ...extra });
 
 const nullHead = (id: string, category: string): SyntaxNode => node(id, category, [
@@ -195,14 +197,15 @@ const movementBaseTreeWithStableLowerIds = (
       const source = pronouncedLeafByLineage.get(String(lowerNode.lineageId || '').trim());
       if (!source) return cloneSyntaxTree(lowerNode);
       const surface = String(source.word || source.label || '').trim();
-      const next: SyntaxNode = {
+      // The base occurrence is pronounced, so its lexical content is authored
+      // in `word`; the label repeats it to keep the card's terminal shape.
+      return {
         ...lowerNode,
         label: surface,
+        word: surface,
         ...(source.tokenIndex !== undefined ? { tokenIndex: source.tokenIndex } : {}),
         silent: false
       };
-      delete next.word;
-      return next;
     }
 
     const children = lowerChildren.map(transplantMaterial);

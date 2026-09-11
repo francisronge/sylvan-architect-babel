@@ -10,6 +10,8 @@
  * numerals and neutral frames only.
  */
 import type { Point, Rect } from './overlayGeometry.ts';
+import { preparePlaqueTextLayout } from './plaqueTextLayout.ts';
+import type { PlaqueTextLayout, PlaqueTextLayoutOptions } from './plaqueTextLayout.ts';
 import {
   allocateSpanLanes,
   placeRectBelowCollisions,
@@ -48,6 +50,26 @@ import type {
   RelationPlanItem,
   RelationRenderPlan
 } from './renderPlanCompiler.ts';
+
+/** Native painters retain these binding records but position their own marks. */
+const usesBoundBadgePosition = (item: RelationPlanItem): boolean => {
+  if (item.kind === 'fallback' || item.kind === 'binding-domain') return true;
+  if (item.kind === 'coindex') {
+    return item.familyId !== 'identity.occurrences' && item.familyId !== 'lf.reconstruction';
+  }
+  if (item.kind !== 'node-badges') return false;
+  if (['agreement-goal', 'idiom-chunk', 'boundary-cut'].includes(item.badgeStyle)) return false;
+  if (item.badgeStyle === 'gap-notation'
+    && ['trajectory.across-the-board', 'trajectory.sideward'].includes(item.familyId ?? '')) return false;
+  return ![
+    'theta.grid',
+    'anti-locality.paths',
+    'improper-movement.landing',
+    'multidominance.shared-node',
+    'argument-sharing.domains',
+    'intervention.blocked-path'
+  ].includes(item.familyId ?? '');
+};
 
 export type BoundTrajectory = {
   type: 'trajectory-path';
@@ -227,6 +249,8 @@ export type BoundPlaque = {
   /** Local marker dimensions; the renderer uses the same values it was routed around. */
   width: number;
   height: number;
+  /** Measured local text positions used by both bounds and SVG painting. */
+  textLayout: PlaqueTextLayout;
   anchorPoints: Point[];
   title?: string;
   rows: Array<{ label: string; value: string }>;
@@ -243,6 +267,8 @@ export type BoundTextBadge = {
   text: string;
   shape: 'circle' | 'square' | 'plain';
   stackIndex: number;
+  /** The exact anchored occurrence already displays this notation; no extra glyph or slot is needed. */
+  reuseExistingNotation?: true;
   outcome?: 'licensed' | 'blocked';
   itemIndex: number;
 };
@@ -731,6 +757,10 @@ export type BindGeometryOptions = {
   laneGap?: number;
   /** Counter-scale applied to screen-stable marker contents at bind time. */
   markerScale?: number;
+  /** Actual SVG font measurement and available width, in marker-local units. */
+  plaqueTextLayout?: PlaqueTextLayoutOptions;
+  /** Rendering supplies exact occurrence-text matching, including its existing subscript formatting. */
+  hasExistingGapNotation?: (nodeId: string, text: string) => boolean;
   /**
    * Measured baseline Y for counter-lane fallback connectors (typically just
    * below the rendered terminal row). When absent, the binder derives it
@@ -825,7 +855,7 @@ export const bindRelationPlanFrame = (
     return point;
   };
 
-  /** Same-node badge stacking, deterministic in frame item order. */
+  /** Same-node badge stacking, allocated in authored order below. */
   const stackCounts = new Map<string, number>();
   const nextStackIndex = (nodeId: string): number => {
     const stackIndex = stackCounts.get(nodeId) ?? 0;
@@ -994,7 +1024,7 @@ export const bindRelationPlanFrame = (
       item.nodeIds.forEach((nodeId) => {
         const point = requirePoint(itemIndex, nodeId);
         if (!point) return;
-        const stackIndex = nextStackIndex(nodeId);
+        const stackIndex = usesBoundBadgePosition(item) ? nextStackIndex(nodeId) : 0;
         const isParasiticGap = item.familyId === 'parasitic-gap.composition';
         primitives.push({
           type: 'index-badge',
@@ -1701,6 +1731,11 @@ export const bindRelationPlanFrame = (
         .map((nodeId) => requirePoint(itemIndex, nodeId))
         .filter((point): point is Point => Boolean(point));
       if (anchorPoints.length === 0) return;
+      const textLayout = preparePlaqueTextLayout(item, {
+        ...options.plaqueTextLayout,
+        variant: item.plaqueStyle === 'feature' ? 'feature' : 'generic'
+      });
+      const { width, height } = textLayout;
       if (item.plaqueStyle === 'feature') {
         const positionIds = item.positionNodeIds?.length
           ? item.positionNodeIds
@@ -1711,31 +1746,6 @@ export const bindRelationPlanFrame = (
         const positionPoints = derivedPositionPoints.length > 0
           ? derivedPositionPoints
           : anchorPoints;
-        const rows = item.rows.slice(0, 8);
-        const wrappedLineCount = (text: string) => {
-          const words = text.split(/(\s+)/).filter(Boolean);
-          let lines = 1;
-          let current = '';
-          words.forEach((word) => {
-            const chunks = word.trim().length > 22
-              ? Array.from({ length: Math.ceil(word.length / 22) }, (_unused, index) =>
-                  word.slice(index * 22, (index + 1) * 22))
-              : [word];
-            chunks.forEach((chunk) => {
-              const candidate = `${current}${chunk}`;
-              if (candidate.trim().length > 22 && current.trim()) {
-                lines += 1;
-                current = chunk.trimStart();
-              } else {
-                current = candidate;
-              }
-            });
-          });
-          return lines;
-        };
-        const width = 360;
-        const height = 46 + rows.reduce((total, row) =>
-          total + wrappedLineCount(`[${row.label}: ${row.value}]`) * 32 + 12, 0) + 16;
         const centerX = (Math.min(...positionPoints.map((point) => point.x))
           + Math.max(...positionPoints.map((point) => point.x))) / 2;
         const x = centerX - width / 2 - 18;
@@ -1756,22 +1766,17 @@ export const bindRelationPlanFrame = (
           y: worldRect.y,
           width,
           height,
+          textLayout,
           anchorPoints,
           ...(item.title ? { title: item.title } : {}),
-          rows,
+          rows: item.rows,
+          ...(item.rowRefs ? { rowRefs: item.rowRefs } : {}),
           itemIndex
         });
         plaqueRects.push(worldRect);
         return;
       }
       const anchor = anchorPoints[0];
-      const rows = item.rows.slice(0, 8);
-      const width = Math.max(
-        96,
-        ...(item.title ? [item.title.length * 7 + 24] : []),
-        ...rows.map((row) => (`${row.label}: ${row.value}`).length * 6.4 + 24)
-      );
-      const height = 20 + rows.length * 15;
       const x = anchor.x + labelWidth / 2;
       const preferredY = anchor.y + labelHeight;
       const worldRect = placeRectBelowCollisions({
@@ -1789,6 +1794,7 @@ export const bindRelationPlanFrame = (
         y: worldRect.y,
         width,
         height,
+        textLayout,
         anchorPoints,
         ...(item.title ? { title: item.title } : {}),
         rows: item.rows,
@@ -1803,7 +1809,9 @@ export const bindRelationPlanFrame = (
       item.badges.forEach((badge) => {
         const point = requirePoint(itemIndex, badge.nodeId);
         if (!point) return;
-        const stackIndex = nextStackIndex(badge.nodeId);
+        const reuseExistingNotation = item.badgeStyle === 'gap-notation'
+          && options.hasExistingGapNotation?.(badge.nodeId, badge.text) === true;
+        const stackIndex = !reuseExistingNotation && usesBoundBadgePosition(item) ? nextStackIndex(badge.nodeId) : 0;
         primitives.push({
           type: 'text-badge',
           badgeStyle: item.badgeStyle,
@@ -1813,6 +1821,7 @@ export const bindRelationPlanFrame = (
           text: badge.text,
           shape: badge.shape,
           stackIndex,
+          ...(reuseExistingNotation ? { reuseExistingNotation: true as const } : {}),
           ...(item.outcome ? { outcome: item.outcome } : {}),
           itemIndex
         });
@@ -2109,7 +2118,26 @@ export const bindRelationPlanFrame = (
     target.clear();
     snapshot.forEach((value, key) => target.set(key, value));
   };
-  frame.items.forEach((item: RelationPlanItem, itemIndex) => {
+  // Draw-layer order can put a future badge before a persistent fallback.
+  // Bind only the slot consumers chronologically, preserving every other
+  // item's place and restoring primitive paint order after allocation.
+  const entries = frame.items.map((item, itemIndex) => ({ item, itemIndex }));
+  const badgeEntries = entries.filter(({ item }) => usesBoundBadgePosition(item))
+    .map((entry) => ({
+      ...entry,
+      firstMoment: [entry.item.relationRef, ...(entry.item.coalescedRefs ?? []),
+        ...(entry.item.composedRefs ?? [])].reduce((first, ref) => (
+        ref.stageIndex < first.stageIndex
+          || (ref.stageIndex === first.stageIndex && ref.relationIndex < first.relationIndex)
+          ? ref : first
+      ))
+    }))
+    .sort((left, right) => left.firstMoment.stageIndex - right.firstMoment.stageIndex
+      || left.firstMoment.relationIndex - right.firstMoment.relationIndex
+      || left.itemIndex - right.itemIndex);
+  let badgeCursor = 0;
+  entries.forEach((entry) => {
+    const { item, itemIndex } = usesBoundBadgePosition(entry.item) ? badgeEntries[badgeCursor++] : entry;
     const txn = {
       primitives: primitives.length,
       failed: failed.length,
@@ -2131,6 +2159,7 @@ export const bindRelationPlanFrame = (
       restoreMap(styleOrdinals, txn.ordinals);
     }
   });
+  primitives.sort((left, right) => left.itemIndex - right.itemIndex);
 
   /*
    * Collision routing over measured geometry, deterministic in item order.

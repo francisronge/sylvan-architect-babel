@@ -1108,7 +1108,7 @@ test('Identity never owns a structural transition that must be authored by movem
  * Blocker 4: extra open roles never veto the specialized core.
  * ------------------------------------------------------------------ */
 
-test('a closed known relation with unknown extra roles fails closed as one Tier-3 claim', () => {
+test('a known relation missing its goal stays one Tier-3 claim despite extra context', () => {
   const tree = node('tp_extra', 'TP', [
     node('a_ex', 'AP', [leaf('a_ex_l', 'A', 'a')]),
     node('b_ex', 'BP', [leaf('b_ex_l', 'B', 'b')]),
@@ -1120,7 +1120,6 @@ test('a closed known relation with unknown extra roles fails closed as one Tier-
       relation: 'Agree',
       anchors: {
         probe: 'a_ex',
-        goal: 'b_ex',
         mysteryScalar: 'c_ex',
         mysteryArray: ['c_ex', 'd_ex']
       },
@@ -1133,7 +1132,7 @@ test('a closed known relation with unknown extra roles fails closed as one Tier-
   const fallback = plan.frames[0].items.find((item) => item.kind === 'fallback');
   assert.ok(fallback, 'the complete malformed primary remains inspectable through Tier 3');
   const fallbackWitnesses = fallback.drawing.marks.map((mark) => mark.witness);
-  assert.deepEqual(fallbackWitnesses, ['a_ex', 'b_ex', 'c_ex', 'c_ex', 'd_ex']);
+  assert.deepEqual(fallbackWitnesses, ['a_ex', 'c_ex', 'c_ex', 'd_ex']);
   assert.ok(plan.diagnostics.some((d) => d.kind === 'signature-incomplete'));
 });
 
@@ -1304,6 +1303,13 @@ test('missing or unrecognized authored outcomes yield no judgment mark, never th
   ]) {
     const plan = compileRelationRenderPlan([stage([relation], [tree])]);
     const diagnosticPath = plan.frames[0].items.find((item) => item.kind === 'directed-path');
+    if (relation.relation === 'Intervention') {
+      // The approved Intervention painter always includes a cross. Its path
+      // is not neutral geometry when no blocking claim was authored.
+      assert.equal(diagnosticPath, undefined);
+      assert(plan.diagnostics.some(d => d.detail.includes('no-authored-negative-outcome-or-blocking-role')));
+      continue;
+    }
     assert.ok(diagnosticPath, `${relation.relation} still draws its authored neutral geometry`);
     assert.equal(diagnosticPath.outcome, undefined, `${relation.relation} must not invent a blocked judgment`);
     assert.equal(
@@ -1332,7 +1338,8 @@ test('missing or unrecognized authored outcomes yield no judgment mark, never th
   ]) {
     const plan = compileRelationRenderPlan([stage([relation], [tree])]);
     assert.ok(
-      plan.diagnostics.some((diagnostic) => diagnostic.kind === 'value-unrecognized'),
+      plan.diagnostics.some((diagnostic) => diagnostic.kind === 'value-unrecognized'
+        || (relation.relation === 'Intervention' && diagnostic.detail.includes('outcome-does-not-establish-blocking'))),
       `${relation.relation} must diagnose an authored unknown outcome`
     );
   }
@@ -1342,7 +1349,7 @@ test('missing or unrecognized authored outcomes yield no judgment mark, never th
  * Blocker 7: complete accepted family drawings.
  * ------------------------------------------------------------------ */
 
-test('Improper Movement draws the rejected candidate paths, the region, and the host marks', () => {
+test('Improper Movement draws every authored candidate with its own outcome, the region, and the host marks', () => {
   const tree = node('tp_im2', 'TP', [
     node('src_im2', 'XP', [leaf('w_im2', 'X', 't', { silent: true })], { silent: true }),
     node('land_im2', 'YP', [leaf('l_im2', 'Y', 'landed')]),
@@ -1363,8 +1370,9 @@ test('Improper Movement draws the rejected candidate paths, the region, and the 
   ]);
   const candidatePaths = plan.frames[0].items.filter((item) =>
     item.kind === 'directed-path' && item.pathStyle === 'improper-candidate');
-  assert.equal(candidatePaths.length, 2, 'each rejected host gets its candidate path');
-  assert.deepEqual(candidatePaths.map((item) => item.toNodeId), ['rej_a_im2', 'rej_b_im2']);
+  assert.deepEqual(candidatePaths.map((item) => [item.toNodeId, item.outcome]), [
+    ['lic_im2', 'licensed'], ['rej_a_im2', 'blocked'], ['rej_b_im2', 'blocked']
+  ]);
   assert.ok(plan.frames[0].items.some((item) =>
     item.kind === 'domain-mark' && item.domainStyle === 'forbidden-region'));
   assert.ok(plan.frames[0].items.some((item) => item.kind === 'node-badges'));

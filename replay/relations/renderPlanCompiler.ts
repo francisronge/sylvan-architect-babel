@@ -52,12 +52,15 @@ import {
 } from './renderFamilies.ts';
 import {
   acceptedOutcomeConcept,
+  authoredOutcomeLiterals,
   resolveOutcomeLiteral,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { dispatchRelationClaims } from './tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence, dispatchRelationClaims, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
-import type { Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
+import { literalThetaRoles, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export type PlanRelationRef = {
   stageIndex: number;
@@ -86,8 +89,13 @@ export type PlanDiagnostic = {
     | 'ambiguous-package-ownership'
     | 'anchor-vanished'
     | 'tier2-collision'
+    | 'tier2-evidence'
+    | 'claim-evidence'
+    | 'unrecovered-evidence'
     | 'tier2-lowering-missing';
   detail: string;
+  evidenceCoverage?: RelationEvidenceCoverage;
+  candidateFailures?: Array<{ facetId: string; failures: string[] }>;
 };
 
 type PlanItemBase = {
@@ -172,6 +180,7 @@ export type TrajectoryEndpointAttachment = 'terminal' | 'shell' | 'shell-top' | 
 
 export type TrajectoryPlanItem = PlanItemBase & {
   kind: 'trajectory';
+  outcome?: 'licensed' | 'blocked';
   trajectoryKind: NonNullable<ProductionRenderFamily['trajectoryKind']>;
   sourceNodeId: string;
   targetNodeId: string;
@@ -184,6 +193,22 @@ export type TrajectoryPlanItem = PlanItemBase & {
   orthogonalDepartureNodeIds?: string[];
   sourceAttachment: TrajectoryEndpointAttachment;
   targetAttachment: TrajectoryEndpointAttachment;
+};
+
+/** A pending PF realization can leave the exact displayed head wordless. */
+export const resolveDisplayedTrajectoryAttachments = (
+  item: RelationPlanItem,
+  nodeFor: (nodeId: string) => SyntaxNode | undefined
+): RelationPlanItem => {
+  if (item.kind !== 'trajectory') return item;
+  const source = nodeFor(item.sourceNodeId);
+  const target = nodeFor(item.targetNodeId);
+  const sourceAttachment = item.sourceAttachment === 'terminal' && source && isWordlessCategoryLeaf(source)
+    ? 'shell-bottom' : item.sourceAttachment;
+  const targetAttachment = item.targetAttachment === 'terminal' && target && isWordlessCategoryLeaf(target)
+    ? 'shell-bottom' : item.targetAttachment;
+  return sourceAttachment === item.sourceAttachment && targetAttachment === item.targetAttachment
+    ? item : { ...item, sourceAttachment, targetAttachment };
 };
 
 export type CoindexPlanItem = PlanItemBase & {
@@ -239,6 +264,11 @@ export type DirectedPathPlanItem = PlanItemBase & {
   pathStyle: DirectedPathStyle;
   label?: string;
   secondaryLabel?: string;
+  featureRow?: { label: string; value: string };
+  projectionFeature?: string;
+  projectionTargetAttachment?: 'terminal' | 'shell';
+  sourceOccurrenceNodeId?: string;
+  dependentCaseStep?: '1' | '2';
   outcome?: 'licensed' | 'blocked';
 };
 
@@ -295,6 +325,8 @@ export type PathStatusPlanItem = PlanItemBase & {
 export type DomainMarkPlanItem = PlanItemBase & {
   kind: 'domain-mark';
   rootNodeId?: string;
+  /** Argument-sharing geometry owns its anchor independently of an optional role label. */
+  sharedNodeId?: string;
   /** Phase-only: the authored edge controls the accepted arc span. */
   phaseEdgeNodeId?: string;
   /** Phase-only: the first authored boundary uses the primary arc preset. */
@@ -325,9 +357,13 @@ export type NodePlaquePlanItem = PlanItemBase & {
   plaqueStyle: NodePlaqueStyle;
   title?: string;
   rows: Array<{ label: string; value: string }>;
+  thetaRoles?: Array<{ nodeId: string; label: string }>;
+  nativeContent?: NativePlaqueContent;
+  realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
   rowRefs?: Array<PlanRelationRef | null>;
 };
+
 
 export type NodeBadgeStyle =
   | 'agreement-goal'
@@ -426,6 +462,7 @@ export type EnclosurePlanItem = PlanItemBase & {
 
 export type BranchEmphasisPlanItem = PlanItemBase & {
   kind: 'branch-emphasis';
+  focusNodeId?: string;
   strongEdges: Array<{ fromNodeId: string; toNodeId: string }>;
   weakEdges: Array<{ fromNodeId: string; toNodeId: string }>;
 };
@@ -631,6 +668,7 @@ const scalarValue = (
   key: string,
   fallback = ''
 ): string => {
+  if (key === 'outcome') return authoredOutcomeLiterals(values)[0] ?? fallback;
   const value = values?.[key];
   return String(Array.isArray(value) ? value[0] || fallback : value || fallback);
 };
@@ -665,13 +703,27 @@ const verbatimRows = (
       value: String(entryValue ?? '')
     })));
 
+
+
+
 /** One vocabulary rule is one visual row, preserving both authored literals. */
 const realizationRows = (
   values: Record<string, string | string[]> | undefined
 ): Array<{ label: string; value: string }> => {
-  const input = scalarValue(values, 'input');
-  const output = scalarValue(values, 'output');
-  return input || output ? [{ label: input, value: output }] : [];
+  const rows = verbatimRows(values);
+  const inputs = rows.filter((row) => row.label === 'input').map((row) => row.value);
+  const outputs = rows.filter((row) => row.label === 'output').map((row) => row.value);
+  return inputs.length === 1 && outputs.length === 1
+    ? [{ label: inputs[0], value: outputs[0] }] : [];
+};
+
+const nativeRealizationContent = (values: PlanRelationRef['values']) => {
+  const rewriteRows = realizationRows(values);
+  const literals = verbatimRows(values).filter((row) => !rewriteRows.length || !['input', 'output'].includes(row.label));
+  return {
+    rows: [...rewriteRows, ...literals],
+    realizationRowKinds: [...rewriteRows.map(() => 'rewrite' as const), ...literals.map(() => 'literal' as const)]
+  };
 };
 
 /**
@@ -859,6 +911,17 @@ export const compileRelationRenderPlan = (
   const registry = options.registry ?? productionRelationRegistry;
   const families = options.families ?? PRODUCTION_RENDER_FAMILIES;
   const stageList = Array.isArray(stages) ? stages : [];
+  const stageDispatches = stageList.map((stage, stageIndex) => (stage.relations || []).map((relation, relationIndex) =>
+    dispatchRelationClaims({
+      registry, relation, stageIndex, relationIndex,
+      currentForest: stage.workspaceForest || [],
+      ...(stageIndex > 0 ? { priorForest: stageList[stageIndex - 1].workspaceForest || [] } : {}),
+      ...(options.activeLens === undefined ? {} : { activeLens: options.activeLens })
+    })));
+  const companionAnchors = (stageIndex: number, relationIndex: number) => {
+    const dispatch = stageDispatches[stageIndex][relationIndex];
+    return dispatch.primaryClaim?.tier === 1 ? dispatch.boundPrimaryRelation.anchors : {};
+  };
   const diagnostics: PlanDiagnostic[] = [];
   const unregisteredCounts = new Map<string, number>();
   const items: RelationPlanItem[] = [];
@@ -947,12 +1010,12 @@ export const compileRelationRenderPlan = (
     const pfPackages = relations.flatMap((candidate, candidateIndex) => {
       const candidateEntry = findRelationRegistryEntry(registry, candidate.relation);
       if (!candidateEntry || families[candidateEntry.id]?.family !== 'realization-plate') return [];
-      const packageAnchors = candidate.anchors || {};
+      const packageAnchors = companionAnchors(stageIndex, candidateIndex);
       if (!['root', 'verbalHead', 'tense', 'feature', 'exponent']
         .some((role) => packageAnchors[role] !== undefined)) return [];
       return [{
         relationIndex: candidateIndex,
-        targets: new Set(Object.values(candidate.anchors || {}).flatMap(flattenAnchorIds))
+        targets: new Set(Object.values(packageAnchors).flatMap(flattenAnchorIds))
       }];
     });
     const pfPackageIndices = new Set(pfPackages.map((pfPackage) => pfPackage.relationIndex));
@@ -964,7 +1027,8 @@ export const compileRelationRenderPlan = (
       const isVocabularyInsertion = candidateFamily === 'vocabulary-insertion'
         || (candidateFamily === 'realization-plate' && !pfPackageIndices.has(candidateIndex));
       if (!isVocabularyInsertion) return;
-      const viTarget = flattenAnchorIds(candidate.anchors?.terminal || candidate.anchors?.target)[0];
+      const candidateAnchors = companionAnchors(stageIndex, candidateIndex);
+      const viTarget = flattenAnchorIds(candidateAnchors.terminal || candidateAnchors.target)[0];
       if (!viTarget || !stageNodeSetForPf.has(viTarget)) return;
       /*
        * Ownership must be provable, never first-win: an insertion joins a
@@ -1032,17 +1096,19 @@ export const compileRelationRenderPlan = (
         }
       }
 
-      const claimDispatch = dispatchRelationClaims({
-        registry,
-        relation,
-        stageIndex,
-        relationIndex,
-        currentForest: stage?.workspaceForest || [],
-        ...(stageIndex > 0
-          ? { priorForest: stageList[stageIndex - 1]?.workspaceForest || [] }
-          : {}),
-        ...(options.activeLens === undefined ? {} : { activeLens: options.activeLens })
-      });
+      const claimDispatch = stageDispatches[stageIndex][relationIndex];
+      const unrecovered = claimDispatch.evidenceCoverage.fields.filter(field =>
+        field.unrecoveredItemIndices.length || field.unrecoveredEmptyField);
+      if (claimDispatch.claims.some(claim => claim.tier === 3)) {
+        diagnostics.push({ stageIndex, relationIndex, relation: relation.relation,
+          kind: 'claim-evidence',
+          detail: unrecovered.map(field => `${field.field}.${field.key}: ${field.concepts.length
+            ? 'candidate meanings exist, but no selected drawing accounts for this evidence'
+            : 'no supported field meaning'}${field.unrecoveredEmptyField ? '; authored empty field' : `; original item indices ${field.unrecoveredItemIndices.join(',')}`}`).join('; ')
+            || 'No complete supported claim. The original relation is retained.',
+          evidenceCoverage: claimDispatch.evidenceCoverage,
+          candidateFailures: claimDispatch.facetDiagnostics });
+      }
       const primaryRelation = claimDispatch.primaryRelation;
       const primaryRelationRef: PlanRelationRef = {
         stageIndex,
@@ -1067,14 +1133,12 @@ export const compileRelationRenderPlan = (
 
       if (claimDispatch.facets.length > 0) {
         const tier2 = compileTier2RelationOutputs({
-          relation,
           relationRef,
           dispatch: claimDispatch,
           currentForest: stage?.workspaceForest || [],
           ...(stageIndex > 0
             ? { priorForest: stageList[stageIndex - 1]?.workspaceForest || [] }
-            : {}),
-          ...(options.activeLens === undefined ? {} : { activeLens: options.activeLens })
+            : {})
         });
         items.push(...tier2.items);
         diagnostics.push(...tier2.diagnostics);
@@ -1084,7 +1148,7 @@ export const compileRelationRenderPlan = (
             stageIndex,
             relationIndex,
             relation: relation.relation,
-            kind: 'tier2-collision',
+            kind: diagnostic.kind === 'unrecovered-evidence' ? 'unrecovered-evidence' : 'tier2-collision',
             detail: `${diagnostic.kind}:${diagnostic.collision}:${diagnostic.facets.join(',')}`
           });
         });
@@ -1111,7 +1175,9 @@ export const compileRelationRenderPlan = (
        */
       const pushNeutralFallback = (
         anchorSource: Record<string, string | string[]>,
-        includePriorCue: boolean
+        includePriorCue: boolean,
+        fallbackRelation: PlanRelationRef = primaryRelationRef,
+        claimIdentity = claimDispatch.primaryClaim?.canonicalClaimIdentity
       ) => {
         const resolvedAnchors: Record<string, string | string[]> = {};
         Object.entries(anchorSource || {}).forEach(([role, value]) => {
@@ -1141,18 +1207,24 @@ export const compileRelationRenderPlan = (
         );
         items.push({
           kind: 'fallback',
-          relationRef: primaryRelationRef,
+          relationRef: fallbackRelation,
           appearsAtStage: stageIndex,
           persistence: 'from-stage-onward',
-          backward: primaryBackward,
-          priorWitnessNodeIds: primaryPriorWitnessNodeIds,
+          backward: includePriorCue && primaryBackward,
+          priorWitnessNodeIds: includePriorCue ? primaryPriorWitnessNodeIds : [],
           drawing,
           claimTier: 3,
-          ...(claimDispatch.primaryClaim
-            ? { canonicalClaimIdentity: claimDispatch.primaryClaim.canonicalClaimIdentity }
+          ...(claimIdentity
+            ? { canonicalClaimIdentity: claimIdentity }
             : {})
         });
       };
+
+      if (claimDispatch.residualRelation) {
+        const residualClaim = claimDispatch.claims.find(claim => claim.kind === 'fallback-residual');
+        pushNeutralFallback(claimDispatch.residualRelation.anchors, false,
+          { ...claimDispatch.residualRelation, stageIndex, relationIndex }, residualClaim?.canonicalClaimIdentity);
+      }
 
       if (dispatch.outcome === 'unregistered') {
         pushNeutralFallback(claimDispatch.primaryRelation.anchors || {}, true);
@@ -1170,7 +1242,7 @@ export const compileRelationRenderPlan = (
               const countDetail = issue.minPresentItems === undefined
                 ? ''
                 : `>=${issue.minPresentItems}`;
-              return `${issue.kind}:${issue.field ?? ''}:${roleDetail || countDetail}`;
+              return `${issue.kind}:${issue.field ?? ''}:${roleDetail || countDetail}${issue.reason ? `:${issue.reason}` : ''}`;
             })
             .join(', ') || 'signature incomplete'
         );
@@ -1253,7 +1325,7 @@ export const compileRelationRenderPlan = (
       };
       const resolvedIds = (role: string, value: string | string[] | undefined): string[] =>
         flattenAnchorIds(value).filter((nodeId) => requireResolved(role, nodeId));
-      const anchors = primaryRelation.anchors || {};
+      const anchors = claimDispatch.boundPrimaryRelation.anchors || {};
       const values = primaryRelation.values;
 
       const pushCompositeTrajectory = (trajectoryKind: 'phrasal' | 'head'): boolean => {
@@ -1290,8 +1362,8 @@ export const compileRelationRenderPlan = (
           sourceNodeId: source.nodeId,
           targetNodeId: target.nodeId,
           ...(witness ? { witnessNodeId: witness.nodeId } : {}),
-          sourceAttachment: complexPhrase ? 'shell-bottom' : 'terminal',
-          targetAttachment: trajectoryKind === 'head' ? 'terminal' : 'shell-bottom'
+          sourceAttachment: complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
+          targetAttachment: trajectoryKind === 'head' && !isWordlessCategoryLeaf(nodes.get(target.nodeId)!) ? 'terminal' : 'shell-bottom'
         });
         return true;
       };
@@ -1449,10 +1521,10 @@ export const compileRelationRenderPlan = (
             ...(witness ? { witnessNodeId: witness.nodeId } : {}),
             sourceAttachment: sideward
               ? 'shell-top'
-              : complexPhrase ? 'shell-bottom' : 'terminal',
+              : complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
             targetAttachment: sideward
               ? 'shell-top'
-              : headSized ? 'terminal' : 'shell-bottom'
+              : headSized && !isWordlessCategoryLeaf(nodes.get(target.nodeId)!) ? 'terminal' : 'shell-bottom'
           });
 
           if (sideward) {
@@ -1777,6 +1849,7 @@ export const compileRelationRenderPlan = (
               ...base,
               kind: 'domain-mark',
               rootNodeId: domain,
+              sharedNodeId: shared,
               memberNodeIds: collectSubtreeIds(nodes.get(domain)),
               subtreeDerived: [{ field: 'memberNodeIds', rootNodeId: domain, mode: 'all' }],
               domainStyle: 'argument-domain'
@@ -1831,10 +1904,10 @@ export const compileRelationRenderPlan = (
           if (familyId === 'agree.plaque') {
             const probe = flattenAnchorIds(anchors.probe)[0];
             const goal = flattenAnchorIds(anchors.goal)[0];
-            const composedWithCase = relations.some((companion) => {
+            const composedWithCase = relations.some((companion, companionIndex) => {
               const companionEntry = findRelationRegistryEntry(registry, companion.relation);
               return companionEntry?.id === 'case-assignment.path'
-                && flattenAnchorIds(companion.anchors?.bearer)[0] === probe;
+                && flattenAnchorIds(companionAnchors(stageIndex, companionIndex).bearer)[0] === probe;
             });
             // A Case composition already emits this Agree instance's own
             // dotted collection path, with the Agree relationRef preserved.
@@ -1963,6 +2036,7 @@ export const compileRelationRenderPlan = (
               fromNodeId: probe,
               toNodeId: goal,
               pathStyle: 'case-agree',
+              featureRow: { label: scalarValue(values, 'feature'), value: scalarValue(values, 'value') },
               ...(scalarValue(values, 'feature') || scalarValue(values, 'value')
                 ? { label: [scalarValue(values, 'feature'), scalarValue(values, 'value')].filter(Boolean).join(': ') }
                 : {})
@@ -1990,6 +2064,7 @@ export const compileRelationRenderPlan = (
             fromNodeId: assigner,
             toNodeId: bearer,
             pathStyle: 'case-assignment',
+            featureRow: { label: scalarValue(values, 'feature'), value: scalarValue(values, 'value') || scalarValue(values, 'case') },
             ...(scalarValue(values, 'feature') || scalarValue(values, 'value')
               ? { label: [scalarValue(values, 'feature'), scalarValue(values, 'value')].filter(Boolean).join(': ') }
               : {})
@@ -2007,8 +2082,9 @@ export const compileRelationRenderPlan = (
           relations.forEach((companion, companionIndex) => {
             const companionEntry = findRelationRegistryEntry(registry, companion.relation);
             if (!companionEntry || families[companionEntry.id]?.family !== 'feature-plaque') return;
-            const companionProbe = flattenAnchorIds(companion.anchors?.probe)[0];
-            const companionGoal = flattenAnchorIds(companion.anchors?.goal)[0];
+            const boundAnchors = companionAnchors(stageIndex, companionIndex);
+            const companionProbe = flattenAnchorIds(boundAnchors.probe)[0];
+            const companionGoal = flattenAnchorIds(boundAnchors.goal)[0];
             if (companionProbe !== bearer || !companionGoal || !nodes.has(companionGoal)) return;
             const companionFamily = families[companionEntry.id];
             items.push({
@@ -2029,6 +2105,7 @@ export const compileRelationRenderPlan = (
               fromNodeId: bearer,
               toNodeId: companionGoal,
               pathStyle: 'case-agree',
+              featureRow: { label: scalarValue(companion.values, 'feature'), value: scalarValue(companion.values, 'value') },
               ...(scalarValue(companion.values, 'feature') || scalarValue(companion.values, 'value')
                 ? { label: [scalarValue(companion.values, 'feature'), scalarValue(companion.values, 'value')].filter(Boolean).join(': ') }
                 : {})
@@ -2042,12 +2119,19 @@ export const compileRelationRenderPlan = (
           const goal = flattenAnchorIds(anchors.goal)[0];
           if (!requireResolved('probe', probe)) return;
           if (!requireResolved('goal', goal)) return;
+          const dependentCaseStep = prepareNativeDependentCaseStep(values?.step);
+          if (values?.step !== undefined && dependentCaseStep === undefined) {
+            pushDiagnostic('illegal-configuration', 'DependentCase requires one explicit step value of 1 or 2; unknown, multiple or empty steps are not a native mode');
+            pushNeutralFallback(anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'directed-path',
             fromNodeId: probe,
             toNodeId: goal,
             pathStyle: 'dependent-case',
+            ...(dependentCaseStep ? { dependentCaseStep } : {}),
             ...(scalarValue(values, 'probeLabel') ? { label: scalarValue(values, 'probeLabel') } : {}),
             ...(scalarValue(values, 'goalLabel') ? { secondaryLabel: scalarValue(values, 'goalLabel') } : {})
           });
@@ -2065,6 +2149,8 @@ export const compileRelationRenderPlan = (
             fromNodeId: source,
             toNodeId: goal,
             pathStyle: 'accord',
+            featureRow: { label: scalarValue(values, 'feature'), value: scalarValue(values, 'value') },
+            ...(scalarValue(values, 'index') ? { secondaryLabel: scalarValue(values, 'index') } : {}),
             ...(scalarValue(values, 'feature') || scalarValue(values, 'index') || scalarValue(values, 'value')
               ? { label: `${scalarValue(values, 'feature')}${scalarValue(values, 'index')}${scalarValue(values, 'value') ? `: ${scalarValue(values, 'value')}` : ''}` }
               : {})
@@ -2113,12 +2199,12 @@ export const compileRelationRenderPlan = (
            */
           const transferElaboratesPhase = Boolean(edge) && stageList.some((candidateStage, candidateStageIndex) => (
             candidateStageIndex >= stageIndex
-            && (candidateStage.relations || []).some((candidate) => {
+            && (candidateStage.relations || []).some((candidate, candidateRelationIndex) => {
               const candidateEntry = findRelationRegistryEntry(registry, candidate.relation);
               return Boolean(candidateEntry)
                 && families[candidateEntry!.id]?.family === 'transfer-domain'
-                && flattenAnchorIds(candidate.anchors?.phase)[0] === phase
-                && flattenAnchorIds(candidate.anchors?.edge)[0] === edge;
+                && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
+                && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
             })
           ));
           if (transferElaboratesPhase && edge) {
@@ -2155,10 +2241,12 @@ export const compileRelationRenderPlan = (
 
         case 'transfer-domain': {
           const phase = flattenAnchorIds(anchors.phase)[0];
-          const edge = flattenAnchorIds(anchors.edge)[0];
+          const edges = resolvedIds('edge', anchors.edge);
+          const edge = edges[0];
           const spellOut = flattenAnchorIds(anchors.spellOutDomain || anchors.complement)[0];
           if (!requireResolved('phase', phase)) return;
           if (!requireResolved('edge', edge)) return;
+          if (edges.length !== flattenAnchorIds(anchors.edge).length) return;
           if (spellOut && !requireResolved('spellOutDomain', spellOut)) return;
           /*
            * Fong Defs. 1–2, plate-exact: a tilted component arc labelled
@@ -2173,8 +2261,8 @@ export const compileRelationRenderPlan = (
               const candidateEntry = findRelationRegistryEntry(registry, candidate.relation);
               return Boolean(candidateEntry)
                 && ['phase-arc', 'transfer-domain'].includes(families[candidateEntry!.id]?.family)
-                && flattenAnchorIds(candidate.anchors?.phase)[0] === phase
-                && flattenAnchorIds(candidate.anchors?.edge)[0] === edge;
+                && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
+                && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
             });
           });
           if (!phaseAlreadyAuthored) {
@@ -2184,15 +2272,27 @@ export const compileRelationRenderPlan = (
               headNodeId: phase,
               componentLabel: 'Phase'
             });
+          }
+          edges.forEach((edgeNodeId) => {
+            const edgeAlreadyAuthored = stageList.some((candidateStage, candidateStageIndex) =>
+              candidateStageIndex <= stageIndex && (candidateStage.relations || []).some((candidate, candidateRelationIndex) => {
+                if (candidateStageIndex === stageIndex && candidateRelationIndex >= relationIndex) return false;
+                const candidateEntry = findRelationRegistryEntry(registry, candidate.relation);
+                const bound = companionAnchors(candidateStageIndex, candidateRelationIndex);
+                return Boolean(candidateEntry)
+                  && ['phase-arc', 'transfer-domain'].includes(families[candidateEntry!.id]?.family)
+                  && flattenAnchorIds(bound.phase)[0] === phase && flattenAnchorIds(bound.edge).includes(edgeNodeId);
+              }));
+            if (edgeAlreadyAuthored) return;
             items.push({
               ...base,
               kind: 'domain-mark',
-              rootNodeId: edge,
-              memberNodeIds: [edge],
+              rootNodeId: edgeNodeId,
+              memberNodeIds: [edgeNodeId],
               domainStyle: 'transfer-edge',
               label: 'Phase edge'
             });
-          }
+          });
           if (spellOut) {
             items.push({
               ...base,
@@ -2230,8 +2330,8 @@ export const compileRelationRenderPlan = (
                 const candidateEntry = findRelationRegistryEntry(registry, candidate.relation);
                 return Boolean(candidateEntry)
                   && families[candidateEntry!.id]?.family === 'blocked-access'
-                  && flattenAnchorIds(candidate.anchors?.phase)[0] === phase
-                  && flattenAnchorIds(candidate.anchors?.edge)[0] === edge;
+                  && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
+                  && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
               });
             });
             if (!priorComposition) {
@@ -2323,6 +2423,13 @@ export const compileRelationRenderPlan = (
             return;
           }
           const forbidden = resolvedIds('forbiddenRegion', anchors.forbiddenRegion);
+          const licensedHosts = resolvedIds('licensedLandingHosts', anchors.licensedLandingHosts);
+          const rejectedHosts = resolvedIds('rejectedLandingHosts', anchors.rejectedLandingHosts);
+          if (rejectedHosts.some((nodeId) => nodeId === landing || licensedHosts.includes(nodeId))) {
+            pushDiagnostic('illegal-configuration', 'The same candidate host is both licensed and rejected');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           if (forbidden.length > 0) {
             items.push({
               ...base,
@@ -2337,20 +2444,21 @@ export const compileRelationRenderPlan = (
             fromNodeId: witness,
             toNodeId: landing,
             pathStyle: 'anti-locality',
+            sourceOccurrenceNodeId: source,
             outcome: 'licensed'
           });
-          const licensedHosts = resolvedIds('licensedLandingHosts', anchors.licensedLandingHosts);
-          const rejectedHosts = resolvedIds('rejectedLandingHosts', anchors.rejectedLandingHosts);
           // The accepted drawing shows the rejected candidate paths too, each
           // from the same witness into the forbidden region's host.
-          rejectedHosts.forEach((rejectedHost) => {
+          [...licensedHosts.map((nodeId) => ({ nodeId, outcome: 'licensed' as const })),
+            ...rejectedHosts.map((nodeId) => ({ nodeId, outcome: 'blocked' as const }))].forEach(({ nodeId, outcome }) => {
             items.push({
               ...base,
               kind: 'directed-path',
               fromNodeId: witness,
-              toNodeId: rejectedHost,
+              toNodeId: nodeId,
               pathStyle: 'improper-candidate',
-              outcome: 'blocked'
+              sourceOccurrenceNodeId: source,
+              outcome
             });
           });
           if (licensedHosts.length > 0 || rejectedHosts.length > 0) {
@@ -2562,8 +2670,8 @@ export const compileRelationRenderPlan = (
             vocabularyAssignments.get(companionIndex) === relationIndex
               ? [{ companion, companionIndex }]
               : []);
-          const packageRows = packageCompanions.flatMap(({ companion }) =>
-            realizationRows(companion.values));
+          const packageContents = packageCompanions.map(({ companion }) => nativeRealizationContent(companion.values));
+          const packageRows = packageContents.flatMap((content) => content.rows);
           const packageRefs = packageCompanions.map(({ companion, companionIndex }) => ({
             stageIndex,
             relationIndex: companionIndex,
@@ -2572,17 +2680,16 @@ export const compileRelationRenderPlan = (
             ...(companion.priorAnchors ? { priorAnchors: companion.priorAnchors } : {}),
             ...(companion.values ? { values: companion.values } : {})
           }));
-          const ownRealizationRows = realizationRows(values);
-          const ownRows = ownRealizationRows.length > 0
-            ? ownRealizationRows
-            : verbatimRows(values);
+          const ownContent = nativeRealizationContent(values);
+          const ownRows = ownContent.rows;
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: targets,
             plaqueStyle: 'realization',
             rows: [...ownRows, ...packageRows],
-            rowRefs: [...ownRows.map(() => null), ...packageRefs],
+            realizationRowKinds: [...ownContent.realizationRowKinds, ...packageContents.flatMap((content) => content.realizationRowKinds)],
+            rowRefs: [...ownRows.map(() => null), ...packageContents.flatMap((content, index) => content.rows.map(() => packageRefs[index]))],
             composedRefs: packageRefs
           });
           return;
@@ -2599,8 +2706,8 @@ export const compileRelationRenderPlan = (
             kind: 'node-plaque',
             anchorNodeIds: [target],
             plaqueStyle: 'realization',
-            rows: realizationRows(values),
-            rowRefs: realizationRows(values).map(() => relationRef)
+            ...nativeRealizationContent(values),
+            rowRefs: nativeRealizationContent(values).rows.map(() => relationRef)
           });
           return;
         }
@@ -2622,11 +2729,18 @@ export const compileRelationRenderPlan = (
         case 'pf-correspondence': {
           const anchor = flattenAnchorIds(anchors.word || anchors.terminal)[0];
           if (!requireResolved('word', anchor)) return;
+          const nativeContent = prepareNativePlaqueContent('correspondence', verbatimRows(values), [anchor]);
+          if (!nativeContent) {
+            pushDiagnostic('illegal-configuration', 'PF correspondence needs unambiguous source/exponent associations');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: [anchor],
             plaqueStyle: 'correspondence',
+            nativeContent,
             rows: verbatimRows(values)
           });
           return;
@@ -2635,11 +2749,18 @@ export const compileRelationRenderPlan = (
         case 'fission': {
           const outputs = resolvedIds('outputs', anchors.outputs);
           if (outputs.length === 0) return;
+          const nativeContent = prepareNativePlaqueContent('fission', verbatimRows(values), outputs);
+          if (!nativeContent) {
+            pushDiagnostic('illegal-configuration', 'Native fission requires exactly two outputs with explicit input and output feature bundles');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: outputs,
             plaqueStyle: 'fission',
+            nativeContent,
             rows: verbatimRows(values)
           });
           return;
@@ -2648,11 +2769,18 @@ export const compileRelationRenderPlan = (
         case 'impoverishment': {
           const terminal = flattenAnchorIds(anchors.terminal)[0];
           if (!requireResolved('terminal', terminal)) return;
+          const nativeContent = prepareNativePlaqueContent('impoverishment', verbatimRows(values), [terminal]);
+          if (!nativeContent) {
+            pushDiagnostic('illegal-configuration', 'Native impoverishment requires an ordered hierarchy and one unambiguous delinking edge');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: [terminal],
             plaqueStyle: 'impoverishment',
+            nativeContent,
             rows: verbatimRows(values)
           });
           return;
@@ -2680,11 +2808,21 @@ export const compileRelationRenderPlan = (
             );
             return;
           }
+          const evidence = buildTier2FacetEvidence({ relation: primaryRelation,
+            currentForest: stage.workspaceForest,
+            ...(stageIndex > 0 ? { priorForest: stageList[stageIndex - 1].workspaceForest } : {}) });
+          const nativeContent = prepareNativeLinearizationContent(evidence);
+          if (!nativeContent) {
+            pushDiagnostic('illegal-configuration', 'CyclicLinearization has no complete, unambiguous prior/current comparison content');
+            pushNeutralFallback(anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: order,
             plaqueStyle: 'linearization',
+            nativeContent,
             ...(scalarValue(values, 'outcome') ? { title: scalarValue(values, 'outcome') } : {}),
             rows: verbatimRows(values)
           });
@@ -2765,11 +2903,18 @@ export const compileRelationRenderPlan = (
         case 'cooper-storage': {
           const scope = flattenAnchorIds(anchors.scope)[0];
           if (!requireResolved('scope', scope)) return;
+          const nativeContent = prepareNativePlaqueContent('cooper-storage', verbatimRows(values), [scope]);
+          if (!nativeContent) {
+            pushDiagnostic('illegal-configuration', 'Native storage requires explicit category, qstore, or retrieved rows');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: [scope],
             plaqueStyle: 'cooper-storage',
+            nativeContent,
             rows: verbatimRows(values)
           });
           return;
@@ -2810,11 +2955,20 @@ export const compileRelationRenderPlan = (
           if (!requireResolved('domain', domain)) return;
           if (!requireResolved('focus', focus)) return;
           if (!requireResolved('background', background)) return;
+          const strongEdges = nativeAncestorEdges(nodes, domain, focus);
+          const weakEdges = nativeAncestorEdges(nodes, domain, background);
+          if (!strongEdges || !weakEdges || strongEdges.some((strong) => weakEdges.some((weak) =>
+            strong.fromNodeId === weak.fromNodeId && strong.toNodeId === weak.toNodeId))) {
+            pushDiagnostic('illegal-configuration', 'Focus and background require distinct native branches within the named domain');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           items.push({
             ...base,
             kind: 'branch-emphasis',
-            strongEdges: [{ fromNodeId: domain, toNodeId: focus }],
-            weakEdges: [{ fromNodeId: domain, toNodeId: background }]
+            focusNodeId: focus,
+            strongEdges,
+            weakEdges
           });
           return;
         }
@@ -2824,6 +2978,11 @@ export const compileRelationRenderPlan = (
           const projections = resolvedIds('projections', anchors.projections);
           if (!requireResolved('accentBearer', accentBearer) || projections.length === 0) return;
           const hops = [accentBearer, ...projections];
+          if (!isNativeProjectionPath(nodes, accentBearer, projections)) {
+            pushDiagnostic('illegal-configuration', 'FProjection requires ordered ancestor hops between the exact authored nodes');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           hops.slice(0, -1).forEach((fromNodeId, index) => {
             items.push({
               ...base,
@@ -2831,6 +2990,9 @@ export const compileRelationRenderPlan = (
               fromNodeId,
               toNodeId: hops[index + 1],
               pathStyle: 'f-projection',
+              projectionTargetAttachment: nodes.get(hops[index + 1])?.word
+                && !(nodes.get(hops[index + 1])?.children || []).length ? 'terminal' : 'shell',
+              ...(scalarValue(values, 'feature') ? { projectionFeature: scalarValue(values, 'feature') } : {}),
               ...(index === 0 && scalarValue(values, 'accent') ? { label: scalarValue(values, 'accent') } : {})
             });
           });
@@ -2843,16 +3005,31 @@ export const compileRelationRenderPlan = (
           if (!requireResolved('predicate', predicate)) return;
           const roleEntries = Object.entries(anchors)
             .filter(([role]) => role.toLowerCase() !== 'predicate');
-          const roleBadges = roleEntries.flatMap(([role, value], index) => {
-            const nodeId = flattenAnchorIds(value)[0];
-            if (!requireResolved(role, nodeId)) return [];
-            return [{ role, nodeId, ordinal: index + 1 }];
-          });
+          const evidence = buildTier2FacetEvidence({ relation: primaryRelation, currentForest: stage.workspaceForest || [] });
+          const explicitArguments = evidence.currentAnchors['theta.arguments'];
+          const explicitRoles = explicitArguments?.length ? literalThetaRoles(evidence) : undefined;
+          if (explicitArguments?.length && !explicitRoles) {
+            pushDiagnostic('illegal-configuration', 'Theta arguments require exactly one authored role label per argument');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
+          const roleBadges = explicitRoles
+            ? explicitRoles.map(({ nodeId, label }) => ({ nodeId, role: label }))
+            : roleEntries.flatMap(([role, value]) => flattenAnchorIds(value)
+            .filter((nodeId) => requireResolved(role, nodeId))
+            .map((nodeId) => ({ role: role.charAt(0).toUpperCase() + role.slice(1), nodeId })));
+          if (!roleBadges.length) {
+            pushDiagnostic('illegal-configuration', 'A theta grid requires at least one authored role association');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
+          if (roleBadges.some(({ nodeId }) => !requireResolved('argument', nodeId))) return;
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: [predicate],
             plaqueStyle: 'theta-grid',
+            thetaRoles: roleBadges.map(({ role, nodeId }) => ({ nodeId, label: role })),
             rows: roleBadges.map(({ role }) => ({ label: role, value: '' }))
           });
           if (roleBadges.length > 0) {
@@ -2860,9 +3037,9 @@ export const compileRelationRenderPlan = (
               ...base,
               kind: 'node-badges',
               badgeStyle: 'theta-role',
-              badges: roleBadges.map(({ nodeId, ordinal }) => ({
+              badges: roleBadges.map(({ nodeId }, index) => ({
                 nodeId,
-                text: String(ordinal),
+                text: String(index + 1),
                 shape: 'plain' as const
               }))
             });
@@ -2877,7 +3054,15 @@ export const compileRelationRenderPlan = (
             pushDiagnostic('endpoint-missing', 'GappingAlignment requires positionally paired correlates and remnants');
             return;
           }
-          const labels = listValue(values, 'labels');
+          // Labels pair with correlates only through a same-name values entry
+          // of the same length, or one label for one correlate.
+          const authoredCorrelateKey = Object.entries(primaryRelation.anchors || {})
+            .find(([, value]) => JSON.stringify(flattenAnchorIds(value)) === JSON.stringify(correlates))?.[0];
+          const sameNameLabels = authoredCorrelateKey ? listValue(values, authoredCorrelateKey) : [];
+          const conceptLabels = listValue(values, 'labels');
+          const labels = sameNameLabels.length === correlates.length
+            ? sameNameLabels
+            : (correlates.length === 1 && conceptLabels.length === 1 ? conceptLabels : []);
           items.push({
             ...base,
             kind: 'node-badges',

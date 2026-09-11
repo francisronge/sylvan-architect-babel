@@ -69,7 +69,15 @@ const normalizeRoleRules = (value, path) => {
         `${path}.${role}.maxItems must be null or an integer not below minItems.`
       );
     }
-    return [role, { minItems, maxItems }];
+    if (rule.aliases !== undefined && (!Array.isArray(rule.aliases)
+      || !rule.aliases.every(alias => typeof alias === 'string' && alias.trim()))) {
+      throw new TypeError(`${path}.${role}.aliases must be an array of non-empty strings.`);
+    }
+    if (rule.concept !== undefined) requireNonemptyText(rule.concept, `${path}.${role}.concept`);
+    return [role, { minItems, maxItems,
+      ...(rule.aliases ? { aliases: [...new Set(rule.aliases)] } : {}),
+      ...(rule.concept ? { concept: rule.concept } : {})
+    }];
   }));
 };
 
@@ -162,7 +170,8 @@ const normalizeSignatureBlock = (value, path) => {
       'allOrNone',
       'sameLength',
       'minPresentItems',
-      'allowAdditional'
+      'allowAdditional',
+      'allowContext'
     ].includes(key)
   );
   if (unexpected.length > 0) {
@@ -179,6 +188,9 @@ const normalizeSignatureBlock = (value, path) => {
     throw new TypeError(`${path}.allowAdditional must be boolean.`);
   }
   const allowAdditional = block.allowAdditional === true;
+  if (block.allowContext !== undefined && typeof block.allowContext !== 'boolean') {
+    throw new TypeError(`${path}.allowContext must be boolean.`);
+  }
   const declaredRoles = new Set([...Object.keys(required), ...Object.keys(optional)]);
   const requiredAny = normalizeRequiredAny(
     block.requiredAny,
@@ -218,7 +230,8 @@ const normalizeSignatureBlock = (value, path) => {
     allOrNone,
     sameLength,
     minPresentItems,
-    allowAdditional
+    allowAdditional,
+    allowContext: block.allowContext === true
   };
 };
 

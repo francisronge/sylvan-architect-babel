@@ -1,0 +1,147 @@
+import { normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
+import { recoverMovementEvidence } from '../relations/movementEvidence.ts';
+import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
+
+const items = value => Array.isArray(value) ? value : [value];
+const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
+
+// Binding changes lookup keys only. Authored text, item order, cardinality and
+// references stay intact; ambiguous meanings never select the first candidate.
+export const bindRelationRoles = (relation, entry, currentForest, priorForest) => {
+  const bindings = [];
+  const issues = [];
+  const bound = { ...relation };
+  for (const field of ['anchors', 'priorAnchors', 'values']) {
+    const signature = entry.signature[field];
+    const rules = { ...signature.required, ...signature.optional };
+    if (!isRecord(relation[field]) || !Object.values(rules).some(rule => rule.aliases)) continue;
+    const groups = [...signature.requiredAny, ...signature.requiredAlternatives.flat()];
+    const sameSlot = (a, b) => a === b || (rules[a]?.concept && rules[a].concept === rules[b]?.concept
+      && groups.some(group => group.includes(a) && group.includes(b)));
+    const candidatesFor = key => {
+      const spelling = normalizeTier2Synonym(key);
+      const spelled = Object.keys(rules).filter(role => role === key
+        || (rules[role].aliases && normalizeTier2Synonym(role) === spelling));
+      const candidates = spelled.length ? spelled : Object.keys(rules).filter(role =>
+        rules[role].aliases?.some(alias => normalizeTier2Synonym(alias) === spelling));
+      return { spelled, candidates };
+    };
+    const record = Object.create(null);
+    const assigned = [];
+    for (const [authoredRole, value] of Object.entries(relation[field])) {
+      const { spelled, candidates: meanings } = candidatesFor(authoredRole);
+      let candidates = meanings;
+      if (candidates.length > 1) {
+        const arityMatches = candidates.filter(role => items(value).length >= rules[role].minItems
+          && (rules[role].maxItems === null || items(value).length <= rules[role].maxItems));
+        if (arityMatches.length) candidates = arityMatches;
+      }
+      // Open slots may use these words for independent participants. A synonym
+      // must not overwrite that evidence or compete with an explicit slot.
+      if (signature.allowAdditional && !spelled.length && candidates.length) {
+        const ambiguous = !candidates.every(role => sameSlot(role, candidates[0]));
+        const competing = Object.entries(relation[field]).some(([other, otherValue]) => other !== authoredRole
+          && JSON.stringify(items(otherValue)) !== JSON.stringify(items(value))
+          && candidatesFor(other).candidates.some(role => candidates.some(candidate => sameSlot(role, candidate))));
+        if (ambiguous || competing) {
+          record[authoredRole] = value;
+          continue;
+        }
+      }
+      if (candidates.length > 1 && !candidates.every(role => sameSlot(role, candidates[0]))) {
+        issues.push({ kind: 'ambiguous-role-binding', field, role: authoredRole, candidates });
+        record[authoredRole] = value;
+        continue;
+      }
+      const role = candidates[0] || authoredRole;
+      if (candidates.length) {
+        const conflict = assigned.find(previous => sameSlot(previous.role, role)
+          && JSON.stringify(items(previous.value)) !== JSON.stringify(items(value)));
+        if (conflict) issues.push({ kind: 'conflicting-role-bindings', field,
+          roles: [conflict.authoredRole, authoredRole], references: [conflict.value, value] });
+        assigned.push({ role, authoredRole, value });
+        bindings.push({ field, authoredRole, role, ...(rules[role].concept ? { concept: rules[role].concept } : {}) });
+      }
+      record[role] = value;
+    }
+    bound[field] = { ...record };
+  }
+
+  // A bare "head" can name the host instead of the moved occurrence. Only
+  // shared root identity can establish that it is an equivalent landing role.
+  const genericHead = bindings.find(binding => binding.field === 'anchors'
+    && binding.concept === 'movement.landing' && normalizeTier2Synonym(binding.authoredRole) === 'head');
+  if (genericHead && issues.length === 0) {
+    const sources = bindings.filter(binding => binding.field === 'anchors' && binding.concept === 'movement.source')
+      .flatMap(binding => items(bound.anchors[binding.role]));
+    const targets = items(bound.anchors[genericHead.role]);
+    const nodes = [];
+    const visit = node => { nodes.push(node); (node.children || []).forEach(visit); };
+    (currentForest || []).forEach(visit);
+    const uniqueNode = id => nodes.filter(node => node.id === id);
+    const source = [...new Set(sources)].length === 1 ? uniqueNode(sources[0]) : [];
+    const target = targets.length === 1 ? uniqueNode(targets[0]) : [];
+    if (source.length !== 1 || target.length !== 1 || source[0].id === target[0].id
+      || !source[0].lineageId || source[0].lineageId !== target[0].lineageId) {
+      issues.push({ kind: 'movement-landing-unproven', field: 'anchors', role: genericHead.authoredRole,
+        reason: 'head-does-not-identify-a-unique-occurrence-with-the-source-root-lineage' });
+    }
+  }
+
+  // Extra head-context anchors are accepted only as the actual host and complex
+  // of the named landing, never as arbitrary additional participants.
+  if (entry.id === 'trajectory.head' && isRecord(bound.anchors)) {
+    const anchors = bound.anchors;
+    const contextRoles = ['hostHead', 'complexHead'].filter(role => Object.hasOwn(anchors, role));
+    if (contextRoles.length && issues.length === 0) {
+      const roles = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
+      const landings = [...new Set(Object.keys(anchors).filter(role => roles[role]?.concept === 'movement.landing').flatMap(role => items(anchors[role])))];
+      const parents = [];
+      const visit = node => {
+        if (node.children?.some(child => child.id === landings[0])) parents.push(node);
+        (node.children || []).forEach(visit);
+      };
+      (currentForest || []).forEach(visit);
+      for (const role of contextRoles) {
+        const ids = items(anchors[role]);
+        if (ids.length !== 1 || landings.length !== 1) continue;
+        const parent = parents.length === 1 ? parents[0] : null;
+        const valid = parent && (role === 'complexHead' ? parent.id === ids[0]
+          : parent.children.some(child => child.id === ids[0] && child.id !== landings[0]));
+        if (!valid) issues.push({ kind: 'head-context-unproven', field: 'anchors',
+          role: bindings.find(binding => binding.field === 'anchors' && binding.role === role)?.authoredRole || role,
+          nodeId: ids[0], landing: landings[0],
+          reason: currentForest ? 'not-the-landing-host-or-complex' : 'workspace-required' });
+      }
+    }
+  }
+  if (entry.id === 'trajectory.head' && currentForest && issues.length === 0) {
+    const { movement } = recoverMovementEvidence(relation, currentForest, priorForest);
+    if (movement?.trajectoryKind === 'phrasal') issues.push({
+      kind: 'movement-kind-conflict', reason: 'MOVEMENT_KIND_CONFLICT',
+      registeredKind: 'head', structuralKind: movement.trajectoryKind,
+      sourceNodeId: movement.sourceNodeId, targetNodeId: movement.targetNodeId
+    });
+  }
+  if (entry.signature.anchors.allowContext) {
+    const outcomeLiterals = authoredOutcomeLiterals(relation.values);
+    const outcomes = outcomeLiterals.map(value => resolveOutcomeLiteral(value)?.concept).filter(Boolean);
+    if (new Set(outcomes).size > 1) issues.push({ kind: 'ambiguous-outcome-values', field: 'values', outcomes });
+    const blockingRole = { 'transfer.blocked-access': 'target', 'intervention.blocked-path': 'intervener' }[entry.id];
+    if (blockingRole) {
+      const roles = bindings.filter(binding => binding.field === 'anchors' && binding.role === blockingRole)
+        .map(binding => binding.authoredRole);
+      const reason = negativeClaimFailure(outcomeLiterals, roles);
+      if (reason) issues.push({ kind: 'negative-claim-unproven', field: 'values', reason,
+        roles, literals: outcomeLiterals });
+    }
+    if (entry.id === 'improper-movement.landing') {
+      const hosts = concept => bindings.filter(binding => binding.field === 'anchors' && binding.concept === concept)
+        .flatMap(binding => items(relation.anchors[binding.authoredRole]));
+      const rejected = hosts('rejected.hosts');
+      const conflicts = hosts('licensed.hosts').filter(id => rejected.includes(id));
+      if (conflicts.length) issues.push({ kind: 'candidate-outcome-conflict', field: 'anchors', nodeIds: [...new Set(conflicts)] });
+    }
+  }
+  return { relation: bound, bindings, issues };
+};

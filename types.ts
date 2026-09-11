@@ -44,7 +44,7 @@ export interface DerivationStageRelation {
 
 export interface GenerationPromptContract {
   framework: 'xbar' | 'minimalism';
-  promptRoute: 'gemini' | 'gpt' | 'claude';
+  promptRoute: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'grok';
   systemInstructionSha256: string;
   promptSha256: string;
   promptTemplateSha256: string;
@@ -77,6 +77,10 @@ export interface GenerationRecord {
     requestStartedAt: string;
     durationMs: number;
   };
+  processing?: {
+    json: { durationMs: number; repairDiagnostics: PayloadRepairDiagnostic[]; diagnostic?: JsonDiagnostic };
+    normalization?: { durationMs: number; failure?: ParseFailure };
+  };
   outcome?: {
     sentMaxOutputTokens: number;
     finishReason: string;
@@ -94,6 +98,9 @@ export interface GenerationRecord {
       finishReason?: string;
       finishStatus?: string;
       statusCode?: number;
+      retryReason?: string;
+      retryStopReason?: string;
+      responseId?: string;
       message?: string;
     }>;
   };
@@ -113,6 +120,10 @@ export interface ParseFailure {
   stageIndex: number | null;
   fieldPath: string;
   offendingValue: unknown;
+  analysisIndex?: number;
+  processingStep?: string;
+  expectedForm?: string;
+  message?: string;
 }
 
 export interface RawOutputArtifact {
@@ -129,6 +140,14 @@ export type PayloadRepairKind =
   | 'insert_closers_before_mismatched_closer'
   | 'remove_unmatched_closer'
   | 'append_closers_at_end_of_output';
+
+export interface JsonDiagnostic {
+  kind: 'json-syntax' | 'json-root-type';
+  message: string;
+  candidateByteOffset?: number;
+  originalByteOffset?: number;
+  originalSyntaxError?: JsonDiagnostic;
+}
 
 export interface PayloadRepairDiagnostic {
   kind: PayloadRepairKind;

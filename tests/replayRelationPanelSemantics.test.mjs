@@ -209,7 +209,7 @@ test('representative nonmovement relations retain role-faithful participants and
   assert.deepEqual(buildReplaySupportLines(agree), [
     { label: 'Probe', value: '[uφ]' },
     { label: 'Goal', value: 'the girls' },
-    { label: 'Valuation', value: '3PL' }
+    { label: 'valuation', value: '3PL' }
   ]);
 
   const phase = relationStep({

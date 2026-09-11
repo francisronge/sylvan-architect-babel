@@ -1,4 +1,5 @@
 import { findRelationRegistryEntry } from './relationRegistry.js';
+import { bindRelationRoles } from './roleBinding.js';
 
 const STRUCTURED_FIELDS = Object.freeze([
   'anchors',
@@ -144,7 +145,7 @@ const validateStructuredBlock = (relation, field, signature) => {
   Object.entries(record).forEach(([role, value]) => {
     const rule = signature.required[role] ?? signature.optional[role];
     if (!rule) {
-      if (!signature.allowAdditional) {
+      if (!signature.allowAdditional && !signature.allowContext) {
         issues.push({ kind: 'unexpected-role', field, role });
       }
       return;
@@ -281,7 +282,9 @@ export const dispatchRelation = ({
   registry,
   relation,
   stageIndex,
-  relationIndex
+  relationIndex,
+  currentForest = undefined,
+  priorForest = undefined
 }) => {
   if (!Number.isInteger(stageIndex) || stageIndex < 0) {
     throw new TypeError('stageIndex must be a non-negative integer.');
@@ -301,7 +304,9 @@ export const dispatchRelation = ({
     registryVersion: registry.version,
     authoredRelationName: authoredName,
     relationInstance: { stageIndex, relationIndex },
-    literalDisplays
+    literalDisplays,
+    boundRelation: relation,
+    roleBindings: []
   };
   if (!entry) {
     return {
@@ -313,12 +318,14 @@ export const dispatchRelation = ({
     };
   }
 
-  const signatureIssues = STRUCTURED_FIELDS.flatMap((field) => (
-    validateStructuredBlock(relation, field, entry.signature[field])
-  ));
+  const binding = bindRelationRoles(relation, entry, currentForest, priorForest);
+  const bindingBase = { ...base, boundRelation: binding.relation, roleBindings: binding.bindings };
+  const signatureIssues = [...binding.issues, ...STRUCTURED_FIELDS.flatMap((field) => (
+    validateStructuredBlock(binding.relation, field, entry.signature[field])
+  ))];
   if (signatureIssues.length > 0) {
     return {
-      ...base,
+      ...bindingBase,
       outcome: 'signature-incomplete',
       registryEntryId: entry.id,
       registryEntryVersion: entry.version,
@@ -333,13 +340,13 @@ export const dispatchRelation = ({
 
   const { licensedMarks, omittedMarks } = licenseMarks({
     entry,
-    relation,
+    relation: binding.relation,
     registry,
     stageIndex,
     relationIndex
   });
   return {
-    ...base,
+    ...bindingBase,
     outcome: 'resolved',
     registryEntryId: entry.id,
     registryEntryVersion: entry.version,

@@ -1,0 +1,420 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import ts from 'typescript';
+import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { placeStackedRect } from '../replay/relations/overlayGeometry.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
+
+const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
+const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const findNode = (predicate) => {
+  let found;
+  const visit = node => {
+    if (predicate(node)) found = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(parsed);
+  assert.ok(found, 'the production painter must exist');
+  return found;
+};
+const productionFunction = (name, dependencies = {}) => {
+  const node = findNode(node => (ts.isVariableDeclaration(node) || ts.isFunctionExpression(node))
+    && node.name?.getText(parsed) === name);
+  const body = ts.isVariableDeclaration(node) ? node.initializer : node;
+  return new Function(...Object.keys(dependencies), ts.transpile(`return (${body.getText(parsed)});`,
+    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+};
+const graphemes = text => Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text),
+  ({ segment }) => segment);
+const measureText = (text, style) => ({
+  width: graphemes(text).length * (style.fontSize * 0.6 + style.letterSpacing),
+  ascent: style.fontSize * 0.8,
+  descent: style.fontSize * 0.2
+});
+
+// Run the production painter without a browser. Font rasterization and camera behavior are integration checks.
+class Element {
+  constructor(tag, attrs = {}) {
+    this.tag = tag;
+    this.attrs = attrs;
+    this.styles = {};
+    this.children = [];
+    this.text = '';
+  }
+  get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
+  getAttribute(name) { return this.attrs[name] ?? null; }
+  get parentElement() { return this.parent; }
+  closest(selector) { return matches(this, selector) ? this : this.parent?.closest(selector) ?? null; }
+  getBoundingClientRect() { return { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 }; }
+  metrics() {
+    return measureText(this.textContent, {
+      fontSize: parseFloat(this.styles['font-size'] || 28),
+      letterSpacing: parseFloat(this.styles['letter-spacing'] || 0)
+    });
+  }
+  getBBox() {
+    const { width, ascent, descent } = this.metrics();
+    return { x: 0, y: -ascent, width, height: ascent + descent };
+  }
+  getComputedTextLength() { return this.metrics().width; }
+}
+const descendants = node => node.children.flatMap(child => [child, ...descendants(child)]);
+const matches = (node, selector) => selector.split(',').some(part =>
+  (node.attrs.class || '').split(' ').includes(part.trim().replace(/^\./, '')));
+class Selection {
+  constructor(nodes) { this.items = nodes; }
+  node() { return this.items[0] || null; }
+  empty() { return this.items.length === 0; }
+  nodes() { return this.items; }
+  append(tag) {
+    return new Selection(this.items.map(parent => {
+      const node = new Element(tag);
+      node.parent = parent;
+      parent.children.push(node);
+      return node;
+    }));
+  }
+  attr(name, value) {
+    if (arguments.length === 1) return this.node()?.getAttribute(name);
+    this.items.forEach(node => value === null ? delete node.attrs[name] : node.attrs[name] = String(value));
+    return this;
+  }
+  style(name, value) { this.items.forEach(node => node.styles[name] = value); return this; }
+  text(value) { this.items.forEach(node => { node.text = String(value); node.children = []; }); return this; }
+  selectAll(selector) { return new Selection(this.items.flatMap(descendants).filter(node => matches(node, selector))); }
+  select(selector) { return new Selection(this.items.flatMap(descendants).filter(node => matches(node, selector)).slice(0, 1)); }
+  insert(tag) { return this.append(tag); }
+  each(callback) { this.items.forEach(node => callback.call(node, node.datum)); return this; }
+  filter(callback) { return new Selection(this.items.filter(node => callback.call(node, node.datum))); }
+  remove() {
+    this.items.forEach(node => node.parent.children.splice(node.parent.children.indexOf(node), 1));
+    return this;
+  }
+}
+const select = node => new Selection([node]);
+
+test('the production Control connector lays out without a domain rectangle', () => {
+  const layer = new Element('g');
+  const path = select(layer).append('path').attr('class', 'babel-control-dependency')
+    .attr('data-control-controller', 'controller').attr('data-control-controllee', 'subject');
+  const rects = { controller: { x: 100, y: 100, width: 40, height: 30 }, subject: { x: 300, y: 300, width: 40, height: 30 } };
+  const refine = productionFunction('refineControlRelation', {
+    d3: { select }, measuredTerminalSubtreesRect: () => null, measuredSubtreeRect: () => null,
+    measuredAcceptedAnchorRect: id => rects[id]
+  });
+  refine.call(layer);
+  assert.match(path.attr('d'), /^M 320\.0 288\.0 L /);
+  assert(!path.attr('d').includes('NaN'));
+  assert(select(layer).select('.babel-control-domain').empty());
+});
+
+test('the production idiom underlines belong to their chunks, not to the optional bracket', () => {
+  const root = new Element('g');
+  const host = select(root).append('g').attr('class', 'vr-item')
+    .attr('data-vr-stage-index', '0').attr('data-vr-relation-index', '0');
+  const layer = host.append('g').attr('class', 'babel-idiom-chunk-relation-layer');
+  for (const [i, id] of ['a', 'b', 'unrelated'].entries()) {
+    const terminal = select(root).append('text').attr('class', 'terminal-label').attr('data-node-id', id).node();
+    terminal.datum = { id };
+    terminal.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 40, top: 100, bottom: 120 });
+    if (id !== 'unrelated') host.append('g').attr('class', 'vr-idiom-chunk-anchor').attr('data-idiom-chunk', id);
+  }
+  const refine = productionFunction('refineIdiomChunkRelation', {
+    d3: { select }, g: select(root), measuredSubtreeRect: () => null,
+    treeMatrix: { inverse: () => ({}) },
+    DOMPoint: class { constructor(x, y) { this.x = x; this.y = y; } matrixTransform() { return this; } },
+    postFitNodeById: new Map(['a', 'b'].map(id => [id, { descendants: () => [{ id }] }])), getNodeId: n => n.id
+  });
+  refine.call(layer.node());
+  assert.deepEqual(layer.selectAll('.babel-idiom-chunk-underline').nodes().map(n => n.attrs.d),
+    ['M 0.0 127.0 H 40.0', 'M 100.0 127.0 H 140.0']);
+  assert(layer.select('.babel-idiom-domain-bracket').empty());
+});
+
+const drawPlaqueText = productionFunction('drawPlaqueText');
+const withPlaqueTextMeasure = productionFunction('withPlaqueTextMeasure');
+const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 1 }) => {
+  const svgRoot = new Element('svg');
+  const layer = new Element('g', {
+    class: 'babel-pf-relation-layer', 'data-pf-targets': '["head"]',
+    'data-pf-rows': JSON.stringify(rows), 'data-pf-row-kinds': JSON.stringify(kinds), 'data-pf-row-refs': JSON.stringify(refs)
+  });
+  const target = { x: 600, y: 400, width: 80, height: 60 };
+  const draw = productionFunction('renderPfRealizationPlate', {
+    d3: { select }, svg: select(svgRoot), g: select(new Element('g')),
+    playedRelationIndices: played, activeDerivationFrameIndex: stage,
+    measuredTerminalSubtreesRect: () => target, measuredShellRect: () => target,
+    measuredTerminalRect: () => null, unionRects: rects => rects[0],
+    treeMatrix: { inverse: () => ({ scale: 1 / zoom }) },
+    DOMPoint: class {
+      constructor(x, y) { this.x = x; this.y = y; }
+      matrixTransform(matrix) { return { x: this.x * matrix.scale, y: this.y * matrix.scale }; }
+    },
+    placedPfPlateRectsByTarget: new Map(), placeStackedRect,
+    withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText
+  });
+  draw.call(layer);
+  assert.equal(svgRoot.children.length, 0, 'temporary measuring text is removed');
+  const elements = descendants(layer);
+  const shell = elements.find(node => matches(node, '.babel-pf-plate-shell'));
+  const texts = elements.filter(node => node.tag === 'text');
+  return { layer, shell, texts, elements };
+};
+const assertContained = ({ shell, texts }) => {
+  const left = Number(shell.attrs.x), top = Number(shell.attrs.y);
+  const right = left + Number(shell.attrs.width), bottom = top + Number(shell.attrs.height);
+  for (const text of texts) {
+    for (const line of text.children) {
+      const { width, ascent, descent } = measureText(line.textContent, {
+        fontSize: parseFloat(text.styles['font-size']), letterSpacing: parseFloat(text.styles['letter-spacing'])
+      });
+      assert.ok(Number(line.attrs.x) >= left);
+      assert.ok(Number(line.attrs.x) + width <= right + 0.1, `${line.textContent} exceeds the right edge`);
+      assert.ok(Number(line.attrs.y) - ascent >= top);
+      assert.ok(Number(line.attrs.y) + descent <= bottom + 0.1, `${line.textContent} exceeds the bottom edge`);
+    }
+  }
+};
+
+test('native PF literal prose uses measured wrapping with all text inside its shell', () => {
+  const rows = [{ label: 'realization', value: 'Past T in C is realized as did; lexical V remains bare buy.' }];
+  const original = structuredClone(rows);
+  const rendered = drawPf({ rows, kinds: ['literal'] });
+  const text = rendered.texts.find(node => matches(node, '.babel-pf-plate-text'));
+  assert.equal(text.textContent, `realization: ${rows[0].value}`);
+  assert.ok(text.children.length > 1, 'the production painter must draw wrapped tspans');
+  assert.equal(Number(rendered.shell.attrs.width), 590);
+  assert.ok(Number(rendered.shell.attrs.height) > 132);
+  assert.equal(rendered.elements.filter(node => matches(node, '.babel-pf-plate-arrow')).length, 0);
+  assert.deepEqual(rows, original);
+  assertContained(rendered);
+});
+
+test('native PF rewrite columns wrap independently and retain inputs, arrows, outputs and final emphasis', () => {
+  const rows = [
+    { label: 'a long literal input '.repeat(5), value: 'an unshortened output '.repeat(6) },
+    { label: 'T[past]', value: 'did' }
+  ];
+  const rendered = drawPf({ rows, kinds: ['rewrite', 'rewrite'] });
+  const rowGroups = rendered.elements.filter(node => node.attrs['data-plaque-row-index'] !== undefined);
+  assert.equal(rowGroups.length, 2);
+  rowGroups.forEach((group, index) => {
+    assert.deepEqual(group.children.map(node => node.textContent), [rows[index].label, '\u2192', rows[index].value]);
+    assert.equal(matches(group.children[0], '.babel-pf-plate-text-final'), index === 1);
+    assert.equal(matches(group.children[2], '.babel-pf-plate-text-final'), index === 1);
+    assert.ok(matches(group.children[2], '.babel-pf-plate-output'));
+    assert.ok(!matches(group.children[1], '.babel-pf-plate-text-final'));
+  });
+  const firstBottom = Math.max(...rowGroups[0].children.flatMap(text => text.children.map(line => Number(line.attrs.y) + 5.6)));
+  const nextTop = Math.min(...rowGroups[1].children.flatMap(text => text.children.map(line => Number(line.attrs.y) - 22.4)));
+  assert.ok(firstBottom < nextTop);
+  assertContained(rendered);
+});
+
+test('native PF keeps every visible row and its original ownership, never promotes a hidden final row', () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({ label: `field${i}`, value: `literal ${i} `.repeat(8) }));
+  const kinds = rows.map((_, i) => i % 2 ? 'rewrite' : 'literal');
+  const refs = rows.map((_, i) => ({ stageIndex: 2, relationIndex: i }));
+  const partial = drawPf({ rows, kinds, refs, stage: 2, played: new Set([0, 2, 9]) });
+  assert.deepEqual(partial.elements.filter(node => node.attrs['data-plaque-row-index'] !== undefined)
+    .map(node => node.attrs['data-plaque-row-index']), ['0', '2', '9']);
+  assert.ok(partial.texts.every(node => !matches(node, '.babel-pf-plate-text-final')));
+  assertContained(partial);
+  const complete = drawPf({ rows, kinds, refs, stage: 3, played: new Set() });
+  assert.equal(complete.elements.filter(node => node.attrs['data-plaque-row-index'] !== undefined).length, 12);
+  assert.ok(Number(complete.shell.attrs.height) > Number(partial.shell.attrs.height));
+  assertContained(complete);
+});
+
+test('native zero realization retains its compact rewrite columns; a literal null value is not a rewrite', () => {
+  const rows = [{ label: 'C', value: '\u2205' }];
+  const compact = drawPf({ rows, kinds: ['rewrite'] });
+  const row = compact.elements.find(node => node.attrs['data-plaque-row-index'] === '0');
+  assert.equal(Number(compact.shell.attrs.width), 360);
+  assert.equal(Number(compact.shell.attrs.height), 132);
+  assert.deepEqual(row.children.map(text => Number(text.children[0].attrs.x) - Number(compact.shell.attrs.x)), [26, 190, 246]);
+  assert.deepEqual(row.children.map(text => text.textContent), ['C', '\u2192', '\u2205']);
+  assertContained(compact);
+  const literal = drawPf({ rows, kinds: ['literal'] });
+  assert.equal(Number(literal.shell.attrs.width), 590);
+  assert.equal(literal.elements.filter(node => matches(node, '.babel-pf-plate-arrow')).length, 0);
+});
+
+test('PF font size and local text positions do not change with camera scale', () => {
+  const input = { rows: [{ label: 'T[past]', value: 'did' }], kinds: ['rewrite'] };
+  const relativeText = rendered => rendered.texts.map(text => ({
+    text: text.textContent, styles: text.styles,
+    lines: text.children.map(line => ({ x: Number(line.attrs.x) - Number(rendered.shell.attrs.x),
+      y: Number(line.attrs.y) - Number(rendered.shell.attrs.y) }))
+  }));
+  const normal = drawPf(input);
+  for (const zoom of [0.3, 0.5, 2]) {
+    const rendered = drawPf({ ...input, zoom });
+    assert.deepEqual(relativeText(rendered), relativeText(normal));
+    assertContained(rendered);
+  }
+});
+
+test('PF wrapping preserves whitespace, graphemes, empty values and explicit line breaks', () => {
+  const literal = ' e\u0301\u{1f469}\u200d\u{1f4bb}\u4e2d  '.repeat(20);
+  const rows = [{ label: '', value: literal, rowIndex: 0, isFinal: false },
+    { label: '', value: '', rowIndex: 1, isFinal: false },
+    { label: '', value: 'first\n\nlast', rowIndex: 2, isFinal: true }];
+  const layout = preparePfPlaqueTextLayout(rows, { measureText });
+  const lines = layout.rows[0].parts[0].block.lines.map(line => line.text);
+  assert.equal(lines.join(''), literal);
+  assert.deepEqual(lines.flatMap(graphemes), graphemes(literal));
+  assert.equal(layout.rows[1].parts[0].block.text, '');
+  assert.deepEqual(layout.rows[2].parts[0].block.lines.map(line => line.text), ['first', '', 'last']);
+});
+
+test('PF column spacing and line height contain indivisible glyphs and unusually tall ink', () => {
+  const rows = [{ label: '\u4e2d', value: '\u4e2d', kind: 'rewrite', rowIndex: 0, isFinal: true }];
+  const layout = preparePfPlaqueTextLayout(rows, { measureText: (text, style) => ({
+    width: text.includes('\u4e2d') ? 650 : measureText(text, style).width, ascent: 60, descent: 20
+  }) });
+  const [input, arrow, output] = layout.rows[0].parts.map(part => part.block.lines[0]);
+  assert.ok(input.x + input.width < arrow.x);
+  assert.ok(arrow.x + arrow.width < output.x);
+  assert.ok(output.x + output.width < layout.width);
+  assert.ok(output.y + output.descent < layout.height);
+  assert.ok(layout.title.lines.at(-1).y + 20 < input.y - 60);
+  assert.ok(layout.rows[0].ruleY + 2 < input.y - 60, 'final-row rule must stay above the text ink');
+});
+
+const gapBranch = findNode(node => ts.isIfStatement(node)
+  && node.expression.getText(parsed) === "primitive.badgeStyle === 'gap-notation' && primitive.reuseExistingNotation");
+const drawGap = new Function('host', 'primitive', ts.transpile(
+  `${gapBranch.getText(parsed)}\nreturn 'draw-extra-label';`, { target: ts.ScriptTarget.ES2023 }));
+const gapPredicate = labels => {
+  const root = new Element('g');
+  for (const { text, kind = 'category', id = 'lower', original, index } of labels) {
+    const label = new Element('text', { class: `${kind}-label`,
+      [kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id,
+      ...(original ? { 'data-default-label': original } : {}), ...(index ? { 'data-trace-index': index } : {}) });
+    label.text = text;
+    root.children.push(label);
+  }
+  const predicate = productionFunction('hasExistingGapNotation', {
+    g: select(root), isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue
+  });
+  return { root, predicate };
+};
+const badgeOwner = (relationIndex = 0) => ({
+  appearsAtStage: 0, persistence: 'persistent', backward: false, priorWitnessNodeIds: [],
+  relationRef: { stageIndex: 0, relationIndex, relation: 'Authored gap', anchors: {} }
+});
+const gapItem = (notation, nodeId = 'lower', familyId = 'tier2.gap-notation') => ({
+  ...badgeOwner(), kind: 'node-badges', familyId, badgeStyle: 'gap-notation',
+  badges: [{ nodeId, text: notation, shape: 'plain' }]
+});
+const bindGapItems = (items, hasExistingGapNotation) => bindRelationPlanFrame(
+  { frames: [{ stageIndex: 0, items }] }, 0, () => ({ x: 100, y: 100 }), { hasExistingGapNotation }
+);
+const gapLabels = (labels, notation, nodeId = 'lower', familyId = 'tier2.gap-notation') => {
+  const { root, predicate } = gapPredicate(labels);
+  const before = root.textContent;
+  const bound = bindGapItems([gapItem(notation, nodeId, familyId)], predicate);
+  assert.deepEqual(bound.failed, []);
+  const host = new Element('g');
+  const result = drawGap(select(host), bound.primitives[0]);
+  assert.equal(root.textContent, before, 'reuse must never replace authored occurrence notation');
+  return { result, host };
+};
+
+test('Tier2 category-labelled trace reuses the exact existing I instead of drawing a floating I', () => {
+  const { result, host } = gapLabels([{ text: 'I' }], 'I');
+  assert.equal(result, undefined);
+  assert.equal(host.attrs['data-gap-notation-reuses'], 'lower');
+});
+
+test('the same exact gap notation reuses its occurrence independently of relation tier or family', () => {
+  for (const familyId of ['tier2.gap-notation', 'trajectory.across-the-board', 'trajectory.sideward', 'parasitic-gap.composition']) {
+    const { result, host } = gapLabels([{ text: 't', kind: 'terminal' }], 't', 'lower', familyId);
+    assert.equal(result, undefined);
+    assert.equal(host.attrs['data-gap-notation-reuses'], 'lower');
+  }
+});
+
+test('Tier2 t notation and silent-copy words reuse the existing occurrence, including formatted subscripts', () => {
+  for (const [text, original, notation] of [['t', 't', 't'], ['t\u2081', 't_i', 't_i'], ['John\u2081', 'John', 'John']]) {
+    const { result, host } = gapLabels([{ text, original, kind: 'terminal', index: text === 't' ? undefined : '1' }], notation);
+    assert.equal(result, undefined);
+    assert.equal(host.attrs['data-gap-notation-reuses'], 'lower');
+  }
+});
+
+test('matching text on a different occurrence cannot absorb a gap label', () => {
+  const { result, host } = gapLabels([{ text: 'I', id: 'upper' }], 'I');
+  assert.equal(result, 'draw-extra-label');
+  assert.equal(host.attrs['data-gap-notation-reuses'], undefined);
+});
+
+test('a changed terminal cannot absorb its old label just because data-default-label still contains it', () => {
+  const { result } = gapLabels([{ text: 'did', original: 'T', kind: 'terminal' }], 'T');
+  assert.equal(result, 'draw-extra-label');
+});
+
+test('a genuinely different authored gap annotation stays available; no automatic t or null is introduced', () => {
+  for (const notation of ['t_j', 'authored gap label', '\u2205']) {
+    const { result } = gapLabels([{ text: 'I' }], notation);
+    assert.equal(result, 'draw-extra-label');
+  }
+});
+
+const laterFallback = () => ({
+  ...badgeOwner(1), kind: 'fallback', drawing: {
+    row: 1, instance: 1,
+    marks: [{ witness: 'lower', frame: 'circle', position: null, instance: 1, backward: false }]
+  }
+});
+
+test('a reused exact gap consumes no badge slot before a later fallback on the same node', () => {
+  const { predicate } = gapPredicate([{ text: 'I' }]);
+  const input = [gapItem('I'), laterFallback()];
+  const before = structuredClone(input);
+  const bound = bindGapItems(input, predicate);
+  assert.deepEqual(bound.failed, []);
+  const gap = bound.primitives.find(item => item.type === 'text-badge');
+  const fallback = bound.primitives.find(item => item.type === 'fallback-mark');
+  assert.equal(gap.reuseExistingNotation, true);
+  assert.equal(fallback.stackIndex, 0);
+  const clean = bindGapItems([laterFallback()], predicate).primitives.find(item => item.type === 'fallback-mark');
+  assert.equal(fallback.y, clean.y);
+  assert.deepEqual(input, before, 'reuse is derived on the bound badge, never written into the authored plan');
+});
+
+test('a changed gap annotation still consumes a real slot; callback checks each exact badge only once', () => {
+  const { predicate } = gapPredicate([{ text: 'I' }]);
+  const queries = [];
+  const item = gapItem('I');
+  item.badges.push({ nodeId: 'lower', text: 't_j', shape: 'plain' });
+  const bound = bindGapItems([item, laterFallback()], (nodeId, text) => {
+    queries.push([nodeId, text]);
+    return predicate(nodeId, text);
+  });
+  assert.deepEqual(bound.failed, []);
+  const badges = bound.primitives.filter(item => item.type === 'text-badge');
+  assert.deepEqual(queries, [['lower', 'I'], ['lower', 't_j']]);
+  assert.equal(badges[0].reuseExistingNotation, true);
+  assert.equal(badges[1].reuseExistingNotation, undefined);
+  assert.equal(badges[1].stackIndex, 0);
+  assert.equal(bound.primitives.find(item => item.type === 'fallback-mark').stackIndex, 1);
+});
+
+test('the optional reuse callback cannot suppress other badge styles and omission preserves ordinary allocation', () => {
+  const ordinary = { ...gapItem('I'), badgeStyle: 'local-judgment' };
+  const bound = bindGapItems([ordinary, laterFallback()], () => { throw Error('only gap notation may query reuse'); });
+  assert.equal(bound.primitives.find(item => item.type === 'fallback-mark').stackIndex, 1);
+  const noCallback = bindGapItems([gapItem('I'), laterFallback()]);
+  assert.equal(noCallback.primitives.find(item => item.type === 'fallback-mark').stackIndex, 1);
+  assert.equal(noCallback.primitives.find(item => item.type === 'text-badge').reuseExistingNotation, undefined);
+});
+
+test('temporary SVG text measurement is cleaned up even when layout throws', () => {
+  const svg = new Element('svg');
+  assert.throws(() => withPlaqueTextMeasure(select(svg), () => { throw Error('layout failed'); }), /layout failed/);
+  assert.equal(svg.children.length, 0);
+});

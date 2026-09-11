@@ -76,10 +76,10 @@ test('two independent CyclicLinearization domains coexist across stages', () => 
   const forest = wideForest();
   const plan = compileRelationRenderPlan([
     stage([
-      { relation: 'CyclicLinearization', anchors: { order: ['a_fu', 'b_fu'] }, values: { outcome: 'licensed' } }
+      { relation: 'CyclicLinearization', anchors: { order: ['a_fu', 'b_fu'] }, values: { outcome: 'licensed', priorOrder: ['a < b'], currentOrder: ['a < b'] } }
     ], forest),
     stage([
-      { relation: 'CyclicLinearization', anchors: { order: ['c_fu', 'd_fu'] }, values: { outcome: 'licensed' } }
+      { relation: 'CyclicLinearization', anchors: { order: ['c_fu', 'd_fu'] }, values: { outcome: 'licensed', priorOrder: ['c < d'], currentOrder: ['c < d'] } }
     ], forest)
   ]);
   const frameOne = plan.frames[1].items.filter((item) => item.kind === 'node-plaque');
@@ -238,11 +238,12 @@ test('intersecting different-style paths route apart instead of overlapping blin
   const plan = compileRelationRenderPlan([
     stage([
       { relation: 'Control', anchors: { controller: 'a_fu', controllee: 'b_fu', domain: 'root_fu' } },
-      { relation: 'FProjection', anchors: { accentBearer: 'a_fu', projections: ['b_fu'] } }
+      { relation: 'FProjection', anchors: { accentBearer: 'a_fu', projections: ['root_fu'] } }
     ], wideForest())
   ]);
   const bound = bindRelationPlanFrame(plan, 0, positionsOf([
-    ['a_fu', { x: 100, y: 100 }], ['b_fu', { x: 300, y: 100 }]
+    ['a_fu', { x: 100, y: 100 }], ['b_fu', { x: 300, y: 100 }],
+    ['root_fu', { x: 300, y: 100 }]
   ]));
   const control = bound.primitives.find((p) => p.shapeStyle === 'control');
   const focus = bound.primitives.find((p) => p.shapeStyle === 'f-projection');

@@ -50,9 +50,11 @@ test('derived movement traces replace only silent lexical copies', () => {
   );
 });
 
+// Replay may give a pronounced leaf a stable synthetic id and keep the
+// authored id in aliasIds, exactly as the compiler's own lookups resolve it.
 const findNode = (root, nodeId) => {
   if (!root) return null;
-  if (root.id === nodeId) return root;
+  if (root.id === nodeId || (Array.isArray(root.aliasIds) && root.aliasIds.includes(nodeId))) return root;
   for (const child of root.children || []) {
     const found = findNode(child, nodeId);
     if (found) return found;

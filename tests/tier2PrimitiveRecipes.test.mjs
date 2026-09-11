@@ -167,10 +167,7 @@ test('every facet recipe declares complete executable evidence fields', () => {
         `${entry.id} checks undeclared value ${check.value}`
       );
       assert.ok(check.tokens.length > 0, `${entry.id}:${check.value} has no distinguishing tokens`);
-      assert.ok(
-        check.match === undefined || ['any', 'all'].includes(check.match),
-        `${entry.id}:${check.value} has an invalid token-match policy`
-      );
+      assert.equal(Object.hasOwn(check, 'match'), false, `${entry.id}:${check.value} uses the retired token-match policy`);
     });
     entry.outputs.forEach((output) => {
       assert.ok(knownPieces.has(output.piece), `${entry.id} owns unknown output ${output.piece}`);
@@ -681,7 +678,7 @@ test('all six transition kinds require their authored stage difference', () => {
     priorAnchors: { 'rewrite.input': ['bundle'] },
     currentForest: [node('word', 'Word', [leaf('person', '-su'), leaf('plural', '-e')])],
     priorForest: [leaf('bundle', '-sue')],
-    values: { 'feature.rows': ['person', 'plural'] }
+    values: { 'fission.input': ['person', 'plural'], 'fission.first': ['person'], 'fission.second': ['plural'] }
   }));
   assert.deepEqual(fission.earnedTransitions, ['fission']);
 
@@ -689,7 +686,7 @@ test('all six transition kinds require their authored stage difference', () => {
     currentAnchors: { terminal: ['terminal'], 'feature.hierarchy': ['f1', 'f2'] },
     currentForest: [node('bundle', 'Bundle', [leaf('terminal', '2'), leaf('f1', 'person'), leaf('f2', 'plural')])],
     priorForest: [node('bundle', 'Bundle', [leaf('terminal', '2pl'), leaf('f1', 'person'), leaf('f2', 'plural')])],
-    values: { 'delink.position': ['after person'] }
+    values: { 'feature.hierarchy': ['person', 'plural'], 'delink.position': ['person'] }
   }));
   assert.deepEqual(impoverishment.earnedTransitions, ['rewrite']);
 
@@ -699,7 +696,7 @@ test('all six transition kinds require their authored stage difference', () => {
     currentAnchors: { sequence: ['a', 'b'] },
     currentForest: currentOrder,
     priorForest: priorOrder,
-    values: { 'order.rows': ['before', 'after'] }
+    values: { 'order.rows': ['A B', '[A B]'] }
   }));
   assert.deepEqual(rebracketing.earnedTransitions, ['rebracketing']);
 

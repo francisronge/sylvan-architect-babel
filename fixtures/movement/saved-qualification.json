@@ -1,0 +1,3576 @@
+[
+  {
+    "name": "astra-minimalism",
+    "rawSha256": "96d523e6216cc43b447b183281145a6c2a980cd4d944443600a844eaa1c1fc33",
+    "inspectionCorrections": "None",
+    "derivationStages": [
+      {
+        "statement": "Merge which with book to construct the wh object.",
+        "stageRecord": "The interrogative determiner Which selects the singular count noun book. External Merge produces a DP labeled by D; book is a minimal N that is also maximal in this complement position, so no vacuous unary projection is introduced. D bears interpretable wh and third-person singular features but unvalued Case. Throughout this derivation, phrase labels identify endocentric Merge outputs, not bar levels.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "objectDP",
+            "label": "DP",
+            "lineageId": "object",
+            "children": [
+              {
+                "id": "whichD",
+                "label": "D",
+                "lineageId": "which",
+                "features": [
+                  "select:N",
+                  "iWh:+",
+                  "iPhi:3sg",
+                  "Case:unvalued"
+                ],
+                "word": "Which",
+                "tokenIndex": 0,
+                "children": []
+              },
+              {
+                "id": "bookN",
+                "label": "N",
+                "lineageId": "book",
+                "features": [
+                  "count",
+                  "number:singular"
+                ],
+                "word": "book",
+                "tokenIndex": 1,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Merge buy with its internal argument.",
+        "stageRecord": "The transitive lexical verb buy selects the constructed DP. External Merge creates VP and establishes the local configuration in which the DP receives the Theme role. Its wh feature does not alter its status as the selected object, and its Case remains unvalued. No subject, tense, or interrogative clause structure has yet been merged.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "lexicalVP",
+            "label": "VP",
+            "lineageId": "lexical-predicate",
+            "children": [
+              {
+                "id": "buyV",
+                "label": "V",
+                "lineageId": "buy",
+                "features": [
+                  "select:DP",
+                  "internal-role:Theme"
+                ],
+                "word": "buy",
+                "tokenIndex": 4,
+                "children": []
+              },
+              {
+                "id": "objectDP",
+                "label": "DP",
+                "lineageId": "object",
+                "children": [
+                  {
+                    "id": "whichD",
+                    "label": "D",
+                    "lineageId": "which",
+                    "features": [
+                      "select:N",
+                      "iWh:+",
+                      "iPhi:3sg",
+                      "Case:unvalued"
+                    ],
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "children": []
+                  },
+                  {
+                    "id": "bookN",
+                    "label": "N",
+                    "lineageId": "book",
+                    "features": [
+                      "count",
+                      "number:singular"
+                    ],
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Transitive v licenses accusative and introduces John.",
+        "stageRecord": "A phonologically null transitive phase head v merges with VP. Before the external argument is introduced, Agree between v and the object D values v's phi probe as third-person singular and the object's Case as accusative. The lexical verb remains in V; this analysis does not require V-to-v raising. Independently, null proper-name D merges with N John, forming a definite DP with third-person singular features and unvalued Case. External Merge of that DP with the v projection introduces John as the Agent. The two vP nodes are successive binary projections of the same v head. The phase head also bears an undischarged edge feature, allowing material in its complement to reach the phase edge before Transfer.",
+        "relations": [
+          {
+            "relation": "Agree",
+            "anchors": {
+              "probe": "transitiveV",
+              "goal": "whichD"
+            },
+            "values": {
+              "valuation": [
+                "v phi:3sg",
+                "object Case:accusative"
+              ],
+              "locality": "The object is the closest goal when v probes its VP complement."
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "subjectVP",
+            "label": "vP",
+            "lineageId": "subject-predicate",
+            "children": [
+              {
+                "id": "johnDP",
+                "label": "DP",
+                "lineageId": "john-argument",
+                "children": [
+                  {
+                    "id": "johnD",
+                    "label": "D",
+                    "lineageId": "john-determiner",
+                    "features": [
+                      "proper-name",
+                      "definite",
+                      "iPhi:3sg",
+                      "Case:unvalued"
+                    ],
+                    "silent": true,
+                    "children": []
+                  },
+                  {
+                    "id": "johnN",
+                    "label": "N",
+                    "lineageId": "john-name",
+                    "features": [
+                      "proper"
+                    ],
+                    "word": "John",
+                    "tokenIndex": 3,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "coreVP",
+                "label": "vP",
+                "lineageId": "verbal-core",
+                "children": [
+                  {
+                    "id": "transitiveV",
+                    "label": "v",
+                    "lineageId": "transitive-light-verb",
+                    "features": [
+                      "transitive",
+                      "phase",
+                      "uPhi:3sg-valued",
+                      "assigns:accusative",
+                      "EF:pending"
+                    ],
+                    "silent": true,
+                    "children": []
+                  },
+                  {
+                    "id": "lexicalVP",
+                    "label": "VP",
+                    "lineageId": "lexical-predicate",
+                    "children": [
+                      {
+                        "id": "buyV",
+                        "label": "V",
+                        "lineageId": "buy",
+                        "features": [
+                          "select:DP",
+                          "internal-role:Theme"
+                        ],
+                        "word": "buy",
+                        "tokenIndex": 4,
+                        "children": []
+                      },
+                      {
+                        "id": "objectDP",
+                        "label": "DP",
+                        "lineageId": "object",
+                        "children": [
+                          {
+                            "id": "whichD",
+                            "label": "D",
+                            "lineageId": "which",
+                            "features": [
+                              "select:N",
+                              "iWh:+",
+                              "iPhi:3sg",
+                              "Case:accusative"
+                            ],
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "children": []
+                          },
+                          {
+                            "id": "bookN",
+                            "label": "N",
+                            "lineageId": "book",
+                            "features": [
+                              "count",
+                              "number:singular"
+                            ],
+                            "word": "book",
+                            "tokenIndex": 1,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Move the wh DP to the vP edge before transferring VP.",
+        "stageRecord": "The edge feature of v licenses Internal Merge of the object DP at an outer vP edge, above the thematic subject. This is an A'-step: it supplies neither a new thematic role nor a new Case value. John is not a wh intervener. The entire DP moves, preserving the determiner's selected nominal complement. The current highest occurrence pronounces Which book; the selected object occurrence remains a fully structured silent copy. With the edge feature discharged, Transfer applies to v's VP complement. The transferred VP remains displayed as an inaccessible structural witness, while both the wh DP and John remain accessible at the phase edge.",
+        "relations": [
+          {
+            "relation": "Internal Merge",
+            "anchors": {
+              "licensor": "transitiveV",
+              "higherOccurrence": "edgeObjectDP",
+              "lowerOccurrence": "objectDP"
+            },
+            "values": {
+              "dependency": "A'-chain",
+              "pronunciation": "Only the current highest DP occurrence is pronounced."
+            }
+          },
+          {
+            "relation": "Transfer",
+            "anchors": {
+              "phaseHead": "transitiveV",
+              "transferredDomain": "lexicalVP",
+              "accessibleWhOccurrence": "edgeObjectDP",
+              "accessibleSubject": "johnDP"
+            },
+            "values": {
+              "locality": "Subsequent operations cannot access the interior of the transferred VP."
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "edgeVP",
+            "label": "vP",
+            "lineageId": "phase-edge",
+            "children": [
+              {
+                "id": "edgeObjectDP",
+                "label": "DP",
+                "lineageId": "object",
+                "children": [
+                  {
+                    "id": "edgeWhichD",
+                    "label": "D",
+                    "lineageId": "which",
+                    "features": [
+                      "select:N",
+                      "iWh:+",
+                      "iPhi:3sg",
+                      "Case:accusative"
+                    ],
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "children": []
+                  },
+                  {
+                    "id": "edgeBookN",
+                    "label": "N",
+                    "lineageId": "book",
+                    "features": [
+                      "count",
+                      "number:singular"
+                    ],
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "subjectVP",
+                "label": "vP",
+                "lineageId": "subject-predicate",
+                "children": [
+                  {
+                    "id": "johnDP",
+                    "label": "DP",
+                    "lineageId": "john-argument",
+                    "children": [
+                      {
+                        "id": "johnD",
+                        "label": "D",
+                        "lineageId": "john-determiner",
+                        "features": [
+                          "proper-name",
+                          "definite",
+                          "iPhi:3sg",
+                          "Case:unvalued"
+                        ],
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "johnN",
+                        "label": "N",
+                        "lineageId": "john-name",
+                        "features": [
+                          "proper"
+                        ],
+                        "word": "John",
+                        "tokenIndex": 3,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "coreVP",
+                    "label": "vP",
+                    "lineageId": "verbal-core",
+                    "children": [
+                      {
+                        "id": "transitiveV",
+                        "label": "v",
+                        "lineageId": "transitive-light-verb",
+                        "features": [
+                          "transitive",
+                          "phase",
+                          "uPhi:3sg-valued",
+                          "assigns:accusative",
+                          "EF:checked"
+                        ],
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "lexicalVP",
+                        "label": "VP",
+                        "lineageId": "lexical-predicate",
+                        "features": [
+                          "transferred"
+                        ],
+                        "children": [
+                          {
+                            "id": "buyV",
+                            "label": "V",
+                            "lineageId": "buy",
+                            "features": [
+                              "select:DP",
+                              "internal-role:Theme"
+                            ],
+                            "word": "buy",
+                            "tokenIndex": 4,
+                            "children": []
+                          },
+                          {
+                            "id": "objectDP",
+                            "label": "DP",
+                            "lineageId": "object",
+                            "silent": true,
+                            "children": [
+                              {
+                                "id": "whichD",
+                                "label": "D",
+                                "lineageId": "which",
+                                "features": [
+                                  "select:N",
+                                  "iWh:+",
+                                  "iPhi:3sg",
+                                  "Case:accusative"
+                                ],
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "bookN",
+                                "label": "N",
+                                "lineageId": "book",
+                                "features": [
+                                  "count",
+                                  "number:singular"
+                                ],
+                                "silent": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Finite T agrees with John and raises the subject.",
+        "stageRecord": "Finite past T merges with the completed vP. T is represented as an abstract syntactic head whose exponent has not yet been determined. Under the Activity Condition adopted here, the accusative wh DP is inactive for T's phi/Case probe, although it remains available for wh dependencies. Agree therefore reaches John, the closest active goal, valuing T's phi features as third-person singular and John's Case as nominative. T's EPP feature then triggers Internal Merge of John's complete DP to the TP edge. The higher occurrence pronounces John; the thematic occurrence is retained silently with the same valued Case. This A-chain crosses no active A-intervener and does not enter the transferred VP.",
+        "relations": [
+          {
+            "relation": "Agree",
+            "anchors": {
+              "probe": "finiteT",
+              "goal": "johnD",
+              "inactiveIntervener": "edgeWhichD"
+            },
+            "values": {
+              "valuation": [
+                "T phi:3sg",
+                "subject Case:nominative"
+              ],
+              "locality": "John is the closest active phi/Case goal; the accusative object is inactive for this probe."
+            }
+          },
+          {
+            "relation": "Internal Merge",
+            "anchors": {
+              "licensor": "finiteT",
+              "higherOccurrence": "raisedJohnDP",
+              "lowerOccurrence": "johnDP"
+            },
+            "values": {
+              "dependency": "A-chain",
+              "trigger": "T's EPP feature",
+              "pronunciation": "Only the higher subject occurrence is pronounced."
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "subjectTP",
+            "label": "TP",
+            "lineageId": "finite-clause",
+            "children": [
+              {
+                "id": "raisedJohnDP",
+                "label": "DP",
+                "lineageId": "john-argument",
+                "children": [
+                  {
+                    "id": "raisedJohnD",
+                    "label": "D",
+                    "lineageId": "john-determiner",
+                    "features": [
+                      "proper-name",
+                      "definite",
+                      "iPhi:3sg",
+                      "Case:nominative"
+                    ],
+                    "silent": true,
+                    "children": []
+                  },
+                  {
+                    "id": "raisedJohnN",
+                    "label": "N",
+                    "lineageId": "john-name",
+                    "features": [
+                      "proper"
+                    ],
+                    "word": "John",
+                    "tokenIndex": 3,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "coreTP",
+                "label": "TP",
+                "lineageId": "tense-domain",
+                "children": [
+                  {
+                    "id": "finiteT",
+                    "label": "T",
+                    "lineageId": "past-tense",
+                    "features": [
+                      "finite",
+                      "tense:past",
+                      "uPhi:3sg-valued",
+                      "EPP:checked"
+                    ],
+                    "children": []
+                  },
+                  {
+                    "id": "edgeVP",
+                    "label": "vP",
+                    "lineageId": "phase-edge",
+                    "children": [
+                      {
+                        "id": "edgeObjectDP",
+                        "label": "DP",
+                        "lineageId": "object",
+                        "children": [
+                          {
+                            "id": "edgeWhichD",
+                            "label": "D",
+                            "lineageId": "which",
+                            "features": [
+                              "select:N",
+                              "iWh:+",
+                              "iPhi:3sg",
+                              "Case:accusative"
+                            ],
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "children": []
+                          },
+                          {
+                            "id": "edgeBookN",
+                            "label": "N",
+                            "lineageId": "book",
+                            "features": [
+                              "count",
+                              "number:singular"
+                            ],
+                            "word": "book",
+                            "tokenIndex": 1,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "subjectVP",
+                        "label": "vP",
+                        "lineageId": "subject-predicate",
+                        "children": [
+                          {
+                            "id": "johnDP",
+                            "label": "DP",
+                            "lineageId": "john-argument",
+                            "silent": true,
+                            "children": [
+                              {
+                                "id": "johnD",
+                                "label": "D",
+                                "lineageId": "john-determiner",
+                                "features": [
+                                  "proper-name",
+                                  "definite",
+                                  "iPhi:3sg",
+                                  "Case:nominative"
+                                ],
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "johnN",
+                                "label": "N",
+                                "lineageId": "john-name",
+                                "features": [
+                                  "proper"
+                                ],
+                                "silent": true,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "coreVP",
+                            "label": "vP",
+                            "lineageId": "verbal-core",
+                            "children": [
+                              {
+                                "id": "transitiveV",
+                                "label": "v",
+                                "lineageId": "transitive-light-verb",
+                                "features": [
+                                  "transitive",
+                                  "phase",
+                                  "uPhi:3sg-valued",
+                                  "assigns:accusative",
+                                  "EF:checked"
+                                ],
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "lexicalVP",
+                                "label": "VP",
+                                "lineageId": "lexical-predicate",
+                                "features": [
+                                  "transferred"
+                                ],
+                                "children": [
+                                  {
+                                    "id": "buyV",
+                                    "label": "V",
+                                    "lineageId": "buy",
+                                    "features": [
+                                      "select:DP",
+                                      "internal-role:Theme"
+                                    ],
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "objectDP",
+                                    "label": "DP",
+                                    "lineageId": "object",
+                                    "silent": true,
+                                    "children": [
+                                      {
+                                        "id": "whichD",
+                                        "label": "D",
+                                        "lineageId": "which",
+                                        "features": [
+                                          "select:N",
+                                          "iWh:+",
+                                          "iPhi:3sg",
+                                          "Case:accusative"
+                                        ],
+                                        "silent": true,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "bookN",
+                                        "label": "N",
+                                        "lineageId": "book",
+                                        "features": [
+                                          "count",
+                                          "number:singular"
+                                        ],
+                                        "silent": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Interrogative C attracts T, and do-support realizes did.",
+        "stageRecord": "A null matrix interrogative C selects the already constructed TP. C bears interrogative force, an unvalued wh feature, a phrasal edge requirement, and a requirement to attract finite T. Head movement is implemented here as local head Internal Merge: the nearest T forms a binary complex head with C, retaining a silent lower T occurrence. The resulting C-labeled object is a complex head, not a phrasal projection. English lexical buy does not raise to T, and interrogative T-to-C movement prevents finite tense from being realized on that lexical verb. Do-support supplies the support realization of the raised T head; past tense is pronounced did. This introduces no additional thematic verb. The lexical V remains buy. C's wh requirements remain undischarged, so the CP is not yet converged.",
+        "relations": [
+          {
+            "relation": "Head movement",
+            "anchors": {
+              "higherOccurrence": "raisedT",
+              "lowerOccurrence": "finiteT",
+              "attractingHead": "questionC",
+              "complexHead": "complexC"
+            },
+            "values": {
+              "dependency": "T-to-C head chain",
+              "locality": "T is the closest eligible head selected by C.",
+              "pronunciation": "Only the higher T occurrence is pronounced."
+            }
+          },
+          {
+            "relation": "Do-support",
+            "anchors": {
+              "supportedTense": "raisedT",
+              "lexicalVerb": "buyV"
+            },
+            "values": {
+              "realization": "Past T in C is realized as did; lexical V remains bare buy."
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "coreCP",
+            "label": "CP",
+            "lineageId": "interrogative-core",
+            "children": [
+              {
+                "id": "complexC",
+                "label": "C",
+                "lineageId": "interrogative-complex-head",
+                "features": [
+                  "complex-head"
+                ],
+                "children": [
+                  {
+                    "id": "raisedT",
+                    "label": "T",
+                    "lineageId": "past-tense",
+                    "features": [
+                      "finite",
+                      "tense:past",
+                      "uPhi:3sg-valued",
+                      "EPP:checked",
+                      "support:do"
+                    ],
+                    "word": "did",
+                    "tokenIndex": 2,
+                    "children": []
+                  },
+                  {
+                    "id": "questionC",
+                    "label": "C",
+                    "lineageId": "question-force",
+                    "features": [
+                      "select:TP",
+                      "matrix",
+                      "phase",
+                      "Q",
+                      "uWh:pending",
+                      "EF:pending",
+                      "T-attraction:checked"
+                    ],
+                    "silent": true,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "subjectTP",
+                "label": "TP",
+                "lineageId": "finite-clause",
+                "children": [
+                  {
+                    "id": "raisedJohnDP",
+                    "label": "DP",
+                    "lineageId": "john-argument",
+                    "children": [
+                      {
+                        "id": "raisedJohnD",
+                        "label": "D",
+                        "lineageId": "john-determiner",
+                        "features": [
+                          "proper-name",
+                          "definite",
+                          "iPhi:3sg",
+                          "Case:nominative"
+                        ],
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "raisedJohnN",
+                        "label": "N",
+                        "lineageId": "john-name",
+                        "features": [
+                          "proper"
+                        ],
+                        "word": "John",
+                        "tokenIndex": 3,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "coreTP",
+                    "label": "TP",
+                    "lineageId": "tense-domain",
+                    "children": [
+                      {
+                        "id": "finiteT",
+                        "label": "T",
+                        "lineageId": "past-tense",
+                        "features": [
+                          "finite",
+                          "tense:past",
+                          "uPhi:3sg-valued",
+                          "EPP:checked"
+                        ],
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "edgeVP",
+                        "label": "vP",
+                        "lineageId": "phase-edge",
+                        "children": [
+                          {
+                            "id": "edgeObjectDP",
+                            "label": "DP",
+                            "lineageId": "object",
+                            "children": [
+                              {
+                                "id": "edgeWhichD",
+                                "label": "D",
+                                "lineageId": "which",
+                                "features": [
+                                  "select:N",
+                                  "iWh:+",
+                                  "iPhi:3sg",
+                                  "Case:accusative"
+                                ],
+                                "word": "Which",
+                                "tokenIndex": 0,
+                                "children": []
+                              },
+                              {
+                                "id": "edgeBookN",
+                                "label": "N",
+                                "lineageId": "book",
+                                "features": [
+                                  "count",
+                                  "number:singular"
+                                ],
+                                "word": "book",
+                                "tokenIndex": 1,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "subjectVP",
+                            "label": "vP",
+                            "lineageId": "subject-predicate",
+                            "children": [
+                              {
+                                "id": "johnDP",
+                                "label": "DP",
+                                "lineageId": "john-argument",
+                                "silent": true,
+                                "children": [
+                                  {
+                                    "id": "johnD",
+                                    "label": "D",
+                                    "lineageId": "john-determiner",
+                                    "features": [
+                                      "proper-name",
+                                      "definite",
+                                      "iPhi:3sg",
+                                      "Case:nominative"
+                                    ],
+                                    "silent": true,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "johnN",
+                                    "label": "N",
+                                    "lineageId": "john-name",
+                                    "features": [
+                                      "proper"
+                                    ],
+                                    "silent": true,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "coreVP",
+                                "label": "vP",
+                                "lineageId": "verbal-core",
+                                "children": [
+                                  {
+                                    "id": "transitiveV",
+                                    "label": "v",
+                                    "lineageId": "transitive-light-verb",
+                                    "features": [
+                                      "transitive",
+                                      "phase",
+                                      "uPhi:3sg-valued",
+                                      "assigns:accusative",
+                                      "EF:checked"
+                                    ],
+                                    "silent": true,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "lexicalVP",
+                                    "label": "VP",
+                                    "lineageId": "lexical-predicate",
+                                    "features": [
+                                      "transferred"
+                                    ],
+                                    "children": [
+                                      {
+                                        "id": "buyV",
+                                        "label": "V",
+                                        "lineageId": "buy",
+                                        "features": [
+                                          "select:DP",
+                                          "internal-role:Theme"
+                                        ],
+                                        "word": "buy",
+                                        "tokenIndex": 4,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "objectDP",
+                                        "label": "DP",
+                                        "lineageId": "object",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "whichD",
+                                            "label": "D",
+                                            "lineageId": "which",
+                                            "features": [
+                                              "select:N",
+                                              "iWh:+",
+                                              "iPhi:3sg",
+                                              "Case:accusative"
+                                            ],
+                                            "silent": true,
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "bookN",
+                                            "label": "N",
+                                            "lineageId": "book",
+                                            "features": [
+                                              "count",
+                                              "number:singular"
+                                            ],
+                                            "silent": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Move the wh DP to the CP edge and converge.",
+        "stageRecord": "Wh-Agree links C's wh probe to the interrogative D in the accessible outer vP-edge occurrence. The intervening subject lacks a wh feature and therefore does not intervene for this probe. C's edge requirement triggers Internal Merge of the complete DP at the CP edge, preserving its nominal restriction and discharging C's remaining requirements. This extends the existing A'-chain rather than extracting anew from transferred VP. Only the highest DP occurrence pronounces Which book; both the intermediate vP-edge occurrence and the selected object occurrence remain fully structured and silent. The chain preserves the object's accusative Case and its Theme interpretation at buy, while the CP-edge occurrence supplies interrogative scope. Convergence follows: John's A-chain has nominative Case, the object chain has accusative Case, agreement and edge requirements are satisfied, and the local T-to-C chain realizes finite tense as did. Final Transfer closes the interrogative CP. Reading the pronounced terminals yields exactly Which book did John buy, with CP as the root of the matrix constituent question.",
+        "relations": [
+          {
+            "relation": "Wh-Agree",
+            "anchors": {
+              "probe": "questionC",
+              "goal": "edgeWhichD",
+              "nonInterveningSubject": "raisedJohnDP"
+            },
+            "values": {
+              "valuation": "C's wh feature is valued by the wh determiner.",
+              "locality": "The goal is accessible at the vP edge; no wh intervener separates it from C."
+            }
+          },
+          {
+            "relation": "Internal Merge",
+            "anchors": {
+              "licensor": "questionC",
+              "higherOccurrence": "frontedObjectDP",
+              "intermediateOccurrence": "edgeObjectDP",
+              "thematicOccurrence": "objectDP"
+            },
+            "values": {
+              "dependency": "Successive-cyclic A'-chain",
+              "trigger": "C's edge requirement",
+              "pronunciation": "Only the CP-edge occurrence is pronounced."
+            }
+          },
+          {
+            "relation": "Transfer",
+            "anchors": {
+              "phaseHead": "questionC",
+              "complementDomain": "subjectTP",
+              "completedRoot": "questionCP"
+            },
+            "values": {
+              "completion": "The TP complement is transferred and the remaining root phase is interpreted at derivational closure."
+            }
+          },
+          {
+            "relation": "Convergence",
+            "anchors": {
+              "root": "questionCP"
+            },
+            "values": {
+              "judgment": "Grammatical matrix constituent question.",
+              "surface": "Which book did John buy"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "questionCP",
+            "label": "CP",
+            "lineageId": "matrix-question",
+            "children": [
+              {
+                "id": "frontedObjectDP",
+                "label": "DP",
+                "lineageId": "object",
+                "children": [
+                  {
+                    "id": "frontedWhichD",
+                    "label": "D",
+                    "lineageId": "which",
+                    "features": [
+                      "select:N",
+                      "iWh:+",
+                      "iPhi:3sg",
+                      "Case:accusative"
+                    ],
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "children": []
+                  },
+                  {
+                    "id": "frontedBookN",
+                    "label": "N",
+                    "lineageId": "book",
+                    "features": [
+                      "count",
+                      "number:singular"
+                    ],
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "coreCP",
+                "label": "CP",
+                "lineageId": "interrogative-core",
+                "children": [
+                  {
+                    "id": "complexC",
+                    "label": "C",
+                    "lineageId": "interrogative-complex-head",
+                    "features": [
+                      "complex-head"
+                    ],
+                    "children": [
+                      {
+                        "id": "raisedT",
+                        "label": "T",
+                        "lineageId": "past-tense",
+                        "features": [
+                          "finite",
+                          "tense:past",
+                          "uPhi:3sg-valued",
+                          "EPP:checked",
+                          "support:do"
+                        ],
+                        "word": "did",
+                        "tokenIndex": 2,
+                        "children": []
+                      },
+                      {
+                        "id": "questionC",
+                        "label": "C",
+                        "lineageId": "question-force",
+                        "features": [
+                          "select:TP",
+                          "matrix",
+                          "phase",
+                          "Q",
+                          "uWh:+-valued",
+                          "EF:checked",
+                          "T-attraction:checked"
+                        ],
+                        "silent": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "subjectTP",
+                    "label": "TP",
+                    "lineageId": "finite-clause",
+                    "features": [
+                      "transferred"
+                    ],
+                    "children": [
+                      {
+                        "id": "raisedJohnDP",
+                        "label": "DP",
+                        "lineageId": "john-argument",
+                        "children": [
+                          {
+                            "id": "raisedJohnD",
+                            "label": "D",
+                            "lineageId": "john-determiner",
+                            "features": [
+                              "proper-name",
+                              "definite",
+                              "iPhi:3sg",
+                              "Case:nominative"
+                            ],
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "raisedJohnN",
+                            "label": "N",
+                            "lineageId": "john-name",
+                            "features": [
+                              "proper"
+                            ],
+                            "word": "John",
+                            "tokenIndex": 3,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "coreTP",
+                        "label": "TP",
+                        "lineageId": "tense-domain",
+                        "children": [
+                          {
+                            "id": "finiteT",
+                            "label": "T",
+                            "lineageId": "past-tense",
+                            "features": [
+                              "finite",
+                              "tense:past",
+                              "uPhi:3sg-valued",
+                              "EPP:checked"
+                            ],
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "edgeVP",
+                            "label": "vP",
+                            "lineageId": "phase-edge",
+                            "children": [
+                              {
+                                "id": "edgeObjectDP",
+                                "label": "DP",
+                                "lineageId": "object",
+                                "silent": true,
+                                "children": [
+                                  {
+                                    "id": "edgeWhichD",
+                                    "label": "D",
+                                    "lineageId": "which",
+                                    "features": [
+                                      "select:N",
+                                      "iWh:+",
+                                      "iPhi:3sg",
+                                      "Case:accusative"
+                                    ],
+                                    "silent": true,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "edgeBookN",
+                                    "label": "N",
+                                    "lineageId": "book",
+                                    "features": [
+                                      "count",
+                                      "number:singular"
+                                    ],
+                                    "silent": true,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "subjectVP",
+                                "label": "vP",
+                                "lineageId": "subject-predicate",
+                                "children": [
+                                  {
+                                    "id": "johnDP",
+                                    "label": "DP",
+                                    "lineageId": "john-argument",
+                                    "silent": true,
+                                    "children": [
+                                      {
+                                        "id": "johnD",
+                                        "label": "D",
+                                        "lineageId": "john-determiner",
+                                        "features": [
+                                          "proper-name",
+                                          "definite",
+                                          "iPhi:3sg",
+                                          "Case:nominative"
+                                        ],
+                                        "silent": true,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "johnN",
+                                        "label": "N",
+                                        "lineageId": "john-name",
+                                        "features": [
+                                          "proper"
+                                        ],
+                                        "silent": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "coreVP",
+                                    "label": "vP",
+                                    "lineageId": "verbal-core",
+                                    "children": [
+                                      {
+                                        "id": "transitiveV",
+                                        "label": "v",
+                                        "lineageId": "transitive-light-verb",
+                                        "features": [
+                                          "transitive",
+                                          "phase",
+                                          "uPhi:3sg-valued",
+                                          "assigns:accusative",
+                                          "EF:checked"
+                                        ],
+                                        "silent": true,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "lexicalVP",
+                                        "label": "VP",
+                                        "lineageId": "lexical-predicate",
+                                        "features": [
+                                          "transferred"
+                                        ],
+                                        "children": [
+                                          {
+                                            "id": "buyV",
+                                            "label": "V",
+                                            "lineageId": "buy",
+                                            "features": [
+                                              "select:DP",
+                                              "internal-role:Theme"
+                                            ],
+                                            "word": "buy",
+                                            "tokenIndex": 4,
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "objectDP",
+                                            "label": "DP",
+                                            "lineageId": "object",
+                                            "silent": true,
+                                            "children": [
+                                              {
+                                                "id": "whichD",
+                                                "label": "D",
+                                                "lineageId": "which",
+                                                "features": [
+                                                  "select:N",
+                                                  "iWh:+",
+                                                  "iPhi:3sg",
+                                                  "Case:accusative"
+                                                ],
+                                                "silent": true,
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "bookN",
+                                                "label": "N",
+                                                "lineageId": "book",
+                                                "features": [
+                                                  "count",
+                                                  "number:singular"
+                                                ],
+                                                "silent": true,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "astra-xbar",
+    "rawSha256": "f2dfe8b850e0c710d8d04a58d33e7dbec5c4bca097d45a23d528b9477d2eddb1",
+    "inspectionCorrections": "None",
+    "derivationStages": [
+      {
+        "statement": "Build the interrogative nominal and the proper-name nominal.",
+        "stageRecord": "Use an NP-based nominal analysis: N projects N', and a determiner projects a DP occupying Spec NP. Thus book heads the object nominal, while Which heads its determiner specifier. The interrogative determiner licenses wh-feature percolation to the containing NP, making the whole nominal [+wh]. John independently projects a proper-name NP without an overt determiner. These nominal structures are active separately; neither has yet received a clausal position, theta-role, or Case.",
+        "relations": [
+          {
+            "relation": "wh-feature percolation",
+            "anchors": {
+              "determiner": "whichD",
+              "nominal": "objectNP"
+            },
+            "values": {
+              "feature": "[+wh]"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "objectNP",
+            "label": "NP",
+            "lineageId": "whNominal",
+            "features": [
+              "+wh"
+            ],
+            "children": [
+              {
+                "id": "whichDP",
+                "label": "DP",
+                "lineageId": "whDeterminerPhrase",
+                "children": [
+                  {
+                    "id": "whichDbar",
+                    "label": "D'",
+                    "lineageId": "whDeterminerProjection",
+                    "children": [
+                      {
+                        "id": "whichD",
+                        "label": "D",
+                        "lineageId": "whDeterminer",
+                        "features": [
+                          "+wh"
+                        ],
+                        "word": "Which",
+                        "tokenIndex": 0,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "bookNbar",
+                "label": "N'",
+                "lineageId": "bookProjection",
+                "children": [
+                  {
+                    "id": "bookN",
+                    "label": "N",
+                    "lineageId": "bookNoun",
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "johnNP",
+            "label": "NP",
+            "children": [
+              {
+                "id": "johnNbar",
+                "label": "N'",
+                "children": [
+                  {
+                    "id": "johnN",
+                    "label": "N",
+                    "features": [
+                      "proper"
+                    ],
+                    "word": "John",
+                    "tokenIndex": 3,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Construct the transitive VP and license its object.",
+        "stageRecord": "The transitive lexical entry of buy selects an NP complement. Combining V with the interrogative NP forms V', which projects VP. In this complement position, internal theta-assignment gives the NP the Theme role. Because transitive V governs its NP complement, accusative Case assignment also licenses that NP. John remains a separate nominal: the external argument has not yet been introduced into the clause.",
+        "relations": [
+          {
+            "relation": "internal theta-assignment",
+            "anchors": {
+              "predicate": "buyV",
+              "argument": "objectNP"
+            },
+            "values": {
+              "thetaRole": "Theme"
+            }
+          },
+          {
+            "relation": "accusative Case assignment",
+            "anchors": {
+              "assigner": "buyV",
+              "recipient": "objectNP"
+            },
+            "values": {
+              "Case": "accusative"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "buyVP",
+            "label": "VP",
+            "children": [
+              {
+                "id": "buyVbar",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "buyV",
+                    "label": "V",
+                    "word": "buy",
+                    "tokenIndex": 4,
+                    "children": []
+                  },
+                  {
+                    "id": "objectNP",
+                    "label": "NP",
+                    "lineageId": "whNominal",
+                    "features": [
+                      "+wh"
+                    ],
+                    "children": [
+                      {
+                        "id": "whichDP",
+                        "label": "DP",
+                        "lineageId": "whDeterminerPhrase",
+                        "children": [
+                          {
+                            "id": "whichDbar",
+                            "label": "D'",
+                            "lineageId": "whDeterminerProjection",
+                            "children": [
+                              {
+                                "id": "whichD",
+                                "label": "D",
+                                "lineageId": "whDeterminer",
+                                "features": [
+                                  "+wh"
+                                ],
+                                "word": "Which",
+                                "tokenIndex": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "bookNbar",
+                        "label": "N'",
+                        "lineageId": "bookProjection",
+                        "children": [
+                          {
+                            "id": "bookN",
+                            "label": "N",
+                            "lineageId": "bookNoun",
+                            "word": "book",
+                            "tokenIndex": 1,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "johnNP",
+            "label": "NP",
+            "children": [
+              {
+                "id": "johnNbar",
+                "label": "N'",
+                "children": [
+                  {
+                    "id": "johnN",
+                    "label": "N",
+                    "features": [
+                      "proper"
+                    ],
+                    "word": "John",
+                    "tokenIndex": 3,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Project finite IP and introduce John as the external argument.",
+        "stageRecord": "Finite past I takes the established VP as its complement, forming I'. Under the GB base-generation analysis adopted here, John occupies Spec IP rather than originating inside VP. Predication by the VP licenses external theta-assignment of the Agent role to John, while finite I licenses nominative Case assignment to that subject. I is currently an abstract, active past-tense head whose exponent has not been determined; it is not a null tense head. The lexical verb remains in V, and no subject-movement dependency is introduced.",
+        "relations": [
+          {
+            "relation": "external theta-assignment",
+            "anchors": {
+              "predicate": "buyVP",
+              "argument": "johnNP"
+            },
+            "values": {
+              "thetaRole": "Agent"
+            }
+          },
+          {
+            "relation": "nominative Case assignment",
+            "anchors": {
+              "assigner": "tenseI",
+              "recipient": "johnNP"
+            },
+            "values": {
+              "Case": "nominative"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "clauseIP",
+            "label": "IP",
+            "children": [
+              {
+                "id": "johnNP",
+                "label": "NP",
+                "children": [
+                  {
+                    "id": "johnNbar",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "johnN",
+                        "label": "N",
+                        "features": [
+                          "proper"
+                        ],
+                        "word": "John",
+                        "tokenIndex": 3,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "clauseIbar",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "tenseI",
+                    "label": "I",
+                    "lineageId": "finitePast",
+                    "features": [
+                      "+finite",
+                      "+past",
+                      "+affixal"
+                    ],
+                    "children": []
+                  },
+                  {
+                    "id": "buyVP",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "buyVbar",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "buyV",
+                            "label": "V",
+                            "word": "buy",
+                            "tokenIndex": 4,
+                            "children": []
+                          },
+                          {
+                            "id": "objectNP",
+                            "label": "NP",
+                            "lineageId": "whNominal",
+                            "features": [
+                              "+wh"
+                            ],
+                            "children": [
+                              {
+                                "id": "whichDP",
+                                "label": "DP",
+                                "lineageId": "whDeterminerPhrase",
+                                "children": [
+                                  {
+                                    "id": "whichDbar",
+                                    "label": "D'",
+                                    "lineageId": "whDeterminerProjection",
+                                    "children": [
+                                      {
+                                        "id": "whichD",
+                                        "label": "D",
+                                        "lineageId": "whDeterminer",
+                                        "features": [
+                                          "+wh"
+                                        ],
+                                        "word": "Which",
+                                        "tokenIndex": 0,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "bookNbar",
+                                "label": "N'",
+                                "lineageId": "bookProjection",
+                                "children": [
+                                  {
+                                    "id": "bookN",
+                                    "label": "N",
+                                    "lineageId": "bookNoun",
+                                    "word": "book",
+                                    "tokenIndex": 1,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Introduce interrogative C and raise finite I to C.",
+        "stageRecord": "A phonologically null interrogative C selects the finite IP and projects C' and CP. Its matrix interrogative specification requires I-to-C movement. The active past-tense I therefore adjoins to C, producing a complex C head and leaving an unpronounced I trace in its original position. This is local head movement to the immediately selecting head, with no intervening head crossed; head government from the resulting complex C licenses the I trace. The raised I remains abstract and awaits morphological realization. The lexical verb buy does not raise, and CP has no specifier at this stage.",
+        "relations": [
+          {
+            "relation": "I-to-C movement",
+            "anchors": {
+              "raisedHead": "raisedI",
+              "trace": "tenseI",
+              "host": "complexC"
+            },
+            "values": {
+              "constraint": "Head Movement Constraint"
+            }
+          },
+          {
+            "relation": "head government",
+            "anchors": {
+              "governor": "complexC",
+              "trace": "tenseI"
+            },
+            "values": {
+              "licensing": "ECP"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "questionCP",
+            "label": "CP",
+            "children": [
+              {
+                "id": "questionCbar",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "complexC",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "raisedI",
+                        "label": "I",
+                        "lineageId": "finitePast",
+                        "features": [
+                          "+finite",
+                          "+past",
+                          "+affixal"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "questionC",
+                        "label": "C",
+                        "features": [
+                          "+Q",
+                          "+wh"
+                        ],
+                        "silent": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "clauseIP",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "johnNP",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "johnNbar",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "johnN",
+                                "label": "N",
+                                "features": [
+                                  "proper"
+                                ],
+                                "word": "John",
+                                "tokenIndex": 3,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "clauseIbar",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "tenseI",
+                            "label": "I",
+                            "lineageId": "finitePast",
+                            "features": [
+                              "+finite",
+                              "+past",
+                              "+affixal",
+                              "trace"
+                            ],
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "buyVP",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "buyVbar",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "buyV",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "objectNP",
+                                    "label": "NP",
+                                    "lineageId": "whNominal",
+                                    "features": [
+                                      "+wh"
+                                    ],
+                                    "children": [
+                                      {
+                                        "id": "whichDP",
+                                        "label": "DP",
+                                        "lineageId": "whDeterminerPhrase",
+                                        "children": [
+                                          {
+                                            "id": "whichDbar",
+                                            "label": "D'",
+                                            "lineageId": "whDeterminerProjection",
+                                            "children": [
+                                              {
+                                                "id": "whichD",
+                                                "label": "D",
+                                                "lineageId": "whDeterminer",
+                                                "features": [
+                                                  "+wh"
+                                                ],
+                                                "word": "Which",
+                                                "tokenIndex": 0,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "bookNbar",
+                                        "label": "N'",
+                                        "lineageId": "bookProjection",
+                                        "children": [
+                                          {
+                                            "id": "bookN",
+                                            "label": "N",
+                                            "lineageId": "bookNoun",
+                                            "word": "book",
+                                            "tokenIndex": 1,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Move the complete wh-NP to Spec CP.",
+        "stageRecord": "The [+wh] NP moves from the complement of buy to Spec CP, establishing wh licensing with interrogative C. Movement targets the whole NP, so book accompanies its interrogative determiner; D does not move independently. The resulting A'-chain contains a pronounced operator in the non-theta position Spec CP and an unpronounced trace occurrence in the original object position. The lower occurrence retains the nominal's internal articulation and identity but is not a second independently theta-marked argument. The chain retains the single Theme role and accusative Case established at its foot. Lexical government by buy properly governs the object trace, satisfying the ECP. This single-clause dependency crosses no island or additional CP boundary and satisfies Subjacency.",
+        "relations": [
+          {
+            "relation": "wh licensing",
+            "anchors": {
+              "operator": "frontedNP",
+              "interrogativeHead": "questionC"
+            },
+            "values": {
+              "feature": "[+wh]"
+            }
+          },
+          {
+            "relation": "A'-chain",
+            "anchors": {
+              "head": "frontedNP",
+              "foot": "objectNP"
+            },
+            "values": {
+              "thetaRole": "Theme",
+              "Case": "accusative",
+              "locality": "Subjacency satisfied"
+            }
+          },
+          {
+            "relation": "lexical government",
+            "anchors": {
+              "governor": "buyV",
+              "trace": "objectNP"
+            },
+            "values": {
+              "licensing": "ECP"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "questionCP",
+            "label": "CP",
+            "children": [
+              {
+                "id": "frontedNP",
+                "label": "NP",
+                "lineageId": "whNominal",
+                "features": [
+                  "+wh"
+                ],
+                "children": [
+                  {
+                    "id": "frontedDP",
+                    "label": "DP",
+                    "lineageId": "whDeterminerPhrase",
+                    "children": [
+                      {
+                        "id": "frontedDbar",
+                        "label": "D'",
+                        "lineageId": "whDeterminerProjection",
+                        "children": [
+                          {
+                            "id": "frontedD",
+                            "label": "D",
+                            "lineageId": "whDeterminer",
+                            "features": [
+                              "+wh"
+                            ],
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "frontedNbar",
+                    "label": "N'",
+                    "lineageId": "bookProjection",
+                    "children": [
+                      {
+                        "id": "frontedN",
+                        "label": "N",
+                        "lineageId": "bookNoun",
+                        "word": "book",
+                        "tokenIndex": 1,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "questionCbar",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "complexC",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "raisedI",
+                        "label": "I",
+                        "lineageId": "finitePast",
+                        "features": [
+                          "+finite",
+                          "+past",
+                          "+affixal"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "questionC",
+                        "label": "C",
+                        "features": [
+                          "+Q",
+                          "+wh"
+                        ],
+                        "silent": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "clauseIP",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "johnNP",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "johnNbar",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "johnN",
+                                "label": "N",
+                                "features": [
+                                  "proper"
+                                ],
+                                "word": "John",
+                                "tokenIndex": 3,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "clauseIbar",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "tenseI",
+                            "label": "I",
+                            "lineageId": "finitePast",
+                            "features": [
+                              "+finite",
+                              "+past",
+                              "+affixal",
+                              "trace"
+                            ],
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "buyVP",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "buyVbar",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "buyV",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "objectNP",
+                                    "label": "NP",
+                                    "lineageId": "whNominal",
+                                    "features": [
+                                      "+wh",
+                                      "A'-trace"
+                                    ],
+                                    "silent": true,
+                                    "children": [
+                                      {
+                                        "id": "whichDP",
+                                        "label": "DP",
+                                        "lineageId": "whDeterminerPhrase",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "whichDbar",
+                                            "label": "D'",
+                                            "lineageId": "whDeterminerProjection",
+                                            "silent": true,
+                                            "children": [
+                                              {
+                                                "id": "whichD",
+                                                "label": "D",
+                                                "lineageId": "whDeterminer",
+                                                "features": [
+                                                  "+wh"
+                                                ],
+                                                "silent": true,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "bookNbar",
+                                        "label": "N'",
+                                        "lineageId": "bookProjection",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "bookN",
+                                            "label": "N",
+                                            "lineageId": "bookNoun",
+                                            "silent": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Realize raised past I as did and converge.",
+        "stageRecord": "At PF, do-support supplies an auxiliary carrier for the raised past-tense I, realizing it as did. With I in C, local affix lowering onto the lexical verb is unavailable; buy therefore remains bare in V. The supported I is an auxiliary head, not a theta-assigning replacement for buy. This morphological realization completes the well-formed direct wh-question. The pronounced terminals, read left to right, are exactly Which book did John buy; the interrogative C, the lower I trace, and the lower nominal trace remain unpronounced.",
+        "relations": [
+          {
+            "relation": "do-support",
+            "anchors": {
+              "supportedHead": "raisedI"
+            },
+            "values": {
+              "tense": "past",
+              "exponent": "did"
+            },
+            "priorAnchors": {
+              "abstractHead": "raisedI"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "questionCP",
+            "label": "CP",
+            "children": [
+              {
+                "id": "frontedNP",
+                "label": "NP",
+                "lineageId": "whNominal",
+                "features": [
+                  "+wh"
+                ],
+                "children": [
+                  {
+                    "id": "frontedDP",
+                    "label": "DP",
+                    "lineageId": "whDeterminerPhrase",
+                    "children": [
+                      {
+                        "id": "frontedDbar",
+                        "label": "D'",
+                        "lineageId": "whDeterminerProjection",
+                        "children": [
+                          {
+                            "id": "frontedD",
+                            "label": "D",
+                            "lineageId": "whDeterminer",
+                            "features": [
+                              "+wh"
+                            ],
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "frontedNbar",
+                    "label": "N'",
+                    "lineageId": "bookProjection",
+                    "children": [
+                      {
+                        "id": "frontedN",
+                        "label": "N",
+                        "lineageId": "bookNoun",
+                        "word": "book",
+                        "tokenIndex": 1,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "questionCbar",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "complexC",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "raisedI",
+                        "label": "I",
+                        "lineageId": "finitePast",
+                        "features": [
+                          "+finite",
+                          "+past",
+                          "+auxiliary",
+                          "do-supported"
+                        ],
+                        "word": "did",
+                        "tokenIndex": 2,
+                        "children": []
+                      },
+                      {
+                        "id": "questionC",
+                        "label": "C",
+                        "features": [
+                          "+Q",
+                          "+wh"
+                        ],
+                        "silent": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "clauseIP",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "johnNP",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "johnNbar",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "johnN",
+                                "label": "N",
+                                "features": [
+                                  "proper"
+                                ],
+                                "word": "John",
+                                "tokenIndex": 3,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "clauseIbar",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "tenseI",
+                            "label": "I",
+                            "lineageId": "finitePast",
+                            "features": [
+                              "+finite",
+                              "+past",
+                              "+affixal",
+                              "trace"
+                            ],
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "buyVP",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "buyVbar",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "buyV",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "objectNP",
+                                    "label": "NP",
+                                    "lineageId": "whNominal",
+                                    "features": [
+                                      "+wh",
+                                      "A'-trace"
+                                    ],
+                                    "silent": true,
+                                    "children": [
+                                      {
+                                        "id": "whichDP",
+                                        "label": "DP",
+                                        "lineageId": "whDeterminerPhrase",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "whichDbar",
+                                            "label": "D'",
+                                            "lineageId": "whDeterminerProjection",
+                                            "silent": true,
+                                            "children": [
+                                              {
+                                                "id": "whichD",
+                                                "label": "D",
+                                                "lineageId": "whDeterminer",
+                                                "features": [
+                                                  "+wh"
+                                                ],
+                                                "silent": true,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "bookNbar",
+                                        "label": "N'",
+                                        "lineageId": "bookProjection",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "bookN",
+                                            "label": "N",
+                                            "lineageId": "bookNoun",
+                                            "silent": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "fable-minimalism",
+    "rawSha256": "8d060f88233e685680e4749fbfbe61845fbf32a30bfd76a00693aa76bc519375",
+    "inspectionCorrections": "Inspection copy: malformed values lists wrapped as notation; Minimalism also had final ]} appended. Authored trees and relation order unchanged.",
+    "derivationStages": [
+      {
+        "statement": "The wh-object DP is assembled and merged as the complement of the verb, projecting VP.",
+        "stageRecord": "External Merge combines the interrogative determiner which with the noun book. The determiner selects the nominal and projects, so the resulting set is labeled DP; this DP carries the interrogative feature contributed by which. The transitive verb buy then merges with this DP: buy assigns the internal theta role to its sister, and as the selecting head it labels the output VP. No functional structure is yet present; the workspace consists of a single verbal set whose complement is the wh-marked DP, with the wh-feature still unvalued by any probe.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "vp1",
+            "label": "VP",
+            "children": [
+              {
+                "id": "v_buy",
+                "label": "V",
+                "word": "buy",
+                "tokenIndex": 4,
+                "children": []
+              },
+              {
+                "id": "dp_wh",
+                "label": "DP",
+                "lineageId": "L_wh",
+                "children": [
+                  {
+                    "id": "d_which",
+                    "label": "D",
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "children": []
+                  },
+                  {
+                    "id": "n_book",
+                    "label": "N",
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The light verb v merges with VP and introduces the external argument John, completing the thematic domain vP.",
+        "stageRecord": "The phonologically null transitive light verb v merges with the VP built in the previous stage; v selects VP and labels the output vP. Because v of the transitive type bears an external-argument requirement, the proper name John, a bare D that is simultaneously minimal and maximal in Bare Phrase Structure, merges next as the specifier of v and receives the agent theta role. The label remains vP because v is the selecting head at both merges. The thematic domain is now complete: both arguments of buy are in theta positions, and no Case or agreement features have yet been valued.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "vP_full",
+            "label": "vP",
+            "children": [
+              {
+                "id": "d_john",
+                "label": "D",
+                "lineageId": "L_john",
+                "word": "John",
+                "tokenIndex": 3,
+                "children": []
+              },
+              {
+                "id": "vP_inner",
+                "label": "vP",
+                "children": [
+                  {
+                    "id": "v_light",
+                    "label": "v",
+                    "silent": true,
+                    "children": []
+                  },
+                  {
+                    "id": "vp1",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "v_buy",
+                        "label": "V",
+                        "word": "buy",
+                        "tokenIndex": 4,
+                        "children": []
+                      },
+                      {
+                        "id": "dp_wh",
+                        "label": "DP",
+                        "lineageId": "L_wh",
+                        "children": [
+                          {
+                            "id": "d_which",
+                            "label": "D",
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "children": []
+                          },
+                          {
+                            "id": "n_book",
+                            "label": "N",
+                            "word": "book",
+                            "tokenIndex": 1,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Past T merges with vP, agrees with John, and internal Merge raises John to Spec,TP.",
+        "stageRecord": "Finite T bearing past tense, unvalued phi-features and the EPP property merges with vP and labels the result TP. Because this T will not be adjacent to the verb at spell-out, its tense is realized by the dummy exponent did rather than being inherited by buy, so the verb remains in its bare form. T probes downward and finds the external argument John in the specifier of vP as the closest goal; Agree values T's phi-features and assigns nominative Case to John. Satisfaction of the EPP then triggers Internal Merge of John to the specifier of T. The two occurrences of John form a single chain; the higher copy is pronounced and the copy in the thematic position is left unpronounced. T remains the label because T is the head whose feature is satisfied by the merge.",
+        "relations": [
+          {
+            "relation": "Agree",
+            "anchors": {
+              "probe": "t_did",
+              "goal": "d_john"
+            },
+            "values": {
+              "notation": [
+                "phi",
+                "Nom"
+              ]
+            }
+          },
+          {
+            "relation": "Internal Merge chain",
+            "anchors": {
+              "higherCopy": "d_john_hi",
+              "lowerCopy": "d_john"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "tp_full",
+            "label": "TP",
+            "children": [
+              {
+                "id": "d_john_hi",
+                "label": "D",
+                "lineageId": "L_john",
+                "word": "John",
+                "tokenIndex": 3,
+                "children": []
+              },
+              {
+                "id": "tp_inner",
+                "label": "TP",
+                "children": [
+                  {
+                    "id": "t_did",
+                    "label": "T",
+                    "lineageId": "L_T",
+                    "word": "did",
+                    "tokenIndex": 2,
+                    "children": []
+                  },
+                  {
+                    "id": "vP_full",
+                    "label": "vP",
+                    "children": [
+                      {
+                        "id": "d_john",
+                        "label": "D",
+                        "lineageId": "L_john",
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "vP_inner",
+                        "label": "vP",
+                        "children": [
+                          {
+                            "id": "v_light",
+                            "label": "v",
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "vp1",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "v_buy",
+                                "label": "V",
+                                "word": "buy",
+                                "tokenIndex": 4,
+                                "children": []
+                              },
+                              {
+                                "id": "dp_wh",
+                                "label": "DP",
+                                "lineageId": "L_wh",
+                                "children": [
+                                  {
+                                    "id": "d_which",
+                                    "label": "D",
+                                    "word": "Which",
+                                    "tokenIndex": 0,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "n_book",
+                                    "label": "N",
+                                    "word": "book",
+                                    "tokenIndex": 1,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Interrogative C merges with TP and attracts T, yielding the complex head that spells did in second position.",
+        "stageRecord": "A matrix interrogative C bearing the Q feature and an unvalued wh-feature merges with TP and labels the result CP. Matrix interrogative C in English requires the finite tense head to raise to it: T undergoes head movement and adjoins to C, forming a complex head of category C whose internal daughters are the raised T and the silent Q-bearing C. The chain of T has two occurrences; the occurrence adjoined to C is the one pronounced as did, while the occurrence in the TP spine is left unpronounced. This inversion is what places did before the subject John. The wh-feature of C remains unvalued at this point, so the derivation cannot yet converge.",
+        "relations": [
+          {
+            "relation": "head movement chain",
+            "anchors": {
+              "higherCopy": "t_did_hi",
+              "lowerCopy": "t_did"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "cp1",
+            "label": "CP",
+            "children": [
+              {
+                "id": "c_complex",
+                "label": "C",
+                "children": [
+                  {
+                    "id": "t_did_hi",
+                    "label": "T",
+                    "lineageId": "L_T",
+                    "word": "did",
+                    "tokenIndex": 2,
+                    "children": []
+                  },
+                  {
+                    "id": "c_q",
+                    "label": "C",
+                    "silent": true,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "tp_full",
+                "label": "TP",
+                "children": [
+                  {
+                    "id": "d_john_hi",
+                    "label": "D",
+                    "lineageId": "L_john",
+                    "word": "John",
+                    "tokenIndex": 3,
+                    "children": []
+                  },
+                  {
+                    "id": "tp_inner",
+                    "label": "TP",
+                    "children": [
+                      {
+                        "id": "t_did",
+                        "label": "T",
+                        "lineageId": "L_T",
+                        "silent": true,
+                        "children": []
+                      },
+                      {
+                        "id": "vP_full",
+                        "label": "vP",
+                        "children": [
+                          {
+                            "id": "d_john",
+                            "label": "D",
+                            "lineageId": "L_john",
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "vP_inner",
+                            "label": "vP",
+                            "children": [
+                              {
+                                "id": "v_light",
+                                "label": "v",
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "vp1",
+                                "label": "VP",
+                                "children": [
+                                  {
+                                    "id": "v_buy",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "dp_wh",
+                                    "label": "DP",
+                                    "lineageId": "L_wh",
+                                    "children": [
+                                      {
+                                        "id": "d_which",
+                                        "label": "D",
+                                        "word": "Which",
+                                        "tokenIndex": 0,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "n_book",
+                                        "label": "N",
+                                        "word": "book",
+                                        "tokenIndex": 1,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "C probes for the wh-phrase and Internal Merge raises which book to Spec,CP; the derivation converges.",
+        "stageRecord": "The unvalued wh-feature of interrogative C probes its complement and finds the DP which book in the complement position of buy; no intervening wh-bearing element blocks the search. Agree values the feature and, together with the edge property of C, triggers Internal Merge of the DP to the specifier of the complex C head. The output is labeled CP because C's feature drives the merge. The wh-DP now forms a two-membered chain: the occurrence in the specifier of CP is pronounced, and the occurrence in the object position is left unpronounced, so buy surfaces without an overt object. All uninterpretable features of T and C have been valued and the EPP and edge requirements satisfied, so the structure converges and linearizes as which book did John buy.",
+        "relations": [
+          {
+            "relation": "Agree",
+            "anchors": {
+              "probe": "c_q",
+              "goal": "dp_wh"
+            },
+            "values": {
+              "notation": [
+                "wh"
+              ]
+            }
+          },
+          {
+            "relation": "Internal Merge chain",
+            "anchors": {
+              "higherCopy": "dp_wh_hi",
+              "lowerCopy": "dp_wh"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "cp_full",
+            "label": "CP",
+            "children": [
+              {
+                "id": "dp_wh_hi",
+                "label": "DP",
+                "lineageId": "L_wh",
+                "children": [
+                  {
+                    "id": "d_which_hi",
+                    "label": "D",
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "children": []
+                  },
+                  {
+                    "id": "n_book_hi",
+                    "label": "N",
+                    "word": "book",
+                    "tokenIndex": 1,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "cp1",
+                "label": "CP",
+                "children": [
+                  {
+                    "id": "c_complex",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "t_did_hi",
+                        "label": "T",
+                        "lineageId": "L_T",
+                        "word": "did",
+                        "tokenIndex": 2,
+                        "children": []
+                      },
+                      {
+                        "id": "c_q",
+                        "label": "C",
+                        "silent": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "tp_full",
+                    "label": "TP",
+                    "children": [
+                      {
+                        "id": "d_john_hi",
+                        "label": "D",
+                        "lineageId": "L_john",
+                        "word": "John",
+                        "tokenIndex": 3,
+                        "children": []
+                      },
+                      {
+                        "id": "tp_inner",
+                        "label": "TP",
+                        "children": [
+                          {
+                            "id": "t_did",
+                            "label": "T",
+                            "lineageId": "L_T",
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "vP_full",
+                            "label": "vP",
+                            "children": [
+                              {
+                                "id": "d_john",
+                                "label": "D",
+                                "lineageId": "L_john",
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "vP_inner",
+                                "label": "vP",
+                                "children": [
+                                  {
+                                    "id": "v_light",
+                                    "label": "v",
+                                    "silent": true,
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "vp1",
+                                    "label": "VP",
+                                    "children": [
+                                      {
+                                        "id": "v_buy",
+                                        "label": "V",
+                                        "word": "buy",
+                                        "tokenIndex": 4,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "dp_wh",
+                                        "label": "DP",
+                                        "lineageId": "L_wh",
+                                        "silent": true,
+                                        "children": [
+                                          {
+                                            "id": "d_which",
+                                            "label": "D",
+                                            "silent": true,
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "n_book",
+                                            "label": "N",
+                                            "silent": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "fable-xbar",
+    "rawSha256": "5a4ae864756a0c7ca9a08b0477acf848c9b800790d771090539fb3bcbe0b0490",
+    "inspectionCorrections": "Inspection copy: malformed values lists wrapped as notation; Minimalism also had final ]} appended. Authored trees and relation order unchanged.",
+    "derivationStages": [
+      {
+        "statement": "The wh-object DP 'which book' is projected: D 'which' heads a DP whose complement is the NP headed by 'book'.",
+        "stageRecord": "The interrogative determiner 'which' is a functional head D bearing the feature [+wh]. Under endocentric X-bar projection it projects D' and DP, and it selects a nominal complement. The noun 'book' projects N' and NP with no specifier or complement of its own. Merging that NP as the complement of D yields the DP 'which book', whose [+wh] feature percolates to the maximal projection because it is the head's feature. This DP is an argument expression that must receive a theta role and abstract Case at the next stage, so it is built first and held in the workspace.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "dp1",
+            "label": "DP",
+            "lineageId": "whbook",
+            "features": [
+              "+wh"
+            ],
+            "children": [
+              {
+                "id": "dbar1",
+                "label": "D'",
+                "children": [
+                  {
+                    "id": "d1",
+                    "label": "D",
+                    "word": "Which",
+                    "tokenIndex": 0,
+                    "features": [
+                      "+wh"
+                    ],
+                    "children": []
+                  },
+                  {
+                    "id": "np1",
+                    "label": "NP",
+                    "children": [
+                      {
+                        "id": "nbar1",
+                        "label": "N'",
+                        "children": [
+                          {
+                            "id": "n1",
+                            "label": "N",
+                            "word": "book",
+                            "tokenIndex": 1,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "V 'buy' projects VP and takes the DP 'which book' as its complement, theta-marking and Case-marking it under government.",
+        "stageRecord": "The transitive verb 'buy' has a theta grid with an internal Theme role and an external Agent role. The internal argument is discharged by sisterhood inside V': the DP 'which book' is merged as the complement of V, and V' projects to VP. Because V governs its complement (V m-commands the DP and no barrier intervenes), 'buy' assigns the Theme theta role to the DP and also assigns it structural accusative Case at this position, satisfying the Case Filter for the object in situ. The external Agent role is not discharged inside V' in this framework; it will be assigned to the specifier of IP by the VP as a whole under predication.",
+        "relations": [
+          {
+            "relation": "theta-marking (Theme)",
+            "anchors": {
+              "assigner": "v1",
+              "argument": "dp1"
+            }
+          },
+          {
+            "relation": "accusative Case assignment under government",
+            "anchors": {
+              "governor": "v1",
+              "caseMarked": "dp1"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp1",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar1",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v1",
+                    "label": "V",
+                    "word": "buy",
+                    "tokenIndex": 4,
+                    "features": [
+                      "Agent, Theme"
+                    ],
+                    "children": []
+                  },
+                  {
+                    "id": "dp1",
+                    "label": "DP",
+                    "lineageId": "whbook",
+                    "features": [
+                      "+wh"
+                    ],
+                    "children": [
+                      {
+                        "id": "dbar1",
+                        "label": "D'",
+                        "children": [
+                          {
+                            "id": "d1",
+                            "label": "D",
+                            "word": "Which",
+                            "tokenIndex": 0,
+                            "features": [
+                              "+wh"
+                            ],
+                            "children": []
+                          },
+                          {
+                            "id": "np1",
+                            "label": "NP",
+                            "children": [
+                              {
+                                "id": "nbar1",
+                                "label": "N'",
+                                "children": [
+                                  {
+                                    "id": "n1",
+                                    "label": "N",
+                                    "word": "book",
+                                    "tokenIndex": 1,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Inflection I [+Tense, +AGR] takes VP as complement and the subject DP 'John' is generated in the specifier of IP, receiving the external theta role and nominative Case.",
+        "stageRecord": "The proper name 'John' projects N', NP, and, for uniformity with the object nominal, a DP whose D head is phonologically null, as proper names in English take no overt determiner. The functional head I bears the features [+Tense (past), +AGR]; it selects VP as its complement and projects I' and IP. The subject DP is merged directly in the specifier of IP, which in Government and Binding is the canonical base position of the external argument: the VP predicate assigns the Agent theta role to its subject under mutual m-command (predication) across I'. Because I is finite and stands in a Spec-head relation with the subject, I governs the specifier of IP and assigns it nominative Case, so the Case Filter is satisfied for both arguments. The tense feature is not yet realized on a verbal host; in situ it would attach to V at PF by affix hopping, but the derivation has not yet determined whether I remains in place.",
+        "relations": [
+          {
+            "relation": "theta-marking (Agent) by predication",
+            "anchors": {
+              "predicate": "vp1",
+              "argument": "dp2"
+            }
+          },
+          {
+            "relation": "nominative Case assignment under government",
+            "anchors": {
+              "governor": "i1",
+              "caseMarked": "dp2"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ip1",
+            "label": "IP",
+            "children": [
+              {
+                "id": "dp2",
+                "label": "DP",
+                "children": [
+                  {
+                    "id": "dbar2",
+                    "label": "D'",
+                    "children": [
+                      {
+                        "id": "d2",
+                        "label": "D",
+                        "silent": true,
+                        "features": [
+                          "null determiner"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "np2",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "nbar2",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "n2",
+                                "label": "N",
+                                "word": "John",
+                                "tokenIndex": 3,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ibar1",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "i1",
+                    "label": "I",
+                    "lineageId": "infl",
+                    "features": [
+                      "+Tense(past)",
+                      "+AGR"
+                    ],
+                    "children": []
+                  },
+                  {
+                    "id": "vp1",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar1",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "v1",
+                            "label": "V",
+                            "word": "buy",
+                            "tokenIndex": 4,
+                            "features": [
+                              "Agent, Theme"
+                            ],
+                            "children": []
+                          },
+                          {
+                            "id": "dp1",
+                            "label": "DP",
+                            "lineageId": "whbook",
+                            "features": [
+                              "+wh"
+                            ],
+                            "children": [
+                              {
+                                "id": "dbar1",
+                                "label": "D'",
+                                "children": [
+                                  {
+                                    "id": "d1",
+                                    "label": "D",
+                                    "word": "Which",
+                                    "tokenIndex": 0,
+                                    "features": [
+                                      "+wh"
+                                    ],
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "np1",
+                                    "label": "NP",
+                                    "children": [
+                                      {
+                                        "id": "nbar1",
+                                        "label": "N'",
+                                        "children": [
+                                          {
+                                            "id": "n1",
+                                            "label": "N",
+                                            "word": "book",
+                                            "tokenIndex": 1,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "C [+wh, +Q] selects IP; I moves to C by head movement, and the stranded tense in C is realized by do-support as 'did'.",
+        "stageRecord": "A matrix interrogative complementizer C, bearing [+wh] and [+Q], selects the IP as its complement and projects C' and CP. The [+Q] feature of C requires a lexical host in root questions, which triggers I-to-C movement: the inflectional head raises and left-adjoins to C, creating a complex C consisting of the moved I and the abstract C. The vacated I position is occupied by a trace of I, coindexed with the moved head; the trace is properly governed by its antecedent in C, satisfying the Empty Category Principle, and the movement respects the Head Movement Constraint since I raises only to the immediately dominating head C. Because I has left its base position, the tense affix can no longer be lowered onto V by affix hopping; the last-resort rule of do-support inserts the dummy verb 'do' as the host of [+Tense(past), +AGR] in C, spelled out as 'did'. The verb 'buy' therefore surfaces bare. The specifier of CP has not yet been introduced; CP at this stage projects only from C'.",
+        "relations": [
+          {
+            "relation": "I-to-C head movement (trace antecedent-governed, ECP satisfied)",
+            "anchors": {
+              "movedHead": "i2",
+              "trace": "i1",
+              "landingHead": "c1"
+            },
+            "priorAnchors": {
+              "source": "i1"
+            }
+          },
+          {
+            "relation": "do-support: tense realized on dummy verb",
+            "anchors": {
+              "tenseHost": "i2"
+            },
+            "values": {
+              "notation": [
+                "did"
+              ]
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "cp1",
+            "label": "CP",
+            "children": [
+              {
+                "id": "cbar1",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "c1",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "i2",
+                        "label": "I",
+                        "lineageId": "infl",
+                        "word": "did",
+                        "tokenIndex": 2,
+                        "features": [
+                          "+Tense(past)",
+                          "+AGR"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "c0",
+                        "label": "C",
+                        "silent": true,
+                        "features": [
+                          "+wh",
+                          "+Q"
+                        ],
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ip1",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "dp2",
+                        "label": "DP",
+                        "children": [
+                          {
+                            "id": "dbar2",
+                            "label": "D'",
+                            "children": [
+                              {
+                                "id": "d2",
+                                "label": "D",
+                                "silent": true,
+                                "features": [
+                                  "null determiner"
+                                ],
+                                "children": []
+                              },
+                              {
+                                "id": "np2",
+                                "label": "NP",
+                                "children": [
+                                  {
+                                    "id": "nbar2",
+                                    "label": "N'",
+                                    "children": [
+                                      {
+                                        "id": "n2",
+                                        "label": "N",
+                                        "word": "John",
+                                        "tokenIndex": 3,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "ibar1",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "i1",
+                            "label": "I",
+                            "lineageId": "infl",
+                            "silent": true,
+                            "features": [
+                              "trace"
+                            ],
+                            "children": []
+                          },
+                          {
+                            "id": "vp1",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "vbar1",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "v1",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "features": [
+                                      "Agent, Theme"
+                                    ],
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "dp1",
+                                    "label": "DP",
+                                    "lineageId": "whbook",
+                                    "features": [
+                                      "+wh"
+                                    ],
+                                    "children": [
+                                      {
+                                        "id": "dbar1",
+                                        "label": "D'",
+                                        "children": [
+                                          {
+                                            "id": "d1",
+                                            "label": "D",
+                                            "word": "Which",
+                                            "tokenIndex": 0,
+                                            "features": [
+                                              "+wh"
+                                            ],
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "np1",
+                                            "label": "NP",
+                                            "children": [
+                                              {
+                                                "id": "nbar1",
+                                                "label": "N'",
+                                                "children": [
+                                                  {
+                                                    "id": "n1",
+                                                    "label": "N",
+                                                    "word": "book",
+                                                    "tokenIndex": 1,
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Wh-movement raises the DP 'which book' to the specifier of CP, leaving a Case-marked trace in object position; the surface order Which book did John buy is derived.",
+        "stageRecord": "The [+wh] feature of C must be checked by a wh-phrase in its specifier: the wh-Criterion (Spec-head agreement between a [+wh] C and a [+wh] operator) is what drives movement of the interrogative DP. The DP 'which book' therefore undergoes Move-alpha from the complement position of V to the specifier of CP in a single step, crossing IP; this is licit because IP is not a barrier for a phrase moving into the specifier of the immediately dominating CP and no other CP boundary is crossed, so Subjacency is respected. The moved DP leaves a trace in the object position. That trace is an empty category which retains the accusative Case and Theme theta role assigned by 'buy' at the earlier stage, so the Case Filter and Theta Criterion are satisfied by the chain as a whole. The trace is lexically governed by 'buy', satisfying the Empty Category Principle, and it is a variable A'-bound by the wh-operator in the specifier of CP, in accordance with Binding Condition C for variables. The fully projected CP, with the wh-phrase in its specifier, the complex C hosting 'did', and IP with subject 'John' and the bare verb 'buy', spells out exactly the surface string Which book did John buy.",
+        "relations": [
+          {
+            "relation": "wh-movement (Move-alpha to Spec-CP, Subjacency respected)",
+            "anchors": {
+              "movedPhrase": "dp3",
+              "trace": "dp1",
+              "landingSite": "cp1"
+            },
+            "priorAnchors": {
+              "source": "dp1"
+            }
+          },
+          {
+            "relation": "Spec-head agreement satisfying the wh-Criterion",
+            "anchors": {
+              "whOperator": "dp3",
+              "whHead": "c0"
+            }
+          },
+          {
+            "relation": "antecedent A'-binding of trace (ECP: trace lexically governed)",
+            "anchors": {
+              "binder": "dp3",
+              "variable": "dp1",
+              "lexicalGovernor": "v1"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "cp1",
+            "label": "CP",
+            "children": [
+              {
+                "id": "dp3",
+                "label": "DP",
+                "lineageId": "whbook",
+                "features": [
+                  "+wh"
+                ],
+                "children": [
+                  {
+                    "id": "dbar3",
+                    "label": "D'",
+                    "children": [
+                      {
+                        "id": "d3",
+                        "label": "D",
+                        "word": "Which",
+                        "tokenIndex": 0,
+                        "features": [
+                          "+wh"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "np3",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "nbar3",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "n3",
+                                "label": "N",
+                                "word": "book",
+                                "tokenIndex": 1,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cbar1",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "c1",
+                    "label": "C",
+                    "children": [
+                      {
+                        "id": "i2",
+                        "label": "I",
+                        "lineageId": "infl",
+                        "word": "did",
+                        "tokenIndex": 2,
+                        "features": [
+                          "+Tense(past)",
+                          "+AGR"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "id": "c0",
+                        "label": "C",
+                        "silent": true,
+                        "features": [
+                          "+wh",
+                          "+Q"
+                        ],
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ip1",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "dp2",
+                        "label": "DP",
+                        "children": [
+                          {
+                            "id": "dbar2",
+                            "label": "D'",
+                            "children": [
+                              {
+                                "id": "d2",
+                                "label": "D",
+                                "silent": true,
+                                "features": [
+                                  "null determiner"
+                                ],
+                                "children": []
+                              },
+                              {
+                                "id": "np2",
+                                "label": "NP",
+                                "children": [
+                                  {
+                                    "id": "nbar2",
+                                    "label": "N'",
+                                    "children": [
+                                      {
+                                        "id": "n2",
+                                        "label": "N",
+                                        "word": "John",
+                                        "tokenIndex": 3,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "ibar1",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "i1",
+                            "label": "I",
+                            "lineageId": "infl",
+                            "silent": true,
+                            "features": [
+                              "trace"
+                            ],
+                            "children": []
+                          },
+                          {
+                            "id": "vp1",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "vbar1",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "v1",
+                                    "label": "V",
+                                    "word": "buy",
+                                    "tokenIndex": 4,
+                                    "features": [
+                                      "Agent, Theme"
+                                    ],
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "dp1",
+                                    "label": "DP",
+                                    "lineageId": "whbook",
+                                    "silent": true,
+                                    "features": [
+                                      "trace",
+                                      "+wh",
+                                      "accusative"
+                                    ],
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

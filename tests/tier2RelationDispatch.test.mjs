@@ -59,13 +59,13 @@ test('a valid registered identity dispatches only to Tier 1', () => {
   assert.equal(result.tier1Dispatch.outcome, 'resolved');
 });
 
-test('a malformed registered identity goes directly to Tier 3 even when its shape could earn Tier 2', () => {
+test('a registered identity with a missing required witness remains Tier 3 despite extra context', () => {
   const result = dispatch({
     relation: 'AbarMove',
     anchors: {
       source: 'source',
-      trace: 'witness',
-      target: 'landing'
+      target: 'landing',
+      unexplainedParticipant: 'carrier'
     }
   }, movementForest());
 
@@ -425,7 +425,7 @@ test('an explicit storage host selects the ledger without becoming another plaqu
   const result = dispatch({
     relation: 'UnknownScopeRecord',
     anchors: { scope: 'scope' },
-    values: { rows: ['qstore: []'] }
+    values: { qstore: ['q'] }
   }, [node('scope', 'S', [leaf('word', 'someone')])]);
 
   assert.deepEqual(claimTiers(result), [2]);
@@ -457,7 +457,7 @@ test('independently complete rewrite and fission claims both survive', () => {
     },
     values: {
       'rewrite rows': ['go -> went'],
-      'feature rows': ['person', 'number']
+      inputFeatures: ['person', 'number'], outputOneFeatures: ['person'], outputTwoFeatures: ['number']
     }
   }, [
     leaf('output', 'went'),
@@ -493,7 +493,7 @@ test('a Tier-2 facet exclusively owns every prior anchor and value it consumes',
       outputs: ['output-a', 'output-b']
     },
     priorAnchors: { input: 'prior-input' },
-    values: { features: ['person', 'plural'] }
+    values: { inputFeatures: ['person', 'plural'], outputOneFeatures: ['person'], outputTwoFeatures: ['plural'] }
   }, [
     leaf('primary', 'primary'),
     leaf('output-a', '-su'),
@@ -512,7 +512,9 @@ test('a Tier-2 facet exclusively owns every prior anchor and value it consumes',
   assert.deepEqual(result.claims[1].consumedEvidence, [
     { field: 'priorAnchors', key: 'input' },
     { field: 'anchors', key: 'outputs' },
-    { field: 'values', key: 'features' }
+    { field: 'values', key: 'inputFeatures' },
+    { field: 'values', key: 'outputOneFeatures' },
+    { field: 'values', key: 'outputTwoFeatures' }
   ]);
 });
 
@@ -566,6 +568,7 @@ test('presentation and organizational companions require a surviving parent clai
     relation: 'UnknownIdentityPresentation',
     anchors: {
       members: anchors.map(({ id }) => id),
+      occurrences: anchors.map(({ id }) => id),
       anchors: anchors.slice(0, 2).map(({ id }) => id)
     }
   }, anchors, { activeLens: true });

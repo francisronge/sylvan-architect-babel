@@ -1,4 +1,7 @@
 import * as d3 from 'd3';
+import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
+import type { RecoveredMovement } from './relations/movementEvidence.ts';
+import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SyntaxNode } from '../types.ts';
 import {
   isFrontingMovementIdentity,
@@ -21,9 +24,17 @@ import {
 } from './relationDispatch/index.js';
 import type { ResolvedRelationLink, ResolvedRelationAnchor } from '../relationLinks.ts';
 import {
+  classifyRelationAnchors,
   resolveRelationAnchors
 } from '../derivationReplayPlan.js';
 import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
+import {
+  authoredWord,
+  isLeafNode,
+  isPronouncedLeaf,
+  isSilentWordLeaf,
+  isWordlessLeaf
+} from '../server/babelParser/nodePronunciation.js';
 
 export type HierNode = d3.HierarchyNode<SyntaxNode>;
 export type VisibleLink = d3.HierarchyLink<SyntaxNode>;
@@ -65,9 +76,16 @@ export interface PlaybackStep {
   replaySuppressAutoRevealNodeIds?: string[];
 }
 
-interface ReplaySupportLine {
+export interface ReplaySupportLine {
   label: string;
   value: string;
+}
+
+export interface ReplayPanelContent {
+  heading: string;
+  supportLines: Array<ReplaySupportLine & { key: string }>;
+  /** The original record, selected by identity rather than reconstructed from drawing links. */
+  authoredRelation: DerivationStageRelation | null;
 }
 
 export const DERIVATION_WORKSPACE_ROOT_LABEL = '__DERIVATION_WORKSPACE__';
@@ -157,6 +175,9 @@ export interface ReplayDerivationFrame {
 }
 
 interface DerivationReplayPlanStep {
+  recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
+  pronunciationNodeIds?: string[];
+  movementDiagnostics?: string[];
   kind?: 'micro' | 'relation' | 'macro';
   stageIndex?: number;
   stageNumber?: number;
@@ -171,9 +192,18 @@ interface DerivationReplayPlanStep {
   values?: Record<string, string | string[]>;
   authoredRelationIndex?: number;
   resolvedAnchors?: ReplayResolvedRelationAnchor[];
+  /** Authored anchors whose exact id is absent from this stage's workspace; reported, never repaired. */
+  unresolvedAnchors?: ReplayUnresolvedRelationAnchor[];
   sourceNodeIds?: string[];
   targetNodeId?: string;
   stageRecord?: string;
+}
+
+interface ReplayUnresolvedRelationAnchor {
+  role: string;
+  nodeId: string;
+  authoredAnchorIndex: number;
+  fieldPath: string;
 }
 
 interface ReplayResolvedRelationAnchor extends ResolvedRelationAnchor {
@@ -183,7 +213,7 @@ interface ReplayResolvedRelationAnchor extends ResolvedRelationAnchor {
 interface ReplayAuthoredRelationLink extends ResolvedRelationLink {
   authoredRelationIndex: number;
   authoredRelationKey: string;
-  endpointOrderProvenance?: 'authored-anchor-order' | 'registered-role-order';
+  endpointOrderProvenance?: 'authored-anchor-order' | 'registered-role-order' | 'recovered-movement';
   identityKey?: string;
   identityProvenance?: 'authored-shared-lineage';
   relationIndexProvenance: 'derived-presentation';
@@ -275,26 +305,16 @@ const normalizeReplayStableIdPart = (value?: string | number | null): string =>
 const shouldStabilizeReplayLeafId = (node?: SyntaxNode | null): boolean => {
   if (!node || typeof node !== 'object') return false;
   if (Array.isArray(node.children) && node.children.length > 0) return false;
-  if ((node as any).silent === true) return false;
-  const word = String(node.word || '').trim();
-  const label = String(node.label || '').trim();
-  if (!word || !label) return false;
-  if (isTraceLike(label) || isTraceLike(word) || isNullLike(label) || isNullLike(word)) return false;
+  if (!isPronouncedLeaf(node) || !String(node.label || '').trim()) return false;
   if (shouldExpandPreterminalLeaf(node)) return false;
   return true;
-};
-
-const normalizeReplayStructuralNodeId = (value?: string | number | null): string => {
-  const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  return raw.replace(/_stage\d+$/i, '');
 };
 
 const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null): SyntaxNode | null => {
   if (!node || typeof node !== 'object') return null;
 
   const walk = (current: SyntaxNode, parentId: string): SyntaxNode => {
-    const ownId = normalizeReplayStructuralNodeId(current.id);
+    const ownId = String(current.id ?? '').trim();
     const ownStableParentId = ownId || parentId;
     const children = Array.isArray(current.children)
       ? current.children
@@ -342,7 +362,7 @@ export const buildRenderableCommittedCanvasData = (
   tree: SyntaxNode,
   _resolvedRelationLinks?: ResolvedRelationLink[]
 ): SyntaxNode => {
-  return materializeReplayPreterminals(tree);
+  return materializeReplayPreterminals(projectAuthoredSyntaxNode(tree));
 };
 
 const getMovementLandingNodeId = (
@@ -364,15 +384,31 @@ const cloneSyntaxForest = (forest: SyntaxNode[] = []): SyntaxNode[] =>
     .map((root) => cloneSyntaxTree(root))
     .filter((root): root is SyntaxNode => Boolean(root));
 
+const AUTHORED_SYNTAX_NODE_FIELDS = ['id', 'label', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan', 'refId'] as const;
+
+/**
+ * Keeps only the contract fields of an authored node. Renderer metadata such
+ * as `ghost`, `replayLayoutOnly`, `aliasIds` and `__vizId` can then originate
+ * only inside Replay; an authored key with one of those names is inert.
+ */
+export const projectAuthoredSyntaxNode = (node: SyntaxNode): SyntaxNode => {
+  const next: Record<string, unknown> = {};
+  AUTHORED_SYNTAX_NODE_FIELDS.forEach((field) => {
+    if (Object.hasOwn(node, field)) next[field] = (node as unknown as Record<string, unknown>)[field];
+  });
+  if (Array.isArray(node.children)) {
+    next.children = node.children
+      .filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
+      .map(projectAuthoredSyntaxNode);
+  }
+  return next as unknown as SyntaxNode;
+};
+
 export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null): ReplayDerivationFrame[] => {
   if (!Array.isArray(stages) || stages.length === 0) return [];
-  let previousWorkspaceForest: SyntaxNode[] = [];
   return stages.map((stage, index) => {
     const explicitWorkspaceForest = Array.isArray(stage.workspaceForest) ? stage.workspaceForest : [];
-    const workspaceForest = explicitWorkspaceForest.length > 0
-      ? cloneSyntaxForest(explicitWorkspaceForest)
-      : cloneSyntaxForest(previousWorkspaceForest);
-    previousWorkspaceForest = cloneSyntaxForest(workspaceForest);
+    const workspaceForest = cloneSyntaxForest(explicitWorkspaceForest).map(projectAuthoredSyntaxNode);
     const relations = Array.isArray(stage.relations) ? stage.relations : [];
     const details = {
       stageRecord: String(stage.stageRecord || '').trim(),
@@ -1647,7 +1683,8 @@ const buildPreMovementStructuralForest = (
     currentSource: SyntaxNode,
     previousSource: SyntaxNode
   ): SyntaxNode | null => {
-    if (String(currentSource.label || '').trim() !== String(previousSource.label || '').trim()) {
+    if (String(currentSource.label || '').trim() !== String(previousSource.label || '').trim()
+      && (!currentSource.lineageId || currentSource.lineageId !== previousSource.lineageId)) {
       return null;
     }
     // Before a later movement relation, the source is exactly the occurrence
@@ -1685,18 +1722,15 @@ const buildPreMovementStructuralForest = (
   };
   const overtSurface = (node?: SyntaxNode | null): string => {
     if (!node) return '';
-    const candidates = collectNodes(node).filter((candidate) => {
-      const children = Array.isArray(candidate.children) ? candidate.children : [];
-      if (children.length > 0 || candidate.silent === true) return false;
-      const explicitWord = String(candidate.word || '').trim();
-      const surface = explicitWord || String(candidate.label || '').trim();
-      return Boolean(surface)
-        && !isTraceLike(surface)
-        && !isNullLike(surface)
-        && (Boolean(explicitWord) || !isStructuralCategorySurface(surface));
-    });
-    return String(candidates[0]?.word || candidates[0]?.label || '').trim();
+    return authoredWord(collectNodes(node).find((candidate) => isPronouncedLeaf(candidate)));
   };
+  /*
+   * A pre-movement surface reconstructed from the landing is Babel's own
+   * presentation of an occurrence the model left silent or wordless. When the
+   * landing is the sentence-initial D or C, its base position is shown in
+   * lowercase. This is a display rule for reconstructed surfaces only; an
+   * authored prior-stage occurrence is always restored exactly as written.
+   */
   const baseGenerationSurface = (targetNode: SyntaxNode, surface: string): string => {
     const category = String(targetNode.label || '').trim();
     if (
@@ -1709,6 +1743,7 @@ const buildPreMovementStructuralForest = (
     return surface;
   };
   [...relations].reverse().forEach((relation) => {
+    if (relation.recoveredMovement && !relation.recoveredMovement.transition) return;
     const anchors = Array.isArray(relation.resolvedAnchors)
       ? relation.resolvedAnchors
       : [];
@@ -1724,7 +1759,7 @@ const buildPreMovementStructuralForest = (
       || findAnchor(anchors, targetRoles)?.nodeId
       || ''
     ).trim();
-    const trajectoryDisplayKind = registeredTrajectoryDisplayKind(
+    const trajectoryDisplayKind = relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(
       relation.relation,
       relation.resolvedAnchors
     );
@@ -1787,12 +1822,7 @@ const buildPreMovementStructuralForest = (
       // needs its newly silent leaves restored from the landing lineage.
       const sourceLeavesToRestore = restoredFromPreviousStage.has(sourceId)
         ? []
-        : sourceNodes.filter((node) => {
-        const children = Array.isArray(node.children) ? node.children : [];
-        if (children.length > 0) return false;
-        const surface = String(node.word || node.label || '').trim();
-        return node.silent === true || isTraceLike(surface) || isNullLike(surface);
-        });
+        : sourceNodes.filter((node) => isLeafNode(node) && (node.silent === true || isNotationLeaf(node)));
       const restoredSurfaceBySource = new Map<SyntaxNode, string>();
       sourceLeavesToRestore.forEach((node) => {
         const lineageId = String(node.lineageId || '').trim();
@@ -1802,26 +1832,28 @@ const buildPreMovementStructuralForest = (
           : '';
         if (restoredSurface) restoredSurfaceBySource.set(node, restoredSurface);
       });
-      return { sourceNodes, sourceLeavesToRestore, restoredSurfaceBySource };
+      return { sourceNodes, sourceLeavesToRestore, restoredSurfaceBySource, restored: restoredFromPreviousStage.has(sourceId) };
     });
     if (sourceRestorations.some(({ sourceLeavesToRestore, restoredSurfaceBySource }) =>
       sourceLeavesToRestore.length > 0
       && restoredSurfaceBySource.size !== sourceLeavesToRestore.length
     )) return;
 
-    sourceRestorations.forEach(({ sourceNodes, restoredSurfaceBySource }) => {
+    sourceRestorations.forEach(({ sourceNodes, restoredSurfaceBySource, restored }) => {
+      if (restored) return;
       sourceNodes.forEach((node) => {
         delete node.silent;
         const children = Array.isArray(node.children) ? node.children : [];
         if (children.length > 0) return;
         const restoredSurface = restoredSurfaceBySource.get(node);
         if (!restoredSurface) return;
-        if (typeof node.word === 'string') node.word = restoredSurface;
-        else node.label = restoredSurface;
+        // Restored pronunciation is lexical content, so it lives in `word`;
+        // the authored category label stays.
+        node.word = restoredSurface;
       });
     });
 
-    if (trajectoryDisplayKind === 'head') {
+    if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
       const targetChildren = Array.isArray(target.children) ? target.children : [];
       if (targetChildren.length > 0) {
         target.children = [];
@@ -1955,22 +1987,30 @@ const syntaxNodeMaterialSignature = (node: SyntaxNode): string => {
 };
 
 /**
- * Apply only the raw tree deltas witnessed by active unregistered relations.
- * A fallback relation owns its current/prior anchor subtrees, never the whole
+ * Apply only the raw tree deltas witnessed by active relations.
+ * A relation owns its current/prior anchor subtrees, never the whole
  * stage forest. It may add the minimum current ancestor chain needed to keep
  * those subtrees attached; unrelated current-stage additions remain hidden.
  */
-const buildFallbackTreeTransitionForest = (
+const buildAnchoredTreeTransitionForest = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[],
   activeRelations: DerivationReplayPlanStep[]
 ): SyntaxNode[] => {
   const ownerships = activeRelations
-    .map((relation) => resolveFallbackTreeTransitionOwnership(
-      relation,
-      previousForest,
-      currentForest
-    ))
+    .map((relation) => {
+      const movement = relation.recoveredMovement;
+      if (movement?.transition) {
+        return {
+          currentNodeIds: new Set([movement.sourceNodeId, movement.targetNodeId].flatMap(id => {
+            const node = findExactNodeByIdInForest(currentForest, id);
+            return node ? [...collectExactSubtreeNodeIds(node)] : [];
+          })),
+          priorNodeIds: collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement.sourceNodeId)!)
+        };
+      }
+      return resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
+    })
     .filter((ownership): ownership is FallbackTreeTransitionOwnership => Boolean(ownership));
   if (ownerships.length === 0) return cloneSyntaxForest(previousForest);
 
@@ -2235,6 +2275,7 @@ const relationOwnsNonMovementTreeTransition = (
   previousForest: SyntaxNode[] = [],
   currentForest: SyntaxNode[] = []
 ): boolean => {
+  if (relation.recoveredMovement?.transition) return false;
   const relationName = String(relation.relation || '').trim();
   const registryEntry = findRelationRegistryEntry(
     productionRelationRegistry,
@@ -2262,6 +2303,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
   replayPlan?: DerivationReplayPlan | null
 ): PlaybackStep[] => {
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
+  const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
+  const pendingProjectionReveals: Array<{
+    nodeId: string;
+    firstStageIndex: number;
+    stageIndex: number;
+    relationIndex: number;
+  }> = [];
   let previousVisibleNodeIds = new Set<string>();
   let previousWorkspaceRootIds = new Set<string>();
   const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
@@ -2316,12 +2364,45 @@ export const buildPlaybackStepsFromDerivationFrames = (
       primaryRootLabel,
       rootLabels
     );
-    const plannedFrameRelations = plannedStage
-      ? getFrameRelations(frame, plannedStage)
-      : [];
     const previousFrameWorkspaceRoots = index > 0 && Array.isArray(frames[index - 1]?.workspaceForest)
       ? frames[index - 1].workspaceForest
       : [];
+    const plannedFrameRelations = plannedStage
+      ? getFrameRelations(frame, plannedStage, previousFrameWorkspaceRoots)
+      : [];
+    plannedRelationsByFrame[index] = plannedFrameRelations;
+    plannedFrameRelations.forEach((relation, relationIndex) => {
+      const movement = relation.recoveredMovement;
+      if (!movement?.transition || movement.trajectoryKind !== 'phrasal') return;
+      const parent = workspaceRoots.find(root => root.children?.some(child => child.id === movement.targetNodeId));
+      const previousParent = previousFrameWorkspaceRoots.find(root => root.id === parent?.id);
+      if (!parent?.id || parent.word || parent.children?.length !== 2 || previousParent?.children?.length !== 1) return;
+      const carriedChildId = previousParent.children[0].id;
+      if (!parent.children.some(child => child.id === carriedChildId)
+        || previousParent.children.some(child => child.id === movement.targetNodeId)) return;
+
+      let firstStageIndex = index - 1;
+      while (firstStageIndex > 0) {
+        const earlier = frames[firstStageIndex - 1].workspaceForest?.find(root => root.id === parent.id);
+        if (earlier?.children?.length !== 1 || earlier.children[0].id !== carriedChildId) break;
+        firstStageIndex -= 1;
+      }
+      const precedingRelations = [
+        ...plannedRelationsByFrame.slice(firstStageIndex, index).flat(),
+        ...plannedFrameRelations.slice(0, relationIndex)
+      ];
+      if (precedingRelations.some(candidate => [
+        ...getRelationAllAnchorNodeIds(candidate),
+        ...relationAnchorNodeIds(candidate.priorAnchors),
+        getRelationTargetNodeId(candidate),
+        ...getRelationSourceNodeIds(candidate)
+      ].includes(parent.id!))) return;
+      // The saved unary projection remains authored. Replay withholds only
+      // its display until the later phrase attaches, unless an earlier claim
+      // needs that projection as an anchor.
+      pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index,
+        relationIndex: relation.authoredRelationIndex ?? relationIndex });
+    });
     const plannedStageRelocatesPriorLandingOccurrence = index > 0
       && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')
       && plannedFrameRelations.some((relation) => {
@@ -2356,6 +2437,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       || String(frame.chainId || '').trim()
       || plannedStageRelocatesPriorLandingOccurrence
     );
+    const frameHasRecoveredMovement = plannedFrameRelations.some(relation => relation.recoveredMovement?.transition);
     const frameCarriesAuthoredEffect =
       Boolean(String(getDerivationFrameChange(frame)?.statement || '').trim());
     const movementRecipe = pickPreferredReplayText(
@@ -2396,7 +2478,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
     const fallbackTreeTransitionRelationIndexes = new Set(
       frameRelationSteps
         .map((relation, relationIndex) => (
-          resolveFallbackTreeTransitionOwnership(
+          !relation.recoveredMovement?.transition && resolveFallbackTreeTransitionOwnership(
             relation,
             previousFrameWorkspaceRoots,
             workspaceRoots
@@ -2594,7 +2676,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
         // PF, deletion, and rewrite relations own their serialized tree-state
         // change at their exact authored relation index. Structural frames may
         // not reveal that completed output first.
-        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload) {
+        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload && !frameHasRecoveredMovement) {
           structuralSteps = [];
         }
         const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
@@ -2624,18 +2706,21 @@ export const buildPlaybackStepsFromDerivationFrames = (
           // keeps its own Replay moment anchored to its resolved anchors.
           const isTrajectoryRelation =
             isRenderableReplayRelation(relation)
-            && isRegisteredTrajectoryRelation(relationLabel, resolvedAnchors)
+            && (relation.recoveredMovement
+              ? relation.recoveredMovement.transition
+              : isRegisteredTrajectoryRelation(relationLabel, resolvedAnchors))
             && Boolean(rawAuthoredTargetNodeId)
             && rawSourceNodeIds.length > 0;
           const ownsPhrasalTreeTransition =
-            relationOwnsPhrasalTreeTransition(
+            Boolean(relation.recoveredMovement?.transition)
+            || (relationOwnsPhrasalTreeTransition(
               relationLabel,
               workspaceRoots,
               rawSourceNodeIds,
               rawAuthoredTargetNodeId
             )
             && Boolean(rawAuthoredTargetNodeId)
-            && rawSourceNodeIds.length > 0;
+            && rawSourceNodeIds.length > 0);
           const ownsTrajectoryPlacement = isTrajectoryRelation || ownsPhrasalTreeTransition;
           const sourceNodeIds = rawSourceNodeIds
             .map((nodeId) => resolveRelationAnchorNodeId(workspaceRoots, nodeId, 'source'))
@@ -2660,7 +2745,11 @@ export const buildPlaybackStepsFromDerivationFrames = (
             : getRelationAllAnchorNodeIds(relation)
                 .map((nodeId) => resolveRelationAnchorNodeId(workspaceRoots, nodeId, 'source'))
                 .filter(Boolean);
-          if (relationAnchorNodeIds.length === 0) return null;
+          // A relation whose authored anchors all failed to resolve keeps its
+          // moment: the diagnostics on the step say what is missing. Only a
+          // relation that authored no anchors at all has nothing to place.
+          const authoredUnresolved = Array.isArray(relation.unresolvedAnchors) && relation.unresolvedAnchors.length > 0;
+          if (relationAnchorNodeIds.length === 0 && !authoredUnresolved) return null;
           const targetWitnessNodeId = ownsTrajectoryPlacement
             ? (
                 findParentNodeIdInForest(workspaceRoots, authoredTargetNodeId)
@@ -2777,26 +2866,42 @@ export const buildPlaybackStepsFromDerivationFrames = (
               ? left.relationIndex - right.relationIndex
               : left.insertAfterStepIndex - right.insertAfterStepIndex
           );
-        const getMovementCreatedLandingHostNodeId = (
+        const getMovementCreatedLandingHostNodeIds = (
           placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
-        ): string => {
-          if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return '';
-          const trajectoryDisplayKind = registeredTrajectoryDisplayKind(
+        ): string[] => {
+          if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return [];
+          const trajectoryDisplayKind = placement.relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(
             placement.relationLabel,
             placement.relation.resolvedAnchors
           );
-          const relationIsPhrasal = trajectoryDisplayKind === 'phrasal'
+          const ownsLandingConstruction = Boolean(placement.relation.recoveredMovement?.transition) || trajectoryDisplayKind === 'phrasal'
             || placement.ownsPhrasalTreeTransition;
-          if (!relationIsPhrasal) return '';
+          if (!ownsLandingConstruction) return [];
           const landingHostNodeId = findParentNodeIdInForest(
             workspaceRoots,
             placement.authoredTargetNodeId
           );
-          if (!landingHostNodeId) return '';
-          return findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)
-            ? ''
-            : landingHostNodeId;
+          if (!landingHostNodeId || findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)) return [];
+          const hostIds: string[] = [];
+          let branchNodeId = placement.authoredTargetNodeId;
+          let parentNodeId = landingHostNodeId;
+          // Include only the new ancestor path needed to join the landing to
+          // existing syntax. Higher projections retain their own micro-steps.
+          while (parentNodeId && !findNodeByIdInForest(previousFrameWorkspaceRoots, parentNodeId)) {
+            hostIds.push(parentNodeId);
+            const parent = findNodeByIdInForest(workspaceRoots, parentNodeId);
+            const attachesToExistingSyntax = (parent?.children || []).some(child =>
+              child.id !== branchNodeId && collectSyntaxSubtreeNodeIds(child).some(nodeId =>
+                Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, nodeId))));
+            if (attachesToExistingSyntax) return hostIds;
+            branchNodeId = parentNodeId;
+            parentNodeId = findParentNodeIdInForest(workspaceRoots, parentNodeId);
+          }
+          return parentNodeId ? hostIds : [landingHostNodeId];
         };
+        const getMovementCreatedLandingHostNodeId = (
+          placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
+        ): string => getMovementCreatedLandingHostNodeIds(placement).at(-1) || '';
         const singleRelationLinksByIndex = new Map<number, ResolvedRelationLink[]>();
         frameRelationSteps.forEach((relation, relationIndex) => {
           const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
@@ -2856,6 +2961,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             placement.relationIndex,
             Array.from(new Set([
               targetParentNodeId,
+              ...getMovementCreatedLandingHostNodeIds(placement),
               ...targetSubtreeNodeIds,
               ...targetSyntheticLeafNodeIds,
               ...sourceSubtreeNodeIds,
@@ -2922,6 +3028,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
                   addInactiveTargetSubtree(
                     String(link?.targetNodeId || '').trim(),
                     isHeadLikeResolvedRelation(link)
+                      && (!placement?.relation.recoveredMovement
+                        || Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, String(link.targetNodeId || ''))))
                   );
                 });
             });
@@ -2933,13 +3041,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const activeLandingHostNodeIds = new Set(
             relationPlacements
               .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-              .map(getMovementCreatedLandingHostNodeId)
+              .flatMap(getMovementCreatedLandingHostNodeIds)
               .filter(Boolean)
           );
           return new Set(
             relationPlacements
               .filter((placement) => !activeRelationIndexes.has(placement.relationIndex))
-              .map(getMovementCreatedLandingHostNodeId)
+              .flatMap(getMovementCreatedLandingHostNodeIds)
               .filter((nodeId) => Boolean(nodeId) && !activeLandingHostNodeIds.has(nodeId))
           );
         };
@@ -2966,6 +3074,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const activeFallbackTransitionRelations = frameRelationSteps.filter((_relation, relationIndex) =>
             activeRelationIndexes.has(relationIndex)
             && fallbackTreeTransitionRelationIndexes.has(relationIndex));
+          const activeMovementRelations = frameRelationSteps.filter((relation, relationIndex) =>
+            activeRelationIndexes.has(relationIndex) && relation.recoveredMovement?.transition);
           const registeredNonMovementTreeTransitionIsActive = Array.from(activeRelationIndexes)
             .some((relationIndex) => (
               nonMovementTreeTransitionRelationIndexes.has(relationIndex)
@@ -2981,11 +3091,11 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const nonMovementTransitionForest = !frameHasNonMovementTreeTransition
             || registeredNonMovementTreeTransitionIsActive
             ? workspaceRoots
-            : activeFallbackTransitionRelations.length > 0
-              ? buildFallbackTreeTransitionForest(
+            : activeFallbackTransitionRelations.length > 0 || activeMovementRelations.length > 0
+              ? buildAnchoredTreeTransitionForest(
                   previousFrameWorkspaceRoots,
                   workspaceRoots,
-                  activeFallbackTransitionRelations
+                  [...activeFallbackTransitionRelations, ...activeMovementRelations]
                 )
               : cloneSyntaxForest(previousFrameWorkspaceRoots);
           const snapshotWorkspaceRoots = buildPreMovementStructuralForest(
@@ -3001,6 +3111,24 @@ export const buildPlaybackStepsFromDerivationFrames = (
             ),
             previousFrameWorkspaceRoots
           );
+          // Movement and realization may share a completed stage. Preserve the
+          // prior head's word until the later authored realization owns it.
+          frameRelationSteps.forEach((movementRelation, movementIndex) => {
+            const movement = movementRelation.recoveredMovement;
+            if (!movement?.transition || movement.trajectoryKind !== 'head'
+              || !activeRelationIndexes.has(movementIndex)) return;
+            const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) =>
+              relationIndex > movementIndex && relation.pronunciationNodeIds?.includes(movement.targetNodeId));
+            if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex)) return;
+            const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.sourceNodeId);
+            const landing = findExactNodeByIdInForest(snapshotWorkspaceRoots, movement.targetNodeId);
+            if (!prior || !landing || prior.children?.length || landing.children?.length) return;
+            if (prior.word === landing.word) return;
+            if (prior.word === undefined) delete landing.word;
+            else landing.word = prior.word;
+            if (prior.tokenIndex === undefined) delete landing.tokenIndex;
+            else landing.tokenIndex = prior.tokenIndex;
+          });
           const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);
           const baseVisibleNodeIds = Array.isArray(baseStep?.replayVisibleNodeIds)
             ? baseStep.replayVisibleNodeIds
@@ -3159,6 +3287,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               )
               .filter(Boolean),
             recipe: placement.relationLabel,
+            movementDiagnostics: placement.relation.movementDiagnostics,
             note: undefined,
             preserveReplayStep: true,
             stageRecord: getFrameStageRecordText(frame, plannedStage),
@@ -3183,13 +3312,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
             const relationTargetSubtreeIds = new Set(collectSyntaxSubtreeNodeIds(relationTargetNode));
             if (relationTargetSubtreeIds.has(stepTargetNodeId)) return true;
 
-            // Internal Merge creates both the landed phrase occurrence and the
-            // projection that immediately contains it. When that landing host
-            // did not exist in the preceding authored stage, its structural
-            // step belongs to the movement mesostep too. Keeping the host step
-            // would turn ExternalMerge(target, sister -> host) into the false
-            // Project(sister -> host) frame while the target is withheld.
-            return getMovementCreatedLandingHostNodeId(placement) === stepTargetNodeId;
+            // The new attachment belongs to movement, not a later merge of
+            // a temporarily detached landing complex.
+            return getMovementCreatedLandingHostNodeIds(placement).includes(stepTargetNodeId);
           });
         };
 
@@ -3269,7 +3394,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const landingHostNodeId = movementCreatedLandingHosts[0];
           const landingPlacements = relationPlacements.filter((placement) =>
             getMovementCreatedLandingHostNodeId(placement) === landingHostNodeId);
-          const landingHostNode = findNodeByIdInForest(workspaceRoots, landingHostNodeId);
+          const landingHostIds = new Set(landingPlacements.flatMap(getMovementCreatedLandingHostNodeIds));
           const landingTargetNodeIds = new Set(
             landingPlacements
               .map((placement) => placement.authoredTargetNodeId)
@@ -3280,9 +3405,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
               .forEach((subtreeNodeId) => movementPrerequisiteNodeIds.add(subtreeNodeId));
           };
 
-          (Array.isArray(landingHostNode?.children) ? landingHostNode.children : [])
+          Array.from(landingHostIds)
+            .flatMap(nodeId => findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
             .map((child) => String(child?.id || '').trim())
-            .filter((childNodeId) => Boolean(childNodeId) && !landingTargetNodeIds.has(childNodeId))
+            .filter((childNodeId) => Boolean(childNodeId) && !landingTargetNodeIds.has(childNodeId) && !landingHostIds.has(childNodeId))
             .forEach(addSubtree);
           landingPlacements.forEach((placement) => {
             placement.sourceNodeIds.forEach(addSubtree);
@@ -3293,7 +3419,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               .filter((nodeId) => !placement.sourceNodeIds.includes(nodeId))
               .filter((nodeId) => !collectSyntaxSubtreeNodeIds(
                 findNodeByIdInForest(workspaceRoots, nodeId)
-              ).includes(landingHostNodeId))
+              ).some(id => landingHostIds.has(id)))
               .forEach(addSubtree);
           });
 
@@ -3674,7 +3800,50 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const relationCarriedSteps = carryReplayRelationLinksForward(validVisibilitySteps);
   const zeroDeltaCollapsedSteps = collapseZeroDeltaReplaySteps(relationCarriedSteps);
   const landingMergeExpandedSteps = insertPreMovementLandingMergeSteps(zeroDeltaCollapsedSteps);
-  return normalizeReplaySentenceInitialCasing(landingMergeExpandedSteps, sentenceInitialSurface);
+  const projectionSteps = deferPendingMovementProjections(landingMergeExpandedSteps, pendingProjectionReveals);
+  const countedSteps = recountReplayProgress(projectionSteps, replayPlan);
+  return normalizeReplaySentenceInitialCasing(countedSteps, sentenceInitialSurface);
+};
+
+const deferPendingMovementProjections = (
+  steps: PlaybackStep[],
+  projections: Array<{ nodeId: string; firstStageIndex: number; stageIndex: number; relationIndex: number }>
+): PlaybackStep[] => {
+  if (projections.length === 0) return steps;
+  const reveals = projections.map(projection => ({
+    ...projection,
+    moment: steps.findIndex(step => step.replayRelationIdentity?.stageIndex === projection.stageIndex
+      && step.replayRelationIdentity.relationIndex === projection.relationIndex)
+  })).filter(projection => projection.moment >= 0);
+  return steps.flatMap((step, index) => {
+    const withheld = new Set(reveals.filter(projection => index < projection.moment
+      && Number(step.replayFrameIndex) >= projection.firstStageIndex).map(projection => projection.nodeId));
+    if (withheld.size === 0) return [step];
+    if (step.replayKind === 'micro' && step.operation === 'Project' && withheld.has(step.targetNodeId)) return [];
+    return [{ ...step,
+      replayVisibleNodeIds: step.replayVisibleNodeIds?.filter(id => !withheld.has(id))
+    }];
+  });
+};
+
+const recountReplayProgress = (
+  steps: PlaybackStep[],
+  replayPlan?: DerivationReplayPlan | null
+): PlaybackStep[] => {
+  const counts = new Map<number, number>();
+  const positions = new Map<number, number>();
+  steps.forEach(step => {
+    const index = step.replayFrameIndex;
+    if (index !== undefined) counts.set(index, (counts.get(index) || 0) + 1);
+  });
+  return steps.map(step => {
+    const index = step.replayFrameIndex;
+    const stage = index === undefined ? undefined : getReplayPlanStage(replayPlan, index);
+    if (!stage || index === undefined) return step;
+    const position = (positions.get(index) || 0) + 1;
+    positions.set(index, position);
+    return { ...step, replayProgressLabel: buildReplayProgressLabel(stage, replayPlan!.stages.length, position, counts.get(index)!) };
+  });
 };
 
 const squashAdjacentStructuralReplayDuplicates = (steps: PlaybackStep[]): PlaybackStep[] => {
@@ -3918,16 +4087,8 @@ const collectVisibleReplayOvertTokenCounts = (step?: PlaybackStep | null): Map<s
       if (leafId && !visibleIds.has(leafId)) return;
       if (leafId && countedLeafIds.has(leafId)) return;
       if (leafId) countedLeafIds.add(leafId);
-      const surface = String(leaf?.word || leaf?.label || '').trim();
-      if (
-        !surface
-        || isTraceLike(surface)
-        || isNullLike(surface)
-        || isStructuralCategorySurface(surface)
-      ) {
-        return;
-      }
-      const key = normalizeToken(surface);
+      if (!isLexicalLeaf(leaf)) return;
+      const key = normalizeToken(authoredWord(leaf));
       if (!key) return;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
@@ -4034,9 +4195,7 @@ const findCollapsedNullSelectionInProjectStep = (
 
   const nullLeafIds = newlyVisibleIds.filter((nodeId) => {
     const node = findNodeByIdInForest([step.replayCanvasData as SyntaxNode], nodeId);
-    if (!node || (Array.isArray(node.children) && node.children.length > 0)) return false;
-    const surface = getSyntaxNodeSurface(node);
-    return isNullLike(surface) || isTraceLike(surface);
+    return isNotationLeaf(node);
   });
   if (nullLeafIds.length !== 1) return null;
 
@@ -4157,109 +4316,6 @@ const collectReplayCanvasNodes = (root?: SyntaxNode | null): SyntaxNode[] => {
   return nodes;
 };
 
-const resolveCarriedRelationEndpointForCanvas = (
-  canvas: SyntaxNode,
-  link: ResolvedRelationLink,
-  endpointId: string,
-  role: 'source' | 'target' | 'witness'
-): string => {
-  const normalizedEndpointId = String(endpointId || '').trim();
-  if (!normalizedEndpointId) return '';
-  if (findNodeByIdInForest([canvas], normalizedEndpointId)) return normalizedEndpointId;
-  if (!isMoveLikeOperation(link.operation || link.relation)) return normalizedEndpointId;
-
-  const sourceNode = findNodeByIdInForest([canvas], String(link.sourceNodeId || '').trim());
-  const witnessNode = findNodeByIdInForest([canvas], String(link.witnessNodeId || '').trim());
-  const linkLooksHeadLike = isHeadLikeResolvedRelation(link);
-  const linkLooksPhrasal = !linkLooksHeadLike;
-  const lineageId = String(
-    sourceNode?.lineageId
-    || witnessNode?.lineageId
-    || ''
-  ).trim();
-  if (!lineageId) return normalizedEndpointId;
-
-  const excludedIds = new Set([
-    role === 'target' ? String(link.sourceNodeId || '').trim() : '',
-    role === 'target' ? String(link.witnessNodeId || '').trim() : ''
-  ].filter(Boolean));
-  const endpointPrefix = normalizedEndpointId.split(/[_:]/)[0]?.toLowerCase() || '';
-  const candidates = collectReplayCanvasNodes(canvas)
-    .filter((node) => {
-      const nodeId = String(node?.id || '').trim();
-      if (!nodeId || excludedIds.has(nodeId)) return false;
-      if (String(node?.lineageId || '').trim() !== lineageId) return false;
-      if (endpointPrefix && !nodeId.toLowerCase().startsWith(`${endpointPrefix}_`)) return false;
-      return true;
-    })
-    .sort((left, right) => {
-      const score = (node: SyntaxNode): number => {
-        const nodeId = String(node?.id || '').trim().toLowerCase();
-        const overtSurface = getOvertSurfaceFromSyntaxNode(node);
-        const surface = String(node?.word || node?.label || '').trim();
-        const isSilentNode =
-          Boolean((node as any)?.silent)
-          || isTraceLike(surface)
-          || isNullLike(surface)
-          || Boolean(pickTraceLikeLeafNode(node));
-        let value = 0;
-        if ((node as any)?.replayLayoutOnly !== true) value += 4;
-        if (linkLooksPhrasal && role === 'target') {
-          if (overtSurface) value += 20;
-          if (isSilentNode) value -= 8;
-        } else {
-          if (role === 'target' && (node as any)?.silent === true) value += 6;
-          if (nodeId.includes('trace')) value += 2;
-          if (nodeId.includes('final')) value -= 4;
-        }
-        return value;
-      };
-      return score(right) - score(left);
-    });
-
-  return String(candidates[0]?.id || '').trim() || normalizedEndpointId;
-};
-
-const remapCarriedRelationLinkForCanvas = (
-  link: ResolvedRelationLink,
-  canvas: SyntaxNode
-): ResolvedRelationLink => {
-  if (!isResolvedMovementLink(link)) return link;
-  const sourceNodeId = resolveCarriedRelationEndpointForCanvas(
-    canvas,
-    link,
-    String(link.sourceNodeId || '').trim(),
-    'source'
-  );
-  const targetNodeId = resolveCarriedRelationEndpointForCanvas(
-    canvas,
-    link,
-    String(link.targetNodeId || '').trim(),
-    'target'
-  );
-  const witnessNodeId = resolveCarriedRelationEndpointForCanvas(
-    canvas,
-    link,
-    String(link.witnessNodeId || '').trim(),
-    'witness'
-  );
-  const rewriteAnchor = (anchor: ResolvedRelationAnchor): ResolvedRelationAnchor => {
-    const role = String(anchor?.role || '').trim().toLowerCase();
-    if (role === 'source') return { ...anchor, nodeId: sourceNodeId || anchor.nodeId };
-    if (role === 'target') return { ...anchor, nodeId: targetNodeId || anchor.nodeId };
-    if (role === 'witness') return { ...anchor, nodeId: witnessNodeId || anchor.nodeId };
-    return anchor;
-  };
-
-  return {
-    ...link,
-    sourceNodeId,
-    targetNodeId,
-    witnessNodeId: witnessNodeId || undefined,
-    anchors: Array.isArray(link.anchors) ? link.anchors.map(rewriteAnchor) : link.anchors
-  };
-};
-
 const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] => {
   if (steps.length < 2) return steps;
 
@@ -4276,9 +4332,10 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
     });
     if (!canvas) return step;
 
-    const linksForStep = activeRelationLinks.map((link) =>
-      remapCarriedRelationLinkForCanvas(link, canvas)
-    ).filter((link) => {
+    // Carried links keep their authored endpoint ids. An endpoint absent from
+    // this canvas is simply not drawn here; no lineage mate or id-spelling
+    // heuristic stands in for it.
+    const linksForStep = activeRelationLinks.filter((link) => {
       const sourceNodeId = String(link?.sourceNodeId || '').trim();
       const targetNodeId = String(link?.targetNodeId || '').trim();
       if (isResolvedMovementLink(link) && (sourceNodeId || targetNodeId)) {
@@ -4308,6 +4365,7 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
     });
 
     const visibleNodeIds = getReplayVisibleNodeIdSet(step);
+    const suppressedNodeIds = new Set(step.replaySuppressAutoRevealNodeIds || []);
     mergedRelationLinks.forEach((link) => {
       const automaticallyVisibleAnchorNodeIds = (Array.isArray(link?.anchors)
         ? link.anchors
@@ -4319,7 +4377,8 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
         String(link?.witnessNodeId || '').trim(),
         ...automaticallyVisibleAnchorNodeIds
       ].forEach((nodeId) => {
-        if (!nodeId || !findNodeByIdInForest([canvas], nodeId)) return;
+        const node = findExactNodeByIdInForest([canvas], nodeId);
+        if (!nodeId || !node || (node as any).replayLayoutOnly || suppressedNodeIds.has(nodeId)) return;
         visibleNodeIds.add(nodeId);
       });
     });
@@ -4571,25 +4630,13 @@ const collectLeafSyntaxNodes = (root?: SyntaxNode | null): SyntaxNode[] => {
 };
 
 const countOvertLeafSyntaxNodes = (root?: SyntaxNode | null): number =>
-  collectLeafSyntaxNodes(root).filter((leaf) => {
-    const surface = String(leaf?.word || leaf?.label || '').trim();
-    return Boolean(surface)
-      && !isTraceLike(surface)
-      && !isNullLike(surface)
-      && !isStructuralCategorySurface(surface);
-  }).length;
+  collectLeafSyntaxNodes(root).filter((leaf) => isLexicalLeaf(leaf)).length;
 
 const collectReplayOvertTokenMultisetKey = (forest: SyntaxNode[] = []): string => {
   const tokens = forest
     .flatMap((root) => collectLeafSyntaxNodes(root))
-    .map((leaf) => String(leaf?.word || leaf?.label || '').trim())
-    .filter((surface) =>
-      Boolean(surface)
-      && !isTraceLike(surface)
-      && !isNullLike(surface)
-      && !isStructuralCategorySurface(surface)
-    )
-    .map((surface) => normalizeToken(surface))
+    .filter((leaf) => isLexicalLeaf(leaf))
+    .map((leaf) => normalizeToken(authoredWord(leaf)))
     .filter(Boolean)
     .sort();
   return tokens.join('|');
@@ -4597,15 +4644,8 @@ const collectReplayOvertTokenMultisetKey = (forest: SyntaxNode[] = []): string =
 
 const collectReplayOvertTokenSequence = (root?: SyntaxNode | null): string[] =>
   collectLeafSyntaxNodes(root)
-    .filter((leaf) => (leaf as any)?.replayLayoutOnly !== true)
-    .map((leaf) => String(leaf?.word || leaf?.label || '').trim())
-    .filter((surface) =>
-      Boolean(surface)
-      && !isTraceLike(surface)
-      && !isNullLike(surface)
-      && !isStructuralCategorySurface(surface)
-    )
-    .map((surface) => normalizeToken(surface))
+    .filter((leaf) => (leaf as any)?.replayLayoutOnly !== true && isLexicalLeaf(leaf))
+    .map((leaf) => normalizeToken(authoredWord(leaf)))
     .filter(Boolean);
 
 const collectReplayRootStructuralKey = (forest: SyntaxNode[] = []): string =>
@@ -4662,25 +4702,9 @@ const hasBranchingSyntaxSubtree = (root?: SyntaxNode | null): boolean => {
   return branching;
 };
 
-const pickTraceLikeLeafNode = (root?: SyntaxNode | null): SyntaxNode | null => {
-  const leaves = collectLeafSyntaxNodes(root);
-  return leaves.find((leaf) => {
-    const surface = String(leaf?.word || leaf?.label || '').trim();
-    return isTraceLike(surface) || isNullLike(surface);
-  }) || null;
-};
 
-const pickOvertLeafNode = (root?: SyntaxNode | null): SyntaxNode | null => {
-  const leaves = collectLeafSyntaxNodes(root);
-  return leaves.find((leaf) => {
-    if ((leaf as any)?.silent === true) return false;
-    const surface = String(leaf?.word || leaf?.label || '').trim();
-    return Boolean(surface)
-      && !isTraceLike(surface)
-      && !isNullLike(surface)
-      && !isStructuralCategorySurface(surface);
-  }) || null;
-};
+const pickOvertLeafNode = (root?: SyntaxNode | null): SyntaxNode | null =>
+  collectLeafSyntaxNodes(root).find((leaf) => isPronouncedLeaf(leaf)) || null;
 
 export const findParentLabelInForest = (
   forest: SyntaxNode[],
@@ -4802,16 +4826,10 @@ const findParentNodeIdInForest = (forest: SyntaxNode[], targetNodeId: string): s
   return '';
 };
 
+/** Strips only Replay's own `::__` display-leaf suffixes; authored id text is never rewritten. */
 const stripSyntheticReplayLeafSuffix = (value?: string): string =>
-  String(value || '').trim().replace(/(?:::__[^:]+|__silent)$/, '');
+  String(value || '').trim().replace(/::__[^:]+$/, '');
 
-const getOvertSurfaceFromSyntaxNode = (node?: SyntaxNode | null): string => {
-  if (!node || typeof node !== 'object') return '';
-  const directWord = String(node.word || '').trim();
-  if ((node as any)?.silent !== true && directWord && !isTraceLike(directWord) && !isNullLike(directWord)) return directWord;
-  const leaf = pickOvertLeafNode(node);
-  return String(leaf?.word || leaf?.label || '').trim();
-};
 
 const resolvedRelationLinkKey = (link?: ResolvedRelationLink | null): string => [
   String(link?.relationIndex || '').trim(),
@@ -4879,6 +4897,13 @@ export const isStructuralCategorySurface = (surface?: string): boolean => {
   if (!normalized) return false;
   return isHeadShellLabel(normalized) || isPhraseShellLabel(normalized);
 };
+
+/**
+ * A wordless leaf is an abstract category whatever its label spells, unless
+ * the label is display notation for an unpronounced position (`t`, `∅`).
+ */
+export const isWordlessCategoryLeaf = (node: SyntaxNode): boolean =>
+  isWordlessLeaf(node) && !isNotationSurface(node.label);
 
 export const normalizeTrajectoryKind = (kind?: ResolvedRelationLink['trajectoryKind'] | string): ResolvedRelationLink['trajectoryKind'] | '' => {
   const normalized = String(kind || '').trim().toLowerCase();
@@ -4995,11 +5020,7 @@ const inferPlaybackStepTrajectoryKind = (step?: PlaybackStep | null): PlaybackSt
 const isHeadLikePlaybackStep = (step?: PlaybackStep | null): boolean =>
   inferPlaybackStepTrajectoryKind(step) === 'head';
 
-const isTraceOrNullLikeNode = (node?: SyntaxNode | null): boolean => {
-  if (!node) return false;
-  const surface = String(node.word || node.label || '').trim();
-  return isTraceLike(surface) || isNullLike(surface);
-};
+const isTraceOrNullLikeNode = (node?: SyntaxNode | null): boolean => isNotationLeaf(node);
 
 const subtreeHasOvertYield = (node?: SyntaxNode | null): boolean =>
   Boolean(pickOvertLeafNode(node));
@@ -5226,6 +5247,37 @@ export const resolveLexicalMovementTraceDisplayIndex = (
 
 export const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
 
+/**
+ * Pronunciation is decided by authored fields (nodePronunciation.js). The
+ * helpers below add the two Replay-only readings: notation styling for
+ * leaves that are already unpronounced, and the inherited-silence rule for
+ * hierarchy nodes, which stays until whole-subtree silence is decided.
+ */
+const isNotationSurface = (surface?: string): boolean => {
+  const trimmed = String(surface || '').trim();
+  return Boolean(trimmed) && (isTraceLike(trimmed) || isNullLike(trimmed));
+};
+
+/** An unpronounced leaf whose authored surface is notation rather than retained lexical content. */
+const isNotationLeaf = (node?: SyntaxNode | null): boolean =>
+  isLeafNode(node) && !isPronouncedLeaf(node) && isNotationSurface(getSyntaxNodeSurface(node));
+
+/** A leaf carrying lexical content: pronounced, or a silent copy whose retained word is not notation. */
+const isLexicalLeaf = (node?: SyntaxNode | null): boolean =>
+  isPronouncedLeaf(node) || (isSilentWordLeaf(node) && !isNotationSurface(authoredWord(node)));
+
+const hasSilentOrGhostAncestor = (node: HierNode | null): boolean => {
+  let current: HierNode | null = node;
+  while (current) {
+    if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) return true;
+    current = current.parent;
+  }
+  return false;
+};
+
+export const isPronouncedHierLeaf = (node: HierNode): boolean =>
+  isPronouncedLeaf(node.data) && !hasSilentOrGhostAncestor(node);
+
 /** A rendered leaf is terminal material even when `t` also resembles T. */
 export const isDisplayTerminalSurface = (surface?: string): boolean => {
   const trimmed = String(surface || '').trim();
@@ -5237,18 +5289,6 @@ const isIndexedSurface = (label: string): boolean => {
   return Boolean(trimmed) && !isTraceLike(trimmed) && !isNullLike(trimmed) && Boolean(extractMovementIndex(trimmed));
 };
 
-export const isRenderableTerminalSurface = (surface: string, overtSurfaceSet: Set<string> | null): boolean => {
-  const trimmed = surface.trim();
-  if (!trimmed || isTraceLike(trimmed) || isIndexedSurface(trimmed)) {
-    return false;
-  }
-  if (isNullLike(trimmed)) return true;
-  const normalized = normalizeToken(trimmed);
-  if (!normalized) return false;
-  if (overtSurfaceSet) return overtSurfaceSet.has(normalized);
-  return true;
-};
-
 export const collectOvertLeafNodeIdsInOrder = (root?: SyntaxNode | null): string[] => {
   if (!root || typeof root !== 'object') return [];
   const overtIds: string[] = [];
@@ -5256,16 +5296,7 @@ export const collectOvertLeafNodeIdsInOrder = (root?: SyntaxNode | null): string
     const children = Array.isArray(node?.children) ? node.children : [];
     if (children.length === 0) {
       const nodeId = String(node?.id || '').trim();
-      const surface = String(node?.word || node?.label || '').trim();
-      if (
-        nodeId &&
-        surface &&
-        !isTraceLike(surface) &&
-        !isNullLike(surface) &&
-        !isStructuralCategorySurface(surface)
-      ) {
-        overtIds.push(nodeId);
-      }
+      if (nodeId && isLexicalLeaf(node)) overtIds.push(nodeId);
       return;
     }
     children.forEach(visit);
@@ -5282,17 +5313,7 @@ export const collectPronouncedLeafNodeIdsInOrder = (root?: SyntaxNode | null): s
     const children = Array.isArray(node?.children) ? node.children : [];
     if (children.length === 0) {
       const nodeId = String(node?.id || '').trim();
-      const surface = String(node?.word || node?.label || '').trim();
-      if (
-        !silent
-        && nodeId
-        && surface
-        && !isTraceLike(surface)
-        && !isNullLike(surface)
-        && !isStructuralCategorySurface(surface)
-      ) {
-        pronouncedIds.push(nodeId);
-      }
+      if (!silent && nodeId && isPronouncedLeaf(node)) pronouncedIds.push(nodeId);
       return;
     }
     children.forEach((child) => visit(child, silent));
@@ -5362,8 +5383,7 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
 };
 
-export const isOvertLeafNode = (node: HierNode, overtSurfaceSet: Set<string> | null): boolean =>
-  isRenderableTerminalSurface(resolveLeafSurface(node), overtSurfaceSet);
+export const isOvertLeafNode = (node: HierNode): boolean => isPronouncedHierLeaf(node);
 
 export const resolveTraceIndexFromNodeContext = (
   node: HierNode,
@@ -5553,8 +5573,7 @@ export const buildResolvedLinkTraceIndexMap = (
       .forEach((nodeId) => assignIndexToMovementSource(nodeId, index));
     if (movedId) {
       const movedNode = findNodeByIdInForest(currentForest, movedId);
-      const movedSurface = movedNode ? String(movedNode.word || movedNode.label || '').trim() : '';
-      if (movedNode && (isTraceLike(movedSurface) || isNullLike(movedSurface))) {
+      if (movedNode && isNotationLeaf(movedNode)) {
         assignIndexToNodeAndLeaves(movedId, index);
       }
     }
@@ -5646,8 +5665,7 @@ const getDerivationalChildRankForOrdering = (parent: HierNode, child: HierNode, 
   const childKey = normalizeReplayCategoryKeyForOrdering(child.data?.label);
   const childHasChildren = Boolean(child.children && child.children.length > 0);
   const childHasOvert = subtreeHasOvertYield(child.data);
-  const childSurface = resolveLeafSurface(child);
-  const childIsSilent = isTraceLike(childSurface) || isNullLike(childSurface);
+  const childIsSilent = isNotationLeaf(child.data);
   const childIsPredicateCore =
     childKey === 'vP'
     || childKey === 'v'
@@ -5779,14 +5797,22 @@ export const buildStructuralDerivationPlaybackSteps = (
   const continuityVisibleNodeIds = (() => {
     const seeded = new Set(previousVisibleNodeIds);
     const hasOvertReplayDescendant = (node: HierNode): boolean =>
-      node.descendants().some((descendant) => {
-        if (isSyntheticWorkspaceRootNode(descendant)) return false;
-        const surface = resolveLeafSurface(descendant);
-        return Boolean(surface)
-          && !isTraceLike(surface)
-          && !isNullLike(surface)
-          && !isStructuralCategorySurface(surface);
-      });
+      node.descendants().some((descendant) =>
+        !isSyntheticWorkspaceRootNode(descendant) && isLexicalLeaf(descendant.data)
+      );
+    const previousFrameForest = frameIndex > 0 && Array.isArray(derivationFrames?.[frameIndex - 1]?.workspaceForest)
+      ? derivationFrames?.[frameIndex - 1]?.workspaceForest || []
+      : [];
+    // Lineage continuity is lineage-to-lineage: an occurrence continues a
+    // previously visible object when some previously visible occurrence
+    // carried the same authored lineageId. Node ids are a different concept.
+    const previousVisibleLineageIds = new Set<string>();
+    collectForestNodesById(previousFrameForest).forEach((previousNode, previousNodeId) => {
+      const previousLineageId = String(previousNode?.lineageId || '').trim();
+      if (previousLineageId && previousVisibleNodeIds.has(previousNodeId)) {
+        previousVisibleLineageIds.add(previousLineageId);
+      }
+    });
 
     visibleNodes.forEach((node) => {
       const nodeId = getNodeId(node);
@@ -5795,7 +5821,7 @@ export const buildStructuralDerivationPlaybackSteps = (
         || rawNodeById.get(nodeId)?.lineageId
         || ''
       ).trim();
-      if (!lineageId || !previousVisibleNodeIds.has(lineageId)) return;
+      if (!lineageId || !previousVisibleLineageIds.has(lineageId)) return;
       if (!hasOvertReplayDescendant(node)) return;
       node.descendants().forEach((descendant) => {
         if (!isSyntheticWorkspaceRootNode(descendant)) {
@@ -5804,9 +5830,6 @@ export const buildStructuralDerivationPlaybackSteps = (
       });
     });
 
-    const previousFrameForest = frameIndex > 0 && Array.isArray(derivationFrames?.[frameIndex - 1]?.workspaceForest)
-      ? derivationFrames?.[frameIndex - 1]?.workspaceForest || []
-      : [];
     const previousContinuitySubtrees = collectUniqueReplayContinuitySubtrees(previousFrameForest);
     const currentContinuitySubtrees = new Map<string, HierNode[]>();
     visibleNodes.forEach((node) => {
@@ -5840,7 +5863,7 @@ export const buildStructuralDerivationPlaybackSteps = (
   );
   const getReplayNodeLabel = (node: HierNode): string => {
     const surface = resolveLeafSurface(node);
-    if (!isTraceLike(surface)) return resolveNodeLabel(node);
+    if (isPronouncedLeaf(node.data) || !isTraceLike(surface)) return resolveNodeLabel(node);
     const inheritedTraceIndex = resolveTraceIndexFromNodeContext(node, traceIndexByNodeId);
     return formatTraceSurfaceForDisplayValue(
       surface,
@@ -5965,7 +5988,7 @@ export const buildStructuralDerivationPlaybackSteps = (
     const workspaceAfter = extractReplayWorkspaceLabels(visibleWorkspaceSnapshot);
     const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(visibleWorkspaceSnapshot);
     const rawTargetLabel = getReplayNodeLabel(node);
-    const targetLabel = childNodes.length === 0 && !isTraceLike(surface) && !isNullLike(surface)
+    const targetLabel = childNodes.length === 0 && !isNotationLeaf(node.data)
       ? maybeLowercaseSentenceInitialFunctionSurface({
           surface: rawTargetLabel,
           sentenceInitialSurface,
@@ -5981,7 +6004,7 @@ export const buildStructuralDerivationPlaybackSteps = (
     const sourceLabels = childNodes.length > 0
       ? childNodes.map((child) => getReplayNodeLabel(child)).filter(Boolean)
       : [
-          isTraceLike(surface)
+          isNotationLeaf(node.data) && isTraceLike(surface)
             ? preFrontingLexicalTargetLabel
             : maybeLowercaseSentenceInitialFunctionSurface({
                 surface: String(node.data.word || preFrontingLexicalTargetLabel || '').trim(),
@@ -6192,12 +6215,7 @@ export const buildMovementArrowsFromLinks = (
     if (!node) return undefined;
     return node
       .descendants()
-      .find((candidate) => {
-        const children = candidate.children || [];
-        if (children.length > 0) return false;
-        const surface = resolveLeafSurface(candidate);
-        return isTraceLike(surface) || isNullLike(surface);
-      });
+      .find((candidate) => isNotationLeaf(candidate.data));
   };
   /*
    * The fail-closed endpoint law, preserving Babel's established head-versus-
@@ -6223,15 +6241,7 @@ export const buildMovementArrowsFromLinks = (
     if (!node) return undefined;
     return node
       .descendants()
-      .find((candidate) => {
-        const children = candidate.children || [];
-        if (children.length > 0) return false;
-        const surface = resolveLeafSurface(candidate);
-        return Boolean(surface)
-          && !isTraceLike(surface)
-          && !isNullLike(surface)
-          && !isStructuralCategorySurface(surface);
-      });
+      .find((candidate) => isLexicalLeaf(candidate.data));
   };
   const resolveWitnessDisplayLeaf = (node?: HierNode): HierNode | undefined => {
     if (!node) return undefined;
@@ -6401,14 +6411,7 @@ export const buildMovementCopyTraceIndexByTerminalId = (
   phrasalArrows.forEach((arrow, authoredOrder) => {
     const sourceOccurrence = arrow.sourceOccurrence;
     if (!sourceOccurrence || !(sourceOccurrence.children || []).length) return;
-    const lexicalLeaves = sourceOccurrence.descendants().filter((candidate) => {
-      if ((candidate.children || []).length > 0) return false;
-      const surface = resolveLeafSurface(candidate);
-      return Boolean(surface)
-        && !isTraceLike(surface)
-        && !isNullLike(surface)
-        && !isStructuralCategorySurface(surface);
-    });
+    const lexicalLeaves = sourceOccurrence.descendants().filter((candidate) => isLexicalLeaf(candidate.data));
     if (lexicalLeaves.length === 0) return;
     const whollySilentLexicalCopy = lexicalLeaves.every((leaf) => {
       let current: HierNode | null = leaf;
@@ -6467,27 +6470,19 @@ export const formatOperationLabel = (operation?: DerivationOperation): string =>
   if (operation === 'HeadMove') return 'Head Movement';
   if (operation === 'A-Move') return 'A-Movement';
   if (operation === 'AbarMove') return 'A-bar Move';
-  return String(operation)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (ch) => ch.toUpperCase())
-    .trim();
+  if (operation === 'ExternalMerge') return 'External Merge';
+  if (operation === 'InternalMerge') return 'Internal Merge';
+  if (operation === 'StageRecord') return 'Stage Record';
+  return String(operation);
 };
 
 export const formatPlaybackOperationTitle = (step?: PlaybackStep | null): string => {
-  const baseLabel = formatOperationLabel(step?.operation);
-  const recipe = String(step?.recipe || '').trim();
-  if (step?.replayKind === 'macro') {
-    return recipe || baseLabel;
-  }
-  if (!recipe || isLowSignalReplayText(recipe) || stepRepresentsMovement(step)) {
-    return baseLabel;
-  }
-  const operation = String(step?.operation || '').trim();
-  if (operation === 'LexicalSelect' || operation === 'Project') {
-    return recipe;
-  }
-  return baseLabel;
+  if (step?.replayKind === 'relation') return String(step.operation || '');
+  const operation = formatOperationLabel(step?.operation);
+  const target = String(step?.targetLabel || '').trim();
+  return target && (step?.operation === 'LexicalSelect' || step?.operation === 'Project')
+    ? `${operation} ${target}`
+    : operation;
 };
 
 const REPLAY_IDENTIFIER_OVERRIDES: Record<string, string> = {
@@ -6589,39 +6584,16 @@ const formatReplayIdentifier = (value?: string): string => {
   return `${cased}${suffix}`;
 };
 
-const replaceReplayIdentifiersInText = (value?: string): string => {
-  const trimmed = String(value || '').trim();
-  if (!trimmed) return '';
-  return trimmed.replace(/\b[A-Za-z][A-Za-z0-9_-]*\b/g, (token) => {
-    const replacement = formatReplayIdentifier(token);
-    return replacement || token;
-  });
-};
-
 export const formatReplayBlockTitle = (title?: string): string => {
-  const trimmed = String(title || '').trim();
-  if (!trimmed) return '';
-  return toReplayTitleCase(trimmed.replace(/[_-]+/g, ' ').toLowerCase());
+  return String(title ?? '');
 };
 
 export const formatReplayBlockLine = (
-  title: string,
+  _title: string,
   line: string,
-  steps: PlaybackStep[] = []
+  _steps: PlaybackStep[] = []
 ): string => {
-  const trimmed = normalizeReplayTextForCommittedInventory(line, steps).trim();
-  if (!trimmed) return '';
-  const normalizedTitle = String(title || '').trim().toUpperCase();
-  if (normalizedTitle === 'SELECTION') {
-    return trimmed.replace(
-      /^(.+?)\s+selects\s+([A-Za-z][A-Za-z0-9_-]*)$/i,
-      (_match, selector, target) => `${replaceReplayIdentifiersInText(selector)} selects ${formatReplayIdentifier(target)}`
-    );
-  }
-  if (normalizedTitle === 'LOCALITY') {
-    return replaceReplayIdentifiersInText(trimmed);
-  }
-  return replaceReplayIdentifiersInText(trimmed);
+  return String(line ?? '');
 };
 
 const normalizeReplayBlockTitleKey = (title?: string): string =>
@@ -6667,11 +6639,7 @@ const isGenericReplayStructuralLabel = (label?: string): boolean => {
 };
 
 const formatReplaySupportValue = (value?: string): string =>
-  replaceReplayIdentifiersInText(
-    String(value || '')
-      .replace(/[_]+/g, ' ')
-      .trim()
-  );
+  String(value ?? '').trim();
 
 const normalizeReplayInventoryLabel = (value?: string): string =>
   normalizeReplayTargetLabel(value).replace(/['′]+/g, '');
@@ -6802,10 +6770,7 @@ const getReplayNodeDisplayFromCanvas = (
     const children = Array.isArray(candidate.children) ? candidate.children : [];
     if (children.length === 0) {
       if (isTraceOrNullLikeNode(candidate)) return;
-      const rawWord = String((candidate as any).word || '').trim();
-      const rawLabel = String(candidate.label || '').trim();
-      const fallbackLeafSurface = rawWord
-        || ((/[a-z\u00C0-\uFFFF]/.test(rawLabel) && !/^[A-Z][A-Z'0-9,-]*$/.test(rawLabel)) ? rawLabel : '');
+      const fallbackLeafSurface = authoredWord(candidate);
       const surface = formatReplaySupportValue(fallbackLeafSurface);
       if (surface) overtYield.push(surface);
       return;
@@ -6835,10 +6800,7 @@ const getReplayNodeOvertYieldFromCanvas = (
     const children = Array.isArray(candidate.children) ? candidate.children : [];
     if (children.length === 0) {
       if (isTraceOrNullLikeNode(candidate)) return;
-      const rawWord = String((candidate as any).word || '').trim();
-      const rawLabel = String(candidate.label || '').trim();
-      const fallbackLeafSurface = rawWord
-        || ((/[a-z\u00C0-\uFFFF]/.test(rawLabel) && !/^[A-Z][A-Z'0-9,-]*$/.test(rawLabel)) ? rawLabel : '');
+      const fallbackLeafSurface = authoredWord(candidate);
       const surface = formatReplaySupportValue(fallbackLeafSurface);
       if (surface) overtYield.push(surface);
       return;
@@ -6869,10 +6831,7 @@ const getReplayNodeAuthoredYieldFromCanvas = (
     if (isTraceOrNullLikeNode(candidate)) return;
     const lineageId = String(candidate.lineageId || '').trim();
     if (lineageId && seenLineages.has(lineageId)) return;
-    const rawWord = String((candidate as any).word || '').trim();
-    const rawLabel = String(candidate.label || '').trim();
-    const fallbackLeafSurface = rawWord
-      || ((/[a-z\u00C0-\uFFFF]/.test(rawLabel) && !/^[A-Z][A-Z'0-9,-]*$/.test(rawLabel)) ? rawLabel : '');
+    const fallbackLeafSurface = authoredWord(candidate);
     const surface = formatReplaySupportValue(fallbackLeafSurface);
     if (!surface) return;
     if (lineageId) seenLineages.add(lineageId);
@@ -6911,7 +6870,7 @@ const getFrameStageRecordText = (
   ).trim();
 };
 
-export const getFrameRelations = (
+const getAuthoredFrameRelations = (
   frame?: ReplayDerivationFrame | null,
   plannedStage?: DerivationReplayPlanStage | null
 ): DerivationReplayPlanStep[] => {
@@ -6948,22 +6907,123 @@ export const getFrameRelations = (
         ...(priorAnchors ? { priorAnchors } : {}),
         ...(values ? { values } : {}),
         authoredRelationIndex,
-        resolvedAnchors: resolveRelationAnchors(
-          anchors,
-          workspaceForest
-        )
+        ...(() => {
+          const { resolved, unresolved } = classifyRelationAnchors(anchors, workspaceForest);
+          return {
+            resolvedAnchors: resolved,
+            ...(unresolved.length > 0 ? { unresolvedAnchors: unresolved } : {})
+          };
+        })()
       } satisfies DerivationReplayPlanStep;
     })
     .filter((relation): relation is DerivationReplayPlanStep => relation !== null);
 };
 
+export const getFrameRelations = (
+  frame?: ReplayDerivationFrame | null,
+  plannedStage?: DerivationReplayPlanStage | null,
+  previousForest: SyntaxNode[] = []
+): DerivationReplayPlanStep[] => {
+  const currentForest = frame?.workspaceForest || frame?.after?.workspaceForest || [];
+  const authored = getAuthoredFrameRelations(frame, plannedStage).map((authoredStep, relationIndex) => {
+    const unresolved = Array.isArray(authoredStep.unresolvedAnchors) ? authoredStep.unresolvedAnchors : [];
+    if (unresolved.length === 0) return authoredStep;
+    // The relation keeps its Replay moment. Each missing witness is named at
+    // its authored field so the reader sees exactly what did not resolve.
+    const stageNumber = (plannedStage?.stageIndex ?? 0) + 1;
+    const relationNumber = (authoredStep.authoredRelationIndex ?? relationIndex) + 1;
+    return {
+      ...authoredStep,
+      movementDiagnostics: unresolved.map((anchor) =>
+        `RELATION_ANCHOR_UNRESOLVED: Stage ${stageNumber}, relation ${relationNumber} (${authoredStep.relation}) ${anchor.fieldPath} names ${JSON.stringify(anchor.nodeId)}, which is not in this stage's expanded workspace. The anchor was not replaced; the relation is shown without it.`)
+    };
+  });
+  const earlierConflicts = new Map<number, string[]>();
+  const recovered = authored.map((authoredStep, relationIndex) => {
+    const input = {
+      relation: authoredStep as DerivationStageRelation,
+      currentForest, priorForest: previousForest,
+      stageIndex: plannedStage?.stageIndex ?? 0, relationIndex
+    };
+    const dispatch = dispatchRelationClaims(input);
+    const evidence = dispatch.evidence;
+    const boundStep = dispatch.primaryClaim?.tier === 1 ? {
+      ...authoredStep,
+      resolvedAnchors: authoredStep.resolvedAnchors?.map(anchor => {
+        const binding = dispatch.tier1Dispatch.roleBindings.find(binding =>
+          binding.field === 'anchors' && binding.authoredRole === anchor.role);
+        return binding && binding.role !== anchor.role
+          ? { ...anchor, role: binding.role, authoredRole: anchor.role } : anchor;
+      })
+    } : authoredStep;
+    const pronunciationNodeIds = dispatch.primaryClaim?.tier === 1
+      && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.transitionKinds?.includes('pronunciation')
+      ? relationAnchorNodeIds(dispatch.boundPrimaryRelation.anchors)
+      : dispatch.facets.some(f => f.recipe.id === 'pf.structured' || f.recipe.id === 'pf.rewrite')
+        ? [...(evidence.currentAnchors['rewrite.output'] || [])] : [];
+    const step = pronunciationNodeIds.length ? { ...boundStep, pronunciationNodeIds } : boundStep;
+    const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
+    const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
+    const covert = facet?.recipe.id === 'scope.movement';
+    if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
+    const { movementDiagnostics } = evidence;
+    const movement: RecoveredMovement | undefined = covert ? {
+      sourceNodeId: evidence.currentAnchors['scope.source'][0],
+      targetNodeId: evidence.currentAnchors['scope.landing'][0],
+      witnessNodeId: evidence.currentAnchors['scope.source'][0],
+      trajectoryKind: 'phrasal', transition: facet.evaluation.earnedTransitions.includes('movement'), roles: {}
+    } : evidence.movement;
+    const priorDiagnostics = Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : [];
+    if (!movement) {
+      const merged = [...priorDiagnostics, ...(movementDiagnostics || [])];
+      return merged.length ? { ...step, movementDiagnostics: merged } : step;
+    }
+    // A proved tree transition and permission to draw a trajectory are separate.
+    // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
+    const registeredKind = registeredEntry ? PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind : undefined;
+    if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind) return {
+      ...step,
+      recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
+      movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
+    };
+    const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
+    if (dispatch.primaryClaim?.tier === 1 && !primaryMovement) return step;
+    const drawingDiagnostics = !facet && !primaryMovement ? [
+        `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
+        ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue =>
+          `Tier 1 signature: ${JSON.stringify(issue)}`)
+      ] : [];
+    const transition = facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition;
+    const landing = findExactNodeByIdInForest(currentForest, movement.targetNodeId);
+    const landingIds = new Set(collectSyntaxSubtreeNodeIds(landing));
+    const conflicts = transition ? authored.slice(0, relationIndex).flatMap((earlier, earlierIndex) => {
+      const ids = getRelationAllAnchorNodeIds(earlier).filter(id =>
+        landingIds.has(id) && !findExactNodeByIdInForest(previousForest, id));
+      if (!ids.length) return [];
+      const message = `Stage ${input.stageIndex + 1}: relation ${(earlier.authoredRelationIndex ?? earlierIndex) + 1} (${earlier.relation}) references ${ids.join(', ')} before relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) introduces that landing. Authored relation order is preserved; the earlier relation names a landing not yet introduced.`;
+      earlierConflicts.set(earlierIndex, [...(earlierConflicts.get(earlierIndex) || []), message]);
+      return [message];
+    }) : [];
+    return {
+      ...step,
+      ...((priorDiagnostics.length || conflicts.length || drawingDiagnostics.length)
+        ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics, ...conflicts] } : {}),
+      recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
+      sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
+    };
+  });
+  return recovered.map((step, i) => earlierConflicts.has(i)
+    ? { ...step, movementDiagnostics: [...(step.movementDiagnostics || []), ...earlierConflicts.get(i)!] }
+    : step);
+};
+
+/**
+ * An authored relation owns a Replay moment whenever it has a name. Anchors
+ * that fail to resolve are diagnosed on that moment; they do not erase it.
+ */
 export const isRenderableReplayRelation = (
   relation?: DerivationReplayPlanStep | null
-): boolean => (
-  Boolean(String(relation?.relation || '').trim())
-  && Array.isArray(relation?.resolvedAnchors)
-  && relation.resolvedAnchors.length >= 1
-);
+): boolean => Boolean(String(relation?.relation || '').trim());
 
 const getResolvedReplayRelationAnchors = (
   relation?: DerivationReplayPlanStep | null
@@ -7076,13 +7136,16 @@ export const buildAuthoredRelationLinksForFrames = (
 
   for (let frameIndex = 0; frameIndex <= Math.min(activeFrameIndex, frames.length - 1); frameIndex += 1) {
     const plannedStage = getReplayPlanStage(replayPlan, frameIndex);
-    const relations = getFrameRelations(frames[frameIndex], plannedStage);
+    const relations = getFrameRelations(frames[frameIndex], plannedStage, frames[frameIndex - 1]?.workspaceForest || []);
     const relationLimit = frameIndex === activeFrameIndex
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
 
     relations.forEach((relation, relationIndex) => {
-      if (relationIndex > relationLimit || !isRenderableReplayRelation(relation)) return;
+      const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
+        ? Number(relation.authoredRelationIndex)
+        : relationIndex;
+      if (authoredRelationIndex > relationLimit || !isRenderableReplayRelation(relation)) return;
       const relationLabel = String(relation.relation || '').trim();
       const resolvedAnchors = getResolvedReplayRelationAnchors(relation)
         .filter((anchor) => (
@@ -7090,7 +7153,8 @@ export const buildAuthoredRelationLinksForFrames = (
         ));
       if (resolvedAnchors.length === 0) return;
       const [firstAnchor, secondAnchor] = resolvedAnchors;
-      const trajectoryKind = registeredTrajectoryDisplayKind(relationLabel, resolvedAnchors);
+      const trajectoryKind = relation.recoveredMovement?.drawTrajectory === false
+        ? '' : relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(relationLabel, resolvedAnchors);
       const registeredTrajectoryCapability = Boolean(registeredTrajectoryDisplayKind(relationLabel));
       const registryEntry = findRelationRegistryEntry(productionRelationRegistry, relationLabel);
       const operatorVariableBinding = registryEntry?.id === 'scope.operator-variable';
@@ -7098,18 +7162,22 @@ export const buildAuthoredRelationLinksForFrames = (
       const registeredEndpointRoles = movementRelation
         || registeredTrajectoryCapability
         || operatorVariableBinding;
-      const sourceAnchor = registeredEndpointRoles
+      const sourceAnchor = relation.recoveredMovement
+        ? resolvedAnchors.find(a => a.nodeId === relation.recoveredMovement?.sourceNodeId)
+        : registeredEndpointRoles
         ? findResolvedReplayAnchorByRoles(resolvedAnchors, TRAJECTORY_SOURCE_ROLES) || firstAnchor
         : firstAnchor;
-      const targetAnchor = registeredEndpointRoles
+      const targetAnchor = relation.recoveredMovement
+        ? resolvedAnchors.find(a => a.nodeId === relation.recoveredMovement?.targetNodeId)
+        : registeredEndpointRoles
         ? findResolvedReplayAnchorByRoles(resolvedAnchors, TRAJECTORY_TARGET_ROLES) || secondAnchor
         : secondAnchor;
-      const witnessAnchor = movementRelation || operatorVariableBinding
+      const witnessAnchor = relation.recoveredMovement
+        ? resolvedAnchors.find(a => a.nodeId === relation.recoveredMovement?.witnessNodeId)
+        : movementRelation || operatorVariableBinding
         ? findResolvedReplayAnchorByRoles(resolvedAnchors, TRAJECTORY_WITNESS_ROLES)
         : undefined;
-      const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
-        ? Number(relation.authoredRelationIndex)
-        : relationIndex;
+      if (!sourceAnchor || (relation.recoveredMovement && !targetAnchor)) return;
       const identityKey = getSharedAuthoredLineageIdentity(
         forest,
         resolvedAnchors.map((anchor) => String(anchor.nodeId || '').trim())
@@ -7120,6 +7188,7 @@ export const buildAuthoredRelationLinksForFrames = (
         relation: relationLabel,
         anchors: resolvedAnchors.map((anchor) => ({
           role: anchor.role,
+          ...(anchor.authoredRole ? { authoredRole: anchor.authoredRole } : {}),
           nodeId: anchor.nodeId
         })),
         // Authored optional blocks travel verbatim on the link.
@@ -7136,7 +7205,7 @@ export const buildAuthoredRelationLinksForFrames = (
               sourceNodeId: sourceAnchor.nodeId,
               targetNodeId: targetAnchor.nodeId,
               ...(witnessAnchor ? { witnessNodeId: witnessAnchor.nodeId } : {}),
-              endpointOrderProvenance: registeredEndpointRoles
+              endpointOrderProvenance: relation.recoveredMovement ? 'recovered-movement' : registeredEndpointRoles
                 ? 'registered-role-order'
                 : 'authored-anchor-order'
             }
@@ -7267,16 +7336,24 @@ const formatRelationParticipantValue = (
   return formatReplaySupportValue(String(anchor?.value || '').trim());
 };
 
+const getReplayContentRelationLinks = (step: PlaybackStep): ResolvedRelationLink[] => {
+  const identity = step.replayRelationIdentity;
+  if (!identity) return getActiveReplayRelationLinks(step);
+  const key = `${identity.stageIndex}:${identity.relationIndex}`;
+  return (step.replayRelationLinks ?? []).filter(link =>
+    (link as ReplayAuthoredRelationLink).authoredRelationKey === key);
+};
+
 const buildRelationParticipantSupportLines = (step: PlaybackStep): ReplaySupportLine[] => {
   if (step.replayKind !== 'relation') return [];
-  const activeLinks = getActiveReplayRelationLinks(step);
+  const activeLinks = getReplayContentRelationLinks(step);
   if (activeLinks.length === 0) return [];
 
   const relationName = String(activeLinks[0]?.relation || step.operation || '').trim();
   const roleValues = new Map<string, string[]>();
   activeLinks.forEach((link) => {
     (Array.isArray(link?.anchors) ? link.anchors : []).forEach((anchor) => {
-      const role = String(anchor?.role || '').trim();
+      const role = String(anchor?.authoredRole || anchor?.role || '').trim();
       const display = formatRelationParticipantValue(anchor, step.replayCanvasData);
       if (!role || !display) return;
       const values = roleValues.get(role) || [];
@@ -7295,18 +7372,50 @@ const buildRelationParticipantSupportLines = (step: PlaybackStep): ReplaySupport
     value: (roleValues.get(role) || []).join(', ')
   })).filter((line) => line.label && line.value);
 
-  const authoredValues = activeLinks.find((link) => (
-    link?.values && typeof link.values === 'object'
-  ))?.values;
-  Object.entries(authoredValues || {}).forEach(([role, value]) => {
-    const values = (Array.isArray(value) ? value : [value])
-      .map((item) => formatReplaySupportValue(String(item ?? '')))
-      .filter(Boolean);
-    const label = formatRelationAnchorRole(role);
-    if (label && values.length > 0) lines.push({ label, value: values.join(', ') });
-  });
-
   return lines;
+};
+
+const buildLiteralRelationValueLines = (
+  values: DerivationStageRelation['values']
+): ReplaySupportLine[] => Object.entries(values ?? {}).flatMap(([label, value]) => (
+  Array.isArray(value)
+    ? (value.length ? value.map(item => ({ label, value: item })) : [{ label, value: '[]' }])
+    : [{ label, value }]
+));
+
+const buildAuthoredRelationAnchorLines = (
+  step: PlaybackStep,
+  relation: DerivationStageRelation,
+  movementLines: ReplaySupportLine[] = []
+): ReplaySupportLine[] => {
+  const links = getReplayContentRelationLinks(step);
+  const endpointIsCovered = (role: string, value: string | string[]) => {
+    if (Array.isArray(value)) return false;
+    return links.some(link => {
+      if (!isResolvedMovementLink(link)) return false;
+      const anchor = link.anchors?.find(item => (item.authoredRole || item.role) === role && item.nodeId === value);
+      if (!anchor) return false;
+      return (movementLines.some(line => line.label === 'Source') && link.sourceNodeId === value
+        && (TRAJECTORY_SOURCE_ROLES as readonly string[]).includes(anchor.role))
+        || (movementLines.some(line => line.label === 'Landing') && link.targetNodeId === value
+          && (TRAJECTORY_TARGET_ROLES as readonly string[]).includes(anchor.role));
+    });
+  };
+  const current = Object.entries(relation.anchors ?? {}).flatMap(([role, value]) => {
+    if (endpointIsCovered(role, value)) return [];
+    const ids = Array.isArray(value) ? value : [value];
+    if (!ids.length) return [{ label: role, value: '[]' }];
+    return ids.map(nodeId => {
+      const anchor = links.flatMap(link => link.anchors ?? []).find(item =>
+        (item.authoredRole || item.role) === role && item.nodeId === nodeId);
+      return { label: role, value: formatRelationParticipantValue(anchor ?? { role, nodeId, value: nodeId }, step.replayCanvasData) || nodeId };
+    });
+  });
+  const prior = Object.entries(relation.priorAnchors ?? {}).flatMap(([role, value]) => {
+    const ids = Array.isArray(value) ? value : [value];
+    return (ids.length ? ids : ['[]']).map(nodeId => ({ label: `priorAnchors.${role}`, value: nodeId }));
+  });
+  return [...current, ...prior];
 };
 
 const buildRelationReplayLine = (
@@ -7449,7 +7558,8 @@ const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string)
 };
 
 export const buildReplaySupportLines = (
-  step: PlaybackStep | null
+  step: PlaybackStep | null,
+  authoredRelation?: DerivationStageRelation | null
 ): ReplaySupportLine[] => {
   if (!step) return [];
 
@@ -7457,25 +7567,29 @@ export const buildReplaySupportLines = (
   const inputValue = formatReplayInputsValue(step.sourceLabels);
   const workspaceValue = formatReplayInputsValue(step.workspaceAfter);
   const resultValue = formatReplaySupportValue(step.targetLabel);
+  const literalValues = authoredRelation === undefined
+    ? getReplayContentRelationLinks(step).find(link => link.values)?.values
+    : authoredRelation?.values;
+  const valueLines = buildLiteralRelationValueLines(literalValues);
 
-  if (operation === 'StageRecord') {
+  if (step.replayKind !== 'relation' && operation === 'StageRecord') {
     return [];
   }
 
-  if (operation === 'LexicalSelect') {
+  if (step.replayKind !== 'relation' && operation === 'LexicalSelect') {
     return (workspaceValue || inputValue)
       ? [{ label: 'Result', value: workspaceValue || inputValue }]
       : [];
   }
 
-  if (operation === 'Project') {
+  if (step.replayKind !== 'relation' && operation === 'Project') {
     const lines: ReplaySupportLine[] = [];
     if (inputValue) lines.push({ label: 'Input', value: inputValue });
     if (workspaceValue || resultValue) lines.push({ label: 'Result', value: workspaceValue || resultValue });
     return lines;
   }
 
-  if (operation === 'ExternalMerge') {
+  if (step.replayKind !== 'relation' && operation === 'ExternalMerge') {
     const lines: ReplaySupportLine[] = [];
     if (inputValue) lines.push({ label: step.sourceLabels.length > 1 ? 'Inputs' : 'Input', value: inputValue });
     if (resultValue) lines.push({ label: 'Result', value: resultValue });
@@ -7498,17 +7612,44 @@ export const buildReplaySupportLines = (
     diagnostics
       .filter((message) => !/source omitted|landing omitted/i.test(String(message || '')))
       .forEach((message) => lines.push({ label: 'Audit', value: String(message) }));
-    return lines;
+    return [...lines, ...(authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, lines) : []), ...valueLines];
   }
 
   if (step.replayKind === 'relation') {
-    return buildRelationParticipantSupportLines(step);
+    const participants = authoredRelation === undefined ? buildRelationParticipantSupportLines(step)
+      : authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation) : [];
+    return [...participants, ...valueLines];
   }
 
   const fallbackLines: ReplaySupportLine[] = [];
   if (inputValue) fallbackLines.push({ label: step.sourceLabels.length > 1 ? 'Inputs' : 'Input', value: inputValue });
   if (resultValue) fallbackLines.push({ label: 'Result', value: resultValue });
   return fallbackLines;
+};
+
+/** Panel content uses the original relation, including evidence with no drawing link. */
+export const buildReplayPanelContent = (
+  step: PlaybackStep | null | undefined,
+  derivationStages: readonly DerivationStage[] | null | undefined = []
+): ReplayPanelContent => {
+  const identity = step?.replayKind === 'relation' ? step.replayRelationIdentity : undefined;
+  const authoredRelation = identity && Number.isInteger(identity.stageIndex) && identity.stageIndex >= 0
+    && Number.isInteger(identity.relationIndex) && identity.relationIndex >= 0
+    ? derivationStages?.[identity.stageIndex]?.relations?.[identity.relationIndex] ?? null : null;
+  const prefix = identity ? `${identity.stageIndex}:${identity.relationIndex}` : 'structural';
+  const supportLines = buildReplaySupportLines(step ?? null, authoredRelation);
+  const stageIndex = step?.replayKind === 'macro' ? step.replayFrameIndex : undefined;
+  const statement = typeof stageIndex === 'number' && Number.isInteger(stageIndex) && stageIndex >= 0
+    ? derivationStages?.[stageIndex]?.statement : undefined;
+  // Recipes also describe generated micro-steps; only the original stage owns this text.
+  if (typeof statement === 'string' && statement.length > 0) {
+    supportLines.unshift({ label: 'Statement', value: statement });
+  }
+  return {
+    heading: authoredRelation?.relation ?? formatPlaybackOperationTitle(step),
+    supportLines: supportLines.map((line, index) => ({ ...line, key: `${prefix}:${index}` })),
+    authoredRelation
+  };
 };
 
 const stepTargetsAnyLabel = (step: PlaybackStep, labels: string[]): boolean => {

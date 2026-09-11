@@ -11,6 +11,13 @@ const sourceUrl = new URL('../components/TreeVisualizer.tsx', import.meta.url);
 const stylesUrl = new URL('../styles.css', import.meta.url);
 const atlasUrl = new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url);
 
+test('the Binding outline cannot inherit the opaque SVG default fill over syntax', async () => {
+  const source = await readFile(sourceUrl, 'utf8');
+  const ellipse = source.match(/layer\.append\('ellipse'\)\s*\.attr\('class', 'babel-binding-domain'\)([\s\S]*?);/u);
+  assert(ellipse, 'the production Binding ellipse must be present');
+  assert.match(ellipse[1], /\.attr\('fill', 'none'\)/u);
+});
+
 test('TreeVisualizer exposes the exact Replay relation state used by painting', async () => {
   const source = await readFile(sourceUrl, 'utf8');
 
@@ -60,11 +67,6 @@ test('the Orchard keeps Replay controls fixed while compact details scroll', asy
 
   assert.match(source, /data-babel-replay-timeline="true"/u);
   assert.match(source, /data-babel-replay-details="true"/u);
-  assert.match(
-    source,
-    /\{!showOperationLabel && \([\s\S]*?data-babel-replay-summary="true"/u,
-    'the compact panel must not repeat an operation name already visible in its header'
-  );
   assert.match(
     atlas,
     /\[data-babel-replay-panel="true"\][\s\S]*?display: flex;[\s\S]*?flex-direction: column;[\s\S]*?overflow: hidden;/u
@@ -401,7 +403,7 @@ test('Replay centres terminal unary children without repositioning structural su
   );
 });
 
-test('Replay refits each frame without freezing or rewriting tree coordinates', async () => {
+test('Replay applies its stage fit without freezing or rewriting tree coordinates', async () => {
   const source = await readFile(sourceUrl, 'utf8');
 
   assert.doesNotMatch(
@@ -412,7 +414,7 @@ test('Replay refits each frame without freezing or rewriting tree coordinates', 
   assert.match(
     source,
     /const fitToRenderedBounds = \(\) => \{[\s\S]*?if \(derivationFrameFitNodes && derivationFrameFitNodes\.length > 0\)[\s\S]*?d3\.min\(derivationFrameFitNodes[\s\S]*?d3\.max\(derivationFrameFitNodes/u,
-    'each frame must fit its own complete derivation-frame bounds'
+    'non-Replay rendering retains its complete derivation-frame fit'
   );
   assert.match(
     source,
@@ -426,9 +428,11 @@ test('Replay refits each frame without freezing or rewriting tree coordinates', 
   );
   assert.match(
     source,
-    /const nodeCount = rootHierarchy\.descendants\(\)\.length;[\s\S]*?const width = Math\.max\(containerWidth \* 1\.5, nodeCount \* 180\);/u,
+    /treeLayoutSize\(nodeCount, maxDepth, containerWidth, containerHeight\)/u,
     'the active tree must retain its original native layout dimensions'
   );
+  assert.match(source, /const minNodeX = stageCameraBounds\?\.minX/);
+  assert.match(source, /const maxNodeY = stageCameraBounds\?\.maxY/);
 });
 
 test('Replay paints only direct visible dominance links', async () => {
@@ -566,11 +570,6 @@ test('deferred PF plates reserve distinct tree and replay-panel regions', async 
     source,
     /item\.familyId === 'pf\.fission'[\s\S]*?const replayPanelRect = containerWidth < 500/u,
     'Fission panel avoidance must not be limited to compact cards'
-  );
-  assert.match(
-    source,
-    /const cyclicLinearizationSideBySideMinimumWidth =[\s\S]*?40 \+ standardViewportPadRight \+ 350 \+ 260[\s\S]*?containerWidth < cyclicLinearizationSideBySideMinimumWidth/u,
-    'Cyclic Linearization must choose stacked or side-by-side composition from the space both regions require'
   );
   assert.match(
     source,

@@ -39,34 +39,48 @@ const collectWorkspaceNodeIds = (workspaceForest = []) => {
   return ids;
 };
 
-export const resolveRelationAnchors = (anchors = {}, workspaceForest = []) => {
+// Every authored anchor is classified: resolved when its exact id is in this
+// stage's expanded workspace, otherwise unresolved with its authored field
+// location. Unresolved anchors are reported, never dropped or repaired.
+export const classifyRelationAnchors = (anchors = {}, workspaceForest = []) => {
   const workspaceNodeIds = collectWorkspaceNodeIds(workspaceForest);
+  const resolved = [];
+  const unresolved = [];
   let authoredAnchorIndex = 0;
-  return Object.entries(anchors).flatMap(([role, rawValue]) => {
+  Object.entries(anchors).forEach(([role, rawValue]) => {
     const values = Array.isArray(rawValue) ? rawValue : [rawValue];
-    return values.flatMap((value) => {
+    values.forEach((value, itemIndex) => {
       const nodeId = asText(value);
-      const anchor = {
-        role,
-        nodeId,
-        authoredAnchorIndex
-      };
+      const anchor = { role, nodeId, authoredAnchorIndex };
       authoredAnchorIndex += 1;
-      return nodeId && workspaceNodeIds.has(nodeId) ? [anchor] : [];
+      if (nodeId && workspaceNodeIds.has(nodeId)) {
+        resolved.push(anchor);
+        return;
+      }
+      unresolved.push({
+        ...anchor,
+        fieldPath: Array.isArray(rawValue) ? `anchors.${role}[${itemIndex}]` : `anchors.${role}`
+      });
     });
   });
+  return { resolved, unresolved };
 };
+
+export const resolveRelationAnchors = (anchors = {}, workspaceForest = []) => (
+  classifyRelationAnchors(anchors, workspaceForest).resolved
+);
 
 const isPlainRecord = (value) => (
   Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 );
 
 const normalizeRelations = (value) => asArray(value)
-  .map((relation) => {
+  .map((relation, authoredRelationIndex) => {
     const label = asText(relation?.relation);
     const anchors = isPlainRecord(relation?.anchors) ? relation.anchors : {};
     if (!label) return null;
     return {
+      authoredRelationIndex,
       relation: label,
       anchors: cloneJson(anchors),
       // Authored optional blocks travel verbatim through the plan.
@@ -157,7 +171,7 @@ const buildNodeMicrosteps = (node, stage, path = []) => {
 const buildStageMicrosteps = (stage) =>
   stage.workspaceForest.flatMap((root, rootIndex) => buildNodeMicrosteps(root, stage, [String(rootIndex)]));
 
-const buildRelationSteps = (stage) => stage.relations.map((relation, authoredRelationIndex) => (
+const buildRelationSteps = (stage) => stage.relations.map((relation) => (
   makeStep('relation', stage, {
     operation: 'Relation',
     label: relation.relation,
@@ -165,11 +179,14 @@ const buildRelationSteps = (stage) => stage.relations.map((relation, authoredRel
     anchors: cloneJson(relation.anchors),
     ...(relation.priorAnchors ? { priorAnchors: cloneJson(relation.priorAnchors) } : {}),
     ...(relation.values ? { values: cloneJson(relation.values) } : {}),
-    authoredRelationIndex,
-    resolvedAnchors: resolveRelationAnchors(
-      relation.anchors,
-      stage.workspaceForest
-    ),
+    authoredRelationIndex: relation.authoredRelationIndex,
+    ...(() => {
+      const { resolved, unresolved } = classifyRelationAnchors(relation.anchors, stage.workspaceForest);
+      return {
+        resolvedAnchors: resolved,
+        ...(unresolved.length > 0 ? { unresolvedAnchors: unresolved } : {})
+      };
+    })(),
     stageRecord: stage.stageRecord
   })
 ));
@@ -221,6 +238,7 @@ export const buildDerivationReplayPlan = (input = {}) => {
 export const __test__ = {
   buildNodeMicrosteps,
   buildRelationSteps,
+  classifyRelationAnchors,
   collectWorkspaceNodeIds,
   flattenAnchorNodeIds,
   resolveRelationAnchors,
