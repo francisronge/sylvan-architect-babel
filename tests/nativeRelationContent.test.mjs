@@ -356,7 +356,7 @@ test('approved complement-to-head focus projection uses one shared proof for can
 
 test('native PF correspondence draws the explicit prepared association indices', () => {
   const plan = compile({ relation: 'ManyToManyCorrespondence', anchors: { word: 'a' },
-    values: { sources: ['T', 'V'], exponents: ['did', 'go'], correspondence: ['T=>did', 'V=>go', 'T=>go'] } });
+    values: { sources: ['T', 'V', 'T'], exponents: ['did', 'go', 'go'] } });
   const svg = drawNative('scheduleAcceptedPfRelation', plan.frames[0].items);
   assert.deepEqual(svg('babel-pf-correspondence-source').map((node) => node.textContent), ['T', 'V']);
   assert.deepEqual(svg('babel-pf-correspondence-exponent').map((node) => node.textContent), ['did', 'go']);
@@ -365,7 +365,7 @@ test('native PF correspondence draws the explicit prepared association indices',
 
 test('native morphology consumes verified bundles and delinking position', () => {
   const fission = compile({ relation: 'Fission', anchors: { outputs: ['a', 'mid'] }, values: {
-    inputFeatures: ['phi', 'phi'], outputOneFeatures: ['person'], outputTwoFeatures: ['number']
+    inputFeatures: ['phi', 'phi'], outputs: ['person', 'number']
   } });
   const fissionSvg = drawNative('scheduleAcceptedPfMorphologyRelation', fission.frames[0].items);
   assert.deepEqual(fissionSvg('babel-fission-bundle-row').map((node) => node.textContent), ['phi', 'phi', 'person', 'number']);
@@ -387,12 +387,13 @@ test('native Cooper ledger preserves repeated values without reading the authore
 test('native PF content rejects unsupported multiplicity and ambiguous or missing associations', () => {
   const rows = (values) => Object.entries(values).flatMap(([label, values]) =>
     (Array.isArray(values) ? values : [values]).map((value) => ({ label, value })));
-  assert.equal(prepareNativePlaqueContent('fission', rows({ inputFeatures: ['a'], outputOneFeatures: ['b'], outputTwoFeatures: ['c'] }), ['a', 'b', 'c']), undefined);
-  assert.equal(prepareNativePlaqueContent('fission', rows({ features: ['a', 'b'] }), ['a', 'b']), undefined);
   assert.equal(prepareNativePlaqueContent('impoverishment', rows({ featureHierarchy: ['a', 'a', 'b'], delinkAfter: 'a' }), ['a']), undefined);
   assert.equal(prepareNativePlaqueContent('impoverishment', rows({ featureHierarchy: ['a', 'b'], delinkAfter: 'absent' }), ['a']), undefined);
-  assert.equal(prepareNativePlaqueContent('correspondence', rows({ sources: ['a', 'a'], exponents: ['b'], correspondence: ['a=>b'] }), ['a']), undefined);
-  assert.equal(prepareNativePlaqueContent('correspondence', rows({ sources: ['a'], exponents: ['b'] }), ['a']), undefined);
+  assert.equal(prepareNativePlaqueContent('correspondence', rows({ sources: ['a', 'a'], exponents: ['b'] }), ['a']), undefined, 'unequal lists are not a pairing');
+  assert.equal(prepareNativePlaqueContent('correspondence', rows({ sources: ['a'], exponents: [''] }), ['a']), undefined, 'a blank exponent links nothing');
+  assert.deepEqual(prepareNativePlaqueContent('correspondence', rows({ sources: ['a', 'a'], exponents: ['b', 'c'] }), ['a']),
+    { kind: 'correspondence', sources: ['a'], exponents: ['b', 'c'], links: [{ sourceIndex: 0, exponentIndex: 0 }, { sourceIndex: 0, exponentIndex: 1 }] },
+    'a repeated source expresses one-to-many');
 });
 
 test('the exact displayed wordless landing binds its category shell until PF realization', () => {

@@ -239,7 +239,7 @@ test('PF hosts preserve literal rows and notation requires explicit host semanti
 
 test('fission needs two outputs and explicit feature grouping', () => {
   const prior = [leaf('input')];
-  const record = { ...relation({ outputs: ['a', 'b'] }, { inputFeatures: ['past', 'plural'], outputOneFeatures: ['past'], outputTwoFeatures: ['plural'] }), priorAnchors: { input: 'input' } };
+  const record = { ...relation({ outputs: ['a', 'b'] }, { inputFeatures: ['past', 'plural'], outputs: ['past', 'plural'] }), priorAnchors: { input: 'input' } };
   const good = inspect(record, forest, prior);
   assert.deepEqual(good.items.find(item => item.plaqueStyle === 'fission').nativeContent, { kind: 'fission', inputFeatures: ['past', 'plural'], outputFeatures: [['past'], ['plural']] });
   for (const bad of [{ ...record, values: { features: ['past', 'plural'] } }, { ...record, anchors: { outputs: ['a', 'b', 'c'] } }]) assert(!has(inspect(bad, forest, prior), 'pf.fission'));
@@ -252,20 +252,25 @@ test('impoverishment needs literal hierarchy and a unique nonfinal delink positi
 });
 
 test('PF correspondence needs explicit associations on one plate', () => {
-  const good = inspect(relation({ terminal: 'a' }, { sources: ['past', 'plural'], exponents: ['ed', 's'], correspondence: ['past => ed', 'plural => s'] }));
+  const good = inspect(relation({ terminal: 'a' }, { sources: ['past', 'plural'], exponents: ['ed', 's'] }));
   assert.deepEqual(good.items.find(item => item.plaqueStyle === 'correspondence').nativeContent.links, [{ sourceIndex: 0, exponentIndex: 0 }, { sourceIndex: 1, exponentIndex: 1 }]);
   assert(!has(inspect(relation({ sources: ['a', 'b'], targets: ['b', 'c'] }, { correspondences: ['a => b', 'b => c'] })), 'pf.correspondence'));
-  assert(!has(inspect(relation({ terminal: 'a' }, { sources: ['past'], exponents: ['ed'], correspondence: 'missing => ed' })), 'pf.correspondence'));
+  assert(!has(inspect(relation({ terminal: 'a' }, { sources: ['past'], exponents: ['ed', 'x'] })), 'pf.correspondence'), 'unequal lists are not a pairing');
 });
 
 test('linear precedence and rebracketing do not compete for the same ordinary rows', () => {
-  const precedence = inspect(relation({ order: 'a' }, { priorOrder: ['a < b', 'b < c'], currentOrder: ['b < a', 'a < c'] }));
+  // Orders are node lists; prose rows never establish a precedence comparison.
+  const precedence = inspect({ ...relation({ order: ['b', 'a'] }), priorAnchors: { order: ['a', 'b'] } }, forest, forest);
   assert(has(precedence, 'pf.linearization'));
   assert(!has(precedence, 'pf.local-dislocation'));
   assert(!has(inspect(relation({ order: ['a', 'b', 'c'] }, { orderRows: ['a < b', 'b < c'] })), 'pf.linearization'));
-  const dislocation = inspect(relation({ sequence: ['a', 'b'] }, { orderRows: ['a b', '[a b]'] }));
+  // Local dislocation is claimed only when the trees regroup the sequence.
+  const regrouped = [node('root', 'CP', [leaf('a'), leaf('b'), leaf('c')])];
+  const grouped = [node('root', 'CP', [node('group', 'XP', [leaf('a'), leaf('b')]), leaf('c')])];
+  const dislocation = inspect(relation({ sequence: ['a', 'b'] }, { note: 'regrouped at PF' }), regrouped, grouped);
   assert(has(dislocation, 'pf.local-dislocation'));
   assert(!has(dislocation, 'pf.linearization'));
+  assert(!has(inspect(relation({ sequence: ['a', 'b'] }, { orderRows: ['a b', '[a b]'] })), 'pf.local-dislocation'), 'bracket text proves nothing');
   assert(!has(inspect(relation({ order: ['a', 'b'] }, { orderRows: ['ordinary prose', 'more prose'] })), 'pf.linearization'));
 });
 

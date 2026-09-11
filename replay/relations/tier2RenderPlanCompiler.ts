@@ -17,7 +17,7 @@ import type {
   Tier2FacetEvidence,
   Tier2VisualPrimitiveName
 } from './tier2FacetRecipes.ts';
-import { literalThetaRoles, pairedLiterals, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, pairedLiterals, prepareNativeFissionContent, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
 import { nativeAncestorEdges, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
 
@@ -959,6 +959,7 @@ export const compileTier2RelationOutputs = ({
           pieces: Tier2VisualPrimitiveName[];
         };
         const nativeContent = config.style === 'linearization' ? prepareNativeLinearizationContent(evidence)
+          : config.style === 'fission' ? prepareNativeFissionContent(evidence)
           : prepareNativePlaqueContent(config.style, tier2NativePlaqueRows(evidence), many(config.role));
         if (['fission', 'impoverishment', 'correspondence', 'linearization'].includes(config.style) && !nativeContent) {
           diagnostics.push({ stageIndex: relationRef.stageIndex, relationIndex: relationRef.relationIndex,

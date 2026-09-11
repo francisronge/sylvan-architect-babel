@@ -108,13 +108,21 @@ const buildFacetFixture = (recipe, options = {}) => {
     );
   });
   if (options.movementRoute) values['movement.route'] = [options.movementRoute];
+  // Orders are node lists: the current order in anchors, the prior order in
+  // priorAnchors, both resolvable in their stage.
   if (recipe.id === 'pf.linearization') {
-    delete values['order.rows'];
-    delete values['order.prior'];
-    delete values['order.current'];
-    values.priorOrder = ['a < b'];
-    values.currentOrder = ['b < a'];
+    currentAnchors.order = idsFor('order', 2);
+    priorAnchors.order = [...currentAnchors.order].reverse();
   }
+  // Per-item literals pair with an anchor list through a same-name entry.
+  recipe.checks
+    .filter((check) => check.kind === 'paired-values')
+    .forEach((check) => {
+      if ((counts.get(check.role) ?? 1) > 1 && values[check.value]) {
+        values[check.role] = values[check.value];
+        delete values[check.value];
+      }
+    });
 
   const currentNodes = new Map(
     Object.values(currentAnchors).flat().map((id) => [id, leaf(id)])
@@ -194,6 +202,13 @@ const buildFacetFixture = (recipe, options = {}) => {
       }
       case 'movement-carrier': {
         attach(current('movement.carrier')[0], current('movement.source')[0]);
+        break;
+      }
+      case 'rebracketing-configuration': {
+        // The prior tree groups the sequence differently; terminal order is unchanged.
+        const members = current('sequence');
+        const group = node(`synthetic_prior_group_${syntheticIndex += 1}`, members.map((member) => structuredClone(member)));
+        priorNodes.set(group.id, group);
         break;
       }
       case 'distinct':
@@ -452,6 +467,9 @@ test('all required value fields are necessary and unknown additions remain attac
     for (const requirement of recipe.values.filter(r => !r.optional)) {
       const changed = structuredClone(fixture);
       delete changed.relation.values[requirement.value];
+      recipe.checks
+        .filter((check) => check.kind === 'paired-values' && check.value === requirement.value)
+        .forEach((check) => delete changed.relation.values[check.role]);
       assert(!evaluateFixture(recipe, changed).evaluation.complete, `${recipe.id}: missing ${requirement.value}`);
     }
     const changed = structuredClone(fixture);

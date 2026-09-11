@@ -170,19 +170,18 @@ test('separately named accessible participants still earn their independent outl
 });
 
 test('prior and current order columns keep their different meanings and original rows', () => {
-  const relation = record({ order: 'root' }, { priorOrder: ['a < b', 'a < b'], currentOrder: ['b < a'] });
-  const result = inspect(relation);
-  assert.deepEqual(result.dispatch.evidence.values['order.prior'], ['a < b', 'a < b']);
-  assert.deepEqual(result.dispatch.evidence.values['order.current'], ['b < a']);
-  assert.equal(result.dispatch.evidence.values['order.rows'], undefined);
+  // Orders are node lists: current in anchors, prior in priorAnchors. Babel
+  // renders the precedence rows from them; it never parses order text.
+  const relation = { ...record({ order: ['b', 'a'] }), priorAnchors: { order: ['a', 'b'] } };
+  const result = inspect(relation, forest, forest);
   assert(result.facets.includes('pf.linearization'));
   const content = result.items.find(item => item.nativeContent?.kind === 'linearization').nativeContent;
-  assert.deepEqual(content.priorRows, relation.values.priorOrder);
-  assert.deepEqual(content.currentRows, relation.values.currentOrder);
-  const conflicting = inspect(record({ order: 'root' }, { ...relation.values, 'prior order': ['b < a'] }));
+  assert.deepEqual(content.priorRows, ['a < b']);
+  assert.deepEqual(content.currentRows, ['b < a']);
+  const conflicting = inspect({ ...relation, priorAnchors: { order: ['a', 'b'], 'precedence order': ['b', 'a'] } }, forest, forest);
   assert(!conflicting.facets.includes('pf.linearization'));
   assert(conflicting.dispatch.facetDiagnostics.some(d => d.facetId === 'pf.linearization'
-    && d.failures.some(f => f.startsWith('ambiguous-group:values:order.prior:'))));
+    && d.failures.some(f => f.startsWith('ambiguous-group:priorAnchors:order:'))));
 });
 
 test('literal plaques keep independent field names and lists without inventing pairings', () => {

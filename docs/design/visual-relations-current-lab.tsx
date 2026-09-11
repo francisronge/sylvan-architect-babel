@@ -7126,16 +7126,11 @@ export const rawCases: LabCase[] = [
         [{
           relation: 'ManyToManyCorrespondence',
           anchors: { word: 'wordp_many_to_many_pf' },
+          // Sources and exponents pair item by item; a repeated literal
+          // expresses a many-to-many correspondence.
           values: {
-            sources: ['√BOOK', '3', 'M', 'SG'],
-            exponents: ['/ktab/', '/-u/', '/-h/'],
-            correspondence: [
-              '√BOOK=>/ktab/',
-              '3=>/-u/',
-              'M=>/-u/',
-              'M=>/-h/',
-              'SG=>/-h/'
-            ]
+            sources: ['√BOOK', '3', 'M', 'M', 'SG'],
+            exponents: ['/ktab/', '/-u/', '/-u/', '/-h/', '/-h/']
           }
         }],
         manyToManyPfTree
@@ -7171,10 +7166,10 @@ export const rawCases: LabCase[] = [
             ]
           },
           priorAnchors: { input: 'clitic_fission_input' },
+          // One feature bundle per output, paired with the outputs by name.
           values: {
             inputFeatures: ['Case: α', 'βparticipant', '−author', '+plural'],
-            outputOneFeatures: ['Case: α', 'βparticipant', '−author'],
-            outputTwoFeatures: ['Case: α', 'βparticipant', '+plural']
+            outputs: ['Case: α, βparticipant, −author', 'Case: α, βparticipant, +plural']
           }
         }],
         fissionOutputTree

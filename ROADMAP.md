@@ -297,7 +297,9 @@ restores movement sources only from the preceding stage, exactly as authored.
 The reconstruction path, its lowercase rule and the Replay prose classifiers are
 deleted. The gate passes 1,461 tests; saved outputs are unchanged.
 
-Next: native-plate string conventions remain the one explicit contract gap. Shared-context
+The five native plates now read plain fields: paired lists, node orders and
+open literals, with the pairing sentence widened to any two entries. No hidden
+authoring convention remains in the inventory except HC21's order validation. Shared-context
 presentation remains open before mixed-tier presentation: repeated badges,
 composition and long plaques. Free-prose recognition and literal-versus-glyph judgment presentation
 remain explicit design questions. Do not conceal recognition gaps with layout

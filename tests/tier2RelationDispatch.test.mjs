@@ -457,7 +457,7 @@ test('independently complete rewrite and fission claims both survive', () => {
     },
     values: {
       'rewrite rows': ['go -> went'],
-      inputFeatures: ['person', 'number'], outputOneFeatures: ['person'], outputTwoFeatures: ['number']
+      inputFeatures: ['person', 'number'], 'rewrite outputs': ['person', 'number']
     }
   }, [
     leaf('output', 'went'),
@@ -493,7 +493,7 @@ test('a Tier-2 facet exclusively owns every prior anchor and value it consumes',
       outputs: ['output-a', 'output-b']
     },
     priorAnchors: { input: 'prior-input' },
-    values: { inputFeatures: ['person', 'plural'], outputOneFeatures: ['person'], outputTwoFeatures: ['plural'] }
+    values: { inputFeatures: ['person', 'plural'], outputs: ['person', 'plural'] }
   }, [
     leaf('primary', 'primary'),
     leaf('output-a', '-su'),
@@ -512,9 +512,8 @@ test('a Tier-2 facet exclusively owns every prior anchor and value it consumes',
   assert.deepEqual(result.claims[1].consumedEvidence, [
     { field: 'priorAnchors', key: 'input' },
     { field: 'anchors', key: 'outputs' },
-    { field: 'values', key: 'inputFeatures' },
-    { field: 'values', key: 'outputOneFeatures' },
-    { field: 'values', key: 'outputTwoFeatures' }
+    { field: 'values', key: 'outputs' },
+    { field: 'values', key: 'inputFeatures' }
   ]);
 });
 
