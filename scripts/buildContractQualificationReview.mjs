@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
 import { buildQualificationReviewHtml } from '../contractQualification/reviewPage.js';
+import { buildQualificationReviewRuntime } from './buildContractQualificationReviewRuntime.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -85,6 +86,17 @@ const collectFiles = (root) => {
 const relativeWebPath = (from, to) => path.relative(from, to).split(path.sep).join('/');
 
 const reviewManifest = readJson(path.join(runRoot, 'review-manifest.json'));
+const copiesArgument = readArg('inspection-copies').trim();
+const copiesBytes = copiesArgument ? fs.readFileSync(path.resolve(copiesArgument)) : null;
+const copies = copiesBytes ? JSON.parse(copiesBytes.toString('utf8')) : {};
+if (!copies || typeof copies !== 'object' || Array.isArray(copies)) {
+  throw new Error('--inspection-copies must map attempt IDs to bundle and correctionProvenance paths.');
+}
+for (const attemptId of Object.keys(copies)) {
+  if (!reviewManifest.entries?.some((entry) => entry.attemptId === attemptId)) {
+    throw new Error(`Inspection copy names an unknown attempt: ${attemptId}`);
+  }
+}
 const runReceiptPath = path.join(runRoot, 'run-receipt.json');
 const runReceiptBytes = fs.readFileSync(runReceiptPath);
 const runReceipt = JSON.parse(runReceiptBytes.toString('utf8'));
@@ -156,18 +168,55 @@ const loadRawOutput = (artifactPath, receipt) => {
     encoding: isUtf8 ? 'utf8' : 'base64',
     ...(isUtf8 ? { text } : { base64: bytes.toString('base64') }),
     byteLength: bytes.byteLength,
-    sha256: receipt.rawOutput.sha256
+    sha256: sha256(bytes),
+    recordedSha256: receipt.rawOutput.sha256,
+    matchesReceipt: sha256(bytes) === receipt.rawOutput.sha256
   };
 };
 
+const loadInspectionCopy = (attemptId, rawOutput) => {
+  if (!Object.hasOwn(copies, attemptId)) return null;
+  const mapping = copies[attemptId];
+  if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) {
+    throw new Error(`Inspection copy requires bundle and correctionProvenance paths: ${attemptId}`);
+  }
+  const readCopyArtifact = (file) => {
+    if (typeof file !== 'string' || !file || path.isAbsolute(file)) {
+      throw new Error(`Inspection copy paths must be relative to the original run: ${attemptId}`);
+    }
+    const absolute = path.resolve(runRoot, file);
+    const relative = path.relative(runRoot, absolute);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error(`Inspection copy path leaves the original run: ${file}`);
+    }
+    const bytes = fs.readFileSync(absolute);
+    return { record: JSON.parse(bytes.toString('utf8')), artifact: { path: file, byteLength: bytes.length, sha256: sha256(bytes) } };
+  };
+  const bundle = readCopyArtifact(mapping.bundle);
+  const correction = readCopyArtifact(mapping.correctionProvenance);
+  if (correction.record.rawSha256 !== rawOutput.sha256 || !rawOutput.matchesReceipt) {
+    throw new Error(`Inspection copy raw SHA-256 does not match the original attempt: ${attemptId}`);
+  }
+  return {
+    kind: 'inspection-copy',
+    sourceRawSha256: rawOutput.sha256,
+    artifacts: { bundle: bundle.artifact, correctionProvenance: correction.artifact },
+    correctionProvenance: correction.record,
+    bundle: bundle.record
+  };
+};
+
+const runtime = await buildQualificationReviewRuntime();
 const reviewData = {
   schemaVersion: 1,
+  runtime: runtime.metadata,
   runReceipt,
   attempts: reviewManifest.entries.map((entry) => {
     const receipt = readJson(path.join(runRoot, entry.receipt));
     const normalizedRecord = entry.bundle
       ? readJson(path.join(runRoot, entry.bundle))
       : null;
+    const rawOutput = loadRawOutput(entry.rawOutput, receipt);
     return {
       attemptId: entry.attemptId,
       sentence: entry.sentence,
@@ -175,8 +224,10 @@ const reviewData = {
       model: entry.model,
       outcome: entry.outcome,
       receipt,
-      rawOutput: loadRawOutput(entry.rawOutput, receipt),
+      rawOutput,
       normalizedRecord,
+      inspectionCopy: loadInspectionCopy(entry.attemptId, rawOutput),
+      inspection: entry.inspection ? readJson(path.join(runRoot, entry.inspection)) : null,
       analyses: entry.analyses.map((analysis) => {
         const replay = readJson(path.join(runRoot, analysis.replay));
         const evidence = readJson(path.join(runRoot, analysis.evidence));
@@ -215,7 +266,7 @@ const reviewData = {
 
 fs.writeFileSync(
   path.join(outputRoot, 'index.html'),
-  buildQualificationReviewHtml(reviewData),
+  buildQualificationReviewHtml(reviewData, runtime),
   'utf8'
 );
 
@@ -239,6 +290,15 @@ const receiptBase = {
     0
   ),
   visualCaptureMade: Boolean(browserPath),
+  interactiveReplay: true,
+  runtime: runtime.metadata,
+  inspectionCopyManifest: copiesBytes ? { path: path.resolve(copiesArgument), sha256: sha256(copiesBytes) } : null,
+  inspectionCopies: reviewData.attempts.filter((attempt) => attempt.inspectionCopy).map((attempt) => ({
+    attemptId: attempt.attemptId,
+    analysisCount: (attempt.inspectionCopy.bundle.response ?? attempt.inspectionCopy.bundle).analyses?.length ?? 0,
+    sourceRawSha256: attempt.inspectionCopy.sourceRawSha256,
+    artifacts: attempt.inspectionCopy.artifacts
+  })),
   artifacts: artifactFiles
 };
 const reviewReceipt = {

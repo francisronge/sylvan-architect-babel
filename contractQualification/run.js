@@ -209,13 +209,36 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
 
   let ingress = { integrityFlags: [], repairDiagnostics: [] };
   let phase = 'json-ingress';
+  let parsedPayload;
+  let inspection = null;
+  const analysisOutcomes = [];
   try {
     const parsed = parserTest.parseModelJsonDetailed(rawOutput);
+    parsedPayload = parsed.payload;
     ingress = {
       integrityFlags: Array.isArray(parsed.integrityFlags) ? parsed.integrityFlags : [],
       repairDiagnostics: Array.isArray(parsed.repairDiagnostics)
         ? parsed.repairDiagnostics
-        : []
+        : [],
+      ...(parsed.jsonDiagnostic ? { jsonDiagnostic: parsed.jsonDiagnostic } : {})
+    };
+    inspection = {
+      kind: 'authored-workspace-inspection',
+      rawOutput: { ...rawOutputArtifact, encoding: 'base64', data: rawBytes.toString('base64') },
+      repairDiagnostics: structuredClone(ingress.repairDiagnostics),
+      payload: structuredClone(parsedPayload),
+      replayStatus: 'not-compiled',
+      linguisticReviewStatus: 'unreviewed',
+      visualReviewStatus: 'unreviewed',
+      analyses: (Array.isArray(parsedPayload?.analyses) ? parsedPayload.analyses : [parsedPayload])
+        .map((analysis, analysisIndex) => ({
+          analysisIndex,
+          authoredAnalysis: structuredClone(analysis),
+          stages: parserTest.inspectDerivationWorkspaces(analysis?.derivationStages, {
+            analysisIndex,
+            fieldPath: Array.isArray(parsedPayload?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
+          })
+        }))
     };
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
@@ -227,7 +250,8 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       true,
       {
         payloadIntegrityFlags: ingress.integrityFlags,
-        payloadRepairDiagnostics: ingress.repairDiagnostics
+        payloadRepairDiagnostics: ingress.repairDiagnostics,
+        analysisOutcomes
       }
     ));
     const bundle = {
@@ -260,6 +284,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       tierCounts: analysisEvidence[index].renderer.tierCounts
     }));
     return {
+      inspection,
       receipt: receiptWithHash({
         ...base,
         ingress,
@@ -282,12 +307,16 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
     const repairDiagnostics = Array.isArray(error?.details?.payloadRepairDiagnostics)
       ? error.details.payloadRepairDiagnostics
       : ingress.repairDiagnostics;
+    if (inspection) inspection.repairDiagnostics = structuredClone(repairDiagnostics);
     return {
+      inspection,
       receipt: receiptWithHash({
         ...base,
         ingress: {
           integrityFlags: ingress.integrityFlags,
-          repairDiagnostics
+          repairDiagnostics,
+          ...((error?.details?.jsonDiagnostic || ingress.jsonDiagnostic)
+            ? { jsonDiagnostic: error?.details?.jsonDiagnostic || ingress.jsonDiagnostic } : {})
         },
         outcome: {
           status: 'failed',
@@ -302,6 +331,10 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       replayProjections: [],
       analysisEvidence: []
     };
+  } finally {
+    inspection?.analyses.forEach((analysis) => {
+      analysis.normalization = analysisOutcomes[analysis.analysisIndex] || { status: 'not-attempted' };
+    });
   }
 };
 

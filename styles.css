@@ -484,12 +484,42 @@ body,
   fill: #ecfdf5;
 }
 
+.babel-replay-header {
+  left: 24px;
+  overflow-wrap: anywhere;
+}
+
+.babel-replay-panel {
+  left: 24px;
+  max-width: 880px;
+  height: min(260px, 40%);
+  min-height: 148px;
+  max-height: calc(100% - 100px);
+}
+
+.babel-replay-panel [data-babel-replay-details] {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .babel-replay-header,
+  .babel-replay-panel { left: 16px; }
+  .babel-replay-controls { flex-wrap: wrap; }
+  .babel-replay-controls > div { width: 100%; text-align: left; }
+  .babel-replay-controls > button { padding: 6px 8px; letter-spacing: 0; }
+  .babel-replay-header > div { letter-spacing: 0; }
+}
+
 .babel-feature-plaque-shell {
   fill: rgba(2, 18, 13, 0.74);
   stroke: rgba(94, 234, 157, 0.58);
   stroke-width: 1.5px;
   filter: drop-shadow(0 0 5px rgba(20, 184, 166, 0.16));
 }
+
+.babel-plaque-title { fill: #6ee7b7; }
+.babel-plaque-row { fill: #a7f3d0; }
 
 .babel-feature-plaque-title {
   fill: rgba(167, 243, 208, 0.92);
@@ -506,6 +536,257 @@ body,
   font: 800 30px/1 "JetBrains Mono", monospace;
   letter-spacing: 0.02em;
 }
+
+.babel-f-projection-path {
+  fill: none;
+  stroke: var(--babel-relation-ink, #34d399);
+  stroke-width: 3px;
+  stroke-dasharray: 12 10;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-f-projection-feature,
+.babel-f-projection-accent {
+  fill: var(--babel-relation-ink, #34d399);
+  stroke: rgba(1, 8, 5, 0.92);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 900 34px/1 "Crimson Pro", serif;
+  letter-spacing: 0;
+}
+
+.babel-f-projection-feature {
+  font-style: italic;
+}
+
+.babel-f-projection-accent {
+  font-size: 36px;
+}
+
+/* Native drawing ink shared with the approved relation plates, without page layout. */
+.babel-case-assignment-path,
+.babel-case-collection-path,
+.babel-pf-correspondence-link,
+.babel-cooper-storage-connector,
+.babel-transfer-phase-arc,
+.babel-transfer-domain-arc,
+.babel-transfer-access-path,
+.babel-improper-candidate-rail,
+.babel-improper-candidate-path {
+  fill: none;
+  stroke: var(--babel-relation-ink, #34d399);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-case-assignment-path { stroke-width: 1.8px; }
+.babel-case-collection-path { stroke-width: 1.25px; stroke-dasharray: 4 8; }
+.babel-cooper-storage-connector { stroke-width: 2.4px; }
+.babel-transfer-phase-arc { stroke-width: 2.6px; }
+.babel-transfer-domain-arc { stroke-width: 2.2px; stroke-dasharray: 10 10; }
+.babel-transfer-access-path { stroke-width: 2.2px; stroke-dasharray: 9 9; }
+.babel-improper-candidate-rail { stroke-width: 2.4px; }
+.babel-improper-candidate-path { stroke-width: 2.2px; }
+.babel-trajectory-path.babel-locality-path-failed,
+.babel-trajectory-path-shadow.babel-locality-path-failed { stroke-dasharray: 9 9; filter: none; }
+
+.babel-theta-grid-shell,
+.babel-pf-correspondence-shell,
+.babel-pf-morphology-shell {
+  fill: rgba(2, 18, 13, 0.86);
+  stroke: var(--babel-relation-ink, #34d399);
+  stroke-width: 1.5px;
+}
+
+.babel-theta-grid-rule,
+.babel-pf-morphology-rule {
+  stroke: rgba(94, 234, 157, 0.28);
+  stroke-width: 1.4px;
+}
+
+.babel-theta-grid-title {
+  fill: #a7f3d0;
+  font: 900 20px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-theta-grid-predicate,
+.babel-theta-grid-role,
+.babel-theta-grid-index {
+  fill: #ecfdf5;
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 850 26px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-theta-grid-role,
+.babel-theta-terminal-index { fill: var(--babel-relation-ink, #34d399); }
+.babel-theta-grid-index { font-size: 25px; font-style: italic; }
+.babel-theta-terminal-index { stroke: rgba(1, 8, 5, 0.82); stroke-width: 4px; paint-order: stroke; }
+
+.babel-phrasal-spellout-label,
+.babel-pf-correspondence-source,
+.babel-pf-correspondence-exponent {
+  fill: #ecfdf5;
+  stroke: rgba(1, 8, 5, 0.82);
+  paint-order: stroke;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.babel-phrasal-spellout-label,
+.babel-pf-correspondence-exponent { fill: var(--babel-relation-ink, #34d399); }
+.babel-pf-correspondence-title { fill: #a7f3d0; font-family: "JetBrains Mono", monospace; font-weight: 900; letter-spacing: 0; }
+.babel-pf-morphology-title {
+  fill: #a7f3d0;
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 900 24px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-linearization-failure-mark {
+  fill: #ecfdf5;
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 900 27px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-linearization-column-title {
+  fill: rgba(110, 231, 183, 0.82);
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 900 16px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-linearization-row {
+  fill: rgba(236, 253, 245, 0.90);
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 800 19px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-linearization-row-current {
+  fill: #a7f3d0;
+  font-weight: 900;
+}
+
+.babel-linearization-row-conflict {
+  fill: #ecfdf5;
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: rgba(110, 231, 183, 0.86);
+  text-decoration-thickness: 2px;
+}
+
+.babel-anchor-set-badge {
+  fill: rgba(2, 24, 15, 0.92);
+  stroke: rgba(52, 211, 153, 0.9);
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-anchor-set-badge-number {
+  fill: rgba(167, 243, 208, 0.98);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.babel-anchor-set-rail {
+  stroke: rgba(52, 211, 153, 0.66);
+  stroke-width: 1.4px;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-anchor-set-rail-label {
+  fill: rgba(110, 231, 183, 0.95);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.babel-anchor-set-stub {
+  stroke: rgba(52, 211, 153, 0.42);
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-fission-bundle-shell { fill: rgba(5, 35, 25, 0.82); stroke: var(--babel-relation-ink, #34d399); stroke-width: 1.7px; }
+.babel-fission-bundle-title {
+  fill: var(--babel-relation-ink, #34d399);
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 900 17px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-fission-bundle-row,
+.babel-impoverishment-feature {
+  fill: #ecfdf5;
+  stroke: rgba(1, 8, 5, 0.76);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 800 21px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-fission-arrow {
+  fill: var(--babel-relation-ink, #34d399);
+  stroke: rgba(1, 8, 5, 0.78);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font: 800 34px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-impoverishment-feature { text-anchor: middle; font-size: 28px; }
+.babel-impoverishment-output { fill: #a7f3d0; }
+.babel-impoverishment-link { stroke: var(--babel-relation-ink, #34d399); stroke-width: 3.2px; stroke-linecap: round; }
+.babel-impoverishment-cross { stroke: #ecfdf5; stroke-width: 3.5px; stroke-linecap: round; }
+.babel-cooper-storage-bracket {
+  fill: none;
+  stroke: var(--babel-relation-ink, #34d399);
+  stroke-width: 3.4px;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-cooper-storage-key,
+.babel-cooper-storage-value {
+  fill: #d1fae5;
+  stroke: rgba(1, 8, 5, 0.86);
+  stroke-width: 2.8px;
+  paint-order: stroke;
+  font: 800 31px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.babel-cooper-storage-value { fill: var(--babel-relation-ink, #34d399); font-weight: 700; }
+.babel-transfer-edge-outline { fill: rgba(4, 24, 17, 0.42); stroke: var(--babel-relation-ink, #34d399); stroke-width: 1.7px; rx: 4; ry: 4; vector-effect: non-scaling-stroke; }
+.babel-transfer-phase-arc-shadow,
+.babel-transfer-domain-arc-shadow,
+.babel-transfer-access-shadow { fill: none; stroke: rgba(1, 9, 6, 0.9); stroke-width: 5.6px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.babel-transfer-component-label,
+.babel-transfer-edge-label { fill: #a7f3d0; font: 700 24px/1 "JetBrains Mono", monospace; letter-spacing: 0; }
+.babel-transfer-edge-label { text-anchor: end; }
+.babel-domain-locality-arrowhead { fill: var(--babel-relation-ink, #34d399); }
+.babel-focus-branch-mask { fill: none; stroke: rgba(1, 8, 5, 0.94); stroke-width: 8px; stroke-linecap: round; stroke-linejoin: round; }
+.babel-focus-branch-strong,
+.babel-focus-branch-weak { fill: none; stroke: var(--babel-relation-ink, #34d399); stroke-linecap: round; stroke-linejoin: round; }
+.babel-focus-branch-strong { stroke-width: 6.2px; }
+.babel-focus-branch-weak { stroke-width: 3.4px; stroke-dasharray: 9 12; }
 
 /*
  * Neutral geometric relations share one ink and acquire their glow only from
@@ -544,6 +825,7 @@ svg :is(
   .babel-argument-sharing-domain,
   .babel-argument-sharing-object-box,
   .babel-strong-npi-path,
+  .babel-f-projection-path,
   .babel-anti-locality-cap,
   .babel-domain-locality-x
 ) {

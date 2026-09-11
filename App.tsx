@@ -21,7 +21,6 @@ import {
 import { 
   RotateCcw, 
   Sparkles,
-  TreeDeciduous,
   Layers,
   Zap,
   Info,
@@ -109,6 +108,15 @@ type ModelMode = string;
 type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 const MODEL_OPTIONS = GENERATION_MODEL_IDS.map((id) => getResearchModel(id)!);
 const DEFAULT_MODEL_ID = GENERATION_MODEL_IDS[0];
+
+const MODEL_ACCENT_COLORS: Record<string, string> = {
+  'openai:gpt-6-astra': '#eef59a',
+  'openai:gpt-5.6-sol': '#f6bf69',
+  'anthropic:claude-opus-5': '#d8ac86',
+  'anthropic:claude-fable-5-1': '#93baf3',
+  'moonshot:kimi-k3': '#8ebfba',
+  'xai:grok-4.6': '#d7dce2'
+};
 
 const REASONING_EFFORT_LABELS: Record<ReasoningEffort, string> = {
   none: 'None',
@@ -1013,7 +1021,15 @@ const App: React.FC = () => {
                           : 'Choose parsing model'
                       }
                     >
-                      <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/40 bg-emerald-950/40 text-emerald-100">
+                      <label
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                        style={{
+                          color: MODEL_ACCENT_COLORS[modelRoute],
+                          backgroundColor: `${MODEL_ACCENT_COLORS[modelRoute]}1f`,
+                          borderColor: `${MODEL_ACCENT_COLORS[modelRoute]}80`,
+                          boxShadow: `0 0 16px ${MODEL_ACCENT_COLORS[modelRoute]}22`
+                        }}
+                      >
                         <Zap size={10} className="fill-current" />
                         <select
                           aria-label="Generation model"
@@ -1025,9 +1041,13 @@ const App: React.FC = () => {
                             setError(null);
                             setNeedsKey(false);
                           }}
-                          className="w-40 bg-transparent text-[11px] font-bold focus:outline-emerald-400 disabled:opacity-50"
+                          className="w-40 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
-                          {MODEL_OPTIONS.map((model) => <option key={model.id} value={model.id} className="bg-[#061810]">{model.label}</option>)}
+                          {MODEL_OPTIONS.map((model) => (
+                            <option key={model.id} value={model.id} className="bg-[#061810]" style={{ color: MODEL_ACCENT_COLORS[model.id] }}>
+                              {model.label}
+                            </option>
+                          ))}
                         </select>
                       </label>
                       <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${REASONING_PILL_STYLES[activeReasoningEffort]}`} title={reasoningControlLabel}>
@@ -1040,7 +1060,7 @@ const App: React.FC = () => {
                             setReasoningEffort(event.target.value as ReasoningEffort);
                             setError(null);
                           }}
-                          className="w-24 bg-transparent text-[11px] font-bold focus:outline-emerald-400 disabled:opacity-50"
+                          className="w-24 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
                           {activeReasoningOptions.map((effort) => <option key={effort} value={effort} className="bg-[#061810]">{REASONING_EFFORT_LABELS[effort]}</option>)}
                         </select>
@@ -1062,7 +1082,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 relative flex flex-col overflow-hidden">
+      <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
           <div className="absolute inset-0 z-20 overflow-y-auto px-4 py-6 md:px-12 md:py-12">
             <div className="max-w-7xl mx-auto space-y-8 pb-24">
@@ -1180,7 +1200,7 @@ const App: React.FC = () => {
         )}
 
         {!isTreeBankView && hasAmbiguity && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
+          <div data-babel-tree-controls="top" className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
             <div className="flex max-w-[min(92vw,64rem)] flex-wrap items-center justify-center gap-2 p-1 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-lg shadow-2xl">
               {(analysisBundle?.analyses || []).map((_, parseIndex) => (
                 <button
@@ -1348,7 +1368,7 @@ const App: React.FC = () => {
         {!isTreeBankView && (
           <>
             {/* Navigation Sidebar */}
-            <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4">
+            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4">
               {NAV_TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -1372,6 +1392,8 @@ const App: React.FC = () => {
               <>
                 {/* Input UI */}
                 <div
+                  data-babel-tree-controls="bottom"
+                  aria-hidden={!isInputVisible}
                   className={`absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8 transition-[opacity,transform] duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}
                   style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
                 >
@@ -1457,6 +1479,7 @@ const App: React.FC = () => {
                 {/* Restore Logo Trigger */}
                 {!isInputVisible && (
                   <button
+                    data-babel-tree-controls="bottom"
                     onClick={() => setIsInputVisible(true)}
                     className="absolute left-1/2 -translate-x-1/2 z-50 w-12 h-12 md:w-14 md:h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
                     style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
@@ -1499,13 +1522,8 @@ const App: React.FC = () => {
       </main>
 
       {!isFullscreen && (
-      <footer className="bg-black/80 border-t border-white/10 py-4 px-10 shrink-0 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        <div className="max-w-[2000px] mx-auto flex items-center justify-between text-[8px] font-black text-emerald-900/50 uppercase tracking-[0.5em]">
-          <div className="flex items-center gap-8">
-            <span className="flex items-center gap-3"><Layers size={12} /> Sylvan Logic Engine</span>
-            <span className="h-3 w-px bg-white/10"></span>
-            <span className="flex items-center gap-3"><TreeDeciduous size={12} /> Deep Structural Formalism</span>
-          </div>
+      <footer className="bg-black/80 py-4 px-10 shrink-0 z-40">
+        <div className="max-w-[2000px] mx-auto flex items-center justify-end text-[8px] font-black text-emerald-900/50 uppercase tracking-[0.5em]">
           <div className="flex items-center gap-6">
             {needsKey && (
               <div className="flex items-center gap-2 text-amber-400/80">

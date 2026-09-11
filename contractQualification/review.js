@@ -27,7 +27,7 @@ const compactClaim = (claim) => ({
     facet: {
       id: claim.facet.recipe.id,
       identity: claim.facet.facetIdentity,
-      outputIdentities: claim.facet.outputIdentities.map((output) => output.identity)
+      outputIdentities: claim.facet.outputIdentities.map((output) => output.key)
     }
   } : {})
 });
@@ -75,6 +75,7 @@ const compactReplayStep = (step, frameIndex, claimsByRelation) => {
     stageRecord: String(step.stageRecord || ''),
     note: String(step.note || ''),
     detailBlocks: Array.isArray(step.detailBlocks) ? step.detailBlocks : [],
+    movementDiagnostics: Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : [],
     introducedClaims
   };
 };

@@ -112,6 +112,12 @@ for (const attempt of plan.attempts) {
     analyses: []
   };
 
+  if (result.inspection) {
+    reviewEntry.inspection = `attempts/${attempt.id}/inspection.json`;
+    fs.writeFileSync(path.join(outputPath, reviewEntry.inspection),
+      stableQualificationJson(result.inspection), 'utf8');
+  }
+
   if (result.bundle) {
     const bundleWrapper = {
       request: {
