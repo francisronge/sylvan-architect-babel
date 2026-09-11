@@ -453,6 +453,8 @@ test('unexpected normalization crashes remain deterministic engine failures', as
         assert.equal(error.code, 'PARSE_ENGINE_FAILED');
         assert.equal(error.status, 500);
         assert.equal(error.failure.class, 'deterministic_engine_failure');
+        assert.equal(error.failure.processingStep, 'normalization');
+        assert.deepEqual(error.details.engineError, { name: 'Error', message: 'private normalization implementation detail' });
         assert.equal(error.message.includes('private'), false);
         assert.equal(error.details.generationRecord.provider, 'gpt');
         return true;
@@ -655,10 +657,14 @@ test('API errors expose typed failure while raw output is capped and hash-bound'
   );
 });
 
-test('only transport/429/5xx failures without a completed stop are retryable', () => {
+test('transient failures retry, but rate limits and completed stops do not', () => {
   const rateLimited = new Error('rate limited');
   rateLimited.status = 429;
-  assert.equal(isRetryableProviderFailure(rateLimited), true);
+  assert.equal(isRetryableProviderFailure(rateLimited), false);
+
+  const unavailable = new Error('temporarily unavailable');
+  unavailable.status = 503;
+  assert.equal(isRetryableProviderFailure(unavailable), true);
 
   const invalid = new Error('invalid request');
   invalid.status = 400;

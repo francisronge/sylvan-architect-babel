@@ -42,16 +42,12 @@ test('cancels a created OpenAI background response when polling is aborted', asy
   });
 
   globalThis.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), method: options.method });
+    calls.push({ url: String(url), ...options });
     if (String(url) === OPENAI_RESPONSES_URL) {
       markCreated();
       return jsonResponse({ id: 'resp_abort', status: 'queued' });
     }
     if (String(url).endsWith('/responses/resp_abort/cancel')) {
-      assert.equal(options.method, 'POST');
-      assert.equal(options.headers.Authorization, 'Bearer test-key');
-      assert.equal(options.headers['Content-Type'], 'application/json');
-      assert.equal(options.signal, undefined);
       return jsonResponse({ id: 'resp_abort', status: 'cancelled' });
     }
     throw new Error(`Unexpected fetch: ${String(url)}`);
@@ -68,6 +64,11 @@ test('cancels a created OpenAI background response when polling is aborted', asy
       method === 'POST' && url.endsWith('/responses/resp_abort/cancel')
     ));
     assert.equal(cancelCalls.length, 1);
+    assert.equal(cancelCalls[0].headers.Authorization, 'Bearer test-key');
+    assert.equal(cancelCalls[0].headers['Content-Type'], 'application/json');
+    assert.ok(cancelCalls[0].signal instanceof AbortSignal);
+    assert.notEqual(cancelCalls[0].signal, controller.signal);
+    assert.equal(cancelCalls[0].signal.aborted, false);
   } finally {
     globalThis.fetch = originalFetch;
   }

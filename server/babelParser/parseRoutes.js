@@ -330,6 +330,7 @@ export const createParseRoutes = ({
     withFailureDetails(details, {
       failureClass: 'deterministic_engine_failure',
       ruleId: 'DETERMINISTIC_ENGINE',
+      processingStep: details.stage || 'processing',
       fieldPath: '$',
       offendingValue: null
     }, rawText)
@@ -357,7 +358,7 @@ export const createParseRoutes = ({
     if (!(error instanceof ParseApiError)) {
       return createDeterministicParseFailure({
         message: 'Babel could not finish processing the generated analysis.',
-        details: commonDetails,
+        details: { ...commonDetails, engineError: { name: error?.name || 'Error', message: String(error?.message || error) } },
         rawText: generationMeta.rawText
       });
     }
@@ -601,6 +602,7 @@ export const createParseRoutes = ({
 
       generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
           if (attemptRemainingBudgetMs <= 1200) {
@@ -668,6 +670,9 @@ export const createParseRoutes = ({
       let payload;
       let payloadIntegrityFlags = [];
       let payloadRepairDiagnostics = [];
+      const jsonProcessing = { repairDiagnostics: [] };
+      generationRecord.processing = { json: jsonProcessing };
+      const jsonStartedAt = performance.now();
       try {
         const parsedPayload = parseModelJsonDetailed
           ? parseModelJsonDetailed(generationMeta.rawText)
@@ -679,7 +684,11 @@ export const createParseRoutes = ({
         payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
           ? parsedPayload.repairDiagnostics
           : [];
+        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
+        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
       } catch (error) {
+        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
+        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
         if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
           const debugPayloadPath = writeDebugModelPayload({
             stage: 'json-parse',
@@ -702,8 +711,13 @@ export const createParseRoutes = ({
           generationMeta,
           debugPayloadPath: null
         });
+      } finally {
+        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
       }
 
+      const normalizationProcessing = {};
+      generationRecord.processing.normalization = normalizationProcessing;
+      const normalizationStartedAt = performance.now();
       let normalized;
       try {
         normalized = normalizeParseBundle(
@@ -726,6 +740,7 @@ export const createParseRoutes = ({
           );
         }
       } catch (error) {
+        if (error.failure) normalizationProcessing.failure = error.failure;
         const debugPayloadPath = writeDebugModelPayload({
           stage: 'normalization',
           model: selectedModel,
@@ -747,6 +762,8 @@ export const createParseRoutes = ({
           debugPayloadPath,
           payloadRepairDiagnostics
         });
+      } finally {
+        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
       }
 
       return {
@@ -840,6 +857,7 @@ export const createParseRoutes = ({
 
       generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
           if (attemptRemainingBudgetMs <= 1200) {
@@ -906,6 +924,9 @@ export const createParseRoutes = ({
       let payload;
       let payloadIntegrityFlags = [];
       let payloadRepairDiagnostics = [];
+      const jsonProcessing = { repairDiagnostics: [] };
+      generationRecord.processing = { json: jsonProcessing };
+      const jsonStartedAt = performance.now();
 
       try {
         const parsedPayload = parseModelJsonDetailed
@@ -918,7 +939,11 @@ export const createParseRoutes = ({
         payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
           ? parsedPayload.repairDiagnostics
           : [];
+        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
+        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
       } catch (error) {
+        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
+        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
         const debugPayloadPath = writeDebugModelPayload({
           stage: `${modelRoute}-json-parse`,
           model: selectedModel,
@@ -932,8 +957,13 @@ export const createParseRoutes = ({
           generationMeta,
           debugPayloadPath
         });
+      } finally {
+        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
       }
 
+      const normalizationProcessing = {};
+      generationRecord.processing.normalization = normalizationProcessing;
+      const normalizationStartedAt = performance.now();
       let normalized;
       try {
         normalized = normalizeParseBundle(
@@ -956,6 +986,7 @@ export const createParseRoutes = ({
           );
         }
       } catch (error) {
+        if (error.failure) normalizationProcessing.failure = error.failure;
         const debugPayloadPath = writeDebugModelPayload({
           stage: `${modelRoute}-normalization`,
           model: selectedModel,
@@ -977,6 +1008,8 @@ export const createParseRoutes = ({
           debugPayloadPath,
           payloadRepairDiagnostics
         });
+      } finally {
+        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
       }
 
       return {

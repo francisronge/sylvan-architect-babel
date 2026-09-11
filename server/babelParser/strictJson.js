@@ -120,7 +120,23 @@ const repairDelimiterDamage = (candidate) => {
     : null;
 };
 
-const createBadJsonError = (createError, rawText, repairDiagnostics = []) => {
+const describeJsonError = (error, candidate, rawText) => {
+  const message = String(error.message);
+  const position = message.match(/\bposition (\d+)/);
+  const offset = position ? Number(position[1])
+    : /end of JSON input/i.test(message) ? candidate.length : null;
+  const prefix = rawText.indexOf(candidate);
+  return {
+    kind: 'json-syntax',
+    message,
+    ...(offset === null ? {} : {
+      candidateByteOffset: UTF8_ENCODER.encode(candidate.slice(0, offset)).byteLength,
+      originalByteOffset: UTF8_ENCODER.encode(rawText.slice(0, prefix + offset)).byteLength
+    })
+  };
+};
+
+const createBadJsonError = (createError, rawText, repairDiagnostics = [], jsonDiagnostic) => {
   const error = typeof createError === 'function'
     ? createError(
       'BAD_MODEL_RESPONSE',
@@ -129,11 +145,17 @@ const createBadJsonError = (createError, rawText, repairDiagnostics = []) => {
       rawText
     )
     : new Error('Model returned malformed JSON.');
-  if (repairDiagnostics.length > 0 && error && typeof error === 'object') {
+  if (error && typeof error === 'object') {
     error.details = {
       ...(error.details && typeof error.details === 'object' ? error.details : {}),
-      payloadRepairDiagnostics: repairDiagnostics
+      ...(repairDiagnostics.length > 0 ? { payloadRepairDiagnostics: repairDiagnostics } : {}),
+      ...(jsonDiagnostic ? { jsonDiagnostic } : {})
     };
+    if (error.failure) {
+      error.failure = { ...error.failure, processingStep: 'json-decoding',
+        expectedForm: 'one complete JSON object', message: jsonDiagnostic?.message || error.message };
+      error.details.failure = error.failure;
+    }
   }
   return error;
 };
@@ -146,27 +168,32 @@ const parseStrictJsonCandidate = (
   rawTextForError = candidate
 ) => {
   let parsed;
+  let jsonDiagnostic;
   try {
     parsed = JSON.parse(candidate);
   } catch (initialError) {
+    jsonDiagnostic = describeJsonError(initialError, candidate, rawTextForError);
     const repair = repairDelimiterDamage(candidate);
     if (!repair) {
-      throw createBadJsonError(createError, rawTextForError);
+      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
     }
     repairDiagnostics.push(...repair.repairDiagnostics);
     try {
       parsed = JSON.parse(repair.repairedCandidate);
       integrityFlags.push('json_delimiter_damage_repaired');
     } catch {
-      throw createBadJsonError(createError, rawTextForError, repairDiagnostics);
+      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
     }
   }
 
   const normalized = normalizeParsedRoot(parsed);
   if (!normalized) {
-    throw createBadJsonError(createError, rawTextForError, repairDiagnostics);
+    throw createBadJsonError(createError, rawTextForError, repairDiagnostics, {
+      kind: 'json-root-type', message: `Expected one JSON object; received ${parsed === null ? 'null' : Array.isArray(parsed) ? 'an array' : typeof parsed}.`,
+      ...(jsonDiagnostic ? { originalSyntaxError: jsonDiagnostic } : {})
+    });
   }
-  return normalized;
+  return { payload: normalized, ...(jsonDiagnostic ? { jsonDiagnostic } : {}) };
 };
 
 export const parseStrictModelJsonDetailed = (rawText, createError) => {
@@ -175,13 +202,15 @@ export const parseStrictModelJsonDetailed = (rawText, createError) => {
     .replace(/^\uFEFF/, '')
     .trim();
   if (!text) {
-    throw createBadJsonError(createError, originalText);
+    throw createBadJsonError(createError, originalText, [], {
+      kind: 'json-syntax', message: 'The response contains no JSON text.', originalByteOffset: 0
+    });
   }
 
   const integrityFlags = [];
   const repairDiagnostics = [];
   return {
-    payload: parseStrictJsonCandidate(
+    ...parseStrictJsonCandidate(
       text,
       createError,
       integrityFlags,

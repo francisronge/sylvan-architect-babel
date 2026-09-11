@@ -4,6 +4,8 @@ import test from 'node:test';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { __test__ } from '../server/babelParser.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
+import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
+import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 
 const buildCurrentContractPayload = () => ({
   derivationStages: [
@@ -101,22 +103,33 @@ const buildCurrentContractPayload = () => ({
   ]
 });
 
-test('the model-facing contract teaches optional values and immediate-stage priorAnchors', () => {
-  const instruction = buildSystemInstruction('xbar', 'gemini');
-  assert.match(instruction, /may also have "values" and "priorAnchors"/);
-  assert.match(instruction, /literal notation the relation itself states/);
-  assert.doesNotMatch(instruction, /for example a feature, index, outcome, exponent/);
-  assert.match(instruction, /immediately preceding derivationStage/);
-  assert.match(instruction, /Do not use priorAnchors merely because an object existed earlier/);
+test('both framework contracts define open roles, anchor lists, optional values and priorAnchors', () => {
+  for (const framework of ['xbar', 'minimalism']) {
+    const instruction = buildSystemInstruction(framework);
+    assert.match(instruction, /values: a nonempty object with nonblank entry names/);
+    assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
+    assert.match(instruction, /anchors: a nonempty object with nonblank role names/);
+    assert.match(instruction, /priorAnchors:.*immediately preceding stage's expanded workspace/);
+    assert.match(instruction, /Anchor-role and value-entry names are not fixed fields or a prescribed vocabulary/);
+    assert.match(instruction, /Use an anchor list for nodes with the same role in this relation\. Keep distinct groups in separate entries and name their roles distinctly\./);
+  }
 });
 
-test('the model-facing contract permits illicit analyses without fabricated syntax', () => {
+test('the model-facing contract distinguishes a completed analysis from grammaticality', () => {
   const instruction = buildSystemInstruction('xbar', 'gemini');
-  assert.match(instruction, /Analyze the exact input as written, even when the selected framework judges it illicit/);
-  assert.match(instruction, /judges a configuration or the whole analysis illicit/);
-  assert.match(instruction, /anchor the relation to the final root/);
-  assert.match(instruction, /Do not introduce syntax whose only purpose is to represent an operation the analysis rejects/);
-  assert.match(instruction, /The last derivationStage must be the converged structure for the exact input tokens/);
+  assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
+  assert.match(instruction, /A completed analysis may establish that the input is illicit/);
+  assert.match(instruction, /A judgment about the whole analysis is anchored to its final root/);
+});
+
+test('sentence requests preserve quoted, multiline and multilingual input as data', () => {
+  for (const sentence of ['Which book did John buy?', 'She said "yes".\nThen left.', 'איזה ספר קנתה נועה?']) {
+    const request = buildParseContentsPrompt(sentence, 'xbar', 'gpt');
+    const [input, tokens] = request.split('\n');
+    assert.equal(JSON.parse(input.slice('Sentence: '.length)), sentence);
+    assert.deepEqual(JSON.parse(tokens.slice('Input tokens, indexed from zero: '.length)), tokenizeSentenceSurfaceOrder(sentence));
+    assert.equal(buildParseContentsPrompt(sentence, 'minimalism', 'claude'), request);
+  }
 });
 
 test('normalizes the current four-field derivation contract without provider calls', () => {

@@ -4,6 +4,9 @@ import test from 'node:test';
 import { parseFromBody, validateParseBody, formatApiError } from '../server/parseApi.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from '../server/babelParser/researchModelCatalog.js';
 import { sha256Hex } from '../server/babelParser/generationRecord.js';
+import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
+import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
+import { runQualificationAttempt } from '../contractQualification/run.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from '../contractQualification/review.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
@@ -84,9 +87,9 @@ for (const modelId of GENERATION_MODEL_IDS) {
         assert.equal(sentBody.max_tokens, 128000);
       } else if (model.provider === 'moonshot') {
         assert.equal(sentBody.max_completion_tokens, 131072);
-        assert.deepEqual(sentBody.response_format, { type: 'json_object' });
+        assert.equal(sentBody.response_format, undefined);
       } else {
-        assert.deepEqual(sentBody.text, { format: { type: 'json_object' } });
+        assert.equal(sentBody.text, undefined);
         assert.equal(sentBody.store, model.provider === 'openai');
         assert.equal(Boolean(sentBody.background), model.provider === 'openai');
       }
@@ -100,6 +103,12 @@ for (const modelId of GENERATION_MODEL_IDS) {
         : (sentBody.messages || sentBody.input).find(({ role }) => role === 'user').content;
       assert.equal(bundle.generationRecord.promptContract.systemInstructionSha256, sha256Hex(system));
       assert.equal(bundle.generationRecord.promptContract.promptSha256, sha256Hex(prompt));
+      assert.equal(system, buildSystemInstruction(fixture.framework));
+      assert.equal(prompt, buildParseContentsPrompt(fixture.sentence));
+      assert.equal(bundle.generationRecord.sentGenerationConfig.textFormatType, 'text');
+      assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, []);
+      assert.ok(bundle.generationRecord.processing.json.durationMs >= 0);
+      assert.ok(bundle.generationRecord.processing.normalization.durationMs >= 0);
       assert.equal(decode(bundle.rawModelOutput), rawOutput);
       assert.equal(decode(bundle.generationRecord.rawProviderResponse), responseText);
       assert.doesNotMatch(JSON.stringify(bundle), /test-only-provider-key/);
@@ -143,6 +152,67 @@ test('repair diagnostics and original bytes survive the new generation path', as
   assert.equal(decode(bundle.rawModelOutput), damagedOutput);
   assert.equal(decode(bundle.generationRecord.rawProviderResponse), responseText);
   assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind, 'append_closers_at_end_of_output');
+  assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, bundle.analyses[0].provenance.payloadRepairDiagnostics);
+  assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
+});
+
+test('all active routes keep malformed-stage evidence inspectable without replacing the generation', async (t) => {
+  isolate(t);
+  const payload = structuredClone(fixture.payload);
+  payload.derivationStages[3].relations[1].values = ['literal content'];
+  const damaged = JSON.stringify(payload).slice(0, -2);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const model = getResearchModel(modelId);
+    const responseText = JSON.stringify(envelopeFor(model, damaged));
+    const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
+    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+      const result = formatApiError(error).body.error;
+      const record = result.generationRecord;
+      assert.equal(result.failure.fieldPath, '$.derivationStages[3].relations[1].values');
+      assert.equal(result.failure.processingStep, 'stage-shape');
+      assert.deepEqual(result.failure.offendingValue, ['literal content']);
+      assert.equal(decode(result.rawOutput), damaged);
+      assert.equal(decode(record.rawProviderResponse), responseText);
+      assert.equal(record.outcome.attempts.length, 1);
+      assert.deepEqual(record.processing.normalization.failure, result.failure);
+      assert.equal(record.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damaged));
+      assert.deepEqual(record.processing.json.repairDiagnostics.map(({ insertedText }) => insertedText), [']}']);
+      const inspection = runQualificationAttempt({
+        attempt: { id: modelId, request: { sentence: fixture.sentence, framework: 'xbar' },
+          model: { providerRoute: model.providerRoute, providerModel: model.providerModel, nativeSettings: {} },
+          source: { kind: 'raw-text-file', path: 'in-memory-stub' } },
+        rawOutputBytes: Buffer.from(decode(result.rawOutput))
+      });
+      assert.deepEqual(inspection.inspection.payload, payload);
+      assert.equal(inspection.inspection.analyses[0].stages.length, payload.derivationStages.length);
+      assert.deepEqual(inspection.receipt.ingress.jsonDiagnostic, record.processing.json.diagnostic);
+      assert.equal(inspection.bundle, null);
+      return true;
+    });
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+  }
+});
+
+test('all active routes stop on rate limits and uncertain timeouts and retain the reason', async (t) => {
+  isolate(t);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    for (const reason of ['rate_limit', 'uncertain_timeout']) {
+      const fetch = t.mock.method(globalThis, 'fetch', async () => {
+        if (reason === 'rate_limit') return new Response('{"error":{"message":"Rate limit reached"}}', { status: 429 });
+        throw Object.assign(new Error('Request timed out'), { code: 'ETIMEDOUT' });
+      });
+      await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+        const attempts = formatApiError(error).body.error.generationRecord.outcome.attempts;
+        assert.equal(attempts.length, 1);
+        assert.equal(attempts[0].retryReason, reason);
+        assert.equal(attempts[0].retryStopReason, 'not_retryable');
+        return true;
+      });
+      assert.equal(fetch.mock.callCount(), 1);
+      fetch.mock.restore();
+    }
+  }
 });
 
 test('the provider returned identity remains distinct from the requested model', async (t) => {
@@ -155,6 +225,46 @@ test('the provider returned identity remains distinct from the requested model',
   assert.equal(bundle.generationRecord.modelSelection.providerModel, 'kimi-k3');
   assert.equal(bundle.generationRecord.returnedModel, 'kimi-k3-provider-snapshot');
   assert.equal(bundle.modelUsed, 'kimi-k3-provider-snapshot');
+});
+
+test('all active routes preserve fenced output and its decoding failure without regeneration', async (t) => {
+  isolate(t);
+  const fenced = `\u0060\u0060\u0060json\n${rawOutput}\n\u0060\u0060\u0060`;
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const model = getResearchModel(modelId);
+    const responseText = JSON.stringify(envelopeFor(model, fenced));
+    const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
+    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+      const result = formatApiError(error).body.error;
+      assert.equal(result.failure.processingStep, 'json-decoding');
+      assert.equal(result.generationRecord.processing.json.diagnostic.kind, 'json-syntax');
+      assert.deepEqual(result.generationRecord.processing.json.repairDiagnostics, []);
+      assert.equal(decode(result.rawOutput), fenced);
+      assert.equal(decode(result.generationRecord.rawProviderResponse), responseText);
+      assert.equal(result.generationRecord.outcome.attempts.length, 1);
+      return true;
+    });
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+  }
+});
+
+test('all active routes enforce the three-attempt cap for transient server failures', async (t) => {
+  isolate(t);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const fetch = t.mock.method(globalThis, 'fetch', async () => (
+      new Response('{"error":{"message":"Temporarily unavailable"}}', { status: 503 })
+    ));
+    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+      const attempts = formatApiError(error).body.error.generationRecord.outcome.attempts;
+      assert.equal(attempts.length, 3);
+      assert.ok(attempts.every(attempt => attempt.retryReason === 'transient_server_failure'));
+      assert.equal(attempts[2].retryStopReason, 'attempt_limit');
+      return true;
+    });
+    assert.equal(fetch.mock.callCount(), 3);
+    fetch.mock.restore();
+  }
 });
 
 test('the browser service sends native selection and retains failure diagnostics', async (t) => {

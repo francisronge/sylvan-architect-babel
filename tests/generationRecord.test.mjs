@@ -138,7 +138,7 @@ test('pure request builders retain the current provider wire shapes', () => {
   assert.equal(bodies.gpt.reasoning.effort, 'high');
   assert.equal(bodies.gpt.max_output_tokens, 8192);
   assert.equal(Object.hasOwn(bodies.gpt, 'temperature'), false);
-  assert.equal(bodies.claude.system, `${SYSTEM_TEXT}\n\nReturn exactly one valid JSON object and no prose.`);
+  assert.equal(bodies.claude.system, SYSTEM_TEXT);
   assert.equal(bodies.claude.output_config.effort, 'max');
   assert.equal(Object.hasOwn(bodies.claude, 'temperature'), false);
   assert.equal(bodies.local.options.num_predict, 4096);

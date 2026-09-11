@@ -1,27 +1,7 @@
 import { normalizeSurfaceToken } from './surfaceTokens.js';
-import {
-  normalizeSurfaceSpan,
-  normalizeTokenIndex,
-  getLabelProfile
-} from './treeBasics.js';
+import { normalizeTokenIndex } from './treeBasics.js';
 import { ParseApiError } from './error.js';
-import { resolveOvertLeafSurface, isTraceLikeNode, isNullLikeNode } from './derivationHelpers.js';
-
-// Empty heads such as Voice/T/v are structural placeholders until an overt
-// word lands in them. Do not count them as sentence material.
-const isBareEmptyStructuralHeadLeaf = (node) => {
-  if (!node || typeof node !== 'object') return false;
-  const children = Array.isArray(node.children) ? node.children : [];
-  if (children.length > 0) return false;
-  if (String(node.word || '').trim()) return false;
-  if (normalizeTokenIndex(node.tokenIndex, Number.POSITIVE_INFINITY) !== undefined) return false;
-  if (normalizeSurfaceSpan(node.surfaceSpan)) return false;
-  if (isTraceLikeNode(node) || isNullLikeNode(node)) return false;
-  const rawLabel = String(node.label || '').trim();
-  const profile = getLabelProfile(rawLabel);
-  if (!profile.isHeadLikeStructural) return false;
-  return rawLabel === rawLabel.toUpperCase() || /^[A-Z]/.test(rawLabel) || /^[cvtdnpaqi]$/i.test(rawLabel);
-};
+import { collectPronouncedLeaves, isPronouncedLeafWithin } from './nodePronunciation.js';
 
 export const sameTokenSequence = (leftTokens, rightTokens) => {
   if (leftTokens.length !== rightTokens.length) return false;
@@ -33,33 +13,19 @@ export const sameTokenSequence = (leftTokens, rightTokens) => {
   return true;
 };
 
-export const collectOvertTerminalNodes = (tree) => {
-  const terminals = [];
-  const visit = (node) => {
-    if (!node || typeof node !== 'object') return;
-    const children = Array.isArray(node.children) ? node.children : [];
-    if (children.length === 0) {
-      const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-      if (surface && !isTraceLikeNode(node) && !isNullLikeNode(node) && !isBareEmptyStructuralHeadLeaf(node)) terminals.push(node);
-      return;
-    }
-    children.forEach(visit);
-  };
-  visit(tree);
-  return terminals;
-};
+// Pronunciation is an authored-field decision, inherited from silent
+// ancestors; see nodePronunciation.js.
+export const collectOvertTerminalNodes = (tree) => collectPronouncedLeaves(tree);
 
 export const deriveCanonicalSurfaceSpans = (tree) => {
-  const visit = (node) => {
+  const visit = (node, underSilentAncestor = false) => {
     if (!node || typeof node !== 'object') {
       throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during surface-span normalization.', 502);
     }
 
     const children = Array.isArray(node.children) ? node.children : [];
     if (children.length === 0) {
-      const surface = normalizeSurfaceToken(resolveOvertLeafSurface(node));
-      const overt = Boolean(surface) && !isTraceLikeNode(node) && !isNullLikeNode(node) && !isBareEmptyStructuralHeadLeaf(node);
-      if (!overt) {
+      if (!isPronouncedLeafWithin(node, underSilentAncestor)) {
         delete node.surfaceSpan;
         return null;
       }
@@ -73,8 +39,9 @@ export const deriveCanonicalSurfaceSpans = (tree) => {
     }
 
     const childSpans = [];
+    const silentHere = underSilentAncestor || node.silent === true;
     children.forEach((child) => {
-      const childSpan = visit(child);
+      const childSpan = visit(child, silentHere);
       if (childSpan) childSpans.push(childSpan);
     });
 

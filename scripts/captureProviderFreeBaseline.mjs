@@ -56,7 +56,7 @@ const sourceSurfaces = Object.freeze([
   'server/babelParser/parseRoutes.js',
   'server/babelParser/parseNormalization.js',
   'server/babelParser/derivationCompiler.js',
-  'server/babelParser/derivationHelpers.js',
+  'server/babelParser/nodePronunciation.js',
   'server/babelParser/inventionDetector.js',
   'server/babelParser/surfaceTokens.js',
   'server/babelParser/syntaxTree.js',

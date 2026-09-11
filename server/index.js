@@ -231,7 +231,12 @@ app.post('/api/parse', parseLimiter, enforceDailyIpQuota, enforceParseRequestSec
     if (formatted.status >= 500) {
       console.error('[api/parse] server error', {
         code: formatted.body?.error?.code,
-        status: formatted.status
+        status: formatted.status,
+        runId: error.details?.generationRecord?.outcome?.runId,
+        ruleId: error.failure?.ruleId,
+        processingStep: error.failure?.processingStep,
+        fieldPath: error.failure?.fieldPath,
+        ...(error.details?.engineError ? { engineError: error.details.engineError } : {})
       });
     }
     res.status(formatted.status).json(formatted.body);

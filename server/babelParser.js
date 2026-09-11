@@ -17,7 +17,7 @@ import {
   extractLocalModelResponseText,
   summarizeGeneration
 } from './babelParser/modelRuntime.js';
-import { resolveNodeSurface } from './babelParser/derivationHelpers.js';
+import { authoredWord } from './babelParser/nodePronunciation.js';
 import { createParseRoutes } from './babelParser/parseRoutes.js';
 import { createParseNormalizationHelpers } from './babelParser/parseNormalization.js';
 import { createDerivationCompilerHelpers } from './babelParser/derivationCompiler.js';
@@ -36,6 +36,7 @@ const normalizeOptionalText = (value) => {
 };
 
 const {
+  inspectDerivationWorkspaces,
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   canonicalizeDerivationRootCandidateForSentence,
@@ -47,7 +48,7 @@ const {
   normalizeOptionalText,
   collectNodeReferencesById,
   collectOvertTerminalNodes,
-  resolveNodeSurface,
+  authoredWord,
   sameTokenSequence,
   deriveCanonicalSurfaceSpans
 });
@@ -64,7 +65,7 @@ const {
   buildCanonicalDerivationFromDerivationFrames,
   sameTokenSequence,
   collectOvertTerminalNodes,
-  resolveNodeSurface
+  authoredWord
 });
 
 const parseModelJson = (rawText) => parseStrictModelJson(
@@ -111,6 +112,7 @@ export const {
 });
 
 export const __test__ = {
+  inspectDerivationWorkspaces,
   normalizeParseBundle,
   normalizeParseResult,
   normalizeDerivationStagesToDerivationFrames,

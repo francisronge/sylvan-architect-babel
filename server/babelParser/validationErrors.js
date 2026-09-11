@@ -33,6 +33,12 @@ export const FAILURE_RULES = Object.freeze({
   RELATION_NAME_NONEMPTY: 'RELATION_NAME_NONEMPTY',
   RELATION_ANCHORS_OBJECT: 'RELATION_ANCHORS_OBJECT',
   DERIVATION_STAGE_WORKSPACE_FOREST_PRESENT: 'DERIVATION_STAGE_WORKSPACE_FOREST_PRESENT',
+  DERIVATION_WORKSPACE_VALID: 'DERIVATION_WORKSPACE_VALID',
+  DERIVATION_NODE_OPTIONAL_FIELD: 'DERIVATION_NODE_OPTIONAL_FIELD',
+  DERIVATION_TOKEN_INDEX_UNIQUE: 'DERIVATION_TOKEN_INDEX_UNIQUE',
+  DERIVATION_RELATION_ANCHOR_RESOLUTION: 'DERIVATION_RELATION_ANCHOR_RESOLUTION',
+  DERIVATION_TOKEN_ALIGNMENT: 'DERIVATION_TOKEN_ALIGNMENT',
+  DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS: 'DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS',
   SURFACE_ORDER_EXACT: 'SURFACE_ORDER_EXACT',
   PROVIDER_TRANSPORT: 'PROVIDER_TRANSPORT',
   PROVIDER_CONFIGURATION: 'PROVIDER_CONFIGURATION',
@@ -95,21 +101,36 @@ export const createRawOutputArtifact = (rawOutput) => {
   };
 };
 
-export const createFailure = ({
-  failureClass,
-  ruleId,
-  stageIndex = null,
-  fieldPath = '$',
-  offendingValue = null
-}) => ({
-  class: FAILURE_CLASS_VALUES.has(failureClass)
-    ? failureClass
-    : FAILURE_CLASSES.DETERMINISTIC_ENGINE_FAILURE,
-  ruleId: String(ruleId || FAILURE_RULES.DETERMINISTIC_ENGINE),
-  stageIndex: Number.isInteger(stageIndex) && stageIndex >= 0 ? stageIndex : null,
-  fieldPath: String(fieldPath || '$'),
-  offendingValue: normalizeOffendingValue(offendingValue)
-});
+export const createFailure = (input = {}) => {
+  const {
+    failureClass,
+    ruleId,
+    stageIndex = null,
+    fieldPath = '$',
+    offendingValue,
+    analysisIndex,
+    processingStep,
+    expectedForm,
+    message,
+    resolution,
+    requiredStageIndex
+  } = input;
+  return {
+    class: FAILURE_CLASS_VALUES.has(failureClass)
+      ? failureClass
+      : FAILURE_CLASSES.DETERMINISTIC_ENGINE_FAILURE,
+    ruleId: String(ruleId || FAILURE_RULES.DETERMINISTIC_ENGINE),
+    stageIndex: Number.isInteger(stageIndex) && stageIndex >= 0 ? stageIndex : null,
+    fieldPath: String(fieldPath || '$'),
+    offendingValue: normalizeOffendingValue(Object.hasOwn(input, 'offendingValue') ? offendingValue : null),
+    ...(Number.isInteger(analysisIndex) && analysisIndex >= 0 ? { analysisIndex } : {}),
+    ...(processingStep ? { processingStep } : {}),
+    ...(expectedForm ? { expectedForm } : {}),
+    ...(message ? { message } : {}),
+    ...(resolution ? { resolution } : {}),
+    ...(Number.isInteger(requiredStageIndex) ? { requiredStageIndex } : {})
+  };
+};
 
 const inferFailureClass = (code, details = {}) => {
   if (details?.failureClass && FAILURE_CLASS_VALUES.has(details.failureClass)) {
@@ -138,11 +159,8 @@ const inferFailureClass = (code, details = {}) => {
 export const failureFromErrorParts = (code, details = {}) => {
   if (details?.failure && typeof details.failure === 'object') {
     return createFailure({
+      ...details.failure,
       failureClass: details.failure.class,
-      ruleId: details.failure.ruleId,
-      stageIndex: details.failure.stageIndex,
-      fieldPath: details.failure.fieldPath,
-      offendingValue: details.failure.offendingValue
     });
   }
   return createFailure({

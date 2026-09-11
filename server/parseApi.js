@@ -146,7 +146,10 @@ export const projectPublicGenerationRecord = (generationRecord) => {
         outcome: attempt?.outcome,
         finishReason: attempt?.finishReason,
         finishStatus: attempt?.finishStatus,
-        statusCode: attempt?.statusCode
+        statusCode: attempt?.statusCode,
+        retryReason: attempt?.retryReason,
+        retryStopReason: attempt?.retryStopReason,
+        responseId: attempt?.responseId
       }))
     : undefined;
   return {

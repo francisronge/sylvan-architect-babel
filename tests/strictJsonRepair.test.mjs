@@ -35,12 +35,36 @@ test('reports appended EOF closers with their exact byte edit', () => {
   const parsed = __test__.parseModelJsonDetailed(candidate);
 
   assert.deepEqual(parsed.payload, { a: [1, 2] });
+  assert.equal(parsed.jsonDiagnostic.kind, 'json-syntax');
+  assert.equal(parsed.jsonDiagnostic.originalByteOffset, Buffer.byteLength(candidate));
   assert.deepEqual(parsed.integrityFlags, ['json_delimiter_damage_repaired']);
   assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
     kind: 'append_closers_at_end_of_output',
     candidateByteOffset: Buffer.byteLength(candidate, 'utf8'),
     insertedText: ']}'
   })]);
+});
+
+test('original JSON error offsets account for BOM, whitespace and multibyte text', () => {
+  const candidate = '{"é":[1,2}';
+  const raw = `\uFEFF\n  ${candidate}\n`;
+  const parsed = __test__.parseModelJsonDetailed(raw);
+  assert.equal(parsed.jsonDiagnostic.candidateByteOffset, Buffer.byteLength(candidate.slice(0, -1)));
+  assert.equal(parsed.jsonDiagnostic.originalByteOffset, Buffer.byteLength(raw.slice(0, raw.indexOf('}'))));
+  assert.match(parsed.jsonDiagnostic.message, /JSON/);
+});
+
+test('delimiter repairs preserve node-reference strings, escapes and literal delimiters', () => {
+  const payload = { derivationStages: [{ relations: [{ relation: 'Open',
+    anchors: { 'unfamiliar role': ['n]é', 'quoted"id'] },
+    priorAnchors: { old: 'n]é' }, values: { notation: '[}]\\' } }],
+    workspaceForest: [{ id: 'n]é', label: 'N', children: [] }, { refId: 'quoted"id' }] }] };
+  const json = JSON.stringify(payload);
+  for (const candidate of [json.slice(0, -2), `${json}}`, json.slice(0, -2) + '}']) {
+    const parsed = __test__.parseModelJsonDetailed(candidate);
+    assert.deepEqual(parsed.payload, payload);
+    assert.ok(parsed.repairDiagnostics.length > 0);
+  }
 });
 
 test('reports closers inserted before a mismatched closer at a UTF-8 byte offset', () => {
@@ -81,6 +105,9 @@ test('retains attempted edits when delimiter repair cannot produce valid JSON', 
     (error) => {
       assert.equal(error instanceof ParseApiError, true);
       assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+      assert.equal(error.failure.processingStep, 'json-decoding');
+      assert.equal(error.details.jsonDiagnostic.kind, 'json-syntax');
+      assert.match(error.details.jsonDiagnostic.message, /Unterminated string/);
       assert.deepEqual(error.details.payloadRepairDiagnostics, [expectedDiagnostic({
         kind: 'append_closers_at_end_of_output',
         candidateByteOffset: Buffer.byteLength('{"text":"unterminated}', 'utf8'),
@@ -96,6 +123,9 @@ test('retains successful delimiter edits when the repaired root is not an object
     () => __test__.parseModelJsonDetailed('[1,2'),
     (error) => {
       assert.equal(error instanceof ParseApiError, true);
+      assert.equal(error.details.jsonDiagnostic.kind, 'json-root-type');
+      assert.match(error.details.jsonDiagnostic.message, /received an array/);
+      assert.equal(error.details.jsonDiagnostic.originalSyntaxError.kind, 'json-syntax');
       assert.deepEqual(error.details.payloadRepairDiagnostics, [expectedDiagnostic({
         kind: 'append_closers_at_end_of_output',
         candidateByteOffset: Buffer.byteLength('[1,2', 'utf8'),
