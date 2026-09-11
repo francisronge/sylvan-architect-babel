@@ -47,18 +47,19 @@ for (const blank of ['', ' ']) {
   });
 
   test(`blank ${JSON.stringify(blank)} PF slots retain links, grouping and delink position`, () => {
-    const correspondence = inspect(relation({ terminal: 'a' }, { sources: ['past', blank, 'plural'], exponents: [blank, 'ed', 's'], correspondence: ['past => ed', 'plural => s'] }));
+    // A blank slot pairs with nothing and never shifts the remaining pairs.
+    const correspondence = inspect(relation({ terminal: 'a' }, { sources: ['past', blank, 'plural'], exponents: ['ed', blank, 's'] }));
     assert.deepEqual(correspondence.items.find(item => item.plaqueStyle === 'correspondence').nativeContent,
-      { kind: 'correspondence', sources: ['past', blank, 'plural'], exponents: [blank, 'ed', 's'], links: [{ sourceIndex: 0, exponentIndex: 1 }, { sourceIndex: 2, exponentIndex: 2 }] });
+      { kind: 'correspondence', sources: ['past', 'plural'], exponents: ['ed', 's'], links: [{ sourceIndex: 0, exponentIndex: 0 }, { sourceIndex: 1, exponentIndex: 1 }] });
     const impoverishment = inspect(relation({ terminal: 'a' }, { featureHierarchy: ['phi', blank, 'number', 'plural'], delinkAfter: 'number' }));
     assert.deepEqual(impoverishment.items.find(item => item.plaqueStyle === 'impoverishment').nativeContent,
       { kind: 'impoverishment', features: ['phi', blank, 'number', 'plural'], delinkIndex: 2 });
-    const fission = inspect({ ...relation({ outputs: ['a', 'b'] }, { inputFeatures: ['past', blank, 'plural'], outputOneFeatures: ['past', blank], outputTwoFeatures: ['plural'] }), priorAnchors: { input: 'input' } }, forest, [leaf('input')]);
+    const fission = inspect({ ...relation({ outputs: ['a', 'b'] }, { inputFeatures: ['past', blank, 'plural'], outputs: ['past', 'plural'] }), priorAnchors: { input: 'input' } }, forest, [leaf('input')]);
     assert.deepEqual(fission.items.find(item => item.plaqueStyle === 'fission').nativeContent,
-      { kind: 'fission', inputFeatures: ['past', blank, 'plural'], outputFeatures: [['past', blank], ['plural']] });
-    const badLinks = inspect(relation({ terminal: 'a' }, { sources: ['past'], exponents: ['ed'], correspondence: ['past => ed', blank] }));
+      { kind: 'fission', inputFeatures: ['past', blank, 'plural'], outputFeatures: [['past'], ['plural']] });
+    const badLinks = inspect(relation({ terminal: 'a' }, { sources: ['past'], exponents: ['ed', blank] }));
     assert(!badLinks.facets.includes('pf.correspondence'));
-    assert.deepEqual(badLinks.dispatch.primaryRelation.values.correspondence, ['past => ed', blank]);
+    assert.deepEqual(badLinks.dispatch.primaryRelation.values.exponents, ['ed', blank]);
   });
 }
 
@@ -222,7 +223,10 @@ test('Dependent Case prepares one literal step and never selects the first of se
   const bad = inspect(relation(anchors, { features: 'dependent case', step: ['1', '2'] }));
   assert(!bad.facets.includes('dependent-case'));
   assert.deepEqual(bad.dispatch.primaryRelation.values.step, ['1', '2']);
-  for (const step of ['', ' ', [], [''], '3', 'Step 1', 'first']) {
+  for (const literal of ['3', 'Step 1', 'first']) {
+    assert.equal(inspect(relation(anchors, { features: 'dependent case', step: literal })).items.find(item => item.pathStyle === 'dependent-case').dependentCaseStep, literal, 'an open step literal is shown as written');
+  }
+  for (const step of ['', ' ', [], ['']]) {
     const invalid = inspect(relation(anchors, { features: 'dependent case', step }));
     assert(!invalid.facets.includes('dependent-case'), JSON.stringify(step));
     assert.deepEqual(invalid.dispatch.primaryRelation.values.step, step);
@@ -230,10 +234,6 @@ test('Dependent Case prepares one literal step and never selects the first of se
 });
 
 test('linearization prepares only explicit columns or ordered prior/current witnesses', () => {
-  const values = { priorOrder: [' a < b ', ' a < b '], currentOrder: [' b < a '] };
-  const explicit = inspect(relation({ order: 'root' }, values));
-  assert.deepEqual(explicit.items.find(item => item.plaqueStyle === 'linearization').nativeContent,
-    { kind: 'linearization', currentNodeIds: ['root'], priorNodeIds: [], priorRows: values.priorOrder, currentRows: values.currentOrder, conflict: false });
   const witnessed = inspect({ ...relation({ order: ['b', 'a'] }), priorAnchors: { order: ['a', 'b'] } }, forest, forest);
   assert.deepEqual(witnessed.items.find(item => item.plaqueStyle === 'linearization').nativeContent,
     { kind: 'linearization', currentNodeIds: ['b', 'a'], priorNodeIds: ['a', 'b'], priorRows: ['a < b'], currentRows: ['b < a'], conflict: false });

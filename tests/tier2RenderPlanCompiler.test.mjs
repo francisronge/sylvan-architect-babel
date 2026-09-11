@@ -392,7 +392,7 @@ test('Tier-2 prior continuity contains only prior evidence owned by that facet',
         input: 'owned_prior_input',
         mystery: 'residual_prior_note'
       },
-      values: { inputFeatures: ['person', 'plural'], outputOneFeatures: ['person'], outputTwoFeatures: ['plural'] }
+      values: { inputFeatures: ['person', 'plural'], outputs: ['person', 'plural'] }
     }], currentForest)
   ]);
   const fission = plan.frames[1].items.find((item) => item.tier2FacetId === 'pf.fission');

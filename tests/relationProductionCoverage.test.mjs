@@ -590,10 +590,12 @@ test('PFRealization collects same-stage VocabularyInsertion rows into one plate,
 test('CyclicLinearization keeps earlier instances visible and retains the backward cue', () => {
   const forest = fixtureForest();
   const plan = compileRelationRenderPlan([
+    stage([], forest),
     stage([{
       relation: 'CyclicLinearization',
       anchors: { order: ['a_fx', 'b_fx'], edgePosition: 'a_fx' },
-      values: { outcome: 'licensed', priorOrder: ['a < b'], currentOrder: ['a < b'] }
+      priorAnchors: { order: ['a_fx', 'b_fx'] },
+      values: { outcome: 'licensed' }
     }], forest),
     stage([{
       relation: 'CyclicLinearization',
@@ -602,8 +604,8 @@ test('CyclicLinearization keeps earlier instances visible and retains the backwa
       values: { outcome: 'conflict' }
     }], forest)
   ]);
-  const frameZero = plan.frames[0].items.filter((item) => item.kind === 'node-plaque');
-  const frameOne = visiblePlanFrameItems(plan, 1, null)
+  const frameZero = plan.frames[1].items.filter((item) => item.kind === 'node-plaque');
+  const frameOne = visiblePlanFrameItems(plan, 2, null)
     .filter((item) => item.kind === 'node-plaque');
   assert.equal(frameZero.length, 1);
   assert.equal(frameOne.length, 2);

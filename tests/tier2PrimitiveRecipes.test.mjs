@@ -678,7 +678,12 @@ test('all six transition kinds require their authored stage difference', () => {
     priorAnchors: { 'rewrite.input': ['bundle'] },
     currentForest: [node('word', 'Word', [leaf('person', '-su'), leaf('plural', '-e')])],
     priorForest: [leaf('bundle', '-sue')],
-    values: { 'fission.input': ['person', 'plural'], 'fission.first': ['person'], 'fission.second': ['plural'] }
+    values: { 'fission.input': ['person', 'plural'], 'fission.output': ['person', 'plural'] },
+    authoredCurrentAnchors: [{ key: 'outputs', concepts: ['rewrite.outputs'], items: ['person', 'plural'] }],
+    authoredValues: [
+      { key: 'input features', concepts: ['fission.input'], items: ['person', 'plural'] },
+      { key: 'outputs', concepts: [], items: ['person', 'plural'] }
+    ]
   }));
   assert.deepEqual(fission.earnedTransitions, ['fission']);
 

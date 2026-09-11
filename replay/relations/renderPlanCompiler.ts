@@ -59,7 +59,7 @@ import {
 import { buildTier2FacetEvidence, dispatchRelationClaims, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
-import { literalThetaRoles, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export type PlanRelationRef = {
@@ -268,7 +268,7 @@ export type DirectedPathPlanItem = PlanItemBase & {
   projectionFeature?: string;
   projectionTargetAttachment?: 'terminal' | 'shell';
   sourceOccurrenceNodeId?: string;
-  dependentCaseStep?: '1' | '2';
+  dependentCaseStep?: string;
   outcome?: 'licensed' | 'blocked';
 };
 
@@ -2729,9 +2729,10 @@ export const compileRelationRenderPlan = (
         case 'pf-correspondence': {
           const anchor = flattenAnchorIds(anchors.word || anchors.terminal)[0];
           if (!requireResolved('word', anchor)) return;
-          const nativeContent = prepareNativePlaqueContent('correspondence', verbatimRows(values), [anchor]);
+          const correspondenceEvidence = buildTier2FacetEvidence({ relation: primaryRelation, currentForest: stage.workspaceForest || [] });
+          const nativeContent = prepareNativePlaqueContent('correspondence', tier2NativePlaqueRows(correspondenceEvidence), [anchor]);
           if (!nativeContent) {
-            pushDiagnostic('illegal-configuration', 'PF correspondence needs unambiguous source/exponent associations');
+            pushDiagnostic('illegal-configuration', 'PF correspondence needs sources and exponents paired item by item');
             pushNeutralFallback(primaryRelation.anchors, false);
             return;
           }
@@ -2749,9 +2750,11 @@ export const compileRelationRenderPlan = (
         case 'fission': {
           const outputs = resolvedIds('outputs', anchors.outputs);
           if (outputs.length === 0) return;
-          const nativeContent = prepareNativePlaqueContent('fission', verbatimRows(values), outputs);
+          const fissionEvidence = buildTier2FacetEvidence({ relation: primaryRelation, currentForest: stage.workspaceForest || [],
+            ...(stageIndex > 0 ? { priorForest: stageList[stageIndex - 1].workspaceForest } : {}) });
+          const nativeContent = prepareNativeFissionContent(fissionEvidence);
           if (!nativeContent) {
-            pushDiagnostic('illegal-configuration', 'Native fission requires exactly two outputs with explicit input and output feature bundles');
+            pushDiagnostic('illegal-configuration', 'Native fission requires exactly two outputs, the input features, and one feature bundle per output paired by name');
             pushNeutralFallback(primaryRelation.anchors, false);
             return;
           }

@@ -142,8 +142,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
   group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'exponent']),
   group('value', 'fission.input', ['input features']),
-  group('value', 'fission.first', ['output one features']),
-  group('value', 'fission.second', ['output two features']),
+  group('value', 'fission.output', ['output features', 'outputs features', 'bundle features']),
   group('value', 'feature.hierarchy', ['feature hierarchy']),
   group('value', 'pf.sources', ['sources']),
   group('value', 'pf.exponents', ['exponents']),
@@ -151,10 +150,6 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'storage.qstore', ['qstore']),
   group('value', 'storage.retrieved', ['retrieved']),
   group('value', 'rewrite.rows', ['rewrite rows', 'mapping', 'input output rows', 'realization rows']),
-  group('value', 'correspondence.rows', ['correspondence rows', 'correspondence', 'correspondences', 'mapping rows', 'source exponent pairs']),
-  group('value', 'order.rows', ['order rows', 'precedence rows', 'linearization rows']),
-  group('value', 'order.prior', ['prior order']),
-  group('value', 'order.current', ['current order']),
   group('value', 'delink.position', ['delink position', 'delink after', 'removed link', 'crossed link'])
 ];
 

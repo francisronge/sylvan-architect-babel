@@ -6,6 +6,7 @@ export type NativePlaqueContent =
   | { kind: 'correspondence'; sources: string[]; exponents: string[];
       links: Array<{ sourceIndex: number; exponentIndex: number }> }
   | { kind: 'fission'; inputFeatures: string[]; outputFeatures: [string[], string[]] }
+  /* fission content is prepared in tier2FacetRecipes from paired output literals */
   | { kind: 'impoverishment'; features: string[]; delinkIndex: number }
   | { kind: 'cooper-storage'; rows: Array<{ label: string; value: string }> }
   | { kind: 'linearization'; currentNodeIds: string[]; priorNodeIds: string[];
@@ -49,8 +50,10 @@ export const prepareNativeLinearizationContent = (
     const labels = ids.map((id) => labelFor(nodes.get(id)!));
     return labels.slice(0, -1).map((label, index) => `${label} < ${labels[index + 1]}`);
   };
-  const currentRows = currentNodeIds.length > 1 ? rowsFor(currentNodeIds, currentNodes) : [...(evidence.values['order.current'] ?? [])];
-  const priorRows = priorNodeIds.length > 1 ? rowsFor(priorNodeIds, priorNodes) : [...(evidence.values['order.prior'] ?? [])];
+  // Orders are node lists: current in anchors, previous in priorAnchors. The
+  // precedence rows are Babel's rendering of those lists, never parsed text.
+  const currentRows = currentNodeIds.length > 1 ? rowsFor(currentNodeIds, currentNodes) : [];
+  const priorRows = priorNodeIds.length > 1 ? rowsFor(priorNodeIds, priorNodes) : [];
   if (!currentRows.length || !priorRows.length || [...currentRows, ...priorRows].some((row) => !row.trim())) return;
   return { kind: 'linearization', currentNodeIds, priorNodeIds, currentRows, priorRows,
     conflict: outcomes[0] === 'conflict' };
@@ -59,11 +62,12 @@ export const prepareNativeLinearizationContent = (
 export const nativeLinearizationPlateHeight = (content: NativePlaqueContent | undefined): number =>
   content?.kind === 'linearization' ? 70 + Math.max(content.priorRows.length, content.currentRows.length) * 17 : 0;
 
-export const prepareNativeDependentCaseStep = (value: string | string[] | undefined): '1' | '2' | undefined => {
+/** One authored step literal, shown as written; no enumeration is imposed. */
+export const prepareNativeDependentCaseStep = (value: string | string[] | undefined): string | undefined => {
   const items = Array.isArray(value) ? value : value === undefined ? [] : [value];
   if (items.length !== 1) return;
   const step = items[0].normalize('NFKC').trim();
-  return step === '1' || step === '2' ? step : undefined;
+  return step || undefined;
 };
 
 
@@ -74,13 +78,6 @@ export const prepareNativePlaqueContent = (
   anchorNodeIds: readonly string[]
 ): NativePlaqueContent | undefined => {
   const list = (key: string) => rows.filter((row) => row.label === key).map((row) => row.value);
-  if (style === 'fission') {
-    const inputFeatures = list('inputFeatures');
-    const first = list('outputOneFeatures');
-    const second = list('outputTwoFeatures');
-    if (anchorNodeIds.length !== 2 || !inputFeatures.length || !first.length || !second.length) return;
-    return { kind: 'fission', inputFeatures, outputFeatures: [first, second] };
-  }
   if (style === 'impoverishment') {
     const features = list('featureHierarchy');
     const after = list('delinkAfter');
@@ -90,20 +87,22 @@ export const prepareNativePlaqueContent = (
     return { kind: 'impoverishment', features, delinkIndex: matches[0] };
   }
   if (style === 'correspondence') {
-    const sources = list('sources');
-    const exponents = list('exponents');
-    const authoredLinks = list('correspondence');
-    if (anchorNodeIds.length !== 1 || !sources.length || !exponents.length || !authoredLinks.length) return;
-    const links: Array<{ sourceIndex: number; exponentIndex: number }> = [];
-    for (const entry of authoredLinks) {
-      const parts = entry.split('=>');
-      if (parts.length !== 2) return;
-      const source = sources.flatMap((value, index) => value === parts[0].trim() ? [index] : []);
-      const exponent = exponents.flatMap((value, index) => value === parts[1].trim() ? [index] : []);
-      if (source.length !== 1 || exponent.length !== 1) return;
-      links.push({ sourceIndex: source[0], exponentIndex: exponent[0] });
-    }
-    return { kind: 'correspondence', sources, exponents, links };
+    // Sources and exponents pair item by item, as the contract's pairing
+    // sentence says. A repeated literal expresses many-to-many; a blank
+    // exponent leaves its source unlinked. The plate lists each distinct
+    // literal once and draws the authored pairs.
+    const pairedSources = list('sources');
+    const pairedExponents = list('exponents');
+    if (anchorNodeIds.length !== 1 || !pairedSources.length || pairedSources.length !== pairedExponents.length) return;
+    const sources = Array.from(new Set(pairedSources.filter((value) => value.trim())));
+    const exponents = Array.from(new Set(pairedExponents.filter((value) => value.trim())));
+    if (!sources.length || !exponents.length) return;
+    const links = pairedSources.flatMap((source, index) => {
+      const exponent = pairedExponents[index];
+      if (!source.trim() || !exponent.trim()) return [];
+      return [{ sourceIndex: sources.indexOf(source), exponentIndex: exponents.indexOf(exponent) }];
+    });
+    return links.length ? { kind: 'correspondence', sources, exponents, links } : undefined;
   }
   if (style === 'cooper-storage') {
     const category = list('category');

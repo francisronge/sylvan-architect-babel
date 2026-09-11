@@ -831,7 +831,8 @@ test('CyclicLinearization uses compact production anchor badges', () => {
 
 test('DependentCase prepares one literal step and leaves absent-step layout unchanged', () => {
   const forest = [node('root', 'TP', [leaf('a', 'D', 'Mia'), leaf('b', 'D', 'Noa')])];
-  for (const stepValue of [undefined, '1', ['1'], '2', ' 1 ']) {
+  // The step is an open literal shown as written; only multiplicity and blanks are rejected.
+  for (const stepValue of [undefined, '1', ['1'], '2', ' 1 ', 'first', 'Step 1', '3']) {
     const relation = { relation: 'DependentCase', anchors: { searcher: 'a', licensee: 'b' },
       values: { probeLabel: 'UNM', goalLabel: 'ACC', ...(stepValue === undefined ? {} : { step: stepValue }) } };
     const original = structuredClone(relation);
@@ -844,7 +845,7 @@ test('DependentCase prepares one literal step and leaves absent-step layout unch
     assert.equal(path.secondaryLabel, 'ACC');
     assert.deepEqual(relation, original);
   }
-  for (const stepValue of [[], ['1', '2'], ['1', '1'], '', [''], 'first', 'Step 1', '3']) {
+  for (const stepValue of [[], ['1', '2'], ['1', '1'], '', ['']]) {
     const plan = compileRelationRenderPlan([stage([{ relation: 'DependentCase',
       anchors: { probe: 'a', goal: 'b' }, values: { step: stepValue } }], forest)]);
     assert.ok(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
@@ -918,12 +919,10 @@ test('an unknown membership array remains neutral without inventing identity', (
 test('unsupported native PF content remains neutral with an explicit diagnostic', () => {
   const forest = [node('root', 'TP', [leaf('a', 'T', 'did'), leaf('b', 'V', 'go'), leaf('c', 'D', 'she')])];
   for (const relation of [
-    { relation: 'Fission', anchors: { outputs: ['a', 'b', 'c'] }, values: {
-      inputFeatures: ['phi'], outputOneFeatures: ['person'], outputTwoFeatures: ['number']
-    } },
+    { relation: 'Fission', anchors: { outputs: ['a', 'b', 'c'] }, values: { inputFeatures: ['phi'], outputs: ['person', 'number'] } },
     { relation: 'Fission', anchors: { outputs: ['a', 'b'] }, values: { features: ['phi'] } },
     { relation: 'Impoverishment', anchors: { terminal: 'a' }, values: { featureHierarchy: ['a', 'b'], delinkAfter: 'missing' } },
-    { relation: 'ManyToManyCorrespondence', anchors: { word: 'a' }, values: { sources: ['T'], exponents: ['did'] } }
+    { relation: 'ManyToManyCorrespondence', anchors: { word: 'a' }, values: { sources: ['T', 'V'], exponents: ['did'] } }
   ]) {
     const original = structuredClone(relation);
     const plan = compileRelationRenderPlan([stage([relation], forest)]);

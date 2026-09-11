@@ -75,14 +75,15 @@ test('two independent DependentCase sequences coexist; only a same-participant r
 test('two independent CyclicLinearization domains coexist across stages', () => {
   const forest = wideForest();
   const plan = compileRelationRenderPlan([
+    stage([], forest),
     stage([
-      { relation: 'CyclicLinearization', anchors: { order: ['a_fu', 'b_fu'] }, values: { outcome: 'licensed', priorOrder: ['a < b'], currentOrder: ['a < b'] } }
+      { relation: 'CyclicLinearization', anchors: { order: ['a_fu', 'b_fu'] }, priorAnchors: { order: ['a_fu', 'b_fu'] }, values: { outcome: 'licensed' } }
     ], forest),
     stage([
-      { relation: 'CyclicLinearization', anchors: { order: ['c_fu', 'd_fu'] }, values: { outcome: 'licensed', priorOrder: ['c < d'], currentOrder: ['c < d'] } }
+      { relation: 'CyclicLinearization', anchors: { order: ['c_fu', 'd_fu'] }, priorAnchors: { order: ['c_fu', 'd_fu'] }, values: { outcome: 'licensed' } }
     ], forest)
   ]);
-  const frameOne = plan.frames[1].items.filter((item) => item.kind === 'node-plaque');
+  const frameOne = plan.frames[2].items.filter((item) => item.kind === 'node-plaque');
   assert.equal(frameOne.length, 2,
     'a later unrelated domain never erases an earlier one; replacement needs a provable thread');
 });

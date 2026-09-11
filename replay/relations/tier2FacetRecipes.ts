@@ -12,7 +12,7 @@ import {
   type OutcomeConcept
 } from './outcomeResolver.ts';
 import { isExplicitTier2Role, normalizeTier2Synonym } from './tier2Synonyms.ts';
-import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
+import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
   'Movement curve',
@@ -208,10 +208,11 @@ export type Tier2StructuralCheck =
   | { kind: 'feature-dependency' }
   | { kind: 'dependent-case-step' }
   | { kind: 'native-linearization' }
+  /** The sequence is regrouped between the prior and current trees without changing terminal order. */
+  | { kind: 'rebracketing-configuration' }
   | { kind: 'explicit-npi' }
   | { kind: 'explicit-ellipsis' }
   | { kind: 'movement-carrier' }
-  | { kind: 'order-notation'; notation: 'rebracketing' | 'precedence' }
   | { kind: 'native-plaque'; style: 'fission' | 'impoverishment' | 'correspondence' | 'cooper-storage'; anchorRole: string }
   | { kind: 'shared-native-parent'; roles: readonly [string, string] }
   | { kind: 'siblings-within-domain'; leftRole: string; rightRole: string; domainRole: string }
@@ -766,14 +767,17 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('pf.correspondence', {
     anchors: [current('terminal', 1, 1)],
-    values: [value('pf.sources'), value('pf.exponents'), value('correspondence.rows')],
+    values: [value('pf.sources'), value('pf.exponents')],
     checks: [{ kind: 'native-plaque', style: 'correspondence', anchorRole: 'terminal' }],
     outputs: [output('Correspondence map')]
   }),
   recipe('pf.fission', {
     anchors: [prior('rewrite.input', 1, 1), current('rewrite.outputs', 2, 2)],
-    values: [value('fission.input'), value('fission.first'), value('fission.second')],
-    checks: [{ kind: 'native-plaque', style: 'fission', anchorRole: 'rewrite.outputs' }],
+    values: [value('fission.input'), value('fission.output', 2, 2)],
+    checks: [
+      { kind: 'paired-values', role: 'rewrite.outputs', value: 'fission.output' },
+      { kind: 'native-plaque', style: 'fission', anchorRole: 'rewrite.outputs' }
+    ],
     outputs: [output('Bundle shell')],
     transitionRules: [{ kind: 'fission', evidence: 'fission-stage-difference' }]
   }),
@@ -786,15 +790,15 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('pf.local-dislocation', {
     anchors: [current('sequence', 2)],
-    values: [value('order.rows', 2)],
-    checks: [{ kind: 'order-notation', notation: 'rebracketing' }],
+    values: [],
+    checks: [{ kind: 'rebracketing-configuration' }],
     outputs: [output('State lanes')],
     transitionRules: [{ kind: 'rebracketing', evidence: 'rebracketing-stage-difference' }]
   }),
   recipe('pf.linearization', {
     anchors: [current('order', 1)],
-    values: [optionalValue('order.rows', 1), optionalValue('order.prior', 1), optionalValue('order.current', 1)],
-    checks: [{ kind: 'order-notation', notation: 'precedence' }, { kind: 'native-linearization' }],
+    values: [],
+    checks: [{ kind: 'native-linearization' }],
     outputs: [output('Comparison column layout')]
   }),
   recipe('organization.large-anchor-set', {
@@ -996,11 +1000,24 @@ export const literalThetaRoles = (evidence: Tier2FacetEvidence): Array<{ nodeId:
 
 // Native plates require named groups. Only bound, consumed concepts get these
 // internal field names; raw row labels remain available for literal display.
+/**
+ * Fission: two output terminals in anchors, one feature-bundle literal per
+ * output paired by the same-name rule, and the input bundle as a list.
+ */
+export const prepareNativeFissionContent = (
+  evidence: Tier2FacetEvidence
+): Extract<NativePlaqueContent, { kind: 'fission' }> | undefined => {
+  const outputs = anchorIds(evidence, 'rewrite.outputs');
+  const bundles = pairedLiterals(evidence, 'rewrite.outputs', 'fission.output');
+  const inputFeatures = valueLiterals(evidence, 'fission.input');
+  if (outputs.length !== 2 || !bundles || bundles.length !== 2 || bundles.some(bundle => !bundle.trim()) || !inputFeatures.length) return;
+  return { kind: 'fission', inputFeatures, outputFeatures: [[bundles[0]], [bundles[1]]] };
+};
+
 export const tier2NativePlaqueRows = (evidence: Tier2FacetEvidence): Array<{ label: string; value: string }> =>
   Object.entries({
-    'fission.input': 'inputFeatures', 'fission.first': 'outputOneFeatures', 'fission.second': 'outputTwoFeatures',
     'feature.hierarchy': 'featureHierarchy', 'delink.position': 'delinkAfter',
-    'pf.sources': 'sources', 'pf.exponents': 'exponents', 'correspondence.rows': 'correspondence',
+    'pf.sources': 'sources', 'pf.exponents': 'exponents',
     'storage.category': 'category', 'storage.qstore': 'qstore', 'storage.retrieved': 'retrieved'
   }).flatMap(([concept, label]) => valueLiterals(evidence, concept).map(value => ({ label, value })));
 
@@ -1124,7 +1141,8 @@ const evaluateStructuralCheck = (
   recipeEntry: Tier2FacetRecipe,
   evidence: Tier2FacetEvidence,
   currentIndex: TreeIndex,
-  outcomeConcept: OutcomeConcept | null
+  outcomeConcept: OutcomeConcept | null,
+  priorIndex: TreeIndex = buildTreeIndex(evidence.priorForest)
 ): boolean | string => {
   const ids = (role: string) => anchorIds(evidence, role, 'current');
   switch (check.kind) {
@@ -1243,6 +1261,9 @@ const evaluateStructuralCheck = (
     }
     case 'native-linearization':
       return Boolean(prepareNativeLinearizationContent(evidence));
+    case 'rebracketing-configuration':
+      return rebracketingTransition(evidence, currentIndex, priorIndex)
+        || 'the prior and current trees do not regroup the sequence with its order unchanged';
     case 'dependent-case-step': {
       const entries = evidence.authoredValues?.filter(entry => normalizeTier2Synonym(entry.key) === 'step');
       const literals = entries?.length ? entries.flatMap(entry => entry.items) : evidence.values.step;
@@ -1256,16 +1277,10 @@ const evaluateStructuralCheck = (
     case 'movement-carrier':
       return ['movement.source', 'movement.landing'].some(role =>
         nodeContainsAny(currentIndex, ids('movement.carrier'), ids(role)));
-    case 'order-notation': {
-      const rows = check.notation === 'precedence'
-        ? ['order.rows', 'order.prior', 'order.current'].flatMap(role => valueLiterals(evidence, role))
-        : valueLiterals(evidence, 'order.rows');
-      return check.notation === 'precedence'
-        ? rows.every(row => /^[^<>\[\]()]+(?:\s*<\s*[^<>\[\]()]+)+$/u.test(row))
-        : rows.some(row => /\[[^\[\]]+\]/u.test(row)) && rows.every(row => !/[<>]/u.test(row));
-    }
     case 'native-plaque':
-      return Boolean(prepareNativePlaqueContent(check.style, tier2NativePlaqueRows(evidence), ids(check.anchorRole)));
+      return check.style === 'fission'
+        ? Boolean(prepareNativeFissionContent(evidence))
+        : Boolean(prepareNativePlaqueContent(check.style, tier2NativePlaqueRows(evidence), ids(check.anchorRole)));
     case 'accepted-outcome':
       return outcomeConcept !== null && recipeEntry.acceptedOutcomeConcepts.includes(outcomeConcept);
     case 'active-lens':
@@ -1630,7 +1645,7 @@ export const evaluateTier2FacetRecipe = (
     && valueLiterals(evidence, 'outcome').length > 0 && !outcomeConcept) failures.push('value:outcome-not-accepted');
   recipeEntry.checks.forEach((check) => {
     if (ambiguousFields.size) return;
-    const result = evaluateStructuralCheck(check, recipeEntry, evidence, currentIndex, outcomeConcept);
+    const result = evaluateStructuralCheck(check, recipeEntry, evidence, currentIndex, outcomeConcept, priorIndex);
     if (result !== true) {
       failures.push(typeof result === 'string' ? `check:${check.kind}:${result}`
         : check.kind === 'prior-source-consistency'

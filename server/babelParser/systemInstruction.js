@@ -46,7 +46,7 @@ It may also contain these optional fields:
 - priorAnchors: the same object format as anchors, but every id resolves in the immediately preceding stage's expanded workspace. Use it when this relation refers to that earlier state, not merely because the current object existed before.
 - values: a nonempty object with nonblank entry names. Each entry contains a literal string or a nonempty array of literal strings. Literal strings may be empty. Record the relation's literal content here even when it also appears in its name. Syntax references belong in anchors or priorAnchors. Omit values when there is no literal content.
 Anchor-role and value-entry names are not fixed fields or a prescribed vocabulary. Keep array order and repeated entries when they are part of the analysis.
-When a values entry lists one literal per item of an anchor entry, give both entries the same name and the same length. When two anchor entries pair their items one by one, give them the same length and order.
+When a values entry lists one literal per item of an anchor entry, give both entries the same name and the same length. When two entries pair their items one by one, give them the same length and order.
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
 List relations in the derivational order explained in stageRecord, with prerequisites before dependent relations. This orders relations, not the display's selection, projection, and merge steps.
 If the analysis makes an illicit judgment, explain it in stageRecord and anchor its relation to the relevant syntax. A judgment about the whole analysis is anchored to its final root.
