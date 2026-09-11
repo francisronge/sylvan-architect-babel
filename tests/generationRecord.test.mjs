@@ -22,7 +22,7 @@ const recordFor = ({
   provider,
   sentRequest,
   framework = 'xbar',
-  promptRoute = provider === 'local' ? 'gemini' : provider
+  promptRoute = provider
 }) => buildGenerationRecord({
   provider,
   framework,

@@ -927,19 +927,11 @@ export const cloneSyntaxTree = (node?: SyntaxNode | null): SyntaxNode | null => 
   return JSON.parse(serialized) as SyntaxNode;
 };
 
-const LOW_SIGNAL_REPLAY_TEXT_RE = /^(?:initial logic and parameters are validated|standard processing applied|standard processing is applied|default processing applied|final transformation(?: applied)?|structural relations are established|final structure established|the derivation converges(?: with all features checked(?: and the overt word order successfully derived)?)?(?: and is sent to spellout)?|(?:lexicalselect|project|externalmerge|headmove|a-move|abarmove|agree|spellout|other|[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*)*)\s+frame\s+\d+)\.?$/i;
-
-const isLowSignalReplayText = (value?: string | null): boolean => {
-  const trimmed = String(value || '').trim();
-  if (!trimmed) return true;
-  return LOW_SIGNAL_REPLAY_TEXT_RE.test(trimmed);
-};
-
+/** The first non-blank authored text. Prose is never classified as boilerplate. */
 const pickPreferredReplayText = (...values: Array<string | undefined | null>): string | undefined => {
   for (const value of values) {
     const trimmed = String(value || '').trim();
-    if (!trimmed || isLowSignalReplayText(trimmed)) continue;
-    return trimmed;
+    if (trimmed) return trimmed;
   }
   return undefined;
 };
@@ -7652,84 +7644,9 @@ export const buildReplayPanelContent = (
   };
 };
 
-const stepTargetsAnyLabel = (step: PlaybackStep, labels: string[]): boolean => {
-  const normalizedTarget = normalizeReplayTargetLabel(step.targetLabel);
-  return labels.some((label) => normalizedTarget === normalizeReplayTargetLabel(label));
-};
 
-const findReplayDisplayStepIndex = (
-  steps: PlaybackStep[],
-  sourceIndex: number,
-  predicate: (step: PlaybackStep, index: number) => boolean
-): number => {
-  for (let index = Math.min(sourceIndex, steps.length - 1); index >= 0; index -= 1) {
-    if (predicate(steps[index], index)) return index;
-  }
-  return sourceIndex;
-};
 
-const findReplayCaseDisplayStepIndex = (
-  steps: PlaybackStep[],
-  sourceIndex: number,
-  line: string
-): number => {
-  const normalizedLine = normalizeReplayTextForCommittedInventory(line, steps);
-  if (/\bby\s+infl\b/i.test(normalizedLine) || /\bby\s+t\b/i.test(normalizedLine)) {
-    return findReplayDisplayStepIndex(
-      steps,
-      sourceIndex,
-      (step) =>
-        stepTargetsAnyLabel(step, ['Infl', "Infl'", 'InflP', 'T', "T'", 'TP']) &&
-        !stepRepresentsMovement(step)
-    );
-  }
-  if (/\bby\s+v\b/i.test(normalizedLine)) {
-    return findReplayDisplayStepIndex(
-      steps,
-      sourceIndex,
-      (step) =>
-        stepTargetsAnyLabel(step, ['V', "V'", 'VP', 'v', "v'", 'vP']) &&
-        !stepRepresentsMovement(step)
-    );
-  }
-  return sourceIndex;
-};
 
-const findReplaySelectionDisplayStepIndex = (
-  steps: PlaybackStep[],
-  sourceIndex: number,
-  line: string
-): number => {
-  const normalizedLine = normalizeReplayTextForCommittedInventory(line, steps);
-  if (/^\s*v\b/i.test(normalizedLine)) {
-    return findReplayDisplayStepIndex(
-      steps,
-      sourceIndex,
-      (step) =>
-        stepTargetsAnyLabel(step, ['V', "V'", 'VP', 'v', "v'", 'vP']) &&
-        !stepRepresentsMovement(step)
-    );
-  }
-  if (/^\s*infl\b/i.test(normalizedLine) || /^\s*t\b/i.test(normalizedLine)) {
-    return findReplayDisplayStepIndex(
-      steps,
-      sourceIndex,
-      (step) =>
-        stepTargetsAnyLabel(step, ['Infl', "Infl'", 'InflP', 'T', "T'", 'TP']) &&
-        !stepRepresentsMovement(step)
-    );
-  }
-  if (/^\s*c\b/i.test(normalizedLine)) {
-    return findReplayDisplayStepIndex(
-      steps,
-      sourceIndex,
-      (step) =>
-        stepTargetsAnyLabel(step, ['C', "C'", 'CP', 'Foc', "Foc'", 'FocP']) &&
-        !stepRepresentsMovement(step)
-    );
-  }
-  return sourceIndex;
-};
 
 export const buildReplayDisplayDetailBlocks = (
   steps: PlaybackStep[]
@@ -7748,62 +7665,14 @@ export const buildReplayDisplayDetailBlocks = (
     byStep.set(stepIndex, bucket);
   };
 
+  // Detail blocks come from the Stage Record and the authored relations of
+  // their own step. Nothing here reads prose to move a line elsewhere.
   steps.forEach((step, sourceIndex) => {
     const blocks = Array.isArray(step.detailBlocks) ? step.detailBlocks : [];
     blocks.forEach((block) => {
       const title = String(block?.title || '').trim();
       const lines = Array.isArray(block?.lines) ? block.lines.filter(Boolean) : [];
       if (!title || lines.length === 0) return;
-      const normalizedTitle = normalizeReplayBlockTitleKey(title);
-
-      if (normalizedTitle === 'CASE ASSIGNMENT') {
-        lines.forEach((line) => {
-          const targetIndex = findReplayCaseDisplayStepIndex(steps, sourceIndex, line);
-          pushBlockLine(targetIndex, title, line);
-        });
-        return;
-      }
-
-      if (normalizedTitle === 'THETA ROLES') {
-        const targetIndex = findReplayDisplayStepIndex(
-          steps,
-          sourceIndex,
-          (candidate) =>
-            stepTargetsAnyLabel(candidate, ['VP', "V'", 'vP', "v'"]) &&
-            !stepRepresentsMovement(candidate)
-        );
-        lines.forEach((line) => pushBlockLine(targetIndex, title, line));
-        return;
-      }
-
-      if (normalizedTitle === 'SELECTION') {
-        lines.forEach((line) => {
-          const targetIndex = findReplaySelectionDisplayStepIndex(steps, sourceIndex, line);
-          pushBlockLine(targetIndex, title, line);
-        });
-        return;
-      }
-
-      if (normalizedTitle === 'LINEARIZATION') {
-        const targetIndex = findReplayDisplayStepIndex(
-          steps,
-          sourceIndex,
-          (candidate) => stepRepresentsMovement(candidate)
-        );
-        lines.forEach((line) => pushBlockLine(targetIndex, title, line));
-        return;
-      }
-
-      if (normalizedTitle === 'LOCALITY') {
-        const targetIndex = findReplayDisplayStepIndex(
-          steps,
-          sourceIndex,
-          (candidate) => stepRepresentsMovement(candidate)
-        );
-        lines.forEach((line) => pushBlockLine(targetIndex, title, line));
-        return;
-      }
-
       lines.forEach((line) => pushBlockLine(sourceIndex, title, line));
     });
   });
