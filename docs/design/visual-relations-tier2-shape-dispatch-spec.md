@@ -18,7 +18,101 @@ The complete executable facet catalog is
 `replay/relations/tier2FacetRecipes.ts`. The deterministic vocabulary is
 `replay/relations/tier2Synonyms.ts`.
 
+## Shared role interpretation
+
+Production registry version 12 binds recognized equivalent role wording before
+checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
+each declared role within its owning recipe; `roleBinding.js` uses the shared
+vocabulary, not a second alias list. Exact role spellings take precedence.
+Ambiguous meanings and conflicting references produce explicit signature
+diagnostics, never a first-match choice. Cardinality, required groups and paired
+lengths still apply. Production recipes retain additional authored roles as
+context; they do not satisfy missing required roles. Independent complete claims
+may consume that context. Unrecovered anchors retain neutral Tier-3 marks and an
+`unrecovered-evidence` diagnostic. They do not affect the Tier-1 claim's identity,
+replacement group or backward witnesses. Custom closed registries may still
+reject additional roles.
+In deliberately open blocks, an ambiguous synonym or one competing with an
+explicit slot remains an untouched open role. It cannot fill a missing required
+slot by guesswork. Conflicting explicit spellings of a declared slot still fail.
+
+The original relation and literal displays retain the authored record.
+`primaryRelation` contains only the primary claim's evidence after independent
+claims and residual anchors are separated.
+`boundPrimaryRelation` supplies lookup keys to the drawing and companion
+composition. Replay uses that same binding for an accepted Tier-1 claim and
+retains the authored wording for display. Unknown relation names do not become
+Tier 1 merely because their roles are familiar.
+
+Tier 1 still requires its complete curated recipe. Tier 2 requires each smaller
+claim to be independently complete; sharing vocabulary and graphics does not
+merge their acceptance rules. Unconsumed evidence stays inspectable through
+fallback. No model-facing role menu or new field is involved.
+
+Candidate aliases are not sufficient proof of a meaning. The shared vocabulary
+marks context-dependent aliases separately. For example, an exact Control
+registration can interpret `antecedent` in its declared controller slot, but an
+unknown relation containing only `antecedent` and `silentSubject` does not prove
+Control. The equivalent distinction applies to generic chunks, surface/LF
+correspondence and ordinary complements. Explicit-role checks are internal to
+the facet evaluator; the model receives no linguistic menu.
+
+Dispatch passes its interpreted evidence directly to the lowerer and Replay.
+They do not independently repeat alias lookup. Empty authored arrays retain
+their field identity, so an empty optional field cannot be treated as absence.
+Different arrays under equivalent role/value keys cannot be concatenated to
+guess an idiom group or positional association. Unresolved references and failed
+semantic/structural checks remain available as stage-scoped diagnostics.
+
+The approved smaller Control connector, covert path, idiom underlines and
+transferred-domain mark are Tier-2 combinations. Optional enclosures add their
+own pieces only when supplied and valid. Invalid supplied domains do not become
+absent domains. Control and idiom painting does not depend on the enclosure
+existing. Covert Replay timing requires a preceding source, new landing and
+consistent prior-source references; its drawing remains the covert path, not
+an overt movement arrow. Existing exact Tier-1 signatures are unchanged,
+including optional fields already present in those signatures.
+
+Previous-stage references are not current-stage drawing roles. Production
+Tier-1 `priorAnchors` remains an open literal block. A Tier-2 facet keeps
+same-role prior witnesses in its identity and validates them against the previous
+stage before emitting continuity cues. Missing witnesses are retained and
+diagnosed; they cannot prove replacement. A prior landing is allowed when a
+later stage refers back to an already established movement.
+
+An explicitly anchored head-movement host or complex is accepted only when the
+current tree proves its relationship to the landing. A phase head is not a
+synonym for its enclosing phase projection. Movement recovery also distinguishes
+an enclosing landing site from an occurrence using authored root lineage and
+containment; it does not discard unrelated candidates or narrow arrays.
+The generic role `head` additionally needs unique source/landing root-lineage
+evidence before Tier 1 can treat it as the moved occurrence rather than its host.
+
 ## Output-Piece Ownership Audit
+
+Movement occurrence recovery is shared by Tier-2 lowering and Replay in
+`replay/relations/movementEvidence.ts`. Source and landing must identify distinct
+occurrences with the same authored root lineage; shared descendants alone do
+not suffice. The lower occurrence can itself supply the silent witness, without
+requiring a third node or an extra authored role. Anchored context distinguishes
+supported complex-head landings from phrasal landings, including bare maximal
+nominals. Unsupported context produces an internal diagnostic, not an invented
+subtype. Replay executes only a movement transition earned by the surviving
+claim, preserves the preceding source until that moment, and does not repeat an
+unchanged chain. This does not relax the exact Tier-1 signature safeguard.
+
+An accepted Tier-1 head/phrasal trajectory uses the same recovered movement
+timing when the recovered kind agrees with its registered family. This is not
+a second acceptance path. Special trajectory recipes retain their own behavior.
+The movement moment includes the shortest new ancestor chain required to
+connect the landing to existing syntax; higher projections keep their own
+micro-steps.
+
+When an exact movement endpoint is a wordless category leaf, attach to that
+category's shell bottom. Do not request an absent lexical child, invent a null
+or trace, or search for another nearby endpoint. Lexical endpoints still require
+unique terminal resolution. Both plan binding and post-fit head-trajectory
+refinement must honor the attachment selected by the plan.
 
 The audited inventory contains 69 distinct visual primitives across 70 facet
 output assignments. Historical counts of 71 predate the `Terminal cap` merge;
@@ -116,7 +210,7 @@ claims.
    authored evidence remains a separate Tier-3 residual claim. Evidence is
    never silently discarded or owned by both claims.
 
-Canonical Atlas cards must remain entirely Tier 1. Tier 2 is tested with
+Canonical Orchard cards must remain entirely Tier 1. Tier 2 is tested with
 unregistered names and must not make a canonical coverage failure pass.
 
 Each recipe is evaluated independently. Runtime dispatch resolves these known
@@ -429,6 +523,73 @@ operator-variable-domain facet earns one scope hull and one binding path. The
 renderer ranks the distinct operator-domain facets that are visible together.
 
 ## Required Verification
+
+### Evidence accounting
+
+Blocking drawings need authored negative evidence. The shared check accepts a
+recognized negative outcome or an explicitly blocking role on the participant
+used by that claim. Containment, a target, or an intervening node alone does not
+establish failure. Contradictory or uninterpretable authored outcomes cannot be
+ignored to retain a blocking mark. This applies to Tier-2 transfer access,
+intervention and blocked extraction, and to the registered PostTransferAccess
+and Intervention recipes whose painters include a cross. No partial version of
+those Tier-1 drawings is substituted.
+
+Binding and operator-variable candidate roles must establish their respective
+meanings. Contextual synonyms are not sufficient by themselves. If both readings
+remain possible, `binding-or-operator-reading` preserves them neutrally rather
+than asserting both. Other independently complete claims survive. Separate
+authored relations still retain separate moments.
+
+Outcome aliases use shared interpretation in signature checks and production
+lowering. A literal judgment glyph is not an outcome word. An independent claim
+using the same recognized outcome cannot deprive the primary of it.
+
+Dispatch retains the complete authored relation alongside a per-field report of
+the recipes using each original item and the items not recovered. A field may
+support several claims. Every item index refers to the original array, including
+when Tier 1, Tier 2 and a neutral remainder use different positions. An outcome
+used by the registered render family remains available to that family when an
+independent Tier-2 judgment uses it too. This does not relax Tier-1 requirements.
+
+Evidence ownership is not a count of linguistic assertions or visible marks.
+In particular, recognized structural witnesses and registered literal context
+need not each produce an independent mark. Unknown leftovers remain attached to
+the complete relation; subtracting fields does not establish a new dependency.
+The current Tier-3 topology is unchanged, pending the separate composition decision.
+
+The plan emits one `claim-evidence` report per relation with a neutral claim,
+including exact fields and original indices, full authored context and candidate
+failures. Candidate failures describe unfulfilled drawing requirements, not the
+model's intended meaning. Unknown roles are reported as unknown; no guessed
+linguistic explanation or public warning is added. Review exports preserve the
+dispatch output `key` used by production lowering.
+
+Lookup preserves authored group boundaries. Equivalent aliases with identical
+ordered contents can identify one group; different contents, order or repetition
+must not be concatenated into a joint claim or resolved by choosing one entry.
+This applies to current anchors, prior anchors and literal values, including
+optional evidence. Every recipe checks the original entries. An `ambiguous-group`
+diagnostic names the field, interpreted role and conflicting authored keys; it
+must not report those present entries as missing. Unrecovered entries remain
+available through the neutral claim and original evidence report.
+
+Pooling is permitted only where the existing drawing preserves independent
+content: per-node phase-edge outlines, separately named organizational rails,
+and structured/PF plaques that print each original field label and literal.
+Those plaque labels also participate in drawing identity. This permission does
+not extend to identity chains, paths, paired arrays or feature-sharing bundles.
+Prior-order and current-order values have distinct derived concepts and retain
+their separate comparison columns. No model-facing field or role menu is added.
+
+These rules do not establish a general positional association between anchor and
+value lists. That contract gap remains separate from preserving the lists.
+
+A Transfer check may follow an explicitly anchored phase head through its unique
+same-category head/projection spine to a separately attached transferred domain.
+It supports `P`/`PP` as well as other labels. It stops before a higher head starts
+a different projection. Category matching verifies this authored relationship;
+it never establishes phasehood or transferred status on its own.
 
 The verified Tier-2 implementation proves that:
 

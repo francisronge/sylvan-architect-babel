@@ -13,11 +13,16 @@ This file answers one question: which document should be trusted for what?
 | [`server/babelParser/systemInstruction.js`](../server/babelParser/systemInstruction.js) and [`prompts.js`](../server/babelParser/prompts.js) | Model-facing authored contract. |
 | [`docs/implementation/invention-boundary.md`](implementation/invention-boundary.md) | Deterministic compiler and elaboration boundary. |
 | [`docs/implementation/baselines/provider-free-baseline-spec.md`](implementation/baselines/provider-free-baseline-spec.md) | Provider-free baseline contract. |
-| [`docs/design/visual-relations-tier2-shape-dispatch-spec.md`](design/visual-relations-tier2-shape-dispatch-spec.md) | Verified Tier-2 renderer specification. |
-| [`docs/design/visual-relations-renderer-closeout-2026-08-25.md`](design/visual-relations-renderer-closeout-2026-08-25.md) | Renderer completion receipt. |
+| [`docs/design/visual-relations-tier2-shape-dispatch-spec.md`](design/visual-relations-tier2-shape-dispatch-spec.md) | Intended Tier-2 behavior and earlier fixture verification; current defects are tracked in Program 1. |
+| [`docs/design/visual-relations-renderer-closeout-2026-08-25.md`](design/visual-relations-renderer-closeout-2026-08-25.md) | Historical fixture closeout, not a sign-off on the later live-output failures. |
 
 ## Supporting Implementation Records
 
+- [`docs/implementation/contract-qualification/system-audit.md`](implementation/contract-qualification/system-audit.md):
+  September live-output audit covering 27 findings, all 36 relations, linguistic
+  issues, Fable failures, costs, and review limitations. Program 1 in `ROADMAP.md`
+  owns the active checklist and status. Linked raw and generated evidence is
+  local-only under the ignored `.artifacts/` run directory.
 - [`derivationalDatabase/README.md`](../derivationalDatabase/README.md): exact
   scope of the persistence-free W17a-d record layer.
 - [`bench/README.md`](../bench/README.md): exact scope of provider-free W13-W16
@@ -33,8 +38,9 @@ This file answers one question: which document should be trusted for what?
 
 The remaining `docs/design/visual-relations-*` research notes, inventories,
 source records, and proof pages explain how the renderer was developed. They
-are useful provenance, not open tasks. The closeout and Tier-2 specification
-above are authoritative for current behavior.
+are useful provenance, not open tasks. The Tier-2 specification records intended
+behavior; the September audit supplies reproducible defects that reopen the
+earlier closeout. Follow Program 1 for current work and status.
 
 Some of those historical notes refer to locally recovered copies of academic
 figures under `docs/design/visual-relations-assets/`. Those third-party copies
