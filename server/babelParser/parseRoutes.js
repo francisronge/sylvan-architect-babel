@@ -429,7 +429,8 @@ export const createParseRoutes = ({
   };
 
   const parseSentenceWithLocalModel = async (sentence, framework = 'xbar') => {
-    const promptRoute = 'gemini';
+    // The local runtime is its own route; provenance must not claim Gemini.
+    const promptRoute = 'local';
     const systemInstruction = buildSystemInstruction(framework, promptRoute);
     const prompt = buildParseContentsPrompt(
       sentence,
