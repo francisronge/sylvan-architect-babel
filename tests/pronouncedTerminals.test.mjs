@@ -20,10 +20,10 @@ const localDislocationTree = {
   ]
 };
 
-test('pronounced terminal sequence follows authored surface positions, not branch order', () => {
+test('pronounced terminal sequence is tree order; token indexes never reorder it', () => {
   assert.deepEqual(
     collectPronouncedTerminalSequence(localDislocationTree),
-    ['tery', '-eer', '-maan']
+    ['tery', '-maan', '-eer']
   );
 });
 
@@ -46,5 +46,5 @@ test('replay snapshot derives its sentence from final pronounced terminal order'
       derivationStages: []
     }]
   };
-  assert.equal(buildReplaySnapshotProjection(bundle).sentence, 'tery -eer -maan');
+  assert.equal(buildReplaySnapshotProjection(bundle).sentence, 'tery -maan -eer');
 });
