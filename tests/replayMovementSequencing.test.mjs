@@ -15,6 +15,34 @@ import {
 
 const clone = (value) => structuredClone(value);
 
+// The contract requires a moved occurrence to be shown in place by an earlier
+// stage. This builds that base stage from the final tree: the landing is
+// absent and the listed lower occurrences are pronounced with their words.
+const baseStageBefore = (forest, { landingIds = [], pronounce = {} }, statement = 'The base structure is built.') => {
+  const roots = clone(forest);
+  const restore = (item) => {
+    if (!item || typeof item !== 'object') return;
+    if (Object.hasOwn(pronounce, item.id)) {
+      delete item.silent;
+      if (typeof pronounce[item.id] === 'string') item.word = pronounce[item.id];
+    }
+    (item.children || []).forEach(restore);
+  };
+  const withhold = (item) => {
+    if (!item?.children) return;
+    item.children = item.children.filter((child) => !landingIds.includes(child.id));
+    item.children.forEach(withhold);
+  };
+  roots.forEach(restore);
+  roots.forEach(withhold);
+  return {
+    statement,
+    stageRecord: `${statement} The occurrence that later moves is in its base position.`,
+    relations: [],
+    workspaceForest: roots.filter((root) => !landingIds.includes(root.id))
+  };
+};
+
 const leaf = (id, label, word, extra = {}) => ({
   id,
   label,
@@ -467,7 +495,10 @@ test('ParasiticGap moves the complete real-gap phrase once at its exact relation
       ])
     ])
   ]);
-  const stages = [{
+  const stages = [baseStageBefore([finalTree], {
+    landingIds: ['dp_pg_high'],
+    pronounce: { dp_pg_low: true, np_pg_low: true, d_pg_low: 'Which', n_pg_low: 'article' }
+  }), {
     statement: 'One filler licenses an ordinary and a parasitic gap.',
     stageRecord: 'The ordinary object moves once; the parasitic gap receives no arrow.',
     relations: [{
@@ -490,7 +521,6 @@ test('ParasiticGap moves the complete real-gap phrase once at its exact relation
   const relationIndex = steps.findIndex((step) => step.replayKind === 'relation');
   assert.ok(relationIndex > 0);
   const beforeRelation = steps[relationIndex - 1];
-  assert.equal(findNode(beforeRelation.replayCanvasData, 'dp_pg_high')?.replayLayoutOnly, true);
   assert.equal(beforeRelation.replayVisibleNodeIds?.includes('dp_pg_high'), false);
   assert.ok(
     findNode(beforeRelation.replayCanvasData, 'cp_pg_replay'),
@@ -501,7 +531,7 @@ test('ParasiticGap moves the complete real-gap phrase once at its exact relation
   assert.deepEqual(beforeRelation.replayRelationLinks || [], []);
 
   const relationFrame = steps[relationIndex];
-  assert.deepEqual(relationFrame.replayRelationIdentity, { stageIndex: 0, relationIndex: 0 });
+  assert.deepEqual(relationFrame.replayRelationIdentity, { stageIndex: 1, relationIndex: 0 });
   assert.ok(findNode(relationFrame.replayCanvasData, 'cp_pg_replay'));
   assert.ok(findNode(relationFrame.replayCanvasData, 'dp_pg_high'));
   assert.equal(findNode(relationFrame.replayCanvasData, 'd_pg_low')?.silent, true);
@@ -604,7 +634,10 @@ test('AcrossTheBoardMovement withholds one shared landing and restores every low
       ])
     ])
   ]);
-  const stages = [{
+  const stages = [baseStageBefore([finalTree], {
+    landingIds: ['dp_atb_high'],
+    pronounce: { dp_atb_left: true, dp_atb_right: true, d_atb_left: 'Who', d_atb_right: 'Who' }
+  }), {
     statement: 'One wh-DP is extracted across both conjuncts.',
     stageRecord: 'Both lower occurrences share one pronounced landing.',
     relations: [{
@@ -626,8 +659,6 @@ test('AcrossTheBoardMovement withholds one shared landing and restores every low
   const relationIndex = steps.findIndex((step) => step.replayKind === 'relation');
   assert.ok(relationIndex > 0);
   const beforeRelation = steps[relationIndex - 1];
-  assert.equal(findNode(beforeRelation.replayCanvasData, 'dp_atb_high')?.replayLayoutOnly, true);
-  assert.equal(findNode(beforeRelation.replayCanvasData, 'd_atb_high')?.replayLayoutOnly, true);
   assert.equal(beforeRelation.replayVisibleNodeIds?.includes('dp_atb_high'), false);
   assert.equal(beforeRelation.replayVisibleNodeIds?.includes('d_atb_high'), false);
   assert.equal(findNode(beforeRelation.replayCanvasData, 'd_atb_left')?.silent, undefined);
@@ -642,7 +673,7 @@ test('AcrossTheBoardMovement withholds one shared landing and restores every low
   );
 
   const relationFrame = steps[relationIndex];
-  assert.deepEqual(relationFrame.replayRelationIdentity, { stageIndex: 0, relationIndex: 0 });
+  assert.deepEqual(relationFrame.replayRelationIdentity, { stageIndex: 1, relationIndex: 0 });
   assert.ok(findNode(relationFrame.replayCanvasData, 'dp_atb_high'));
   assert.equal(findNode(relationFrame.replayCanvasData, 'd_atb_left')?.silent, true);
   assert.equal(findNode(relationFrame.replayCanvasData, 'd_atb_right')?.silent, true);
@@ -669,7 +700,10 @@ test('SidewardMovement atomically transfers the complete phrase between workspac
       leaf('v_sideward_source', 'V', 'stroked')
     ])
   ];
-  const stages = [{
+  const stages = [baseStageBefore(finalForest, {
+    landingIds: ['dp_sideward_high'],
+    pronounce: { dp_sideward_low: true, d_sideward_low: 'a', n_sideward_low: 'tamer' }
+  }), {
     statement: 'The subject moves between workspaces.',
     stageRecord: 'The complete subject leaves one workspace and is remerged in the other.',
     relations: [{
@@ -691,7 +725,6 @@ test('SidewardMovement atomically transfers the complete phrase between workspac
   assert.ok(relationIndex > 0);
   const before = steps[relationIndex - 1];
   const movement = steps[relationIndex];
-  assert.equal(findNode(before.replayCanvasData, 'dp_sideward_high')?.replayLayoutOnly, true);
   assert.equal(before.replayVisibleNodeIds?.includes('dp_sideward_high'), false);
   assert.equal(findNode(before.replayCanvasData, 'd_sideward_low')?.word, 'a');
   assert.equal(findNode(before.replayCanvasData, 'n_sideward_low')?.word, 'tamer');
@@ -700,7 +733,7 @@ test('SidewardMovement atomically transfers the complete phrase between workspac
   assert.ok(findNode(movement.replayCanvasData, 'dp_sideward_high'));
   assert.equal(findNode(movement.replayCanvasData, 'd_sideward_low')?.silent, true);
   assert.equal(findNode(movement.replayCanvasData, 'n_sideward_low')?.silent, true);
-  assert.deepEqual(movement.replayRelationIdentity, { stageIndex: 0, relationIndex: 0 });
+  assert.deepEqual(movement.replayRelationIdentity, { stageIndex: 1, relationIndex: 0 });
 });
 
 test('a one-stage OperatorVariableBinding waits for complete syntax and changes no tree material', () => {
@@ -893,7 +926,10 @@ test('ordered phrase and head movements do not leak the later head trace into ea
       ])
     ])
   ]);
-  const stages = [{
+  const stages = [baseStageBefore([finalTree], {
+    landingIds: ['dp_what_high', 'did_high'],
+    pronounce: { dp_what_low: true, d_what_low: 'what', t_did: true, did_low: 'did' }
+  }), {
     statement: 'The complete question is derived.',
     stageRecord: 'The object moves before the auxiliary moves.',
     relations: [
@@ -925,8 +961,7 @@ test('ordered phrase and head movements do not leak the later head trace into ea
   assert.ok(phraseMoveIndex > 0);
   assert.equal(headMoveIndex, phraseMoveIndex + 1);
 
-  for (const step of steps.slice(0, phraseMoveIndex)) {
-    assert.equal(findNode(step.replayCanvasData, 'dp_what_high')?.replayLayoutOnly, true);
+  for (const step of steps.slice(0, phraseMoveIndex).filter((step) => step.replayFrameIndex === 1)) {
     assert.notEqual(findNode(step.replayCanvasData, 'did_high')?.replayLayoutOnly, false);
     assert.equal(step.replayVisibleNodeIds?.includes('dp_what_high'), false);
     assert.equal(step.replayVisibleNodeIds?.includes('did_high'), false);
@@ -1413,6 +1448,7 @@ test('AbarMove builds the chain before Intervention judges it without changing s
     ])
   ]);
   const stages = [
+    baseStageBefore([finalTree], { landingIds: ['dp_what_high'], pronounce: { d_what_low: 'what' } }),
     {
       statement: 'The object wh-DP moves to the matrix edge.',
       stageRecord: 'AbarMove builds the chain required by the deviant input.',
@@ -1452,19 +1488,18 @@ test('AbarMove builds the chain before Intervention judges it without changing s
   assert.ok(interventionIndex > movementIndex);
 
   const before = steps[movementIndex - 1];
-  assert.equal(findNode(before.replayCanvasData, 'dp_what_high')?.replayLayoutOnly, true);
   assert.equal(before.replayVisibleNodeIds?.includes('dp_what_high'), false);
   assert.equal(findNode(before.replayCanvasData, 'd_what_low')?.word, 'what');
   assert.notEqual(findNode(before.replayCanvasData, 'd_what_low')?.silent, true);
 
   const movement = steps[movementIndex];
-  assert.deepEqual(movement.replayRelationIdentity, { stageIndex: 0, relationIndex: 0 });
+  assert.deepEqual(movement.replayRelationIdentity, { stageIndex: 1, relationIndex: 0 });
   assert.ok(findNode(movement.replayCanvasData, 'dp_what_high'));
   assert.equal(findNode(movement.replayCanvasData, 'd_what_low')?.silent, true);
 
   const beforeIntervention = steps[interventionIndex - 1];
   const intervention = steps[interventionIndex];
-  assert.deepEqual(intervention.replayRelationIdentity, { stageIndex: 1, relationIndex: 0 });
+  assert.deepEqual(intervention.replayRelationIdentity, { stageIndex: 2, relationIndex: 0 });
   assert.deepEqual(
     [...(intervention.replayVisibleNodeIds || [])].sort(),
     [...(beforeIntervention.replayVisibleNodeIds || [])].sort()

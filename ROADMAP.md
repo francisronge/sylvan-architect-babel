@@ -291,8 +291,13 @@ list only through a same-name values entry of the same length (one item with
 one literal pairs regardless). He confirmed the reconstructed-surface casing
 rule as intended. The gate passes 1,461 tests.
 
-Next: native-plate string conventions remain the one explicit contract gap.
-Naming an unrestorable pre-movement leaf is the remaining reference cleanup. Shared-context
+Francis then rejected pre-movement reconstruction: the contract now says an
+occurrence moves only from a position an earlier stage already shows, and Babel
+restores movement sources only from the preceding stage, exactly as authored.
+The reconstruction path, its lowercase rule and the Replay prose classifiers are
+deleted. The gate passes 1,461 tests; saved outputs are unchanged.
+
+Next: native-plate string conventions remain the one explicit contract gap. Shared-context
 presentation remains open before mixed-tier presentation: repeated badges,
 composition and long plaques. Free-prose recognition and literal-versus-glyph judgment presentation
 remain explicit design questions. Do not conceal recognition gaps with layout

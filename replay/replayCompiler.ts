@@ -1712,28 +1712,6 @@ const buildPreMovementStructuralForest = (
     const wanted = new Set(roles.map((role) => role.toLowerCase()));
     return anchors.find((anchor) => wanted.has(String(anchor.role || '').trim().toLowerCase()));
   };
-  const overtSurface = (node?: SyntaxNode | null): string => {
-    if (!node) return '';
-    return authoredWord(collectNodes(node).find((candidate) => isPronouncedLeaf(candidate)));
-  };
-  /*
-   * A pre-movement surface reconstructed from the landing is Babel's own
-   * presentation of an occurrence the model left silent or wordless. When the
-   * landing is the sentence-initial D or C, its base position is shown in
-   * lowercase. This is a display rule for reconstructed surfaces only; an
-   * authored prior-stage occurrence is always restored exactly as written.
-   */
-  const baseGenerationSurface = (targetNode: SyntaxNode, surface: string): string => {
-    const category = String(targetNode.label || '').trim();
-    if (
-      targetNode.tokenIndex === 0
-      && (category === 'D' || category === 'C')
-      && /^[A-Z][a-z]/.test(surface)
-    ) {
-      return `${surface.charAt(0).toLowerCase()}${surface.slice(1)}`;
-    }
-    return surface;
-  };
   [...relations].reverse().forEach((relation) => {
     if (relation.recoveredMovement && !relation.recoveredMovement.transition) return;
     const anchors = Array.isArray(relation.resolvedAnchors)
@@ -1775,6 +1753,12 @@ const buildPreMovementStructuralForest = (
         restoredFromPreviousStage.add(sourceId);
       }
     });
+    // The contract requires a moved occurrence to be shown in place by an
+    // earlier stage. Every source is therefore restored exactly from the
+    // preceding stage; when one is not there, this stage is shown as authored
+    // and the movement check reports the unproven source. Nothing is
+    // reconstructed from the landing.
+    if (sourceIds.some((sourceId) => !restoredFromPreviousStage.has(sourceId))) return;
     const sources = sourceIds
       .map((sourceId) => findNode(sourceId))
       .filter((source): source is SyntaxNode => Boolean(source));
@@ -1792,58 +1776,6 @@ const buildPreMovementStructuralForest = (
     const targetParent = findParent(targetId);
     const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '').trim() === targetId);
     if (!targetParent && targetRootIndex < 0) return;
-
-    const targetByLineage = new Map<string, SyntaxNode | null>();
-    collectNodes(target).forEach((node) => {
-      const lineageId = String(node.lineageId || '').trim();
-      if (!lineageId) return;
-      if (!targetByLineage.has(lineageId)) {
-        targetByLineage.set(lineageId, node);
-      } else if (targetByLineage.get(lineageId) !== node) {
-        targetByLineage.set(lineageId, null);
-      }
-    });
-
-    const sourceRestorations = sources.map((source) => {
-      const sourceNodes = collectNodes(source);
-      const sourceId = String(source.id || '').trim();
-      // A prior-stage source is already the exact derivational input to the
-      // current movement. Any silence inside it belongs to an earlier
-      // operation (for example, the evacuated object gap inside a remnant VP)
-      // and must persist. Only a source serialized from the current final tree
-      // needs its newly silent leaves restored from the landing lineage.
-      const sourceLeavesToRestore = restoredFromPreviousStage.has(sourceId)
-        ? []
-        : sourceNodes.filter((node) => isLeafNode(node) && (node.silent === true || isNotationLeaf(node)));
-      const restoredSurfaceBySource = new Map<SyntaxNode, string>();
-      sourceLeavesToRestore.forEach((node) => {
-        const lineageId = String(node.lineageId || '').trim();
-        const targetNode = lineageId ? targetByLineage.get(lineageId) : null;
-        const restoredSurface = targetNode
-          ? baseGenerationSurface(targetNode, overtSurface(targetNode))
-          : '';
-        if (restoredSurface) restoredSurfaceBySource.set(node, restoredSurface);
-      });
-      return { sourceNodes, sourceLeavesToRestore, restoredSurfaceBySource, restored: restoredFromPreviousStage.has(sourceId) };
-    });
-    if (sourceRestorations.some(({ sourceLeavesToRestore, restoredSurfaceBySource }) =>
-      sourceLeavesToRestore.length > 0
-      && restoredSurfaceBySource.size !== sourceLeavesToRestore.length
-    )) return;
-
-    sourceRestorations.forEach(({ sourceNodes, restoredSurfaceBySource, restored }) => {
-      if (restored) return;
-      sourceNodes.forEach((node) => {
-        delete node.silent;
-        const children = Array.isArray(node.children) ? node.children : [];
-        if (children.length > 0) return;
-        const restoredSurface = restoredSurfaceBySource.get(node);
-        if (!restoredSurface) return;
-        // Restored pronunciation is lexical content, so it lives in `word`;
-        // the authored category label stays.
-        node.word = restoredSurface;
-      });
-    });
 
     if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
       const targetChildren = Array.isArray(target.children) ? target.children : [];
