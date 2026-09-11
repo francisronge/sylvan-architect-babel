@@ -56,20 +56,22 @@ const valueLiteral = (recipe, valueName, index) => {
   if (valueName === 'index') return String(index + 1);
   if (valueName === 'label') return 'label';
   if (valueName === 'role.label') return ['Agent', 'Theme', 'Goal'][index] ?? `Role ${index + 1}`;
-  if (valueName === 'feature.label') return 'F';
+  if (valueName === 'feature.label') return recipe.id === 'strong-npi' ? 'strong NPI' : 'F';
   if (valueName === 'accent.label') return 'H*';
   if (valueName === 'cycle') return 'C1';
+  if (valueName === 'step') return '1';
   if (valueName === 'plaque.rows') return `row ${index + 1}`;
   if (valueName === 'pf.rows') return `PF row ${index + 1}`;
   if (valueName === 'rewrite.rows') return `input ${index + 1} -> output ${index + 1}`;
-  if (valueName === 'correspondence.rows') return `source ${index + 1} -> target ${index + 1}`;
-  if (valueName === 'order.rows') return index === 0 ? 'before' : 'after';
-  if (valueName === 'delink.position') return 'after feature 1';
+  if (valueName === 'correspondence.rows') return `pf.sources ${index + 1} => pf.exponents ${index + 1}`;
+  if (valueName === 'order.rows') return recipe.id === 'pf.local-dislocation'
+    ? index === 0 ? 'a b' : '[a b]' : index === 0 ? 'a < b' : 'b < c';
+  if (valueName === 'delink.position') return 'feature.hierarchy 1';
 
   const tokenCheck = recipe.checks.find((check) => (
     check.kind === 'value-token' && check.value === valueName
   ));
-  if (tokenCheck) return tokenCheck.tokens.join(' ');
+  if (tokenCheck) return tokenCheck.tokens[0];
   return `${valueName} ${index + 1}`;
 };
 
@@ -106,6 +108,13 @@ const buildFacetFixture = (recipe, options = {}) => {
     );
   });
   if (options.movementRoute) values['movement.route'] = [options.movementRoute];
+  if (recipe.id === 'pf.linearization') {
+    delete values['order.rows'];
+    delete values['order.prior'];
+    delete values['order.current'];
+    values.priorOrder = ['a < b'];
+    values.currentOrder = ['b < a'];
+  }
 
   const currentNodes = new Map(
     Object.values(currentAnchors).flat().map((id) => [id, leaf(id)])
@@ -127,8 +136,8 @@ const buildFacetFixture = (recipe, options = {}) => {
     const current = (role) => (currentAnchors[role] ?? []).map((id) => currentNodes.get(id));
     switch (check.kind) {
       case 'contains': {
-        const [container] = current(check.containerRole);
-        current(check.memberRole).forEach((member) => attach(container, member));
+        current(check.containerRole).forEach(container =>
+          current(check.memberRole).forEach((member) => attach(container, member)));
         break;
       }
       case 'contains-authored-silent':
@@ -140,6 +149,7 @@ const buildFacetFixture = (recipe, options = {}) => {
         });
         break;
       case 'shared-lineage':
+      case 'shared-root-lineage':
         check.roles.flatMap(current).forEach((member) => {
           member.lineageId = `lineage_${recipe.id}`;
         });
@@ -170,6 +180,20 @@ const buildFacetFixture = (recipe, options = {}) => {
           attach(parent, member);
           currentNodes.set(parent.id, parent);
         });
+        break;
+      }
+      case 'projection-chain': {
+        const chain = [...current('accent.bearer'), ...current('projection.nodes')];
+        chain.slice(1).forEach((parent, index) => attach(parent, chain[index]));
+        break;
+      }
+      case 'transfer-configuration': {
+        const [phase] = current('phase');
+        [...current('phase.head'), ...current('phase.edge'), ...current('transfer.domain')].forEach(member => attach(phase, member));
+        break;
+      }
+      case 'movement-carrier': {
+        attach(current('movement.carrier')[0], current('movement.source')[0]);
         break;
       }
       case 'distinct':
@@ -281,6 +305,7 @@ const compileFixture = (recipe, fixture) => {
     relation: fixture.relation,
     relationRef,
     dispatch: {
+      evidence,
       tier: 2,
       outcome: 'tier-2',
       facets: [resolvedFacet],
@@ -355,6 +380,95 @@ test('every Tier-2 facet has a provider-free complete and incomplete form', () =
     assert.equal(incomplete.complete, false, `${recipe.id} accepted its incomplete form`);
     assert.deepEqual(incomplete.outputs, [], `${recipe.id} drew from incomplete evidence`);
   });
+});
+
+test('all recipes reject absent or unresolved required participants, independently of the other fields', () => {
+  for (const recipe of TIER2_FACET_RECIPES) {
+    const fixture = buildFacetFixture(recipe);
+    assert(evaluateFixture(recipe, fixture).evaluation.complete, recipe.id);
+    for (const requirement of recipe.anchors.filter(r => !r.optional)) {
+      const field = requirement.source === 'prior' ? 'priorAnchors' : 'anchors';
+      for (const replacement of [undefined, 'not-in-either-stage']) {
+        const changed = structuredClone(fixture);
+        if (replacement === undefined) delete changed.relation[field][requirement.role];
+        else changed.relation[field][requirement.role] = replacement;
+        const result = evaluateFixture(recipe, changed).evaluation;
+        assert(!result.complete, `${recipe.id}: ${field}.${requirement.role}=${replacement}`);
+        assert(result.failures.some(f => f.startsWith('anchor:')), recipe.id);
+      }
+    }
+  }
+});
+
+test('all recipes preserve interpretation under field reordering and unrelated open relation names', () => {
+  for (const recipe of TIER2_FACET_RECIPES) {
+    const fixture = buildFacetFixture(recipe);
+    const before = structuredClone(fixture);
+    const original = evaluateFixture(recipe, fixture).evaluation;
+    const changed = structuredClone(fixture);
+    changed.relation.relation = 'Unfamiliar authored description';
+    for (const field of ['anchors', 'priorAnchors', 'values']) {
+      if (changed.relation[field]) changed.relation[field] = Object.fromEntries(Object.entries(changed.relation[field]).reverse());
+    }
+    const reordered = evaluateFixture(recipe, changed).evaluation;
+    assert.equal(reordered.complete, original.complete, recipe.id);
+    assert.deepEqual(reordered.outputs, original.outputs, recipe.id);
+    assert.deepEqual(reordered.earnedTransitions, original.earnedTransitions, recipe.id);
+    assert.deepEqual(fixture, before, `${recipe.id}: evaluation mutated the authored evidence`);
+  }
+});
+
+test('every recipe diagnoses competing groups in all evidence it uses', () => {
+  for (const recipe of TIER2_FACET_RECIPES) {
+    const { evidence, evaluation } = evaluateFixture(recipe, buildFacetFixture(recipe));
+    assert(evaluation.complete, `${recipe.id}: ${evaluation.failures.join(', ')}`);
+    for (const [field, entriesKey, concepts] of [
+      ['anchors', 'authoredCurrentAnchors', recipe.anchors.filter(r => r.source !== 'prior').map(r => r.role)],
+      ['priorAnchors', 'authoredPriorAnchors', recipe.anchors.map(r => r.role)],
+      ['values', 'authoredValues', recipe.values.map(r => r.value)]
+    ]) {
+      for (const concept of new Set(concepts)) {
+        if (field === 'values' ? ['plaque.rows', 'pf.rows'].includes(concept)
+          : ['phase.edge', 'large.anchor.array'].includes(concept)) continue;
+        const original = evidence[entriesKey]?.find(entry => entry.concepts.includes(concept));
+        if (!original) continue;
+        const items = original.conceptItemIndices?.[concept]?.map(index => original.items[index]) ?? original.items;
+        if (!items.length) continue;
+        const changed = structuredClone(evidence);
+        changed[entriesKey].push({ key: 'competing authored group', concepts: [concept], items: [...items, items[0]] });
+        const result = evaluateTier2FacetRecipe(recipe, changed);
+        assert(!result.complete, `${recipe.id}: ${field}.${concept}`);
+        assert.deepEqual(result.outputs, []);
+        assert(result.failures.some(f => f.startsWith(`ambiguous-group:${field}:${concept}:`)), `${recipe.id}: ${result.failures}`);
+        assert.deepEqual(result.consumedEvidence, []);
+      }
+    }
+  }
+});
+
+test('all required value fields are necessary and unknown additions remain attached to the original relation', () => {
+  for (const recipe of TIER2_FACET_RECIPES) {
+    const fixture = buildFacetFixture(recipe);
+    for (const requirement of recipe.values.filter(r => !r.optional)) {
+      const changed = structuredClone(fixture);
+      delete changed.relation.values[requirement.value];
+      assert(!evaluateFixture(recipe, changed).evaluation.complete, `${recipe.id}: missing ${requirement.value}`);
+    }
+    const changed = structuredClone(fixture);
+    changed.relation.anchors.unfamiliarWitness = changed.currentForest[0].id;
+    changed.relation.values = { ...changed.relation.values, unfamiliarDetail: ['preserve this', 'and this'] };
+    const dispatch = dispatchRelationClaims({ ...changed, stageIndex: 1, relationIndex: 0 });
+    assert.deepEqual(dispatch.evidenceCoverage.authoredRelation, changed.relation, recipe.id);
+    for (const key of ['unfamiliarWitness', 'unfamiliarDetail']) {
+      const field = dispatch.evidenceCoverage.fields.find(f => f.key === key);
+      assert.deepEqual(field.recognizedBy, [], recipe.id);
+      assert.deepEqual(field.unrecoveredItemIndices, key === 'unfamiliarDetail' ? [0, 1] : [0], recipe.id);
+    }
+    const expected = evaluateFixture(recipe, fixture).evaluation;
+    const actual = evaluateFixture(recipe, changed).evaluation;
+    assert.deepEqual(actual.outputs, expected.outputs, recipe.id);
+    assert.deepEqual(actual.earnedTransitions, expected.earnedTransitions, recipe.id);
+  }
 });
 
 test('every Tier-2 claim survives exclusive dispatch and reaches shared production lowering', () => {

@@ -8,11 +8,7 @@ const CURRENT_PROVENANCE_FIELDS = [
   'parserVersion',
   'uiVersion',
   'payloadIntegrityFlags',
-  'payloadTranscriberUsed',
-  'payloadTranscriberModel',
-  'payloadTranscriberPromptTokenCount',
-  'payloadTranscriberOutputTokenCount',
-  'payloadTranscriberTotalTokenCount',
+  'payloadRepairDiagnostics',
   'hasDerivationStages',
   'parsePromptTokenCount',
   'parseOutputTokenCount',
@@ -34,9 +30,11 @@ const CURRENT_BUNDLE_FIELDS = [
   'ambiguityNote',
   'sentence',
   'requestedModelRoute',
+  'requestedModelId',
   'requestedReasoningEffort',
   'modelUsed',
-  'generationRecord'
+  'generationRecord',
+  'rawModelOutput'
 ];
 
 export const loadTreeBankBundleSnapshot = (bundle) => JSON.parse(JSON.stringify(bundle));

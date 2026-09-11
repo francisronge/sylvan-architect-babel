@@ -3,6 +3,7 @@ import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
+import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './researchModelCatalog.js';
 import {
   buildGeminiThinkingConfig,
   GEMINI_MODEL,
@@ -11,10 +12,6 @@ import {
   LOCAL_MODEL_URL,
   ANTHROPIC_MODEL,
   OPENAI_MODEL,
-  PAYLOAD_TRANSCRIBER_MAX_OUTPUT_TOKENS,
-  PAYLOAD_TRANSCRIBER_MODEL,
-  PAYLOAD_TRANSCRIBER_TEMPERATURE,
-  PAYLOAD_TRANSCRIBER_TIMEOUT_MS,
   getRemainingRequestBudgetMs,
   localRouteUnavailableMessage,
   resolveModelTimeoutMs,
@@ -29,10 +26,14 @@ import {
   buildGeminiGenerationRequest,
   buildLocalRequestBody,
   buildOpenAIRequestBody,
+  buildKimiRequestBody,
+  buildGrokRequestBody,
   assertGenerationComplete,
   buildGenerationOutcome,
   generateAnthropicStructuredContent,
   generateOpenAIStructuredContent,
+  generateKimiStructuredContent,
+  generateGrokStructuredContent,
   generateStructuredContent,
   generateStructuredLocalContent,
   getErrorMeta,
@@ -45,12 +46,6 @@ import {
   writeDebugModelPayload
 } from './modelRuntime.js';
 import {
-  buildPayloadFingerprint,
-  buildPayloadFingerprintAllowingStageFieldRelocation,
-  payloadPreservesRawAuthoredText,
-  payloadRespectsRawStructuralAnchors
-} from './payloadFirewall.js';
-import {
   createRawOutputArtifact,
   withFailureDetails
 } from './validationErrors.js';
@@ -59,6 +54,28 @@ const getProviderAttemptDetails = (error) => ({
   ...(error?.providerRunId ? { providerRunId: error.providerRunId } : {}),
   ...(Array.isArray(error?.providerAttempts) ? { providerAttempts: error.providerAttempts } : {})
 });
+
+export const attachGenerationFailureEvidence = ({
+  error,
+  ParseApiError,
+  generationRecord,
+  rawText
+}) => {
+  if (!generationRecord || !(error instanceof ParseApiError)) return error;
+  const details = error.details && typeof error.details === 'object'
+    ? error.details
+    : {};
+  return new ParseApiError(
+    error.code,
+    error.message,
+    error.status,
+    {
+      ...details,
+      generationRecord,
+      rawOutputArtifact: details.rawOutputArtifact || createRawOutputArtifact(rawText)
+    }
+  );
+};
 
 export const classifyGeminiRouteError = ({
   error,
@@ -243,52 +260,14 @@ export const createParseRoutes = ({
   ParseApiError,
   normalizeParseBundle,
   parseModelJson,
-  parseModelJsonDetailed
+  parseModelJsonDetailed,
+  generateLocal = generateStructuredLocalContent,
+  generateGemini = generateStructuredContent,
+  generateOpenAI = generateOpenAIStructuredContent,
+  generateClaude = generateAnthropicStructuredContent,
+  generateKimi = generateKimiStructuredContent,
+  generateGrok = generateGrokStructuredContent
 }) => {
-  const buildPayloadTranscriberSystemInstruction = () => (
-    'Return raw JSON only. ' +
-    'You are Babel\'s structural payload transcriber. ' +
-    'Your job is to repair transport or field-placement problems without changing the linguistic analysis. ' +
-    'Preserve every derivationStage statement, stageRecord, relations entry, workspaceForest node, token index, and structural relation. ' +
-    'Do not invent movement, do not reorder terminals, do not add or remove nodes, and do not change authored derivationStages content. ' +
-    'If the payload is already parseable JSON, preserve that authored content exactly apart from harmless transport-canonical notation repair and mechanical field-placement repair. ' +
-    'Output exactly one top-level JSON object and nothing else.'
-  );
-
-  const buildPayloadTranscriberContents = ({
-    sentence,
-    framework,
-    failureStage,
-    rawText,
-    originalPayload
-  }) => {
-    const originalPayloadText = originalPayload
-      ? `\nAuthoritative parsed payload snapshot:\n\`\`\`json\n${JSON.stringify(originalPayload, null, 2)}\n\`\`\`\n`
-      : '\nNo authoritative parsed payload was available because the original text did not parse as JSON.\n';
-    return (
-      `Sentence: "${sentence}"\n` +
-      `Framework: ${framework}\n` +
-      `Failure stage: ${failureStage}\n` +
-      'Task: rewrite the following Babel first-pass parse payload into valid canonical JSON without changing linguistics.\n' +
-      'Allowed repairs only:\n' +
-      '- remove wrapper prose or fences\n' +
-      '- fix broken JSON syntax\n' +
-      '- place fields into their correct JSON positions\n' +
-      '- normalize harmless transport notation drift without changing linguistic content\n' +
-      'Forbidden repairs:\n' +
-      '- changing workspaceForest structure\n' +
-      '- changing statement or stageRecord\n' +
-      '- changing workspaceForest\n' +
-      '- changing relations\n' +
-      '- changing overt terminal order or token indices\n' +
-      `${originalPayloadText}` +
-      'Original raw payload:\n' +
-      '```text\n' +
-      `${String(rawText || '')}\n` +
-      '```'
-    );
-  };
-
   const attachPrimaryParseProvenance = (analysis, generationMeta, extraProvenance = {}) => ({
     ...analysis,
     provenance: attachAggregateParseTokenCounts({
@@ -306,29 +285,23 @@ export const createParseRoutes = ({
     })
   });
 
-  const attachPayloadTranscriberProvenance = (analysis, transcriberMeta, extraProvenance = {}) => ({
-    ...analysis,
-    provenance: attachAggregateParseTokenCounts({
-      ...(analysis?.provenance || {}),
-      payloadTranscriberUsed: true,
-      payloadTranscriberModel: PAYLOAD_TRANSCRIBER_MODEL,
-      ...(transcriberMeta?.promptTokenCount
-        ? { payloadTranscriberPromptTokenCount: transcriberMeta.promptTokenCount }
-        : {}),
-      ...(transcriberMeta?.outputTokenCount
-        ? { payloadTranscriberOutputTokenCount: transcriberMeta.outputTokenCount }
-        : {}),
-      ...(transcriberMeta?.totalTokenCount
-        ? { payloadTranscriberTotalTokenCount: transcriberMeta.totalTokenCount }
-        : {}),
-      ...extraProvenance
-    })
-  });
-
   const mapBundleAnalyses = (bundle, mapper) => ({
     ...bundle,
     analyses: (Array.isArray(bundle?.analyses) ? bundle.analyses : []).map(mapper)
   });
+
+  const attachPayloadRepairDiagnostics = (error, payloadRepairDiagnostics = []) => {
+    if (!(error instanceof ParseApiError) || payloadRepairDiagnostics.length === 0) return error;
+    return new ParseApiError(
+      error.code,
+      error.message,
+      error.status,
+      {
+        ...(error.details && typeof error.details === 'object' ? error.details : {}),
+        payloadRepairDiagnostics
+      }
+    );
+  };
 
   const createGenerationRecord = ({
     provider,
@@ -346,6 +319,100 @@ export const createParseRoutes = ({
     buildTemplate: buildParseContentsPrompt
   });
 
+  const createDeterministicParseFailure = ({
+    message,
+    details = {},
+    rawText
+  }) => new ParseApiError(
+    'PARSE_ENGINE_FAILED',
+    message,
+    500,
+    withFailureDetails(details, {
+      failureClass: 'deterministic_engine_failure',
+      ruleId: 'DETERMINISTIC_ENGINE',
+      processingStep: details.stage || 'processing',
+      fieldPath: '$',
+      offendingValue: null
+    }, rawText)
+  );
+
+  const augmentModelPayloadFailure = ({
+    error,
+    stage,
+    model,
+    generationMeta,
+    payloadPreview,
+    debugPayloadPath,
+    payloadRepairDiagnostics = []
+  }) => {
+    const commonDetails = {
+      stage,
+      model,
+      finishReason: generationMeta.finishReason || null,
+      textLength: generationMeta.textLength,
+      preview: generationMeta.preview || '',
+      ...(typeof payloadPreview === 'string' ? { payloadPreview } : {}),
+      ...(payloadRepairDiagnostics.length > 0 ? { payloadRepairDiagnostics } : {}),
+      debugPayloadPath
+    };
+    if (!(error instanceof ParseApiError)) {
+      return createDeterministicParseFailure({
+        message: 'Babel could not finish processing the generated analysis.',
+        details: { ...commonDetails, engineError: { name: error?.name || 'Error', message: String(error?.message || error) } },
+        rawText: generationMeta.rawText
+      });
+    }
+    return new ParseApiError(
+      error.code,
+      error.message,
+      error.status,
+      {
+        ...(error.details && typeof error.details === 'object' ? error.details : {}),
+        ...commonDetails,
+        rawOutputArtifact: createRawOutputArtifact(generationMeta.rawText)
+      }
+    );
+  };
+
+  const createTerminalFailureEvidence = ({
+    existingEvidence,
+    error,
+    provider,
+    framework,
+    promptRoute,
+    sentRequest,
+    generationStartedAt,
+    sentMaxOutputTokens
+  }) => {
+    if (existingEvidence || !generationStartedAt || !error?.providerRunId) {
+      return existingEvidence;
+    }
+    const rawText = String(error?.responseBody || '');
+    const finishReason = String(error?.finishReason || 'PROVIDER_ERROR').toUpperCase();
+    return {
+      rawText,
+      generationRecord: {
+        ...createGenerationRecord({
+          provider,
+          framework,
+          promptRoute,
+          sentRequest,
+          generationStartedAt
+        }),
+        ...(rawText ? { rawProviderResponse: createRawOutputArtifact(rawText) } : {}),
+        outcome: {
+          sentMaxOutputTokens,
+          finishReason,
+          finishStatus: error?.completedStopState
+            ? 'COMPLETED_STOP_FAILURE'
+            : 'TRANSPORT_FAILURE',
+          runId: error.providerRunId,
+          attempts: Array.isArray(error.providerAttempts) ? error.providerAttempts : []
+        }
+      }
+    };
+  };
+
   const maybeWritePrimaryDebugPayload = ({
     modelRoute,
     model,
@@ -359,146 +426,6 @@ export const createParseRoutes = ({
       sentence,
       rawText
     });
-  };
-
-  const attemptPayloadTranscriber = async ({
-    ai,
-    sentence,
-    framework,
-    modelRoute,
-    rawText,
-    requestStartedAt,
-    failureStage,
-    originalPayload,
-    existingIntegrityFlags = []
-  }) => {
-    const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
-    if (!Number.isFinite(remainingBudgetMs) ? false : remainingBudgetMs <= 2500) {
-      return null;
-    }
-
-    writeDebugModelPayload({
-      stage: `payload-transcriber-input-${failureStage}`,
-      model: PAYLOAD_TRANSCRIBER_MODEL,
-      sentence,
-      rawText
-    });
-
-    let generation;
-    try {
-      generation = await withTimeout(
-        (abortSignal) => generateStructuredContent({
-          ai,
-          model: PAYLOAD_TRANSCRIBER_MODEL,
-          contents: buildPayloadTranscriberContents({
-            sentence,
-            framework,
-            failureStage,
-            rawText,
-            originalPayload
-          }),
-          systemInstruction: buildPayloadTranscriberSystemInstruction(),
-          temperature: PAYLOAD_TRANSCRIBER_TEMPERATURE,
-          maxOutputTokens: PAYLOAD_TRANSCRIBER_MAX_OUTPUT_TOKENS,
-          abortSignal
-        }),
-        resolveRequestTimeoutMs({
-          baseTimeoutMs: PAYLOAD_TRANSCRIBER_TIMEOUT_MS,
-          remainingBudgetMs
-        }),
-        `Payload transcriber (${PAYLOAD_TRANSCRIBER_MODEL})`
-      );
-    } catch {
-      return null;
-    }
-
-    const generationMeta = summarizeGeneration(generation);
-    writeDebugModelPayload({
-      stage: `payload-transcriber-output-${failureStage}`,
-      model: PAYLOAD_TRANSCRIBER_MODEL,
-      sentence,
-      rawText: generationMeta.rawText
-    });
-
-    let parsedTranscribed;
-    try {
-      parsedTranscribed = parseModelJsonDetailed
-        ? parseModelJsonDetailed(generationMeta.rawText)
-        : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [] };
-    } catch {
-      return null;
-    }
-
-    if (originalPayload) {
-      const originalFingerprint = buildPayloadFingerprint(originalPayload);
-      const transcribedFingerprint = buildPayloadFingerprint(parsedTranscribed.payload);
-      const relocationSafeOriginalFingerprint = buildPayloadFingerprintAllowingStageFieldRelocation(originalPayload);
-      const relocationSafeTranscribedFingerprint = buildPayloadFingerprintAllowingStageFieldRelocation(parsedTranscribed.payload);
-      if (
-        originalFingerprint !== transcribedFingerprint
-        && relocationSafeOriginalFingerprint !== relocationSafeTranscribedFingerprint
-      ) {
-        writeDebugModelPayload({
-          stage: `payload-transcriber-drift-${failureStage}`,
-          model: PAYLOAD_TRANSCRIBER_MODEL,
-          sentence,
-          rawText: JSON.stringify({
-            originalPayload,
-            transcribedPayload: parsedTranscribed.payload
-          }, null, 2)
-        });
-        return null;
-      }
-    } else {
-      // Pure JSON-parse failures have no authoritative parsed payload to diff against.
-      // In that case the transcriber may only pass if every structural anchor it emits
-      // already exists in the raw text transport itself.
-      const rawAnchorGate = payloadRespectsRawStructuralAnchors(parsedTranscribed.payload, rawText);
-      if (!rawAnchorGate.ok) {
-        writeDebugModelPayload({
-          stage: `payload-transcriber-anchor-reject-${failureStage}`,
-          model: PAYLOAD_TRANSCRIBER_MODEL,
-          sentence,
-          rawText: JSON.stringify(rawAnchorGate, null, 2)
-        });
-        return null;
-      }
-      const rawAuthoredTextGate = payloadPreservesRawAuthoredText(parsedTranscribed.payload, rawText);
-      if (!rawAuthoredTextGate.ok) {
-        writeDebugModelPayload({
-          stage: `payload-transcriber-authored-text-reject-${failureStage}`,
-          model: PAYLOAD_TRANSCRIBER_MODEL,
-          sentence,
-          rawText: JSON.stringify(rawAuthoredTextGate, null, 2)
-        });
-        return null;
-      }
-    }
-
-    const payloadIntegrityFlags = Array.from(new Set([
-      ...(Array.isArray(existingIntegrityFlags) ? existingIntegrityFlags : []),
-      ...(Array.isArray(parsedTranscribed.integrityFlags) ? parsedTranscribed.integrityFlags : []),
-      'payload_transcribed_by_flash_lite',
-      `payload_transcribed_after_${failureStage}`
-    ]));
-
-    try {
-      const normalized = normalizeParseBundle(
-        parsedTranscribed.payload,
-        framework,
-        sentence,
-        modelRoute,
-        true,
-        { payloadIntegrityFlags }
-      );
-      return {
-        normalized,
-        transcriberMeta: generationMeta,
-        payloadIntegrityFlags
-      };
-    } catch {
-      return null;
-    }
   };
 
   const parseSentenceWithLocalModel = async (sentence, framework = 'xbar') => {
@@ -522,9 +449,12 @@ export const createParseRoutes = ({
       maxOutputTokens
     });
 
+    let generationFailureEvidence = null;
+    let generationStartedAt = null;
+    let payloadRepairDiagnostics = [];
     try {
-      const generationStartedAt = Date.now();
-      const rawText = await generateStructuredLocalContent({
+      generationStartedAt = Date.now();
+      const rawText = await generateLocal({
         sentence,
         framework,
         systemInstruction,
@@ -540,6 +470,7 @@ export const createParseRoutes = ({
         sentRequest,
         generationStartedAt
       });
+      generationFailureEvidence = { generationRecord, rawText };
 
       if (!rawText) {
         throw new ParseApiError('BAD_MODEL_RESPONSE', 'Local model returned no text.', 502, {
@@ -548,14 +479,22 @@ export const createParseRoutes = ({
         });
       }
 
-      const parsedPayload = parseModelJsonDetailed ? parseModelJsonDetailed(rawText) : { payload: parseModelJson(rawText), integrityFlags: [] };
+      const parsedPayload = parseModelJsonDetailed
+        ? parseModelJsonDetailed(rawText)
+        : { payload: parseModelJson(rawText), integrityFlags: [], repairDiagnostics: [] };
+      payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
+        ? parsedPayload.repairDiagnostics
+        : [];
       let normalized = normalizeParseBundle(
         parsedPayload.payload,
         framework,
         sentence,
         promptRoute,
         true,
-        { payloadIntegrityFlags: parsedPayload.integrityFlags }
+        {
+          payloadIntegrityFlags: parsedPayload.integrityFlags,
+          payloadRepairDiagnostics
+        }
       );
       if (normalized?.analyses?.[0]) {
         normalized = mapBundleAnalyses(normalized, (analysis) => ({
@@ -575,7 +514,12 @@ export const createParseRoutes = ({
       };
     } catch (error) {
       if (error instanceof ParseApiError) {
-        throw error;
+        throw attachGenerationFailureEvidence({
+          error: attachPayloadRepairDiagnostics(error, payloadRepairDiagnostics),
+          ParseApiError,
+          generationRecord: generationFailureEvidence?.generationRecord,
+          rawText: generationFailureEvidence?.rawText
+        });
       }
       const { msg, haystack, statusCode } = getErrorMeta(error);
       if (
@@ -586,13 +530,32 @@ export const createParseRoutes = ({
         statusCode === 404 ||
         statusCode === 503
       ) {
-        throw new ParseApiError('LOCAL_MODEL_UNAVAILABLE', localRouteUnavailableMessage(), 503, {
+        const classified = new ParseApiError('LOCAL_MODEL_UNAVAILABLE', localRouteUnavailableMessage(), 503, {
           model: modelUsed,
           endpoint: LOCAL_MODEL_COMMAND ? 'command' : LOCAL_MODEL_URL,
           transportMessage: msg || null
         });
+        throw attachGenerationFailureEvidence({
+          error: classified,
+          ParseApiError,
+          generationRecord: generationFailureEvidence?.generationRecord,
+          rawText: generationFailureEvidence?.rawText
+        });
       }
-      throw new ParseApiError('PARSE_FAILED', msg || 'Local model parsing failed.', 500);
+      const classified = createDeterministicParseFailure({
+        message: 'Babel could not complete the local parse.',
+        details: {
+          model: modelUsed,
+          endpoint: LOCAL_MODEL_COMMAND ? 'command' : LOCAL_MODEL_URL
+        },
+        rawText: generationFailureEvidence?.rawText
+      });
+      throw attachGenerationFailureEvidence({
+        error: classified,
+        ParseApiError,
+        generationRecord: generationFailureEvidence?.generationRecord,
+        rawText: generationFailureEvidence?.rawText
+      });
     }
   };
 
@@ -625,6 +588,8 @@ export const createParseRoutes = ({
       thinkingConfig
     });
 
+    let generationFailureEvidence = null;
+    let generationStartedAt = null;
     try {
       const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
       if (remainingBudgetMs <= 1200) {
@@ -635,8 +600,9 @@ export const createParseRoutes = ({
         );
       }
 
-      const generationStartedAt = Date.now();
+      generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
           if (attemptRemainingBudgetMs <= 1200) {
@@ -647,7 +613,7 @@ export const createParseRoutes = ({
             );
           }
           return withTimeout(
-            (abortSignal) => generateStructuredContent({
+            (abortSignal) => generateGemini({
               ai,
               model: selectedModel,
               contents: fullContents,
@@ -666,14 +632,7 @@ export const createParseRoutes = ({
         }
       });
       const generation = generationReceipt.value;
-      const generationMeta = assertGenerationComplete({
-        generation,
-        provider: normalizedModelRoute,
-        model: selectedModel,
-        sentMaxOutputTokens: routeMaxOutputTokens,
-        runId: generationReceipt.runId,
-        attempts: generationReceipt.attempts
-      });
+      const generationMeta = summarizeGeneration(generation);
       const generationRecord = {
         ...createGenerationRecord({
           provider: normalizedModelRoute,
@@ -689,6 +648,18 @@ export const createParseRoutes = ({
           attempts: generationReceipt.attempts
         })
       };
+      generationFailureEvidence = {
+        generationRecord,
+        rawText: generationMeta.rawText
+      };
+      assertGenerationComplete({
+        generation,
+        provider: normalizedModelRoute,
+        model: selectedModel,
+        sentMaxOutputTokens: routeMaxOutputTokens,
+        runId: generationReceipt.runId,
+        attempts: generationReceipt.attempts
+      });
       const primaryDebugPayloadPath = maybeWritePrimaryDebugPayload({
         modelRoute: normalizedModelRoute,
         model: selectedModel,
@@ -698,72 +669,55 @@ export const createParseRoutes = ({
 
       let payload;
       let payloadIntegrityFlags = [];
+      let payloadRepairDiagnostics = [];
+      const jsonProcessing = { repairDiagnostics: [] };
+      generationRecord.processing = { json: jsonProcessing };
+      const jsonStartedAt = performance.now();
       try {
         const parsedPayload = parseModelJsonDetailed
           ? parseModelJsonDetailed(generationMeta.rawText)
-          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [] };
+          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [], repairDiagnostics: [] };
         payload = parsedPayload.payload;
         payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
           ? parsedPayload.integrityFlags
           : [];
+        payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
+          ? parsedPayload.repairDiagnostics
+          : [];
+        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
+        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
       } catch (error) {
+        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
+        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
         if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
-          const transcribed = await attemptPayloadTranscriber({
-            ai,
-            sentence,
-            framework,
-            modelRoute: normalizedModelRoute,
-            rawText: generationMeta.rawText,
-            requestStartedAt,
-            failureStage: 'json_parse',
-            originalPayload: null,
-            existingIntegrityFlags: []
-          });
-          if (transcribed?.normalized?.analyses?.[0]) {
-            const recovered = mapBundleAnalyses(
-              transcribed.normalized,
-              (analysis) =>
-                attachPayloadTranscriberProvenance(
-                  attachPrimaryParseProvenance(
-                    analysis,
-                    generationMeta,
-                    primaryDebugPayloadPath ? { primaryDebugPayloadPath } : {}
-                  ),
-                  transcribed.transcriberMeta
-                )
-            );
-            return {
-              ...recovered,
-              requestedModelRoute: normalizedModelRoute,
-              requestedReasoningEffort: reasoningEffort,
-              modelUsed: selectedModel,
-              generationRecord
-            };
-          }
           const debugPayloadPath = writeDebugModelPayload({
             stage: 'json-parse',
             model: selectedModel,
             sentence,
             rawText: generationMeta.rawText
           });
-          throw new ParseApiError(
-            error.code,
-            error.message,
-            422,
-            {
-              ...(error?.details && typeof error.details === 'object' ? error.details : {}),
-              stage: 'json-parse',
-              model: selectedModel,
-              finishReason: generationMeta.finishReason || null,
-              textLength: generationMeta.textLength,
-              preview: generationMeta.preview || '',
-              debugPayloadPath
-            }
-          );
+          throw augmentModelPayloadFailure({
+            error,
+            stage: 'json-parse',
+            model: selectedModel,
+            generationMeta,
+            debugPayloadPath
+          });
         }
-        throw error;
+        throw augmentModelPayloadFailure({
+          error,
+          stage: 'json-parse',
+          model: selectedModel,
+          generationMeta,
+          debugPayloadPath: null
+        });
+      } finally {
+        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
       }
 
+      const normalizationProcessing = {};
+      generationRecord.processing.normalization = normalizationProcessing;
+      const normalizationStartedAt = performance.now();
       let normalized;
       try {
         normalized = normalizeParseBundle(
@@ -772,7 +726,7 @@ export const createParseRoutes = ({
           sentence,
           normalizedModelRoute,
           true,
-          { payloadIntegrityFlags }
+          { payloadIntegrityFlags, payloadRepairDiagnostics }
         );
         if (normalized?.analyses?.[0]) {
           normalized = mapBundleAnalyses(
@@ -786,65 +740,30 @@ export const createParseRoutes = ({
           );
         }
       } catch (error) {
-        if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
-          const transcribed = await attemptPayloadTranscriber({
-            ai,
-            sentence,
-            framework,
-            modelRoute: normalizedModelRoute,
-            rawText: generationMeta.rawText,
-            requestStartedAt,
-            failureStage: 'normalization',
-            originalPayload: payload,
-            existingIntegrityFlags: payloadIntegrityFlags
-          });
-          if (transcribed?.normalized?.analyses?.[0]) {
-            normalized = mapBundleAnalyses(
-              transcribed.normalized,
-              (analysis) =>
-                attachPayloadTranscriberProvenance(
-                  attachPrimaryParseProvenance(
-                    analysis,
-                    generationMeta,
-                    primaryDebugPayloadPath ? { primaryDebugPayloadPath } : {}
-                  ),
-                  transcribed.transcriberMeta
-              )
-            );
-          } else {
-            const debugPayloadPath = writeDebugModelPayload({
-              stage: 'normalization',
-              model: selectedModel,
-              sentence,
-              rawText: generationMeta.rawText
-            });
-            let payloadPreview = '<unserializable>';
-            try {
-              payloadPreview = JSON.stringify(payload).slice(0, 320);
-            } catch {
-              // keep fallback preview
-            }
-            throw new ParseApiError(
-              error.code,
-              error.message,
-              422,
-              {
-                ...(error?.details && typeof error.details === 'object' ? error.details : {}),
-                stage: 'normalization',
-                model: selectedModel,
-                finishReason: generationMeta.finishReason || null,
-                textLength: generationMeta.textLength,
-                preview: generationMeta.preview || '',
-                payloadPreview,
-                debugPayloadPath,
-                rawOutputArtifact: createRawOutputArtifact(generationMeta.rawText)
-              }
-            );
-          }
+        if (error.failure) normalizationProcessing.failure = error.failure;
+        const debugPayloadPath = writeDebugModelPayload({
+          stage: 'normalization',
+          model: selectedModel,
+          sentence,
+          rawText: generationMeta.rawText
+        });
+        let payloadPreview = '<unserializable>';
+        try {
+          payloadPreview = JSON.stringify(payload).slice(0, 320);
+        } catch {
+          // keep fallback preview
         }
-        if (!(error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE' && normalized?.analyses?.[0])) {
-          throw error;
-        }
+        throw augmentModelPayloadFailure({
+          error,
+          stage: 'normalization',
+          model: selectedModel,
+          generationMeta,
+          payloadPreview,
+          debugPayloadPath,
+          payloadRepairDiagnostics
+        });
+      } finally {
+        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
       }
 
       return {
@@ -855,11 +774,27 @@ export const createParseRoutes = ({
         generationRecord
       };
     } catch (error) {
-      throw classifyGeminiRouteError({
+      generationFailureEvidence = createTerminalFailureEvidence({
+        existingEvidence: generationFailureEvidence,
+        error,
+        provider: normalizedModelRoute,
+        framework,
+        promptRoute: normalizedModelRoute,
+        sentRequest,
+        generationStartedAt,
+        sentMaxOutputTokens: routeMaxOutputTokens
+      });
+      const classified = classifyGeminiRouteError({
         error,
         ParseApiError,
         modelRoute: normalizedModelRoute,
         model: selectedModel
+      });
+      throw attachGenerationFailureEvidence({
+        error: classified,
+        ParseApiError,
+        generationRecord: generationFailureEvidence?.generationRecord,
+        rawText: generationFailureEvidence?.rawText
       });
     }
   };
@@ -872,6 +807,7 @@ export const createParseRoutes = ({
     selectedModel,
     providerLabel,
     generate,
+    selection,
     reasoningEffort: requestedReasoningEffort
   }) => {
     if (!apiKey) {
@@ -880,26 +816,35 @@ export const createParseRoutes = ({
 
     const systemInstruction = buildSystemInstruction(framework, modelRoute);
     const fullContents = buildParseContentsPrompt(sentence, framework, modelRoute);
-    const routeTemperature = resolveRouteTemperature(modelRoute);
-    const routeMaxOutputTokens = resolveRouteMaxOutputTokens(modelRoute);
+    const routeMaxOutputTokens = selection
+      ? selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens
+      : resolveRouteMaxOutputTokens(modelRoute);
     const requestStartedAt = Date.now();
-    const reasoningEffort = normalizeProviderReasoningEffort(modelRoute, requestedReasoningEffort);
-    const sentRequest = modelRoute === 'gpt'
-      ? buildOpenAIRequestBody({
-          model: selectedModel,
-          contents: fullContents,
-          systemInstruction,
-          maxOutputTokens: routeMaxOutputTokens,
-          reasoningEffort
-        })
-      : buildAnthropicRequestBody({
-          model: selectedModel,
-          contents: fullContents,
-          systemInstruction,
-          maxOutputTokens: routeMaxOutputTokens,
-          effort: reasoningEffort
-        });
+    const reasoningEffort = selection
+      ? Object.values(selection.nativeSettings)[0]
+      : normalizeProviderReasoningEffort(modelRoute, requestedReasoningEffort);
+    const generationOptions = {
+      model: selectedModel,
+      contents: fullContents,
+      systemInstruction,
+      maxOutputTokens: routeMaxOutputTokens,
+      reasoningEffort,
+      effort: reasoningEffort,
+      ...(selection?.provider === 'openai' ? { background: selection.requestPolicy.background } : {}),
+      ...(selection?.provider === 'anthropic' ? {
+        thinking: selection.requestPolicy.thinking?.value ?? null
+      } : {})
+    };
+    const requestBuilder = {
+      gpt: buildOpenAIRequestBody,
+      claude: buildAnthropicRequestBody,
+      kimi: buildKimiRequestBody,
+      grok: buildGrokRequestBody
+    }[modelRoute];
+    const sentRequest = requestBuilder(generationOptions);
 
+    let generationFailureEvidence = null;
+    let generationStartedAt = null;
     try {
       const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
       if (remainingBudgetMs <= 1200) {
@@ -910,8 +855,9 @@ export const createParseRoutes = ({
         );
       }
 
-      const generationStartedAt = Date.now();
+      generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
           if (attemptRemainingBudgetMs <= 1200) {
@@ -924,13 +870,7 @@ export const createParseRoutes = ({
           return withTimeout(
             (abortSignal) => generate({
               apiKey,
-              model: selectedModel,
-              contents: fullContents,
-              systemInstruction,
-              temperature: routeTemperature,
-              maxOutputTokens: routeMaxOutputTokens,
-              reasoningEffort,
-              effort: reasoningEffort,
+              ...generationOptions,
               abortSignal
             }),
             resolveRequestTimeoutMs({
@@ -942,14 +882,7 @@ export const createParseRoutes = ({
         }
       });
       const generation = generationReceipt.value;
-      const generationMeta = assertGenerationComplete({
-        generation,
-        provider: modelRoute,
-        model: selectedModel,
-        sentMaxOutputTokens: routeMaxOutputTokens,
-        runId: generationReceipt.runId,
-        attempts: generationReceipt.attempts
-      });
+      const generationMeta = summarizeGeneration(generation);
       const generationRecord = {
         ...createGenerationRecord({
           provider: modelRoute,
@@ -958,6 +891,11 @@ export const createParseRoutes = ({
           sentRequest,
           generationStartedAt
         }),
+        ...(selection ? { modelSelection: selection } : {}),
+        ...(generation.returnedModel ? { returnedModel: generation.returnedModel } : {}),
+        ...(typeof generation.rawProviderResponse === 'string' ? {
+          rawProviderResponse: createRawOutputArtifact(generation.rawProviderResponse)
+        } : {}),
         outcome: buildGenerationOutcome({
           generationMeta,
           sentMaxOutputTokens: routeMaxOutputTokens,
@@ -965,6 +903,18 @@ export const createParseRoutes = ({
           attempts: generationReceipt.attempts
         })
       };
+      generationFailureEvidence = {
+        generationRecord,
+        rawText: generationMeta.rawText
+      };
+      assertGenerationComplete({
+        generation,
+        provider: modelRoute,
+        model: selectedModel,
+        sentMaxOutputTokens: routeMaxOutputTokens,
+        runId: generationReceipt.runId,
+        attempts: generationReceipt.attempts
+      });
       const primaryDebugPayloadPath = maybeWritePrimaryDebugPayload({
         modelRoute,
         model: selectedModel,
@@ -973,39 +923,47 @@ export const createParseRoutes = ({
       });
       let payload;
       let payloadIntegrityFlags = [];
+      let payloadRepairDiagnostics = [];
+      const jsonProcessing = { repairDiagnostics: [] };
+      generationRecord.processing = { json: jsonProcessing };
+      const jsonStartedAt = performance.now();
 
       try {
         const parsedPayload = parseModelJsonDetailed
           ? parseModelJsonDetailed(generationMeta.rawText)
-          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [] };
+          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [], repairDiagnostics: [] };
         payload = parsedPayload.payload;
         payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
           ? parsedPayload.integrityFlags
           : [];
+        payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
+          ? parsedPayload.repairDiagnostics
+          : [];
+        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
+        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
       } catch (error) {
+        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
+        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
         const debugPayloadPath = writeDebugModelPayload({
           stage: `${modelRoute}-json-parse`,
           model: selectedModel,
           sentence,
           rawText: generationMeta.rawText
         });
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          error?.message || 'Model returned invalid JSON.',
-          422,
-          {
-            ...(error?.details && typeof error.details === 'object' ? error.details : {}),
-            stage: 'json-parse',
-            model: selectedModel,
-            finishReason: generationMeta.finishReason || null,
-            textLength: generationMeta.textLength,
-            preview: generationMeta.preview || '',
-            debugPayloadPath,
-            rawOutputArtifact: createRawOutputArtifact(generationMeta.rawText)
-          }
-        );
+        throw augmentModelPayloadFailure({
+          error,
+          stage: 'json-parse',
+          model: selectedModel,
+          generationMeta,
+          debugPayloadPath
+        });
+      } finally {
+        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
       }
 
+      const normalizationProcessing = {};
+      generationRecord.processing.normalization = normalizationProcessing;
+      const normalizationStartedAt = performance.now();
       let normalized;
       try {
         normalized = normalizeParseBundle(
@@ -1014,7 +972,7 @@ export const createParseRoutes = ({
           sentence,
           modelRoute,
           true,
-          { payloadIntegrityFlags }
+          { payloadIntegrityFlags, payloadRepairDiagnostics }
         );
         if (normalized?.analyses?.[0]) {
           normalized = mapBundleAnalyses(
@@ -1028,6 +986,7 @@ export const createParseRoutes = ({
           );
         }
       } catch (error) {
+        if (error.failure) normalizationProcessing.failure = error.failure;
         const debugPayloadPath = writeDebugModelPayload({
           stage: `${modelRoute}-normalization`,
           model: selectedModel,
@@ -1040,40 +999,53 @@ export const createParseRoutes = ({
         } catch {
           // keep fallback preview
         }
-        const errorDetails = error instanceof ParseApiError && error.details && typeof error.details === 'object'
-          ? error.details
-          : {};
-        throw new ParseApiError(
-          error instanceof ParseApiError ? error.code : 'BAD_MODEL_RESPONSE',
-          error?.message || 'Model payload failed normalization.',
-          error instanceof ParseApiError ? error.status : 422,
-          {
-            ...errorDetails,
-            stage: 'normalization',
-            model: selectedModel,
-            finishReason: generationMeta.finishReason || null,
-            textLength: generationMeta.textLength,
-            preview: generationMeta.preview || '',
-            payloadPreview,
-            debugPayloadPath,
-            rawOutputArtifact: createRawOutputArtifact(generationMeta.rawText)
-          }
-        );
+        throw augmentModelPayloadFailure({
+          error,
+          stage: 'normalization',
+          model: selectedModel,
+          generationMeta,
+          payloadPreview,
+          debugPayloadPath,
+          payloadRepairDiagnostics
+        });
+      } finally {
+        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
       }
 
       return {
         ...normalized,
         requestedModelRoute: modelRoute,
+        ...(selection ? { requestedModelId: selection.catalogId } : {}),
         requestedReasoningEffort: reasoningEffort,
-        modelUsed: selectedModel,
+        modelUsed: generation.returnedModel || selectedModel,
+        ...(selection ? { rawModelOutput: createRawOutputArtifact(generationMeta.rawText) } : {}),
         generationRecord
       };
     } catch (error) {
-      throw classifyProviderRouteError({
+      generationFailureEvidence = createTerminalFailureEvidence({
+        existingEvidence: generationFailureEvidence,
+        error,
+        provider: modelRoute,
+        framework,
+        promptRoute: modelRoute,
+        sentRequest,
+        generationStartedAt,
+        sentMaxOutputTokens: routeMaxOutputTokens
+      });
+      if (selection && generationFailureEvidence) {
+        generationFailureEvidence.generationRecord.modelSelection = selection;
+      }
+      const classified = classifyProviderRouteError({
         error,
         ParseApiError,
         providerLabel,
         model: selectedModel
+      });
+      throw attachGenerationFailureEvidence({
+        error: classified,
+        ParseApiError,
+        generationRecord: generationFailureEvidence?.generationRecord,
+        rawText: generationFailureEvidence?.rawText
       });
     }
   };
@@ -1086,7 +1058,7 @@ export const createParseRoutes = ({
       apiKey: String(process.env.OPENAI_API_KEY || '').trim(),
       selectedModel: OPENAI_MODEL,
       providerLabel: 'OpenAI',
-      generate: generateOpenAIStructuredContent,
+      generate: generateOpenAI,
       reasoningEffort: options.reasoningEffort
     });
 
@@ -1098,14 +1070,38 @@ export const createParseRoutes = ({
       apiKey: String(process.env.ANTHROPIC_API_KEY || '').trim(),
       selectedModel: ANTHROPIC_MODEL,
       providerLabel: 'Claude',
-      generate: generateAnthropicStructuredContent,
+      generate: generateClaude,
       reasoningEffort: options.reasoningEffort
     });
+
+  const parseSentenceWithResearchModel = async (sentence, framework, modelId, options = {}) => {
+    if (!GENERATION_MODEL_IDS.includes(modelId)) {
+      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
+    }
+    const selection = resolveResearchModelSelection(modelId, options.settings);
+    const provider = {
+      openai: { key: 'OPENAI_API_KEY', label: 'OpenAI', generate: generateOpenAI },
+      anthropic: { key: 'ANTHROPIC_API_KEY', label: 'Anthropic', generate: generateClaude },
+      moonshot: { key: 'MOONSHOT_API_KEY', label: 'Kimi', generate: generateKimi },
+      xai: { key: 'XAI_API_KEY', label: 'xAI', generate: generateGrok }
+    }[selection.provider];
+    return parseSentenceWithExternalProvider({
+      sentence,
+      framework,
+      modelRoute: selection.providerRoute,
+      apiKey: String(process.env[provider.key] || '').trim(),
+      selectedModel: selection.providerModel,
+      providerLabel: provider.label,
+      generate: provider.generate,
+      selection
+    });
+  };
 
   return {
     parseSentenceWithLocalModel,
     parseSentenceWithGemini,
     parseSentenceWithOpenAI,
-    parseSentenceWithClaude
+    parseSentenceWithClaude,
+    parseSentenceWithResearchModel
   };
 };

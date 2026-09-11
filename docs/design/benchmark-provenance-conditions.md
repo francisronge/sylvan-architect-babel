@@ -6,7 +6,7 @@ Babel records the conditions of each model generation in one bundle-level `gener
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "provider": "gemini | gpt | claude | local",
   "promptContract": {
     "framework": "xbar | minimalism",
@@ -21,6 +21,13 @@ Babel records the conditions of each model generation in one bundle-level `gener
   "timing": {
     "requestStartedAt": "ISO 8601 timestamp",
     "durationMs": 0
+  },
+  "outcome": {
+    "sentMaxOutputTokens": 0,
+    "finishReason": "provider finish reason",
+    "finishStatus": "provider completion status",
+    "runId": "generation run identifier",
+    "attempts": []
   }
 }
 ```
@@ -29,7 +36,7 @@ Babel records the conditions of each model generation in one bundle-level `gener
 
 `sentGenerationConfig` is derived from the same pure request-body builder used by the transport. It records resolved provider-shaped scalar settings, including the model and output limit. Gemini and local requests record temperature. GPT and Claude records intentionally omit temperature because their current request bodies do not send it. No API key, header, secret, environment-variable name, raw instruction, or raw prompt belongs in this object.
 
-Timing covers the primary provider generation await only. It excludes JSON parsing, normalization, optional payload transcription, rendering, and client latency. A bundle whose analysis provenance has `payloadTranscriberUsed: true` is therefore identifiable, but the transcriber request has no separate generation record in schema version 1.
+Timing covers the primary provider generation await only. It excludes JSON parsing, normalization, rendering, and client latency.
 
 Tree Bank snapshots preserve `generationRecord` at bundle level because one provider request produces every ambiguity analysis in that bundle. Existing per-analysis provenance and token accounting retain their current meanings.
 
@@ -47,5 +54,4 @@ This contract deliberately leaves out:
 - correctness criteria, scoring, and adjudication;
 - runner orchestration and raw provider-payload archival;
 - repeated-run variance, statistics, and cost policy;
-- seed or provider system-fingerprint capture if APIs later expose them;
-- policy for including or excluding payload-transcribed results.
+- seed or provider system-fingerprint capture if APIs later expose them.

@@ -109,6 +109,47 @@ test('detector discriminates invented IDs, scalar rewrites, and operation labels
   assert.equal(kinds.has('replay-plan-operation-not-authored-or-declared'), true);
 });
 
+test('the detector verifies bound role provenance and recovered movement endpoints', () => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(rawFixtureDir, 'what-did-mia-see.xbar.json'), 'utf8'));
+  const movement = fixture.payload.derivationStages[3].relations[0];
+  movement.anchors = { upperOccurrence: 'dp_what_high', basePosition: 'dp_what_low', departureWitness: 'what_low' };
+  const analysis = normalize(clone(fixture.payload), fixture.sentence).analyses[0];
+  const replayPlan = buildDerivationReplayPlan({ derivationStages: analysis.derivationStages });
+  const renderedRelationLinks = buildRenderedRelationLinks(analysis, replayPlan);
+  const input = { authoredDerivationStages: fixture.payload.derivationStages, analysis, replayPlan, renderedRelationLinks };
+  assert.doesNotThrow(() => assertNoDeterministicLinguisticInvention(input));
+  const link = renderedRelationLinks[0];
+  assert.equal(link.endpointOrderProvenance, 'recovered-movement');
+  const originalTarget = link.targetNodeId;
+  link.targetNodeId = link.sourceNodeId;
+  assert.ok(detectDeterministicLinguisticInvention(input).some(i => i.kind === 'displayed-relation-endpoint-order-mismatch'));
+  link.targetNodeId = originalTarget;
+  link.anchors[0].role = 'inventedRole';
+  assert.ok(detectDeterministicLinguisticInvention(input).some(i => i.kind === 'displayed-relation-anchor-set-mismatch'));
+});
+
+test('proved Tier 3 movement endpoints do not authorize a trajectory', () => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(rawFixtureDir, 'what-did-mia-see.xbar.json'), 'utf8'));
+  fixture.payload.derivationStages[3].relations[0] = {
+    relation: 'AbarMove', anchors: { landing: 'dp_what_high', source: 'dp_what_low' }
+  };
+  const analysis = normalize(clone(fixture.payload), fixture.sentence).analyses[0];
+  const replayPlan = buildDerivationReplayPlan({ derivationStages: analysis.derivationStages });
+  const renderedRelationLinks = buildRenderedRelationLinks(analysis, replayPlan);
+  const input = { authoredDerivationStages: fixture.payload.derivationStages, analysis, replayPlan, renderedRelationLinks };
+  const link = renderedRelationLinks.find(link => link.relation === 'AbarMove');
+  assert.equal(link.endpointOrderProvenance, 'recovered-movement');
+  assert.equal(link.renderFamily, 'authored-anchor-link');
+  assert.doesNotThrow(() => assertNoDeterministicLinguisticInvention(input));
+  const target = link.targetNodeId;
+  link.targetNodeId = link.sourceNodeId;
+  assert.ok(detectDeterministicLinguisticInvention(input).some(issue => issue.kind === 'displayed-relation-endpoint-order-mismatch'));
+  link.targetNodeId = target;
+  link.renderFamily = 'trajectory';
+  link.trajectoryKind = 'phrasal';
+  assert.ok(detectDeterministicLinguisticInvention(input).some(issue => issue.kind === 'displayed-movement-trajectory-not-licensed'));
+});
+
 test('compiler leaves bare authored structural heads bare instead of inventing null exponents', () => {
   const payload = buildSingleStagePayload([{
     id: 'tp',
@@ -165,10 +206,20 @@ test('compiler rejects authored alignment metadata that would require repair', (
     surfaceSpan: [1, 1],
     children: []
   }]);
+  const original = clone(payload);
   assert.throws(
     () => normalize(payload, 'Mia'),
-    (error) => error?.code === 'INCOMPLETE_GENERATION'
+    (error) => {
+      assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+      assert.equal(error.failure.ruleId, 'DERIVATION_TOKEN_ALIGNMENT');
+      assert.equal(error.failure.processingStep, 'token-alignment');
+      assert.equal(error.failure.fieldPath, '$.derivationStages[0].workspaceForest[0].tokenIndex');
+      assert.equal(error.failure.offendingValue, 1);
+      assert.equal(error.failure.expectedForm, 'the integer 0');
+      return true;
+    }
   );
+  assert.deepEqual(payload, original);
 });
 
 test('compiler rejects a bare structural label instead of promoting it into sentence material', () => {
@@ -227,13 +278,7 @@ test('compiler rejects anchor-value aliases instead of silently rewriting them',
 
 test('renderer expands authored lexical preterminals but never materializes an unauthored null', () => {
   const bareHead = { id: 't', label: 'T', children: [] };
-  for (const materialize of [
-    __TEST_ONLY__.materializeReplayPreterminals,
-    __TEST_ONLY__.materializeNullBearingLeaves,
-    __TEST_ONLY__.materializeCanopyPreterminals
-  ]) {
-    assert.deepEqual(materialize(bareHead), bareHead);
-  }
+  assert.deepEqual(__TEST_ONLY__.materializeReplayPreterminals(bareHead), bareHead);
 
   const overtHead = {
     id: 'v',

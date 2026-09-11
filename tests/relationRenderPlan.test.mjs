@@ -60,7 +60,7 @@ test('registered phrasal movement compiles with witness endpoints and authored p
     }], [whTree])
   ]);
 
-  assert.equal(plan.registryVersion, '11');
+  assert.equal(plan.registryVersion, '12');
   assert.equal(plan.frames.length, 1);
   const [item] = plan.frames[0].items;
   assert.equal(item.kind, 'trajectory');
@@ -283,7 +283,9 @@ test('sluicing composes movement, an ordinary feature plaque, and ellipsis ghost
     stage([{ relation: 'Sluicing', anchors: { site: 'tp_site_sluice_test' } }], [sluicingTree])
   ]);
   assert.deepEqual(bundled.unregistered, [{ relation: 'Sluicing', count: 1 }]);
-  assert.equal(bundled.frames[0].items.some((item) => item.kind === 'ellipsis-site'), true);
+  assert.equal(bundled.frames[0].items.some((item) => item.kind === 'ellipsis-site'), false,
+    'generic site plus silence must not assert an ellipsis operation');
+  assert.ok(bundled.frames[0].items.some((item) => item.kind === 'fallback'));
   assert.equal(bundled.frames[0].items.some((item) => item.kind === 'trajectory'), false);
 });
 
@@ -759,7 +761,7 @@ test('large anchor arrays compile additively and inherit the parent persistence'
   const members = Array.from({ length: 6 }, (_unused, index) => `m_${index}`);
   const bigTree = node('root_big', 'TP', members.map((id) => node(id, 'DP', [leaf(`${id}_d`, 'D', 'x')])));
   const plan = compileRelationRenderPlan([
-    stage([{ relation: 'OpenChorus', anchors: { members } }], [bigTree]),
+    stage([{ relation: 'OpenChorus', anchors: { occurrences: members } }], [bigTree]),
     stage([], [bigTree])
   ]);
   const identity = plan.frames[0].items.find((item) => item.tier2FacetId === 'identity.occurrences');
@@ -803,19 +805,21 @@ test('CyclicLinearization uses compact production anchor badges', () => {
     members.map((id) => node(id, 'DP', [leaf(`${id}_d`, 'D', 'x')]))
   );
   const plan = compileRelationRenderPlan([
+    stage([], [cyclicTree]),
     stage([{
       relation: 'CyclicLinearization',
       anchors: { order: members, edgePosition: members[0] },
+      priorAnchors: { order: members },
       values: { outcome: 'licensed' }
     }], [cyclicTree])
   ]);
-  const anchorSet = plan.frames[0].items.find((item) => item.kind === 'anchor-set');
+  const anchorSet = plan.frames[1].items.find((item) => item.kind === 'anchor-set');
   assert.ok(anchorSet);
   assert.equal(anchorSet.badgeSize, 'compact');
 
   const bound = bindRelationPlanFrame(
     plan,
-    0,
+    1,
     (nodeId) => members.includes(nodeId)
       ? { x: (members.indexOf(nodeId) + 1) * 100, y: 50 }
       : null
@@ -823,6 +827,58 @@ test('CyclicLinearization uses compact production anchor badges', () => {
   const badges = bound.primitives.filter((primitive) => primitive.type === 'anchor-set-badge');
   assert.equal(badges.length, members.length);
   assert.ok(badges.every((badge) => badge.badgeSize === 'compact'));
+});
+
+test('DependentCase prepares one literal step and leaves absent-step layout unchanged', () => {
+  const forest = [node('root', 'TP', [leaf('a', 'D', 'Mia'), leaf('b', 'D', 'Noa')])];
+  for (const stepValue of [undefined, '1', ['1'], '2', ' 1 ']) {
+    const relation = { relation: 'DependentCase', anchors: { searcher: 'a', licensee: 'b' },
+      values: { probeLabel: 'UNM', goalLabel: 'ACC', ...(stepValue === undefined ? {} : { step: stepValue }) } };
+    const original = structuredClone(relation);
+    const plan = compileRelationRenderPlan([stage([relation], forest)]);
+    assert.deepEqual(plan.diagnostics, []);
+    const path = plan.frames[0].items.find((item) => item.pathStyle === 'dependent-case');
+    assert.ok(path);
+    assert.equal(path.dependentCaseStep, Array.isArray(stepValue) ? stepValue[0] : stepValue?.trim());
+    assert.equal(path.label, 'UNM');
+    assert.equal(path.secondaryLabel, 'ACC');
+    assert.deepEqual(relation, original);
+  }
+  for (const stepValue of [[], ['1', '2'], ['1', '1'], '', [''], 'first', 'Step 1', '3']) {
+    const plan = compileRelationRenderPlan([stage([{ relation: 'DependentCase',
+      anchors: { probe: 'a', goal: 'b' }, values: { step: stepValue } }], forest)]);
+    assert.ok(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+    assert.equal(plan.frames[0].items.some((item) => item.pathStyle === 'dependent-case'), false);
+    assert.ok(plan.frames[0].items.some((item) => item.kind === 'fallback'));
+  }
+});
+
+test('CyclicLinearization does not claim a comparison from ambiguous or unresolved prior content', () => {
+  const forest = [node('root', 'TP', [leaf('a', 'D', 'Mia'), leaf('b', 'D', 'Noa')])];
+  for (const priorAnchors of [undefined, { order: ['a', 'missing'] }, { order: ['a', 'b'], sequence: ['b', 'a'] }]) {
+    const plan = compileRelationRenderPlan([stage([], forest), stage([{ relation: 'CyclicLinearization',
+      anchors: { order: ['a', 'b'] }, priorAnchors }], forest)]);
+    assert.ok(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+    assert.equal(plan.frames[1].items.some((item) => item.plaqueStyle === 'linearization'), false);
+    assert.ok(plan.frames[1].items.some((item) => item.kind === 'fallback'));
+  }
+});
+
+test('CyclicLinearization owns its prior order without inheriting unrelated prior context', () => {
+  const prior = [node('root', 'TP', [leaf('a', 'D', 'Mia'), leaf('b', 'D', 'Noa')])];
+  const current = [...prior, leaf('current-only', 'D', 'context')];
+  const relation = { relation: 'CyclicLinearization', anchors: { order: ['a', 'b'] },
+    priorAnchors: { order: ['b', 'a'], unrelated: 'current-only' } };
+  const original = structuredClone(relation);
+  const plan = compileRelationRenderPlan([stage([], prior), stage([relation], current)]);
+  const plaque = plan.frames[1].items.find((item) => item.plaqueStyle === 'linearization');
+  assert.ok(plaque);
+  assert.deepEqual(plaque.nativeContent.priorRows, ['Noa < Mia']);
+  assert.deepEqual(plaque.nativeContent.currentRows, ['Mia < Noa']);
+  assert.ok(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'prior-anchor-unresolved'));
+  assert.equal(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'), false);
+  assert.equal(plaque.backward, false, 'the incomplete whole prior block still proves no general continuity');
+  assert.deepEqual(relation, original);
 });
 
 test('repeated large-array instances in one stage each keep their own ordered set', () => {
@@ -841,7 +897,7 @@ test('repeated large-array instances in one stage each keep their own ordered se
   assert.deepEqual(sets[1].roles[0].anchors.map((anchor) => anchor.nodeId), second);
 });
 
-test('an unknown large array uses Tier-2 identity and its inherited organization only', () => {
+test('an unknown membership array remains neutral without inventing identity', () => {
   const members = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6'];
   const forest = [node('root_unknown_large', 'TP', members.map((id) => node(id, 'DP', [leaf(`${id}_d`, 'D', id)])))];
   const plan = compileRelationRenderPlan([
@@ -854,9 +910,81 @@ test('an unknown large array uses Tier-2 identity and its inherited organization
       ? { x: (members.indexOf(nodeId) + 1) * 100, y: 50 }
       : null
   );
-  assert.equal(bound.primitives.filter((p) => p.type === 'fallback-mark').length, 0);
-  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-badge').length, 6);
-  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-rail').length, 1);
+  assert.equal(bound.primitives.filter((p) => p.type === 'fallback-mark').length, 6);
+  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-badge').length, 0);
+  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-rail').length, 1, 'neutral topology may organize a large set without asserting identity');
+});
+
+test('unsupported native PF content remains neutral with an explicit diagnostic', () => {
+  const forest = [node('root', 'TP', [leaf('a', 'T', 'did'), leaf('b', 'V', 'go'), leaf('c', 'D', 'she')])];
+  for (const relation of [
+    { relation: 'Fission', anchors: { outputs: ['a', 'b', 'c'] }, values: {
+      inputFeatures: ['phi'], outputOneFeatures: ['person'], outputTwoFeatures: ['number']
+    } },
+    { relation: 'Fission', anchors: { outputs: ['a', 'b'] }, values: { features: ['phi'] } },
+    { relation: 'Impoverishment', anchors: { terminal: 'a' }, values: { featureHierarchy: ['a', 'b'], delinkAfter: 'missing' } },
+    { relation: 'ManyToManyCorrespondence', anchors: { word: 'a' }, values: { sources: ['T'], exponents: ['did'] } }
+  ]) {
+    const original = structuredClone(relation);
+    const plan = compileRelationRenderPlan([stage([relation], forest)]);
+    assert.ok(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'), relation.relation);
+    assert.ok(plan.frames[0].items.some((item) => item.kind === 'fallback'), relation.relation);
+    assert.equal(plan.frames[0].items.some((item) => item.kind === 'node-plaque' && item.nativeContent), false);
+    assert.deepEqual(relation, original);
+  }
+});
+
+test('PF realization keeps scalar prose literal and complete rewrite pairs explicit', () => {
+  const forest = [leaf('a', 'T', 'did')];
+  const relation = { relation: 'PFRealization', anchors: { target: 'a' }, values: {
+    input: ' T[past] ', output: 'did', notation: 'supports tense, without a new syntactic head',
+    qualifications: ['x_i', 'x_i']
+  } };
+  const plan = compileRelationRenderPlan([stage([relation], forest)]);
+  const plate = plan.frames[0].items.find((item) => item.kind === 'node-plaque');
+  assert.deepEqual(plate.rows, [
+    { label: ' T[past] ', value: 'did' },
+    { label: 'notation', value: 'supports tense, without a new syntactic head' },
+    { label: 'qualifications', value: 'x_i' },
+    { label: 'qualifications', value: 'x_i' }
+  ]);
+  assert.deepEqual(plate.realizationRowKinds, ['rewrite', 'literal', 'literal', 'literal']);
+});
+
+test('named theta uses the same exact ordered role pairing as recovered theta', () => {
+  const forest = [node('root', 'VP', [leaf('v', 'V', 'gave'), leaf('a', 'D', 'she'), leaf('b', 'D', 'it')])];
+  // Per-item literals pair with an anchor list through a same-name values entry.
+  const relation = { relation: 'ThetaAssignment', anchors: { predicate: 'v', arguments: ['a', 'b'] }, values: { arguments: ['Theme', 'Theme'] } };
+  const plan = compileRelationRenderPlan([stage([relation], forest)]);
+  assert.deepEqual(plan.frames[0].items.find((item) => item.kind === 'node-plaque')?.thetaRoles,
+    [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Theme' }]);
+  // A differently named list of the same length is not a pairing.
+  const unpaired = compileRelationRenderPlan([stage([{ ...relation, values: { roles: ['Theme', 'Theme'] } }], forest)]);
+  assert.ok(unpaired.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+  assert.equal(unpaired.frames[0].items.some((item) => item.plaqueStyle === 'theta-grid'), false);
+  const mismatch = compileRelationRenderPlan([stage([{ ...relation, values: { arguments: ['Theme'] } }], forest)]);
+  assert.ok(mismatch.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+  assert.ok(mismatch.frames[0].items.some((item) => item.kind === 'fallback'));
+  assert.equal(mismatch.frames[0].items.some((item) => item.plaqueStyle === 'theta-grid'), false);
+});
+
+test('Transfer retains each exact accessible edge in its prepared plan', () => {
+  const forest = [node('phase', 'CP', [leaf('e1', 'D', 'who'), leaf('e2', 'D', 'she'), node('sod', 'TP', [leaf('v', 'V', 'left')])])];
+  const plan = compileRelationRenderPlan([stage([{ relation: 'TransferDomain',
+    anchors: { phase: 'phase', edge: ['e1', 'e2'], spellOutDomain: 'sod' } }], forest)]);
+  assert.deepEqual(plan.diagnostics, []);
+  assert.deepEqual(plan.frames[0].items.filter((item) => item.domainStyle === 'transfer-edge').map((item) => item.rootNodeId), ['e1', 'e2']);
+});
+
+test('focus emphasis contains only actual native edges and rejects competing branch ownership', () => {
+  const forest = [node('root', 'TP', [node('left', 'DP', [leaf('a', 'N', 'Mia')]), node('right', 'VP', [leaf('b', 'V', 'sang')])])];
+  const plan = compileRelationRenderPlan([stage([{ relation: 'FocusMarking', anchors: { domain: 'root', focus: 'a', background: 'b' } }], forest)]);
+  const emphasis = plan.frames[0].items.find((item) => item.kind === 'branch-emphasis');
+  assert.deepEqual(emphasis.strongEdges, [{ fromNodeId: 'root', toNodeId: 'left' }, { fromNodeId: 'left', toNodeId: 'a' }]);
+  assert.deepEqual(emphasis.weakEdges, [{ fromNodeId: 'root', toNodeId: 'right' }, { fromNodeId: 'right', toNodeId: 'b' }]);
+  const invalid = compileRelationRenderPlan([stage([{ relation: 'FocusMarking', anchors: { domain: 'root', focus: 'left', background: 'a' } }], forest)]);
+  assert.equal(invalid.frames[0].items.some((item) => item.kind === 'branch-emphasis'), false);
+  assert.ok(invalid.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
 });
 
 test('unresolved large-array entries stay diagnostics and get no geometry', () => {
@@ -1134,7 +1262,7 @@ test('ACD is not a dedicated Tier-1 identity', () => {
     relation: 'AntecedentContainedDeletion',
     anchors: {
       'pronounced qp': 'qp_low_acd_shape',
-      'lf qp': 'qp_high_acd_shape',
+      'covert landing': 'qp_high_acd_shape',
       'scope domain': 'tp_acd_shape',
       'ellipsis site': 'vp_site_acd_shape'
     }

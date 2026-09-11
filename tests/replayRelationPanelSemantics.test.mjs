@@ -66,7 +66,7 @@ test('movement relation moments alone receive Source and Landing support lines',
 
   assert.equal(stepRepresentsMovement(step), true);
   assert.deepEqual(
-    buildReplaySupportLines(step, '').map(({ label }) => label),
+    buildReplaySupportLines(step).map(({ label }) => label),
     ['Source', 'Landing']
   );
 });
@@ -101,7 +101,7 @@ test('BoundingNodeCrossing uses its registered authored roles, not movement labe
   });
 
   assert.equal(stepRepresentsMovement(step), false);
-  assert.deepEqual(buildReplaySupportLines(step, ''), [
+  assert.deepEqual(buildReplaySupportLines(step), [
     { label: 'Domain', value: 'CP' },
     { label: 'Boundary', value: 'TP, VP' }
   ]);
@@ -125,7 +125,7 @@ test('OperatorVariableBinding keeps role-faithful wording as a semantic relation
   });
 
   assert.equal(stepRepresentsMovement(step), false);
-  assert.deepEqual(buildReplaySupportLines(step, ''), [
+  assert.deepEqual(buildReplaySupportLines(step), [
     { label: 'Operator', value: 'Which book' },
     { label: 'Variable', value: 't₁' },
     { label: 'Trace Witness', value: 't₁' },
@@ -182,7 +182,7 @@ test('compiled OperatorVariableBinding Replay preserves authored participant rol
       { role: 'scopeDomain', nodeId: 'cp_operator_variable' }
     ]
   );
-  assert.deepEqual(buildReplaySupportLines(relation, ''), [
+  assert.deepEqual(buildReplaySupportLines(relation), [
     { label: 'Operator', value: 'Which book' },
     { label: 'Variable', value: 't₁' },
     { label: 'Trace Witness', value: 't₁' },
@@ -206,10 +206,10 @@ test('representative nonmovement relations retain role-faithful participants and
     })]
   });
   assert.equal(stepRepresentsMovement(agree), false);
-  assert.deepEqual(buildReplaySupportLines(agree, ''), [
+  assert.deepEqual(buildReplaySupportLines(agree), [
     { label: 'Probe', value: '[uφ]' },
     { label: 'Goal', value: 'the girls' },
-    { label: 'Valuation', value: '3PL' }
+    { label: 'valuation', value: '3PL' }
   ]);
 
   const phase = relationStep({
@@ -226,7 +226,7 @@ test('representative nonmovement relations retain role-faithful participants and
     })]
   });
   assert.deepEqual(
-    buildReplaySupportLines(phase, ''),
+    buildReplaySupportLines(phase),
     [
       { label: 'Phase', value: 'CP' },
       { label: 'Edge', value: 'Which book' }
@@ -251,7 +251,7 @@ test('an open unregistered relation keeps authored role order without semantic g
 
   assert.equal(step.operation, 'OpenRelationName');
   assert.equal(stepRepresentsMovement(step), false);
-  assert.deepEqual(buildReplaySupportLines(step, ''), [
+  assert.deepEqual(buildReplaySupportLines(step), [
     { label: 'First Witness', value: 'Which book' },
     { label: 'Second Witness', value: 'the girls' }
   ]);
@@ -300,7 +300,7 @@ test('one-anchor deletion evidence survives alongside an earlier movement relati
     link.authoredRelationKey === '1:0'
     && link.anchors?.some((anchor) => anchor.role === 'domain' && anchor.nodeId === 'vp_deletion')
   )));
-  assert.deepEqual(buildReplaySupportLines(deletion, ''), [
+  assert.deepEqual(buildReplaySupportLines(deletion), [
     { label: 'Domain', value: 'VP' }
   ]);
 });

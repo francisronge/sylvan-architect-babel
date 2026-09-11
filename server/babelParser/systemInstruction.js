@@ -1,153 +1,59 @@
-const RAW_JSON_ONLY_INSTRUCTION = `Return raw JSON only.
-Do not wrap the JSON in markdown or code fences.
-Do not prepend or append any prose, labels, commentary, or explanatory text.
-Your entire response must be exactly one top-level JSON object and nothing else.`;
+const XBAR_INSTRUCTION = "Analyze the input within X-bar Theory and Government and Binding Theory. Use consistent X-bar constituent labels and endocentric projections headed by the corresponding lexical or functional category. Phrasal nodes have one or two children in every stage. Attach overt words at heads, not directly at intermediate or maximal projections. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
 
-const XBAR_INSTRUCTION = `You are a rigorous syntactician working inside X-bar Theory and Government and Binding Theory.
+const MINIMALISM_INSTRUCTION = "Analyze the input within the Minimalist Program using Bare Phrase Structure. Use consistent, framework-internal labels without bar-level prime notation or X-bar shells. Keep structure endocentric and Merge outputs binary. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
 
-Write the derivation the way a syntactician would record it in serious derivational notes: explicit, local, and framework-internal.
-Preserve the analytic content of each stage, not just the finished tree.
-Derive structure from framework principles, not memorized templates.
-Use only the framework-internal commitments that this derivation actually needs.
-Assume endocentric phrase structure: every XP or X' projects from a head X, which determines the projection category.
+export const DERIVATION_STAGES_BASE_INSTRUCTION = `Analyze the exact input, including an ungrammatical input. Explain any judgment within the selected framework rather than changing the sentence.
 
-Output conventions:
-- Use X-bar style constituent structure.
-- Use labels consistently.
-- Keep the committed analysis and its justification inside X-bar Theory and Government and Binding Theory.
-- Keep X-bar labels framework-internal and internally consistent.
-- On the X-bar route, every phrasal node in every derivation stage must be unary or binary only. Do not emit any XP/X'/head configuration where one mother directly has more than two children, even in intermediate derivational frames.
-- Do not attach overt words directly under X' or XP nodes.
-- Keep X-bar structure endocentric: every phrasal projection must be headed by a matching lexical or functional head.`;
+Response
+Return only a single valid JSON object.
+For one analysis, its only field is derivationStages, a nonempty array of stages.
+For structural ambiguity, the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages. Include every distinct structurally supported reading, without duplicate analyses or an arbitrary count limit.
 
-const MINIMALISM_INSTRUCTION = `You are a rigorous syntactician working inside the Minimalist Program and Bare Phrase Structure.
+Stages
+Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input. A completed analysis may establish that the input is illicit.
+Include the intermediate states needed to explain how the derivation proceeds. Several connected operations may share a stage when their order and effects are explicit. An unchanged workspace needs a sentence-specific syntactic reason for the new stage.
+Each stage has exactly these four fields, written in this order:
+- statement: a nonblank string naming what the stage establishes.
+- stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
+- relations: an array of this stage's relations, as defined below.
+- workspaceForest: an array containing every currently active syntax tree or separate syntax object after these operations.
+These fields describe the same analysis. Show the structure the stage record requires, including intermediate positions that matter. Higher structure must preserve or build its lower structure within the chronological derivation. After objects combine, show their combined structure rather than retaining their former independent roots.
 
-Write the derivation the way a syntactician would record it in serious derivational notes: explicit, local, and framework-internal.
-Preserve the analytic content of each stage, not just the finished tree.
-Derive structure through the framework's own structure-building, dependency-forming, feature, and locality commitments, not memorized templates.
-Use derivational reasoning to justify each major structural choice.
+Syntax nodes
+Each workspaceForest item and child is either a complete node or a reference to an earlier subtree.
+A complete node has these required fields:
+- id: a nonblank string identifying this occurrence.
+- label: a nonblank string naming the syntactic item or category at this node. A projection's label names the projection, not merely its head.
+- children: an ordered array of nodes or references, empty for a leaf.
+Its optional fields are word, tokenIndex, silent, and lineageId:
+- word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
+- tokenIndex is the zero-based integer index of the input token pronounced by this terminal at this stage. Its word matches that token. Assign each index to at most one pronounced terminal per stage. Unpronounced or not-yet-realized items have no tokenIndex.
+- silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Missing tokenIndex alone does not mean silence. Represent each occurrence's current status, not the status it will acquire later.
+- lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
+Keep an occurrence's id while it persists across stages. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
 
-Output conventions:
-- Use Bare Phrase Structure style labels (no bar-level prime notation).
-- Keep the committed analysis and its justification inside the Minimalist Program.
-- Keep the Minimalist label inventory framework-internal and internally consistent throughout the derivation.
-- Do not mix bar-level prime notation or X-bar shells into the Minimalist route.
-- Keep Merge outputs structurally binary. Do not emit a phrasal node with more than two children in any derivation stage.
-- Keep Minimalist structure endocentric. Use labels consistently with the committed Minimalist analysis.
-- Represent non-branching dependencies with the structural witnesses required by the analysis.
-- If the analysis relies on framework-internal derivational commitments, those commitments must be explicit in derivationStages rather than appearing only in hidden reasoning or a final summary.
-- Keep the final committed clause root appropriate to the analysis.
-- Use labels consistently.
-`;
+Earlier subtrees
+An earlier-subtree reference is an object containing only refId, whose value is an exact earlier node id. It carries that node's latest earlier definition and all its descendants into the current workspace. It cannot refer to a node first introduced in the current or a later stage.
+To reuse an unchanged subtree, use refId or write out the entire subtree, including its children. Rewrite a subtree when its structure, pronunciation, lineage, or syntactic position changes. Each occurrence's id must appear at only one position in the expanded workspace, including nodes introduced through refId.
+The complete nodes and reference objects use only the fields defined above.
 
-export const DERIVATION_STAGES_BASE_INSTRUCTION = `${RAW_JSON_ONLY_INSTRUCTION}
+Relations
+Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching. Explain them in stageRecord. Use an empty relations array when there are none. Names and roles are open; choose them to describe this analysis.
+Each relation has exactly these required fields:
+- relation: a nonblank string naming the relation.
+- anchors: a nonempty object with nonblank role names. Each entry is an exact node-id string or a nonempty array of node-id strings. Every id resolves in the current stage's workspace after expanding refId references, even if the node is written later in the same stage's JSON.
+It may also contain these optional fields:
+- priorAnchors: the same object format as anchors, but every id resolves in the immediately preceding stage's expanded workspace. Use it when this relation refers to that earlier state, not merely because the current object existed before.
+- values: a nonempty object with nonblank entry names. Each entry contains a literal string or a nonempty array of literal strings. Literal strings may be empty. Record the relation's literal content here even when it also appears in its name. Syntax references belong in anchors or priorAnchors. Omit values when there is no literal content.
+Anchor-role and value-entry names are not fixed fields or a prescribed vocabulary. Keep array order and repeated entries when they are part of the analysis.
+When a values entry lists one literal per item of an anchor entry, give both entries the same name and the same length. When two anchor entries pair their items one by one, give them the same length and order.
+Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
+List relations in the derivational order explained in stageRecord, with prerequisites before dependent relations. This orders relations, not the display's selection, projection, and merge steps.
+If the analysis makes an illicit judgment, explain it in stageRecord and anchor its relation to the relevant syntax. A judgment about the whole analysis is anchored to its final root.
 
-Output MUST be one valid JSON object in one of these shapes:
-- A single analysis: { "derivationStages": [...] }
-- Genuine structural ambiguity: { "analyses": [{ "derivationStages": [...] }, ...] }
+Input words
+In the final stage, the pronounced terminals in tree order match the supplied input tokens. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
 
-General rules for this route:
-- Return one analysis when the input supports one structural interpretation within the selected framework.
-- For genuine structural ambiguity, return every distinct structurally supported analysis in "analyses". Do not impose an arbitrary limit, duplicate equivalent trees, or create alternatives solely for stylistic variation.
-- Every analysis object has exactly one field, "derivationStages". derivationStages remain the only authored structural source of truth; "analyses" is only an ambiguity envelope.
-- Do not close an analysis's "derivationStages" until its final converged stage is included.
-- Within the selected framework, commit to a structurally supported analysis of the input.
-- Analyze the exact input as written, even when the selected framework judges it illicit.
-- derivationStages are the first-pass derivation and the only structural source of truth here.
-- Before writing JSON, silently establish the ordered derivational proof that makes the analysis true inside the selected framework.
-- Each derivationStage is a completed derivational state: workspaceForest shows the syntactic workspace after that stage's stated commitments have been made. Do not write display frames, captions, partial construction steps, or future setup material as derivationStages.
-- A stage is warranted when it makes a structural claim a later stage relies on, or when skipping it would make the next stage unexplained.
-- Use sentence complexity to set stage count. Return only derivationStages that make real sentence-specific derivational claims witnessed by workspaceForest.
-- Split stages that hide independent commitments.
-- Input tokens constrain surface pronunciation, not the primitive syntactic objects of every derivationStage. Earlier stages may use syntactic labels, heads, features, or abstract objects without word/tokenIndex when the analysis has not yet made surface realization public.
-- Build the derivation forward. Do not inspect a completed final tree and backfill earlier stages afterward.
-- Do not add stages to satisfy a numerical floor. If workspaceForest is unchanged from the previous derivationStage, stageRecord must explain the exact syntactic checkpoint being recorded. Do not include unchanged stages with generic stageRecord text.
-- A compact sentence may have a compact derivation, but it must still be forward: each stage must expose a public syntactic state that licenses a later state or the final convergence. The last derivationStage must be the converged structure for the exact input tokens.
-- Each derivation stage has exactly four authored fields, written inside the stage object in this order: "statement", "stageRecord", "relations", "workspaceForest".
-- Never put statement, stageRecord, or relations on the top-level object.
-- Each derivationStage is a proof object: statement, stageRecord, relations, and workspaceForest must agree.
-- stageRecord says what has been derived; workspaceForest shows the complete workspace after that stage; relations marks non-branching relations already stated in stageRecord and witnessed in workspaceForest.
-- A derivationStage may be rich. Do not make it artificially atomic. But every new structure in workspaceForest must be licensed by the stageRecord for that stage.
-- "workspaceForest" stores the visible derivational workspace after the stage.
-- Model the derivation itself. Do not include scratch roots, future landing sites, or placeholder nodes that the current derivational state has not licensed.
-- In terminal leaves, "label" is the syntactic item. Use "word" and "tokenIndex" only on a non-silent terminal that pronounces an input token in the current stage. A silent or non-surfacing occurrence keeps its syntactic label, features, structure, and lineageId, but must not carry "word" or tokenIndex.
-- In non-terminal syntax nodes, "label" names the category of that authored node itself. If a phrase or projection node dominates a head, label the phrase or projection node with the phrase/projection category and label the head node with the head category. Do not put a head label on a phrase/projection node merely because that head determines the projection.
-- Within every derivationStage, the same tokenIndex must not appear on more than one non-silent terminal.
-- tokenIndex is only a surface-order anchor. It does not decide whether a node is derivationally visible. In each derivationStage, workspaceForest must name the syntactic object that stageRecord says is active at that position. A node becomes silent, null, copied, or non-surfacing only when that current stage analyzes that occurrence that way.
-- Every workspaceForest node must be structurally interpretable from its authored fields.
-- A category cannot stand in for a missing subtree. A terminal cannot stand in for a missing category.
-- Never use positional placeholders as node labels. Encode actual phrase categories and represent specifier, complement, and adjunct status by structural position in the tree.
-- Silent, copied, unpronounced, null, or non-surfacing material must be represented with the syntactic category or projection required by the analysis. Do not use a bare untyped placeholder as a whole subtree.
-- A null or empty exponent may represent only the syntactic terminal or head that the analysis makes null in that stage. It must not stand in for an entire structured occurrence, phrase, carried subtree, future landing site, or dependency endpoint. If the analysis still needs that object, keep the required internal structure or use a valid refId for an unchanged prior subtree.
-- A pronounced surface item must not be marked silent.
-- The silent field is stage-local. If an occurrence is intended to be unpronounced in the current stage's displayed workspace, set "silent": true. If it is an active pronounced lexical occurrence in the current stage, keep it non-silent. Do not use missing tokenIndex alone to decide this.
-- Use {"refId":"existingNodeId"} as the normal representation for an unchanged subtree that was already present in an earlier derivationStage. A refId means the full prior subtree is carried into the current expanded workspace. Rewrite a subtree only when this stage changes its structure, pronunciation status, lineage, or syntactic position.
-- Within one stage, workspaceForest must show the post-stage workspace, not intermediate roots kept only for referencing.
-- Do not use the same refId twice in one workspaceForest. Because workspaceForest serializes a tree, each displayed position must have its own occurrence node.
-- Use the same lineageId when the committed analysis treats multiple occurrences as the same continuing syntactic object. lineageId records identity; it does not classify the dependency.
-- Within one derivationStage, the same occurrence must not appear both as an independent workspace root and as a child of another root. If a stage merges an object, show the post-merge workspace state.
-- When one syntactic object is represented in multiple positions, assign pronunciation according to the committed analysis and the input tokens.
-- Node ids are derivational identities, not per-stage serials; reuse each id while its object persists.
-- Do not rename unchanged leaves. New displayed occurrences receive new ids and share lineageId when they represent the same continuing syntactic object.
-- Every workspaceForest item and child must be either a complete syntax node {"id":"...","label":"...","children":[...]} or an unchanged prior-stage subtree reference {"refId":"existingNodeId"}. A node with id and label is complete only if it includes children, even when children is empty. Do not summarize carried structure with omitted children, word-only fields, aliases, or shorthand.
-- The workspaceForest value must be a JSON array of syntax node objects or refId objects. Do not encode workspaceForest as a string, markdown, prose, bracket notation, tree notation, or any other serialized format.
-- "statement" is a concise reader-facing headline for the stage. It names what became derivationally public without carrying the full analysis.
-- "stageRecord" is a required prose string. It is the written syntactic record of that stage, not metadata and not key-value bookkeeping, and not a restatement of statement.
-- "relations" is a required array for non-branching relations from this stageRecord that are not fully expressed by ordinary mother-daughter or sisterhood geometry; use [] only when the stage introduces no such relation.
-- Each relations item has a short open "relation" string and an "anchors" object whose open role names point to node ids in this stage's expanded workspace. Anchor values may be node ids or arrays of node ids.
-- A relations item may also have "values" and "priorAnchors". Use "values" only for literal notation the relation itself states; each value must be a string or a non-empty array of strings, never a node id standing in for an anchor.
-- Use "priorAnchors" only when this relation explicitly compares with or continues witnesses from the immediately preceding derivationStage. Its open role names point to exact node ids in that preceding stage's expanded workspace, using the same node-id-or-array shape as anchors. Do not use priorAnchors merely because an object existed earlier.
-- When the selected framework judges a configuration or the whole analysis illicit, stageRecord must explain the judgment and relations must record it over the syntax that witnesses it. If the judgment applies to the whole analysis, anchor the relation to the final root.
-- Do not introduce syntax whose only purpose is to represent an operation the analysis rejects.
-- Every relations anchor value must be the exact id of a node present in that same stage's expanded workspaceForest. Expanded means after resolving any refId used by that stage.
-- Do not create anchor ids by naming an intended copy, future landing, old occurrence, or role-derived placeholder. A relation may point only to endpoints that are already real syntactic objects in this stage's workspaceForest because the stageRecord independently licenses them.
-- Do not anchor a relation to an id that appears only in an earlier stage or only in a later stage.
-- If a relation concerns an object continued across stages, anchor it to the current-stage witness of that object.
-- A relations role name may describe the relation semantically, but each anchor value must be the actual current-stage node id that witnesses that role in workspaceForest. The witness node may have a different label or id shape from the role name. If the relevant object has landed, changed category, copied, or become non-pronounced in this stage, anchor the current witness node, not the intended name, old id, future id, or role-derived id.
-- Before returning JSON, check every relations anchor against its own stage workspaceForest. If any anchor does not resolve there, repair the stage before answering.
-- Do not introduce a relation whose relation name is absent from stageRecord.
-- relations is not prose and not a second analysis.
-- An empty relations array is complete and correct only when the stage introduces no non-branching relation beyond ordinary mother-daughter or sisterhood geometry.
-- The tree is the machine witness. statement is the orientation line. stageRecord is the public syntactic record. relations is visual intent grounded in that record.
-- relations is only for relations that need an additional visual mark beyond ordinary workspaceForest branching. If ordinary mother-daughter or sisterhood geometry fully expresses the relation, keep it in stageRecord and workspaceForest and do not repeat it in relations.
-- Do not use relations for ordinary mother-daughter or sisterhood relations already encoded by workspaceForest branching. A relation that is visible solely by reading the branches belongs in stageRecord and workspaceForest, not relations.
-- derivationStages are the analysis. The ordered stage record must be sufficient on its own.
-- Each stageRecord must explain why this workspace is a legitimate next derivational state.
-- Preserve the argument a serious syntactician would need when the tree alone is not enough.
-- Do not save substantive syntactic reasoning for hidden reasoning, a later notes pass, or a final summary.
-- stageRecord prose is reader-facing. Do not include node ids, lineage ids, token indexes, JSON field names, or implementation identifiers in prose.
-- derivationStages record sentence-specific syntactic states, not renderer construction steps.
-- Write stageRecord prose specific enough that it would become false or incomplete for a materially different sentence.
-- A stage may contain multiple connected operations when stageRecord makes their order and effect clear and workspaceForest shows the resulting state.
-- If their order or effect cannot be recovered from that stage, separate them into different derivationStages.
-- Each stage must preserve recoverable bottom-up structure.
-- A stage may contain multiple connected derivational commitments, but workspaceForest must not skip the structure that makes stageRecord true.
-- Every workspaceForest root must be a syntactic object active in that stage. Separate roots may remain unmerged when the committed derivation has not yet combined them.
-- If stageRecord says that objects have been combined, show the resulting connected structure rather than retaining their former independent roots.
-- A stage must not contain completed higher structure unless the stageRecord licenses that completed structure.
-- If a stage introduces a new structural position, that position must be connected in the authored workspace.
-- If a stage introduces a relation, all anchors for that relation must be present in the authored workspace.
-- If an intermediate position, dependency, projection, silent witness, or structural position matters to the analysis, expose it in the derivationStages.
-- Describe each stage from its own present derivational state. Do not use a later outcome to name, justify, or structure earlier material.
-- Do not include placeholders or objects that the current stage has not introduced.
-- The highest root may appear only after the lower workspace it dominates has already been built. Do not introduce a full clausal root before the stage sequence has publicly built its dominated lexical and functional spine.
-- If a stage introduces a high functional shell, it must preserve lower structure that is already public in earlier stages or build that lower structure inside the same coherent stage; it must not be the first unexplained appearance of the whole derivation.
-- Keep derivational claims grounded in the visible stage sequence. Do not write prose that the ordered trees, lineage, or earlier stages cannot support.
-- Do not omit required structure or required stageRecord content to save tokens.
-- Do not use bare operation labels or occupancy alone as the whole analytical content of a stage.
-- If the same derivational object is represented across multiple positions or occurrences, those nodes must share a lineageId.
-- Occurrence status is stage-local. When an occurrence is first introduced, represent it as the syntactic object active in that stage. Do not mark it silent, null, copied, or non-surfacing only because a later stage will derive a different pronounced occurrence.
-- If an occurrence becomes non-pronounced in a later stage, preserve the syntactic structure required by the analysis and link it to the continuing object with lineageId. Do not replace structured material with an untyped placeholder.
-- A non-pronounced occurrence is licensed only by the current derivationStage that creates or reanalyzes that occurrence. Do not introduce such an occurrence as preparation for a later stage. If the current stage has not stated the dependency that makes the lower occurrence non-pronounced, the lower occurrence remains the active syntactic object for that stage.
-- Before returning JSON, verify that every object with "statement", "stageRecord", "relations", and "workspaceForest" appears inside the "derivationStages" array of exactly one analysis.
-- Before returning JSON, check every derivationStage: statement, stageRecord, relations, and workspaceForest agree; every relation anchor exists in that same stage's expanded workspaceForest; every terminal with "word" or tokenIndex is non-silent and pronounced in that stage; no same occurrence appears both as an independent root and as a child in the same stage unless a same-stage relation licenses multiple lineage-linked occurrences; every silent or non-surfacing item is licensed by the current stage and has the syntactic category or projection required by the analysis; no null or empty exponent stands in for a phrase, carried subtree, future landing site, or dependency endpoint; no relation repeats a claim already fully visible through ordinary branching; no stage contains structure not licensed by its own stageRecord; the final workspace preserves the analysis while spelling the intended surface order.
-- Do not author fields outside the ambiguity envelope and four-field derivationStages contract.
-`;
-
-export const buildSystemInstruction = (
-  framework = 'xbar',
-  modelRoute = 'gemini'
-) =>
+export const buildSystemInstruction = (framework = 'xbar', modelRoute = 'gemini') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
-  '\n\n' +
-  DERIVATION_STAGES_BASE_INSTRUCTION;
+  '\n\n' + DERIVATION_STAGES_BASE_INSTRUCTION;

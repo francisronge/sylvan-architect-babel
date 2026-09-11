@@ -497,7 +497,7 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
     ['Anti-Locality (too short)', 'd_the_high_anti_short::__leaf', 'the'],
     ['Feature Sharing', 'd_feature_sharing::__leaf', 'The'],
     ['Case Assignment / Feature Collection', 'p_case_assignment::__leaf', 'Af'],
-    ['Deletion (structured DP)', 'd_the_deletion_contrast__silent', 'The']
+    ['Deletion (structured DP)', 'd_the_deletion_contrast::__lex_tok_0_the', 'The']
   ]) {
     const lexicalStep = playback(cardNamed(rawCases, title)).find((step) => step.targetNodeId === nodeId);
     assert.equal(lexicalStep?.targetLabel, expectedSurface, `${title}: lexical selection casing drifted`);

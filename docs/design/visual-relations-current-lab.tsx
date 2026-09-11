@@ -62,13 +62,15 @@ const offsetTokenIndices = (tree: SyntaxNode, offset: number): SyntaxNode => ({
     : {})
 });
 
+// Lexical content lives in `word`, as the authored contract requires; the
+// leaf label repeats it so the card keeps its two-level category/terminal shape.
 const silentLexicalNode = (
   id: string,
   category: string,
   surface: string,
   extra: Record<string, unknown> = {}
 ): SyntaxNode => node(id, category, [
-  leaf(`${id}__silent`, surface, undefined, { silent: true, ...extra })
+  leaf(`${id}__silent`, surface, surface, { silent: true, ...extra })
 ], { silent: true, ...extra });
 
 const nullHead = (id: string, category: string): SyntaxNode => node(id, category, [
@@ -195,14 +197,15 @@ const movementBaseTreeWithStableLowerIds = (
       const source = pronouncedLeafByLineage.get(String(lowerNode.lineageId || '').trim());
       if (!source) return cloneSyntaxTree(lowerNode);
       const surface = String(source.word || source.label || '').trim();
-      const next: SyntaxNode = {
+      // The base occurrence is pronounced, so its lexical content is authored
+      // in `word`; the label repeats it to keep the card's terminal shape.
+      return {
         ...lowerNode,
         label: surface,
+        word: surface,
         ...(source.tokenIndex !== undefined ? { tokenIndex: source.tokenIndex } : {}),
         silent: false
       };
-      delete next.word;
-      return next;
     }
 
     const children = lowerChildren.map(transplantMaterial);
@@ -233,25 +236,6 @@ const withoutLandingTree = (
   const result = removeSyntaxNode(finalTree, landingId, new Set(collapseIds));
   if (!result) throw new Error(`Landing removal erased the complete tree: ${landingId}`);
   return result;
-};
-
-/**
- * Keep an embedded landing projection out of the selecting tree until the
- * movement stage creates it. Its completed complement remains a workspace root.
- */
-const detachLandingProjection = (
-  treeWithoutLanding: SyntaxNode,
-  projectionId: string
-): SyntaxNode[] => {
-  const projection = findSyntaxNode(treeWithoutLanding, projectionId);
-  if (!projection) throw new Error(`Missing landing projection: ${projectionId}`);
-  if ((projection.children || []).length !== 1) {
-    throw new Error(`Landing projection must retain exactly one completed complement: ${projectionId}`);
-  }
-
-  const selectingTree = removeSyntaxNode(treeWithoutLanding, projectionId, new Set());
-  const complement = cloneSyntaxTree(projection.children![0]);
-  return selectingTree ? [selectingTree, complement] : [complement];
 };
 
 const revealPronouncedDomain = (tree: SyntaxNode, domainId: string): SyntaxNode => {
@@ -532,39 +516,6 @@ const identityMatrixCbar = (headMoved: boolean) => node('cbar_identity', "C'", [
 
 const identityMatrixBaseTree = identityMatrixCbar(false);
 const identityHeadMovedTree = identityMatrixCbar(true);
-
-/**
- * Four positions in one successive-cyclic A-bar chain. Replay starts with the
- * object in its theta position, then adds the two embedded CP-edge occurrences
- * before the final matrix landing. Every stage pronounces exactly its highest
- * occurrence; the final tree pronounces only Spec,CP and retains three complete
- * lower DP copies with separate D and N trace leaves.
- */
-const fourOccurrenceIdentityBaseTree = node('tp_chain4_low', 'TP', [
-  node('dp_ava_chain4', 'DP', [
-    node('np_ava_chain4', 'NP', [
-      leaf('n_ava_chain4', 'N', 'Ava', { tokenIndex: 0 })
-    ])
-  ]),
-  node('tbar_chain4_low', "T'", [
-    silentLexicalNode('t_past_chain4_low', 'T', '[past]'),
-    node('vp_file_chain4', 'VP', [
-      leaf('v_filed_chain4', 'V', 'filed', { tokenIndex: 1 }),
-      node('dp_chain4_base', 'DP', [
-        leaf('d_chain4_base', 'D', 'Which', {
-          lineageId: 'chain4-book-d',
-          tokenIndex: 2
-        }),
-        node('np_chain4_base', 'NP', [
-          leaf('n_chain4_base', 'N', 'book', {
-            lineageId: 'chain4-book-n',
-            tokenIndex: 3
-          })
-        ], { lineageId: 'chain4-book-np' })
-      ], { lineageId: 'chain4-book' })
-    ])
-  ])
-]);
 
 const fourOccurrenceIdentityLowCbarTree = node('cbar_chain4_low', "C'", [
   leaf('c_that_chain4_low', 'C', 'that', { tokenIndex: 0 }),

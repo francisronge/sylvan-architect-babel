@@ -179,7 +179,7 @@ const CASES = [
   { relation: 'BoundingNodeCrossing', anchors: { domain: 'dom_fx', boundary: ['a_fx', 'b_fx'] } },
   { relation: 'Phase', anchors: { phase: 'dom_fx', edge: 'in_a_fx' } },
   { relation: 'TransferDomain', anchors: { phase: 'dom_fx', edge: 'in_a_fx', spellOutDomain: 'in_b_fx' } },
-  { relation: 'PostTransferAccess', anchors: { source: 'a_fx', target: 'in_b_fx', spellOutDomain: 'in_b_fx' } },
+  { relation: 'PostTransferAccess', anchors: { source: 'a_fx', target: 'in_b_fx', spellOutDomain: 'in_b_fx' }, values: { outcome: 'blocked' } },
   {
     relation: 'AntiLocality',
     anchors: { source: 'src_fx', traceWitness: 'w_fx', landing: 'tgt_fx' },
@@ -206,7 +206,7 @@ const CASES = [
     relation: 'AdjunctInaccessibility',
     anchors: { source: 'in_a_fx', target: 'a_fx', adjunctDomain: 'dom_fx' }
   },
-  { relation: 'Intervention', anchors: { landing: 'a_fx', intervener: 'b_fx', target: 'c_fx' } },
+  { relation: 'Intervention', anchors: { landing: 'a_fx', intervener: 'b_fx', target: 'c_fx' }, values: { outcome: 'blocked' } },
   { relation: 'EllipsisDeletion', anchors: { domain: 'dom_fx' } },
   { relation: 'MultiplePronunciation', anchors: { higherCopy: 'a_fx', lowerCopy: 'b_fx' } },
   { relation: 'CopyOccurrence', anchors: { occurrences: ['a_fx', 'b_fx'] } },
@@ -215,7 +215,7 @@ const CASES = [
   {
     relation: 'ManyToManyCorrespondence',
     anchors: { word: 'a_fx' },
-    values: { sources: ['K', 'Poss'], exponents: ['-eer', '-maan'] }
+    values: { sources: ['K', 'Poss'], exponents: ['-eer', '-maan'], correspondence: ['K => -eer', 'Poss => -maan'] }
   },
   { relation: 'Impoverishment', anchors: { terminal: 'a_fx' }, values: { featureHierarchy: ['π', 'PART'], delinkAfter: 'π' } },
   { relation: 'LocalDislocation', anchors: { sequence: ['a_fx', 'b_fx', 'c_fx'] }, values: { beforeGroupSizes: ['1', '2'], afterGroupSizes: ['2', '1'] } },
@@ -235,7 +235,7 @@ const CASES = [
     values: { feature: 'D' }
   },
   { relation: 'FocusMarking', anchors: { focus: 'in_a_fx', background: 'in_b_fx', domain: 'dom_fx' } },
-  { relation: 'FProjection', anchors: { accentBearer: 'a_fx', projections: ['b_fx', 'c_fx'] }, values: { accent: 'H*', feature: 'F' } },
+  { relation: 'FProjection', anchors: { accentBearer: 'in_a_fx', projections: ['dom_fx', 'root_fx'] }, values: { accent: 'H*', feature: 'F' } },
   { relation: 'ThetaAssignment', anchors: { predicate: 'a_fx', agent: 'b_fx', theme: 'c_fx' } },
   {
     relation: 'GappingAlignment',
@@ -593,7 +593,7 @@ test('CyclicLinearization keeps earlier instances visible and retains the backwa
     stage([{
       relation: 'CyclicLinearization',
       anchors: { order: ['a_fx', 'b_fx'], edgePosition: 'a_fx' },
-      values: { outcome: 'licensed' }
+      values: { outcome: 'licensed', priorOrder: ['a < b'], currentOrder: ['a < b'] }
     }], forest),
     stage([{
       relation: 'CyclicLinearization',

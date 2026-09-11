@@ -4,6 +4,8 @@ export type RelationTrajectoryKind = 'head' | 'phrasal';
 
 export interface ResolvedRelationAnchor {
   role: string;
+  /** Original role when the registered drawing uses an equivalent lookup key. */
+  authoredRole?: string;
   nodeId?: string;
   value?: string;
 }

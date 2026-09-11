@@ -17,8 +17,12 @@ import {
   productionRelationRegistry
 } from '../relationDispatch/index.js';
 import { resolveOutcomeLiteral } from './outcomeResolver.ts';
+import { recoverMovementEvidence } from './movementEvidence.ts';
+import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import {
   TIER2_FACET_RECIPES,
+  INDEPENDENT_TIER2_ANCHOR_ROLES,
+  INDEPENDENT_TIER2_VALUE_ROLES,
   buildTier2FacetIdentity,
   buildTier2FacetOutputIdentities,
   evaluateTier2FacetRecipe,
@@ -49,7 +53,7 @@ export type Tier2ResolvedFacet = {
 type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation'>;
 
 export type Tier2CollisionDiagnostic = {
-  kind: 'ambiguous-facets' | 'more-specific-facet';
+  kind: 'ambiguous-facets' | 'more-specific-facet' | 'contradictory-evidence' | 'unrecovered-evidence';
   collision: string;
   facets: string[];
   winner?: string;
@@ -59,11 +63,15 @@ type ClaimDispatchBase = {
   relationInstance: { stageIndex: number; relationIndex: number };
   authoredRelationName: string;
   tier1Dispatch: Tier1Dispatch;
+  /** The same interpretation is used by drawing and Replay. */
+  evidence: Tier2FacetEvidence;
+  facetDiagnostics: Array<{ facetId: string; failures: string[] }>;
 };
 
 export type RecoveredEvidenceReference = {
   field: 'anchors' | 'priorAnchors' | 'values';
   key: string;
+  itemIndices?: number[];
 };
 
 export type Tier1RecoveredClaim = {
@@ -98,13 +106,30 @@ export type RecoveredClaim =
   | Tier2RecoveredClaim
   | Tier3RecoveredClaim;
 
+export type RelationEvidenceCoverage = {
+  /** Full authored context, not a claim reconstructed from leftover fields. */
+  authoredRelation: DerivationStageRelation;
+  fields: Array<{
+    field: RecoveredEvidenceReference['field'];
+    key: string;
+    concepts: string[];
+    recognizedBy: Array<{ claim: string; tier: 1 | 2; itemIndices: number[] }>;
+    unrecoveredItemIndices: number[];
+    unrecoveredEmptyField: boolean;
+  }>;
+};
+
 export type RelationClaimDispatch = ClaimDispatchBase & {
+  evidenceCoverage: RelationEvidenceCoverage;
   primaryClaim: Tier1RecoveredClaim | Tier3RecoveredClaim | null;
   claims: RecoveredClaim[];
   facets: Tier2ResolvedFacet[];
   diagnostics: Tier2CollisionDiagnostic[];
   /** The primary evidence after independent claim evidence is removed. */
   primaryRelation: DerivationStageRelation;
+  /** Internal role lookup; original spelling remains in primaryRelation. */
+  boundPrimaryRelation: DerivationStageRelation;
+  residualRelation?: DerivationStageRelation;
 };
 
 export type ExclusiveRelationDispatchInput = {
@@ -163,24 +188,67 @@ const authoredEvidenceReferences = (
   (['anchors', 'priorAnchors', 'values'] as const).flatMap((field) =>
     Object.keys(relation[field] ?? {}).map((key) => ({
       field,
-      key: normalizeTier2Synonym(key)
+      key
     })))
 );
+
+const describeEvidenceCoverage = (
+  relation: DerivationStageRelation,
+  evidence: Tier2FacetEvidence,
+  claims: readonly RecoveredClaim[],
+  companions: readonly Tier2ResolvedFacet[],
+  synonymIndex: Tier2SynonymIndex
+): RelationEvidenceCoverage => {
+  const owners = [
+    ...claims.flatMap(claim => claim.tier === 3 ? [] : [{
+      claim: claim.tier === 1 ? claim.registryEntryId : claim.facet.recipe.id,
+      tier: claim.tier,
+      references: claim.consumedEvidence
+    }]),
+    ...companions.map(facet => ({ claim: facet.recipe.id, tier: 2 as const, references: facet.evaluation.consumedEvidence }))
+  ];
+  const entries = { anchors: evidence.authoredCurrentAnchors, priorAnchors: evidence.authoredPriorAnchors, values: evidence.authoredValues };
+  return {
+    authoredRelation: relation,
+    fields: authoredEvidenceReferences(relation).map(({ field, key }) => {
+      const value = relation[field]![key];
+      const indices = (Array.isArray(value) ? value : [value]).map((_, index) => index);
+      const recognizedBy = owners.flatMap(owner => {
+        const refs = owner.references.filter(ref => ref.field === field && ref.key === key);
+        if (!refs.length) return [];
+        const used = new Set(refs.flatMap(ref => ref.itemIndices ?? indices));
+        return [{ claim: owner.claim, tier: owner.tier, itemIndices: indices.filter(index => used.has(index)) }];
+      });
+      return {
+        field, key,
+        concepts: [...new Set([
+          ...(entries[field]?.find(entry => entry.key === key)?.concepts ?? []),
+          ...lookupTier2SynonymCandidates(synonymIndex, field === 'values' ? 'value' : 'role', key)
+        ])],
+        recognizedBy,
+        unrecoveredItemIndices: indices.filter(index => !recognizedBy.some(owner => owner.itemIndices.includes(index))),
+        unrecoveredEmptyField: indices.length === 0 && recognizedBy.length === 0
+      };
+    })
+  };
+};
 
 const removeConsumedEvidence = (
   relation: DerivationStageRelation,
   consumedEvidence: readonly RecoveredEvidenceReference[]
 ): DerivationStageRelation => {
-  const consumed = new Set(consumedEvidence.map(
-    ({ field, key }) => `${field}:\u0000${key}`
-  ));
   const retain = (
     field: RecoveredEvidenceReference['field'],
     block: Record<string, string | string[]> | undefined
   ): Record<string, string | string[]> => Object.fromEntries(
-    Object.entries(block ?? {}).filter(([key]) => (
-      !consumed.has(`${field}:\u0000${normalizeTier2Synonym(key)}`)
-    ))
+    Object.entries(block ?? {}).flatMap(([key, value]) => {
+      const references = consumedEvidence.filter(ref => ref.field === field && ref.key === key);
+      if (references.length === 0) return [[key, value]];
+      if (references.some(ref => ref.itemIndices === undefined)) return [];
+      const used = new Set(references.flatMap(ref => ref.itemIndices ?? []));
+      const remaining = (Array.isArray(value) ? value : [value]).filter((_, index) => !used.has(index));
+      return remaining.length ? [[key, Array.isArray(value) ? remaining : remaining[0]]] : [];
+    })
   );
   const anchors = retain('anchors', relation.anchors);
   const priorAnchors = retain('priorAnchors', relation.priorAnchors);
@@ -195,20 +263,15 @@ const removeConsumedEvidence = (
 
 const authoredItems = (value: string | string[]): string[] => (
   (Array.isArray(value) ? value : [value])
-    .map((item) => String(item ?? '').trim())
-    .filter(Boolean)
+    .map((item) => String(item ?? ''))
 );
 
-const appendUnique = (
+const appendItems = (
   target: Record<string, string[]>,
   concept: string,
   items: readonly string[]
 ) => {
-  const existing = target[concept] ?? [];
-  items.forEach((item) => {
-    if (!existing.includes(item)) existing.push(item);
-  });
-  target[concept] = existing;
+  target[concept] = [...(target[concept] ?? []), ...items];
 };
 
 const normalizeBlock = (
@@ -221,23 +284,39 @@ const normalizeBlock = (
 } => {
   const normalized: Record<string, string[]> = {};
   const authored: Tier2AuthoredEvidenceEntry[] = [];
+  const conceptBlocks = new Map<string, string[]>();
   Object.entries(block ?? {}).forEach(([authoredKey, value]) => {
     const items = authoredItems(value);
     const concepts = lookupTier2SynonymCandidates(synonymIndex, scope, authoredKey);
     const activeConcepts: string[] = [];
+    const conceptItemIndices: Record<string, number[]> = {};
     concepts.forEach((concept) => {
       const conceptItems = scope === 'value' && concept === 'outcome'
         ? items.filter((item) => resolveOutcomeLiteral(item)?.concept)
         : scope === 'value' && concept === 'verdict'
           ? items.filter((item) => !resolveOutcomeLiteral(item)?.concept)
           : items;
-      if (conceptItems.length === 0) return;
+      if (conceptItems.length === 0) {
+        if (items.length === 0) activeConcepts.push(concept);
+        return;
+      }
       activeConcepts.push(concept);
-      appendUnique(normalized, concept, conceptItems);
+      conceptItemIndices[concept] = items.flatMap((item, index) => conceptItems.includes(item) ? [index] : []);
+      const blockIdentity = JSON.stringify(conceptItems);
+      const previousBlocks = conceptBlocks.get(concept) ?? [];
+      if (!previousBlocks.includes(blockIdentity)) {
+        if (previousBlocks.length === 0 || (scope === 'role' ? INDEPENDENT_TIER2_ANCHOR_ROLES : INDEPENDENT_TIER2_VALUE_ROLES).has(concept)) {
+          appendItems(normalized, concept, conceptItems);
+        } else {
+          normalized[concept] = [];
+        }
+      }
+      conceptBlocks.set(concept, [...previousBlocks, blockIdentity]);
     });
     authored.push({
-      key: normalizeTier2Synonym(authoredKey),
+      key: authoredKey,
       concepts: activeConcepts,
+      conceptItemIndices,
       items: [...items]
     });
   });
@@ -254,7 +333,28 @@ export const buildTier2FacetEvidence = ({
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex);
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex);
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
+  const realizationHost = currentAnchors.authored.some(entry =>
+    ['supported tense', 'tense host', 'realization host'].includes(normalizeTier2Synonym(entry.key)));
+  if (realizationHost) {
+    values.authored.filter(entry => normalizeTier2Synonym(entry.key) === 'notation').forEach(entry => {
+      entry.concepts = [...entry.concepts, 'pf.rows'];
+      entry.conceptItemIndices = { ...entry.conceptItemIndices, 'pf.rows': entry.items.map((_, index) => index) };
+      appendItems(values.concepts, 'pf.rows', entry.items);
+    });
+  }
+  const { movement, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
+  if (movement) {
+    currentAnchors.concepts['movement.source'] = [movement.sourceNodeId];
+    currentAnchors.concepts['movement.witness'] = [movement.witnessNodeId];
+    currentAnchors.concepts['movement.landing'] = [movement.targetNodeId];
+    currentAnchors.authored.forEach(entry => {
+      entry.concepts = entry.concepts.filter(c => !['movement.source', 'movement.witness', 'movement.landing'].includes(c));
+      entry.concepts = [...entry.concepts, ...(movement.roles[normalizeTier2Synonym(entry.key)] || [])];
+    });
+  }
   return {
+    movementDiagnostics,
+    ...(movement ? { movement } : {}),
     currentAnchors: currentAnchors.concepts,
     authoredCurrentAnchors: currentAnchors.authored,
     ...(relation.priorAnchors
@@ -275,7 +375,6 @@ const evaluateClaims = (evidence: Tier2FacetEvidence): Tier2EvaluatedFacet[] => 
   TIER2_FACET_RECIPES
     .filter((recipe) => recipe.kind === 'claim')
     .map((recipe) => ({ recipe, evaluation: evaluateTier2FacetRecipe(recipe, evidence) }))
-    .filter(({ evaluation }) => evaluation.complete)
 );
 
 const resolveClaimCollisions = (
@@ -309,12 +408,15 @@ const resolveClaimCollisions = (
   failClosed('specialized-feature-reading', ['dependent-case', 'accord']);
   prefer('dependent-case-or-generic-feature', 'dependent-case', 'feature.dependency');
   prefer('accord-or-generic-feature', 'accord', 'feature.dependency');
+  prefer('cyclic-or-generic-feature', 'agreement.cycle', 'feature.dependency');
+  prefer('transfer-owns-edge', 'transfer.domain', 'phase.edge');
 
   /* These ties have no structural discriminator in the current evidence. */
   failClosed('constituent-enclosure-reading', [
     'constituent.occurrence',
     'constituent.region'
   ]);
+  failClosed('binding-or-operator-reading', ['binding.dependency', 'operator-binding']);
   /* Strict evidence supersets and outcome-specific marks own their channel. */
   prefer('carrier-or-ordinary-movement', 'movement.carrier', 'movement.path');
 
@@ -351,17 +453,26 @@ const attachFacetIdentities = (
   const parentFacetIds = parentFacets.map(({ recipe }) => recipe.id).sort();
   const parentFacetIdentities = parentFacets.map(({ facetIdentity }) => facetIdentity).sort();
   return facets.flatMap(({ recipe, evaluation }) => {
-    const consumed = new Set(evaluation.consumedEvidence.map(
-      ({ field, key }) => `${field}:\u0000${key}`
-    ));
+    const consumedEntries = (field: RecoveredEvidenceReference['field'], entries: readonly Tier2AuthoredEvidenceEntry[] = []) =>
+      entries.flatMap(entry => {
+        const refs = evaluation.consumedEvidence.filter(ref => ref.field === field && ref.key === entry.key);
+        if (!refs.length) return [];
+        if (refs.some(ref => ref.itemIndices === undefined)) return [entry];
+        // Paired literal slots remain positional even when an optional blank
+        // annotation is left in the residual rather than drawn. A same-name
+        // values entry is such a slot list by the contract's pairing rule.
+        const pairsByName = (evidence.authoredCurrentAnchors ?? []).some(anchor =>
+          normalizeTier2Synonym(anchor.key) === normalizeTier2Synonym(entry.key));
+        if (field === 'values' && recipe.checks.some(check => check.kind === 'paired-values'
+          && (entry.concepts.includes(check.value) || pairsByName))) return [entry];
+        const indices = new Set(refs.flatMap(ref => ref.itemIndices ?? []));
+        return [{ ...entry, items: entry.items.filter((_, index) => indices.has(index)) }];
+      });
     const facetEvidence: Tier2FacetEvidence = {
       ...evidence,
-      authoredCurrentAnchors: (evidence.authoredCurrentAnchors ?? []).filter(({ key }) =>
-        consumed.has(`anchors:\u0000${key}`)),
-      authoredPriorAnchors: (evidence.authoredPriorAnchors ?? []).filter(({ key }) =>
-        consumed.has(`priorAnchors:\u0000${key}`)),
-      authoredValues: (evidence.authoredValues ?? []).filter(({ key }) =>
-        consumed.has(`values:\u0000${key}`))
+      authoredCurrentAnchors: consumedEntries('anchors', evidence.authoredCurrentAnchors),
+      authoredPriorAnchors: consumedEntries('priorAnchors', evidence.authoredPriorAnchors),
+      authoredValues: consumedEntries('values', evidence.authoredValues)
     };
     const identityInput = {
       recipe,
@@ -399,7 +510,9 @@ export const dispatchRelationClaims = (
     registry,
     relation,
     stageIndex,
-    relationIndex
+    relationIndex,
+    currentForest,
+    priorForest
   }) as Tier1Dispatch;
   const evidence = buildTier2FacetEvidence({
     relation,
@@ -413,32 +526,45 @@ export const dispatchRelationClaims = (
     ? [
         ...Object.keys(registryEntry.signature.anchors.required),
         ...Object.keys(registryEntry.signature.anchors.optional)
-      ].map(normalizeTier2Synonym)
+      ].map(normalizeTier2Synonym).concat(authoredTier1Dispatch.roleBindings
+        .filter(binding => binding.field === 'anchors')
+        .map(binding => normalizeTier2Synonym(binding.authoredRole)))
     : []);
   const declaredPrimaryAnchorConcepts = new Set<string>(registryEntry
-    ? [
-        ...Object.keys(registryEntry.signature.anchors.required),
-        ...Object.keys(registryEntry.signature.anchors.optional)
-      ].flatMap((role) => lookupTier2SynonymCandidates(synonymIndex, 'role', role))
+    ? Object.entries({ ...registryEntry.signature.anchors.required, ...registryEntry.signature.anchors.optional } as Record<string, { concept?: string }>)
+      .flatMap(([role, rule]) => rule.concept ? [rule.concept]
+        : lookupTier2SynonymCandidates(synonymIndex, 'role', role))
     : []);
   const primaryAcceptsAdditionalAnchors = registryEntry?.signature.anchors.allowAdditional === true;
+  const evaluations = evaluateClaims(evidence);
+  const completeClaims = evaluations.filter(({ evaluation }) => evaluation.complete);
   const eligibleClaims = registryEntry
-    ? evaluateClaims(evidence).filter(({ evaluation }) => {
+    ? completeClaims.filter(({ evaluation }) => {
         if (primaryAcceptsAdditionalAnchors) return false;
         const currentAnchorEvidence = evaluation.consumedEvidence.filter(
           ({ field }) => field === 'anchors'
         );
         return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
           ({ key }) => (
-            !declaredPrimaryAnchorKeys.has(key)
+            !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
             && lookupTier2SynonymCandidates(synonymIndex, 'role', key).every(
               (concept) => !declaredPrimaryAnchorConcepts.has(concept)
             )
           )
         );
       })
-    : evaluateClaims(evidence);
+    : completeClaims;
   const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims);
+  const licensed = evidence.currentAnchors['licensed.hosts'] ?? [];
+  const rejected = evidence.currentAnchors['rejected.hosts'] ?? [];
+  const conflictingHosts = licensed.filter(id => rejected.includes(id));
+  if (conflictingHosts.length && !authoredTier1Dispatch.signatureIssues.some(issue => issue.kind === 'candidate-outcome-conflict')) diagnostics.push({ kind: 'contradictory-evidence',
+    collision: `candidate-outcome-conflict:${[...new Set(conflictingHosts)].join(',')}`, facets: ['landing-candidates'] });
+  const outcomes = evidence.values.outcome ?? [];
+  if (!authoredTier1Dispatch.signatureIssues.some(issue => issue.kind === 'ambiguous-outcome-values')
+    && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
+    kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
+  });
   const tier2ClaimFacets = attachFacetIdentities(selected, evidence, stageIndex);
   const companions = attachFacetIdentities(
     evaluateCompanions(evidence, tier2ClaimFacets.length > 0),
@@ -447,23 +573,48 @@ export const dispatchRelationClaims = (
     tier2ClaimFacets
   );
   const facets = [...tier2ClaimFacets, ...companions];
+  const primaryUsesOutcome = registryEntry
+    && PRODUCTION_RENDER_FAMILIES[registryEntry.id]?.acceptedOutcomeConcepts.length > 0;
   const independentlyConsumedEvidence = facets.flatMap(
     ({ evaluation }) => evaluation.consumedEvidence
-  );
-  const primaryRelation = removeConsumedEvidence(relation, independentlyConsumedEvidence);
+  ).filter(ref => {
+    if (!primaryUsesOutcome || ref.field !== 'values'
+      || !lookupTier2SynonymCandidates(synonymIndex, 'value', ref.key).includes('outcome')) return true;
+    const value = relation.values?.[ref.key];
+    const items = Array.isArray(value) ? value : [value];
+    return !items.some((literal, index) => (ref.itemIndices === undefined || ref.itemIndices.includes(index))
+      && resolveOutcomeLiteral(literal)?.concept);
+  });
+  let primaryRelation = removeConsumedEvidence(relation, independentlyConsumedEvidence);
   const tier1Dispatch = registryEntry
     ? dispatchRelation({
         registry,
         relation: primaryRelation,
         stageIndex,
-        relationIndex
+        relationIndex,
+        currentForest,
+        priorForest
       }) as Tier1Dispatch
     : authoredTier1Dispatch;
+  const unownedAnchors = tier1Dispatch.outcome === 'resolved' && !primaryAcceptsAdditionalAnchors
+    ? Object.keys(primaryRelation.anchors ?? {}).filter(key => !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))) : [];
+  const residualRelation = unownedAnchors.length ? {
+    relation: relation.relation,
+    anchors: Object.fromEntries(unownedAnchors.map(key => [key, primaryRelation.anchors[key]]))
+  } : undefined;
+  if (residualRelation) {
+    diagnostics.push({ kind: 'unrecovered-evidence', collision: `anchors:${unownedAnchors.join(',')}:preserved-in-tier3`, facets: [] });
+    primaryRelation = removeConsumedEvidence(primaryRelation, unownedAnchors.map(key => ({ field: 'anchors', key })));
+  }
   const base = {
     relationInstance: { stageIndex, relationIndex },
     authoredRelationName: String(relation.relation),
+    evidence,
     tier1Dispatch,
     primaryRelation,
+    boundPrimaryRelation: residualRelation ? { ...tier1Dispatch.boundRelation,
+      anchors: Object.fromEntries(Object.entries(tier1Dispatch.boundRelation.anchors).filter(([key]) => !unownedAnchors.includes(key)))
+    } : tier1Dispatch.boundRelation,
     facets,
     diagnostics
   };
@@ -475,8 +626,10 @@ export const dispatchRelationClaims = (
     consumedEvidence: [...facet.evaluation.consumedEvidence]
   }));
 
+  let primaryClaim: Tier1RecoveredClaim | Tier3RecoveredClaim | null;
+  let claims: RecoveredClaim[];
   if (registryEntry && tier1Dispatch.outcome === 'resolved') {
-    const primaryClaim: Tier1RecoveredClaim = {
+    primaryClaim = {
       tier: 1,
       kind: 'registered-primary',
       canonicalClaimIdentity: primaryClaimIdentity(
@@ -485,17 +638,22 @@ export const dispatchRelationClaims = (
         'registered-primary'
       ),
       registryEntryId: registryEntry.id,
-      consumedEvidence: authoredEvidenceReferences(primaryRelation)
+      consumedEvidence: authoredEvidenceReferences(primaryRelation).map(ref => {
+        const original = relation[ref.field]![ref.key];
+        const indices = (Array.isArray(original) ? original : [original]).map((_, index) => index);
+        const removed = independentlyConsumedEvidence.filter(used => used.field === ref.field && used.key === ref.key);
+        const remaining = indices.filter(index => !removed.some(used => used.itemIndices === undefined || used.itemIndices.includes(index)));
+        return remaining.length === indices.length ? ref : { ...ref, itemIndices: remaining };
+      })
     };
-    return {
-      ...base,
-      primaryClaim,
-      claims: [primaryClaim, ...tier2Claims]
-    };
-  }
-
-  if (registryEntry) {
-    const primaryClaim: Tier3RecoveredClaim = {
+    claims = [primaryClaim, ...tier2Claims, ...(residualRelation ? [{
+        tier: 3 as const, kind: 'fallback-residual' as const,
+        canonicalClaimIdentity: primaryClaimIdentity(residualRelation, undefined, 'fallback-residual'),
+        reason: 'unconsumed-envelope-evidence' as const,
+        consumedEvidence: authoredEvidenceReferences(residualRelation)
+      }] : [])];
+  } else if (registryEntry) {
+    primaryClaim = {
       tier: 3,
       kind: 'fallback-primary',
       canonicalClaimIdentity: primaryClaimIdentity(
@@ -506,17 +664,11 @@ export const dispatchRelationClaims = (
       reason: 'registered-signature-incomplete',
       consumedEvidence: authoredEvidenceReferences(primaryRelation)
     };
-    return {
-      ...base,
-      primaryClaim,
-      claims: [primaryClaim, ...tier2Claims]
-    };
-  }
-
-  if (tier2Claims.length > 0) {
+    claims = [primaryClaim, ...tier2Claims];
+  } else if (tier2Claims.length > 0) {
     const residualEvidence = authoredEvidenceReferences(primaryRelation);
     if (residualEvidence.length > 0) {
-      const primaryClaim: Tier3RecoveredClaim = {
+      primaryClaim = {
         tier: 3,
         kind: 'fallback-residual',
         canonicalClaimIdentity: primaryClaimIdentity(
@@ -527,34 +679,52 @@ export const dispatchRelationClaims = (
         reason: 'unconsumed-envelope-evidence',
         consumedEvidence: residualEvidence
       };
-      return {
-        ...base,
-        primaryClaim,
-        claims: [...tier2Claims, primaryClaim]
-      };
+      claims = [...tier2Claims, primaryClaim];
+    } else {
+      primaryClaim = null;
+      claims = tier2Claims;
     }
-    return {
-      ...base,
-      primaryClaim: null,
-      claims: tier2Claims
+  } else {
+    primaryClaim = {
+      tier: 3,
+      kind: 'fallback-primary',
+      canonicalClaimIdentity: primaryClaimIdentity(
+        primaryRelation,
+        undefined,
+        'fallback-primary'
+      ),
+      reason: 'no-complete-tier2-facet',
+      consumedEvidence: authoredEvidenceReferences(primaryRelation)
     };
+    claims = [primaryClaim];
   }
-
-  const primaryClaim: Tier3RecoveredClaim = {
-    tier: 3,
-    kind: 'fallback-primary',
-    canonicalClaimIdentity: primaryClaimIdentity(
-      primaryRelation,
-      undefined,
-      'fallback-primary'
-    ),
-    reason: 'no-complete-tier2-facet',
-    consumedEvidence: authoredEvidenceReferences(primaryRelation)
-  };
+  const evidenceCoverage = describeEvidenceCoverage(relation, evidence, claims, companions, synonymIndex);
+  const unrecovered = evidenceCoverage.fields.filter(field => field.unrecoveredItemIndices.length || field.unrecoveredEmptyField);
+  // Residual array positions refer to the original response, not the shorter
+  // array left after other claims consumed individual items.
+  claims.filter(claim => claim.tier === 3).forEach(claim => {
+    claim.consumedEvidence = unrecovered.map(entry => {
+      const original = relation[entry.field]![entry.key];
+      const count = Array.isArray(original) ? original.length : 1;
+      return { field: entry.field, key: entry.key,
+        ...(entry.unrecoveredItemIndices.length === count ? {} : { itemIndices: entry.unrecoveredItemIndices }) };
+    });
+  });
+  // Explain candidates connected to leftover evidence, not every failed rule.
+  // A candidate failure does not establish the model's intended meaning.
+  const facetDiagnostics = evaluations.filter(({ recipe, evaluation }) => !registryEntry && !evaluation.complete
+    && unrecovered.some(field => field.field === 'values'
+      ? recipe.values.some(requirement => field.concepts.includes(requirement.value))
+      : recipe.anchors.some(requirement => field.concepts.includes(requirement.role)
+        && (requirement.source === 'either' || requirement.source === (field.field === 'priorAnchors' ? 'prior' : 'current')))))
+    .map(({ recipe, evaluation }) => ({ facetId: recipe.id, failures: evaluation.failures }));
   return {
     ...base,
+    facetDiagnostics,
     primaryClaim,
-    claims: [primaryClaim]
+    claims,
+    evidenceCoverage,
+    ...(residualRelation ? { residualRelation } : {})
   };
 };
 

@@ -13,14 +13,38 @@ const OPEN_TO_CLOSE = {
   '[': ']'
 };
 
+const UTF8_ENCODER = new TextEncoder();
+
+const bytesToHex = (value) => Array.from(
+  UTF8_ENCODER.encode(String(value || '')),
+  (byte) => byte.toString(16).padStart(2, '0')
+).join('');
+
+const createRepairDiagnostic = ({
+  kind,
+  candidateByteOffset,
+  removedText = '',
+  insertedText = ''
+}) => ({
+  kind,
+  candidateByteOffset,
+  removedText,
+  insertedText,
+  removedBytesHex: bytesToHex(removedText),
+  insertedBytesHex: bytesToHex(insertedText)
+});
+
 const repairDelimiterDamage = (candidate) => {
   let output = '';
   const stack = [];
+  const diagnostics = [];
   let inString = false;
   let escaped = false;
-  let repaired = false;
+  let inputByteOffset = 0;
 
   for (const char of candidate) {
+    const charByteOffset = inputByteOffset;
+    inputByteOffset += UTF8_ENCODER.encode(char).byteLength;
     output += char;
 
     if (inString) {
@@ -55,67 +79,121 @@ const repairDelimiterDamage = (candidate) => {
     const matchingOpenIndex = stack.lastIndexOf(expectedOpen);
     if (matchingOpenIndex >= 0) {
       output = output.slice(0, -1);
+      let insertedText = '';
       while (stack.length > 0 && stack[stack.length - 1] !== expectedOpen) {
-        output += OPEN_TO_CLOSE[stack.pop()];
-        repaired = true;
+        insertedText += OPEN_TO_CLOSE[stack.pop()];
       }
+      output += insertedText;
       output += char;
       stack.pop();
-      repaired = true;
+      diagnostics.push(createRepairDiagnostic({
+        kind: 'insert_closers_before_mismatched_closer',
+        candidateByteOffset: charByteOffset,
+        insertedText
+      }));
       continue;
     }
 
     output = output.slice(0, -1);
-    repaired = true;
+    diagnostics.push(createRepairDiagnostic({
+      kind: 'remove_unmatched_closer',
+      candidateByteOffset: charByteOffset,
+      removedText: char
+    }));
   }
 
+  let appendedText = '';
   while (stack.length > 0) {
-    output += OPEN_TO_CLOSE[stack.pop()];
-    repaired = true;
+    appendedText += OPEN_TO_CLOSE[stack.pop()];
+  }
+  if (appendedText) {
+    output += appendedText;
+    diagnostics.push(createRepairDiagnostic({
+      kind: 'append_closers_at_end_of_output',
+      candidateByteOffset: inputByteOffset,
+      insertedText: appendedText
+    }));
   }
 
-  return repaired ? output : null;
+  return diagnostics.length > 0
+    ? { repairedCandidate: output, repairDiagnostics: diagnostics }
+    : null;
 };
 
-const createBadJsonError = (createError, rawText) => {
-  if (typeof createError === 'function') {
-    return createError(
+const describeJsonError = (error, candidate, rawText) => {
+  const message = String(error.message);
+  const position = message.match(/\bposition (\d+)/);
+  const offset = position ? Number(position[1])
+    : /end of JSON input/i.test(message) ? candidate.length : null;
+  const prefix = rawText.indexOf(candidate);
+  return {
+    kind: 'json-syntax',
+    message,
+    ...(offset === null ? {} : {
+      candidateByteOffset: UTF8_ENCODER.encode(candidate.slice(0, offset)).byteLength,
+      originalByteOffset: UTF8_ENCODER.encode(rawText.slice(0, prefix + offset)).byteLength
+    })
+  };
+};
+
+const createBadJsonError = (createError, rawText, repairDiagnostics = [], jsonDiagnostic) => {
+  const error = typeof createError === 'function'
+    ? createError(
       'BAD_MODEL_RESPONSE',
       'Model response was not a valid JSON object.',
       502,
       rawText
-    );
+    )
+    : new Error('Model returned malformed JSON.');
+  if (error && typeof error === 'object') {
+    error.details = {
+      ...(error.details && typeof error.details === 'object' ? error.details : {}),
+      ...(repairDiagnostics.length > 0 ? { payloadRepairDiagnostics: repairDiagnostics } : {}),
+      ...(jsonDiagnostic ? { jsonDiagnostic } : {})
+    };
+    if (error.failure) {
+      error.failure = { ...error.failure, processingStep: 'json-decoding',
+        expectedForm: 'one complete JSON object', message: jsonDiagnostic?.message || error.message };
+      error.details.failure = error.failure;
+    }
   }
-  return new Error('Model returned malformed JSON.');
+  return error;
 };
 
 const parseStrictJsonCandidate = (
   candidate,
   createError,
   integrityFlags = [],
+  repairDiagnostics = [],
   rawTextForError = candidate
 ) => {
   let parsed;
+  let jsonDiagnostic;
   try {
     parsed = JSON.parse(candidate);
   } catch (initialError) {
-    const repairedCandidate = repairDelimiterDamage(candidate);
-    if (!repairedCandidate) {
-      throw createBadJsonError(createError, rawTextForError);
+    jsonDiagnostic = describeJsonError(initialError, candidate, rawTextForError);
+    const repair = repairDelimiterDamage(candidate);
+    if (!repair) {
+      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
     }
+    repairDiagnostics.push(...repair.repairDiagnostics);
     try {
-      parsed = JSON.parse(repairedCandidate);
+      parsed = JSON.parse(repair.repairedCandidate);
       integrityFlags.push('json_delimiter_damage_repaired');
     } catch {
-      throw createBadJsonError(createError, rawTextForError);
+      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
     }
   }
 
   const normalized = normalizeParsedRoot(parsed);
   if (!normalized) {
-    throw createBadJsonError(createError, rawTextForError);
+    throw createBadJsonError(createError, rawTextForError, repairDiagnostics, {
+      kind: 'json-root-type', message: `Expected one JSON object; received ${parsed === null ? 'null' : Array.isArray(parsed) ? 'an array' : typeof parsed}.`,
+      ...(jsonDiagnostic ? { originalSyntaxError: jsonDiagnostic } : {})
+    });
   }
-  return normalized;
+  return { payload: normalized, ...(jsonDiagnostic ? { jsonDiagnostic } : {}) };
 };
 
 export const parseStrictModelJsonDetailed = (rawText, createError) => {
@@ -124,13 +202,23 @@ export const parseStrictModelJsonDetailed = (rawText, createError) => {
     .replace(/^\uFEFF/, '')
     .trim();
   if (!text) {
-    throw createBadJsonError(createError, originalText);
+    throw createBadJsonError(createError, originalText, [], {
+      kind: 'json-syntax', message: 'The response contains no JSON text.', originalByteOffset: 0
+    });
   }
 
   const integrityFlags = [];
+  const repairDiagnostics = [];
   return {
-    payload: parseStrictJsonCandidate(text, createError, integrityFlags, originalText),
-    integrityFlags
+    ...parseStrictJsonCandidate(
+      text,
+      createError,
+      integrityFlags,
+      repairDiagnostics,
+      originalText
+    ),
+    integrityFlags,
+    repairDiagnostics
   };
 };
 

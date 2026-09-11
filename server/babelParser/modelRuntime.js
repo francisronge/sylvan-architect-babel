@@ -50,14 +50,38 @@ export const isNetworkTransportError = (error) => {
   );
 };
 
+const getErrorChain = (error) => {
+  const chain = [];
+  for (let current = error; current && chain.length < 8 && !chain.includes(current); current = current.cause) {
+    chain.push(current);
+  }
+  return chain;
+};
+
+const mutableProviderError = (error) => {
+  if (error instanceof Error && Object.isExtensible(error)) return error;
+  return Object.assign(
+    new Error(String(error?.message ?? error ?? 'Provider request failed.'), { cause: error }),
+    error && typeof error === 'object' ? error : {},
+    { cause: error }
+  );
+};
+
 export const summarizeErrorForLog = (error) => {
   const { msg, statusCode } = getErrorMeta(error);
+  const cause = getErrorChain(error).at(-1);
   const shortMessage = String(msg || '')
     .replace(/\s+/g, ' ')
     .slice(0, 220);
   return {
     statusCode: Number.isFinite(statusCode) ? statusCode : undefined,
-    message: shortMessage || undefined
+    message: shortMessage || undefined,
+    ...(error?.code ? { code: error.code } : {}),
+    ...(cause && cause !== error ? {
+      causeCode: cause.code,
+      causeMessage: String(cause.message || '').replace(/\s+/g, ' ').slice(0, 220)
+    } : {}),
+    ...(error?.providerResponseId ? { responseId: error.providerResponseId } : {})
   };
 };
 
@@ -68,14 +92,15 @@ export const withTimeout = async (run, timeoutMs, label) => {
 
   const controller = new AbortController();
   let timeoutId = null;
-  const timeoutMessage = `${label} timed out after ${timeoutMs}ms.`;
+  const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms.`);
+  timeoutError.code = 'PROVIDER_TIMEOUT';
   try {
     return await Promise.race([
       run(controller.signal),
       new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
-          controller.abort();
-          reject(new Error(timeoutMessage));
+          controller.abort(timeoutError);
+          reject(timeoutError);
         }, timeoutMs);
       })
     ]);
@@ -288,6 +313,18 @@ export const isTruncatedGeneration = (generation) => {
   );
 };
 
+const SUCCESSFUL_GENERATION_STOPS = new Set([
+  'COMPLETED',
+  'END_TURN',
+  'STOP',
+  'STOP_SEQUENCE'
+]);
+
+export const isSuccessfulGenerationStop = (generation) => {
+  const finishReason = String(generation?.candidates?.[0]?.finishReason || '').toUpperCase();
+  return SUCCESSFUL_GENERATION_STOPS.has(finishReason);
+};
+
 export const summarizeGeneration = (generation) => {
   const contentParts = Array.isArray(generation?.candidates?.[0]?.content?.parts)
     ? generation.candidates[0].content.parts
@@ -347,11 +384,19 @@ export const assertGenerationComplete = ({
   attempts = []
 }) => {
   const generationMeta = summarizeGeneration(generation);
-  if (!isTruncatedGeneration(generation)) return generationMeta;
+  const lengthStop = isTruncatedGeneration(generation);
+  if (!lengthStop && isSuccessfulGenerationStop(generation)) return generationMeta;
+
+  const ruleId = lengthStop
+    ? 'GENERATION_LENGTH_STOP'
+    : 'GENERATION_COMPLETED_STOP_FAILURE';
+  const message = lengthStop
+    ? `The ${provider} generation stopped at its output limit before parsing.`
+    : `The ${provider} generation completed with ${generationMeta.finishReason} instead of a successful stop.`;
 
   throw new ParseApiError(
     'INCOMPLETE_GENERATION',
-    `The ${provider} generation stopped at its output limit before parsing.`,
+    message,
     422,
     withFailureDetails({
       provider,
@@ -365,7 +410,7 @@ export const assertGenerationComplete = ({
       attempts
     }, {
       failureClass: 'incomplete_generation',
-      ruleId: 'GENERATION_LENGTH_STOP',
+      ruleId,
       stageIndex: null,
       fieldPath: '$',
       offendingValue: {
@@ -404,31 +449,82 @@ export const buildGenerationOutcome = ({
 
 const retryDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const isRetryableProviderFailure = (error) => {
-  if (error?.completedStopState) return false;
-  const { statusCode } = getErrorMeta(error);
-  return (
-    isNetworkTransportError(error)
-    || statusCode === 429
-    || (Number.isFinite(statusCode) && statusCode >= 500 && statusCode <= 599)
-  );
+const providerFailureReason = (error) => {
+  const chain = getErrorChain(error);
+  if (chain.some((cause) => cause.completedStopState)) return 'completed_stop';
+  if (chain.some((cause) => cause.providerResponseId)) return 'existing_response';
+  if (chain.some((cause) => cause.responseReceived)) return 'received_answer';
+  // Babel's typed errors include parsing/validation and the route's deadline guard.
+  if (chain.some((cause) => cause instanceof ParseApiError || cause instanceof SyntaxError)) {
+    return 'application_failure';
+  }
+  const metadata = chain.map(getErrorMeta);
+  const statuses = metadata.map(({ statusCode }) => statusCode);
+  const haystack = metadata.map(({ haystack }, index) => (
+    `${chain[index]?.name || ''}\n${chain[index]?.code || ''}\n${haystack}`
+  )).join('\n').toLowerCase();
+  if (statuses.includes(429) || /rate[\s_-]*limit|resource_exhausted|quota|too many requests/.test(haystack)) {
+    return 'rate_limit';
+  }
+  // A timeout does not prove that a submitted generation stopped or never started.
+  if (statuses.includes(408) || statuses.includes(504) || /timeout|timed[\s_-]*out|etimedout|aborterror|abort_err|aborted|cancelled|canceled|deadline/.test(haystack)) {
+    return 'uncertain_timeout';
+  }
+  if (statuses.some((status) => status >= 400 && status < 500)) return 'non_retryable_http';
+  const status = statuses.find((value) => Number.isFinite(value) && value >= 400);
+  if (status !== undefined) {
+    return [500, 502, 503, 529].includes(status) ? 'transient_server_failure' : 'non_retryable_http';
+  }
+  if (/fetch failed|failed to fetch|network error|network request failed|socket hang up|econnreset|econnrefused|epipe|eai_again|enotfound|und_err_socket/.test(haystack)) {
+    return 'transient_transport_failure';
+  }
+  return 'unclassified_failure';
 };
+
+export const isRetryableProviderFailure = (error) => (
+  ['transient_transport_failure', 'transient_server_failure'].includes(providerFailureReason(error))
+);
 
 export const runWithTransportRetries = async ({
   run,
   maxAttempts = 3,
   backoffBaseMs = 250,
+  // Absolute epoch milliseconds; the caller still bounds each in-flight call.
+  deadlineAt = Number.POSITIVE_INFINITY,
   delay = retryDelay,
   now = () => new Date(),
   runId = randomUUID()
 }) => {
-  const boundedMaxAttempts = Math.max(1, Math.min(3, Number(maxAttempts) || 1));
+  const boundedMaxAttempts = Math.max(1, Math.min(3, Math.floor(Number(maxAttempts)) || 1));
   const attempts = [];
+  let lastFailure;
+  const terminalFailure = (error, retryStopReason) => {
+    const terminalError = mutableProviderError(error);
+    if (attempts.length) attempts.at(-1).retryStopReason = retryStopReason;
+    terminalError.providerRunId = runId;
+    terminalError.providerAttempts = attempts;
+    terminalError.providerRetryStopReason = retryStopReason;
+    terminalError.details = {
+      ...(terminalError.details && typeof terminalError.details === 'object' ? terminalError.details : {}),
+      providerRunId: runId,
+      providerAttempts: attempts,
+      providerRetryStopReason: retryStopReason
+    };
+    return terminalError;
+  };
 
   for (let attemptNumber = 1; attemptNumber <= boundedMaxAttempts; attemptNumber += 1) {
     const startedAt = now();
+    if (Number.isFinite(deadlineAt) && startedAt.getTime() >= deadlineAt) {
+      const error = lastFailure || Object.assign(new Error('Provider request deadline exhausted.'), {
+        code: 'PROVIDER_DEADLINE_EXCEEDED'
+      });
+      throw terminalFailure(error, 'deadline_exhausted');
+    }
+    let receivedAnswer = false;
     try {
       const value = await run({ attemptNumber, runId });
+      receivedAnswer = true;
       const generationMeta = summarizeGeneration(value);
       attempts.push({
         attemptNumber,
@@ -440,28 +536,29 @@ export const runWithTransportRetries = async ({
       });
       return { value, runId, attempts };
     } catch (error) {
-      const retryable = isRetryableProviderFailure(error);
+      lastFailure = error;
+      const retryReason = receivedAnswer ? 'received_answer' : providerFailureReason(error);
+      const retryable = ['transient_transport_failure', 'transient_server_failure'].includes(retryReason);
       attempts.push({
         attemptNumber,
         startedAt: startedAt.toISOString(),
         completedAt: now().toISOString(),
         outcome: retryable ? 'retryable_transport_failure' : 'terminal_failure',
+        retryReason,
         ...summarizeErrorForLog(error)
       });
       if (!retryable || attemptNumber >= boundedMaxAttempts) {
-        const terminalError = error && typeof error === 'object'
-          ? error
-          : new Error(String(error || 'Provider request failed.'));
-        terminalError.providerRunId = runId;
-        terminalError.providerAttempts = attempts;
-        terminalError.details = {
-            ...(terminalError.details && typeof terminalError.details === 'object' ? terminalError.details : {}),
-            providerRunId: runId,
-            providerAttempts: attempts
-        };
-        throw terminalError;
+        throw terminalFailure(error, retryable ? 'attempt_limit' : 'not_retryable');
       }
-      await delay(backoffBaseMs * (2 ** (attemptNumber - 1)));
+      const backoffMs = backoffBaseMs * (2 ** (attemptNumber - 1));
+      if (Number.isFinite(deadlineAt) && now().getTime() + backoffMs >= deadlineAt) {
+        throw terminalFailure(error, 'deadline_exhausted');
+      }
+      try {
+        await delay(backoffMs);
+      } catch (delayError) {
+        throw terminalFailure(delayError, 'backoff_failed');
+      }
     }
   }
 
@@ -541,7 +638,15 @@ export const generateStructuredContent = async ({
 };
 
 const readResponseText = async (response) => {
-  const text = await response.text();
+  let text;
+  try {
+    text = await response.text();
+  } catch (error) {
+    throw Object.assign(mutableProviderError(error), {
+      status: response.status,
+      responseReceived: response.ok
+    });
+  }
   try {
     return { text, json: JSON.parse(text) };
   } catch {
@@ -554,7 +659,10 @@ const delayWithAbort = (ms, abortSignal) => new Promise((resolve, reject) => {
     reject(abortSignal.reason || new Error('Operation aborted.'));
     return;
   }
-  const timeout = setTimeout(resolve, Math.max(0, ms));
+  const timeout = setTimeout(() => {
+    abortSignal?.removeEventListener?.('abort', onAbort);
+    resolve();
+  }, Math.max(0, ms));
   const onAbort = () => {
     clearTimeout(timeout);
     reject(abortSignal.reason || new Error('Operation aborted.'));
@@ -562,7 +670,7 @@ const delayWithAbort = (ms, abortSignal) => new Promise((resolve, reject) => {
   abortSignal?.addEventListener?.('abort', onAbort, { once: true });
 });
 
-const OPENAI_RESPONSE_TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'incomplete']);
+const OPENAI_RESPONSE_PENDING_STATUSES = new Set(['queued', 'in_progress']);
 
 const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
   const response = await fetch(`https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`, {
@@ -586,17 +694,21 @@ const cancelOpenAIBackgroundResponse = async ({ apiKey, responseId }) => {
   const normalizedResponseId = String(responseId || '').trim();
   if (!normalizedResponseId) return false;
   try {
-    const response = await fetch(
-      `https://api.openai.com/v1/responses/${encodeURIComponent(normalizedResponseId)}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    return await withTimeout(async (abortSignal) => {
+      const response = await fetch(
+        `https://api.openai.com/v1/responses/${encodeURIComponent(normalizedResponseId)}/cancel`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          signal: abortSignal
         }
-      }
-    );
-    return response.ok;
+      );
+      await response.body?.cancel();
+      return response.ok;
+    }, 5000, 'OpenAI background cancellation');
   } catch {
     return false;
   }
@@ -632,7 +744,7 @@ const waitForOpenAIResponseCompletion = async ({
   if (!responseId) return payload;
   writeOpenAIDebugResponseState({ model, responseId, stage: 'created', payload: json });
 
-  while (json && !OPENAI_RESPONSE_TERMINAL_STATUSES.has(String(json.status || '').toLowerCase())) {
+  while (OPENAI_RESPONSE_PENDING_STATUSES.has(String(json?.status || '').toLowerCase())) {
     await delayWithAbort(pollIntervalMs, abortSignal);
     payload = await fetchOpenAIResponseJson({ apiKey, responseId, abortSignal });
     json = payload.json;
@@ -645,7 +757,8 @@ const extractOpenAIOutputText = (payloadJson) => String(payloadJson?.output_text
   || (Array.isArray(payloadJson?.output)
     ? payloadJson.output
       .flatMap((item) => Array.isArray(item?.content) ? item.content : [])
-      .map((part) => String(part?.text || ''))
+      .filter((part) => part?.type === 'output_text')
+      .map((part) => String(part.text || ''))
       .join('')
     : '');
 
@@ -660,7 +773,6 @@ export const buildOpenAIRequestBody = ({
   model,
   instructions: systemInstruction,
   input: contents,
-  text: { format: { type: 'json_object' } },
   reasoning: { effort: reasoningEffort },
   ...(background ? { background: true, store: true } : {}),
   max_output_tokens: maxOutputTokens
@@ -718,7 +830,10 @@ export const generateOpenAIStructuredContent = async ({
     } catch (error) {
       // Best-effort and unawaited so cancellation never delays or replaces the original failure.
       void cancelOpenAIBackgroundResponse({ apiKey, responseId: backgroundResponseId });
-      throw error;
+      // Polling failure belongs to this response, never to a replacement creation.
+      const providerError = mutableProviderError(error);
+      if (backgroundResponseId) providerError.providerResponseId = backgroundResponseId;
+      throw providerError;
     }
   }
 
@@ -732,8 +847,12 @@ export const generateOpenAIStructuredContent = async ({
     throw error;
   }
 
+  return responsesGeneration(payload);
+};
+
+const responsesGeneration = (payload) => {
   const outputText = extractOpenAIOutputText(payload.json);
-  const responseStatus = String(payload.json?.status || 'completed').toLowerCase();
+  const responseStatus = String(payload.json?.status || 'unknown').toLowerCase();
   const incompleteReason = String(payload.json?.incomplete_details?.reason || '').trim();
   const finishReason = responseStatus === 'incomplete'
     ? `INCOMPLETE_${incompleteReason || 'UNKNOWN'}`
@@ -741,6 +860,8 @@ export const generateOpenAIStructuredContent = async ({
 
   return {
     text: outputText,
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
     status: responseStatus,
     candidates: [{ finishReason: finishReason.toUpperCase() }],
     usageMetadata: {
@@ -761,9 +882,9 @@ export const buildAnthropicRequestBody = ({
   thinking = ANTHROPIC_THINKING_CONFIG
 }) => ({
   model,
-  system: `${systemInstruction}\n\nReturn exactly one valid JSON object and no prose.`,
+  system: systemInstruction,
   messages: [{ role: 'user', content: contents }],
-  thinking,
+  ...(thinking ? { thinking } : {}),
   output_config: { effort },
   max_tokens: maxOutputTokens
 });
@@ -807,14 +928,17 @@ export const generateAnthropicStructuredContent = async ({
 
   const outputText = Array.isArray(payload.json?.content)
     ? payload.json.content
-      .map((part) => String(part?.text || ''))
+      .filter((part) => part?.type === 'text')
+      .map((part) => String(part.text || ''))
       .join('')
     : '';
 
   return {
     text: outputText,
-    status: String(payload.json?.stop_reason || 'STOP').toUpperCase(),
-    candidates: [{ finishReason: String(payload.json?.stop_reason || 'STOP').toUpperCase() }],
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
+    status: String(payload.json?.stop_reason || 'UNKNOWN').toUpperCase(),
+    candidates: [{ finishReason: String(payload.json?.stop_reason || 'UNKNOWN').toUpperCase() }],
     usageMetadata: {
       inputTokenCount: payload.json?.usage?.input_tokens,
       outputTokenCount: payload.json?.usage?.output_tokens,
@@ -825,4 +949,71 @@ export const generateAnthropicStructuredContent = async ({
       ) || undefined
     }
   };
+};
+
+export const buildKimiRequestBody = ({ model, contents, systemInstruction, maxOutputTokens, reasoningEffort }) => ({
+  model,
+  messages: [
+    { role: 'system', content: systemInstruction },
+    { role: 'user', content: contents }
+  ],
+  reasoning_effort: reasoningEffort,
+  max_completion_tokens: maxOutputTokens
+});
+
+export const buildGrokRequestBody = ({ model, contents, systemInstruction, maxOutputTokens, reasoningEffort }) => ({
+  model,
+  input: [
+    { role: 'system', content: systemInstruction },
+    { role: 'user', content: contents }
+  ],
+  reasoning: { effort: reasoningEffort },
+  max_output_tokens: maxOutputTokens,
+  store: false
+});
+
+const requestProviderJson = async (url, apiKey, body, abortSignal, provider) => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: abortSignal
+  });
+  const payload = await readResponseText(response);
+  if (!response.ok) {
+    const error = new Error(`${provider} request failed (${response.status}).`);
+    error.status = response.status;
+    error.responseBody = payload.text;
+    throw error;
+  }
+  return payload;
+};
+
+export const generateKimiStructuredContent = async (options) => {
+  const payload = await requestProviderJson(
+    'https://api.moonshot.ai/v1/chat/completions', options.apiKey,
+    buildKimiRequestBody(options), options.abortSignal, 'Kimi'
+  );
+  const choice = payload.json?.choices?.[0];
+  return {
+    text: typeof choice?.message?.content === 'string' ? choice.message.content : '',
+    rawProviderResponse: payload.text,
+    returnedModel: payload.json?.model,
+    status: String(choice?.finish_reason || 'UNKNOWN').toUpperCase(),
+    candidates: [{ finishReason: String(choice?.finish_reason || 'UNKNOWN').toUpperCase() }],
+    usageMetadata: {
+      inputTokenCount: payload.json?.usage?.prompt_tokens,
+      outputTokenCount: payload.json?.usage?.completion_tokens,
+      totalTokenCount: payload.json?.usage?.total_tokens,
+      reasoningTokenCount: payload.json?.usage?.completion_tokens_details?.reasoning_tokens
+    }
+  };
+};
+
+export const generateGrokStructuredContent = async (options) => {
+  const payload = await requestProviderJson(
+    'https://api.x.ai/v1/responses', options.apiKey,
+    buildGrokRequestBody(options), options.abortSignal, 'xAI'
+  );
+  return responsesGeneration(payload);
 };

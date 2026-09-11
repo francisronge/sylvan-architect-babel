@@ -70,7 +70,7 @@ const completeRelation = () => ({
 
 test('the production relation registry is versioned and populated with exact identities', () => {
   assert.equal(productionRelationRegistry.registryId, 'babel.semantic-visual-grammar');
-  assert.equal(productionRelationRegistry.version, '11');
+  assert.equal(productionRelationRegistry.version, '12');
   assert.ok(productionRelationRegistry.entries.length > 0);
   assert.ok(Object.isFrozen(productionRelationRegistry));
   // Every identity is exact or declared case/whitespace folding — nothing else.
@@ -223,10 +223,10 @@ test('production signatures reject relations that their render families cannot d
 });
 
 test('production signatures preserve every complete alternative shape', () => {
-  const resolves = (relation, anchors, relationIndex) => {
+  const resolves = (relation, anchors, relationIndex, values) => {
     const result = dispatchRelation({
       registry: productionRelationRegistry,
-      relation: { relation, anchors },
+      relation: { relation, anchors, ...(values ? { values } : {}) },
       stageIndex: 0,
       relationIndex
     });
@@ -250,7 +250,8 @@ test('production signatures preserve every complete alternative shape', () => {
   resolves(
     'Intervention',
     { probe: 'higher', intervener: 'closer', target: 'lower' },
-    2
+    2,
+    { outcome: 'blocked' }
   );
   resolves(
     'IdiomChunkCointerpretation',

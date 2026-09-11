@@ -30,6 +30,7 @@ const bundlePath = path.resolve(readArg('bundle'));
 const outDir = path.resolve(readArg('out'));
 const appUrl = readArg('app-url', 'http://127.0.0.1:5177');
 const browserPath = readArg('browser', '');
+const analysisIndex = Math.max(0, Number.parseInt(readArg('analysis-index', '0'), 10) || 0);
 const viewport = {
   width: Number(readArg('width', String(DEFAULT_VIEWPORT.width))) || DEFAULT_VIEWPORT.width,
   height: Number(readArg('height', String(DEFAULT_VIEWPORT.height))) || DEFAULT_VIEWPORT.height
@@ -54,7 +55,17 @@ const writeJson = (filePath, value) => {
 };
 
 const rawBundleWrapper = readJson(bundlePath);
-const parseBundle = rawBundleWrapper.response || rawBundleWrapper.bundle || rawBundleWrapper;
+const sourceParseBundle = rawBundleWrapper.response || rawBundleWrapper.bundle || rawBundleWrapper;
+if (!Array.isArray(sourceParseBundle?.analyses) || !sourceParseBundle.analyses[analysisIndex]) {
+  console.error(`Bundle does not contain analysis index ${analysisIndex}.`);
+  process.exit(1);
+}
+const parseBundle = {
+  ...sourceParseBundle,
+  analyses: [sourceParseBundle.analyses[analysisIndex]],
+  ambiguityDetected: false,
+  ambiguityNote: undefined
+};
 const request = rawBundleWrapper.request || {};
 const firstAnalysis = Array.isArray(parseBundle.analyses) ? parseBundle.analyses[0] : null;
 const sentence = String(
@@ -107,6 +118,19 @@ const fetchJson = (url) => new Promise((resolve, reject) => {
 });
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const stopOwnedProcess = async (child, timeoutMs = 5000) => {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise((resolve) => child.once('exit', resolve));
+  child.kill('SIGTERM');
+  const stopped = await Promise.race([
+    exited.then(() => true),
+    wait(timeoutMs).then(() => false)
+  ]);
+  if (stopped || child.exitCode !== null || child.signalCode !== null) return;
+  child.kill('SIGKILL');
+  await Promise.race([exited, wait(2000)]);
+};
 
 const waitFor = async (fn, timeoutMs, label) => {
   const started = Date.now();
@@ -392,7 +416,19 @@ const canonicalizePayloadVisibleIds = (payload) => {
         && metadata.bareStructuralLeaf !== true
       );
     });
-    if (resolved && !visibleIds.includes(resolved)) visibleIds.push(resolved);
+    const syntheticLeaf = strictHiddenAncestorFilter
+      ? candidates.find((candidate) => {
+        const metadata = nodeMetadataById.get(candidate);
+        return Boolean(
+          metadata
+          && /::__[^:]+$/.test(candidate)
+          && metadata.layoutOnly !== true
+          && metadata.bareStructuralLeaf !== true
+        );
+      })
+      : '';
+    const retained = resolved || syntheticLeaf;
+    if (retained && !visibleIds.includes(retained)) visibleIds.push(retained);
   });
   return {
     ...payload,
@@ -575,6 +611,7 @@ const main = async () => {
     writeJson(path.join(outDir, 'render-summary.json'), {
       ok: true,
       bundle: bundlePath,
+      analysisIndex,
       server: appUrl,
       replayCount,
       canopy: path.join(outDir, 'canopy.png'),
@@ -588,7 +625,7 @@ const main = async () => {
     client.close();
     console.log(`Captured ${replayCount} replay frame(s) to ${path.relative(repoRoot, outDir)}`);
   } finally {
-    browser.kill();
+    await stopOwnedProcess(browser);
     try {
       fs.rmSync(userDataDir, { recursive: true, force: true });
     } catch {

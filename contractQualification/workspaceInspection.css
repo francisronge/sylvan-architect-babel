@@ -1,0 +1,23 @@
+.workspace-inspection { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; letter-spacing: 0; }
+.workspace-inspection header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #23483b; }
+.workspace-inspection header > span { color: #a7bfb3; font-size: 13px; white-space: nowrap; }
+.workspace-inspection select { background: #07150f; color: #ecfdf5; border: 1px solid #406352; border-radius: 4px; padding: 7px; min-width: 0; max-width: 100%; }
+.workspace-inspection nav { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.workspace-inspection button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #406352; border-radius: 4px; color: #ecfdf5; background: #07150f; }
+.workspace-inspection button:disabled { opacity: .35; }
+.workspace-inspection button:focus-visible, .workspace-inspection select:focus-visible { outline: 2px solid #c4a767; outline-offset: 2px; }
+.inspection-tree { min-height: 0; position: relative; overflow: hidden; }
+.inspection-tree > p { padding: 24px; }
+.workspace-inspection footer { padding: 12px 20px; border-top: 1px solid #23483b; max-height: 24dvh; overflow: auto; }
+.workspace-inspection h1 { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
+.workspace-inspection footer p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.workspace-inspection details { margin-top: 8px; color: #b3c4b9; font-size: 12px; }
+.workspace-inspection summary { cursor: pointer; }
+.workspace-inspection pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .workspace-inspection header { padding: 8px; gap: 8px; flex-wrap: wrap; }
+  .workspace-inspection header > select { flex: 1; }
+  .workspace-inspection header > span { display: none; }
+  .workspace-inspection nav { margin-left: 0; }
+  .workspace-inspection footer { padding: 10px; }
+}

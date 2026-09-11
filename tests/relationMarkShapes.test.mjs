@@ -235,7 +235,7 @@ test('Cooper storage keeps simultaneous ledgers within a stage and replaces the 
 test('plates sharing one anchor stack without overlapping', () => {
   const plan = compileRelationRenderPlan([stage([
     { relation: 'FeatureBundle', anchors: { bearer: 'a_ms' }, values: { Case: 'NOM' } },
-    { relation: 'Impoverishment', anchors: { terminal: 'a_ms' }, values: { featureHierarchy: ['π'], delinkAfter: 'π' } }
+    { relation: 'Impoverishment', anchors: { terminal: 'a_ms' }, values: { featureHierarchy: ['π', 'PART'], delinkAfter: 'π' } }
   ], forest())]);
   const bound = bindRelationPlanFrame(plan, 0, provider);
   const plaques = bound.primitives.filter((p) => p.type === 'plaque');
@@ -336,7 +336,8 @@ test('Transfer/PIC binds as the Fong plate: two tilted component arcs, the Phase
 test('blocked post-Transfer access binds as the dashed orthogonal lane with origin dot and ✗', () => {
   const bound = bindSingle({
     relation: 'PostTransferAccess',
-    anchors: { source: 'a_ms', target: 'in_b_ms', spellOutDomain: 'in_b_ms' }
+    anchors: { source: 'a_ms', target: 'in_b_ms', spellOutDomain: 'in_b_ms' },
+    values: { outcome: 'blocked' }
   });
   const lane = bound.primitives.find((p) => p.type === 'shape-path' && p.shapeStyle === 'transfer-access');
   assert.ok(lane);

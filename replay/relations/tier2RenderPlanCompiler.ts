@@ -3,17 +3,13 @@
  * already painted by production. This module never dispatches by relation
  * name and never reconstructs facet/output identities.
  */
-import type {
-  DerivationStageRelation,
-  SyntaxNode
-} from '../../types.ts';
+import type { SyntaxNode } from '../../types.ts';
 import type {
   PlanDiagnostic,
   PlanRelationRef,
   RelationPlanItem
 } from './renderPlanCompiler.ts';
 import {
-  buildTier2FacetEvidence,
   type RelationClaimDispatch,
   type Tier2ResolvedFacet
 } from './tier2RelationDispatch.ts';
@@ -21,14 +17,15 @@ import type {
   Tier2FacetEvidence,
   Tier2VisualPrimitiveName
 } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, pairedLiterals, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
+import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
+import { nativeAncestorEdges, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
 
 type CompileTier2Input = {
-  relation: DerivationStageRelation;
   relationRef: PlanRelationRef;
   dispatch: RelationClaimDispatch;
   currentForest: readonly SyntaxNode[];
   priorForest?: readonly SyntaxNode[];
-  activeLens?: boolean;
 };
 
 export type CompileTier2Result = {
@@ -37,9 +34,8 @@ export type CompileTier2Result = {
 };
 
 const flatten = (value: readonly string[] | string | undefined): string[] => (
-  (Array.isArray(value) ? value : [value])
-    .map((item) => String(item ?? '').trim())
-    .filter(Boolean)
+  (value === undefined ? [] : Array.isArray(value) ? value : [value])
+    .map((item) => String(item ?? ''))
 );
 
 const collectForest = (forest: readonly SyntaxNode[]): Map<string, SyntaxNode> => {
@@ -88,15 +84,15 @@ const unique = (items: readonly string[]): string[] => (
 );
 
 const currentIds = (evidence: Tier2FacetEvidence, role: string): string[] => (
-  unique(flatten(evidence.currentAnchors[role]))
+  flatten(evidence.currentAnchors[role])
 );
 
 const valueItems = (evidence: Tier2FacetEvidence, name: string): string[] => (
-  unique(flatten(evidence.values[name]))
+  flatten(evidence.values[name])
 );
 
 const firstValue = (evidence: Tier2FacetEvidence, name: string, fallback = ''): string => (
-  valueItems(evidence, name)[0] || fallback
+  valueItems(evidence, name)[0] ?? fallback
 );
 
 const authoredRows = (evidence: Tier2FacetEvidence): Array<{ label: string; value: string }> => (
@@ -157,7 +153,7 @@ const canonicalReplacementAnchors = (
 ): Record<string, string[]> => Object.fromEntries(
   Object.entries(anchors)
     .sort(([leftRole], [rightRole]) => leftRole.localeCompare(rightRole))
-    .map(([role, ids]) => [role, [...ids].sort()])
+    .map(([role, ids]) => [role, [...ids]])
 );
 
 const identityAnchorBlock = (
@@ -206,26 +202,19 @@ const predecessorReplacementGroup = (
 };
 
 export const compileTier2RelationOutputs = ({
-  relation,
   relationRef,
   dispatch,
   currentForest,
-  priorForest,
-  activeLens
+  priorForest
 }: CompileTier2Input): CompileTier2Result => {
-  const evidence = buildTier2FacetEvidence({
-    relation,
-    currentForest,
-    ...(priorForest ? { priorForest } : {}),
-    ...(activeLens === undefined ? {} : { activeLens })
-  });
+  const evidence = dispatch.evidence;
   const nodes = collectForest(currentForest);
   const priorNodeIds = new Set(collectForest(priorForest || []).keys());
   const diagnostics: PlanDiagnostic[] = dispatch.diagnostics.map((diagnostic) => ({
     stageIndex: relationRef.stageIndex,
     relationIndex: relationRef.relationIndex,
     relation: relationRef.relation,
-    kind: 'tier2-collision',
+    kind: diagnostic.kind === 'unrecovered-evidence' ? 'unrecovered-evidence' : 'tier2-collision',
     detail: `${diagnostic.kind}:${diagnostic.collision}:${diagnostic.facets.join(',')}`
   }));
   const items: RelationPlanItem[] = [];
@@ -280,11 +269,16 @@ export const compileTier2RelationOutputs = ({
   const valid = (ids: readonly string[]) => ids.filter((id) => nodes.has(id));
   const one = (role: string) => valid(currentIds(evidence, role))[0] || '';
   const many = (role: string) => valid(currentIds(evidence, role));
-  const rows = authoredRows(evidence);
 
   dispatch.facets.forEach((facet) => {
     const state = outcomeState(facet);
     const facetId = facet.recipe.id;
+    const rows = authoredRows({ ...evidence, authoredValues: evidence.authoredValues?.flatMap(entry => {
+      const refs = facet.evaluation.consumedEvidence.filter(ref => ref.field === 'values' && ref.key === entry.key);
+      if (!refs.length) return [];
+      const indices = new Set(refs.flatMap(ref => ref.itemIndices ?? entry.items.map((_, index) => index)));
+      return [{ ...entry, items: entry.items.filter((_, index) => indices.has(index)) }];
+    }) });
     switch (facetId) {
       case 'movement.path': {
         const source = one('movement.source');
@@ -298,14 +292,16 @@ export const compileTier2RelationOutputs = ({
         push({
           ...base(facet, pieces, 'tier2.movement-path'),
           kind: 'trajectory',
-          trajectoryKind: crossWorkspace ? 'sideward' : orthogonal ? 'roll-up' : 'phrasal',
+          trajectoryKind: crossWorkspace ? 'sideward' : orthogonal ? 'roll-up' : evidence.movement?.trajectoryKind || 'phrasal',
           sourceNodeId: source,
           targetNodeId: landing,
           witnessNodeId: witness,
+          ...(state === 'licensed' || state === 'blocked' ? { outcome: state } : {}),
           sourceAttachment: crossWorkspace
             ? 'shell-top'
-            : leafCount(nodes.get(source)) > 1 ? 'shell-bottom' : 'terminal',
-          targetAttachment: crossWorkspace ? 'shell-top' : 'shell-bottom'
+            : leafCount(nodes.get(source)) > 1 || isWordlessCategoryLeaf(nodes.get(source)!) ? 'shell-bottom' : 'terminal',
+          targetAttachment: crossWorkspace ? 'shell-top'
+            : evidence.movement?.trajectoryKind === 'head' && !isWordlessCategoryLeaf(nodes.get(landing)!) ? 'terminal' : 'shell-bottom'
         });
         return;
       }
@@ -317,19 +313,22 @@ export const compileTier2RelationOutputs = ({
           sourceNodeId: one('movement.source'),
           targetNodeId: one('movement.landing'),
           witnessNodeId: one('movement.witness'),
+          ...(state === 'licensed' || state === 'blocked' ? { outcome: state } : {}),
           sourceAttachment: 'shell-bottom',
           targetAttachment: 'shell-bottom'
         });
         return;
       }
       case 'gap.notation': {
-        const index = firstValue(evidence, 'index', 'i');
-        const label = firstValue(evidence, 'label', `t${index}`);
+        const indices = pairedLiterals(evidence, 'gap', 'index') ?? [];
+        const labels = pairedLiterals(evidence, 'gap', 'label') ?? [];
         push({
           ...base(facet, ['Gap label'], 'tier2.gap-notation'),
           kind: 'node-badges',
           badgeStyle: 'gap-notation',
-          badges: many('gap').map((nodeId) => ({ nodeId, text: label, shape: 'plain' }))
+          badges: many('gap').map((nodeId, index) => ({ nodeId,
+            text: labels[index]?.trim() ? labels[index]
+              : String(nodes.get(nodeId)?.word || nodes.get(nodeId)?.label || '') + (indices[index]?.trim() ? `_${indices[index]}` : ''), shape: 'plain' }))
         });
         return;
       }
@@ -353,7 +352,7 @@ export const compileTier2RelationOutputs = ({
       }
       case 'control.dependency': {
         const domain = one('domain');
-        push({
+        if (domain) push({
           ...base(facet, ['Rectangular domain'], 'control.dependency', 'domain'),
           kind: 'domain-mark',
           rootNodeId: domain,
@@ -453,14 +452,15 @@ export const compileTier2RelationOutputs = ({
           })),
           linkStyle: 'gapping-pair'
         });
-        if (facet.evaluation.outputs.includes('Correspondence index')) {
+        (pairedLiterals(evidence, 'correspondence.source', 'index') ?? []).forEach((index, pairIndex) => {
+          if (!index.trim()) return;
           push({
-            ...base(facet, ['Correspondence index'], 'tier2.correspondence-alignment', 'index'),
+            ...base(facet, ['Correspondence index'], 'tier2.correspondence-alignment', `index:${pairIndex}`),
             kind: 'coindex',
-            nodeIds: [...sources, ...targets],
-            index: firstValue(evidence, 'index', String(relationRef.relationIndex + 1))
+            nodeIds: [sources[pairIndex], targets[pairIndex]],
+            index
           });
-        }
+        });
         return;
       }
       case 'deletion.site': {
@@ -511,6 +511,7 @@ export const compileTier2RelationOutputs = ({
             ...base(facet, ['Crossed domain ovals'], 'argument-sharing.domains', `domain:${index}`),
             kind: 'domain-mark',
             rootNodeId: domain,
+            sharedNodeId: one('shared.argument'),
             memberNodeIds: collectSubtreeIds(nodes.get(domain)),
             subtreeDerived: [{ field: 'memberNodeIds', rootNodeId: domain, mode: 'all' }],
             domainStyle: 'argument-domain'
@@ -523,7 +524,7 @@ export const compileTier2RelationOutputs = ({
             badgeStyle: 'shared-object',
             badges: [{
               nodeId: one('shared.argument'),
-              text: firstValue(evidence, 'role.label', 'ARG').toUpperCase(),
+              text: firstValue(evidence, 'role.label'),
               shape: 'plain'
             }]
           });
@@ -532,7 +533,7 @@ export const compileTier2RelationOutputs = ({
       }
       case 'idiom.chunks': {
         const domain = one('interpretation.domain');
-        push({
+        if (domain) push({
           ...base(facet, ['Domain bracket'], 'idiom-chunks.domain', 'domain'),
           kind: 'domain-mark',
           rootNodeId: domain,
@@ -588,14 +589,15 @@ export const compileTier2RelationOutputs = ({
         return;
       }
       case 'feature.dependency': {
+        const caseLabels = pairedLiterals(evidence, 'feature.target', 'case.literal') ?? [];
         many('feature.target').forEach((target, index) => {
           push({
             ...base(facet, ['Feature connectors'], 'tier2.feature-dependency', `target:${index}`),
             kind: 'directed-path',
             fromNodeId: one('feature.source'),
             toNodeId: target,
-            pathStyle: 'case-agree',
-            ...(valueItems(evidence, 'feature.rows').length > 0
+            pathStyle: caseLabels.length ? 'case-assignment' : 'case-agree',
+            ...(caseLabels.length ? { label: caseLabels[index] } : valueItems(evidence, 'feature.rows').length > 0
               ? { label: valueItems(evidence, 'feature.rows').join(', ') }
               : {}),
             ...(state === 'licensed' || state === 'blocked' ? { outcome: state } : {})
@@ -610,7 +612,9 @@ export const compileTier2RelationOutputs = ({
           fromNodeId: one('probe'),
           toNodeId: one('goal'),
           pathStyle: 'dependent-case',
-          label: valueItems(evidence, 'feature.rows').join(', ')
+          label: rows.filter(row => evidence.authoredValues?.some(entry => entry.key === row.label
+            && entry.concepts.includes('feature.rows'))).map(row => row.value).join(', '),
+          ...(valueItems(evidence, 'step').length ? { dependentCaseStep: prepareNativeDependentCaseStep(valueItems(evidence, 'step')) } : {})
         });
         return;
       }
@@ -621,7 +625,9 @@ export const compileTier2RelationOutputs = ({
           fromNodeId: one('feature.source'),
           toNodeId: one('goal'),
           pathStyle: 'accord',
-          label: firstValue(evidence, 'index')
+          label: firstValue(evidence, 'index'),
+          secondaryLabel: firstValue(evidence, 'index'),
+          featureRow: rows.find(row => valueItems(evidence, 'feature.rows').includes(row.value))
         });
         return;
       }
@@ -638,20 +644,20 @@ export const compileTier2RelationOutputs = ({
         return;
       }
       case 'transfer.domain': {
-        push({
+        if (one('phase')) push({
           ...base(facet, ['Transfer arcs'], 'transfer.domain', 'phase'),
           kind: 'fong-component',
           headNodeId: one('phase'),
           componentLabel: 'Phase'
         });
-        push({
-          ...base(facet, ['Transfer arcs'], 'transfer.domain', 'edge'),
+        many('phase.edge').forEach((edge, index) => push({
+          ...base(facet, ['Transfer arcs'], 'transfer.domain', `edge:${index}`),
           kind: 'domain-mark',
-          rootNodeId: one('phase.edge'),
-          memberNodeIds: [one('phase.edge')],
+          rootNodeId: edge,
+          memberNodeIds: [edge],
           domainStyle: 'transfer-edge',
           label: 'Phase edge'
-        });
+        }));
         push({
           ...base(facet, ['Transfer arcs'], 'transfer.domain', 'sod'),
           kind: 'fong-component',
@@ -670,14 +676,14 @@ export const compileTier2RelationOutputs = ({
         return;
       }
       case 'phase.edge': {
-        push({
-          ...base(facet, ['Edge outline'], 'transfer.domain'),
+        many('phase.edge').forEach((edge, index) => push({
+          ...base(facet, ['Edge outline'], 'transfer.domain', `edge:${index}`),
           kind: 'domain-mark',
-          rootNodeId: one('phase.edge'),
-          memberNodeIds: [one('phase.edge')],
+          rootNodeId: edge,
+          memberNodeIds: [edge],
           domainStyle: 'transfer-edge',
           label: 'Phase edge'
-        });
+        }));
         return;
       }
       case 'transfer.access': {
@@ -807,23 +813,30 @@ export const compileTier2RelationOutputs = ({
         return;
       }
       case 'focus.prominence': {
+        const parent = facet.evaluation.structuralWitness?.branchParentNodeId;
+        if (!parent) return;
         push({
           ...base(facet, ['Prominence branches'], 'focus.prominence'),
           kind: 'branch-emphasis',
-          strongEdges: [{ fromNodeId: one('domain'), toNodeId: one('focus') }],
-          weakEdges: [{ fromNodeId: one('domain'), toNodeId: one('background') }]
+          strongEdges: nativeAncestorEdges(nodes, parent, one('focus')) ?? [],
+          weakEdges: nativeAncestorEdges(nodes, parent, one('background')) ?? [],
+          focusNodeId: one('focus')
         });
         return;
       }
       case 'focus.projection': {
-        const nodesInProjection = [one('accent.bearer'), ...many('projection.nodes')];
+        const nodesInProjection = facet.evaluation.structuralWitness?.projectionNodeIds ?? [];
         nodesInProjection.slice(0, -1).forEach((fromNodeId, index) => {
           push({
             ...base(facet, ['Projection hop'], 'focus.f-projection', `hop:${index}`),
             kind: 'directed-path',
             fromNodeId,
             toNodeId: nodesInProjection[index + 1],
-            pathStyle: 'f-projection'
+            pathStyle: 'f-projection',
+            projectionTargetAttachment: nodes.get(nodesInProjection[index + 1])?.word
+              && !(nodes.get(nodesInProjection[index + 1])?.children?.length) ? 'terminal' : 'shell',
+            ...(firstValue(evidence, 'feature.label') ? { projectionFeature: firstValue(evidence, 'feature.label') } : {}),
+            ...(index === 0 && firstValue(evidence, 'accent.label') ? { label: firstValue(evidence, 'accent.label') } : {})
           });
         });
         if (facet.evaluation.outputs.includes('Feature annotation')) {
@@ -870,7 +883,8 @@ export const compileTier2RelationOutputs = ({
           kind: 'node-plaque',
           anchorNodeIds: [one('scope')],
           plaqueStyle: 'cooper-storage',
-          rows
+          rows,
+          nativeContent: prepareNativePlaqueContent('cooper-storage', tier2NativePlaqueRows(evidence), [one('scope')])
         });
         return;
       }
@@ -880,7 +894,7 @@ export const compileTier2RelationOutputs = ({
           kind: 'quantifier-raising',
           pronouncedNodeId: one('scope.source'),
           lfNodeId: one('scope.landing'),
-          scopeDomainNodeId: one('scope.domain'),
+          ...(one('scope.domain') ? { scopeDomainNodeId: one('scope.domain') } : {}),
           index: firstValue(evidence, 'index', 'i')
         });
         return;
@@ -892,22 +906,24 @@ export const compileTier2RelationOutputs = ({
           kind: 'operator-variable-binding',
           operatorNodeId: one('operator'),
           variableNodeId: one('variable'),
-          scopeDomainNodeId: domain,
-          scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
-          subtreeDerived: [{ field: 'scopeMemberNodeIds', rootNodeId: domain, mode: 'all' }],
+          ...(domain ? { scopeDomainNodeId: domain,
+            scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
+            subtreeDerived: [{ field: 'scopeMemberNodeIds' as const, rootNodeId: domain, mode: 'all' as const }] } : {}),
           index: firstValue(evidence, 'index', String(relationRef.relationIndex + 1))
         });
         return;
       }
       case 'theta-grid': {
         const args = many('theta.arguments');
-        const labels = valueItems(evidence, 'role.label');
+        const thetaRoles = literalThetaRoles(evidence);
+        if (!thetaRoles) return;
         push({
           ...base(facet, ['Role grid'], 'theta.grid', 'grid'),
           kind: 'node-plaque',
           anchorNodeIds: [one('predicate')],
           plaqueStyle: 'theta-grid',
-          rows: args.map((_nodeId, index) => ({ label: labels[index] || String(index + 1), value: '' }))
+          rows: thetaRoles.map(({ label }) => ({ label, value: '' })),
+          thetaRoles
         });
         push({
           ...base(facet, ['Role grid'], 'theta.grid', 'badges'),
@@ -931,7 +947,7 @@ export const compileTier2RelationOutputs = ({
         const config = {
           'pf.structured': { role: 'rewrite.output', style: 'realization', family: 'pf.realization', pieces: ['PF plate frame', 'PF plate rows'] },
           'pf.rewrite': { role: 'rewrite.output', style: 'realization', family: 'pf.vocabulary-insertion', pieces: ['Rewrite arrow'] },
-          'pf.correspondence': { role: 'correspondence.targets', style: 'correspondence', family: 'pf.correspondence', pieces: ['Correspondence map'] },
+          'pf.correspondence': { role: 'terminal', style: 'correspondence', family: 'pf.correspondence', pieces: ['Correspondence map'] },
           'pf.fission': { role: 'rewrite.outputs', style: 'fission', family: 'pf.fission', pieces: ['Bundle shell'] },
           'pf.impoverishment': { role: 'terminal', style: 'impoverishment', family: 'pf.impoverishment', pieces: ['Delinking mark'] },
           'pf.local-dislocation': { role: 'sequence', style: 'dislocation-lane', family: 'pf.local-dislocation', pieces: ['State lanes'] },
@@ -942,12 +958,21 @@ export const compileTier2RelationOutputs = ({
           family: string;
           pieces: Tier2VisualPrimitiveName[];
         };
+        const nativeContent = config.style === 'linearization' ? prepareNativeLinearizationContent(evidence)
+          : prepareNativePlaqueContent(config.style, tier2NativePlaqueRows(evidence), many(config.role));
+        if (['fission', 'impoverishment', 'correspondence', 'linearization'].includes(config.style) && !nativeContent) {
+          diagnostics.push({ stageIndex: relationRef.stageIndex, relationIndex: relationRef.relationIndex,
+            relation: relationRef.relation, kind: 'illegal-configuration', detail: `Tier-2 ${facetId} has no complete prepared content` });
+          return;
+        }
         push({
           ...base(facet, config.pieces, config.family),
           kind: 'node-plaque',
           anchorNodeIds: many(config.role),
           plaqueStyle: config.style,
-          rows
+          rows,
+          ...(config.style === 'realization' ? { realizationRowKinds: rows.map(() => 'literal' as const) } : {}),
+          ...(nativeContent ? { nativeContent } : {})
         });
         return;
       }
@@ -959,7 +984,7 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Anchor badge', 'Anchor rail'], 'tier2.large-anchor-set'),
           kind: 'anchor-set',
           set: {
-            relation: relation.relation,
+            relation: relationRef.relation,
             stageIndex: relationRef.stageIndex,
             relationIndex: relationRef.relationIndex,
             instanceIndex: relationRef.relationIndex,

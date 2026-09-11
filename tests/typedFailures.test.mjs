@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { __test__, ParseApiError } from '../server/babelParser.js';
+import {
+  attachGenerationFailureEvidence,
+  createParseRoutes
+} from '../server/babelParser/parseRoutes.js';
 import {
   assertGenerationComplete,
   buildGenerationOutcome,
@@ -13,7 +18,11 @@ import {
   PROVIDER_OUTPUT_ALLOWANCE_POLICIES,
   resolveRouteMaxOutputTokens
 } from '../server/babelParser/routeConfig.js';
-import { formatApiError, validateParseBody } from '../server/parseApi.js';
+import {
+  formatApiError,
+  projectPublicGenerationRecord,
+  validateParseBody
+} from '../server/parseApi.js';
 import {
   createRawOutputArtifact,
   FAILURE_CLASSES,
@@ -158,15 +167,42 @@ expectTypedFailure({
 });
 
 expectTypedFailure({
-  name: 'typed probe: thin stage record is discriminated',
+  name: 'typed probe: empty stage record is discriminated',
   mutate: (payload) => {
-    payload.derivationStages[0].stageRecord = 'too thin';
+    payload.derivationStages[0].stageRecord = ' ';
     return payload;
   },
   expectedClass: FAILURE_CLASSES.CONTRACT_MISUNDERSTANDING,
-  ruleId: 'DERIVATION_STAGE_RECORD_SUBSTANTIVE',
+  ruleId: 'DERIVATION_STAGE_RECORD_NONEMPTY',
   stageIndex: 0,
   fieldPath: '$.derivationStages[0].stageRecord'
+});
+
+test('nonempty Stage Records do not assume English words or whitespace', () => {
+  const payload = buildMinimalPayload();
+  payload.derivationStages[0].stageRecord = '名詞が統語構造を完成させる。';
+  const bundle = normalize(payload);
+  assert.equal(bundle.analyses[0].derivationStages[0].stageRecord, '名詞が統語構造を完成させる。');
+});
+
+test('stage contract errors are reported before later reference expansion can mask them', () => {
+  const payload = buildMinimalPayload();
+  payload.derivationStages[0].stageRecord = '';
+  payload.derivationStages.push({
+    statement: 'A later malformed reference is present.',
+    stageRecord: 'This later stage should never mask the earlier exact contract failure.',
+    relations: [],
+    workspaceForest: [{ refId: 'missing_node' }]
+  });
+
+  assert.throws(
+    () => normalize(payload),
+    (error) => {
+      assert.equal(error.failure.ruleId, 'DERIVATION_STAGE_RECORD_NONEMPTY');
+      assert.equal(error.failure.stageIndex, 0);
+      return true;
+    }
+  );
 });
 
 expectTypedFailure({
@@ -267,6 +303,223 @@ test('length stop is typed before parse and records sent allowance and reasoning
       return true;
     }
   );
+});
+
+test('non-length refusal stops are typed before JSON parsing', () => {
+  const rawText = '{"refusal":"policy"}';
+  assert.throws(
+    () => assertGenerationComplete({
+      generation: {
+        text: rawText,
+        status: 'completed',
+        candidates: [{ finishReason: 'REFUSAL' }]
+      },
+      provider: 'claude',
+      model: 'claude-opus-5',
+      sentMaxOutputTokens: 32768,
+      runId: 'refusal-run',
+      attempts: []
+    }),
+    (error) => {
+      assert.equal(error.code, 'INCOMPLETE_GENERATION');
+      assert.equal(error.failure.ruleId, 'GENERATION_COMPLETED_STOP_FAILURE');
+      assert.equal(error.details.finishReason, 'REFUSAL');
+      return true;
+    }
+  );
+});
+
+test('known successful provider stop states remain accepted', () => {
+  for (const finishReason of ['STOP', 'COMPLETED', 'END_TURN', 'STOP_SEQUENCE']) {
+    const meta = assertGenerationComplete({
+      generation: {
+        text: '{}',
+        status: 'completed',
+        candidates: [{ finishReason }]
+      },
+      provider: 'fixture',
+      model: 'fixture-model',
+      sentMaxOutputTokens: 100,
+      runId: `success-${finishReason}`,
+      attempts: []
+    });
+    assert.equal(meta.finishReason, finishReason);
+  }
+});
+
+test('failed completed generations retain their generation receipt and raw output', () => {
+  const rawText = '{broken';
+  const generationRecord = {
+    schemaVersion: 2,
+    provider: 'gpt',
+    promptContract: { promptSha256: 'prompt-hash' },
+    sentGenerationConfig: { model: 'gpt-5.6-sol' },
+    timing: { requestStartedAt: '2026-08-28T00:00:00.000Z', durationMs: 10 },
+    outcome: { finishReason: 'COMPLETED' }
+  };
+  const enriched = attachGenerationFailureEvidence({
+    error: new ParseApiError('BAD_MODEL_RESPONSE', 'Invalid JSON.', 422),
+    ParseApiError,
+    generationRecord,
+    rawText
+  });
+
+  assert.deepEqual(enriched.details.generationRecord, generationRecord);
+  assert.equal(Buffer.from(enriched.rawOutput.data, 'base64').toString('utf8'), rawText);
+  const formatted = formatApiError(enriched);
+  assert.deepEqual(formatted.body.error.generationRecord, generationRecord);
+});
+
+test('public generation receipts omit provider and internal attempt messages', () => {
+  const projected = projectPublicGenerationRecord({
+    schemaVersion: 2,
+    provider: 'gpt',
+    outcome: {
+      finishReason: 'PROVIDER_ERROR',
+      attempts: [{
+        attemptNumber: 1,
+        outcome: 'terminal_failure',
+        statusCode: 500,
+        message: 'private compiler or provider detail',
+        futurePrivateField: 'must also stay private'
+      }]
+    }
+  });
+
+  assert.equal(projected.outcome.attempts[0].attemptNumber, 1);
+  assert.equal(projected.outcome.attempts[0].outcome, 'terminal_failure');
+  assert.equal(projected.outcome.attempts[0].statusCode, 500);
+  assert.equal(Object.hasOwn(projected.outcome.attempts[0], 'message'), false);
+  assert.equal(Object.hasOwn(projected.outcome.attempts[0], 'futurePrivateField'), false);
+  assert.equal(JSON.stringify(projected).includes('private'), false);
+});
+
+test('provider route failures retain a request receipt without calling another model', async () => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = 'provider-free-test-key';
+  try {
+    const routes = createParseRoutes({
+      ParseApiError,
+      normalizeParseBundle: () => {
+        throw new Error('normalization should not run');
+      },
+      parseModelJson: JSON.parse,
+      parseModelJsonDetailed: (rawText) => ({ payload: JSON.parse(rawText), integrityFlags: [] }),
+      generateOpenAI: async () => {
+        const error = new Error('provider rejected the request body');
+        error.status = 400;
+        throw error;
+      }
+    });
+
+    await assert.rejects(
+      () => routes.parseSentenceWithOpenAI('Mia'),
+      (error) => {
+        assert.equal(error instanceof ParseApiError, true);
+        assert.equal(error.code, 'INVALID_REQUEST');
+        assert.equal(error.details.generationRecord.provider, 'gpt');
+        assert.equal(error.details.generationRecord.outcome.attempts.length, 1);
+        assert.equal(error.details.generationRecord.outcome.attempts[0].outcome, 'terminal_failure');
+        return true;
+      }
+    );
+  } finally {
+    if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+  }
+});
+
+test('unexpected normalization crashes remain deterministic engine failures', async () => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = 'provider-free-test-key';
+  try {
+    const routes = createParseRoutes({
+      ParseApiError,
+      normalizeParseBundle: () => {
+        throw new Error('private normalization implementation detail');
+      },
+      parseModelJson: JSON.parse,
+      parseModelJsonDetailed: (rawText) => ({ payload: JSON.parse(rawText), integrityFlags: [] }),
+      generateOpenAI: async () => ({
+        text: '{}',
+        status: 'completed',
+        candidates: [{ finishReason: 'COMPLETED' }]
+      })
+    });
+
+    await assert.rejects(
+      () => routes.parseSentenceWithOpenAI('Mia'),
+      (error) => {
+        assert.equal(error.code, 'PARSE_ENGINE_FAILED');
+        assert.equal(error.status, 500);
+        assert.equal(error.failure.class, 'deterministic_engine_failure');
+        assert.equal(error.failure.processingStep, 'normalization');
+        assert.deepEqual(error.details.engineError, { name: 'Error', message: 'private normalization implementation detail' });
+        assert.equal(error.message.includes('private'), false);
+        assert.equal(error.details.generationRecord.provider, 'gpt');
+        return true;
+      }
+    );
+  } finally {
+    if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+  }
+});
+
+test('Gemini timeout overrides do not leak into other provider routes', () => {
+  const routeConfigUrl = new URL('../server/babelParser/routeConfig.js', import.meta.url).href;
+  const script = `
+    const { resolveModelTimeoutMs } = await import(${JSON.stringify(routeConfigUrl)});
+    process.stdout.write(JSON.stringify({
+      gemini: resolveModelTimeoutMs('gemini-model', 'gemini'),
+      gpt: resolveModelTimeoutMs('gpt-model', 'gpt'),
+      claude: resolveModelTimeoutMs('claude-model', 'claude')
+    }));
+  `;
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      GEMINI_ROUTE_TIMEOUT_MS: '1111',
+      GEMINI_MODEL_TIMEOUT_MS: '2222',
+      BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3333'
+    }
+  });
+
+  assert.equal(child.status, 0, child.stderr);
+  assert.deepEqual(JSON.parse(child.stdout), {
+    gemini: 1111,
+    gpt: 3333,
+    claude: 3333
+  });
+});
+
+test('legacy Gemini model timeout still applies only to Gemini', () => {
+  const routeConfigUrl = new URL('../server/babelParser/routeConfig.js', import.meta.url).href;
+  const script = `
+    const { resolveModelTimeoutMs } = await import(${JSON.stringify(routeConfigUrl)});
+    process.stdout.write(JSON.stringify({
+      gemini: resolveModelTimeoutMs('gemini-model', 'gemini'),
+      gpt: resolveModelTimeoutMs('gpt-model', 'gpt')
+    }));
+  `;
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      GEMINI_ROUTE_TIMEOUT_MS: '',
+      GEMINI_MODEL_TIMEOUT_MS: '2222',
+      BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3333'
+    }
+  });
+
+  assert.equal(child.status, 0, child.stderr);
+  assert.deepEqual(JSON.parse(child.stdout), {
+    gemini: 2222,
+    gpt: 3333
+  });
 });
 
 test('transport retry uses one run id, at most three attempts, and exponential backoff', async () => {
@@ -404,10 +657,14 @@ test('API errors expose typed failure while raw output is capped and hash-bound'
   );
 });
 
-test('only transport/429/5xx failures without a completed stop are retryable', () => {
+test('transient failures retry, but rate limits and completed stops do not', () => {
   const rateLimited = new Error('rate limited');
   rateLimited.status = 429;
-  assert.equal(isRetryableProviderFailure(rateLimited), true);
+  assert.equal(isRetryableProviderFailure(rateLimited), false);
+
+  const unavailable = new Error('temporarily unavailable');
+  unavailable.status = 503;
+  assert.equal(isRetryableProviderFailure(unavailable), true);
 
   const invalid = new Error('invalid request');
   invalid.status = 400;

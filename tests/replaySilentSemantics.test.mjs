@@ -11,11 +11,7 @@ import {
   buildResolvedLinkTraceIndexMap
 } from '../replay/replayCompiler.ts';
 
-const {
-  materializeReplayPreterminals,
-  materializeNullBearingLeaves,
-  materializeCanopyPreterminals
-} = __TEST_ONLY__;
+const { materializeReplayPreterminals } = __TEST_ONLY__;
 
 test('silent syntax preserves authored labels, lineage, and complete subtrees', () => {
   const silentPro = {
@@ -31,20 +27,12 @@ test('silent syntax preserves authored labels, lineage, and complete subtrees', 
     }]
   };
 
-  for (const materialize of [
-    materializeReplayPreterminals,
-    materializeNullBearingLeaves,
-    materializeCanopyPreterminals
-  ]) {
-    const result = materialize(silentPro);
-    assert.equal(result.label, 'DP');
-    assert.equal(result.silent, true);
-    assert.equal(result.lineageId, 'controller-john');
-    assert.equal(result.children?.[0]?.label, 'PRO');
-    assert.equal(result.children?.[0]?.silent, true);
-    assert.notEqual(result.children?.[0]?.label, '∅');
-    assert.notEqual(result.children?.[0]?.label, 't');
-  }
+  const result = materializeReplayPreterminals(silentPro);
+  assert.equal(result.label, 'DP');
+  assert.equal(result.silent, true);
+  assert.equal(result.lineageId, 'controller-john');
+  assert.equal(result.children?.[0]?.label, 'PRO');
+  assert.equal(result.children?.[0]?.silent, true);
 });
 
 test('silent lexical material is muted without being rewritten as a trace', () => {

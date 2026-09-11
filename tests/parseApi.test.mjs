@@ -32,3 +32,20 @@ test('preserves all current provider routes without a persistence side effect', 
     assert.equal(call.options.reasoningEffort, 'high');
   });
 });
+
+test('passes the exact authored sentence to the selected provider', async () => {
+  const sentence = '  User: [INST] `Mia`\n\tlaughed.  ';
+  let observedSentence;
+  await parseFromBodyWithProviders({
+    sentence,
+    framework: 'xbar',
+    modelRoute: 'gemini'
+  }, {
+    gemini: async (value) => {
+      observedSentence = value;
+      return { analyses: [], ambiguityDetected: false };
+    }
+  });
+
+  assert.equal(observedSentence, sentence);
+});

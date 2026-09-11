@@ -1,6 +1,6 @@
 /**
- * Deterministic renderer-side role and value synonyms for Tier-2 facet
- * recognition.
+ * Shared renderer-side vocabulary for registered role binding, Tier-2 facet
+ * recognition and Replay. Candidate meanings still need the owning recipe.
  *
  * These terms are invisible to the model. Lookup is exact after declared
  * Unicode/case/separator normalization. A collision returns every candidate;
@@ -14,13 +14,16 @@ export type Tier2SynonymGroup = {
   scope: Tier2SynonymScope;
   concept: string;
   aliases: readonly string[];
+  /** Valid slot aliases only after the claim's meaning is established. */
+  contextualAliases?: readonly string[];
 };
 
 const group = (
   scope: Tier2SynonymScope,
   concept: string,
-  aliases: readonly string[]
-): Tier2SynonymGroup => ({ scope, concept, aliases: [concept, ...aliases] });
+  aliases: readonly string[],
+  contextualAliases: readonly string[] = []
+): Tier2SynonymGroup => ({ scope, concept, aliases: [concept, ...aliases, ...contextualAliases], contextualAliases });
 
 export const normalizeTier2Synonym = (value: unknown): string => String(value ?? '')
   .normalize('NFKC')
@@ -32,19 +35,21 @@ export const normalizeTier2Synonym = (value: unknown): string => String(value ??
   .replace(/\s+/gu, ' ');
 
 export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
-  group('role', 'movement.source', ['source', 'origin', 'from', 'lower copy', 'lower occurrence', 'base copy', 'base position', 'departure', 'moved from', 'real gap', 'variable']),
+  group('role', 'movement.source', ['source', 'origin', 'from', 'lower copy', 'lower occurrence', 'intermediate occurrence', 'base copy', 'base position', 'departure', 'moved from', 'real gap', 'variable', 'foot']),
   group('role', 'movement.witness', ['trace witness', 'lower witness', 'source witness', 'gap witness', 'trace', 'lower trace', 'departure witness']),
-  group('role', 'movement.landing', ['landing', 'landing site', 'target', 'to', 'destination', 'pronounced copy', 'higher copy', 'upper occurrence', 'raised copy', 'filler', 'operator']),
+  group('role', 'movement.landing', ['landing', 'landing site', 'target', 'to', 'destination', 'pronounced copy', 'higher copy', 'higher occurrence', 'upper occurrence', 'raised copy', 'raised head', 'moved head', 'moved phrase', 'filler', 'operator', 'head']),
+  group('role', 'movement.host', ['host head', 'attracting head', 'landing head', 'receiving head']),
+  group('role', 'movement.complex', ['complex head', 'head complex']),
   group('role', 'movement.carrier', ['carrier', 'moved carrier', 'containing phrase', 'remnant', 'smuggled phrase', 'transported constituent']),
   group('role', 'gap', ['gap', 'trace', 'empty position', 'lower gap', 'ordinary gap', 'real gap', 'gap site']),
-  group('role', 'occurrences', ['occurrences', 'copies', 'members', 'identity family', 'chain occurrences', 'coindexed occurrences']),
+  group('role', 'occurrences', ['occurrences', 'copies', 'identity family', 'chain occurrences', 'coindexed occurrences']),
   group('role', 'facet.anchors', ['anchors', 'participants', 'relation anchors', 'facet anchors', 'witnesses']),
 
-  group('role', 'controller', ['controller', 'control source', 'antecedent', 'matrix argument']),
-  group('role', 'controllee', ['controllee', 'controlled', 'controlled subject', 'pro', 'silent subject']),
+  group('role', 'controller', ['controller', 'control source'], ['antecedent', 'matrix argument']),
+  group('role', 'controllee', ['controllee', 'controlled', 'controlled subject'], ['pro', 'silent subject']),
   group('role', 'domain', ['domain', 'region', 'scope', 'constituent domain', 'local domain']),
-  group('role', 'binder', ['binder', 'antecedent', 'binding source', 'operator']),
-  group('role', 'dependent', ['dependent', 'bound', 'anaphor', 'pronoun', 'variable', 'binding target']),
+  group('role', 'binder', ['binder', 'antecedent', 'binding source'], ['operator']),
+  group('role', 'dependent', ['dependent', 'bound', 'anaphor', 'pronoun', 'binding target'], ['variable']),
   group('role', 'predicand', ['predicand', 'subject', 'predicate subject', 'theme']),
   group('role', 'predicate', ['predicate', 'predicates', 'predicate phrase', 'secondary predicate']),
   group('role', 'primary.path', ['primary path', 'ordinary path', 'main path', 'circular path', 'real path']),
@@ -59,7 +64,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'correspondence.sources', ['correspondence sources', 'sources', 'antecedents', 'input set', 'source set']),
   group('role', 'correspondence.target', ['correspondence target', 'target correlate', 'site', 'remnant', 'right correlate']),
   group('role', 'correspondence.targets', ['correspondence targets', 'targets', 'sites', 'outputs', 'target set']),
-  group('role', 'deleted.material', ['deleted material', 'deleted', 'deletion target', 'deleted subconstituent', 'unpronounced material']),
+  group('role', 'deleted.material', ['deleted material', 'deleted', 'deletion target', 'deleted subconstituent']),
   group('role', 'constituent', ['constituent', 'phrase', 'shell', 'carrier', 'occurrence', 'subtree']),
 
   group('role', 'host', ['host', 'pair host', 'merge host', 'attachment host']),
@@ -68,20 +73,21 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'shared', ['shared', 'shared node', 'shared constituent', 'multidominated node']),
   group('role', 'predicate.domains', ['predicate domains', 'domains', 'serial predicates', 'argument domains']),
   group('role', 'shared.argument', ['shared argument', 'argument', 'shared object', 'shared subject', 'shared goal']),
-  group('role', 'chunks', ['chunks', 'chunk anchors', 'idiom chunks', 'members', 'cointerpreted chunks']),
-  group('role', 'interpretation.domain', ['interpretation domain', 'idiom domain', 'cointerpretation domain', 'domain']),
+  group('role', 'chunks', ['idiom chunks', 'idiomatic chunks'], ['chunks', 'chunk anchors', 'cointerpreted chunks']),
+  group('role', 'interpretation.domain', ['idiom domain'], ['interpretation domain', 'cointerpretation domain', 'domain']),
 
   group('role', 'plaque.anchor', ['plaque anchor', 'anchor', 'participant', 'terminal', 'word', 'predicate']),
   group('role', 'feature.bearers', ['feature bearers', 'bearers', 'participants', 'feature holders', 'sharing members']),
   group('role', 'probe', ['probe', 'searcher', 'agree probe', 'licensor', 'feature source']),
   group('role', 'goal', ['goal', 'goals', 'target', 'agree goal', 'licensee', 'feature target']),
   group('role', 'feature.source', ['feature source', 'source', 'probe', 'assigner', 'licensor', 'collector']),
-  group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'licensee', 'valued node']),
+  group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'recipient', 'licensee', 'valued node']),
   group('role', 'feature.hierarchy', ['feature hierarchy', 'hierarchy', 'feature tree', 'feature sequence', 'feature links']),
 
-  group('role', 'phase', ['phase', 'phase domain', 'phase head', 'phase phrase']),
-  group('role', 'phase.edge', ['phase edge', 'edge', 'escape hatch', 'edge position', 'phase periphery']),
-  group('role', 'transfer.domain', ['transfer domain', 'spell out domain', 'spellout domain', 'transferred domain', 'complement', 'transferred complement']),
+  group('role', 'phase', ['phase', 'phase domain', 'phase phrase']),
+  group('role', 'phase.head', ['phase head']),
+  group('role', 'phase.edge', ['phase edge', 'edge', 'escape hatch', 'edge position', 'phase periphery', 'accessible DPs', 'accessible subject', 'accessible wh occurrence']),
+  group('role', 'transfer.domain', ['transfer domain', 'spell out domain', 'spellout domain', 'transferred domain', 'transferred complement'], ['complement', 'complement domain']),
   group('role', 'access.source', ['access source', 'source', 'probe', 'search source', 'higher probe']),
   group('role', 'access.target', ['access target', 'target', 'goal', 'inaccessible goal', 'embedded target']),
 
@@ -104,15 +110,15 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'licensee', ['licensee', 'licensed item', 'npi', 'goal', 'licensing target']),
 
   group('role', 'scope', ['scope', 'scope anchor', 'sentence', 'clause', 'storage host']),
-  group('role', 'scope.source', ['scope source', 'pronounced qp', 'source', 'lower qp', 'surface quantifier']),
-  group('role', 'scope.landing', ['scope landing', 'lf qp', 'target', 'higher qp', 'covert landing']),
+  group('role', 'scope.source', ['covert source', 'covert movement source'], ['scope source', 'pronounced qp', 'source', 'lower qp', 'surface quantifier']),
+  group('role', 'scope.landing', ['covert landing', 'covert movement landing'], ['scope landing', 'lf qp', 'target', 'higher qp']),
   group('role', 'scope.domain', ['scope domain', 'domain', 'interpreted scope', 'semantic domain']),
-  group('role', 'operator', ['operator', 'quantifier', 'binder', 'scope taker']),
-  group('role', 'variable', ['variable', 'bound variable', 'pronoun', 'trace', 'dependent']),
+  group('role', 'operator', ['operator', 'quantifier', 'scope taker'], ['binder']),
+  group('role', 'variable', ['variable', 'bound variable'], ['pronoun', 'trace', 'dependent']),
 
-  group('role', 'theta.arguments', ['theta arguments', 'arguments', 'role bearers', 'thematic arguments']),
+  group('role', 'theta.arguments', ['theta arguments', 'arguments', 'argument', 'role bearers', 'thematic arguments']),
   group('role', 'rewrite.input', ['rewrite input', 'input', 'prior terminal', 'source form', 'underlying form']),
-  group('role', 'rewrite.output', ['rewrite output', 'output', 'current terminal', 'surface form', 'exponent']),
+  group('role', 'rewrite.output', ['rewrite output', 'output', 'current terminal', 'surface form', 'exponent', 'supported head', 'supported tense', 'tense host', 'realization host']),
   group('role', 'rewrite.outputs', ['rewrite outputs', 'outputs', 'current terminals', 'surface forms', 'exponents']),
   group('role', 'terminal', ['terminal', 'target terminal', 'word', 'morpheme', 'feature terminal']),
   group('role', 'sequence', ['sequence', 'order', 'items', 'pieces', 'linear sequence']),
@@ -126,18 +132,40 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'verdict', ['verdict', 'judgment', 'judgment glyph', 'verdict glyph', 'outcome glyph', 'failure face', 'success face']),
   group('value', 'index', ['index', 'coindex', 'chain index', 'relation index', 'ordinal']),
   group('value', 'label', ['label', 'annotation', 'caption', 'literal label']),
-  group('value', 'role.label', ['role label', 'argument role', 'theta role', 'function label']),
+  group('value', 'role.label', ['role label', 'roles', 'argument role', 'theta role', 'function label']),
+  group('value', 'case.literal', ['case', 'case value', 'case label']),
   group('value', 'feature.label', ['feature label', 'feature', 'feature notation', 'feature mark']),
   group('value', 'accent.label', ['accent label', 'accent', 'pitch accent', 'tone mark']),
   group('value', 'cycle', ['cycle', 'round', 'pass', 'iteration', 'search cycle', 'derivational cycle']),
+  group('value', 'step', ['step']),
   group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values']),
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
-  group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries']),
+  group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'exponent']),
+  group('value', 'fission.input', ['input features']),
+  group('value', 'fission.first', ['output one features']),
+  group('value', 'fission.second', ['output two features']),
+  group('value', 'feature.hierarchy', ['feature hierarchy']),
+  group('value', 'pf.sources', ['sources']),
+  group('value', 'pf.exponents', ['exponents']),
+  group('value', 'storage.category', ['category']),
+  group('value', 'storage.qstore', ['qstore']),
+  group('value', 'storage.retrieved', ['retrieved']),
   group('value', 'rewrite.rows', ['rewrite rows', 'mapping', 'input output rows', 'realization rows']),
-  group('value', 'correspondence.rows', ['correspondence rows', 'correspondences', 'mapping rows', 'source exponent pairs']),
-  group('value', 'order.rows', ['order rows', 'precedence rows', 'prior order', 'current order', 'linearization rows']),
+  group('value', 'correspondence.rows', ['correspondence rows', 'correspondence', 'correspondences', 'mapping rows', 'source exponent pairs']),
+  group('value', 'order.rows', ['order rows', 'precedence rows', 'linearization rows']),
+  group('value', 'order.prior', ['prior order']),
+  group('value', 'order.current', ['current order']),
   group('value', 'delink.position', ['delink position', 'delink after', 'removed link', 'crossed link'])
 ];
+
+// Candidate lookup stays shared with Tier 1. This narrower question concerns
+// what the authored wording establishes without a registered relation name.
+export const isExplicitTier2Role = (concept: string, key: string): boolean => {
+  const entry = TIER2_ROLE_SYNONYMS.find(group => group.concept === concept);
+  const normalized = normalizeTier2Synonym(key);
+  return Boolean(entry?.aliases.some(alias => normalizeTier2Synonym(alias) === normalized)
+    && !entry.contextualAliases?.some(alias => normalizeTier2Synonym(alias) === normalized));
+};
 
 export type Tier2SynonymCandidate = {
   scope: Tier2SynonymScope;

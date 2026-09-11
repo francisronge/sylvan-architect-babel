@@ -5,12 +5,7 @@ import {
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder
 } from './babelParser/surfaceTokens.js';
-import {
-  STRUCTURAL_LEAF_LABELS,
-  PRIME_CATEGORY_LABEL_RE,
-  canonicalizeCovertSurface,
-  collectNodeReferencesById
-} from './babelParser/treeBasics.js';
+import { collectNodeReferencesById } from './babelParser/treeBasics.js';
 import {
   buildParseContentsPrompt
 } from './babelParser/prompts.js';
@@ -22,11 +17,15 @@ import {
   extractLocalModelResponseText,
   summarizeGeneration
 } from './babelParser/modelRuntime.js';
-import { createDerivationHelpers } from './babelParser/derivationHelpers.js';
+import { authoredWord } from './babelParser/nodePronunciation.js';
 import { createParseRoutes } from './babelParser/parseRoutes.js';
 import { createParseNormalizationHelpers } from './babelParser/parseNormalization.js';
 import { createDerivationCompilerHelpers } from './babelParser/derivationCompiler.js';
-import { createSyntaxTreeHelpers } from './babelParser/syntaxTree.js';
+import {
+  collectOvertTerminalNodes,
+  sameTokenSequence,
+  deriveCanonicalSurfaceSpans
+} from './babelParser/syntaxTree.js';
 import { parseStrictModelJson, parseStrictModelJsonDetailed } from './babelParser/strictJson.js';
 
 export { ParseApiError } from './babelParser/error.js';
@@ -37,58 +36,19 @@ const normalizeOptionalText = (value) => {
 };
 
 const {
-  isAbstractFeatureSurface,
-  isNullLikeSurface,
-  buildNodeIndexFromTree,
-  buildParentIndexFromTree,
-  collectLeafNodes,
-  resolveNodeSurface,
-  resolveOvertLeafSurface,
-  isTraceLikeSurface,
-  isTraceLikeNode,
-  isNullLikeNode,
-  normalizeMovementLabelKey
-} = createDerivationHelpers({
-  STRUCTURAL_LEAF_LABELS,
-  PRIME_CATEGORY_LABEL_RE,
-  canonicalizeCovertSurface
-});
-
-const syntaxTreeHelpersRef = createSyntaxTreeHelpers({
-  ParseApiError,
-  resolveNodeSurface,
-  resolveOvertLeafSurface,
-  isAbstractFeatureSurface,
-  isTraceLikeSurface,
-  isNullLikeSurface,
-  isTraceLikeNode,
-  isNullLikeNode,
-  collectLeafNodes,
-  buildNodeIndexFromTree,
-  buildParentIndexFromTree,
-  normalizeMovementLabelKey
-});
-
-const {
-  collectOvertTerminalNodes,
-  sameTokenSequence,
-  anchorOvertLeavesToSentenceTokens,
-  deriveCanonicalSurfaceSpans
-} = syntaxTreeHelpersRef;
-
-const {
+  inspectDerivationWorkspaces,
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   canonicalizeDerivationRootCandidateForSentence,
   selectCommittedDerivationRoot,
-  findLatestCommittedDerivationFrame,
+  findCommittedFinalDerivationFrame,
   buildCanonicalDerivationFromDerivationFrames
 } = createDerivationCompilerHelpers({
   ParseApiError,
   normalizeOptionalText,
   collectNodeReferencesById,
   collectOvertTerminalNodes,
-  resolveNodeSurface,
+  authoredWord,
   sameTokenSequence,
   deriveCanonicalSurfaceSpans
 });
@@ -103,10 +63,9 @@ const {
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   buildCanonicalDerivationFromDerivationFrames,
-  collectNodeReferencesById,
   sameTokenSequence,
   collectOvertTerminalNodes,
-  resolveNodeSurface
+  authoredWord
 });
 
 const parseModelJson = (rawText) => parseStrictModelJson(
@@ -143,7 +102,8 @@ export const {
   parseSentenceWithLocalModel,
   parseSentenceWithGemini,
   parseSentenceWithOpenAI,
-  parseSentenceWithClaude
+  parseSentenceWithClaude,
+  parseSentenceWithResearchModel
 } = createParseRoutes({
   ParseApiError,
   normalizeParseBundle,
@@ -152,13 +112,14 @@ export const {
 });
 
 export const __test__ = {
+  inspectDerivationWorkspaces,
   normalizeParseBundle,
   normalizeParseResult,
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   canonicalizeDerivationRootCandidateForSentence,
   selectCommittedDerivationRoot,
-  findLatestCommittedDerivationFrame,
+  findCommittedFinalDerivationFrame,
   buildCanonicalDerivationFromDerivationFrames,
   buildSystemInstruction,
   buildParseContentsPrompt,
@@ -170,7 +131,6 @@ export const __test__ = {
   parseModelJsonDetailed,
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder,
-  anchorOvertLeavesToSentenceTokens,
   deriveCanonicalSurfaceSpans,
   collectOvertTerminalNodes
 };

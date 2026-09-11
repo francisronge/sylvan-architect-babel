@@ -9,7 +9,7 @@ export const createParseNormalizationHelpers = ({
   buildCanonicalDerivationFromDerivationFrames,
   sameTokenSequence,
   collectOvertTerminalNodes,
-  resolveNodeSurface
+  authoredWord
 }) => {
   const normalizeParseResult = (
     value,
@@ -36,34 +36,36 @@ export const createParseNormalizationHelpers = ({
     const payloadIntegrityFlags = Array.isArray(options?.payloadIntegrityFlags)
       ? options.payloadIntegrityFlags.slice()
       : [];
-    const validationIssues = [];
+    const payloadRepairDiagnostics = Array.isArray(options?.payloadRepairDiagnostics)
+      ? structuredClone(options.payloadRepairDiagnostics)
+      : [];
     const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
     const rawDerivationStages = parsed.derivationStages;
     const rawDerivationStageCount = Array.isArray(rawDerivationStages) ? rawDerivationStages.length : 0;
     const usesDerivationStages = rawDerivationStageCount > 0;
     const rawDerivationFrames = normalizeDerivationStagesToDerivationFrames(rawDerivationStages, {
-      integrityFlags: payloadIntegrityFlags,
-      validationIssues
+      integrityFlags: payloadIntegrityFlags
     });
     if (usesDerivationStages) {
       payloadIntegrityFlags.push('derivation_stages_compiled_to_derivation_frames');
     }
+    const nodeFieldPaths = new WeakMap();
+    const alignmentIssues = [];
     const derivationFrames = normalizeDerivationFrames(
       rawDerivationFrames,
-      { integrityFlags: payloadIntegrityFlags }
+      { integrityFlags: payloadIntegrityFlags, nodeFieldPaths }
     );
     const derivationPrimaryBundle = derivationFrames.length > 0
-      ? buildCanonicalDerivationFromDerivationFrames(derivationFrames, sentenceTokens)
+      ? buildCanonicalDerivationFromDerivationFrames(derivationFrames, sentenceTokens, {
+        nodeFieldPaths, validationIssues: alignmentIssues
+      })
       : null;
     if (!derivationPrimaryBundle?.tree) {
-      const validationIssue = validationIssues[0];
-      if (validationIssue) {
-        throw new ParseApiError(
-          'BAD_MODEL_RESPONSE',
-          `Model output violated ${validationIssue.ruleId}.`,
-          502,
-          withFailureDetails({}, validationIssue)
-        );
+      if (alignmentIssues.length > 0) {
+        const failure = alignmentIssues[0];
+        throw new ParseApiError('BAD_MODEL_RESPONSE', failure.message, 502, withFailureDetails({}, {
+          ...failure, failureClass: failure.class
+        }));
       }
       const finalFrame = derivationFrames[derivationFrames.length - 1];
       const finalForest = Array.isArray(finalFrame?.after?.workspaceForest)
@@ -71,7 +73,7 @@ export const createParseNormalizationHelpers = ({
         : [];
       const observedRootSurfaceOrders = finalForest.map((root) => (
         collectOvertTerminalNodes(root)
-          .map((node) => resolveNodeSurface(node))
+          .map((node) => authoredWord(node))
           .map((token) => String(token || '').trim())
           .filter(Boolean)
       ));
@@ -148,6 +150,9 @@ export const createParseNormalizationHelpers = ({
       payloadIntegrityFlags: payloadIntegrityFlags.length > 0
         ? Array.from(new Set(payloadIntegrityFlags))
         : undefined,
+      payloadRepairDiagnostics: payloadRepairDiagnostics.length > 0
+        ? payloadRepairDiagnostics
+        : undefined,
       hasDerivationStages: derivationStages.length > 0
     };
 
@@ -211,15 +216,37 @@ export const createParseNormalizationHelpers = ({
         ? [parsed]
         : [];
 
-    const analyses = analysesSource
-      .map((analysis) => normalizeParseResult(
-        analysis,
-        framework,
-        sentence,
-        modelRoute,
-        enforceDerivationRouteContract,
-        options
-      ));
+    let firstError;
+    const analyses = analysesSource.map((analysis, analysisIndex) => {
+      try {
+        const normalized = normalizeParseResult(
+          analysis, framework, sentence, modelRoute, enforceDerivationRouteContract, options
+        );
+        options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
+        return normalized;
+      } catch (error) {
+        if (!(error instanceof ParseApiError)) throw error;
+        const failure = error.failure;
+        const fieldPath = Array.isArray(parsed?.analyses)
+          ? `$.analyses[${analysisIndex}]${failure.fieldPath.slice(1)}`
+          : failure.fieldPath;
+        const message = Array.isArray(parsed?.analyses)
+          ? `Analysis ${analysisIndex + 1}: ${error.message.replace(failure.fieldPath, fieldPath)}`
+          : error.message;
+        const annotatedError = new ParseApiError(error.code, message, error.status, withFailureDetails(error.details, {
+          ...failure,
+          failureClass: failure.class,
+          analysisIndex,
+          fieldPath,
+          message
+        }));
+        if (!Array.isArray(options.analysisOutcomes)) throw annotatedError;
+        options.analysisOutcomes.push({ analysisIndex, status: 'failed', failure: annotatedError.failure });
+        firstError ||= annotatedError;
+        return null;
+      }
+    });
+    if (firstError) throw firstError;
 
     if (analyses.length === 0) {
       throw new ParseApiError(

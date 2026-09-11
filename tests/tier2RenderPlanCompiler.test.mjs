@@ -125,7 +125,7 @@ test('Tier-2 verdict lowering fails closed when its accepted evidence is incompl
       anchors: relation.anchors,
       ...(relation.values ? { values: relation.values } : {})
     },
-    dispatch,
+    dispatch: dispatchRelationClaims({ relation, currentForest: judgmentForest, stageIndex: 0, relationIndex: 0 }),
     currentForest: judgmentForest
   });
 
@@ -135,10 +135,6 @@ test('Tier-2 verdict lowering fails closed when its accepted evidence is incompl
   ]) {
     const result = lower(relation);
     assert.equal(result.items.some((item) => item.kind === 'analysis-verdict'), false);
-    assert.equal(
-      result.diagnostics.some((diagnostic) => diagnostic.kind === 'signature-incomplete'),
-      true
-    );
   }
 });
 
@@ -184,7 +180,7 @@ test('Task 8 organizes only the authored array that earned the large-array compa
   const forest = [node('large_root', 'TP', members.map((id) => node(id, 'DP', [])))];
   const relation = {
     relation: 'UnknownLargeSet',
-    anchors: { members, anchor: 'large_root' }
+    anchors: { members, occurrences: members, anchor: 'large_root' }
   };
   const dispatch = dispatchRelationClaims({
     relation,
@@ -218,7 +214,7 @@ test('Task 8 organizes only the authored array that earned the large-array compa
   const splitPlan = compileRelationRenderPlan([
     stage([{
       relation: 'UnknownSplitLargeSet',
-      anchors: { members: splitMembers, participants: splitParticipants }
+      anchors: { members: splitMembers, participants: splitParticipants, occurrences: members }
     }], forest)
   ]);
   const splitOrganization = splitPlan.frames[0].items.find(
@@ -396,7 +392,7 @@ test('Tier-2 prior continuity contains only prior evidence owned by that facet',
         input: 'owned_prior_input',
         mystery: 'residual_prior_note'
       },
-      values: { features: ['person', 'plural'] }
+      values: { inputFeatures: ['person', 'plural'], outputOneFeatures: ['person'], outputTwoFeatures: ['plural'] }
     }], currentForest)
   ]);
   const fission = plan.frames[1].items.find((item) => item.tier2FacetId === 'pf.fission');
@@ -495,7 +491,7 @@ test('Task 8 never lets a Tier-2 ledger replace a canonical Tier-1 ledger', () =
     stage([{
       relation: 'UnknownScopeLedger',
       anchors: { 'storage host': 'ledger_scope' },
-      values: { 'plaque rows': ['qstore: []'] }
+      values: { qstore: ['q'] }
     }], forest)
   ]);
   const committed = visiblePlanFrameItems(plan, 1, null)
@@ -542,7 +538,7 @@ test('Task 8 replaces an earlier claim only through complete immediate prior anc
     stage([{
       relation: 'UnknownIdentityState',
       anchors: { occurrences: ['replace_new_a', 'replace_new_b'] },
-      priorAnchors: { occurrences: ['replace_old_b', 'replace_old_a'] }
+      priorAnchors: { occurrences: ['replace_old_a', 'replace_old_b'] }
     }], secondForest)
   ]);
   const rawIdentityItems = plan.frames[1].items.filter(

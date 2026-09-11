@@ -14,6 +14,8 @@
     "verify:parse-contract": "node scripts/verifyParseContract.mjs",
     "verify:offline": "npm test && npm run verify:parse-contract",
     "verify:all": "npm run typecheck && npm run verify:offline",
+    "qualification:smoke": "node scripts/buildContractQualificationDryRun.mjs",
+    "qualification:review": "node scripts/buildContractQualificationReview.mjs",
     "tier2:review:build": "node scripts/buildTier2VisualReview.mjs",
     "tier2:review:verify": "node scripts/verifyTier2VisualReview.mjs",
     "orchard:verify": "node scripts/verifyRelationOrchard.cjs",

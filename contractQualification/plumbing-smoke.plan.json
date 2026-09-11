@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "label": "program-1-provider-free-plumbing-smoke",
+  "purpose": "Exercise saved-output, normalization, Replay, and review plumbing only. These are not qualification items.",
+  "itemSetStatus": "unselected",
+  "contractManifest": "docs/implementation/contract-qualification/pre-provider-contract.manifest.json",
+  "attempts": [
+    {
+      "id": "smoke-mia-laughed-xbar",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "committed-fixture-payload",
+        "path": "fixtures/raw/mia-laughed.xbar.json"
+      }
+    },
+    {
+      "id": "smoke-what-did-mia-see-xbar",
+      "request": {
+        "sentence": "What did Mia see?",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "anthropic:claude-opus-5",
+        "nativeSettings": {
+          "output_config.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "committed-fixture-payload",
+        "path": "fixtures/raw/what-did-mia-see.xbar.json"
+      }
+    },
+    {
+      "id": "smoke-repaired-mia-laughed-xbar",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "committed-fixture-payload-missing-final-closer",
+        "path": "fixtures/raw/mia-laughed.xbar.json"
+      }
+    },
+    {
+      "id": "smoke-malformed-json",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "raw-text-file",
+        "path": "fixtures/qualification/malformed-json.txt"
+      }
+    },
+    {
+      "id": "smoke-wrong-envelope",
+      "request": {
+        "sentence": "Mia laughed.",
+        "framework": "xbar"
+      },
+      "model": {
+        "catalogId": "openai:gpt-5.6-sol",
+        "nativeSettings": {
+          "reasoning.effort": "high"
+        }
+      },
+      "source": {
+        "kind": "raw-text-file",
+        "path": "fixtures/qualification/wrong-envelope.json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "program-1-contract-qualification-v1",
+  "status": "frozen",
+  "purpose": "Qualify Babel's model-facing contract and renderer integration without ranking linguistic competence.",
+  "admission": {
+    "runsFor": "every-candidate",
+    "items": [
+      {
+        "id": "admission-which-book-minimalism",
+        "sentence": "Which book did John buy?",
+        "framework": "minimalism",
+        "reviewFocus": "A compact Minimalist derivation with wh-movement and head movement."
+      },
+      {
+        "id": "admission-which-book-xbar",
+        "sentence": "Which book did John buy?",
+        "framework": "xbar",
+        "reviewFocus": "The same input under the X-bar contract."
+      }
+    ]
+  },
+  "qualification": {
+    "sharedCoreRunsFor": "every-admitted-candidate",
+    "finalistOnlyRunsFor": "selected-finalists",
+    "items": [
+      {
+        "id": "q01-mia-laughed-xbar",
+        "sentence": "Mia laughed.",
+        "framework": "xbar",
+        "cohort": "finalist-only",
+        "reviewFocus": "Small baseline and short derivation."
+      },
+      {
+        "id": "q02-long-distance-wh-minimalism",
+        "sentence": "Which article do you think Clara said Mateo published?",
+        "framework": "minimalism",
+        "cohort": "shared-core",
+        "reviewFocus": "Long-distance movement through multiple clauses."
+      },
+      {
+        "id": "q03-pp-attachment-xbar",
+        "sentence": "I saw the man with the telescope.",
+        "framework": "xbar",
+        "cohort": "shared-core",
+        "reviewFocus": "Multiple legitimate attachment analyses."
+      },
+      {
+        "id": "q04-control-xbar",
+        "sentence": "John promised to leave.",
+        "framework": "xbar",
+        "cohort": "finalist-only",
+        "reviewFocus": "Control and a silent embedded subject."
+      },
+      {
+        "id": "q05-reconstruction-minimalism",
+        "sentence": "Which picture of himself did every student file?",
+        "framework": "minimalism",
+        "cohort": "finalist-only",
+        "reviewFocus": "Movement, binding, and LF reconstruction."
+      },
+      {
+        "id": "q06-ellipsis-xbar",
+        "sentence": "Lena read the book, and Noa did too.",
+        "framework": "xbar",
+        "cohort": "finalist-only",
+        "reviewFocus": "Ellipsis and silent structure."
+      },
+      {
+        "id": "q07-parasitic-gap-minimalism",
+        "sentence": "Which article did Ted file without reading?",
+        "framework": "minimalism",
+        "cohort": "finalist-only",
+        "reviewFocus": "One filler with an ordinary gap and a parasitic gap."
+      },
+      {
+        "id": "q08-blocked-extraction-minimalism",
+        "sentence": "Who did Mary cry after John hit?",
+        "framework": "minimalism",
+        "cohort": "shared-core",
+        "reviewFocus": "Blocked extraction and an illicit-analysis verdict."
+      },
+      {
+        "id": "q09-strong-npi-minimalism",
+        "sentence": "Only Mia lifted a finger.",
+        "framework": "minimalism",
+        "cohort": "finalist-only",
+        "reviewFocus": "Focus association and strong-NPI licensing."
+      },
+      {
+        "id": "q10-multidominance-xbar",
+        "sentence": "Sam caught and Alex cooked a fish.",
+        "framework": "xbar",
+        "cohort": "finalist-only",
+        "reviewFocus": "A possible shared-object analysis across conjuncts."
+      },
+      {
+        "id": "q11-german-question-xbar",
+        "sentence": "Hat Maria den Brief gelesen?",
+        "framework": "xbar",
+        "cohort": "shared-core",
+        "reviewFocus": "German interrogative structure and head movement."
+      },
+      {
+        "id": "q12-romanian-passive-xbar",
+        "sentence": "A fost închisă ușa de vânt.",
+        "framework": "xbar",
+        "cohort": "finalist-only",
+        "reviewFocus": "Romanian passive structure and agreement."
+      },
+      {
+        "id": "q13-hebrew-wh-minimalism",
+        "sentence": "איזה ספר קנתה נועה?",
+        "framework": "minimalism",
+        "cohort": "shared-core",
+        "reviewFocus": "Hebrew wh-syntax, head movement, and RTL text."
+      },
+      {
+        "id": "q14-mandarin-wh-minimalism",
+        "sentence": "张三买了什么？",
+        "framework": "minimalism",
+        "cohort": "finalist-only",
+        "reviewFocus": "Mandarin in-situ wh-syntax and CJK text."
+      }
+    ]
+  },
+  "interpretation": {
+    "reviewFocusIsNonNormative": true,
+    "itemsDoNotPrescribeRelations": true,
+    "rendererCoverageUsesActualDispatch": true
+  }
+}

@@ -1,3 +1,5 @@
+import { normalizeTier2Synonym, TIER2_VALUE_SYNONYMS } from './tier2Synonyms.ts';
+
 /**
  * Renderer-only interpretation of authored outcome literals.
  *
@@ -130,3 +132,26 @@ export const acceptedOutcomeConcept = (
     ? resolution.concept
     : undefined
 );
+
+const outcomeRoles = new Set(TIER2_VALUE_SYNONYMS.find(group => group.concept === 'outcome')!.aliases.map(normalizeTier2Synonym));
+
+export const authoredOutcomeLiterals = (values: Record<string, string | string[]> | undefined): string[] =>
+  Object.entries(values ?? {}).filter(([key]) => outcomeRoles.has(normalizeTier2Synonym(key)))
+    .flatMap(([key, value]) => (Array.isArray(value) ? value : [value]).filter(literal =>
+      !['judgment', 'verdict'].includes(normalizeTier2Synonym(key)) || resolveOutcomeLiteral(literal)?.concept));
+
+/** A blocking drawing needs an authored negative claim, not just a possible obstacle. */
+export const negativeClaimFailure = (
+  outcomes: readonly string[],
+  participantRoles: readonly string[]
+): string | undefined => {
+  const negative: readonly OutcomeConcept[] = ['blocked', 'failed', 'crashed', 'illicit', 'rejected', 'unlicensed', 'impossible', 'violation'];
+  if (outcomes.length) {
+    const concepts = outcomes.map(value => resolveOutcomeLiteral(value)?.concept);
+    return concepts.every(concept => concept && negative.includes(concept))
+      ? undefined : 'outcome-does-not-establish-blocking';
+  }
+  const explicitRoles = new Set(['blocker', 'inaccessible goal', 'blocked domain']);
+  return participantRoles.some(role => explicitRoles.has(normalizeTier2Synonym(role)))
+    ? undefined : 'no-authored-negative-outcome-or-blocking-role';
+};

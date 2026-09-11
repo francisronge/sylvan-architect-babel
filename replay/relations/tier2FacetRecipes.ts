@@ -1,16 +1,18 @@
 /**
  * Complete Tier-2 facet recipes.
  *
- * These recipes consume canonical role and value concepts after exact synonym
- * lookup. They do not inspect relation names and do not dispatch anything by
- * themselves. Task 6 will connect this evaluator to exclusive Tier dispatch.
+ * Candidate role meanings must pass semantic and structural checks before
+ * dispatch can consume their authored evidence. Relation names are not used.
  */
 import type { SyntaxNode } from '../../types.ts';
 import {
   resolveOutcomeLiteral,
+  negativeClaimFailure,
+  authoredOutcomeLiterals,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { isExplicitTier2Role, normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
   'Movement curve',
@@ -185,21 +187,38 @@ export type Tier2ValueRequirement = {
   min: number;
   max?: number;
   optional?: boolean;
+  nonBlank?: boolean;
 };
 
 export type Tier2StructuralCheck =
-  | { kind: 'distinct'; roles: readonly string[] }
+  | { kind: 'explicit-role'; roles: readonly string[] }
+  | { kind: 'distinct'; roles: readonly string[]; allowRepeatedWithinRole?: boolean }
   | { kind: 'contains'; containerRole: string; memberRole: string }
   | { kind: 'contains-authored-silent'; role: string }
   | { kind: 'authored-trace-or-gap'; role: string }
   | { kind: 'shared-lineage'; roles: readonly string[] }
+  | { kind: 'shared-root-lineage'; roles: readonly string[] }
+  | { kind: 'separate-occurrences'; roles: readonly [string, string] }
+  | { kind: 'prior-source-consistency'; role: string }
   | { kind: 'paired-cardinality'; roles: readonly [string, string] }
   | { kind: 'multiple-parents'; role: string; minParents: number }
+  | { kind: 'paired-values'; role: string; value: string; optional?: boolean }
+  | { kind: 'projection-chain' }
+  | { kind: 'transfer-configuration' }
+  | { kind: 'feature-dependency' }
+  | { kind: 'dependent-case-step' }
+  | { kind: 'native-linearization' }
+  | { kind: 'explicit-npi' }
+  | { kind: 'explicit-ellipsis' }
+  | { kind: 'movement-carrier' }
+  | { kind: 'order-notation'; notation: 'rebracketing' | 'precedence' }
+  | { kind: 'native-plaque'; style: 'fission' | 'impoverishment' | 'correspondence' | 'cooper-storage'; anchorRole: string }
   | { kind: 'shared-native-parent'; roles: readonly [string, string] }
   | { kind: 'siblings-within-domain'; leftRole: string; rightRole: string; domainRole: string }
   | { kind: 'native-parent-branch'; role: string }
-  | { kind: 'value-token'; value: string; tokens: readonly string[]; match?: 'any' | 'all' }
+  | { kind: 'value-token'; value: string; tokens: readonly string[] }
   | { kind: 'accepted-outcome' }
+  | { kind: 'negative-claim'; roles: readonly string[] }
   | { kind: 'active-lens' }
   | { kind: 'parent-facet-complete' }
   | { kind: 'large-array'; role: string; min: number };
@@ -208,6 +227,7 @@ export type Tier2OutputGate =
   | { kind: 'always' }
   | { kind: 'accepted-outcome' }
   | { kind: 'value-present'; value: string }
+  | { kind: 'anchor-present'; role: string }
   | { kind: 'active-lens' }
   | { kind: 'movement-geometry'; variant: 'curve' | 'orthogonal' | 'cross-workspace' };
 
@@ -249,9 +269,19 @@ export type Tier2AuthoredEvidenceEntry = {
   key: string;
   concepts: readonly string[];
   items: readonly string[];
+  conceptItemIndices?: Readonly<Record<string, readonly number[]>>;
 };
 
+// Edge outlines are independent per node; organizational rails retain each
+// authored role group. Neither drawing asserts one joint linguistic group.
+export const INDEPENDENT_TIER2_ANCHOR_ROLES: ReadonlySet<string> = new Set(['phase.edge', 'large.anchor.array']);
+// These plaques print each original field name with its literals, without
+// pairing values or combining them into a feature-sharing claim.
+export const INDEPENDENT_TIER2_VALUE_ROLES: ReadonlySet<string> = new Set(['plaque.rows', 'pf.rows']);
+
 export type Tier2FacetEvidence = {
+  movement?: import('./movementEvidence.ts').RecoveredMovement;
+  movementDiagnostics?: string[];
   currentAnchors: Readonly<Record<string, readonly string[]>>;
   priorAnchors?: Readonly<Record<string, readonly string[]>>;
   values: Readonly<Record<string, readonly string[]>>;
@@ -270,9 +300,11 @@ export type Tier2FacetEvaluation = {
   outcomeConcept: OutcomeConcept | null;
   outputs: Tier2VisualPrimitiveName[];
   earnedTransitions: Tier2TransitionKind[];
+  structuralWitness?: { branchParentNodeId?: string; projectionNodeIds?: string[] };
   consumedEvidence: Array<{
     field: 'anchors' | 'priorAnchors' | 'values';
     key: string;
+    itemIndices?: number[];
   }>;
 };
 
@@ -388,7 +420,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     checks: [
       { kind: 'distinct', roles: ['movement.source', 'movement.landing'] },
       { kind: 'contains', containerRole: 'movement.source', memberRole: 'movement.witness' },
-      { kind: 'shared-lineage', roles: ['movement.source', 'movement.landing'] }
+      { kind: 'shared-root-lineage', roles: ['movement.source', 'movement.landing'] }
     ],
     outputs: [
       output('Movement curve', { kind: 'movement-geometry', variant: 'curve' }),
@@ -405,10 +437,12 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
       current('movement.landing', 1, 1),
       current('movement.carrier', 1, 1)
     ],
-    values: [],
+    values: [optionalValue('outcome', 1, 1)],
+    acceptedOutcomeConcepts: LOCAL_OUTCOMES,
     checks: [
       { kind: 'contains', containerRole: 'movement.source', memberRole: 'movement.witness' },
-      { kind: 'shared-lineage', roles: ['movement.source', 'movement.landing'] }
+      { kind: 'shared-root-lineage', roles: ['movement.source', 'movement.landing'] },
+      { kind: 'movement-carrier' }
     ],
     outputs: [output('Carrier arrow')],
     transitionRules: [{ kind: 'movement', evidence: 'overt-movement-stage-difference' }]
@@ -416,12 +450,17 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('gap.notation', {
     anchors: [current('gap', 1)],
     values: [optionalValue('index'), optionalValue('label')],
-    checks: [{ kind: 'authored-trace-or-gap', role: 'gap' }],
+    checks: [
+      { kind: 'authored-trace-or-gap', role: 'gap' },
+      { kind: 'paired-values', role: 'gap', value: 'index', optional: true },
+      { kind: 'paired-values', role: 'gap', value: 'label', optional: true }
+    ],
     outputs: [output('Gap label')]
   }),
   recipe('identity.occurrences', {
     anchors: [current('occurrences', 2)],
     values: [optionalValue('index', 1, 1)],
+    checks: [{ kind: 'distinct', roles: ['occurrences'] }],
     outputs: [
       output('Coindex'),
       output('Forest light')
@@ -435,16 +474,18 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     outputs: [output('Lens emphasis', { kind: 'active-lens' })]
   }),
   recipe('control.dependency', {
-    anchors: [current('controller', 1, 1), current('controllee', 1, 1), current('domain', 1, 1)],
+    anchors: [current('controller', 1, 1), current('controllee', 1, 1), optionalCurrent('domain', 1, 1)],
     values: [],
-    checks: [{ kind: 'contains', containerRole: 'domain', memberRole: 'controllee' }],
-    outputs: [output('Rectangular domain'), output('Control connector')]
+    checks: [{ kind: 'explicit-role', roles: ['controller', 'controllee'] },
+      { kind: 'distinct', roles: ['controller', 'controllee'] },
+      { kind: 'contains', containerRole: 'domain', memberRole: 'controllee' }],
+    outputs: [output('Rectangular domain', { kind: 'anchor-present', role: 'domain' }), output('Control connector')]
   }),
   recipe('binding.dependency', {
     anchors: [current('binder', 1, 1), current('dependent', 1, 1), current('domain', 1, 1)],
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
-    checks: [{ kind: 'contains', containerRole: 'domain', memberRole: 'dependent' }],
+    checks: [{ kind: 'explicit-role', roles: ['binder', 'dependent'] }, { kind: 'contains', containerRole: 'domain', memberRole: 'dependent' }],
     outputs: [output('Elliptic domain')]
   }),
   recipe('predication.dependency', {
@@ -478,15 +519,18 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('ellipsis.site', {
     anchors: [current('ellipsis.site', 1, 1)],
     values: [],
-    checks: [{ kind: 'contains-authored-silent', role: 'ellipsis.site' }],
+    checks: [{ kind: 'contains-authored-silent', role: 'ellipsis.site' }, { kind: 'explicit-ellipsis' }],
     outputs: [output('Ghosting')],
     transitionRules: [{ kind: 'deletion', evidence: 'deletion-stage-difference' }]
   }),
   recipe('correspondence.alignment', {
     anchors: [current('correspondence.source', 1), current('correspondence.target', 1)],
     values: [optionalValue('index')],
-    checks: [{ kind: 'paired-cardinality', roles: ['correspondence.source', 'correspondence.target'] }],
-    outputs: [output('Correspondence curves'), output('Correspondence index')]
+    checks: [
+      { kind: 'paired-cardinality', roles: ['correspondence.source', 'correspondence.target'] },
+      { kind: 'paired-values', role: 'correspondence.source', value: 'index', optional: true }
+    ],
+    outputs: [output('Correspondence curves'), output('Correspondence index', { kind: 'value-present', value: 'index' })]
   }),
   recipe('deletion.site', {
     anchors: [current('deleted.material', 1, 1)],
@@ -522,13 +566,15 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('argument-sharing', {
     anchors: [current('predicate.domains', 2), current('shared.argument', 1, 1)],
     values: [optionalValue('role.label', 1, 1)],
+    checks: [{ kind: 'contains', containerRole: 'predicate.domains', memberRole: 'shared.argument' }],
     outputs: [output('Crossed domain ovals'), output('Label box', { kind: 'value-present', value: 'role.label' })]
   }),
   recipe('idiom.chunks', {
-    anchors: [current('chunks', 2), current('interpretation.domain', 1, 1)],
+    anchors: [current('chunks', 2), optionalCurrent('interpretation.domain', 1, 1)],
     values: [],
-    checks: [{ kind: 'contains', containerRole: 'interpretation.domain', memberRole: 'chunks' }],
-    outputs: [output('Underline'), output('Domain bracket')]
+    checks: [{ kind: 'explicit-role', roles: ['chunks', 'interpretation.domain'] },
+      { kind: 'contains', containerRole: 'interpretation.domain', memberRole: 'chunks' }],
+    outputs: [output('Underline'), output('Domain bracket', { kind: 'anchor-present', role: 'interpretation.domain' })]
   }),
   recipe('plaque.structured', {
     anchors: [current('plaque.anchor', 1)],
@@ -547,20 +593,24 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('feature.dependency', {
     anchors: [current('feature.source', 1, 1), current('feature.target', 1)],
-    values: [optionalValue('feature.rows'), optionalValue('outcome', 1, 1)],
+    values: [optionalValue('feature.rows'), optionalValue('case.literal'), optionalValue('outcome', 1, 1)],
+    checks: [{ kind: 'distinct', roles: ['feature.source', 'feature.target'], allowRepeatedWithinRole: true }, { kind: 'feature-dependency' }],
     acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, 'blocked', 'failed', 'rejected', 'unlicensed', 'impossible', 'violation'],
     outputs: [output('Feature connectors')]
   }),
   recipe('dependent-case', {
     anchors: [current('probe', 1, 1), current('goal', 1, 1)],
-    values: [value('feature.rows', 1)],
-    checks: [{ kind: 'value-token', value: 'feature.rows', tokens: ['dependent', 'case'], match: 'all' }],
+    values: [value('feature.rows', 1), optionalValue('step', 1, 1)],
+    checks: [
+      { kind: 'value-token', value: 'feature.rows', tokens: ['dependent case', 'dependent case assignment'] },
+      { kind: 'dependent-case-step' }
+    ],
     outputs: [output('Dependent-case elbow')]
   }),
   recipe('accord', {
     anchors: [current('feature.source', 1, 1), current('goal', 1, 1)],
-    values: [value('feature.rows', 1), value('index', 1, 1)],
-    checks: [{ kind: 'value-token', value: 'feature.rows', tokens: ['pol', 'polarity'] }],
+    values: [value('feature.rows', 1), { ...value('index', 1, 1), nonBlank: true }],
+    checks: [{ kind: 'value-token', value: 'feature.rows', tokens: ['pol', 'polarity', 'polarity negative', 'polarity positive'] }],
     outputs: [output('Accord connector'), output('Boxed index')]
   }),
   recipe('phase.domain', {
@@ -569,12 +619,9 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     outputs: [output('Phase arc')]
   }),
   recipe('transfer.domain', {
-    anchors: [current('phase', 1, 1), current('phase.edge', 1, 1), current('transfer.domain', 1, 1)],
+    anchors: [optionalCurrent('phase', 1, 1), optionalCurrent('phase.head', 1, 1), optionalCurrent('phase.edge', 1), current('transfer.domain', 1, 1)],
     values: [],
-    checks: [
-      { kind: 'contains', containerRole: 'phase', memberRole: 'phase.edge' },
-      { kind: 'contains', containerRole: 'phase', memberRole: 'transfer.domain' }
-    ],
+    checks: [{ kind: 'explicit-role', roles: ['transfer.domain'] }, { kind: 'transfer-configuration' }],
     outputs: [output('Transfer arcs')]
   }),
   recipe('domain.annotation', {
@@ -583,7 +630,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     outputs: [output('Overlay annotation')]
   }),
   recipe('phase.edge', {
-    anchors: [current('phase.edge', 1, 1)],
+    anchors: [current('phase.edge', 1)],
     values: [],
     outputs: [output('Edge outline')]
   }),
@@ -591,7 +638,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     anchors: [current('access.source', 1, 1), current('access.target', 1, 1), current('transfer.domain', 1, 1)],
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_NEGATIVE_OUTCOMES,
-    checks: [{ kind: 'contains', containerRole: 'transfer.domain', memberRole: 'access.target' }],
+    checks: [{ kind: 'negative-claim', roles: ['access.target'] }, { kind: 'contains', containerRole: 'transfer.domain', memberRole: 'access.target' }],
     outputs: [output('Access path')]
   }),
   recipe('judgment.verdict', {
@@ -607,6 +654,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     requireAnyRoleGroups: [['licensed.hosts', 'rejected.hosts']],
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
+    checks: [{ kind: 'distinct', roles: ['licensed.hosts', 'rejected.hosts'] }],
     outputs: [output('Candidate rail')]
   }),
   recipe('judgment.blocked', {
@@ -627,7 +675,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     anchors: [current('intervention.target', 1, 1), current('intervention.landing', 1, 1), current('intervener', 1, 1)],
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_NEGATIVE_OUTCOMES,
-    checks: [{ kind: 'distinct', roles: ['intervention.target', 'intervention.landing', 'intervener'] }],
+    checks: [{ kind: 'negative-claim', roles: ['intervener'] }, { kind: 'distinct', roles: ['intervention.target', 'intervention.landing', 'intervener'] }],
     outputs: [output('Intervention path')]
   }),
   recipe('blocked-extraction', {
@@ -635,6 +683,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_NEGATIVE_OUTCOMES,
     checks: [
+      { kind: 'negative-claim', roles: ['adjunct.domain'] },
       { kind: 'contains', containerRole: 'adjunct.domain', memberRole: 'extraction.source' },
       { kind: 'native-parent-branch', role: 'adjunct.domain' }
     ],
@@ -650,8 +699,9 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     outputs: [output('Prominence branches')]
   }),
   recipe('focus.projection', {
-    anchors: [current('accent.bearer', 1, 1), current('projection.nodes', 2)],
+    anchors: [current('accent.bearer', 1, 1), current('projection.nodes', 1)],
     values: [optionalValue('feature.label', 1, 1), optionalValue('accent.label', 1, 1)],
+    checks: [{ kind: 'projection-chain' }],
     outputs: [
       output('Projection hop'),
       output('Feature annotation', { kind: 'value-present', value: 'feature.label' }),
@@ -661,32 +711,42 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('strong-npi', {
     anchors: [current('licensor', 1, 1), current('licensee', 1, 1)],
     values: [optionalValue('feature.label', 1, 1)],
+    checks: [{ kind: 'explicit-npi' }],
     outputs: [output('Nested association curves'), output('Feature notation', { kind: 'value-present', value: 'feature.label' })]
   }),
   recipe('storage.ledger', {
     anchors: [current('scope', 1, 1)],
-    values: [value('plaque.rows', 1)],
+    values: [optionalValue('storage.category', 1, 1), optionalValue('storage.qstore'), optionalValue('storage.retrieved')],
+    checks: [{ kind: 'native-plaque', style: 'cooper-storage', anchorRole: 'scope' }],
     outputs: [output('Ledger frame')]
   }),
   recipe('scope.movement', {
-    anchors: [current('scope.source', 1, 1), current('scope.landing', 1, 1), current('scope.domain', 1, 1)],
+    anchors: [current('scope.source', 1, 1), current('scope.landing', 1, 1), optionalCurrent('scope.domain', 1, 1)],
     values: [],
-    checks: [{ kind: 'shared-lineage', roles: ['scope.source', 'scope.landing'] }],
-    outputs: [output('Covert path'), output('Scope domain')],
+    checks: [
+      { kind: 'explicit-role', roles: ['scope.source', 'scope.landing'] },
+      { kind: 'distinct', roles: ['scope.source', 'scope.landing'] },
+      { kind: 'shared-root-lineage', roles: ['scope.source', 'scope.landing'] },
+      { kind: 'separate-occurrences', roles: ['scope.source', 'scope.landing'] },
+      { kind: 'prior-source-consistency', role: 'scope.source' },
+      { kind: 'contains', containerRole: 'scope.domain', memberRole: 'scope.landing' }
+    ],
+    outputs: [output('Covert path'), output('Scope domain', { kind: 'anchor-present', role: 'scope.domain' })],
     transitionRules: [{ kind: 'movement', evidence: 'covert-movement-stage-difference' }]
   }),
   recipe('operator-binding', {
-    anchors: [current('operator', 1, 1), current('variable', 1, 1), current('scope.domain', 1, 1)],
+    anchors: [current('operator', 1, 1), current('variable', 1, 1), optionalCurrent('scope.domain', 1, 1)],
     values: [optionalValue('index', 1, 1)],
-    checks: [{ kind: 'contains', containerRole: 'scope.domain', memberRole: 'variable' }],
+    checks: [{ kind: 'explicit-role', roles: ['operator', 'variable'] }, { kind: 'distinct', roles: ['operator', 'variable'] }, { kind: 'contains', containerRole: 'scope.domain', memberRole: 'variable' }],
     outputs: [
-      output('Ranked scope hulls'),
+      output('Ranked scope hulls', { kind: 'anchor-present', role: 'scope.domain' }),
       output('Variable-binding path')
     ]
   }),
   recipe('theta-grid', {
-    anchors: [current('predicate', 1, 1), current('theta.arguments', 2)],
-    values: [value('role.label', 2)],
+    anchors: [current('predicate', 1, 1), current('theta.arguments', 1)],
+    values: [value('role.label', 1)],
+    checks: [{ kind: 'paired-values', role: 'theta.arguments', value: 'role.label' }],
     outputs: [output('Role grid')]
   }),
   recipe('pf.structured', {
@@ -705,31 +765,36 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     ]
   }),
   recipe('pf.correspondence', {
-    anchors: [current('correspondence.sources', 1), current('correspondence.targets', 1)],
-    values: [value('correspondence.rows', 1)],
+    anchors: [current('terminal', 1, 1)],
+    values: [value('pf.sources'), value('pf.exponents'), value('correspondence.rows')],
+    checks: [{ kind: 'native-plaque', style: 'correspondence', anchorRole: 'terminal' }],
     outputs: [output('Correspondence map')]
   }),
   recipe('pf.fission', {
-    anchors: [prior('rewrite.input', 1, 1), current('rewrite.outputs', 2)],
-    values: [value('feature.rows', 1)],
+    anchors: [prior('rewrite.input', 1, 1), current('rewrite.outputs', 2, 2)],
+    values: [value('fission.input'), value('fission.first'), value('fission.second')],
+    checks: [{ kind: 'native-plaque', style: 'fission', anchorRole: 'rewrite.outputs' }],
     outputs: [output('Bundle shell')],
     transitionRules: [{ kind: 'fission', evidence: 'fission-stage-difference' }]
   }),
   recipe('pf.impoverishment', {
-    anchors: [current('terminal', 1, 1), current('feature.hierarchy', 2)],
-    values: [value('delink.position', 1, 1)],
+    anchors: [current('terminal', 1, 1)],
+    values: [value('feature.hierarchy', 2), value('delink.position', 1, 1)],
+    checks: [{ kind: 'native-plaque', style: 'impoverishment', anchorRole: 'terminal' }],
     outputs: [output('Delinking mark')],
     transitionRules: [{ kind: 'rewrite', evidence: 'rewrite-stage-difference' }]
   }),
   recipe('pf.local-dislocation', {
     anchors: [current('sequence', 2)],
     values: [value('order.rows', 2)],
+    checks: [{ kind: 'order-notation', notation: 'rebracketing' }],
     outputs: [output('State lanes')],
     transitionRules: [{ kind: 'rebracketing', evidence: 'rebracketing-stage-difference' }]
   }),
   recipe('pf.linearization', {
     anchors: [current('order', 1)],
-    values: [value('order.rows', 2)],
+    values: [optionalValue('order.rows', 1), optionalValue('order.prior', 1), optionalValue('order.current', 1)],
+    checks: [{ kind: 'order-notation', notation: 'precedence' }, { kind: 'native-linearization' }],
     outputs: [output('Comparison column layout')]
   }),
   recipe('organization.large-anchor-set', {
@@ -799,28 +864,157 @@ const anchorIds = (
   role: string,
   source: Tier2AnchorSource = 'current'
 ): string[] => {
-  const currentIds = [...(evidence.currentAnchors[role] ?? [])].map(String).filter(Boolean);
-  const priorIds = [...(evidence.priorAnchors?.[role] ?? [])].map(String).filter(Boolean);
+  const currentIds = [...(evidence.currentAnchors[role] ?? [])].map(String);
+  const priorIds = [...(evidence.priorAnchors?.[role] ?? [])].map(String);
   if (source === 'current') return currentIds;
   if (source === 'prior') return priorIds;
   return [...new Set([...currentIds, ...priorIds])];
 };
 
 const valueLiterals = (evidence: Tier2FacetEvidence, valueName: string): string[] =>
-  [...(evidence.values[valueName] ?? [])].map(String).filter((literal) => literal.trim().length > 0);
+  [...(evidence.values[valueName] ?? [])].map(String);
 
-const normalizedLiteralTokens = (literals: readonly string[]): Set<string> => new Set(
-  literals.flatMap((literal) => (
-    String(literal)
-      .normalize('NFKC')
-      .replace(/([\p{Ll}\p{N}])([\p{Lu}])/gu, '$1 $2')
-      .toLocaleLowerCase('en-US')
-      .match(/[\p{L}\p{N}]+/gu) ?? []
-  ))
-);
+// Feature heads have known meanings; their values stay literal. Explanatory
+// prose is context, not evidence for or against a specialized assertion.
+const featureNotationStatus = (literal: string, tokens: readonly string[]): 'affirmative' | 'contradiction' | 'context' => {
+  let notation = literal.normalize('NFKC').trim();
+  const enclosure = notation.match(/^\[([^\[\]]*)\]$|^\(([^()]*)\)$/u);
+  if (enclosure) notation = (enclosure[1] ?? enclosure[2]).trim();
+  notation = notation.replace(/^([^():]+)\s*\(([^()]*)\)$/u, '$1:$2');
+  const head = (text: string) => normalizeTier2Synonym(text).replace(/^u (pol|polarity)$/u, '$1');
+  const denial = /^(?:no|not|non|without|none|absent|false|unassigned|unasserted)\b/u;
+  const normalized = head(notation);
+  if (tokens.includes(normalized)) return 'affirmative';
+  const colon = notation.indexOf(':');
+  if (colon >= 0) {
+    const subject = head(notation.slice(0, colon));
+    const payload = notation.slice(colon + 1).trim();
+    const normalizedPayload = normalizeTier2Synonym(payload);
+    if (subject === 'case' && tokens.includes('dependent case')) {
+      if (normalizedPayload === 'dependent') return 'affirmative';
+      if (/^(?:not|non) dependent$/u.test(normalizedPayload)) return 'contradiction';
+    }
+    if (tokens.includes(subject)) {
+      if (denial.test(normalizedPayload)) return 'contradiction';
+      return payload && !/^(?:unknown|unsupported)\b/u.test(normalizedPayload) ? 'affirmative' : 'context';
+    }
+  }
+  const prefixed = normalized.match(/^(?:not|no|non|without)\s+(.+)$/u);
+  if (prefixed && tokens.includes(head(prefixed[1].split(':')[0]))) return 'contradiction';
+  const clause = normalized.match(/^(.+?)\s+(?:is\s+)?(not\b.*|absent|false|unassigned|unasserted)$/u);
+  return clause && tokens.includes(head(clause[1])) ? 'contradiction' : 'context';
+};
+
+/**
+ * Positional pairing is authored, never assumed. The contract says: a values
+ * entry that lists one literal per item of an anchor entry carries the same
+ * name and the same length. Only such an entry pairs by position. One anchor
+ * item with one literal is unambiguous and pairs regardless of name. Any
+ * other arrangement is not a pairing; the literals stay visible as residue.
+ * Returns `[]` when no literals are authored, `undefined` when literals exist
+ * but cannot be paired.
+ */
+export type PairedLiterals =
+  | { status: 'paired' | 'none'; literals: string[] }
+  /** A same-name values entry exists but its length differs from the anchor entry. */
+  | { status: 'unequal'; literals: string[] }
+  /** Literals exist under another name and more than one item is involved. */
+  | { status: 'unpaired'; literals: string[] };
+
+export const pairedLiteralsDetail = (
+  evidence: Tier2FacetEvidence,
+  role: string,
+  valueConcept: string
+): PairedLiterals => {
+  const ids = anchorIds(evidence, role);
+  const anchorEntries = (evidence.authoredCurrentAnchors ?? []).filter(entry =>
+    entry.concepts.includes(role) && entry.items.length > 0);
+  const sameName = anchorEntries.map(entry => sameNameValueEntry(evidence, entry))
+    .map(entry => entry && sameNameEntryServes(entry, role, valueConcept) ? entry : undefined);
+  if (anchorEntries.length > 0 && sameName.some(Boolean)) {
+    if (sameName.every(entry => entry && entry.items.length === entry.anchorLength)) {
+      const literals = sameName.flatMap(entry => [...entry!.items]);
+      if (literals.length === ids.length) return { status: 'paired', literals };
+    }
+    return { status: 'unequal', literals: sameName.flatMap(entry => entry ? [...entry.items] : []) };
+  }
+  const literals = valueLiterals(evidence, valueConcept);
+  if (literals.length === 0) return { status: 'none', literals };
+  // With no anchors there is nothing to pair; the anchor requirement reports that.
+  if (ids.length === 0 || (ids.length === 1 && literals.length === 1)) return { status: 'paired', literals };
+  return { status: 'unpaired', literals };
+};
+
+export const pairedLiterals = (
+  evidence: Tier2FacetEvidence,
+  role: string,
+  valueConcept: string
+): string[] | undefined => {
+  const detail = pairedLiteralsDetail(evidence, role, valueConcept);
+  return detail.status === 'paired' || detail.status === 'none' ? detail.literals : undefined;
+};
+
+const sameNameValueEntry = (
+  evidence: Tier2FacetEvidence,
+  anchorEntry: Tier2AuthoredEvidenceEntry
+): (Tier2AuthoredEvidenceEntry & { anchorLength: number }) | undefined => {
+  const entry = (evidence.authoredValues ?? []).find(candidate =>
+    normalizeTier2Synonym(candidate.key) === normalizeTier2Synonym(anchorEntry.key));
+  return entry ? { ...entry, anchorLength: anchorEntry.items.length } : undefined;
+};
+
+/** Every per-item literal concept a recipe pairs with this role, in recipe order. */
+const pairedConceptsForRole = (role: string): string[] => {
+  const concepts = TIER2_FACET_RECIPES.flatMap(recipe => recipe.checks.flatMap(check =>
+    check.kind === 'paired-values' && check.role === role ? [check.value]
+      : check.kind === 'feature-dependency' && role === 'feature.target' ? ['case.literal'] : []));
+  return Array.from(new Set(concepts));
+};
+
+/**
+ * One same-name entry carries one kind of literal. If its name also spells a
+ * paired concept, it serves that concept; an opaque name serves the first
+ * per-item concept a recipe pairs with the role.
+ */
+const sameNameEntryServes = (entry: Tier2AuthoredEvidenceEntry, role: string, valueConcept: string): boolean => {
+  const paired = pairedConceptsForRole(role);
+  const named = entry.concepts.filter(concept => paired.includes(concept));
+  return named.length > 0 ? named.includes(valueConcept) : paired[0] === valueConcept;
+};
+
+const unpairedReason = (role: string, valueConcept: string, status: PairedLiterals['status']): string =>
+  status === 'unequal'
+    ? `${valueConcept} literals for ${role} use the anchor entry's name but not its length`
+    : `${valueConcept} literals are not paired with ${role}: pairing needs a values entry with the same name and length as the anchor entry`;
+
+export const literalThetaRoles = (evidence: Tier2FacetEvidence): Array<{ nodeId: string; label: string }> | undefined => {
+  const arguments_ = anchorIds(evidence, 'theta.arguments');
+  const labels = pairedLiterals(evidence, 'theta.arguments', 'role.label');
+  if (!arguments_.length || !labels || arguments_.length !== labels.length || labels.some(label => !label.trim())) return undefined;
+  return arguments_.map((nodeId, index) => ({ nodeId, label: labels[index] }));
+};
+
+// Native plates require named groups. Only bound, consumed concepts get these
+// internal field names; raw row labels remain available for literal display.
+export const tier2NativePlaqueRows = (evidence: Tier2FacetEvidence): Array<{ label: string; value: string }> =>
+  Object.entries({
+    'fission.input': 'inputFeatures', 'fission.first': 'outputOneFeatures', 'fission.second': 'outputTwoFeatures',
+    'feature.hierarchy': 'featureHierarchy', 'delink.position': 'delinkAfter',
+    'pf.sources': 'sources', 'pf.exponents': 'exponents', 'correspondence.rows': 'correspondence',
+    'storage.category': 'category', 'storage.qstore': 'qstore', 'storage.retrieved': 'retrieved'
+  }).flatMap(([concept, label]) => valueLiterals(evidence, concept).map(value => ({ label, value })));
 
 const findNodes = (index: TreeIndex, ids: readonly string[]): SyntaxNode[] =>
   ids.flatMap((id) => index.nodes.get(id) ?? []);
+
+const sharedRootLineage = (index: TreeIndex, ids: readonly string[]): string | undefined => {
+  const lineages = ids.map(id => {
+    const matches = index.nodes.get(id) ?? [];
+    return matches.length === 1 ? matches[0].lineageId : undefined;
+  });
+  return lineages.length >= 2 && lineages.every(lineage => Boolean(lineage) && lineage === lineages[0])
+    ? lineages[0] : undefined;
+};
 
 const descendantIds = (node: SyntaxNode): Set<string> => {
   const ids = new Set<string>();
@@ -866,13 +1060,32 @@ const sharesLineage = (index: TreeIndex, roleIdGroups: readonly string[][]): boo
 const hasAuthoredSilent = (index: TreeIndex, ids: readonly string[]): boolean =>
   findNodes(index, ids).some((node) => subtreeNodes(node).some((member) => member.silent === true));
 
-const TRACE_SURFACE = /^(?:t(?:[\d₀-₉ᵢⱼₖₗₘₙₒₚ\u2080-\u2089_]+)?|trace|gap)$/iu;
+const TRACE_SURFACE = /^(?:t(?:_[\p{L}\p{N}]+|[\d₀-₉ᵢⱼₖₗₘₙₒₚ]+)?|trace|gap)$/iu;
 
 const isAuthoredTraceOrGap = (index: TreeIndex, ids: readonly string[]): boolean =>
-  ids.every((id) => (index.nodes.get(id) ?? []).some((node) => subtreeNodes(node).some((member) => {
-    const surface = String(member.word || member.label || '').trim();
-    return Boolean(surface) && TRACE_SURFACE.test(surface);
-  })));
+  ids.every((id) => {
+    const matches = index.nodes.get(id) ?? [];
+    if (matches.length !== 1) return false;
+    const node = matches[0];
+    if ((node.children ?? []).length > 0) return false;
+    return node.silent === true || TRACE_SURFACE.test(String(node.word || node.label || '').trim());
+  });
+
+const projectionChain = (evidence: Tier2FacetEvidence): string[] => {
+  const accent = anchorIds(evidence, 'accent.bearer')[0];
+  const projections = anchorIds(evidence, 'projection.nodes');
+  return projections[0] === accent ? projections : [accent, ...projections];
+};
+
+const focusParent = (evidence: Tier2FacetEvidence, index: TreeIndex): string | undefined => {
+  const left = anchorIds(evidence, 'focus')[0];
+  const right = anchorIds(evidence, 'background')[0];
+  if (!left || !right || left === right) return undefined;
+  const parents = [...(index.parentIds.get(left) ?? [])].filter(parent =>
+    index.parentIds.get(right)?.has(parent)
+    && nodeContainsAny(index, anchorIds(evidence, 'domain'), [parent]));
+  return parents.length === 1 ? parents[0] : undefined;
+};
 
 const roleRequirementIds = (
   evidence: Tier2FacetEvidence,
@@ -886,7 +1099,10 @@ const requirementSatisfied = (
   priorIndex: TreeIndex
 ): boolean => {
   const ids = roleRequirementIds(evidence, requirement);
-  if (requirement.optional && ids.length === 0) return true;
+  if (requirement.optional && ids.length === 0) {
+    const entries = requirement.source === 'prior' ? evidence.authoredPriorAnchors : evidence.authoredCurrentAnchors;
+    return !entries?.some(entry => entry.concepts.includes(requirement.role));
+  }
   if (ids.length < requirement.min) return false;
   if (requirement.max !== undefined && ids.length > requirement.max) return false;
   return ids.every((id) => {
@@ -909,14 +1125,27 @@ const evaluateStructuralCheck = (
   evidence: Tier2FacetEvidence,
   currentIndex: TreeIndex,
   outcomeConcept: OutcomeConcept | null
-): boolean => {
+): boolean | string => {
   const ids = (role: string) => anchorIds(evidence, role, 'current');
   switch (check.kind) {
+    case 'negative-claim':
+      return negativeClaimFailure(evidence.authoredValues
+        ? authoredOutcomeLiterals(Object.fromEntries(evidence.authoredValues.map(entry => [entry.key, [...entry.items]])))
+        : valueLiterals(evidence, 'outcome'),
+        (evidence.authoredCurrentAnchors ?? []).filter(entry =>
+          check.roles.some(role => entry.concepts.includes(role))).map(entry => entry.key)) ?? true;
+    case 'explicit-role':
+      return check.roles.some(role => ids(role).length > 0 && (evidence.authoredCurrentAnchors
+        ? evidence.authoredCurrentAnchors.some(entry => entry.concepts.includes(role) && isExplicitTier2Role(role, entry.key))
+        : true));
     case 'distinct': {
-      const all = check.roles.flatMap(ids);
+      const all = check.roles.flatMap(role => check.allowRepeatedWithinRole ? [...new Set(ids(role))] : ids(role));
       return all.length === new Set(all).size;
     }
     case 'contains':
+      if (ids(check.containerRole).length === 0 && recipeEntry.anchors.some(r => r.role === check.containerRole && r.optional)) return true;
+      if (recipeEntry.id === 'argument-sharing') return ids(check.containerRole).every(container =>
+        nodeContainsAny(currentIndex, [container], ids(check.memberRole)));
       return nodeContainsAny(currentIndex, ids(check.containerRole), ids(check.memberRole));
     case 'contains-authored-silent':
       return hasAuthoredSilent(currentIndex, ids(check.role));
@@ -924,32 +1153,119 @@ const evaluateStructuralCheck = (
       return isAuthoredTraceOrGap(currentIndex, ids(check.role));
     case 'shared-lineage':
       return sharesLineage(currentIndex, check.roles.map(ids));
+    case 'shared-root-lineage':
+      return Boolean(sharedRootLineage(currentIndex, check.roles.flatMap(ids)));
+    case 'separate-occurrences': {
+      const [source, target] = check.roles.map(ids);
+      return [...source, ...target].every(id => currentIndex.nodes.get(id)?.length === 1)
+        && !nodeContainsAny(currentIndex, source, target) && !nodeContainsAny(currentIndex, target, source);
+    }
+    case 'prior-source-consistency':
+      return anchorIds(evidence, check.role, 'prior').every(id => ids(check.role).includes(id));
     case 'paired-cardinality':
       return ids(check.roles[0]).length === ids(check.roles[1]).length;
+    case 'paired-values': {
+      const detail = pairedLiteralsDetail(evidence, check.role, check.value);
+      if (detail.status === 'unequal') return unpairedReason(check.role, check.value, detail.status);
+      // An optional list under another name is context, left in the residue.
+      if (detail.status === 'unpaired') return check.optional || unpairedReason(check.role, check.value, detail.status);
+      if (detail.literals.length === 0) return Boolean(check.optional);
+      return ids(check.role).length === detail.literals.length
+        && (check.optional || detail.literals.every(literal => literal.trim().length > 0));
+    }
     case 'multiple-parents':
-      return ids(check.role).every((id) => (currentIndex.parentIds.get(id)?.size ?? 0) >= check.minParents);
+      return new Set(ids('parents')).size === ids('parents').length
+        && ids('parents').length >= check.minParents
+        && ids(check.role).every(id => ids('parents').every(parent => currentIndex.parentIds.get(id)?.has(parent)));
     case 'shared-native-parent': {
       const leftParents = new Set(ids(check.roles[0]).flatMap((id) => [...(currentIndex.parentIds.get(id) ?? [])]));
       return ids(check.roles[1]).some((id) =>
         [...(currentIndex.parentIds.get(id) ?? [])].some((parentId) => leftParents.has(parentId)));
     }
     case 'siblings-within-domain': {
-      const leftParents = new Set(ids(check.leftRole).flatMap((id) => [...(currentIndex.parentIds.get(id) ?? [])]));
-      const rightParents = new Set(ids(check.rightRole).flatMap((id) => [...(currentIndex.parentIds.get(id) ?? [])]));
-      const commonParents = [...leftParents].filter((parentId) => rightParents.has(parentId));
-      return commonParents.length > 0 && nodeContainsAny(currentIndex, ids(check.domainRole), commonParents);
+      return Boolean(focusParent(evidence, currentIndex));
     }
     case 'native-parent-branch':
       return ids(check.role).every((id) => (currentIndex.parentIds.get(id)?.size ?? 0) > 0);
     case 'value-token': {
-      const authoredTokenSets = valueLiterals(evidence, check.value)
-        .map((literal) => normalizedLiteralTokens([literal]));
-      return authoredTokenSets.some((authoredTokens) => (
-        check.match === 'all'
-          ? check.tokens.every((token) => authoredTokens.has(token))
-          : check.tokens.some((token) => authoredTokens.has(token))
-      ));
+      const statuses = valueLiterals(evidence, check.value).map(literal => featureNotationStatus(literal, check.tokens));
+      return statuses.includes('affirmative') && !statuses.includes('contradiction');
     }
+    case 'projection-chain': {
+      const chain = projectionChain(evidence);
+      const nodes = new Map([...currentIndex.nodes].flatMap(([id, matches]) => matches.length === 1 ? [[id, matches[0]] as const] : []));
+      return isNativeProjectionPath(nodes, chain[0], chain.slice(1));
+    }
+    case 'transfer-configuration': {
+      const domains = ids('transfer.domain');
+      const edges = ids('phase.edge');
+      const inside = edges.filter(edge => nodeContainsAny(currentIndex, domains, [edge]));
+      if (inside.length) return `accessible edges ${inside.join(',')} are inside transferred domain ${domains.join(',')}`;
+      if (ids('phase').length) return nodeContainsAny(currentIndex, ids('phase'), [...domains, ...edges, ...ids('phase.head')])
+        || `phase ${ids('phase').join(',')} does not contain all authored domain, edge and head anchors`;
+      const head = ids('phase.head')[0];
+      if (!head) return true;
+      const category = (id: string) => String(currentIndex.nodes.get(id)?.[0]?.label ?? '').replace(/[\u2032'\u2019]/gu, '').replace(/(.)P$/u, '$1');
+      // The authored phase head can be inside a complex head. Follow only
+      // its unambiguous same-category spine, never an arbitrary ancestor.
+      const projections = new Set<string>();
+      const visited = new Set<string>([head]);
+      let child = head;
+      let foundComplement = false;
+      while (true) {
+        const parents = [...(currentIndex.parentIds.get(child) ?? [])];
+        if (parents.length !== 1) break;
+        const parent = parents[0];
+        if (visited.has(parent) || currentIndex.nodes.get(parent)?.length !== 1
+          || !category(head) || category(parent) !== category(head)) break;
+        const siblings = currentIndex.nodes.get(parent)![0].children ?? [];
+        if (foundComplement && siblings.some(sibling => sibling.id !== child
+          && String(sibling.label) === category(head))) break;
+        visited.add(parent);
+        if (domains.every(domain => domain !== child && currentIndex.parentIds.get(domain)?.has(parent))) foundComplement = true;
+        if (foundComplement) projections.add(parent);
+        child = parent;
+      }
+      if (!foundComplement) return `head ${head} has no unique same-category projection with domain ${domains.join(',')} as a separate child`;
+      const outside = edges.filter(edge => ![...(currentIndex.parentIds.get(edge) ?? [])].some(parent => projections.has(parent)));
+      return outside.length === 0 || `edges ${outside.join(',')} are not attached to the identified projections ${[...projections].join(',')}`;
+    }
+    case 'feature-dependency': {
+      const caseDetail = pairedLiteralsDetail(evidence, 'feature.target', 'case.literal');
+      if (caseDetail.status === 'unequal' || caseDetail.status === 'unpaired') return unpairedReason('feature.target', 'case.literal', caseDetail.status);
+      const caseValues = caseDetail.literals;
+      if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
+      if (valueLiterals(evidence, 'feature.rows').length) return true;
+      const hasRole = (concept: string, names: string[]) => (evidence.authoredCurrentAnchors ?? []).some(entry =>
+        entry.concepts.includes(concept) && names.includes(normalizeTier2Synonym(entry.key)));
+      return hasRole('feature.source', ['probe', 'agree probe', 'feature source', 'collector'])
+        && hasRole('feature.target', ['goal', 'agree goal', 'feature target']);
+    }
+    case 'native-linearization':
+      return Boolean(prepareNativeLinearizationContent(evidence));
+    case 'dependent-case-step': {
+      const entries = evidence.authoredValues?.filter(entry => normalizeTier2Synonym(entry.key) === 'step');
+      const literals = entries?.length ? entries.flatMap(entry => entry.items) : evidence.values.step;
+      return literals === undefined || prepareNativeDependentCaseStep([...literals]) !== undefined;
+    }
+    case 'explicit-npi':
+      return valueLiterals(evidence, 'feature.label').some(literal => normalizeTier2Synonym(literal) === 'strong npi');
+    case 'explicit-ellipsis':
+      return !evidence.authoredCurrentAnchors || evidence.authoredCurrentAnchors.some(entry =>
+        entry.concepts.includes('ellipsis.site') && ['ellipsis.site', 'ellipsis site', 'elided site', 'ellipsis domain', 'deleted domain'].includes(normalizeTier2Synonym(entry.key)));
+    case 'movement-carrier':
+      return ['movement.source', 'movement.landing'].some(role =>
+        nodeContainsAny(currentIndex, ids('movement.carrier'), ids(role)));
+    case 'order-notation': {
+      const rows = check.notation === 'precedence'
+        ? ['order.rows', 'order.prior', 'order.current'].flatMap(role => valueLiterals(evidence, role))
+        : valueLiterals(evidence, 'order.rows');
+      return check.notation === 'precedence'
+        ? rows.every(row => /^[^<>\[\]()]+(?:\s*<\s*[^<>\[\]()]+)+$/u.test(row))
+        : rows.some(row => /\[[^\[\]]+\]/u.test(row)) && rows.every(row => !/[<>]/u.test(row));
+    }
+    case 'native-plaque':
+      return Boolean(prepareNativePlaqueContent(check.style, tier2NativePlaqueRows(evidence), ids(check.anchorRole)));
     case 'accepted-outcome':
       return outcomeConcept !== null && recipeEntry.acceptedOutcomeConcepts.includes(outcomeConcept);
     case 'active-lens':
@@ -1043,6 +1359,7 @@ const overtMovementTransition = (
   currentIndex: TreeIndex,
   priorIndex: TreeIndex
 ): boolean => {
+  if (evidence.movement) return evidence.movement.transition;
   if (!evidence.priorForest) return false;
   const sourceIds = anchorIds(evidence, 'movement.source');
   const landingIds = anchorIds(evidence, 'movement.landing');
@@ -1056,18 +1373,14 @@ const covertMovementTransition = (
   evidence: Tier2FacetEvidence,
   currentIndex: TreeIndex,
   priorIndex: TreeIndex
-): boolean => Boolean(
-  evidence.priorForest
-  && sharesLineage(currentIndex, [anchorIds(evidence, 'scope.source'), anchorIds(evidence, 'scope.landing')])
-  && sharedLineageOccurrenceIncreased(
-    currentIndex,
-    priorIndex,
-    anchorIds(evidence, 'scope.source'),
-    anchorIds(evidence, 'scope.landing')
-  )
-  && !landingAlreadyOccupiedSamePosition(evidence, currentIndex, priorIndex, 'scope.landing')
-  && findNodes(currentIndex, anchorIds(evidence, 'scope.source')).some((node) => previousMatch(node, priorIndex) !== null)
-);
+): boolean => {
+  const sourceIds = anchorIds(evidence, 'scope.source');
+  const lineage = sharedRootLineage(currentIndex, [...sourceIds, ...anchorIds(evidence, 'scope.landing')]);
+  return Boolean(evidence.priorForest && lineage
+    && lineageOccurrenceCount(currentIndex, lineage) > lineageOccurrenceCount(priorIndex, lineage)
+    && !landingAlreadyOccupiedSamePosition(evidence, currentIndex, priorIndex, 'scope.landing')
+    && findNodes(currentIndex, sourceIds).some(node => previousMatch(node, priorIndex)?.lineageId === lineage));
+};
 
 const pronunciationTransition = (
   evidence: Tier2FacetEvidence,
@@ -1222,6 +1535,8 @@ const outputGatePasses = (
       return outcomeConcept !== null && recipeEntry.acceptedOutcomeConcepts.includes(outcomeConcept);
     case 'value-present':
       return valueLiterals(evidence, gate.value).length > 0;
+    case 'anchor-present':
+      return anchorIds(evidence, gate.role).length > 0;
     case 'active-lens':
       return evidence.activeLens === true;
     case 'movement-geometry': {
@@ -1239,6 +1554,12 @@ const outputGatePasses = (
   }
 };
 
+const consumedReference = (field: 'anchors' | 'priorAnchors' | 'values', entry: Tier2AuthoredEvidenceEntry, concept: string, itemIndices?: number[]) => {
+  const indices = itemIndices ?? entry.conceptItemIndices?.[concept];
+  return { field, key: entry.key,
+    ...(indices && indices.length !== entry.items.length ? { itemIndices: [...indices] } : {}) };
+};
+
 export const evaluateTier2FacetRecipe = (
   recipeEntry: Tier2FacetRecipe,
   evidence: Tier2FacetEvidence
@@ -1246,10 +1567,39 @@ export const evaluateTier2FacetRecipe = (
   const currentIndex = buildTreeIndex(evidence.currentForest);
   const priorIndex = buildTreeIndex(evidence.priorForest);
   const failures: string[] = [];
+  const ambiguousFields = new Set<string>();
+
+  // Diagnose the original fields, including optional and prior evidence. An
+  // ambiguous lookup must not masquerade as an absent optional field.
+  for (const [field, entries, concepts] of [
+    ['anchors', evidence.authoredCurrentAnchors, recipeEntry.anchors.filter(r => r.source !== 'prior').map(r => r.role)],
+    ['priorAnchors', evidence.authoredPriorAnchors, recipeEntry.anchors.map(r => r.role)],
+    ['values', evidence.authoredValues, recipeEntry.values.map(r => r.value)]
+  ] as const) {
+    for (const concept of new Set(concepts)) {
+      if ((field === 'values' ? INDEPENDENT_TIER2_VALUE_ROLES : INDEPENDENT_TIER2_ANCHOR_ROLES).has(concept)) continue;
+      const groups = entries?.filter(entry => entry.concepts.includes(concept)) ?? [];
+      const distinct = new Set(groups.map(entry => JSON.stringify(
+        entry.conceptItemIndices?.[concept]?.map(index => entry.items[index]) ?? entry.items
+      )));
+      if (distinct.size > 1) {
+        ambiguousFields.add(`${field}:${concept}`);
+        failures.push(`ambiguous-group:${field}:${concept}:${groups.map(entry => entry.key).join('|')}`);
+      }
+    }
+  }
 
   recipeEntry.anchors.forEach((requirement) => {
+    if ((requirement.source !== 'prior' && ambiguousFields.has(`anchors:${requirement.role}`))
+      || (requirement.source !== 'current' && ambiguousFields.has(`priorAnchors:${requirement.role}`))) return;
     if (!requirementSatisfied(evidence, requirement, currentIndex, priorIndex)) {
-      failures.push(`anchor:${requirement.source}:${requirement.role}`);
+      const ids = roleRequirementIds(evidence, requirement);
+      const index = requirement.source === 'prior' ? priorIndex : currentIndex;
+      const missing = ids.filter(id => !index.nodes.has(id)
+        && !(requirement.source === 'either' && priorIndex.nodes.has(id)));
+      failures.push(`anchor:${requirement.source}:${requirement.role}:${missing.length
+        ? `unresolved:${missing.join('|')}` : ids.length === 0
+          ? 'missing-or-empty' : `cardinality:${ids.length},expected:${requirement.min}..${requirement.max ?? 'many'}`}`);
     }
   });
 
@@ -1263,17 +1613,32 @@ export const evaluateTier2FacetRecipe = (
   });
 
   recipeEntry.values.forEach((requirement) => {
-    const literals = valueLiterals(evidence, requirement.value);
-    if (requirement.optional && literals.length === 0) return;
-    if (literals.length < requirement.min || (requirement.max !== undefined && literals.length > requirement.max)) {
+    if (ambiguousFields.has(`values:${requirement.value}`)) return;
+    const pairing = recipeEntry.checks.find((check): check is Extract<Tier2StructuralCheck, { kind: 'paired-values' }> =>
+      check.kind === 'paired-values' && check.value === requirement.value);
+    const literals = (pairing && pairedLiterals(evidence, pairing.role, requirement.value)) || valueLiterals(evidence, requirement.value);
+    if (requirement.optional && literals.length === 0
+      && !evidence.authoredValues?.some(entry => entry.concepts.includes(requirement.value))) return;
+    if (literals.length < requirement.min || (requirement.max !== undefined && literals.length > requirement.max)
+      || (requirement.nonBlank && literals.some(literal => !literal.trim()))) {
       failures.push(`value:${requirement.value}`);
     }
   });
 
   const outcomeConcept = outcomeFor(recipeEntry, evidence);
+  if (recipeEntry.values.some(requirement => requirement.value === 'outcome')
+    && valueLiterals(evidence, 'outcome').length > 0 && !outcomeConcept) failures.push('value:outcome-not-accepted');
   recipeEntry.checks.forEach((check) => {
-    if (!evaluateStructuralCheck(check, recipeEntry, evidence, currentIndex, outcomeConcept)) {
-      failures.push(`check:${check.kind}`);
+    if (ambiguousFields.size) return;
+    const result = evaluateStructuralCheck(check, recipeEntry, evidence, currentIndex, outcomeConcept);
+    if (result !== true) {
+      failures.push(typeof result === 'string' ? `check:${check.kind}:${result}`
+        : check.kind === 'prior-source-consistency'
+        ? `priorAnchors:${check.role}:${anchorIds(evidence, check.role, 'prior').join('|')}:conflicts-with-current-source:${anchorIds(evidence, check.role).join('|')}`
+        : check.kind === 'explicit-role'
+        ? `meaning:${check.roles.join('|')}:${check.roles.some(role => anchorIds(evidence, role).length)
+          ? 'only-contextual-role-aliases' : 'not-explicitly-authored'}`
+        : `check:${check.kind}`);
     }
   });
 
@@ -1298,14 +1663,37 @@ export const evaluateTier2FacetRecipe = (
               .filter(({ concepts, items }) => (
                 concepts.includes(requirement.role) && items.length > 0
               ))
-              .map(({ key }) => ({ field, key })));
+              .map(entry => consumedReference(field, entry, requirement.role)));
+        }),
+        ...recipeEntry.checks.flatMap((check) => {
+          if (check.kind !== 'paired-values' && check.kind !== 'feature-dependency') return [];
+          const [role, valueConcept] = check.kind === 'paired-values'
+            ? [check.role, check.value] : ['feature.target', 'case.literal'];
+          return (evidence.authoredCurrentAnchors ?? [])
+            .filter(entry => entry.concepts.includes(role) && entry.items.length > 0)
+            .flatMap(entry => {
+              const paired = sameNameValueEntry(evidence, entry);
+              if (!paired || paired.items.length !== paired.anchorLength) return [];
+              const optional = check.kind === 'paired-values' && Boolean(check.optional);
+              const indices = paired.items.flatMap((item, index) => (!optional || item.trim().length > 0) ? [index] : []);
+              return indices.length ? [consumedReference('values', paired, valueConcept, indices)] : [];
+            });
         }),
         ...recipeEntry.values.flatMap((requirement) => (
           (evidence.authoredValues ?? [])
             .filter(({ concepts, items }) => (
               concepts.includes(requirement.value) && items.length > 0
             ))
-            .map(({ key }) => ({ field: 'values' as const, key }))
+            .flatMap(entry => {
+              const tokenCheck = recipeEntry.checks.find((check): check is Extract<Tier2StructuralCheck, { kind: 'value-token' }> =>
+                check.kind === 'value-token' && check.value === requirement.value);
+              const optionalPair = recipeEntry.checks.some(check => check.kind === 'paired-values'
+                && check.optional && check.value === requirement.value);
+              const indices = (entry.conceptItemIndices?.[requirement.value] ?? entry.items.map((_, index) => index))
+                .filter(index => (!tokenCheck || featureNotationStatus(entry.items[index], tokenCheck.tokens) === 'affirmative')
+                  && (!optionalPair || entry.items[index].trim().length > 0));
+              return indices.length ? [consumedReference('values', entry, requirement.value, indices)] : [];
+            })
         ))
       ].filter((entry, index, entries) => entries.findIndex((candidate) => (
         candidate.field === entry.field && candidate.key === entry.key
@@ -1325,6 +1713,8 @@ export const evaluateTier2FacetRecipe = (
           .filter((rule) => transitionEarned(rule, recipeEntry, evidence, currentIndex, priorIndex))
           .map((rule) => rule.kind)
       : [],
+    ...(complete && recipeEntry.id === 'focus.prominence' ? { structuralWitness: { branchParentNodeId: focusParent(evidence, currentIndex) } } : {}),
+    ...(complete && recipeEntry.id === 'focus.projection' ? { structuralWitness: { projectionNodeIds: projectionChain(evidence) } } : {}),
     consumedEvidence
   };
 };
@@ -1375,11 +1765,7 @@ const appendIdentityItems = (
   key: string,
   items: readonly string[]
 ) => {
-  const existing = target[key] ?? [];
-  items.forEach((item) => {
-    if (!existing.includes(item)) existing.push(item);
-  });
-  target[key] = existing;
+  target[key] = [...(target[key] ?? []), ...items];
 };
 
 const identityRoleBlock = (
@@ -1429,7 +1815,7 @@ const identityValueBlock = (
   evidence.authoredValues.forEach(({ key, concepts, items }) => {
     const matchingValues = concepts.filter((concept) => recipeValues.has(concept));
     const identityValues = matchingValues.length > 0
-      ? matchingValues
+      ? matchingValues.map(value => INDEPENDENT_TIER2_VALUE_ROLES.has(value) ? `literal:${key}` : value)
       : (recipeEntry.kind === 'claim' ? [`literal:${key}`] : []);
     identityValues.forEach((value) => appendIdentityItems(normalized, value, items));
   });

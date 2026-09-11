@@ -1,4 +1,4 @@
-# Babel Repository Contract
+# Sylvan Architect Babel
 
 ## What Babel is
 
@@ -27,6 +27,23 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - `npm run build` — bundle the frontend; this does not typecheck and is not a completion gate.
 - `npm run verify:all` — run typecheck plus the complete offline verification path. Use this as the default completion gate.
 
+## Commits and PRs
+
+- Use conventional commit titles in plain language, such as `fix(renderer): keep verdict labels attached during zoom`.
+- Commit bodies briefly state the problem, then the fix. Record the model and harness used when known; never guess.
+- Keep each PR to one independently shippable concern. Its tests and documentation belong with it.
+- UI changes need before-and-after images. Motion, Replay, or camera changes need a short recording.
+- Keep PR-only evidence outside the worktree and upload it to the PR; never commit it.
+
+## Plans and documentation
+
+- `ROADMAP.md` is Babel's current single active roadmap.
+- Do not commit temporary plans, agent scratch, review transcripts, raw working output, or implementation diaries.
+- Keep temporary working material outside the worktree, normally in `/tmp`.
+- Put durable architecture, product constraints, and decisions in the appropriate canonical documentation.
+- Update existing canonical documentation instead of creating duplicate plans or dated completion reports.
+- `docs/research/` is for intentional Babel research, not agent working notes.
+
 ## Canonical ownership
 
 - `server/babelParser/systemInstruction.js` and `server/babelParser/prompts.js` define the model-facing prompt contract.
@@ -36,6 +53,12 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - `components/TreeVisualizer.tsx` owns React/D3 rendering; keep pure replay construction out of this file.
 - `types.ts` mirrors the browser-visible parse contract.
 - `fixtures/` and `tests/` are the committed provider-free verification surface.
+
+## Comments
+
+- Comments explain how an abstraction is used, its contract, or a non-obvious invariant.
+- Keep comments with the code they describe and update them when that code changes.
+- Do not narrate ordinary lines or annotate self-explanatory behavior.
 
 ## Derivation contract
 
@@ -66,6 +89,15 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 
 ## Verification and safety
 
+- During implementation, run the smallest focused test proving the changed behavior.
+- Behavior changes require focused regression tests.
+- Run `npm run verify:all` once before completing broad, shared, contract, fixture, or release work. Documentation-only changes do not require it.
+- Wait for a real completion signal: a receipt or event, successful process exit, listening server, or rendered UI state.
+- Do not treat elapsed time as proof. Bounded polling may observe a real condition when no event API exists.
+- For screenshots only, a brief settle after confirmed readiness is acceptable.
+- Subagents must not start their own development servers or browsers.
+- Ask before browser automation, computer control, or inspecting another application or session.
+- The primary agent performs at most one integrated visual pass after relevant UI work is assembled.
 - `test/` is gitignored; add executable tests under `tests/` as `*.test.mjs`.
 - A diff in `fixtures/normalized/` or `fixtures/replay-snapshots/` is a behavior change. Review it; never accept blind regeneration.
 - `.artifacts/` and `docs/research/data/` contain research harnesses, not default product gates. Do not add their provider or browser dependencies to the application unless a current task requires them.

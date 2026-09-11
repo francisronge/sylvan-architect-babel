@@ -1,16 +1,13 @@
 const PROVENANCE_PROMPT_TOKEN_KEYS = [
-  'primaryPromptTokenCount',
-  'payloadTranscriberPromptTokenCount'
+  'primaryPromptTokenCount'
 ];
 
 const PROVENANCE_OUTPUT_TOKEN_KEYS = [
-  'primaryOutputTokenCount',
-  'payloadTranscriberOutputTokenCount'
+  'primaryOutputTokenCount'
 ];
 
 const PROVENANCE_TOTAL_TOKEN_KEYS = [
-  'primaryTotalTokenCount',
-  'payloadTranscriberTotalTokenCount'
+  'primaryTotalTokenCount'
 ];
 
 const sumProvenanceTokenKeys = (provenance, keys) => {

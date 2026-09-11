@@ -44,7 +44,7 @@ export interface DerivationStageRelation {
 
 export interface GenerationPromptContract {
   framework: 'xbar' | 'minimalism';
-  promptRoute: 'gemini' | 'gpt' | 'claude';
+  promptRoute: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'grok';
   systemInstructionSha256: string;
   promptSha256: string;
   promptTemplateSha256: string;
@@ -56,12 +56,30 @@ export interface SentGenerationConfig {
 
 export interface GenerationRecord {
   schemaVersion: 2;
-  provider: 'gemini' | 'gpt' | 'claude' | 'local';
+  provider: 'gemini' | 'gpt' | 'claude' | 'local' | 'kimi' | 'grok';
+  sentRequestSha256?: string;
+  modelSelection?: {
+    catalogId: string;
+    label: string;
+    provider: string;
+    providerRoute: string;
+    providerModel: string;
+    qualificationStatus: string;
+    nativeSettings: Record<string, string>;
+    requestPolicy: Record<string, unknown>;
+    constraints?: Record<string, unknown>;
+  };
+  returnedModel?: string;
+  rawProviderResponse?: RawOutputArtifact;
   promptContract: GenerationPromptContract;
   sentGenerationConfig: SentGenerationConfig;
   timing: {
     requestStartedAt: string;
     durationMs: number;
+  };
+  processing?: {
+    json: { durationMs: number; repairDiagnostics: PayloadRepairDiagnostic[]; diagnostic?: JsonDiagnostic };
+    normalization?: { durationMs: number; failure?: ParseFailure };
   };
   outcome?: {
     sentMaxOutputTokens: number;
@@ -80,6 +98,9 @@ export interface GenerationRecord {
       finishReason?: string;
       finishStatus?: string;
       statusCode?: number;
+      retryReason?: string;
+      retryStopReason?: string;
+      responseId?: string;
       message?: string;
     }>;
   };
@@ -99,6 +120,10 @@ export interface ParseFailure {
   stageIndex: number | null;
   fieldPath: string;
   offendingValue: unknown;
+  analysisIndex?: number;
+  processingStep?: string;
+  expectedForm?: string;
+  message?: string;
 }
 
 export interface RawOutputArtifact {
@@ -111,8 +136,31 @@ export interface RawOutputArtifact {
   data: string;
 }
 
+export type PayloadRepairKind =
+  | 'insert_closers_before_mismatched_closer'
+  | 'remove_unmatched_closer'
+  | 'append_closers_at_end_of_output';
+
+export interface JsonDiagnostic {
+  kind: 'json-syntax' | 'json-root-type';
+  message: string;
+  candidateByteOffset?: number;
+  originalByteOffset?: number;
+  originalSyntaxError?: JsonDiagnostic;
+}
+
+export interface PayloadRepairDiagnostic {
+  kind: PayloadRepairKind;
+  /** UTF-8 byte offset in the JSON candidate after BOM and outer-whitespace removal. */
+  candidateByteOffset: number;
+  removedText: string;
+  insertedText: string;
+  removedBytesHex: string;
+  insertedBytesHex: string;
+}
+
 export interface Provenance {
-  modelRoute?: 'gemini' | 'gpt' | 'claude' | 'local';
+  modelRoute?: 'gemini' | 'gpt' | 'claude' | 'local' | 'kimi' | 'grok';
   framework?: 'xbar' | 'minimalism';
   language?: string;
   timestamp?: string;
@@ -121,11 +169,7 @@ export interface Provenance {
   parserVersion?: string;
   uiVersion?: string;
   payloadIntegrityFlags?: string[];
-  payloadTranscriberUsed?: boolean;
-  payloadTranscriberModel?: string;
-  payloadTranscriberPromptTokenCount?: number;
-  payloadTranscriberOutputTokenCount?: number;
-  payloadTranscriberTotalTokenCount?: number;
+  payloadRepairDiagnostics?: PayloadRepairDiagnostic[];
   hasDerivationStages?: boolean;
   parsePromptTokenCount?: number;
   parseOutputTokenCount?: number;
@@ -146,8 +190,10 @@ export interface ParseBundle {
   ambiguityDetected: boolean;
   ambiguityNote?: string;
   sentence?: string;
-  requestedModelRoute?: 'gemini' | 'gpt' | 'claude';
-  requestedReasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  requestedModelRoute?: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'grok';
+  requestedModelId?: string;
+  requestedReasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  rawModelOutput?: RawOutputArtifact;
   modelUsed?: string;
   generationRecord?: GenerationRecord;
 }

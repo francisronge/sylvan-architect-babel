@@ -47,10 +47,10 @@ export const describeSentRequest = (provider, body = {}) => {
     });
   }
 
-  if (provider === 'gpt') {
+  if (provider === 'gpt' || provider === 'grok') {
     return compactScalars({
       model: body.model,
-      textFormatType: body.text?.format?.type,
+      textFormatType: body.text?.format?.type ?? 'text',
       reasoningEffort: body.reasoning?.effort,
       background: Boolean(body.background),
       store: Boolean(body.store),
@@ -61,10 +61,20 @@ export const describeSentRequest = (provider, body = {}) => {
   if (provider === 'claude') {
     return compactScalars({
       model: body.model,
+      textFormatType: body.output_config?.format?.type ?? 'text',
       thinkingType: body.thinking?.type,
       thinkingDisplay: body.thinking?.display,
       effort: body.output_config?.effort,
       maxTokens: body.max_tokens
+    });
+  }
+
+  if (provider === 'kimi') {
+    return compactScalars({
+      model: body.model,
+      textFormatType: body.response_format?.type ?? 'text',
+      reasoningEffort: body.reasoning_effort,
+      maxCompletionTokens: body.max_completion_tokens
     });
   }
 
@@ -82,6 +92,13 @@ export const describeSentRequest = (provider, body = {}) => {
 };
 
 const extractPromptMaterial = (provider, body = {}) => {
+  if (provider === 'kimi' || provider === 'grok') {
+    const messages = provider === 'kimi' ? body.messages : body.input;
+    return {
+      systemInstruction: messages?.find((message) => message.role === 'system')?.content,
+      prompt: messages?.find((message) => message.role === 'user')?.content
+    };
+  }
   if (provider === 'gemini') {
     return {
       systemInstruction: body.config?.systemInstruction,
@@ -119,6 +136,7 @@ export const buildGenerationRecord = ({
   return {
     schemaVersion: 2,
     provider,
+    sentRequestSha256: sha256Hex(JSON.stringify(sentRequest)),
     promptContract: buildPromptContract({
       framework,
       promptRoute,

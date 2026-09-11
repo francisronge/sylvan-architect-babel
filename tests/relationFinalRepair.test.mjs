@@ -399,28 +399,41 @@ test('authored values distinguish claims even when the specialized primitive cop
   );
 });
 
-test('a closed registered relation with an extra role stays one malformed Tier-3 primary', () => {
+test('Control accepts extra context but a missing domain stays one malformed Tier-3 primary', () => {
   const early = [node('root_x', 'TP', [
     node('ctrl_x', 'DP', [leaf('ctrl_l', 'D', 'kai')]),
     node('ctee_x', 'DP', [leaf('ctee_l', 'D', 'PRO', { silent: true })]),
     node('dom_x', 'VP', [leaf('dom_l', 'V', 'try')]),
     node('anno_x', 'XP', [leaf('anno_l', 'X', 'note')])
   ])];
-  // Stage 2 keeps every required Control anchor and removes ONLY the extra
-  // open annotation node.
+  // The annotation retains a neutral mark beside complete Control and remains
+  // part of the unresolved envelope when the required Control domain is absent.
   const late = [node('root_x', 'TP', [
     node('ctrl_x', 'DP', [leaf('ctrl_l', 'D', 'kai')]),
     node('ctee_x', 'DP', [leaf('ctee_l', 'D', 'PRO', { silent: true })]),
     node('dom_x', 'VP', [leaf('dom_l', 'V', 'try')])
   ])];
-  const plan = compileRelationRenderPlan([
+  const complete = compileRelationRenderPlan([
     stage([{
       relation: 'Control',
       anchors: { controller: 'ctrl_x', controllee: 'ctee_x', domain: 'dom_x', annotation: 'anno_x' }
+    }], early)
+  ]);
+  assert.deepEqual(complete.frames[0].items.map((item) => item.kind), ['domain-mark', 'directed-path', 'coindex', 'fallback']);
+  assert.ok(complete.frames[0].items.filter(item => item.kind !== 'fallback').every((item) => item.claimTier === 1));
+  assert.deepEqual(complete.frames[0].items.find(item => item.kind === 'fallback').relationRef.anchors, { annotation: 'anno_x' });
+  assert.ok(complete.frames[0].items.filter(item => item.claimTier === 1).every(item => item.relationRef.anchors.annotation === undefined),
+    'the neutral remainder does not own the complete Control drawing');
+  const plan = compileRelationRenderPlan([
+    stage([{
+      relation: 'Control',
+      anchors: { controller: 'ctrl_x', controllee: 'ctee_x', annotation: 'anno_x' }
     }], early),
     stage([], late)
   ]);
   assert.deepEqual(plan.frames[0].items.map((item) => item.kind), ['fallback']);
+  assert.ok(plan.diagnostics.some((d) => d.kind === 'signature-incomplete'),
+    'extra context cannot replace the required Control domain');
   assert.equal(
     plan.frames[1].items.length,
     0,
@@ -515,7 +528,7 @@ test('Tier-2 large-array organization preserves unrelated envelope evidence as T
   const plan = compileRelationRenderPlan([
     stage([{
       relation: 'OpenChorus',
-      anchors: { members, annotation: 'anno_ch' }
+      anchors: { members, occurrences: members, annotation: 'anno_ch' }
     }], chorusForest(true)),
     stage([], chorusForest(false))
   ]);
@@ -529,6 +542,12 @@ test('Tier-2 large-array organization preserves unrelated envelope evidence as T
   assert.equal(plan.diagnostics.some((diagnostic) => (
     diagnostic.kind === 'anchor-vanished' && /anno_ch/.test(diagnostic.detail)
   )), true);
+  const membershipOnly = compileRelationRenderPlan([
+    stage([{ relation: 'OpenChorus', anchors: { members, annotation: 'anno_ch' } }], chorusForest(true))
+  ]);
+  assert.equal(membershipOnly.frames[0].items.some((item) => item.kind === 'coindex'), false,
+    'membership alone does not assert occurrence identity');
+  assert.ok(membershipOnly.frames[0].items.some((item) => item.kind === 'fallback'));
 });
 
 test('a vanished rendered large-role member stops the rail with one diagnostic', () => {
@@ -1046,8 +1065,8 @@ test('ellipsis deletion remains attached to its authored site as that site grows
 });
 
 test('the dependency law fails malformed registered claims closed and never counts unresolved large members', () => {
-  // Control is closed: an unknown extra role makes the named primary
-  // malformed, so it never receives the specialized Tier-1 drawing.
+  // The required Control domain is missing. Extra context cannot complete
+  // that core or license a smaller Tier-2 Control drawing.
   const controlForest = (withExtra) => [node('root_x2', 'TP', [
     node('ctrl_x2', 'DP', [leaf('ctrl_x2_l', 'D', 'kai')]),
     node('ctee_x2', 'DP', [leaf('ctee_x2_l', 'D', 'PRO', { silent: true })], { silent: true }),
@@ -1057,11 +1076,12 @@ test('the dependency law fails malformed registered claims closed and never coun
   const controlPlan = compileRelationRenderPlan([
     stage([{
       relation: 'Control',
-      anchors: { controller: 'ctrl_x2', controllee: 'ctee_x2', domain: 'dom_x2', annotation: 'anno_x2' }
+      anchors: { controller: 'ctrl_x2', controllee: 'ctee_x2', annotation: 'anno_x2' }
     }], controlForest(true)),
     stage([], controlForest(false))
   ]);
   assert.deepEqual(controlPlan.frames[0].items.map((item) => item.kind), ['fallback']);
+  assert.ok(controlPlan.diagnostics.some((d) => d.kind === 'signature-incomplete'));
   assert.deepEqual(controlPlan.frames[1].items, []);
 
   // Unresolved large member: the partial rail still persists unchanged.
@@ -1085,7 +1105,8 @@ test('a refresh root that lives only in metadata is still a hard dependency: the
   const plan = compileRelationRenderPlan([
     stage([{
       relation: 'PostTransferAccess',
-      anchors: { source: 'src_pta', target: 'tgt_pta', spellOutDomain: 'dom_pta' }
+      anchors: { source: 'src_pta', target: 'tgt_pta', spellOutDomain: 'dom_pta' },
+      values: { outcome: 'blocked' }
     }], transferForest(true)),
     stage([], transferForest(false))
   ]);
@@ -1536,6 +1557,9 @@ test('every overlay text branch in TreeVisualizer is known to the bounds law', a
     'babel-analysis-judgment', // post-fit whole-analysis judgment beside the authored final root
     'babel-gapping-index',     // post-fit gapping indices; the whole plate is tree-first
     'babel-analysis-verdict-label', // post-fit optional label owned by the anchored verdict
+    'babel-feature-text',     // post-fit literal label for an independently drawn collection path
+    'babel-plaque-title',     // shared measured plaque textLayout
+    'babel-plaque-row',       // shared measured plaque textLayout
     'vr-path-label',          // shape label — middle 11px
     'vr-index-badge',         // index — start-anchored at +8, 13px
     'vr-fallback-instance',   // instance — middle 11px inside the frame
@@ -1547,7 +1571,7 @@ test('every overlay text branch in TreeVisualizer is known to the bounds law', a
   });
   assert.equal(
     textSites.length,
-    32,
+    29, // Four plaque text sites now use drawPlaqueText with the bound textLayout.
     'overlay text call-site count changed: classify every new branch as pre-fit or accepted post-fit text'
   );
 });

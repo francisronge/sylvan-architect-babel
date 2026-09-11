@@ -61,16 +61,6 @@ type OpenRecord = Record<string, any>;
 
 const INDEX_SEQUENCE = ['i', 'j', 'k', 'l', 'm', 'n', 'p'];
 
-const INDEX_SUBSCRIPTS: Record<string, string> = {
-  i: 'ᵢ',
-  j: 'ⱼ',
-  k: 'ₖ',
-  l: 'ₗ',
-  m: 'ₘ',
-  n: 'ₙ',
-  p: 'ₚ'
-};
-
 /**
  * The lab and production renderer share the same relation contract:
  * `relation`, `anchors`, and optional `values` and `priorAnchors` inside each
@@ -592,22 +582,6 @@ const collectSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   walkTree(node, (current) => {
-    const id = String(current.id || '').trim();
-    if (id) ids.push(id);
-  });
-  return ids;
-};
-
-/**
- * Node IDs the authored tree itself marks silent. Used instead of a blanket
- * subtree sweep so Babel never reports material as unpronounced that the model
- * did not author as unpronounced.
- */
-const collectAuthoredSilentIds = (node?: SyntaxNode): string[] => {
-  if (!node) return [];
-  const ids: string[] = [];
-  walkTree(node, (current) => {
-    if (current.silent !== true) return;
     const id = String(current.id || '').trim();
     if (id) ids.push(id);
   });

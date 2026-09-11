@@ -1,5 +1,6 @@
 import { createRelationRegistry } from './relationRegistry.js';
 import { expandTier1RelationIdentities } from './tier1Aliases.js';
+import { withProductionRoleVocabulary } from './productionRoleConcepts.js';
 
 /**
  * The versioned production registry: every relation identity used by an
@@ -16,7 +17,8 @@ import { expandTier1RelationIdentities } from './tier1Aliases.js';
  * fixtures — declarations, not patterns.
  *
  * Signature philosophy: roles are exact where the accepted design fixes
- * them; `allowAdditional` is used only for designs whose accepted contract
+ * them. Equivalent role wording is bound before those requirements are checked;
+ * `allowAdditional` is used only for designs whose accepted contract
  * is genuinely open-rolled (FeatureBundle's single open participant role,
  * IdiomChunkCointerpretation's open chunk roles, ThetaAssignment's open
  * theta-role names, Identity's occurrence roles, PFRealization's open target
@@ -63,7 +65,7 @@ const entry = (id, identities, anchors, extra = {}) => ({
   identities: expandTier1RelationIdentities(identities)
     .map((name) => ({ name, normalization: 'case-whitespace' })),
   signature: {
-    anchors,
+    anchors: withProductionRoleVocabulary(id, { ...anchors, allowContext: true }),
     priorAnchors: OPEN_BLOCK,
     values: OPEN_BLOCK
   },
@@ -88,7 +90,7 @@ const trajectoryEntry = (id, identities, { requireWitness = true } = {}) => entr
 
 export const productionRelationRegistry = createRelationRegistry({
   registryId: 'babel.semantic-visual-grammar',
-  version: '11',
+  version: '12',
   entries: [
     /* ------------------------------------------------- trajectories */
     trajectoryEntry('trajectory.phrasal', [
@@ -96,7 +98,10 @@ export const productionRelationRegistry = createRelationRegistry({
     ]),
     trajectoryEntry('trajectory.a-movement', ['AMove']),
     trajectoryEntry('trajectory.scrambling', ['Scrambling']),
-    trajectoryEntry('trajectory.head', ['HeadMove', 'auxiliary-head-movement'], { requireWitness: false }),
+    entry('trajectory.head', ['HeadMove', 'auxiliary-head-movement'], {
+      ...TRAJECTORY_ANCHOR_ROLES,
+      optional: { ...TRAJECTORY_ANCHOR_ROLES.optional, hostHead: scalar, complexHead: scalar }
+    }),
     trajectoryEntry('trajectory.lowering', ['Lowering'], { requireWitness: false }),
     entry('scope.operator-variable', ['OperatorVariableBinding'], {
       required: { operator: scalar, variable: scalar },
@@ -226,7 +231,7 @@ export const productionRelationRegistry = createRelationRegistry({
       optional: { edge: scalar }
     }),
     entry('transfer.domain', ['TransferDomain'], {
-      required: { phase: scalar, edge: scalar },
+      required: { phase: scalar, edge: array },
       optional: { spellOutDomain: scalar, complement: scalar },
       requiredAny: [['spellOutDomain', 'complement']]
     }),
