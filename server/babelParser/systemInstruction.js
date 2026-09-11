@@ -11,7 +11,7 @@ For structural ambiguity, the only top-level field is analyses, a nonempty array
 
 Stages
 Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input. A completed analysis may establish that the input is illicit.
-Include the intermediate states needed to explain how the derivation proceeds. Several connected operations may share a stage when their order and effects are explicit. An unchanged workspace needs a sentence-specific syntactic reason for the new stage.
+Include the intermediate states needed to explain how the derivation proceeds. An occurrence moves only from a position that an earlier stage already shows. Several connected operations may share a stage when their order and effects are explicit. An unchanged workspace needs a sentence-specific syntactic reason for the new stage.
 Each stage has exactly these four fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
