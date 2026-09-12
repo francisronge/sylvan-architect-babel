@@ -588,15 +588,17 @@ test('fallback anchors that do not resolve fail closed and demote the topology r
   assert.ok(plan.diagnostics.some((d) => d.kind === 'anchor-unresolved'));
 });
 
-test('unregistered fallback persists unless a registered design says it is transient', () => {
-  const plan = compileRelationRenderPlan([
+test('an unregistered fallback marks its own stage only; the claim stays in the record', () => {
+  const stages = [
     stage([{ relation: 'OpenMark', anchors: { spot: 'dp_low' } }], [whTree]),
     stage([], [whTree])
-  ]);
+  ];
+  const plan = compileRelationRenderPlan(stages);
   assert.equal(plan.frames[0].items.length, 1);
-  assert.equal(plan.frames[0].items[0].persistence, 'from-stage-onward');
-  assert.equal(plan.frames[1].items.length, 1,
-    'an unknown authored claim is retained rather than assigned invented transience');
+  assert.equal(plan.frames[0].items[0].persistence, 'stage-only');
+  assert.equal(plan.frames[1].items.length, 0,
+    'neutral marks leave the canvas after their stage; replaying that stage shows them again');
+  assert.equal(stages[0].relations.length, 1, 'the authored relation is untouched');
 });
 
 test('registered movement persists from its authored frame onward and never leaks backward', () => {

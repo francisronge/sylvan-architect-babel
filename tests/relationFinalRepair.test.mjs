@@ -434,15 +434,9 @@ test('Control accepts extra context but a missing domain stays one malformed Tie
   assert.deepEqual(plan.frames[0].items.map((item) => item.kind), ['fallback']);
   assert.ok(plan.diagnostics.some((d) => d.kind === 'signature-incomplete'),
     'extra context cannot replace the required Control domain');
-  assert.equal(
-    plan.frames[1].items.length,
-    0,
-    'the complete malformed claim stops when any of its authored witnesses vanishes'
-  );
-  const vanished = plan.diagnostics.filter((d) => d.kind === 'anchor-vanished');
-  assert.equal(vanished.length, 1, 'one deduplicated diagnostic for one relation/stage/missing set');
-  assert.match(vanished[0].detail, /anno_x/);
-  assert.equal(vanished[0].stageIndex, 1);
+  assert.equal(plan.frames[1].items.length, 0, 'a neutral fallback marks its own stage only');
+  assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0,
+    'nothing is carried into the next stage, so nothing can vanish there');
 });
 
 test('the ghost lens presentation is real: active glows below pronounced, quiet recedes below neutral', async () => {
@@ -538,10 +532,8 @@ test('Tier-2 large-array organization preserves unrelated envelope evidence as T
   assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), ['anno_ch']);
   const stageTwoKinds = plan.frames[1].items.map((item) => item.kind);
   assert.deepEqual(stageTwoKinds.sort(), ['anchor-set', 'coindex'],
-    'the complete member claim and its rail persist after the unrelated annotation vanishes');
-  assert.equal(plan.diagnostics.some((diagnostic) => (
-    diagnostic.kind === 'anchor-vanished' && /anno_ch/.test(diagnostic.detail)
-  )), true);
+    'the identity claim and its own rail persist; the neutral remainder marks its own stage only');
+  assert.equal(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'anchor-vanished'), false);
   const membershipOnly = compileRelationRenderPlan([
     stage([{ relation: 'OpenChorus', anchors: { members, annotation: 'anno_ch' } }], chorusForest(true))
   ]);
@@ -560,13 +552,12 @@ test('a vanished rendered large-role member stops the rail with one diagnostic',
   ]);
   assert.ok(plan.frames[0].items.some((item) => item.kind === 'anchor-set'));
   assert.equal(plan.frames[1].items.filter((item) => item.kind === 'anchor-set').length, 0,
-    'a rail whose own rendered member vanished fails closed');
-  const railDiagnostics = plan.diagnostics.filter((d) =>
-    d.kind === 'anchor-vanished' && /cm_5/.test(d.detail));
-  assert.equal(railDiagnostics.length, 1, 'one useful diagnostic, not duplicates');
+    'the neutral rail marks its own stage only');
+  assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0,
+    'nothing is carried forward, so no member can vanish from a carried rail');
 });
 
-test('a member unresolved at authoring is not a vanished dependency later; the partial rail persists unchanged', () => {
+test('a member unresolved at authoring keeps only its original diagnostic; the partial rail draws at its stage', () => {
   const present = ['pr_a', 'pr_b', 'pr_c', 'pr_d'];
   const chorusForest = [node('root_pr', 'TP',
     present.map((id) => node(id, 'XP', [leaf(`${id}_l`, 'X', 'x')])))];
@@ -578,11 +569,7 @@ test('a member unresolved at authoring is not a vanished dependency later; the p
     stage([], chorusForest)
   ]);
   assert.deepEqual(plan.frames[0].items.map((item) => item.kind).sort(), ['anchor-set', 'fallback']);
-  assert.deepEqual(
-    plan.frames[1].items.map((item) => item.kind).sort(),
-    ['anchor-set', 'fallback'],
-    'the unchanged partial rail persists exactly as it rendered at its authoring stage'
-  );
+  assert.deepEqual(plan.frames[1].items, [], 'neutral marks belong to their own stage');
   assert.equal(
     plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length,
     0,
@@ -592,14 +579,14 @@ test('a member unresolved at authoring is not a vanished dependency later; the p
   assert.equal(unresolved.length, 1, 'the never-resolved member keeps only its original diagnostic');
   assert.match(unresolved[0].detail, /pr_missing/);
 
-  // Geometry: the persisted rail binds at stage 2 over exactly the resolved
-  // members; the unresolved member gets no geometry at any stage.
+  // Geometry: the rail binds at its stage over exactly the resolved members;
+  // the unresolved member gets no geometry.
   const positions = new Map(present.map((id, index) => [id, { x: 100 + index * 120, y: 200 }]));
   positions.set('root_pr', { x: 300, y: 40 });
-  const bound = bindRelationPlanFrame(plan, 1, (nodeId) => positions.get(nodeId) || null);
+  const bound = bindRelationPlanFrame(plan, 0, (nodeId) => positions.get(nodeId) || null);
   assert.ok(
     bound.primitives.some((p) => p.type === 'anchor-set-rail'),
-    'the partial rail draws at stage 2 from real positions'
+    'the partial rail draws at its stage from real positions'
   );
   assert.ok(
     !JSON.stringify(bound.primitives).includes('pr_missing'),
@@ -1092,7 +1079,8 @@ test('the dependency law fails malformed registered claims closed and never coun
     stage([{ relation: 'OpenChorus', anchors: { members: [...present, 'lg_missing'] } }], railForest),
     stage([], railForest)
   ]);
-  assert.ok(railPlan.frames[1].items.some((item) => item.kind === 'anchor-set'));
+  assert.ok(railPlan.frames[0].items.some((item) => item.kind === 'anchor-set'));
+  assert.deepEqual(railPlan.frames[1].items, [], 'the neutral rail marks its own stage only');
   assert.equal(railPlan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0);
 });
 
@@ -1208,7 +1196,9 @@ test('a failed item consumes no stacking, ordinal, or lane state used by the nex
     ], shared)],
     positions
   );
-  const geometryOf = (bound) => bound.primitives.map(({ itemIndex, ...rest }) => rest);
+  // The badge numeral is the relation's authored position, which differs
+  // between the two relation lists by design; geometry is what must match.
+  const geometryOf = (bound) => bound.primitives.map(({ itemIndex, instance, ...rest }) => rest);
   assert.deepEqual(geometryOf(withFailure), geometryOf(clean),
     'rolled-back items leave no trace in stacking, ordinals, lanes, or routing');
   assert.equal(

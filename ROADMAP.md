@@ -300,7 +300,12 @@ deleted. The gate passes 1,461 tests; saved outputs are unchanged.
 The five native plates now read plain fields: paired lists, node orders and
 open literals, with the pairing sentence widened to any two entries. The Replay
 sentence reader follows tree order. No hidden authoring convention remains in
-the inventory. Shared-context
+the inventory.
+
+Tier 3 presentation, decided 12 September: a neutral fallback marks its own
+stage only, and its badge number is the relation's authored position in that
+stage, matching the panel. Hiding leftover anchors and one-mark-per-relation
+were rejected. Long plaques and mobile composition remain open. Shared-context
 presentation remains open before mixed-tier presentation: repeated badges,
 composition and long plaques. Free-prose recognition and literal-versus-glyph judgment presentation
 remain explicit design questions. Do not conceal recognition gaps with layout
@@ -498,8 +503,8 @@ an earlier renderer closeout or a passing fixture suite.
 | 15 | Implemented locally | Original relation names, punctuation, scripts and whitespace are preserved rather than passed through identifier formatting. |
 | 16 | Partial | Shared feature-plaque layout and wordless anchors are repaired, but the separate PF realization painter still uses fixed-width unwrapped text and was omitted from the ink checks. Verify every native plaque path. Oversized-content interaction remains undecided. |
 | 17 | Implemented locally | Removed the eight-row truncation. Every row retains its original index and literal content; a twelve-row wordless-head control is verified in Node and desktop/mobile SVG. Visibility of a very tall plaque remains under 16. |
-| 18 | Open | Repeated fallback 1s count instances per relation name per stage, not linguistic indices. Fable's binding 3 is a separate relation-position default, not model-authored notation. Review both meanings explicitly; do not redesign Tier 3 yet. |
-| 19 | Open | Decide how multiple genuine fallback relations remain readable together after avoidable fallbacks are corrected. |
+| 18 | Implemented locally | Decided 12 September: a fallback badge shows the relation's authored position within its stage, matching the panel's relation list, regardless of relation names. It is a locator, never a score or a linguistic index. Fable's binding 3 remains a separate relation-position default. |
+| 19 | Implemented locally | Decided 12 September: a neutral fallback marks its own stage only; its badges and rails leave the canvas when the next stage begins and return when that stage is replayed. Tier 1 and Tier 2 keep their own persistence. Hiding leftover anchors and one-mark-per-relation were rejected. Final-frame fallback counts on the saved outputs fall from 9, 7 and 8 to 4, 1 and 3 with no other drawing changed. |
 | 20 | Implemented locally | Single and explicitly paired theta/Case assignments retain literal labels and repeated participants. Solid assignment and dotted collection remain distinct. Missing or mismatched associations stay neutral; title-only role/Case prose is not converted into missing fields. |
 | 21 | Implemented locally | Complete Tier-1 recipes accept equivalent roles and harmless context. Missing or contradictory core roles still fail that recipe. Unused extra anchors receive an aggregated internal context diagnostic; the complete raw relation remains inspectable. |
 | 22 | Partial | Exact phase/projection witnesses and both accessible-DP outlines are implemented without duplicate edges. A phase head is not silently promoted. Standalone transferred-domain meaning remains a separate decision; incomplete exact Tier 1 is not rescued. |

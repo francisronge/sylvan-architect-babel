@@ -998,7 +998,6 @@ export const compileRelationRenderPlan = (
       ? collectForest(stageList[stageIndex - 1]?.workspaceForest)
       : null;
     const relations = Array.isArray(stage?.relations) ? stage.relations : [];
-    const fallbackInstanceCounts = new Map<string, number>();
     /*
      * PF composition provenance: a VocabularyInsertion row joins a
      * PFRealization plate only when its own resolved target anchor is among
@@ -1193,8 +1192,9 @@ export const compileRelationRenderPlan = (
           if (resolved.length === 0) return;
           resolvedAnchors[role] = Array.isArray(value) ? resolved : resolved[0];
         });
-        const instanceNumber = (fallbackInstanceCounts.get(relation.relation) ?? 0) + 1;
-        fallbackInstanceCounts.set(relation.relation, instanceNumber);
+        // The badge number is the relation's authored position in its stage,
+        // so it matches the panel's relation list. Names play no part.
+        const instanceNumber = relationIndex + 1;
         const drawing = fallbackDrawing(
           {
             relation: relation.relation,
@@ -1209,7 +1209,10 @@ export const compileRelationRenderPlan = (
           kind: 'fallback',
           relationRef: fallbackRelation,
           appearsAtStage: stageIndex,
-          persistence: 'from-stage-onward',
+          // A neutral fallback marks a claim's moment. It shows through its
+          // own stage and leaves the canvas afterwards; the claim itself
+          // stays in the record and returns when that stage is replayed.
+          persistence: 'stage-only',
           backward: includePriorCue && primaryBackward,
           priorWitnessNodeIds: includePriorCue ? primaryPriorWitnessNodeIds : [],
           drawing,

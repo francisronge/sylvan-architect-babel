@@ -14,10 +14,10 @@
  *   paths and structurally persistent results persist after introduction
  *   (`from-stage-onward`); declared replacement families
  *   (`replace-previous-instance`) replace their prior instance per frame.
- * - An UNREGISTERED fallback persists from introduction onward. Disappearing
- *   it would be a stronger semantic guess than retaining the authored claim;
- *   stage-only behavior is reserved for an explicitly registered transient
- *   design.
+ * - An UNREGISTERED fallback is stage-only (Francis, 12 September): its
+ *   neutral marks show through the stage that authored the claim and leave
+ *   the canvas afterwards. The claim remains in the record; nothing is
+ *   discarded, it is simply not painted forever.
  * - Large-anchor badges/rails inherit their parent instance's compiled
  *   persistence; they never own an independent policy.
  */
