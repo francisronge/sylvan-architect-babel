@@ -57,8 +57,12 @@ test('saved Astra X-bar wh badges stay fixed when the next stage includes future
   assert.ok(laterItems.some((item) => item.kind === 'node-badges' && item.familyId === 'theta.grid'));
   const whIndex = (stage) => plan.frames[stage].items.findIndex((item) =>
     item.kind === 'fallback' && item.relationRef.stageIndex === 0);
+  // A neutral fallback marks its own stage only; the next stage's native
+  // theta marks therefore share no badge slots with it.
+  assert.equal(whIndex(1), -1, 'stage-0 fallback marks do not persist into stage 1');
   // Hold node positions constant to isolate badge allocation, not D3 layout.
   const provider = (id) => positions[id] ?? { x: 0, y: 0 };
+  const reference = bindRelationPlanFrame(plan, 0, provider, { ...options, markerScale: 1 });
   for (const markerScale of [1, 3]) {
     const before = bindRelationPlanFrame(plan, 0, provider, { ...options, markerScale });
     const after = bindRelationPlanFrame(plan, 1, provider, { ...options, markerScale });
@@ -66,14 +70,12 @@ test('saved Astra X-bar wh badges stay fixed when the next stage includes future
     assert.deepEqual(after.failed, []);
     for (const nodeId of ['objectNP', 'whichD']) {
       assert.deepEqual(
-        offsetOf(markFor(after, 'fallback-mark', whIndex(1), nodeId), positions[nodeId]),
-        offsetOf(markFor(before, 'fallback-mark', whIndex(0), nodeId), positions[nodeId])
+        offsetOf(markFor(before, 'fallback-mark', whIndex(0), nodeId), positions[nodeId]),
+        offsetOf(markFor(reference, 'fallback-mark', whIndex(0), nodeId), positions[nodeId])
       );
     }
-    const beforeLink = before.primitives.find((p) => p.type === 'segment' && p.itemIndex === whIndex(0));
-    const afterLink = after.primitives.find((p) => p.type === 'segment' && p.itemIndex === whIndex(1));
-    assert.deepEqual(afterLink.from, beforeLink.from);
-    assert.deepEqual(afterLink.to, beforeLink.to);
+    assert.equal(after.primitives.some((p) => p.type === 'fallback-mark'), false,
+      'no fallback marks are drawn in the later stage');
   }
   assert.deepEqual(plan, original, 'binding cannot rewrite the relation plan');
 });
