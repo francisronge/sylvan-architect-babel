@@ -201,6 +201,74 @@ styles into production. Measure long-derivation responsiveness; qualify applicat
 exports/casing and extreme plaque content separately. Missing wh/government meanings,
 judgments and incomplete-processing policy remain open. No scrolling was implemented.
 
+## Production drawing-style audit, 13 September
+
+Francis reported an off-center Cyclic Agree badge and requested a complete check.
+This audit inspected current production at `58fbcba`; it changed no renderer,
+recognition, layout, camera, prompt or saved analysis. The earlier Orchard
+closeout remains evidence for its dated build, not proof that every accepted
+style reached the current application.
+
+### Coverage and method
+
+- Compared the committed Orchard HTML's style rules with `styles.css`, then
+  checked actual computed styles and inline SVG attributes. Missing selectors
+  alone were not counted as defects. Current neutral-paint overrides and
+  intentional styling differences must survive any restoration.
+- Built an offline review with the current production `TreeVisualizer` and
+  application stylesheet: 55 canonical Atlas cards plus two supplemental cards
+  cover all 59 registered entries; 52 existing Tier-2 fixture controls and four
+  neutral participant controls extend that coverage. The Tier-2 fixtures are
+  technical controls, not new linguistic examples or endorsed analyses.
+- Inspected 225 Atlas relation/stage-record frames, 107 Tier-2 relation/stage-record
+  frames, eight neutral frames, and every one of the four archived bundles'
+  137 Replay frames: 477 rendered states at 1600 by 1100. Captures and computed
+  styles are retained. No browser errors or unresolved marker references occurred.
+- Supplying omitted legacy paint/typography declarations temporarily in the
+  browser reproduced the intended strokes and readable text without changing
+  coordinate attributes in 13 diagnostic examples. These are diagnostic captures,
+  not an implemented or fully approved restoration. A broad legacy-rule probe
+  changed 67 class/parent groups, including intentional differences; that number
+  is not a defect count.
+
+### Confirmed production defects
+
+| Area | Observed failure | Underlying boundary |
+| --- | --- | --- |
+| Cyclic Agree | The circle has no outline; its text inherits 14px/400 in the review or 16px/400 Quicksand under app typography, while its baseline was positioned for the approved 34px/800 monospace text. It therefore looks small and low. | Badge geometry was transferred without its complete style. The omission already exists in integration commit `3aebc8c`; it is not caused by the latest recognition repair. |
+| Curves and regions | Feature Sharing, Dependent Case, Phase, Negative Concord, Strong-NPI and other existing shapes inherit black fill; some also have no stroke. Control, predication, binding, multidominance and intervention lose expected line weight, dashes or outlines. Shared-argument and constituent enclosures can become opaque black regions. | General emerald stroke overrides cannot replace each primitive's missing base paint declarations. |
+| Text | Control indices, dependent-case states, anti-locality marks, the shared-object label, local-dislocation lanes, Accord and Strong-NPI labels lose required typography; several are black on the dark canvas. | Geometry/content was ported while the associated font/fill rules remained in the Orchard stylesheet. This is separate from recognition or authored linguistic notation. |
+| Deletion and reconstruction | Partial-copy deletion, terminal deletion and LF reconstruction create strike lines with `stroke: none`, making those marks invisible. | Compiled and mounted SVG elements are not necessarily painted. Existing source/plan tests do not establish visible output. |
+| Specialized plaque containment | The short shared-feature plaque overlaps Replay by about 109 by 29 screen pixels in the Atlas desktop control. The Tier-2 feature-sharing and dependent-case captures also expose containment concerns. | The shared-feature branch creates a fixed box beneath its converging links; `placeStagePlaques` requests only `node-plaque` items and Case-assignment paths. These native boxes need their actual extents represented in shared layout/fit accounting. This is not evidence that long-plaque scrolling is needed. |
+| Compiled drawings absent at their relation moment | The Tier-2 `multidominance` and `argument-sharing` controls produce their expected plan items but no corresponding relation geometry at their relation or final frame. The `pf.fission` plaque is absent at its relation moment and appears at the following Stage Record. | This is downstream of recognition. The sharing controls have their referenced category labels in the DOM. Fission's relation frame contains a generated workspace wrapper; its final frame has a single tree, and the native plaque path requires a measured root-label rectangle. Trace attachment/forest measurement before a repair. Do not change linguistic interpretation or invent another fallback to mask missing geometry. |
+| Hover opacity | Hovering existing relation hit targets changes other marks from opacity 1 to 0.3 in several multi-relation controls; argument-sharing domains change from 0.72 to 1. | Hover currently reuses relation-moment active/quiet classes. The closeout explicitly forbids hover opacity changes, while source tests preserve some of these rules. Reconcile that distinction before editing shared emphasis. |
+
+### Checks that passed and limits
+
+All 61 Atlas/neutral zoom-and-Fit checks changed the camera and restored its prior
+fit. Follow-up measurements found no changed SVG coordinate attributes or stroke
+widths during zoom, and 56 activated hover controls showed no geometry changes.
+Exact text bounding-box equality does not hold across zoom; the observed flags
+were text-metric changes, not evidence of changed node/path coordinates. This
+does not certify every attachment at arbitrary zoom or every stage transition.
+
+The current full offline gate passes again: typecheck, 1,608 tests and both
+parse-contract fixtures. That success does not negate the observed visual failures.
+The four archived records retain their prior data/geometry verification; this pass
+adds current rendering observations rather than a new before/after implementation.
+
+Temporary scripts, review pages, computed-style evidence, contact sheets, diagnostic
+captures and the gate receipt are in `/tmp/babel-style-audit-20260913/`. All started
+browsers and test processes exited. No model/provider calls, mobile sign-off,
+application export qualification or linguistic judgments were performed.
+
+The next repair should restore the missing primitive styles from one production
+source shared by review surfaces, with browser assertions for visible strokes and
+explicit text styles. Keep accepted neutral paint and tree geometry. Treat native
+plaque accounting, the three absent-drawing controls and hover emphasis as separate
+bounded investigations, not a reason to copy the entire historical stylesheet or
+replace the current layout.
+
 ## Reliability implementation, 13 September
 
 Francis authorized implementation, verification and merging of the bounded fixes.

@@ -256,14 +256,21 @@ supersede the earlier browser-blocked status below.
 
 Next work, in order:
 
-1. Classify the remaining 42 mixed-evidence controls. The shared repairs now retain
+1. Repair the incomplete transfer of accepted drawing styles into production.
+   The [complete drawing-style audit](docs/implementation/contract-qualification/system-audit.md#production-drawing-style-audit-13-september)
+   confirms missing fonts, strokes, fills and deletion marks across several
+   families, beyond the already-restored Agree curves. Use one production-owned
+   style source for the app and review surfaces, preserve intentional neutral
+   paint overrides, and verify actual rendered marks. This audit made no product
+   changes. It also found a shared-feature plaque behind Replay and three Tier-2
+   controls with compiled but absent drawings; trace their geometry/attachment
+   handoff before choosing repairs. Reconcile hover opacity with the accepted
+   no-opacity-change contract. Do not redesign the accepted tree or camera.
+2. Classify the remaining 42 mixed-evidence controls. The shared repairs now retain
    both claims in 1,078 of 1,120 combinations without introducing a failing pair.
    Separate real lost claims from ambiguity and legitimate overlap before changing
    interpretation. Do not add aliases per saved example. Babel represents the
    model's linguistics; it does not supply missing claims or certify their truth.
-2. Audit accepted drawing styles against production. The desktop pass exposed
-   missing shared Cyclic/Multiple Agree curve styles; those are restored. Check
-   for other missing styles before claiming complete visual qualification.
 3. Preserve accepted plaque placement. Test available width for extreme content
    before changing composition. Scrolling is permitted only for egregiously long
    plaques if demonstrated necessary; ordinary large plaques stay below the tree.
