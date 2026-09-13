@@ -23,6 +23,41 @@ than treating the original observation as a current reproduction.
 
 ## Prototype and main reconciliation, 12 September
 
+### Main integration, 13 September
+
+After the prototype-only checkpoint, Francis requested merging the accepted
+prototype. The integration preserves its production renderer and adds main's
+reviewed Tree Bank capture selector/style fix. All other main source repairs
+already match the first two prototype commits. The unrelated AGENTS.md edit is
+preserved outside the commits. The rejected coordinate planner remains absent.
+
+An isolated integration checkout passed `npm run verify:all`: typecheck, 1,577
+tests and both parse fixtures. `npm run build` also passed. One integrated local
+Chromium pass compared the accepted production Replay with the merged runtime:
+all 137 desktop frames plus the WH zoom/Fit pair retain identical cameras, labels,
+paths, plaque positions, headings and panel content. The do-support transition
+retains all existing geometry through forward/backward navigation, settled zoom
+and Fit. Before/after screenshots and short recordings were captured.
+
+The same pass exercised the merged app at `http://127.0.0.1:5192` with the exact
+sentence `Which book did John buy?`. Eight desktop cases cover all four archived
+bundles in Canopy and Replay. Save writes a tree SVG, never the Fit icon; standalone
+SVGs retain live paint and labels, previews decode, stored stages stay unchanged,
+and reopened Replay has the expected frame count. No console/page errors or
+provider requests occurred. Verification browsers and the temporary server closed.
+The initial isolated app server refused fonts behind the shared dependency symlink.
+Its temporary serving configuration was corrected and the eight affected app cases
+rerun with font loading asserted; no application change was needed. Mobile and
+general long-content/export qualification remain deferred or open as listed in the
+roadmap. This verifies integration, not the linguistic analyses.
+
+Temporary backups, test logs, source hashes, screenshots, saved SVGs and recordings
+are in `/tmp/babel-merge-20260913`. The review artifact is
+`/tmp/babel-merged-candidate/index.html`, SHA-256
+`b6299b4de784da740f701d8614150662f4e151de0f308520237cb206998ab9ea`.
+This integration supersedes the earlier prototype-only scope below. No paid
+model call or push was made.
+
 ### Prototype-only checkpoint, 13 September
 
 Francis accepted the prototype after the bounded do-support fix and requested
