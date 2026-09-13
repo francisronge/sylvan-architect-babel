@@ -26,6 +26,8 @@ type CompileTier2Input = {
   dispatch: RelationClaimDispatch;
   currentForest: readonly SyntaxNode[];
   priorForest?: readonly SyntaxNode[];
+  /** Shared generated-index allocator: one letter per dependency, never a list position. */
+  dependencyIndexFor?: (key: string) => string;
 };
 
 export type CompileTier2Result = {
@@ -206,9 +208,11 @@ export const compileTier2RelationOutputs = ({
   relationRef,
   dispatch,
   currentForest,
-  priorForest
+  priorForest,
+  dependencyIndexFor = (key) => key
 }: CompileTier2Input): CompileTier2Result => {
   const evidence = dispatch.evidence;
+  const dependencyKey = (tag: string, ids: readonly string[]) => `${tag}:${[...ids].sort().join('|')}`;
   const nodes = collectForest(currentForest);
   const priorNodeIds = new Set(collectForest(priorForest || []).keys());
   const diagnostics: PlanDiagnostic[] = dispatch.diagnostics.map((diagnostic) => ({
@@ -338,7 +342,7 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Coindex', 'Forest light'], 'identity.occurrences'),
           kind: 'coindex',
           nodeIds: many('occurrences'),
-          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('identity', many('occurrences'))))
         });
         return;
       }
@@ -381,7 +385,7 @@ export const compileTier2RelationOutputs = ({
           domainMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
           subtreeDerived: [{ field: 'domainMemberNodeIds', rootNodeId: domain, mode: 'all' }],
           ...(state === 'licensed' || state === 'failed' ? { outcome: state } : {}),
-          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')])))
         });
         return;
       }
@@ -910,7 +914,7 @@ export const compileTier2RelationOutputs = ({
           ...(domain ? { scopeDomainNodeId: domain,
             scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
             subtreeDerived: [{ field: 'scopeMemberNodeIds' as const, rootNodeId: domain, mode: 'all' as const }] } : {}),
-          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('operator-variable', [one('operator'), one('variable')])))
         });
         return;
       }

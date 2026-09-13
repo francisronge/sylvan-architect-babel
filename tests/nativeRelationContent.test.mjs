@@ -11,6 +11,9 @@ import { nativeLinearizationPlateHeight, prepareNativePlaqueContent } from '../r
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { planAnchorSetLayout } from '../replay/relations/overlayGeometry.ts';
 import { availableTreeViewport, linearizationViewport } from '../components/treeViewport.ts';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
 
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -99,7 +102,7 @@ const guarded = (items) => items.map((item) => ({ ...item,
   relationRef: { ...item.relationRef, anchors: rawGuard, priorAnchors: rawGuard, values: rawGuard }
 }));
 
-function drawNative(name, items, workspaceForest = forest, drawItems = items) {
+function drawNative(name, items, workspaceForest = forest, drawItems = items, overrides = {}) {
   const root = new Element('g');
   const treeData = hierarchy(workspaceForest[0]);
   const byId = new Map(treeData.descendants().map((node) => [node.data.id, node]));
@@ -120,6 +123,8 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items) {
   const dependencies = {
     g, svg: new Selection([svgElement]), frameItems: guarded(items), drawItems: guarded(drawItems), treeData,
     overlayNodeById: byId, resolveOverlayAnchor: (id) => byId.get(id),
+    replayPlaqueLayout: new Map(items.map((_, index) => [index,
+      { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
     relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
@@ -140,7 +145,8 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items) {
     DOMPoint: class {
       constructor(x, y) { this.x = x; this.y = y; }
       matrixTransform() { return this; }
-    }
+    },
+    ...overrides
   };
   const run = new Function(...Object.keys(dependencies), `
     const scheduledAcceptedPfRelations = new Set();
@@ -325,6 +331,32 @@ test('native theta uses prepared literal roles and associations, never the raw a
   const svg = drawNative('scheduleAcceptedThetaGrid', plan.frames[0].items);
   assert.deepEqual(svg('babel-theta-grid-role').map((node) => node.textContent), ['Theme_i: literal']);
   assert.equal(svg('babel-theta-terminal-index').length, 1);
+});
+
+test('Astra X-bar frames 35 and 36: native theta paints the persistent reserved positions', () => {
+  const record = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)))
+    .find(record => record.name === 'astra-xbar');
+  const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
+  const plan = compileRelationRenderPlan(record.derivationStages);
+  const offsets = [];
+  for (const frameIndex of [34, 35]) {
+    const stageIndex = steps[frameIndex].replayFrameIndex;
+    const workspaceForest = record.derivationStages[stageIndex].workspaceForest;
+    const items = plan.frames[stageIndex].items;
+    const layout = buildStagePlaqueLayout({ steps, stageIndex, plan, width: 1596, height: 1016,
+      completedCanvas: buildRenderableDerivationCanvasData(workspaceForest) });
+    const grids = items.filter(item => item.plaqueStyle === 'theta-grid');
+    const svg = drawNative('scheduleAcceptedThetaGrid', items, workspaceForest, grids, { replayPlaqueLayout: layout });
+    const shells = svg('babel-theta-grid-shell');
+    assert.equal(shells.length, 2);
+    offsets.push(grids.map((grid, index) => {
+      const box = layout.get(items.indexOf(grid));
+      assert(Math.abs(Number(shells[index].attrs.x) - box.x) <= 0.051);
+      assert(Math.abs(Number(shells[index].attrs.y) - box.y) <= 0.051);
+      return [box.attachmentNodeId, box.location, Math.round(box.x - box.attachmentX), Math.round(box.y - box.attachmentY)];
+    }));
+  }
+  assert.deepEqual(offsets[0], offsets[1]);
 });
 
 test('approved complement-to-head focus projection uses one shared proof for canonical and equivalent roles', () => {

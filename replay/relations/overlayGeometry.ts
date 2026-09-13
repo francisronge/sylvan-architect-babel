@@ -8,6 +8,23 @@
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
+/** Enter the plaque from the assigner's side; the curve stays outside its rectangle. */
+export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: number): string {
+  const centerX = assigner.x + assigner.width / 2;
+  const target = centerX < plaque.x
+    ? { x: plaque.x - 12, y: rowY, side: 'left' }
+    : centerX > plaque.x + plaque.width
+      ? { x: plaque.x + plaque.width + 12, y: rowY, side: 'right' }
+      : { x: centerX, y: assigner.y < plaque.y ? plaque.y - 12 : plaque.y + plaque.height + 12, side: 'vertical' };
+  const source = { x: centerX, y: target.y < assigner.y
+    ? assigner.y - 8 : assigner.y + assigner.height + 8 };
+  const bendY = (target.y - source.y) / 2;
+  const approachX = target.side === 'left' ? -Math.min(76, Math.abs(target.x - source.x) / 2)
+    : target.side === 'right' ? Math.min(76, Math.abs(target.x - source.x) / 2) : 0;
+  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${source.x.toFixed(1)} ${(source.y + bendY).toFixed(1)},`
+    + ` ${(target.x + approachX).toFixed(1)} ${target.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
+}
+
 export type AnalysisVerdictAnchor = {
   analysisNodeId: string;
   desiredY: number;

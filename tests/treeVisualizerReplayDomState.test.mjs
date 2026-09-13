@@ -428,8 +428,8 @@ test('Replay applies its stage fit without freezing or rewriting tree coordinate
   );
   assert.match(
     source,
-    /treeLayoutSize\(nodeCount, maxDepth, containerWidth, containerHeight\)/u,
-    'the active tree must retain its original native layout dimensions'
+    /const \[innerWidth, innerHeight\] = stageLayoutSize\s*\?\? treeLayoutSize\(nodeCount, maxDepth, containerWidth, containerHeight\)/u,
+    'Replay reserves stage dimensions while Canopy retains its native layout dimensions'
   );
   assert.match(source, /const minNodeX = stageCameraBounds\?\.minX/);
   assert.match(source, /const maxNodeY = stageCameraBounds\?\.maxY/);
@@ -763,14 +763,15 @@ test('production ellipsis content uses the ordinary feature painter', async () =
   );
 });
 
-test('production measured feature plaques use the shared collision stack', async () => {
+test('prototype feature plaques use the complete stage placement instead of reallocating on reveal', async () => {
   const source = await readFile(sourceUrl, 'utf8');
 
   assert.match(
     source,
-    /const placedFeaturePlaqueRects: Rect\[\] = \[\][\s\S]*?placeRectBelowCollisions\([\s\S]*?placedFeaturePlaqueRects\.push\(placedRect\)/u,
-    'measured feature plaques must preserve the first placement and stack later collisions'
+    /primitive\.plaqueStyle === 'feature'[\s\S]*?replayPlaqueLayout\.get\(primitive\.itemIndex\)/u,
+    'feature plaques must use the same stage allocation as the camera'
   );
+  assert.doesNotMatch(source, /gutterAllocatorRef|drawGutterLeader|placedFeaturePlaqueRects/u);
 });
 
 test('production partial-copy deletion preserves the accepted tree-first composition', async () => {

@@ -933,28 +933,26 @@ export const compileRelationRenderPlan = (
   const unregisteredCounts = new Map<string, number>();
   const items: RelationPlanItem[] = [];
 
-  /** Deterministic chain-index allocation, sequential by first appearance. */
-  const chainIndexByKey = new Map<string, string>();
-  const chainIndexFor = (key: string): string => {
-    if (!chainIndexByKey.has(key)) {
-      chainIndexByKey.set(key, String(chainIndexByKey.size + 1));
-    }
-    return chainIndexByKey.get(key)!;
-  };
-  const qrIndexByKey = new Map<string, string>();
-  const qrIndexFor = (key: string): string => {
-    if (!qrIndexByKey.has(key)) {
-      const ordinal = qrIndexByKey.size;
+  /*
+   * Generated dependency indices. An authored index always wins upstream;
+   * when the model connected two occurrences but supplied no index, Babel
+   * labels that connection with a letter, i, j, k, allocated once per
+   * dependency in order of first appearance and never from a list position.
+   */
+  const dependencyIndexByKey = new Map<string, string>();
+  const dependencyIndexFor = (key: string): string => {
+    if (!dependencyIndexByKey.has(key)) {
+      const ordinal = dependencyIndexByKey.size;
       const conventionalIndices = 'ijklmnopqrstuvwxyz';
-      qrIndexByKey.set(
+      dependencyIndexByKey.set(
         key,
-        ordinal < conventionalIndices.length
-          ? conventionalIndices[ordinal]
-          : `i${ordinal + 1}`
+        ordinal < conventionalIndices.length ? conventionalIndices[ordinal] : `i${ordinal + 1}`
       );
     }
-    return qrIndexByKey.get(key)!;
+    return dependencyIndexByKey.get(key)!;
   };
+  const chainIndexFor = dependencyIndexFor;
+  const qrIndexFor = dependencyIndexFor;
   let phaseArcOrdinal = 0;
   /**
    * Chain identity, tightened to what authored data proves:
@@ -1139,6 +1137,7 @@ export const compileRelationRenderPlan = (
 
       if (claimDispatch.facets.length > 0) {
         const tier2 = compileTier2RelationOutputs({
+          dependencyIndexFor,
           relationRef,
           dispatch: claimDispatch,
           currentForest: stage?.workspaceForest || [],

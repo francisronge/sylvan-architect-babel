@@ -2,8 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+import * as d3 from 'd3';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
+import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
-import { placeStackedRect } from '../replay/relations/overlayGeometry.ts';
+import { caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
 
@@ -135,6 +141,165 @@ test('the production idiom underlines belong to their chunks, not to the optiona
 
 const drawPlaqueText = productionFunction('drawPlaqueText');
 const withPlaqueTextMeasure = productionFunction('withPlaqueTextMeasure');
+
+const plaqueBranch = findNode(node => ts.isIfStatement(node)
+  && node.expression.getText(parsed) === "primitive.type === 'plaque'");
+const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageIndex) => {
+  const root = new Element('g');
+  const host = select(root);
+  const queued = [];
+  const rectFor = id => {
+    const node = nodes.get(id);
+    return node ? { x: node.x - 40, y: node.y - 30, width: 80, height: 60 } : null;
+  };
+  const dependencies = {
+    primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
+    replayPlaqueLayout: layout, drawPlaqueText,
+    queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
+    measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
+    ensureFeatureRelationLayer: () => host,
+    revealedItemIndices: new Set(items.map((_, index) => index)),
+    resolveOverlayAnchor: id => nodes.get(id), getNodeId: node => node.__vizId ?? node.data.id
+  };
+  new Function(...Object.keys(dependencies), ts.transpile(plaqueBranch.getText(parsed),
+    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+  queued.forEach(draw => draw());
+  if (primitive.plaqueStyle === 'feature') {
+    const before = svgSnapshot(root);
+    const refine = productionFunction('refineFeaturePlaques', {
+      g: host, d3: { select },
+      measuredTerminalSubtreesRect: () => { throw Error('Accepted plaque must not be repositioned from screen measurements'); }
+    });
+    refine();
+    assert.deepEqual(svgSnapshot(root), before, 'deferred refinement must not move an accepted plaque');
+  }
+  if (primitive.plaqueStyle === 'realization') {
+    const painter = productionFunction('renderPfRealizationPlate', {
+      d3: { select }, svg: select(new Element('svg')),
+      playedRelationIndices: played, activeDerivationFrameIndex: stageIndex,
+      measuredTerminalSubtreesRect: ids => rectFor(ids[0]), measuredShellRect: rectFor,
+      measuredTerminalRect: () => null, unionRects: rects => rects[0],
+      replayPlaqueLayout: layout, withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText
+    });
+    host.selectAll('.babel-pf-relation-layer').each(painter);
+  }
+  return root;
+};
+const svgSnapshot = node => ({ tag: node.tag, attrs: node.attrs, styles: node.styles,
+  text: node.text, children: node.children.map(svgSnapshot) });
+
+const caseBranch = findNode(node => ts.isIfStatement(node)
+  && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-assignment'"));
+function drawCasePlaque(item, placement, assigner) {
+  const root = new Element('g');
+  const dependencies = {
+    planItem: item, emphasis: null, opacity: null, frameItems: [item],
+    queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
+    relationLayerKey: () => 'case', renderedCaseCompositions: new Set(), revealedItemIndices: new Set([0]),
+    ensureFeatureRelationLayer() {}, ensureAgreementCaseRelationLayer: () => select(root),
+    acceptedTerminalRect: () => assigner, acceptedAnchorRect: () => assigner,
+    markPreterminalLensNode() {}, replayPlaqueLayout: new Map([[0, placement]]),
+    focusedRelationMoment: null, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    activeDerivationFrameIndex: 0, caseAssignmentPlaquePath
+  };
+  new Function(...Object.keys(dependencies), ts.transpile(caseBranch.thenStatement.getText(parsed),
+    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+  return root;
+}
+
+test('native Case connector approaches the outside edge for plaques on every side of the assigner', () => {
+  const item = { kind: 'directed-path', pathStyle: 'case-assignment', fromNodeId: 'v', toNodeId: 'dp',
+    featureRow: { label: 'Case', value: 'accusative' }, relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const assigner = { x: 450, y: 450, width: 100, height: 60 };
+  for (const [x, y] of [[650, 570], [0, 280], [350, 600], [350, 150], [0, 600], [650, 150]]) {
+    const box = { x, y, width: 310, height: 138 };
+    const painted = drawCasePlaque(item, box, assigner);
+    const all = descendants(painted);
+    const shell = all.find(node => matches(node, '.babel-feature-plaque-shell'));
+    assert.equal(Number(shell.attrs.x), x);
+    assert.equal(Number(shell.attrs.y), y);
+    const path = all.find(node => matches(node, '.babel-case-assignment-path'));
+    assert(path.attrs['marker-end']);
+    const points = path.attrs.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+    assert.equal(points.length, 8);
+    for (let i = 0; i <= 100; i++) {
+      const t = i / 100, u = 1 - t;
+      const px = u ** 3 * points[0] + 3 * u * u * t * points[2] + 3 * u * t * t * points[4] + t ** 3 * points[6];
+      const py = u ** 3 * points[1] + 3 * u * u * t * points[3] + 3 * u * t * t * points[5] + t ** 3 * points[7];
+      assert(!(px > x && px < x + box.width && py > y && py < y + box.height), 'Case connector entered the plaque');
+    }
+    assert(all.some(node => node.text === '[Case: accusative]'));
+    assert.deepEqual(svgSnapshot(drawCasePlaque(item, box, assigner)), svgSnapshot(painted));
+  }
+});
+
+const savedPlaqueRecords = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
+for (const record of savedPlaqueRecords) {
+  for (const [width, height] of [[1596, 1016], [390, 844]]) {
+    test(`${record.name} ${width}px: native plaque SVG stays attached through deferred painting and reverse scrubbing`, () => {
+      const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
+      const plan = compileRelationRenderPlan(record.derivationStages);
+      const allocations = record.derivationStages.map((stage, stageIndex) => buildStagePlaqueLayout({
+        steps, stageIndex, plan, width, height,
+        completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest)
+      }));
+      const snapshots = new Map();
+      let drawn = 0;
+      const order = [...steps.keys(), ...Array.from(steps.keys()).reverse(), 0, steps.length - 1];
+      for (const stepIndex of order) {
+        const step = steps[stepIndex];
+        const stageIndex = step.replayFrameIndex;
+        const root = d3.hierarchy(step.replayCanvasData);
+        applyVizIds(root);
+        const tree = d3.tree().size(treeLayoutSize(root.descendants().length, root.height, width, height))
+          .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+        const visible = new Set(step.replayVisibleNodeIds);
+        productionFunction('alignReplayUnaryTerminalLeaves', {
+          replayVisibleNodeIdSet: visible, getNodeId: node => node.__vizId ?? node.data.id,
+          isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf
+        })(tree);
+        const nodes = new Map(tree.descendants().map(node => [node.__vizId ?? node.data.id, node]));
+        const layout = projectPlaqueLayout(allocations[stageIndex], id => nodes.get(id) ?? null);
+        const played = new Set(steps.slice(0, stepIndex + 1).flatMap(previous =>
+          previous.replayKind === 'relation' && previous.replayRelationIdentity?.stageIndex === stageIndex
+            ? [previous.replayRelationIdentity.relationIndex] : []));
+        const bound = bindRelationPlanFrame(plan, stageIndex, id => nodes.get(id) ?? null,
+          { plaqueTextLayout: { measureText } });
+        const frameSvg = [];
+        for (const primitive of bound.primitives.filter(primitive => primitive.type === 'plaque')) {
+          const item = plan.frames[stageIndex].items[primitive.itemIndex];
+          if (item.plaqueStyle === 'theta-grid') continue;
+          if (!(item.appearsAtStage < stageIndex || planItemRelationRefs(item).some(ref =>
+            ref.stageIndex === stageIndex && played.has(ref.relationIndex)))) continue;
+          const expected = layout.get(primitive.itemIndex);
+          if (!expected) continue;
+          const painted = drawSavedPlaque(primitive, item, plan.frames[stageIndex].items, layout, nodes, played, stageIndex);
+          const all = descendants(painted);
+          const shell = all.find(node => matches(node, '.babel-feature-plaque-shell, .babel-pf-plate-shell, .vr-plaque'));
+          assert(shell, `frame ${stepIndex + 1}: allocated visible plaque must paint its shell`);
+          drawn++;
+          const isGeneric = matches(shell, '.vr-plaque');
+          const paintedX = isGeneric ? Number(shell.parent.attrs.transform.match(/translate\(([^,]+)/)[1]) : Number(shell.attrs.x);
+          const paintedY = isGeneric ? Number(shell.parent.attrs.transform.match(/,([^)]*)\)/)[1]) : Number(shell.attrs.y);
+          assert(Math.abs(paintedX - expected.x) <= 0.051, `frame ${stepIndex + 1}: painted x differs from reserved domain position`);
+          assert(Math.abs(paintedY - expected.y) <= 0.051, `frame ${stepIndex + 1}: painted y differs from reserved domain position`);
+          assert(all.every(node => !matches(node, '.vr-overlay-marker')), 'plaque must not be independently counter-scaled during zoom');
+          const anchor = nodes.get(expected.attachmentNodeId);
+          for (const transform of [{ k: 0.25, x: -100, y: 50 }, { k: 1, x: 0, y: 0 }, { k: 2, x: 700, y: -300 }]) {
+            const screenPlaque = { x: paintedX * transform.k + transform.x, y: paintedY * transform.k + transform.y };
+            const screenAnchor = { x: anchor.x * transform.k + transform.x, y: anchor.y * transform.k + transform.y };
+            assert(Math.abs((screenPlaque.x - screenAnchor.x) / transform.k - (expected.x - anchor.x)) < 0.051);
+            assert(Math.abs((screenPlaque.y - screenAnchor.y) / transform.k - (expected.y - anchor.y)) < 0.051);
+          }
+          frameSvg.push(svgSnapshot(painted));
+        }
+        if (snapshots.has(stepIndex)) assert.deepEqual(frameSvg, snapshots.get(stepIndex), 'revisiting a frame must paint identical SVG');
+        else snapshots.set(stepIndex, frameSvg);
+      }
+      assert(drawn > 0, 'saved analysis must exercise an actual plaque painter');
+    });
+  }
+}
 const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 1 }) => {
   const svgRoot = new Element('svg');
   const layer = new Element('g', {
@@ -152,7 +317,7 @@ const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 
       constructor(x, y) { this.x = x; this.y = y; }
       matrixTransform(matrix) { return { x: this.x * matrix.scale, y: this.y * matrix.scale }; }
     },
-    placedPfPlateRectsByTarget: new Map(), placeStackedRect,
+    replayPlaqueLayout: new Map([[0, { x: 700, y: 550, location: 'below', domainId: 'head' }]]),
     withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText
   });
   draw.call(layer);

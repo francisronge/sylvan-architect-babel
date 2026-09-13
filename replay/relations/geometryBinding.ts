@@ -241,6 +241,14 @@ export type BoundDomainRegion = {
   itemIndex: number;
 };
 
+/** A thin line from a plaque's anchor to the plaque placed in the gutter. */
+export type BoundLeader = {
+  type: 'leader';
+  from: Point;
+  to: Point;
+  itemIndex: number;
+};
+
 export type BoundPlaque = {
   type: 'plaque';
   plaqueStyle: string;
@@ -414,6 +422,7 @@ export type BoundPrimitive =
   | BoundPathNodeRing
   | BoundDomainRegion
   | BoundPlaque
+  | BoundLeader
   | BoundTextBadge
   | BoundAnalysisVerdict
   | BoundGappingAlignment
@@ -650,13 +659,16 @@ export const boundOverlayBounds = (
         }
         if (primitive.tip) point(primitive.tip.at.x, primitive.tip.at.y, 16 * k);
         return;
+      case 'leader':
+        point(primitive.from.x, primitive.from.y);
+        point(primitive.to.x, primitive.to.y);
+        return;
       case 'plaque':
         // Accepted PF and feature plates are positioned after the ordinary
         // tree fit. They annotate the fitted tree; they never shrink or
-        // recenter it.
+        // recenter it. Gutter plaques are part of the fitted picture.
         if (
-          primitive.plaqueStyle === 'realization'
-          || primitive.plaqueStyle === 'feature'
+          primitive.plaqueStyle === 'realization' || primitive.plaqueStyle === 'feature'
         ) return;
         point(primitive.x, primitive.y);
         point(primitive.x + primitive.width * k, primitive.y + primitive.height * k);
@@ -855,7 +867,7 @@ export const bindRelationPlanFrame = (
     return point;
   };
 
-  /** Same-node badge stacking, allocated in authored order below. */
+  /** Same-node badges form one row, allocated in authored order left to right. */
   const stackCounts = new Map<string, number>();
   const nextStackIndex = (nodeId: string): number => {
     const stackIndex = stackCounts.get(nodeId) ?? 0;
@@ -1030,8 +1042,8 @@ export const bindRelationPlanFrame = (
           type: 'index-badge',
           fitPolicy: 'tree-first',
           nodeId,
-          x: isParasiticGap ? point.x + 32 : point.x + labelWidth / 2,
-          y: point.y + stackIndex * badgeGap * markerScale,
+          x: (isParasiticGap ? point.x + 32 : point.x + labelWidth / 2) + stackIndex * badgeGap * markerScale,
+          y: point.y,
           index: item.index,
           stackIndex,
           itemIndex
@@ -1122,8 +1134,8 @@ export const bindRelationPlanFrame = (
           type: 'index-badge',
           fitPolicy: 'tree-first',
           nodeId,
-          x: point.x + labelWidth / 2,
-          y: point.y + stackIndex * badgeGap,
+          x: point.x + labelWidth / 2 + stackIndex * badgeGap * markerScale,
+          y: point.y,
           index: item.index,
           stackIndex,
           itemIndex
@@ -1816,8 +1828,8 @@ export const bindRelationPlanFrame = (
           type: 'text-badge',
           badgeStyle: item.badgeStyle,
           nodeId: badge.nodeId,
-          x: point.x + labelWidth / 2,
-          y: point.y + stackIndex * badgeGap * markerScale,
+          x: point.x + labelWidth / 2 + stackIndex * badgeGap * markerScale,
+          y: point.y,
           text: badge.text,
           shape: badge.shape,
           stackIndex,
@@ -1978,14 +1990,14 @@ export const bindRelationPlanFrame = (
         markPoints.set(mark.witness, point);
         const stackIndex = nextStackIndex(mark.witness);
         markCenters.set(mark.witness, {
-          x: point.x,
-          y: point.y + labelHeight + stackIndex * badgeGap * markerScale
+          x: point.x + stackIndex * badgeGap * markerScale,
+          y: point.y + labelHeight
         });
         primitives.push({
           type: 'fallback-mark',
           nodeId: mark.witness,
-          x: point.x,
-          y: point.y + labelHeight + stackIndex * badgeGap * markerScale,
+          x: point.x + stackIndex * badgeGap * markerScale,
+          y: point.y + labelHeight,
           frame: mark.frame,
           numeral: mark.position,
           instance: mark.instance,

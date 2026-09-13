@@ -124,7 +124,8 @@ for (const markerScale of [1, 3]) {
     const entry = bind([future, later, old], markerScale);
     assert.deepEqual(offsetOf(markFor(entry, 'fallback-mark', 2)), offsetOf(markFor(before, 'fallback-mark', 0)));
     assert.deepEqual([markFor(entry, 'text-badge', 0).stackIndex, markFor(entry, 'text-badge', 1).stackIndex], [1, 2]);
-    assert.equal(markFor(entry, 'text-badge', 1).y - markFor(entry, 'text-badge', 0).y, 46 * markerScale);
+    assert.equal(markFor(entry, 'text-badge', 1).x - markFor(entry, 'text-badge', 0).x, 46 * markerScale);
+    assert.equal(markFor(entry, 'text-badge', 1).y, markFor(entry, 'text-badge', 0).y);
     const withFirstMomentOnly = bind([future, old], markerScale);
     assert.deepEqual(offsetOf(markFor(entry, 'text-badge', 0)), offsetOf(markFor(withFirstMomentOnly, 'text-badge', 0)));
     assert.deepEqual(entry.primitives.filter((p) => p.type !== 'segment').map((p) => p.itemIndex), [0, 1, 2, 2],

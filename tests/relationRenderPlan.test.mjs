@@ -201,7 +201,7 @@ test('OperatorVariableBinding compiles semantic scope, binding, and index eviden
   assert.equal(item.traceWitnessNodeId, 'variable_trace');
   assert.equal(item.scopeDomainNodeId, 'scope_body');
   assert.ok(item.scopeMemberNodeIds.includes('variable_trace'));
-  assert.equal(item.index, '1');
+  assert.equal(item.index, 'i');
 
   const positions = new Map([
     ['operator_qp', { x: 0, y: 0 }],
