@@ -21,6 +21,139 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Dependability follow-up, 13 September
+
+Francis authorized small, separately reviewed fixes and reaffirmed that model
+linguistic mistakes are benchmark observations, not product shipping blockers.
+Babel must preserve and display the model's analysis faithfully. A demonstrated
+prompt or processing defect that worsens that analysis remains product work.
+This section and ROADMAP.md supersede older unresolved statuses below.
+
+### Recognition combinations and sharing controls
+
+The executable matrix in `tests/tier2ProviderFreeVerification.test.mjs` now
+classifies all 1,120 distinct-field pairs of complete recipe controls. Both
+intended claims survive in 1,078 pairs. Forty others contain competing assignments
+to the same conceptual roles; one PF pair supplies two competing rewrite inputs;
+one phase-edge claim is already covered by the transfer drawing. Field reordering
+preserves these classifications, and every authored field item remains accounted
+for by a recognized claim or neutral remainder. This pass supports no additional
+semantic recognizer change. It does not enumerate every possible open-ontology
+record or certify the linguistic truth of the controls.
+
+The two legacy sharing controls deliberately put one ID beneath two native
+parents. Public normalization rejects that as ambiguous identity. They remain
+low-level topology controls, not valid public positive examples. In particular,
+the Tier-2 multidominance recipe requires native parent sharing that the current
+unique-ID forest cannot encode. That representation boundary needs an explicit
+future design decision, not weaker reference checks. Exact curated sharing
+relations can still specify their participants through ordinary anchors.
+
+### Compilation work and measured limits
+
+Replay previously copied complete descendants before immediately rebuilding them,
+copied an already private layout skeleton for each replacement, and repeatedly
+searched a canvas for the same exact IDs. The compiler now copies only the needed
+node material, edits its own fresh skeleton, indexes each canvas once, and avoids
+recursive grafting for a single unchanged retained tree. Registry lookup computes
+each name-normalization mode once per lookup. None of this adds a persistent cache
+or changes role meanings, scheduling, authored content, or drawing recipes.
+
+On this Mac with Node 24.16.0, the 64-stage/319-frame synthetic control fell from
+about 8.5 seconds to 2.6–2.7 seconds. Three runs in each left/right branching
+orientation are reproducible with `node scripts/benchmarkReplay.mjs`. Sixteen
+stages take about 0.10–0.15 seconds and 32 take about 0.48–0.49 seconds after the
+change. Complete compiled output matches the preceding implementation across
+117 controls and archives, totaling 1,967 frames. Frozen-input and snapshot
+independence regressions guard against the copy optimizations mutating inputs.
+The two small public normalization fixtures take about 0.17 ms each after warmup;
+that narrow observation does not establish large-input normalization speed.
+Long derivations are faster but still not instant. A Chromium run compiled the
+same 64-stage control in 2.29 seconds and delayed the next animation frame by
+2.30 seconds. The remaining UI-thread pause is measured, not hypothetical. The
+next performance investigation should evaluate moving the existing deterministic
+compiler off the UI thread, without duplicating its rules. Larger, varied trees
+and actual deployment hardware still need qualification.
+
+### Extreme plaque overflow and active camera gestures
+
+The previous full-height stress plaque made fitting shrink the whole tree. Text
+plaques now use a scroll viewport only when full content exceeds forty row-font
+heights; that viewport is twenty row-font heights tall. The threshold follows the
+existing text scale, not a relation name or saved example. All authored rows remain
+in the plan and SVG. Ordinary plaques keep their exact DOM and dimensions. The
+full stage reserves the viewport before reveal; small plaques stay local and the
+existing below-subtree placement remains responsible for larger ones.
+
+Wheel and keyboard navigation scroll the owning plaque without zooming the tree.
+Keyboard focus is outlined around the actual viewport; Chromium's native nested
+SVG outline would otherwise extend over clipped content. The same clipped-content
+bounds issue affects Tree Bank fitting. Only snapshots containing a scroll viewport
+use a disposable measurement copy with viewport rectangles; the live tree and saved
+rows remain untouched. The preview is a static image of the visible portion. The
+saved analysis retains all rows; this does not add an all-rows print export.
+
+The integrated browser pass also reproduced a pre-existing active-zoom defect:
+changing Replay frame before a wheel gesture ended left the new tree group without
+its camera transform. Each redraw created a new D3 zoom dispatcher while the old
+gesture still referenced the detached frame. One dispatcher now lasts for the
+component and receives the current frame's handler. No layout, scale, stage
+scheduling or automatic fitting rule changes. A regression drives the real D3
+wheel lifecycle; the recording reproduces the missing transform before the fix
+and the preserved transform afterward.
+
+Verification: all 137 saved desktop frames match their preceding camera, node,
+branch and plaque geometry exactly. Five before/after text controls cover short
+and extreme PF/feature plaques; wheel, End/Home, final-row visibility, Replay
+clearance, zoom/Next and Fit pass. Four real archived bundles plus a 40-row stress
+case pass app save, preserved-stage and standalone SVG-image checks. All four use
+the identical sentence, retain initial `Which`, and preserve the existing panel
+wording. The earlier eight-view save/reopen audit remains separate evidence.
+The full offline gate passes typecheck, 1,626 tests and both parse-contract
+fixtures; the production build and release-asset check pass. Review pages, images,
+two short recordings and receipts are in `/tmp/babel-dependability/`.
+
+Mobile, arbitrary exports, all possible open relation combinations, production
+load and linguistic correctness are not certified by these checks. No paid calls
+or prompt, JSON-repair, incomplete-processing, identity or simultaneity changes
+were made in this follow-up.
+
+### Public route timeouts and disconnects
+
+A real local HTTP server with a scripted provider now covers queued, in-progress,
+completed, failed, cancelled, incomplete, timed-out and disconnected requests.
+No test reaches a model provider. Success preserves Replay and Tree Bank records;
+timeout releases the concurrency slot and does not start replacement generation.
+The shared external-provider route now reports timeout as HTTP 504 with
+`PROVIDER_TIMEOUT`, instead of describing it as a generic 503 transport failure.
+Injected route checks cover all six available model IDs.
+
+A disconnected client currently leaves the server waiting until the provider
+deadline; the test proves that deadline aborts the pending fetch and releases the
+slot. It does not establish immediate cancellation or resumable work. Remote
+background-job cancellation, production proxy deadlines, live provider behavior,
+and revised-prompt cost/latency remain unverified. No public incomplete-analysis
+policy, retry policy, request payload, prompt, or JSON repair changed.
+
+### Judgments and Fable's ending
+
+A local `licensed` outcome with the required judged participant can produce the
+existing check-mark drawing. An authored judgment literal such as `*` remains the
+model's literal. Request completion, prose about convergence, and the local value
+`converged` do not produce that check mark. New outcome-resolver tests protect
+these boundaries. No new judgment symbol or simultaneous-frame behavior is added.
+
+The saved Fable envelopes were replayed again through the historical adapter
+snapshot with fetch replaced by the saved response. Requests and extracted texts
+match exactly. Only two distinct Fable 5.1 archived responses were available;
+Minimalism still ends with five complete stages but no outer `]}`, while X-bar
+closes successfully. The complete Minimalism envelope reports `end_turn` and
+5,779 output tokens against a 20,000-token allowance. This supplies no new evidence
+of the generation-side cause. The detailed hypotheses and exclusions in the
+[ending investigation](#deeper-trace-of-fables-missing-closing-characters) remain
+in force. No paid experiment, prompt change, new helper, or repair-policy change
+was made. Model correctness review remains separate from software qualification.
+
 ## Cross-family recognition audit, 13 September
 
 This later audit supersedes the earlier assignment-focused account of recognition
