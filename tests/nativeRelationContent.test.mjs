@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
@@ -27,6 +28,19 @@ const declaration = (name) => {
   assert.ok(found, `${name} must be the production drawing function`);
   return ts.transpile(`const draw = ${found.getText(parsed)};`, { target: ts.ScriptTarget.ES2023 });
 };
+
+test('label ownership follows exact IDs and derived provenance, never an authored prefix', () => {
+  const matches = new Function('d3', 'isReplayDisplayChild', `${declaration('labelBelongsToNode')} return draw;`)(
+    { select: element => ({ datum: () => element.datum }) }, isReplayDisplayChild);
+  const label = data => ({ datum: { data }, getAttribute: name => name === 'data-node-id' ? data.id : null });
+  const authored = label({ id: 'head::__leaf', label: 'N' });
+  assert.equal(matches(authored, 'head'), false);
+  assert.equal(matches(authored, 'head::__leaf'), true);
+  const generated = label({ id: 'head::__leaf::1', label: 'read', replayOrigin: { kind: 'word', ownerId: 'head' } });
+  assert.equal(matches(generated, 'head'), true);
+  assert.equal(matches(generated, 'head::__leaf'), false);
+  assert.equal(matches(label({ id: 'display', label: 'read', aliasIds: ['authored-word'] }), 'authored-word'), true);
+});
 
 // Execute the production drawing function with a minimal SVG/selection double.
 // Browser checks verify geometry and styling.
@@ -57,6 +71,7 @@ class Selection {
   constructor(nodes) { this.items = nodes; }
   node() { return this.items[0] || null; }
   nodes() { return this.items; }
+  datum() { return this.node()?.datum; }
   append(tag) {
     return new Selection(this.items.map((parent) => {
       const node = new Element(tag);
@@ -130,7 +145,7 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
     exactScreenDirectTreeLabelRectNow: () => ({ x: 0, y: 0, width: 50, height: 30 }),
     exactScreenTreeLabelRectForNodeIdsNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
-    getNodeId: (node) => node.data.id,
+    getNodeId: (node) => node.data.id, isReplayDisplayChild,
     markPreterminalLensNode() {}, markSubtreeLensNodes() {},
     isDisplayTerminalNode: (node) => Boolean(node.data.word),
     resolveLeafSurface: (node) => node.data.word || node.data.label,
@@ -152,6 +167,7 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
     const scheduledAcceptedPfRelations = new Set();
     const scheduledAcceptedSharingRelations = new Set();
     let scopeInformationPathLayer = null, scopeInformationMarkLayer = null;
+    const labelBelongsToNode = (() => { ${declaration('labelBelongsToNode')} return draw; })();
     const acceptedRelationDrawingKey = (() => { ${declaration('acceptedRelationDrawingKey')} return draw; })();
     ${declaration(name)}
     for (const item of drawItems) draw(item, null);

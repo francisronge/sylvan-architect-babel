@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
 import * as d3 from 'd3';
+import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
@@ -74,6 +75,7 @@ class Selection {
   node() { return this.items[0] || null; }
   empty() { return this.items.length === 0; }
   nodes() { return this.items; }
+  datum() { return this.node()?.datum; }
   append(tag) {
     return new Selection(this.items.map(parent => {
       const node = new Element(tag);
@@ -129,6 +131,7 @@ test('the production idiom underlines belong to their chunks, not to the optiona
   }
   const refine = productionFunction('refineIdiomChunkRelation', {
     d3: { select }, g: select(root), measuredSubtreeRect: () => null,
+    labelBelongsToNode: productionFunction('labelBelongsToNode', { d3: { select }, isReplayDisplayChild }),
     treeMatrix: { inverse: () => ({}) },
     DOMPoint: class { constructor(x, y) { this.x = x; this.y = y; } matrixTransform() { return this; } },
     postFitNodeById: new Map(['a', 'b'].map(id => [id, { descendants: () => [{ id }] }])), getNodeId: n => n.id

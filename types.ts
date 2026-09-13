@@ -8,6 +8,8 @@ export interface SyntaxNode {
   id?: string; // Optional ID for D3 indexing
   aliasIds?: string[];
   lineageId?: string;
+  /** Derived display ownership; excluded when projecting the authored syntax contract. */
+  replayOrigin?: import('./replay/displayIdentity.ts').ReplayNodeOrigin;
 }
 
 export type OpenOntologyLabel = string & {};

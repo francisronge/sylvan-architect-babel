@@ -686,8 +686,8 @@ test('production movement uses accepted copy labels and rendered terminal endpoi
   );
   assert.match(
     source,
-    /measuredSubtreeLabelRects[\s\S]*?terminalId\.startsWith\(`\$\{subtreeId\}::`\)[\s\S]*?polygonHull/u,
-    'semantic scope hulls must include Babel synthetic rendered terminals'
+    /measuredSubtreeLabelRects[\s\S]*?labelBelongsToNode\(this, String\(subtreeId\)\)[\s\S]*?polygonHull/u,
+    'semantic scope hulls must use exact display ownership for rendered terminals'
   );
   assert.match(source, /\['#10b981', '#c98a3d', '#e6efeb'\]/u);
 });

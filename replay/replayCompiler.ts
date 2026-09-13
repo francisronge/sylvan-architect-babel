@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import { createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
 import type { DerivationStageRelation } from '../types.ts';
@@ -290,13 +291,15 @@ export const applyVizIds = (root: HierNode) => {
 };
 
 export const isSyntheticWorkspaceRootNode = (node: HierNode): boolean =>
-  String(node.data?.label || '') === DERIVATION_WORKSPACE_ROOT_LABEL;
+  node.data?.replayOrigin?.kind === 'workspace';
 
-export const buildDerivationCanvasData = (forest: SyntaxNode[]): SyntaxNode | null => {
+export const buildDerivationCanvasData = (forest: SyntaxNode[], identity = createReplayIdentityContext(forest)): SyntaxNode | null => {
   if (!Array.isArray(forest) || forest.length === 0) return null;
+  const replayOrigin = { kind: 'workspace' } as const;
   return forest.length === 1 ? forest[0] : {
-    id: DERIVATION_WORKSPACE_ROOT_ID,
+    id: identity.allocate(DERIVATION_WORKSPACE_ROOT_ID, replayOrigin),
     label: DERIVATION_WORKSPACE_ROOT_LABEL,
+    replayOrigin,
     children: forest
   };
 };
@@ -317,7 +320,7 @@ const shouldStabilizeReplayLeafId = (node?: SyntaxNode | null): boolean => {
   return true;
 };
 
-const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null): SyntaxNode | null => {
+const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = createReplayIdentityContext(node ? [node] : [])): SyntaxNode | null => {
   if (!node || typeof node !== 'object') return null;
 
   const walk = (current: SyntaxNode, parentId: string): SyntaxNode => {
@@ -337,7 +340,7 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null): SyntaxNode | nul
       return next;
     }
     delete next.children;
-    if (!parentId || !shouldStabilizeReplayLeafId(current)) return next;
+    if (!parentId || current.replayOrigin || !shouldStabilizeReplayLeafId(current)) return next;
 
     const tokenIndex = Number.isInteger((current as any).tokenIndex)
       ? `tok_${(current as any).tokenIndex}`
@@ -348,7 +351,8 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null): SyntaxNode | nul
       ...(Array.isArray(current.aliasIds) ? current.aliasIds : []),
       String(current.id || '').trim()
     ].filter(Boolean)));
-    next.id = `${parentId}::__lex_${stableKey}`;
+    next.replayOrigin = { kind: 'lexical', ownerId: parentId, authoredId: ownId };
+    next.id = identity.allocate(`${parentId}::__lex_${stableKey}`, next.replayOrigin);
     return next;
   };
 
@@ -357,12 +361,13 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null): SyntaxNode | nul
 
 export const buildRenderableDerivationCanvasData = (
   forest: SyntaxNode[],
-  _resolvedRelationLinks?: ResolvedRelationLink[]
+  _resolvedRelationLinks?: ResolvedRelationLink[],
+  identity = createReplayIdentityContext(forest)
 ): SyntaxNode | null => {
-  const canvas = buildDerivationCanvasData(forest);
+  const canvas = buildDerivationCanvasData(forest, identity);
   if (!canvas) return null;
-  const stableReplayCanvas = stabilizeReplayOvertLeafIds(canvas) || canvas;
-  return materializeReplayPreterminals(stableReplayCanvas);
+  const stableReplayCanvas = stabilizeReplayOvertLeafIds(canvas, identity) || canvas;
+  return materializeReplayPreterminals(stableReplayCanvas, identity);
 };
 
 export const buildRenderableCommittedCanvasData = (
@@ -443,9 +448,10 @@ export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null
 
 export const collectVisibleDerivationNodeIds = (
   forest: SyntaxNode[],
-  resolvedRelationLinks?: ResolvedRelationLink[]
+  resolvedRelationLinks?: ResolvedRelationLink[],
+  identity = createReplayIdentityContext(forest)
 ): Set<string> => {
-  const canvas = buildRenderableDerivationCanvasData(forest, resolvedRelationLinks);
+  const canvas = buildRenderableDerivationCanvasData(forest, resolvedRelationLinks, identity);
   const cloned = cloneSyntaxTree(canvas);
   if (!cloned) return new Set<string>();
   const hierarchy = d3.hierarchy(cloned);
@@ -462,7 +468,8 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
   root: HierNode,
   visibleNodeIds?: Set<string>,
   detachedRootIds?: Set<string>,
-  detachedRootSideHints?: Map<string, number>
+  detachedRootSideHints?: Map<string, number>,
+  identity = createReplayIdentityContext([root.data])
 ): SyntaxNode | null => {
   if (!visibleNodeIds || visibleNodeIds.size === 0) return null;
 
@@ -542,11 +549,7 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
 
   if (forest.length === 0) return null;
   if (forest.length === 1) return forest[0];
-  return {
-    id: DERIVATION_WORKSPACE_ROOT_ID,
-    label: DERIVATION_WORKSPACE_ROOT_LABEL,
-    children: forest
-  };
+  return buildDerivationCanvasData(forest, identity);
 };
 
 const collectRenderableVisibleNodeIds = (
@@ -581,7 +584,7 @@ const collectRenderableVisibleNodeIds = (
     // Show those leaves, but do not auto-reveal ordinary authored descendants.
     (node.children || []).forEach((child) => {
       const childId = getNodeId(child);
-      if (childId.startsWith(`${nodeId}::__`)) visibleIds.add(childId);
+      if (isReplayDisplayChild(child.data, nodeId)) visibleIds.add(childId);
     });
   };
 
@@ -595,14 +598,7 @@ const collectRenderableVisibleNodeIds = (
       return;
     }
 
-    const strippedId = stripSyntheticReplayLeafSuffix(normalizedRequestedId);
-    const strippedNode = nodesById.get(strippedId);
-    if (!strippedNode) return;
-    // A movement frame can replace an overt materialized display leaf with an
-    // authored silent child under the same preterminal. Never retain the old
-    // synthetic id after that replacement: it is not present on this canvas.
-    // Genuine lexical-select frames resolve their display leaf through the
-    // exact-node branch above.
+
   });
 
   return visibleIds.size > 0 ? Array.from(visibleIds) : allRenderableNodeIds;
@@ -610,7 +606,7 @@ const collectRenderableVisibleNodeIds = (
 
 const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): string[] => {
   if (!canvasData) return [];
-  const roots = String(canvasData.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL
+  const roots = canvasData.replayOrigin?.kind === 'workspace'
     ? (Array.isArray(canvasData.children) ? canvasData.children : [])
     : [canvasData];
   return roots
@@ -619,9 +615,9 @@ const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): string[] =
 };
 
 const getReplayLeafSelectionTarget = (
-  root: SyntaxNode
+  root: SyntaxNode, identity: ReplayIdentityContext
 ): { nodeId: string; surface: string } | null => {
-  const renderableRoot = buildRenderableDerivationCanvasData([cloneSyntaxTree(root) || root]);
+  const renderableRoot = buildRenderableDerivationCanvasData([cloneSyntaxTree(root) || root], undefined, identity);
   if (!renderableRoot) return null;
   const hierarchy = d3.hierarchy(renderableRoot);
   applyVizIds(hierarchy);
@@ -635,7 +631,7 @@ const getReplayLeafSelectionTarget = (
   };
 };
 
-const materializeReplayPreterminals = (node: SyntaxNode): SyntaxNode => {
+const materializeReplayPreterminals = (node: SyntaxNode, identity = createReplayIdentityContext([node])): SyntaxNode => {
   const walk = (current: SyntaxNode): SyntaxNode => {
     if (!current || typeof current !== 'object') {
       throw new Error('Replay preterminal expansion requires an authored syntax node.');
@@ -664,8 +660,10 @@ const materializeReplayPreterminals = (node: SyntaxNode): SyntaxNode => {
     }
 
     if (shouldExpandPreterminalLeaf(current)) {
+      const replayOrigin = { kind: 'word', ownerId: current.id } as const;
       next.children = [{
-        id: buildSyntheticReplayLeafId(current, 'leaf', word),
+        id: identity.allocate(buildSyntheticReplayLeafId(current, 'leaf', word), replayOrigin),
+        replayOrigin,
         label: word,
         word,
         ...(String(current.lineageId || '').trim() ? { lineageId: current.lineageId } : {}),
@@ -692,7 +690,8 @@ export const buildDerivationReplaySnapshot = (
   derivationFrames?: ReplayDerivationFrame[],
   detachedRootIds?: Set<string>,
   detachedRootSideHints?: Map<string, number>,
-  layoutScaffoldForest?: SyntaxNode[]
+  layoutScaffoldForest?: SyntaxNode[],
+  identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest)
 ): {
   canvasData: SyntaxNode | null;
   visibleNodeIds: string[];
@@ -731,8 +730,8 @@ export const buildDerivationReplaySnapshot = (
   const effectiveRelationLinks = [...transitionLinks, ...nonMovementLinks];
   const usesLayoutScaffold = Array.isArray(layoutScaffoldForest) && layoutScaffoldForest.length > 0;
   const rawCanvas = stabilizeReplayOvertLeafIds(buildDerivationCanvasData(
-    usesLayoutScaffold ? layoutScaffoldForest : forest
-  ));
+    usesLayoutScaffold ? layoutScaffoldForest : forest, identity
+  ), identity);
   const clonedRawCanvas = cloneSyntaxTree(rawCanvas);
   if (!clonedRawCanvas) {
     return {
@@ -746,7 +745,7 @@ export const buildDerivationReplaySnapshot = (
   applyVizIds(rawHierarchy);
   const semanticVisibleNodeIds = (() => {
     if (!usesLayoutScaffold) return null;
-    const semanticCanvas = stabilizeReplayOvertLeafIds(buildDerivationCanvasData(forest));
+    const semanticCanvas = stabilizeReplayOvertLeafIds(buildDerivationCanvasData(forest, identity), identity);
     const clonedSemanticCanvas = cloneSyntaxTree(semanticCanvas);
     if (!clonedSemanticCanvas) return new Set<string>();
     const semanticHierarchy: HierNode = d3.hierarchy<SyntaxNode>(clonedSemanticCanvas);
@@ -781,13 +780,14 @@ export const buildDerivationReplaySnapshot = (
     rawHierarchy,
     effectiveLayoutNodeIds,
     detachedRootIds,
-    detachedRootSideHints
+    detachedRootSideHints,
+    identity
   );
   const renderableCanvas = visibleRawCanvas
-    ? materializeReplayPreterminals(visibleRawCanvas)
+    ? materializeReplayPreterminals(visibleRawCanvas, identity)
     : (
-      buildRenderableDerivationCanvasData(forest, effectiveRelationLinks)
-      || materializeReplayPreterminals(clonedRawCanvas)
+      buildRenderableDerivationCanvasData(forest, effectiveRelationLinks, identity)
+      || materializeReplayPreterminals(clonedRawCanvas, identity)
     );
   const clonedRenderableCanvas = cloneSyntaxTree(renderableCanvas);
   if (!clonedRenderableCanvas) {
@@ -818,7 +818,7 @@ export const buildDerivationReplaySnapshot = (
         const exactNodeId = getNodeId(exactNode);
         exactNode.children.forEach((child) => {
           const childId = getNodeId(child);
-          if (!childId.startsWith(`${exactNodeId}::__`)) return;
+          if (!isReplayDisplayChild(child.data, exactNodeId)) return;
           if ((child.data as any)?.replayLayoutOnly) return;
           renderableVisibleNodeIds.add(childId);
         });
@@ -1211,6 +1211,7 @@ const buildCurrentMaterialLayoutScaffold = (
     return nextRoots;
   };
 
+  const identity = createReplayIdentityContext([...currentRoots, ...futureRoots]);
   let placeholderIndex = 0;
   const buildLayoutOnlySkeleton = (futureNode: SyntaxNode): SyntaxNode => {
     const originalNodeId = String(futureNode.id || '').trim();
@@ -1221,7 +1222,8 @@ const buildCurrentMaterialLayoutScaffold = (
     }
     if (originalNodeId && currentNodesById.has(originalNodeId)) {
       placeholderIndex += 1;
-      next.id = `__babel_future_layout_${placeholderIndex}__${originalNodeId}`;
+      next.replayOrigin = { kind: 'layout', authoredId: originalNodeId };
+      next.id = identity.allocate(`__babel_future_layout_${placeholderIndex}__${originalNodeId}`, next.replayOrigin);
       delete next.aliasIds;
       delete next.lineageId;
       delete next.tokenIndex;
@@ -1284,12 +1286,9 @@ const buildCurrentMaterialLayoutScaffold = (
       );
     });
 
-  const containsUnauthorizedFutureOccurrence = Array.from(
-    collectExactNodesByIdInForest(scaffold).keys()
-  ).some((nodeId) => {
-    const match = nodeId.match(/^__babel_future_layout_\d+__(.+)$/u);
-    return Boolean(match && !allowedFutureOccurrenceIds.has(match[1]));
-  });
+  const containsUnauthorizedFutureOccurrence = Array.from(collectExactNodesByIdInForest(scaffold).values())
+    .flat().some(node => node.replayOrigin?.kind === 'layout'
+      && !allowedFutureOccurrenceIds.has(node.replayOrigin.authoredId || ''));
   if (containsUnauthorizedFutureOccurrence) return null;
 
   return forestCanUseCurrentMaterialLayoutScaffold(currentRoots, scaffold) ? scaffold : null;
@@ -2228,6 +2227,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
   sentence?: string,
   replayPlan?: DerivationReplayPlan | null
 ): PlaybackStep[] => {
+  const identity = createReplayIdentityContext(frames.flatMap(frame => frame.workspaceForest || []));
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
   const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
   const pendingProjectionReveals: Array<{
@@ -2438,7 +2438,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       : [];
     const currentFrameVisibleNodeIds = collectVisibleDerivationNodeIds(
       workspaceRoots,
-      authoredCumulativeRelationRelationLinks
+      authoredCumulativeRelationRelationLinks, identity
     );
     const frameReplaySnapshot = buildDerivationReplaySnapshot(
       workspaceRoots,
@@ -2449,7 +2449,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       frames,
       undefined,
       undefined,
-      futureLayoutScaffold || undefined
+      futureLayoutScaffold || undefined, identity
     );
     const frameReplayBlocks = buildFrameReplayBlocks(
       frame,
@@ -2466,11 +2466,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
     );
     const frameLayoutTopology = futureLayoutScaffold || workspaceRoots;
     const preauthorizedFramePlaceholderIds = new Set(
-      Array.from(collectExactNodesByIdInForest(frameLayoutTopology).keys())
-        .flatMap((nodeId) => {
-          const match = String(nodeId || '').match(/^__babel_future_layout_\d+__(.+)$/u);
-          return match?.[1] ? [match[1]] : [];
-        })
+      Array.from(collectExactNodesByIdInForest(frameLayoutTopology).values()).flat()
+        .flatMap(node => node.replayOrigin?.kind === 'layout' && node.replayOrigin.authoredId ? [node.replayOrigin.authoredId] : [])
     );
     const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[]): SyntaxNode[] | undefined => {
       const scaffold = buildCurrentMaterialLayoutScaffold(
@@ -2780,7 +2777,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId))
           );
           const targetSyntheticLeafNodeIds = shouldReserveHeadLandingLeaf && placement.authoredTargetNodeId
-            ? [`${placement.authoredTargetNodeId}::__leaf`]
+            ? [identity.allocate(`${placement.authoredTargetNodeId}::__leaf`, { kind: 'word', ownerId: placement.authoredTargetNodeId })]
             : [];
           relationVisibleNodeIdsByIndex.set(
             placement.relationIndex,
@@ -3002,8 +2999,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
               requestedVisibleNodeIds.add(nodeId);
               requestedLayoutNodeIds.add(nodeId);
               if (isHeadLikeResolvedRelation(link)) {
-                requestedVisibleNodeIds.add(`${nodeId}::__leaf`);
-                requestedLayoutNodeIds.add(`${nodeId}::__leaf`);
+                requestedVisibleNodeIds.add(identity.allocate(`${nodeId}::__leaf`, { kind: 'word', ownerId: nodeId }));
+                requestedLayoutNodeIds.add(identity.allocate(`${nodeId}::__leaf`, { kind: 'word', ownerId: nodeId }));
               }
             });
           });
@@ -3017,17 +3014,17 @@ export const buildPlaybackStepsFromDerivationFrames = (
             frames,
             undefined,
             undefined,
-            activeFutureLayoutScaffold
+            activeFutureLayoutScaffold, identity
           );
           return {
             ...snapshotForest,
             usesFutureLayoutScaffold: Boolean(activeFutureLayoutScaffold),
             visibleNodeIds: snapshotForest.visibleNodeIds.filter((nodeId) =>
               !inactiveTrajectoryTargetNodeIds.has(
-                stripSyntheticReplayLeafSuffix(String(nodeId || '').trim())
+                replayOwnerId(snapshotForest.canvasData, String(nodeId || '').trim())
               )
               && !inactivePhrasalLandingHostNodeIds.has(
-                stripSyntheticReplayLeafSuffix(String(nodeId || '').trim())
+                replayOwnerId(snapshotForest.canvasData, String(nodeId || '').trim())
               )
             ),
             activeRelationLinks,
@@ -3134,7 +3131,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
         ): boolean => {
           const operation = String(step.operation || '').trim();
           if (!['LexicalSelect', 'Project', 'ExternalMerge'].includes(operation)) return false;
-          const stepTargetNodeId = stripSyntheticReplayLeafSuffix(String(step.targetNodeId || '').trim());
+          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
           if (!stepTargetNodeId) return false;
           return relationPlacements.some((placement) => {
             if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return false;
@@ -3158,7 +3155,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
          */
         const activeRelationIndexes = new Set<number>();
         const normalizeWithheldLandingHostStep = (step: PlaybackStep): PlaybackStep => {
-          const stepTargetNodeId = stripSyntheticReplayLeafSuffix(String(step.targetNodeId || '').trim());
+          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
           if (!stepTargetNodeId) return step;
           const withheldLandingNodeIds = new Set(
             relationPlacements
@@ -3256,7 +3253,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const beforeMovement: typeof pendingStructuralStepEntries = [];
           const afterMovement: typeof pendingStructuralStepEntries = [];
           pendingStructuralStepEntries.forEach((entry) => {
-            const stepTargetNodeId = stripSyntheticReplayLeafSuffix(
+            const stepTargetNodeId = replayOwnerId(entry.step.replayCanvasData,
               String(entry.step.targetNodeId || '').trim()
             );
             (movementPrerequisiteNodeIds.has(stepTargetNodeId) ? beforeMovement : afterMovement).push(entry);
@@ -3266,7 +3263,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           );
           const deferredStructuralTargetNodeIds = new Set(
             afterMovement
-              .map((entry) => stripSyntheticReplayLeafSuffix(
+              .map((entry) => replayOwnerId(entry.step.replayCanvasData,
                 String(entry.step.targetNodeId || '').trim()
               ))
               .filter(Boolean)
@@ -3281,7 +3278,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
                   const normalizedNodeId = String(nodeId || '').trim();
                   return !deferredVisibleNodeIds.has(normalizedNodeId)
                     && !deferredStructuralTargetNodeIds.has(
-                      stripSyntheticReplayLeafSuffix(normalizedNodeId)
+                      replayOwnerId(entry.step.replayCanvasData, normalizedNodeId)
                     );
                 })
             }
@@ -3299,7 +3296,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           if (!landingHostNodeId) return pendingStructuralSteps.length;
           if (movementCreatedLandingHosts.length === 1) {
             const firstNonPrerequisiteIndex = pendingStructuralSteps.findIndex((step) => {
-              const stepTargetNodeId = stripSyntheticReplayLeafSuffix(
+              const stepTargetNodeId = replayOwnerId(step.replayCanvasData,
                 String(step.targetNodeId || '').trim()
               );
               return !movementPrerequisiteNodeIds.has(stepTargetNodeId);
@@ -3309,7 +3306,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               : pendingStructuralSteps.length;
           }
           const firstHigherProjectionIndex = pendingStructuralSteps.findIndex((step) => {
-            const stepTargetNodeId = stripSyntheticReplayLeafSuffix(
+            const stepTargetNodeId = replayOwnerId(step.replayCanvasData,
               String(step.targetNodeId || '').trim()
             );
             if (!stepTargetNodeId) return false;
@@ -3530,7 +3527,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             frames,
             sentence,
             [],
-            structuralLayoutScaffold || undefined
+            structuralLayoutScaffold || undefined, identity
           )
         : [];
     if (rootIntroductionMicrosteps.length > 1) {
@@ -3549,7 +3546,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           frames,
           sentence,
           [],
-          structuralLayoutScaffold || undefined
+          structuralLayoutScaffold || undefined, identity
         )
       : [];
 
@@ -3603,7 +3600,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
         const lexicalReplaySteps = newlySelectedRoots.flatMap((root, rootIndex) => {
           const rootId = String(root?.id || '').trim() || `__derivation_${index}_lex_${lexicalStepCursor + 1}`;
           const projectedLabel = String(root?.label || '').trim() || 'Workspace';
-          const leafTarget = getReplayLeafSelectionTarget(root);
+          const leafTarget = getReplayLeafSelectionTarget(root, identity);
           const rootSubtreeIds = collectSyntaxSubtreeNodeIds(root);
           const pendingRootSubtreeIds = newlySelectedRoots
             .slice(rootIndex + 1)
@@ -3627,7 +3624,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               selectLayoutNodeIds,
               frames,
               undefined,
-              preferredWorkspaceRootSideHints
+              preferredWorkspaceRootSideHints, undefined, identity
             );
             lexicalStepCursor += 1;
             lexicalSteps.push({
@@ -3660,7 +3657,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             projectLayoutNodeIds,
             frames,
             undefined,
-            preferredWorkspaceRootSideHints
+            preferredWorkspaceRootSideHints, undefined, identity
           );
           lexicalStepCursor += 1;
           lexicalSteps.push({
@@ -4132,7 +4129,7 @@ const findCollapsedNullSelectionInProjectStep = (
 
   const leafId = nullLeafIds[0];
   const leafParentId = findParentNodeIdInForest([step.replayCanvasData as SyntaxNode], leafId);
-  const targetNodeId = stripSyntheticReplayLeafSuffix(String(step.targetNodeId || '').trim());
+  const targetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
   const leafIsInsideProjectTarget =
     Boolean(leafParentId && newlyVisibleIds.includes(leafParentId))
     || Boolean(targetNodeId && leafParentId === targetNodeId);
@@ -4348,7 +4345,7 @@ const normalizeReplaySentenceInitialCasing = (
     if (!step.replayCanvasData) return step;
     const clonedCanvas = cloneSyntaxTree(step.replayCanvasData);
     if (!clonedCanvas) return step;
-    if (String(clonedCanvas.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL) return step;
+    if (clonedCanvas.replayOrigin?.kind === 'workspace') return step;
 
     let changed = false;
     const currentLeaves = collectOvertLeafNodeIdsInOrder(clonedCanvas)
@@ -4358,7 +4355,7 @@ const normalizeReplaySentenceInitialCasing = (
         const pathNodes = path.map((_, index) => (
           getNodeAtForestPath([clonedCanvas], path.slice(0, index + 1))
         ));
-        if (pathNodes.some((node) => String(node?.id || '').startsWith('__babel_future_layout_'))) return null;
+        if (pathNodes.some((node) => node.replayOrigin?.kind === 'layout')) return null;
         const leaf = findNodeByIdInForest([clonedCanvas], leafId);
         return leaf
           ? {
@@ -4399,7 +4396,7 @@ const normalizeReplaySentenceInitialCasing = (
       if (!normalizedNodeId) return '';
       const exact = casingByLeafId.get(normalizedNodeId);
       if (exact) return exact;
-      const node = findNodeByIdInForest([clonedCanvas], normalizedNodeId.replace(/::__leaf$/, ''));
+      const node = findNodeByIdInForest([clonedCanvas], replayOwnerId(clonedCanvas, normalizedNodeId));
       if (!node) return '';
       const matchingLeafId = collectOvertLeafNodeIdsInOrder(node).find((leafId) => casingByLeafId.has(leafId));
       return matchingLeafId ? String(casingByLeafId.get(matchingLeafId) || '') : '';
@@ -4756,11 +4753,6 @@ const findParentNodeIdInForest = (forest: SyntaxNode[], targetNodeId: string): s
   }
   return '';
 };
-
-/** Strips only Replay's own `::__` display-leaf suffixes; authored id text is never rewritten. */
-const stripSyntheticReplayLeafSuffix = (value?: string): string =>
-  String(value || '').trim().replace(/::__[^:]+$/, '');
-
 
 const resolvedRelationLinkKey = (link?: ResolvedRelationLink | null): string => [
   String(link?.relationIndex || '').trim(),
@@ -5706,7 +5698,8 @@ export const buildStructuralDerivationPlaybackSteps = (
   derivationFrames?: ReplayDerivationFrame[],
   sentence?: string,
   suppressedRelationLinks?: ResolvedRelationLink[],
-  layoutScaffoldForest?: SyntaxNode[]
+  layoutScaffoldForest?: SyntaxNode[],
+  identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest)
 ): PlaybackStep[] => {
   const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
   const effectiveRelationLinks = resolvedRelationLinks || [];
@@ -5714,7 +5707,7 @@ export const buildStructuralDerivationPlaybackSteps = (
   const snapshotResolvedRelationLinks = Array.isArray(suppressedRelationLinks) && suppressedRelationLinks.length > 0
     ? structuralRelationLinks
     : resolvedRelationLinks;
-  const canvas = buildRenderableDerivationCanvasData(forest, structuralRelationLinks);
+  const canvas = buildRenderableDerivationCanvasData(forest, structuralRelationLinks, identity);
   const cloned = cloneSyntaxTree(canvas);
   if (!cloned) return [];
   const hierarchy: HierNode = d3.hierarchy<SyntaxNode>(cloned);
@@ -5899,7 +5892,7 @@ export const buildStructuralDerivationPlaybackSteps = (
 
     const visibleWorkspaceSnapshot = buildVisibleSyntaxSnapshotFromHierarchy(
       hierarchy,
-      snapshotVisibleNodeIds
+      snapshotVisibleNodeIds, undefined, undefined, identity
     );
     const activeLayoutScaffold = layoutScaffoldForest
       && forestCanUseCurrentMaterialLayoutScaffold(forest, layoutScaffoldForest)
@@ -5914,7 +5907,7 @@ export const buildStructuralDerivationPlaybackSteps = (
       derivationFrames,
       undefined,
       undefined,
-      activeLayoutScaffold
+      activeLayoutScaffold, identity
     );
     const workspaceAfter = extractReplayWorkspaceLabels(visibleWorkspaceSnapshot);
     const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(visibleWorkspaceSnapshot);
@@ -5927,7 +5920,7 @@ export const buildStructuralDerivationPlaybackSteps = (
           parentLabel: String(node.parent?.data?.label || '').trim(),
           tokenIndex: Number(node.data?.tokenIndex),
           visibleOvertLeafIds,
-          isWorkspaceForest: String(visibleWorkspaceSnapshot?.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL
+          isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
         })
       : rawTargetLabel;
     const preFrontingLexicalTargetLabel = targetLabel;
@@ -5944,7 +5937,7 @@ export const buildStructuralDerivationPlaybackSteps = (
                 parentLabel: String(node.parent?.data?.label || '').trim(),
                 tokenIndex: Number(node.data?.tokenIndex),
                 visibleOvertLeafIds,
-                isWorkspaceForest: String(visibleWorkspaceSnapshot?.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL
+                isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
               })
         ].filter(Boolean);
 

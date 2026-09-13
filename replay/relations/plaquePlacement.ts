@@ -17,7 +17,7 @@ export function plaqueIdentity(item: RelationPlanItem): string {
       : item.kind === 'directed-path' ? [item.pathStyle, item.fromNodeId, item.toNodeId, item.featureRow] : null]);
 }
 const idOf = (node: Node): string => String((node as Node & { __vizId?: string }).__vizId ?? node.data.id ?? '');
-const visible = (node: Node) => node.data.label !== '__DERIVATION_WORKSPACE__';
+const visible = (node: Node) => node.data.replayOrigin?.kind !== 'workspace';
 const union = (rects: PlaqueRect[]): PlaqueRect => {
   const x = Math.min(...rects.map(rect => rect.x));
   const y = Math.min(...rects.map(rect => rect.y));

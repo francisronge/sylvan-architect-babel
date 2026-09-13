@@ -4,6 +4,7 @@ import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
+import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { availableTreeViewport, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
@@ -171,6 +172,13 @@ const drawPlaqueText = (
     .attr('x', origin.x + line.x).attr('y', origin.y + line.y).text(line.text));
 };
 
+const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boolean => {
+  const node = d3.select<SVGGraphicsElement, HierNode>(element).datum();
+  return element.getAttribute('data-category-node-id') === id
+    || element.getAttribute('data-node-id') === id
+    || Boolean(node?.data && (node.data.aliasIds?.includes(id) || isReplayDisplayChild(node.data, id)));
+};
+
 interface TreeVisualizerProps {
   data: SyntaxNode;
   animated?: boolean;
@@ -299,6 +307,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!committedDerivationFrame) {
       return {
         label: DERIVATION_WORKSPACE_ROOT_LABEL,
+        replayOrigin: { kind: 'workspace' },
         children: []
       } as SyntaxNode;
     }
@@ -1376,7 +1385,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             parentLabel: String(node.parent?.data?.label || '').trim(),
             tokenIndex: getReplayTokenIndex(node),
             visibleOvertLeafIds,
-            isWorkspaceForest: String(clonedCanvasData?.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL,
+            isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
             hasNominalComplement: replayDeterminerHasNominalComplement(node)
           });
         }
@@ -1409,7 +1418,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         parentLabel: String(node.parent?.data?.label || '').trim() || fallbackParentLabel || committedParentLabel,
         tokenIndex: getReplayTokenIndex(node),
         visibleOvertLeafIds,
-        isWorkspaceForest: String(clonedCanvasData?.label || '').trim() === DERIVATION_WORKSPACE_ROOT_LABEL,
+        isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
         hasNominalComplement: replayDeterminerHasNominalComplement(node)
       });
     };
@@ -2136,13 +2145,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           subtree ? '.category-label, .terminal-label' : '.category-label'
         )
           .filter(function exactAuthoredNodeLabel() {
-            const categoryId = this.getAttribute('data-category-node-id') || '';
-            const terminalId = this.getAttribute('data-node-id') || '';
             return [...nodeIds].some((candidateId) =>
-              categoryId === candidateId
-              || terminalId === candidateId
-              || terminalId.startsWith(`${candidateId}::`)
-              || terminalId.startsWith(`${candidateId}__`));
+              labelBelongsToNode(this, candidateId));
           })
           .nodes();
         const matrix = g.node()?.getScreenCTM();
@@ -2174,13 +2178,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const exactScreenDirectTreeLabelRectNow = (nodeId: string) => {
         const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
           .filter(function exactAuthoredDirectNodeLabel() {
-            const categoryId = this.getAttribute('data-category-node-id') || '';
-            const terminalId = this.getAttribute('data-node-id') || '';
-            return categoryId === nodeId
-              || categoryId.startsWith(`${nodeId}::`)
-              || terminalId === nodeId
-              || terminalId.startsWith(`${nodeId}::`)
-              || terminalId.startsWith(`${nodeId}__`);
+            return labelBelongsToNode(this, String(nodeId));
           })
           .nodes();
         const matrix = g.node()?.getScreenCTM();
@@ -2219,13 +2217,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         });
         const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
           .filter(function exactAuthoredSubtrees() {
-            const categoryId = this.getAttribute('data-category-node-id') || '';
-            const terminalId = this.getAttribute('data-node-id') || '';
             return [...expandedNodeIds].some((candidateId) =>
-              categoryId === candidateId
-              || terminalId === candidateId
-              || terminalId.startsWith(`${candidateId}::`)
-              || terminalId.startsWith(`${candidateId}__`));
+              labelBelongsToNode(this, candidateId));
           })
           .nodes();
         const matrix = g.node()?.getScreenCTM();
@@ -2694,13 +2687,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               );
               g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
                 .filter(function sharedSubtreeLabel() {
-                  const categoryId = this.getAttribute('data-category-node-id') || '';
-                  const terminalId = this.getAttribute('data-node-id') || '';
                   return [...sharedIds].some((nodeId) =>
-                    categoryId === nodeId
-                    || terminalId === nodeId
-                    || terminalId.startsWith(`${nodeId}::`)
-                    || terminalId.startsWith(`${nodeId}__`));
+                    labelBelongsToNode(this, String(nodeId)));
                 })
                 .classed('babel-multidominance-shared-label', true)
                 .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
@@ -3537,51 +3525,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               ]);
               const directTerminals = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
                 .filter(function exactScopeDirectTerminal() {
-                  const terminalId = this.getAttribute('data-node-id') || '';
-                  return terminalId === nodeId
-                    || terminalId.startsWith(`${nodeId}::`)
-                    || terminalId.startsWith(`${nodeId}__`);
+                  return labelBelongsToNode(this, String(nodeId));
                 })
                 .nodes();
               if (preferTerminal && directTerminals.length > 0) return directTerminals;
               const subtreeTerminals = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
                 .filter(function exactScopeSubtreeTerminal() {
-                  const terminalId = this.getAttribute('data-node-id') || '';
                   return [...subtreeIds].some((candidateId) =>
-                    terminalId === candidateId
-                    || terminalId.startsWith(`${candidateId}::`)
-                    || terminalId.startsWith(`${candidateId}__`));
+                    labelBelongsToNode(this, candidateId));
                 })
                 .nodes();
               if (preferTerminal && subtreeTerminals.length > 0) return subtreeTerminals;
               const categories = g.selectAll<SVGTextElement, HierNode>('.category-label')
                 .filter(function exactScopeCategory() {
-                  const categoryId = this.getAttribute('data-category-node-id') || '';
-                  return categoryId === nodeId || categoryId.startsWith(`${nodeId}::`);
+                  return labelBelongsToNode(this, String(nodeId));
                 })
                 .nodes();
               if (categories.length > 0) return categories;
               const direct = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
                 .filter(function exactScopeDirectLabel() {
-                  const categoryId = this.getAttribute('data-category-node-id') || '';
-                  const terminalId = this.getAttribute('data-node-id') || '';
-                  return categoryId === nodeId
-                    || categoryId.startsWith(`${nodeId}::`)
-                    || terminalId === nodeId
-                    || terminalId.startsWith(`${nodeId}::`)
-                    || terminalId.startsWith(`${nodeId}__`);
+                  return labelBelongsToNode(this, String(nodeId));
                 })
                 .nodes();
               if (direct.length > 0) return direct;
               return g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
                 .filter(function exactScopeSubtreeLabel() {
-                  const categoryId = this.getAttribute('data-category-node-id') || '';
-                  const terminalId = this.getAttribute('data-node-id') || '';
                   return [...subtreeIds].some((candidateId) =>
-                    categoryId === candidateId
-                    || terminalId === candidateId
-                    || terminalId.startsWith(`${candidateId}::`)
-                    || terminalId.startsWith(`${candidateId}__`));
+                    labelBelongsToNode(this, candidateId));
                 })
                 .nodes();
             };
@@ -4320,14 +4290,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const ghostNodeIds = new Set(strikeItem.ghostNodeIds);
             const ghostLabels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
               .filter(function acceptedLfGhostLabel() {
-                const categoryId = this.getAttribute('data-category-node-id') || '';
-                const terminalId = this.getAttribute('data-node-id') || '';
                 return [...ghostNodeIds].some((nodeId) =>
-                  categoryId === nodeId
-                  || categoryId.startsWith(`${nodeId}::`)
-                  || terminalId === nodeId
-                  || terminalId.startsWith(`${nodeId}::`)
-                  || terminalId.startsWith(`${nodeId}__`));
+                  labelBelongsToNode(this, String(nodeId)));
               });
             ghostLabels
               .classed('babel-lf-ghost-label', true)
@@ -6884,8 +6848,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 return subtreeIds.has(datumId)
                   || subtreeIds.has(terminalId)
                   || [...subtreeIds].some((nodeId) => (
-                    terminalId.startsWith(`${nodeId}::`)
-                    || terminalId.startsWith(`${nodeId}__`)
+                    labelBelongsToNode(this, String(nodeId))
                   ));
               })
               .each(function strikeDeletionTerminal() {
@@ -7029,13 +6992,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const visualLabelsForNodeSet = (nodeIds: Set<string>) =>
         g.selectAll<SVGTextElement, unknown>('.terminal-label, .category-label')
           .filter(function labelBelongsToAcceptedSet() {
-            const categoryId = this.getAttribute('data-category-node-id') || '';
-            const terminalId = this.getAttribute('data-node-id') || '';
             return [...nodeIds].some((nodeId) => (
-              categoryId === nodeId
-              || terminalId === nodeId
-              || terminalId.startsWith(`${nodeId}::`)
-              || terminalId.startsWith(`${nodeId}__`)
+              labelBelongsToNode(this, String(nodeId))
             ));
           });
       ghostLensRequests.forEach((request) => {
@@ -7252,7 +7210,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             return subtreeIds.has(datumId)
               || subtreeIds.has(categoryId)
               || subtreeIds.has(terminalId)
-              || [...subtreeIds].some((subtreeId) => terminalId.startsWith(`${subtreeId}::`));
+              || [...subtreeIds].some((subtreeId) => labelBelongsToNode(this, String(subtreeId)));
           })
           .nodes();
         return measureGraphicsElementsInTreeSpace(labels);
@@ -7271,7 +7229,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             return subtreeIds.has(datumId)
               || subtreeIds.has(categoryId)
               || subtreeIds.has(terminalId)
-              || [...subtreeIds].some((subtreeId) => terminalId.startsWith(`${subtreeId}::`));
+              || [...subtreeIds].some((subtreeId) => labelBelongsToNode(this, String(subtreeId)));
           })
           .nodes()
           .map((label) => measureGraphicsElementsInTreeSpace([label]))
@@ -7412,7 +7370,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             return subtreeIds.has(datumId)
               || subtreeIds.has(categoryId)
               || subtreeIds.has(terminalId)
-              || [...subtreeIds].some((subtreeId) => terminalId.startsWith(`${subtreeId}::`));
+              || [...subtreeIds].some((subtreeId) => labelBelongsToNode(this, String(subtreeId)));
           })
           .nodes();
         return measureRenderedElementsInTreeSpace(labels);
@@ -8008,7 +7966,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const terminalId = this.getAttribute('data-node-id') || '';
               return chunkIds.has(datumId)
                 || chunkIds.has(terminalId)
-                || [...chunkIds].some((chunkId) => terminalId.startsWith(`${chunkId}::`));
+                || [...chunkIds].some((chunkId) => labelBelongsToNode(this, String(chunkId)));
             })
             .nodes()
             .forEach((terminal) => terminalElements.add(terminal));
