@@ -244,9 +244,9 @@ supersede the earlier browser-blocked status below.
 | Starting-point items | Current disposition | Remaining work |
 | --- | --- | --- |
 | 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the prototype. Generated coindices use letters there; circled Tier-3 numbers keep their approved locator meaning. | Preserve the accepted appearance; stress long values/many rows and verify application exports. Mobile readability is deferred. |
-| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Five remaining within-stage shifts in the saved captures all accompany structural movement. Historical future-position reservation is already represented in current Replay. | Preserve accepted sizing and spacing. Determine whether those movement shifts can be reduced without changing current syntax; qualify active zoom/Next. The theta-grid clipping control now fits by translation alone; within-stage fitting, manual zoom and Fit controls pass. Extreme content still needs a readable overflow design. |
+| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Five remaining within-stage shifts in the saved captures all accompany structural movement. Historical future-position reservation is already represented in current Replay. | Preserve accepted sizing and spacing. Determine whether those movement shifts can be reduced without changing current syntax; qualify active zoom/Next. The theta-grid clipping control now fits by translation alone; within-stage fitting, manual zoom and Fit controls pass. Extreme content still needs a readable overflow design. A later offline audit reproduces early QR landing reveal when only the registered relation name is capitalized; remove the raw-name recheck without changing accepted timing. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 saved relation moments have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
-| 5–8: interpretation and neutral content | The 36-relation audit accounts for all 22 neutral-content relations. Shared-participant preservation and property-order-independent paired literals are fixed. Qualified Case/theta assignment roles and feature-search role implications use shared evidence rules in Tier 1 and Tier 2. | Recognition coverage remains incomplete. Continue establishing evidence requirements for unsupported wh meanings, government and PF context. Keep negative controls and exact field ownership; do not substitute an alias patch or extract missing literals from titles. |
+| 5–8: interpretation and neutral content | The saved audit accounts for all 22 neutral-content relations. A later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes. It reproduces downstream spelling-dependent value loss, duplicate internal slots, and checks that extend beyond their owning claim. | Repair the shared interpretation-to-drawing handoff, then slot equivalence and claim-scoped checks. The model authors the linguistics; Babel must not judge or invent it. Preserve negative controls, exact field ownership and missing-literal boundaries. See the [cross-family audit](docs/implementation/contract-qualification/system-audit.md#cross-family-recognition-audit-13-september). |
 | 9: generated identity | Generated words, lexical display IDs, workspace roots and layout placeholders carry explicit ownership. Compilation reserves authored IDs from every stage; scheduling and label attachment do not parse suffixes. Collision and renamed-archive regressions pass. | Preserve opaque authored IDs when adding future display objects. |
 | 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. Saved HTTP/text hashes reconfirm Fable's omission before Babel processing; its generation-side cause is unknown. | Investigate the failure before changing behavior or settling policy. Distinguish facts, hypotheses and prevention evidence. No helper or paid experiment is authorized. |
 | 13–14: simultaneity and judgments | Separate authored relation moments remain the accepted default. | No contract change for simultaneity. Consider it only if an extremely simple unchanged-contract solution is worthwhile. Keep authored judgment literals, application processing status and convergence prose distinct; judgment presentation remains undecided. |
@@ -256,23 +256,36 @@ supersede the earlier browser-blocked status below.
 
 Next work, in order:
 
-1. Resolve readability for extreme plaque content. The bounded fit now prevents
-   clipping and preserves already-fitting views, but fitting a very tall plaque
-   makes the whole tree small. Investigate use of available width and layout space
-   before changing accepted composition. Verify application exports and identical
+1. Repair the shared handoff from interpretation to drawing and Replay. The
+   cross-family audit reproduces lost value labels and a missing native plaque
+   despite successful recognition, plus early QR landing reveal under a change
+   in relation-name capitalization. Carry prepared values, role meanings and
+   registered identity forward; remove repeated raw-spelling decisions. Preserve
+   authored text, complete signatures, literal pairing and accepted geometry.
+2. Make equivalent spellings of an internal slot explicit, and confine conflicts
+   and local structural checks to their owning claim. Distinct enclosure claims
+   can currently suppress one another; unrelated workspace changes can prevent
+   a local sequence drawing. Keep genuine ambiguity neutral. These are proposed
+   repairs from the audit, not implemented changes.
+3. Consolidate explicit/context-dependent meaning in the existing shared rules.
+   Do not add aliases per saved example. Babel represents model-authored claims;
+   it does not validate linguistic theories or supply missing claims. Unsupported
+   wh meanings, government and PF context remain separate interpretation questions.
+4. Preserve accepted plaque placement. Test available width for extreme content
+   before changing composition. Scrolling is permitted only for egregiously long
+   plaques if demonstrated necessary; ordinary large plaques stay below the tree
+   without a new scrolling interaction. Verify application exports and identical
    sentence casing. Broad mobile readability remains deferred.
-2. Continue interpretation research for unsupported wh meanings, government and
-   PF host context. Existing Case/theta records without value literals stay neutral.
-   Keep complete evidence, negative controls and exact field ownership as the gate.
-3. Measure remaining long-derivation costs and browser responsiveness. Shared tree
+5. Measure remaining long-derivation costs and browser responsiveness. Shared tree
    indices improved compilation, but eight seconds for 64 stages is still too slow.
-   Reuse work within the compilation before proposing persistent caching.
-4. Continue qualified linguistic review and preserve the saved chronology conflicts.
-   No participant-free graphic is justified by the current evidence.
-5. Hold JSON-repair and incomplete-processing policy changes while Fable's cause is
-   unresolved. Separate relation frames remain acceptable. Discuss judgment examples
-   before changing presentation. Finish remaining offline public-route checks;
-   paid model qualification requires a separately approved purpose and budget.
+   Reuse work within compilation before proposing persistent caching.
+6. Keep qualified review of the models' linguistic analyses separate from Babel's
+   renderer checks, and preserve saved chronology conflicts. No participant-free
+   graphic is justified by the current evidence. Hold JSON-repair and incomplete-
+   processing policy changes while Fable's cause is unresolved. Separate relation
+   frames remain acceptable. Judgment presentation remains undecided. Finish the
+   remaining offline public-route checks; paid model qualification requires a
+   separately approved purpose and budget.
 
 Do not reopen model-owned traces/nulls/wordless heads, whole-phrase silence,
 explicit list pairing, complete Tier-1 requirements, smaller Tier-2 combinations,

@@ -21,6 +21,131 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Cross-family recognition audit, 13 September
+
+This later audit supersedes the earlier assignment-focused account of recognition
+coverage. Francis requested an audit across supported drawings and reaffirmed
+that **the model authors the linguistics**. Babel checks record references and
+whether a drawing can faithfully express the authored claim. It must not decide
+whether Binding, Case, government, locality or an analysis is linguistically
+correct. A failure to prepare a drawing is not a verdict on the analysis.
+
+This pass changes documentation only. No recognizer, renderer, Replay, prompt,
+original analysis or processing policy changed. The proposals below are not
+implemented. No provider call, browser session or paid experiment was used.
+
+### Scope and evidence
+
+The audit inspected all **59 production registry entries**, all **52 Tier-2
+recipes** (50 claim recipes and two companions), and the handoff from role/value
+interpretation to render-plan compilation and Replay. Offline controls used the
+55 canonical Atlas cards, with supplemental Scrambling and GappingAlignment
+controls to cover the two registry entries absent from those cards. These are
+renderer controls, not endorsed linguistic analyses.
+
+- 2,455 production role/value spelling variants traversed dispatch and actual
+  render-plan compilation. 306 changed the resulting plan, including expected
+  changes to verbatim labels and conservative rejection of ambiguous wording.
+  **306 is not a bug count.** The confirmed defects below were individually
+  reproduced and traced to source.
+- 665 declared Tier-2 alias substitutions traversed recipe evaluation and claim
+  lowering. 657 retained complete recipes; eight became neutral because the
+  wording did not independently specify ellipsis, idiom interpretation or
+  transferred status. Four complete alias variants were subsequently withheld
+  because they supported competing readings of the same evidence. These cases
+  are not grounds to weaken meaning safeguards.
+- All 52 recipe controls preserved authored records and behavior under field
+  reordering. All 143 additional Tier-2 capitalization checks preserved selected
+  drawings and transitions.
+- 1,120 pairs of independently complete claim controls with distinct authored
+  field names tested mixed envelopes. Both intended facets survived in 1,030
+  combinations. The remaining 90 require classification: overlapping candidate
+  meanings, global sequence checks and family-level suppression can change
+  eligibility. A more specific drawing can also legitimately absorb an existing
+  piece. These are not 90 confirmed defects.
+- 114 Replay comparisons changed only relation-name capitalization or surrounding
+  whitespace. 113 preserved visible syntax and frame sequence. The uppercase QR
+  control reproduced the timing defect below.
+- 202 existing focused tests passed across role binding, claim ownership, recipe
+  evaluation, production coverage, native content and lowering. Existing passing
+  gates therefore do not establish wording invariance across the whole pipeline.
+
+Temporary executable controls, original comparison results and receipts are in
+`/tmp/babel-cross-family-audit-20260913/`. `reproductions.mjs` checks 13 concrete
+observations, including negative controls and an authored-Binding ownership
+control. `production-matrix.mjs`, `matrix.mjs`, `invariants.mjs` and
+`replay-matrix.mjs` record the wider comparisons. The supplemental controls and
+fixture-builder extraction are temporary audit material. This was an offline
+behavior audit; it supplies no new browser, export or visual approval.
+
+### Confirmed defects and bounded proposals
+
+| Underlying problem | Reproduction and implication | Proposed repair |
+| --- | --- | --- |
+| Later consumers reinterpret original spelling after recognition. | `CyclicAgree` loses its cycle label when `cycle: "7"` becomes `round: "7"`. `FProjection` loses `H*` when `accent` becomes `pitch accent`. `Accord` loses its authored index when `index` becomes `coindex`. `CooperStorage` drops its category from the drawn ledger when `category` becomes `CATEGORY`. `Impoverishment` is accepted as Tier 1 but falls back when `featureHierarchy` becomes `feature hierarchy`; that same spelling works through Tier 2. | Extend the existing prepared-claim handoff to values and remove spelling-dependent reads downstream. Preserve original keys and literals separately for display. Use the same prepared values for cardinality, ambiguity checks and drawing. Do not add parallel alias lists to each drawing. |
+| Raw role/name checks can change drawing subtype or Replay timing. | `Lowering` with `source`/`target` draws its path; changing only `target` to `landing` causes a late phrasal classification and a missing-witness fallback, despite accepted Tier-1 binding. Uppercase `QUANTIFIERRAISING` still matches the registry, but the QR control grows from 20 to 21 frames and reveals the landing in a micro-step before its relation moment. | Pass the already established role meanings, registered identity and transition evidence to the compiler and Replay. Remove the later raw-word checks. Preserve existing complete Tier-1 requirements and authored relation text. These are further consumers of the same handoff problem, not reasons for a new relation-name menu. |
+| Several spellings for one internal slot are treated as competing slots. | For `QuantifierRaising` and `OperatorVariableBinding`, `scopeDomain` and `domain` are both accepted optional spellings. `semanticDomain` maps to that same meaning but fails as ambiguous between them because optional alternatives are not declared as one slot. | Represent equivalent spellings of an existing slot explicitly in the registry/binder. Do not globally merge roles merely because their candidate concepts overlap. Conflicting references must still fail; arity and required groups must stay unchanged. |
+| Conflict and structural checks sometimes exceed the owning claim. | `constituent: a` and `movement.carrier: b` each independently earn an enclosure. Combining them suppresses both as competing enclosure readings even though they address different nodes. A complete local-dislocation claim stops rendering when an unrelated workspace is added outside its named sequence. Adding that same unrelated workspace to both stages passes. | Apply drawing conflict rules to the exact claimed participants/evidence and output piece. Apply local structural checks to the claim's named sequence or domain. Preserve ambiguity for genuinely competing readings on the same evidence. Do not bypass conflicts or structural requirements globally. |
+
+Source locations: value readers and lowering subtype selection are in
+`replay/relations/renderPlanCompiler.ts` (`scalarValue`, `loweringIsPhraseSized`,
+Impoverishment and CooperStorage branches). Optional slot equivalence is in
+`replay/relationDispatch/roleBinding.js` (`sameSlot`) and
+`productionRegistry.js`. Family-level suppression is in
+`replay/relations/tier2RelationDispatch.ts` (`resolveClaimCollisions`). The
+whole-forest order check is `rebracketingTransition` in `tier2FacetRecipes.ts`.
+Replay's raw QR-name checks are `relationOwnedPhrasalSourceRoles`,
+`relationOwnedPhrasalTargetRoles` and `relationOwnsPhrasalTreeTransition`.
+
+### Interpretation boundaries to consolidate
+
+Meaning specificity is recorded partly in `contextualAliases`, partly in
+hard-coded tests such as `explicit-ellipsis`, and partly in raw-role checks for
+PF host context. For example, the vocabulary offers `site` as an ellipsis
+candidate, while the evaluator correctly refuses to infer ellipsis from that
+word alone. A PF `notation` value is consumed for `supportedTense`, `tenseHost`
+and `realizationHost`, but not every role that shares their broad output-slot
+concept. A shared candidate concept does not itself establish equivalent meaning.
+
+Consolidate these distinctions in the existing interpretation rules, with
+explicit/context-dependent meaning and context requirements attached to the
+candidate. Consumers should not maintain their own word lists. This is a
+maintenance proposal; it does not authorize treating every silent site as
+ellipsis, every output as a PF host, or arbitrary role names as interchangeable.
+The current qualified-assignment rule remains limited to theta, Case and features;
+it is not a general solution to unrestricted authored wording.
+
+Negative controls confirm that generic `licensor`/`licensee`, bare government
+roles, and `source`/`target` plus `[+wh]` do not automatically produce probing,
+movement, theta or strong-NPI drawings. Those limits should remain. Missing
+literals must not be invented or extracted from titles. No new wh/government
+interpretation, linguistic judgment policy or drawing is proposed by this audit.
+
+The Binding control deliberately places the authored binder within the dependent
+subtree; Babel still draws the authored Binding record without issuing a
+linguistic verdict. This establishes a tested boundary, not universal absence of
+linguistic assumptions. Checks of references, named edges, containment and authored
+identity can be needed to locate a requested graphic. Category/spine shortcuts and
+missing-drawing diagnostics must be described as representation limits. For
+example, the spelling-only Impoverishment failure currently reports
+`illegal-configuration`; that wording misattributes Babel's field-reading failure
+to the authored configuration and should be corrected with the underlying repair.
+
+### Recommended work order and appearance constraint
+
+First fix prepared values and registered-identity reuse, then explicit internal
+slot equivalence and claim-scoped checks. Each is independently testable and
+should retain accepted drawing geometry. Add full-pipeline wording and mixed-claim
+regressions from the reproductions; lookup-only and isolated recipe tests are
+insufficient. Consolidate specificity metadata afterward without widening
+recognition unless the model's fields establish the same meaning.
+
+The accepted local/below-tree plaque placement remains. Francis permits scrolling
+only for egregiously long plaques **if demonstrated necessary** and considers it
+visually undesirable. Use available width in the existing bottom area first;
+ordinary large plaques must not acquire scrolling. No scroll implementation or
+new layout is part of this audit.
+
 ## Reliability implementation, 13 September
 
 Francis authorized implementation, verification and merging of the bounded fixes.
