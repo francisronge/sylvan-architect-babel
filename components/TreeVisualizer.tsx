@@ -1970,6 +1970,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         witnessVisibilityCache.set(planItemIndex, visible);
         return visible;
       };
+      const primitiveWitnessesVisible = (primitive: BoundPrimitive): boolean => {
+        // Neutral participation is independent; a connector still needs both endpoints.
+        if (frameItems[primitive.itemIndex]?.kind === 'fallback') {
+          if (primitive.type === 'fallback-mark') return Boolean(resolveOverlayAnchor(primitive.nodeId));
+          if (primitive.type === 'segment') {
+            return primitive.witnessNodeIds.every(nodeId => Boolean(resolveOverlayAnchor(nodeId)));
+          }
+        }
+        return itemWitnessesVisible(primitive.itemIndex);
+      };
       const overlay = g.append('g').attr('class', 'vr-overlay-layer');
       // Fail-closed marks are diagnosable, never silent: the layer carries
       // which anchored nodes could not be measured.
@@ -4627,7 +4637,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         // Future marks reserve geometry but are never drawn or focusable;
         // no mark draws while any of its syntax witnesses is hidden.
         if (!revealedItemIndices.has(primitive.itemIndex)) return;
-        if (!itemWitnessesVisible(primitive.itemIndex)) return;
+        if (!primitiveWitnessesVisible(primitive)) return;
         const emphasis = relationEmphasisForItem(planItem);
         const host = overlay.append('g').attr('class', 'vr-item');
         const hostNode = host.node();

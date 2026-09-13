@@ -1167,13 +1167,13 @@ test('a binding item with a required participant unmeasurable emits no shrunken 
   assert.ok(bound.failed.some((f) => f.nodeId === 'b_fr'));
 });
 
-test('a fallback connector with one witness unmeasurable emits neither mark nor segment', () => {
+test('a fallback with one witness unmeasurable retains the available mark without a partial segment', () => {
   const bound = bindWith(
     [stage([{ relation: 'MysteryTie', anchors: { first: 'a_fr', second: 'b_fr' } }], forest())],
     new Map([['a_fr', { x: 100, y: 100 }]])
   );
-  assert.equal(bound.primitives.filter((p) => p.type === 'fallback-mark').length, 0,
-    'no surviving witness mark');
+  assert.deepEqual(bound.primitives.filter((p) => p.type === 'fallback-mark').map(p => p.nodeId), ['a_fr'],
+    'neutral participation remains visible even when the other endpoint is unavailable');
   assert.equal(bound.primitives.filter((p) => p.type === 'segment').length, 0,
     'no partial connector');
   assert.ok(bound.failed.some((f) => f.nodeId === 'b_fr'));
@@ -1184,17 +1184,9 @@ test('a failed item consumes no stacking, ordinal, or lane state used by the nex
   const positions = new Map([
     ['a_fr', { x: 100, y: 100 }], ['b_fr', { x: 300, y: 100 }], ['root_fr', { x: 300, y: 0 }]
   ]);
-  // Failing items first (c_fr unmeasurable), chosen so state IS mutated
-  // before each failure: the MysteryTie link pushes b_fr's mark and stack
-  // before its other witness fails; the PFRealization plate binds at a_fr
-  // and occupies plaque space before its root fails. Route ordinals and
-  // connector lanes cannot currently mutate before an intra-item failure
-  // (curves register only after both endpoints resolve; a link needs
-  // exactly its two witnesses), so their restoration is structural
-  // snapshot/restore rather than separately exercised here. Then valid
-  // items of the same shapes: their geometry must equal a bind where the
-  // failing items never existed. (Chain-bearing kinds are kept out of the
-  // failing set: display numerals are allocated at compile time by design.)
+  // The partial neutral claim survives in both runs. Specialized failures
+  // must leave no stacking, routing or plaque occupancy behind. The missing
+  // neutral endpoint consumes no slot; its available peer consumes one.
   const withFailure = bindWith(
     [stage([
       { relation: 'MysteryTie', anchors: { first: 'b_fr', second: 'c_fr' } },
@@ -1210,6 +1202,7 @@ test('a failed item consumes no stacking, ordinal, or lane state used by the nex
   );
   const clean = bindWith(
     [stage([
+      { relation: 'MysteryTie', anchors: { first: 'b_fr', second: 'c_fr' } },
       { relation: 'Coreference', anchors: { antecedent: 'a_fr', pronoun: 'b_fr' } },
       { relation: 'OpenTieAlpha', anchors: { first: 'a_fr', second: 'b_fr' } },
       { relation: 'CyclicAgree', anchors: { probe: 'a_fr', goal: 'b_fr' }, values: { cycle: '2' } },

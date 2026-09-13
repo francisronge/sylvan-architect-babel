@@ -161,6 +161,8 @@ export type BoundFallbackMark = {
  */
 export type BoundSegment = {
   type: 'segment';
+  /** Exact participants required by this connector, independent of sibling badges. */
+  witnessNodeIds: [string, string];
   route: 'counter-lane' | 'direct';
   d: string;
   from: Point;
@@ -2028,6 +2030,7 @@ export const bindRelationPlanFrame = (
           pendingSegments.push({
             type: 'segment',
             route: 'counter-lane',
+            witnessNodeIds: [...item.drawing.link.endpoints],
             from: left,
             to: right,
             directed: false,
@@ -2054,6 +2057,7 @@ export const bindRelationPlanFrame = (
           primitives.push({
             type: 'segment',
             route: 'direct',
+            witnessNodeIds: [item.drawing.fan!.hub, spoke],
             d: `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
             from: hub,
             to: target,
@@ -2115,7 +2119,9 @@ export const bindRelationPlanFrame = (
   };
 
   /*
-   * ATOMIC PER-ITEM BINDING. One plan item is one visual assertion: either
+   * Neutral badges identify individual authored participants. A missing peer
+   * suppresses only its badge and connectors that need it; diagnostics remain.
+   * All other items are complete visual assertions: either
    * every geometry dependency it requires resolves and the COMPLETE set of
    * primitives is emitted, or the item emits nothing and only its truthful
    * `failed` diagnostics remain. A lone index badge is not a two-node
@@ -2161,7 +2167,7 @@ export const bindRelationPlanFrame = (
       ordinals: new Map(styleOrdinals)
     };
     bindPlanItem(item, itemIndex);
-    if (failed.length > txn.failed) {
+    if (failed.length > txn.failed && item.kind !== 'fallback') {
       primitives.length = txn.primitives;
       routableCurves.length = txn.routable;
       segmentSpans.length = txn.spans;
