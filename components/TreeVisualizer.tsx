@@ -5,7 +5,7 @@ import { DerivationStage, SyntaxNode } from '../types';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
-import { availableTreeViewport, linearizationViewport } from './treeViewport';
+import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
@@ -580,6 +580,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
     movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups]);
+  const stagePlaqueContainmentBounds = useMemo(() => {
+    if (!stageCameraBounds || !activeDerivationFrame || disableRelationOverlay || !acceptedCompositionIsTreeFirst) return null;
+    return buildStageCameraBounds({
+      steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
+      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
+      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      includeOverlays: false, includePlaques: true, plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups
+    });
+  }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst,
+    playbackSteps, activeDerivationFrameIndex, relationRenderPlan, dimensions, abstractionMode,
+    movementProtectedNodeIds, stagePlaqueLayout, stageLayoutGroups]);
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -7067,6 +7078,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         svg.call(zoom.transform as any, transform);
         return;
       }
+      if (stagePlaqueContainmentBounds && stageCameraBounds) {
+        const bounds = {
+          minX: Math.min(stagePlaqueContainmentBounds.minX, stageCameraBounds.minX - 220),
+          maxX: Math.max(stagePlaqueContainmentBounds.maxX, stageCameraBounds.maxX + 220),
+          minY: Math.min(stagePlaqueContainmentBounds.minY, stageCameraBounds.minY - 160),
+          maxY: Math.max(stagePlaqueContainmentBounds.maxY, stageCameraBounds.maxY + 160)
+        };
+        const contained = containCamera(fitted, bounds, { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
+        fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
+      }
       svg.call(zoom.transform as any, fitted);
     };
     const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;
@@ -8586,6 +8607,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     canvasData,
     currentReplayUsesFutureLayoutScaffold,
     stageCameraBounds,
+    stagePlaqueContainmentBounds,
     stagePlaqueLayout,
     stageLayoutSize,
     acceptedCompositionIsTreeFirst,

@@ -147,7 +147,9 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, w
   return nodeCount ? treeLayoutSize(nodeCount, depth, width, height) : null;
 }
 
-type StageCameraInput = StageLayoutInput & { includeOverlays?: boolean; plaqueLayout?: Map<number, PlaquePlacement> };
+type StageCameraInput = StageLayoutInput & {
+  includeOverlays?: boolean; includePlaques?: boolean; plaqueLayout?: Map<number, PlaquePlacement>
+};
 
 /** Reserve upcoming content before reveal, using one fit for a compatible layout group. */
 export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds | null {
@@ -164,7 +166,7 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
 
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
-  plaqueLayout }: StageCameraInput): OverlayBounds | null {
+  includePlaques = includeOverlays, plaqueLayout }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
     if (!next) return;
@@ -174,7 +176,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     } : { ...next };
   };
   const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds, layoutGroups };
-  const placements = includeOverlays ? plaqueLayout ?? buildStagePlaqueLayout(input) : new Map();
+  const placements = includePlaques ? plaqueLayout ?? buildStagePlaqueLayout(input) : new Map();
   for (const { currentTree, visibleIds } of stageLayouts(input).scenes) {
     const positions = indexHierarchyNodesByIdAndAliases(currentTree.descendants());
     projectPlaqueLayout(placements, id => positions.get(id) ?? null).forEach(rect => include({

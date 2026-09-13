@@ -1,5 +1,31 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
 
+/** Retain an accepted fit; correct overflow with the least translation and scale reduction. */
+export function containCamera(
+  preferred: { x: number; y: number; k: number },
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  view: ViewportRect
+) {
+  const epsilon = 1e-7;
+  if (preferred.x + bounds.minX * preferred.k >= view.left - epsilon
+    && preferred.x + bounds.maxX * preferred.k <= view.right + epsilon
+    && preferred.y + bounds.minY * preferred.k >= view.top - epsilon
+    && preferred.y + bounds.maxY * preferred.k <= view.bottom + epsilon) return preferred;
+  const k = Math.min(preferred.k,
+    Math.max(1, view.right - view.left) / Math.max(1, bounds.maxX - bounds.minX),
+    Math.max(1, view.bottom - view.top) / Math.max(1, bounds.maxY - bounds.minY));
+  // Keep the current viewport centre when scale has to change, then clamp only overflowing axes.
+  const centerX = (view.left + view.right) / 2;
+  const centerY = (view.top + view.bottom) / 2;
+  const x = centerX + (preferred.x - centerX) * k / preferred.k;
+  const y = centerY + (preferred.y - centerY) * k / preferred.k;
+  return {
+    x: Math.max(view.left - bounds.minX * k, Math.min(view.right - bounds.maxX * k, x)),
+    y: Math.max(view.top - bounds.minY * k, Math.min(view.bottom - bounds.maxY * k, y)),
+    k
+  };
+}
+
 /** Canvas-local space left by the measured header, Replay panel and app controls. */
 export function availableTreeViewport(
   width: number,
