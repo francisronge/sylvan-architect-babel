@@ -10,9 +10,702 @@ On 9 September, Francis approved the bounded wording review followed by stage-pr
 
 ## Read this first
 
+Status reconciliation, 12 September: the original findings and dated discussion
+below are historical evidence, not new requests for approval. The current
+[remaining decisions](#remaining-decisions) and roadmap supersede their pending
+wording. PRs #6-#11 are merged. Phrase silence, explicit list pairing, earlier
+movement sources, plain-field plate readers, tree-order sentence reading, and
+Tier-3 stage persistence/numbering are settled. The prior reconstruction and
+lowercase rules were removed, not retained as alternative policies. Original
+observations such as missing Select targets, duplicated I and early landing
+visibility have subsequent repair evidence; verify the merged result rather
+than treating the original observation as a current reproduction.
+
+## Prototype and main reconciliation, 12 September
+
+### Prototype-only checkpoint, 13 September
+
+Francis accepted the prototype after the bounded do-support fix and requested
+commits of the resolved changes. He explicitly excluded main from this checkpoint.
+Codex reviewed the prototype diff and separated evidence preservation, Replay
+timing, composition, neutral participant reveal and stage continuity. The runtime
+sources still match the verified preview exactly. The rejected coordinate rewrite
+is absent. The final 1,574-test gate and saved-case screenshots/recordings below
+remain the verification evidence; no new visual behavior was introduced while
+preparing the commits. Main, its Tree Bank thumbnail fix and its dirty working
+tree were left unchanged. No push or provider generation was made.
+
+Code commits on `proto/annotation-layout`:
+
+| Commit | Resolved concern |
+| --- | --- |
+| `8c2e2b9` | Mixed-claim participants, literal cardinality, movement context and display-ID reservation. |
+| `85e3af8` | Authored relation timing, inspection diagnostics, prior labels and the approved serialization clarification. |
+| `31ee6da` | Plaque placement, horizontal badges, generated letter coindices and stage-size reservation. |
+| `6cbfce8` | Available neutral participants survive missing peers. |
+| `518d0a3` | Unchanged syntax retains its layout across do-support. |
+
+The first two commit boundaries were also checked independently in a temporary
+checkout: 1,497 tests at the evidence boundary; typecheck, 1,509 tests and both
+parse fixtures at the timing boundary. The final source files remain byte-for-byte
+identical to the 1,574-test prototype and verified browser runtime.
+
+The remaining within-stage shifts, active zoom/Next, long-content/export checks,
+no-participant presentation, interpretation and processing decisions remain open.
+Mobile is deferred. Earlier references below to pending prototype approval or
+required main consolidation describe the earlier work order, superseded by this
+prototype-only checkpoint.
+
+### Bounded stage continuity for do-support
+
+Francis reported visible stretching between Astra X-bar F35 and F36 after accepting
+the narrow neutral-participant repair, then authorized a small general fix.
+Removing the PF plaque from geometry measurement left the stage's bounds unchanged.
+The actual transition reset the layout budget from 5160×2120 to 4980×1900 and then
+refitted it, making the displayed tree wider and slightly shorter.
+
+The prototype now groups consecutive stages only when exact authored node identities,
+categories and ordered branches agree, and the ordinary D3 layout preserves their
+normalized positions. Word/value/relation wording does not classify the transition.
+The group retains its first stage's dimensions and unions its fit bounds before
+reveal. Geometry, plaque reservation and fitting use the same group. No replacement
+coordinate tree, synthetic-ID convention or relation-specific exception was added.
+Structural changes, missing/duplicate authored identities and incompatible rendered
+positions keep independent layouts. This deliberately does not solve every topology
+change or the separate active-wheel/Next defect.
+
+Only `replay/stageCamera.ts` and its existing calls in `components/TreeVisualizer.tsx`
+changed in production. The focused tests cover saved do-support, arbitrary wording,
+word changes, new identities/categories/parents/workspaces, reordered siblings,
+missing exact occurrences, traversal order and large-plaque bounds. The full gate
+passes typecheck, 1,574 tests and both parse fixtures.
+
+One integrated desktop pass at 1600×1100 compared all four archived bundles against
+the accepted neutral-participant preview. F35→36 retains the camera, all 30 existing
+labels, existing branch geometry and four persistent plaques. `did` and its PF plaque
+appear at F36. Backward traversal, completed zoom gestures and Fit preserve this
+geometry. The other 135 saved frames match exactly. The WH repair remains intact.
+No page/console error or network request occurred; all verification browsers closed.
+Mobile visual qualification was deferred at Francis's request.
+
+The candidate is `/tmp/babel-stage-continuity-candidate/index.html`, SHA-256
+`43f07ff3c730e490bd217e26336409cb95c569b94013994843ea4ba37535a8a7`.
+Source backups, bounded diff, test logs, before/after captures and short transition
+recordings are in `/tmp/babel-stage-continuity-20260913`. Main implementation,
+archived analyses, all 137 Replay frames and the earlier Tree Bank repair are
+preserved. Francis subsequently accepted this prototype for committing. Main integration is outside the checkpoint; the other recorded layout findings remain open.
+
+### Narrow neutral-participant repair
+
+Francis accepted the current prototype's appearance after inspecting the narrow
+repair. He specified that mobile is not important for the current work. Preserve
+the current sizing, fitting and plaque attachment. He also recalled an earlier
+implementation that calculated future positions before reveal. Source inspection
+confirms existing future-layout reservation code in `replay/replayCompiler.ts`,
+also present in commit `3aebc8c`; this does not yet identify or validate the exact
+historical behavior he recalls. No additional layout change followed this note.
+
+After rejecting the general repair below, Francis requested a repair that preserves
+the preceding sizing, branch lengths and plaque attachment. The new implementation
+changes only `replay/relations/geometryBinding.ts` and the neutral reveal check in
+`components/TreeVisualizer.tsx` in `Babel-proto`. Layout, camera, plaque placement,
+styles, authored analyses and Replay construction are unchanged.
+
+Each available neutral badge now survives an unavailable peer. Connectors carry
+their exact two participant IDs and reveal only when both exist. Partial fans keep
+their available marks and complete spokes. Specialized drawings still bind and
+reveal atomically. No missing endpoint is invented. Astra X-bar F32 shows ① at C;
+F33 adds the operator badge and connector. Backward navigation restores the earlier
+visible set. The authored timing diagnostic remains unchanged. The no-participant
+presentation still needs design and is not implemented.
+
+Verification compared the restored prototype directly with the narrow repair:
+
+- All 137 archived Replay frames at desktop 1600×1100 and mobile 390×844, plus
+  four zoom/Fit pairs, retain exactly the same camera transforms, text geometry
+  and font sizes, tree and movement paths, Case connectors and plaque positions.
+- The 24 forward/backward interaction checks preserve relation-moment reveal.
+  Page identity, meaningful rendered content and console checks pass. Before/after
+  images and recordings were captured. Browser contexts and the browser closed;
+  no network request or provider call was made.
+- `npm run verify:all` passes typecheck, 1,558 tests and both parse fixtures.
+  Focused regressions cover partial pairs and fans, missing hubs, slot allocation,
+  specialized atomicity, the saved wh frame and the production reveal guard.
+
+The current artifact is `/tmp/babel-neutral-participant-candidate/index.html`,
+SHA-256 `04e8c17b8fed57b3674834f241c050e7bc08daaa67ed590b157f7e599e27b515`.
+Temporary source backups, diff, logs, captures and recordings are in
+`/tmp/babel-neutral-participant-repair-20260913`. These checks establish preservation
+of the restored appearance, not approval of every inherited layout choice. The
+remaining topology-related Replay shifts, active zoom/Next defect, no-participant
+state and main/prototype integration remain open. This section supersedes the
+empty-F32 status in the historical sections below.
+
+### Rejected general Replay repair and independent review
+
+Francis authorized the general repair and independent Codex review without Fable,
+then rejected its appearance because the coordinate planner changed overall
+spacing and fitted sizing. The complete repair was reverted to the exact preceding
+prototype source. The earlier stage-size and plaque work and main's Tree Bank fix
+were preserved. The following implementation and verification details are
+historical evidence of the rejected attempt, not current behavior or visual
+approval. The remaining shifts, active-zoom issue and empty F32 are open again.
+
+`replay/stageLayout.ts` computes one coordinate map from the exact occurrences
+and ordered branches revealed during a stage. It reserves later wrappers and
+source-only material without changing the trees used by Replay. Rendering,
+plaque reservation and camera measurement use those same coordinates. Each
+frame still draws only its current nodes and direct branches. Conflicting
+occurrence topologies fall back to ordinary layout rather than manufacturing a
+shared tree or changing authored identity. No synthetic suffix is interpreted by
+the new planner.
+
+The Tier-3 repair covers both suppression points: the geometry binder and the
+live renderer's reveal filter. Available neutral participant badges survive
+missing peers; each connector carries its exact participant dependencies and
+appears only when both endpoints are visible. Specialized dependencies retain
+atomic binding and reveal. Astra X-bar F32 now shows ① on C, F33 adds the operator
+badge and connector, and backward navigation restores the correct visible set.
+The original timing diagnostic and unavailable landing remain unchanged.
+
+The SVG camera group survives frame changes, so an active D3 zoom gesture keeps
+updating the live tree. Plaques retain clear pockets between stages, but a new
+stage can reallocate a blocked pocket before its first relation moment. Screenshot
+review also found a new Fable T-plaque/movement overlap. Reservation now includes
+the existing bound quadratic, cubic and orthogonal movement paths, leaving the
+drawings' shapes and endpoints unchanged.
+
+Verification and limits:
+
+- `npm run verify:all` passes typecheck, 1,572 tests and both parse fixtures.
+  New regressions cover all saved within-stage coordinates, current edges,
+  traversal order, partial neutral geometry, the actual renderer reveal guard,
+  blocked carried plaques and all three movement path shapes.
+- The integrated saved-case pass captured 274 frames and 80 backward revisits.
+  All 228 consecutive within-stage transitions across desktop and mobile retain
+  the same camera and unchanged label positions. Both active-zoom/Next checks
+  retain the live group and transform. No plaque/tree collision or clipping was
+  found in that pass.
+- Targeted follow-ups verified the live F32/F33 badge counts on both sizes, then
+  all 70 frames in the nine stages affected by movement-path reservation. Those
+  frames pass tree/plaque and movement/plaque clearance checks and retain stable
+  positions. Browser sessions closed with no console errors or provider requests.
+- Codex reviewed the bounded diff and representative screenshots, including the
+  regressions above. This does not certify the entire accumulated dirty diff or
+  the saved linguistic analyses. Arbitrary long-content and mobile readability,
+  integrated application exports and main/prototype consolidation remain open.
+
+The reviewed artifact is `/tmp/babel-general-repair-reviewed/index.html`, SHA-256
+`6036726f1e9fc4eda356b5e1745d632bac721c8a7b6f2d616fa5bd0b4d87e4cc`.
+Temporary diffs, logs, screenshots, recordings and measurements are in
+`/tmp/babel-general-repair-20260912`. The archived review data and 137 Replay
+frames remain unchanged. No paid run, Fable invocation or commit was made for
+this repair.
+
+An otherwise blank authored relation moment with no available participant still
+needs an explicit neutral presentation state. The roadmap proposes reusing the
+Tier-3 locator in reserved canvas space; this is not a new linguistic relation
+family and has not been implemented. Placement and wording need review. Do not
+attach it to unrelated syntax or turn contextual remainders into extra drawings.
+
+### Restored prototype baseline
+
+This follow-up separates the later visual evidence from the earlier source/frame
+review. The active work order remains in
+[ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+The reconciliation itself changes documentation only.
+
+Main's dirty checkout contains the Tree Bank thumbnail repair. Its old broad SVG
+selector could capture the Fit icon instead of the rendered tree. The repair
+selects the marked tree SVG and copies computed paint, font and visibility styles
+into the standalone snapshot. All 16 save/preview/reopen cases passed across four
+archives, Canopy/Replay and desktop/mobile, preserving the stored analyses.
+Existing icon thumbnails require a fresh save. The full gate passed 1,512 tests.
+`tests/treeBankPreview.test.mjs` covers SVG selection and snapshot styles.
+Temporary browser evidence is in `/tmp/babel-treebank-fix-20260912/final`.
+
+The separate `Babel-proto` checkout contains horizontal badge composition,
+reserved local and below-tree plaques, short exterior Case connectors, generated
+letter coindices and the stage-layout candidate. Its current review artifact is
+`/tmp/babel-stage-layout-candidate/index.html`, SHA-256
+`91e68201b066b53034b5fbac7bb3dde32ffa1a2be953f98f9799ef302044e111`.
+The artifact's 39 application-source hashes match its build receipt. It retains
+the same archived analyses and all 137 Replay frames. The prototype full gate
+passed 1,550 tests. It has not been consolidated with main's Tree Bank repair or
+received a final combined-diff review.
+
+The prototype browser pass captured all 137 frames at desktop 1600×1100 and mobile
+390×844, plus 80 backward revisits. Saved-case checks found no plaque/tree
+intersections or plaque clipping. Astra Minimalism F29→30 now has zero movement
+of existing labels and plaques at fit and after a completed zoom gesture, with
+the same camera transform. Before this change, the desktop fitted `buy` moved
+31.77 pixels. The fix reserves one width/depth budget for the stage. These checks
+qualify those cases, not arbitrary long prose, many rows or narrow-screen reading
+at full fit. Temporary captures, measurements, recordings and the gate log are in
+`/tmp/babel-stage-layout-change-20260912`.
+
+Re-examining those captures finds remaining movement within a stage. The camera,
+the listed node's identity, immediate parent and child identities stay unchanged:
+
+| Replay transition | Desktop example | Mobile example |
+| --- | --- | --- |
+| Astra Minimalism F32→33 | John moves +23.81 px horizontally. | +7.09 px horizontally. |
+| Fable Minimalism F19→20 | did moves +61.80 px horizontally. | +23.66 px horizontally. |
+| Fable Minimalism F22→23 | John moves +49.96 px horizontally. | +17.04 px horizontally. |
+| Fable Minimalism F25→26 | buy moves +33.19 px horizontally and +58.17 px vertically. | +9.82 px horizontally and +17.20 px vertically. |
+
+The fixed stage budget removes resizing from changing node counts; it does not
+prevent redistribution when movement changes the tree topology. This remains a
+renderer defect to investigate while preserving atomic movement and hidden future
+structure. The measurements are in
+`/tmp/babel-plan-reconciliation-20260912/remaining-layout-shifts.json`.
+An earlier rapid wheel/Next check also observed a missing group transform when
+the frame changed during an active D3 zoom gesture. Completed-gesture checks pass;
+the overlapping-gesture case still needs a focused reproduction and disposition.
+
+### What Astra X-bar's wh-licensing frame contributes
+
+F32, stage 5 relation 1, preserves the authored `wh licensing` claim, its values
+and its timing diagnostic. Its anchors are `interrogativeHead: questionC` and
+`operator: frontedNP`, with `feature: [+wh]`. The next relation, the A'-chain at
+F33, introduces `frontedNP`. F32 therefore cannot display that endpoint without
+violating the approved movement timing rule.
+
+The relation currently receives a neutral fallback, not a specialized licensing
+drawing. Geometry binding suppresses an incomplete two-participant fallback as
+a unit, so F32 does not even add a lone badge at C. **This is a renderer defect.**
+The first reconciliation explained the suppression without identifying that it
+wrongly erases available neutral participant marks. Keeping the landing hidden
+does not justify making the relation moment blank. No new structural operation
+occurs there. At F33 both endpoints exist and its neutral participant marks can
+appear under the same stage-persistence rule. The exact
+`RELATION_TIMING_CONFLICT` stays visible in inspection; how the public app presents
+such a moment belongs to the unresolved incomplete-processing policy. Do not
+remove the frame, reorder the originals, add a guessed dependency or reveal the
+landing early to make it look active. The repair should preserve the Tier-3
+locator on C at F32, keep the unavailable-operator diagnostic, and add the other
+participant and connector only when its geometry actually exists. This marks
+authored participation without claiming that licensing succeeded. Complete
+specialized dependency graphics must still fail atomically when incomplete.
+
+A pure binding reproduction confirms that the existing behavior is inconsistent:
+an unknown relation with one anchor missing from its authored forest retains the
+other participant's neutral badge, but the same relation with that anchor merely
+not yet visible loses both badges. No recognition rule needs to change to repair
+that discrepancy. The reproduction uses artificial coordinates only for actually
+visible IDs and is saved in `/tmp/babel-neutral-frame-diagnosis-20260912/probe.json`.
+It is source evidence, not an additional browser pass. A relation moment with no
+available participant needs an explicit neutral canvas representation rather
+than a guessed syntax attachment; that presentation still needs a concrete design.
+
+The stage-layout fix also needs a narrower claim. It fixes the width/depth budget,
+but `TreeVisualizer` still runs D3 tree layout independently on each frame's
+topology. A general repair must precompute and reuse positions for unchanged
+occurrences across the stage, reserve plaque space against those positions, and
+draw only each frame's actual visible branches. Verification must cover every
+same-stage transition, including the failures above, and arbitrary scrubbing
+order. The earlier F29→30 regression did not prove that invariant.
+
+Fable availability was checked through Keychain-backed Claude Code on the host.
+Authentication succeeded, but a minimal `claude-fable-5-1` availability request
+returned HTTP 429 with "You're out of usage credits." The process exited, reported
+zero tokens and zero cost, and started no review. Fable review remains pending;
+local diagnosis and implementation need not wait for renewed access.
+
+Current prototype plan compilation finds neutral content in 22 of the 36 saved
+relations: Astra Minimalism 9, Astra X-bar 7, Fable Minimalism 0 and Fable X-bar 6.
+The earlier inventory of 24 below is retained as historical evidence. Neither
+count measures linguistic correctness or how many independent dependencies should
+be drawn. Licensors, locality, nonintervention, pronunciation and judgment prose
+can remain inspectable context attached to an already recognized claim.
+
+Remaining qualification includes general long-content overflow, mobile reading,
+exports and identical-input casing in the assembled application. Linguistic
+review, role/meaning recovery, title/prose interpretation, synthetic identity,
+automatic repair, public incomplete processing, simultaneity, judgments,
+queued public-route polling and long-derivation performance remain separate work.
+No new provider call, prompt change or product implementation was made in this
+reconciliation.
+
+## Joint saved-analysis review, 12 September
+
+Codex and Claude Fable 5.1 independently reviewed the four saved analyses against
+merged `main` at `0a8f0cc`. This pass changes documentation only. It does not change
+the prompt, runtime, original model records, approved drawings or Tier-3 policy.
+The result below supersedes older statements that these particular
+movement defects are still reproduced. It is the earlier source/frame snapshot;
+the prototype reconciliation above records the later visual evidence and limits.
+
+| Saved analysis | Authored stages | Current Replay frames | Relations | Movements |
+| --- | ---: | ---: | ---: | ---: |
+| Astra Minimalism | 7 | 36 | 11 | 4 |
+| Astra X-bar | 6 | 37 | 11 | 2 |
+| Fable Minimalism, disclosed inspection copy | 5 | 27 | 5 | 3 |
+| Fable X-bar, disclosed inspection copy | 5 | 37 | 9 | 2 |
+
+Codex inspected all 23 stages, 36 relations and 137 compiled frames, and reran
+normalization from the archived response text. Fable independently inspected
+the authored records, relation plans, frame evidence and relevant implementation.
+Its Claude Code receipt confirms `claude-fable-5-1` and successful completion.
+No Babel generation was made. Fable used the existing Claude subscription for
+review, not Babel's provider route.
+
+### Confirmed repairs
+
+- All 11 movements have an identifiable source in an earlier stage. Frame checks
+  find the source before the movement and the landing only at the movement
+  moment. The saved head/phrasal distinction includes Fable's minimal/maximal D.
+- C is visible before head movement. Both X-bar outputs withhold the waiting
+  unary CP until wh movement; wh licensing no longer reveals the future landing.
+  Raw authored stages remain unchanged under the approved display rule.
+- Select/Project headings include their targets. Abstract T/I movement followed
+  by later `did` realization follows the authored analysis, not movement of
+  nothing. Wordless categories and the compact Fable DP trace remain model choices.
+- Neutral fallbacks are stage-scoped and numbered by authored relation position.
+  Neither review proposes undoing that decision or deleting residual evidence.
+- Both Astra originals normalize. Fable Minimalism still needs the separately
+  disclosed `]}` ending and two `values` container corrections; Fable X-bar needs
+  one `values` container correction. Current diagnostics identify the original
+  field and stage, before reference expansion. No stage or reference is changed
+  by the inspection corrections. Both copies retain all five stages.
+
+### Remaining findings
+
+Frame numbers refer to the current counts above, not the original audit captures.
+
+| Issue and exact example | Cause and owning layer | Disposition and general next step |
+| --- | --- | --- |
+| Shared participants disappear from a residual claim's drawing. Astra X-bar S4 F30 head government retains only the governor badge after gap notation consumes the trace; Fable X-bar S5 F36 retains a lone lexical-governor badge after binding consumes the variable. | Relation evidence ownership subtracts recognized fields even when another assertion still uses them. The original records remain intact, but the remainder's marks no longer show both participants together. Both reviewers confirmed the plan behavior. | Fixed locally in the shared-participant pass below. Mixed neutral drawings retain full current-participant context separately from unconsumed evidence. This preserves shared witnesses without inventing a government dependency; visual composition remains unverified. |
+| Gap notation can count as recovered while reusing an existing I/DP label, with no extra ink. Astra X-bar F30 and Fable X-bar F31/F36. | `tier2RenderPlanCompiler` derives the existing node label; `geometryBinding` and `TreeVisualizer` correctly suppress its duplicate. Ownership has already been assigned upstream. | Duplicate suppression is an approved repair, not a new defect to undo. Fable proposed requiring an explicit extra label/index; that is not adopted. Fix ownership rather than demanding another model field or drawing I twice. |
+| Binding's large `3` is not authored. Fable X-bar S5 F36. | The operator-variable primitive defaults to relation position, while Tier-3 badge 3 on the same relation is now a documented locator. These are distinct meanings with the same numeral. | HC10 remains open. Choose one consistent presentation policy for unauthored coindices across tiers, keeping them distinguishable from authored indices and fallback locators. Fable's neutral `i` suggestion is a proposal, not an approved change. |
+| Wh licensing precedes its own landing. Astra X-bar S5 F32/F33. | Authored relation order puts licensing before the A'-chain while its anchor names the future landing. Replay preserves that order, hides the landing until F33, and diagnoses the conflict. | Original order is retained. Inspection now shows the exact cause on F32 as well as the affected movement boundary F33. Inspecting this contradiction is implemented, not another approval question; rewriting the original is not approved. |
+| The ordering diagnostic is in F32's data but the Replay Audit line appears on F33. | `buildReplaySupportLines` added those lines in its movement branch only. Both reviewers reproduced the mismatch between data and panel. | Fixed in the connected batch: explicit inspection mode displays event-owned diagnostics for nonmovement relations too. Default public Replay does not display Audit warnings. |
+| Astra Minimalism S3 prose says v-Agree happens before John is introduced; Replay merges John at F17 and plays Agree at F18. | The completed forest includes both operations, but Replay builds ordinary structural steps before the relation. The fields do not locate Agree between those structural operations. This is a contract/Replay timing limitation, not missing movement endpoints. | Codex's additional chronology finding. Fable judged the linguistic analysis internally consistent; that does not establish fidelity of the derived micro-step order. Resolve how completed stages express necessary interleaving, without parsing prose into hidden instructions or silently rewriting the saved analysis. |
+| Fable Minimalism never explains object Case. S2 explicitly leaves Case unvalued; S3 explains only John's nominative; S5 asserts convergence. | Linguistic completeness of the authored explanation, not a renderer dropping an accusative relation. Both reviewers flagged it. | Keep the original. Review the analysis's Case assumptions; Babel must not add v-accusative on its behalf. Early `did` uses a look-ahead explanation. The absence of a phase-edge stop is not itself an error without establishing the analysis's phase commitments. |
+| Four Fable X-bar theta/Case relations remain wholly Tier 3: F14, F15, F27, F28. | Theme/Agent/Case literals occur only in titles, and some endpoint roles lack the necessary specific meaning. Current recovery deliberately does not interpret titles as missing fields. | Known recognition/contract boundary, not a missing drawing primitive. The current prompt clarifies literal content in `values`; these old responses predate it. No fresh provider run has tested compliance. Do not infer Case from I or thematic role from tree position. |
+| Astra Minimalism final Transfer remains Tier 3, S7 F34. | Current diagnostic is `meaning:transfer.domain:only-contextual-role-aliases`. `complementDomain` does not by itself establish transfer. The previously reported complex-head geometry blocker has been fixed. | The saved prose explicitly describes Transfer, but recognizing that prose/title as evidence remains a semantic-policy question. Do not silently promote the contextual alias or reopen the settled standalone Tier-2 transferred-domain drawing. |
+| Prior participants print raw IDs: Astra X-bar F36 `raisedI`; Fable X-bar F31 `i1`, F34 `dp1`. | `buildAuthoredRelationAnchorLines` formatted current anchors but printed prior IDs directly. Both reviewers confirmed it. | Fixed: a unique exact prior ID gets its readable label from the immediately preceding authored forest. Missing or ambiguous IDs remain verbatim. Repeated entries and the original record remain intact; no current-stage or lineage substitute is used. |
+
+The connected batch below fixes the native/Tier-2 scalar value readers and
+Fable's latent HC12 D3 allocation example: an id-less node can no longer take a
+later authored `n1` or alias. These defects are not exercised by the saved records,
+so separate negative controls are required. The broader `::__` synthetic-leaf
+and workspace-ID convention remains a limit: reserving D3 IDs does not make those
+other IDs collision-free or justify an undocumented model naming restriction.
+
+Case consistency needs an actual visual check. The fixture-only digest omits the
+sentence field, whereas the real archived bundle supplies it; their pre-fronting
+`Which`/`which` displays therefore differ. This explains the conflicting dumps
+noted by Fable. The approved casing policy is not reopened, but heading, panel
+and visible word should be checked through the same real application inputs.
+
+### Verification and limits
+
+`npm run verify:all` passed typecheck, 1,461 tests and both parse fixtures on this
+snapshot. All originals were hash-checked against their recorded provenance;
+current normalization and explicit inspection correction leave them unchanged.
+The temporary review evidence is under `/tmp/babel-joint-review-20260912`:
+per-analysis frame dumps, `frame-checks.json`, `ingress-checks.json`, the Fable
+receipt/report, and the gate log. The durable inputs remain in the archived
+September run and `fixtures/movement/saved-qualification.json`.
+
+A fresh self-contained page was built from the production renderer, but browser
+policy blocked opening it. No alternate browser or transport was used to bypass
+the restriction. Neither reviewer completed fresh screenshot, motion, desktop or
+mobile QA. Plaque overlap, clipping, camera behavior and final visual composition
+therefore remain unverified on this snapshot. Source/plan checks are not pixel
+evidence. The older successful browser passes remain historical evidence only.
+
+The shared-participant, timing and connected repair passes below supersede the
+implementation priorities at this review baseline. Inspection diagnostics and
+prior-occurrence labels are implemented. At that point, assembled visual
+verification and the unauthored-index decision remained open. The prototype
+reconciliation above records the later evidence and limits. Do not reopen the approved Tier-3
+numbering, stage persistence, model-owned traces or wordless heads.
+
+### Badge composition review, 12 September
+
+Francis's screenshot of the rebuilt integrated review shows Astra Minimalism's
+final Replay frame. This review uses that supplied screenshot, the exact saved
+bundles, runtime source hashes and offline dispatch/Replay controls. It is not
+fresh automated browser QA. The initial review changed no display policy or
+product code; the approved accounting repair is recorded below.
+
+At the time of inspection, the review page's runtime hashes matched every source. Across all
+137 Replay frames, no compiled visible fallback precedes its relation moment or
+survives outside its authored stage. Stage Record is the last frame of the same
+stage, not a stage boundary. This rules out those persistence failures in the
+compiled data; it is not proof against every possible live SVG cleanup defect.
+
+| Observed issue | Evidence and cause |
+| --- | --- |
+| Many final-stage badges | Astra Minimalism has 11 badges for four stage-7 relations, up from seven before shared-context restoration. Fable X-bar has eight for three stage-5 relations, up from four. These counts are badge witnesses, not relation or fallback-item counts. Astra X-bar has zero final-stage badge witnesses despite one prior-only fallback item; Fable Minimalism has none. |
+| Shared context repeats already drawn endpoints | The new rule restores every current anchor whenever any current anchor is unrecovered and another was recognized. Astra's Wh-Agree adds its probe and goal; Internal Merge adds its two recovered movement endpoints. Fable's wh movement and binding each add two endpoints. The rule preserves context but does not establish that every added badge is the best presentation of the remaining information. |
+| Context changes topology as well as count | Astra's final Internal Merge changes from a two-witness neutral connector to four unconnected participation badges. Wh-Agree changes from one badge to three. Fable's movement and binding remainders each change from one badge to three. These follow the existing topology table, but the shared-context change was broader than adding missing witnesses alone. |
+| Fable's final CP is checked, then counted as unknown | `recoverMovementEvidence` verifies that `landingSite: cp1` encloses the uniquely identified `dp3` landing and excludes CP as a competing occurrence. Its returned role evidence records only the moved phrase and trace, not that verified enclosing-site fact. Coverage therefore leaves CP unrecovered; shared-context expansion turns that remainder into three badges. An unrelated `landingSite: v1` control fails endpoint recovery, while deleting the site leaves ordinary movement intact. This is a demonstrated evidence-accounting mismatch, not evidence that the model authored an extra linguistic dependency. |
+| Similar-looking head-host cases are not yet the same proof | Fable X-bar stage 4 `landingHead: c1` and Astra X-bar stage 4 `host: complexC` also cause expanded fallbacks. However, replacing either anchor with an unrelated node leaves movement recovery unchanged. Unlike the CP example, these roles are not checked against the recovered movement. They cannot simply be marked consumed; explicit role interpretation and exact structural verification are required. |
+| Floating badge columns | The supplied screenshot shows `questionC` owning fallback numbers 1, 2 and 3; `questionCP` owns 3 and 4. Production binding stacks each same-node badge at `labelHeight + stackIndex * badgeGap * markerScale`; TreeVisualizer supplies a 46-unit gap. It does not group the column with a visible attachment or check that column against neighboring labels/branches. The screenshot's detached appearance is consistent with this allocation, not additional syntax nodes. No spacing or grouping redesign is approved by this finding. |
+| Old plaques still compete with current badges | Astra's Agree plaques originate in stages 3 and 5 and use the specialized family's persistent behavior. PF realization also persists. The Tier-3 stage-only rule does not govern these items. Their overlap with syntax remains a separate composition issue visible in the supplied screenshot. |
+
+Not every remainder is redundant. Astra's nonintervening subject, licensor,
+thematic occurrence and prose qualifications, and Fable's lexical-governor
+information, remain authored content not fully represented by the recognized
+arrow alone. Fable's wh agreement is wholly neutral. Astra's final Transfer
+still fails `meaning:transfer.domain:only-contextual-role-aliases`; its Convergence
+prose does not authorize a verdict graphic. This review does not approve deleting
+any of that information or scraping titles to promote it.
+
+The approved accounting repair is now implemented locally:
+
+- Movement recovery retains each verified context field under its original key.
+  Landing sites must be immediate parents. Head-host and head-complex anchors
+  must identify the actual sibling or parent in the supported head complex.
+  Missing/duplicate IDs, multiple context candidates and unrelated hosts are not
+  silently consumed. Tier 1 shares the check without relaxing its full recipe.
+- A complete movement facet owns its verified context, so that context no longer
+  creates a redundant fallback or expands an independent fallback's participant
+  set. The original relation is unchanged. Additional licensing, locality,
+  thematic and government information remains available through fallback.
+- Coverage does not change trajectory identity, replacement groups or drawing
+  witnesses. A comparison caught that side effect during implementation; the
+  final change separates coverage from drawing identity, with a regression test.
+- Successful movement no longer drops context diagnostics. Inspection retains
+  the exact field, referenced node, landing and structural failure reason.
+
+Eighteen focused regression tests cover the saved cases and renamed/open-title
+controls, alternate role spelling, unrelated/self/missing hosts, repeated lists,
+duplicate IDs, remote ancestors, mixed valid/invalid context, independent claims,
+malformed exact Tier-1 claims, drawing identity and successful-movement diagnostics.
+All 137 serialized saved Replay frames and every non-fallback plan item remain
+exactly equal to the pre-shared-participant baseline. The full gate passes
+typecheck, 1,509 tests and both parse fixtures. Saved analyses are untouched.
+
+Fable X-bar's final stage now has five badge witnesses, down from eight: two for
+wh agreement and three for binding plus lexical government. The redundant
+three-badge movement fallback is gone. Its head-movement fallback disappears;
+Astra X-bar loses its head-host badges but retains the value-only remainder.
+Astra Minimalism still has eleven
+final badges because this repair does not establish its remaining qualifications
+as redundant. Both other final-stage badge counts remain zero.
+
+Badge layout and plaque composition remain open. Hiding Tier 3 on Stage Record
+was proposed too early and is not approved. This repair changes no spacing,
+plaque design, numbering, persistence policy, prompt or authored analysis.
+Fresh browser verification remains blocked; the comparison above is offline
+proof, not a visual sign-off.
+
+### Connected repair batch, 12 September
+
+Francis requested that already-approved related repairs be completed together.
+This batch changes neither the model-facing contract nor saved analyses.
+
+| Defect | Implemented repair and boundary |
+| --- | --- |
+| Inspection diagnostics depended on a movement-only panel branch. | `buildReplayPanelContent` takes an explicit inspection option and shows the active relation event's diagnostics regardless of relation type. The committed qualification review enables it; public TreeVisualizer defaults it off. Astra X-bar F32 now names stage 5, relation 1, `frontedNP` and the later A'-chain, rather than leaving the cause visible only on F33. |
+| Prior participant labels exposed bookkeeping while unresolved current IDs could be prettified. | Unique exact IDs resolve only in the immediately preceding authored forest. Missing/ambiguous IDs stay verbatim, repeats stay repeated, and original anchors remain available in the unchanged authored relation. |
+| An earlier id-less D3 node could take a later authored ID or alias. | `applyVizIds` reserves all authored IDs and aliases before generating IDs. Hierarchy indexing also counts the original authored ID, so duplicate authored IDs remain ambiguous instead of choosing the first node. This does not close the broader synthetic-leaf/workspace namespace issue in HC12. |
+| Native scalar readers accepted lists but selected item zero. | Render-family metadata declares existing one-value drawing slots. Eligibility reports `drawing-value-cardinality` with the field, literal list and observed count, without changing the relation. Scalar lowering never chooses an arbitrary item. A malformed exact drawing remains neutral; this is not an authoring restriction or partial Tier-1 rescue. Drawings with full literal rows keep their list support. |
+| Tier-2 binding and covert-movement painters read an index their recipes did not declare. | Both recipes now declare the existing optional single index, matching their painters. Multiple indices remain available through neutral fallback. Other list and itemwise-pairing recipes are unchanged. The generated default-index presentation policy remains undecided. |
+| Case/Agree composition could discard Agree's extra fields or list entries. | The existing combined curve is used only when its one feature/value row can carry all authored values. Otherwise Agree keeps its existing full plaque, at its own relation moment. This is a composition eligibility fix, not a new plaque design. |
+
+Ten added regression tests cover diagnostic ownership/public suppression, exact
+prior-stage labels, ambiguous references, reserved IDs and aliases, every declared
+native scalar slot, list/repeated values, full-row support, Case/Agree composition
+in both relation orders, and both newly declared Tier-2 index slots. The full gate
+passes typecheck, 1,491 tests and both parse fixtures. All 137 serialized saved
+Replay frames and every non-fallback plan item match the pre-shared-participant
+baseline. The 11 approved fallback-context changes are retained.
+
+Fresh browser verification remains policy-blocked; no alternate browser or
+transport was used. No provider calls, servers, browsers, commits or pushes were
+started for this batch. Test processes exited successfully. Binding-index
+notation, long-plaque/mobile layout, public incomplete-record handling and the
+synthetic namespace remain explicitly unresolved rather than being hidden by
+the passing gate.
+
+### Shared-participant implementation, 12 September
+
+Francis approved fixing shared-participant handling after the timing pass.
+`tier2RelationDispatch.ts` now keeps display context separate from evidence
+consumption. When a neutral remainder still has current participants, and a
+specialized drawing has used current anchors from the same relation, the derived
+claim retains the complete current-anchor block as `contextAnchors`.
+`renderPlanCompiler.ts` uses it for the existing neutral topology. The model's
+contract, record, roles and literal content do not change.
+
+This deliberately does not guess a smaller governor/trace or licensor/licensee
+pair from open prose. The full authored relation provides the context. No new
+recognized linguistic claim, direction, government arrow or Tier-1 acceptance
+is inferred. Residual fields and original item indices remain separate from
+context and retain their existing coverage accounting. Fallback identity includes
+context, preventing different participant sets with identical leftovers from
+coalescing. Earlier-stage witnesses are not copied from neighboring recognized
+claims; value-only and prior-only remainders do not acquire current connectors.
+
+The saved-record comparison shows 11 changed fallback contexts: six Astra
+Minimalism, two Astra X-bar, none Fable Minimalism and three Fable X-bar. In the
+reported Astra head-government case, both `complexC` and `tenseI` are marked.
+Fable's binding/ECP fallback retains `dp3`, `dp1` and `v1`. These are neutral
+participants of the original relation, not a claim that all pairs stand in the
+same dependency. Tier-3 numbering and stage-only persistence are unchanged.
+
+All 137 serialized Replay frames and every non-fallback plan item match the
+pre-change baseline. Eleven new tests cover both reported cases, binding,
+feature and Tier-1 mixtures, repeated roles/items, value-only residuals, temporal
+separation, incomplete exact Tier 1, persistence, numbering and contextual
+identity. Existing mark expectations were updated only where restoring context
+intentionally adds participants; residual evidence assertions remain separate.
+`npm run verify:all` passes typecheck, all 1,481 tests and both parse fixtures.
+
+Restoring context can increase the number of neutral marks, especially for
+repeated lists. No marks were hidden and no fallback layout was redesigned.
+Fresh browser inspection remains policy-blocked, so readable visual composition
+is not signed off. No provider calls, browser sessions or servers were started.
+The temporary before-plan/Replay baseline is
+`/tmp/babel-shared-participants-before.json`; no saved analysis was edited.
+
+## Timing audit, 12 September
+
+Francis requested an audit of structural/relation sequencing before adopting an
+extra-stage prompt rule. The initial findings below record the pre-fix code and
+temporary controls. Francis subsequently approved both changes; implementation
+and verification are recorded at the end of this section. Saved model analyses
+remain unchanged.
+
+### What the engine actually does
+
+`derivationReplayPlan.js` constructs a baseline list of structural micro-steps,
+then relations, then the Stage Record. Production playback in
+`replay/replayCompiler.ts` is more complicated than that baseline:
+
+- `finalizeStructuralReplayForFrame` first calculates where each relation's
+  anchored nodes and parents become visible. Later placement logic overrides
+  this: `relationInsertionIndex` sends a relation without a new movement landing
+  host to the end of the pending structural list.
+- A movement can be inserted before higher structural steps. Its landing and
+  required attachment remain owned by the movement moment. Pronunciation,
+  deletion and rewrite transitions also have special state ownership. It is
+  therefore inaccurate to say that every structural change always precedes every
+  relation.
+- Final scheduling sorts relations by computed insertion position, using
+  authored relation order only as a tie-breaker. This can invert the authored
+  order when one relation is placed early and another at the end.
+- Stage Record prose travels to the panel but is not interpreted as a sequence
+  of executable tree changes. Neither anchor-entry order, child order nor token
+  indices supply the missing timing. `priorAnchors` names the preceding authored
+  state, not an arbitrary earlier point within the current stage.
+
+### Controlled checks
+
+Temporary, explicitly synthetic controls are in
+`/tmp/babel-timing-audit-20260912.mjs`, with results in the adjacent `.json` file.
+They operate on copies of the saved qualification records and are not presented
+as model outputs or linguistically certified new analyses.
+
+| Check | Result and consequence |
+| --- | --- |
+| Change only Astra Minimalism S3 prose from Agree-before-John to John-before-Agree. | Both versions produce identical operations and node visibility. The executable fields do not distinguish the two orders. No deterministic field-only scheduler can recover which of these prose instructions was intended. |
+| Find the first available v/which-D anchors and their parents. | The anchors exist at F11; their parents are ready at F12; John merges at F17; Agree plays at F18. Running Agree as soon as anchors appear would precede even v's merge. Waiting for parents improves this example but still cannot distinguish the two prose-order controls. |
+| Supply an intermediate core-vP stage containing Agree, then the John-merge stage. | Current normalization accepts it with no contract change. Agree plays at F13 with John absent; John merges at F19. The final forest is unchanged. The complete analysis has 8 stages and 37 frames instead of 7 stages and 36 frames. This is an audit control, not an adopted repair of the original. |
+| Existing Fable Minimalism Agree then Internal Merge in S3. | F19 Agree precedes F20 movement; the landing remains hidden at Agree. This sequence already works in one stage and does not justify forcing a separate stage for every relation. |
+| Add an ordinary relation before Fable's head movement, plus a higher projection after the movement attachment. | Replay plays head movement first, the higher projection second, and the earlier ordinary relation last. Both unary and binary higher-structure controls reproduce it. The ordinary relation's participant was already present, so there is no missing-anchor reason to invert the order. |
+| Make that earlier ordinary relation refer to the future movement landing instead. | Replay still reverses the relations, while its diagnostic explicitly says authored order is preserved. The diagnostic's preservation claim is false for this shape. This is a scheduler/diagnostic defect, not permission to repair the source by reordering it. |
+| Check the original four saved sequences and focused movement suite. | All saved relation sequences retain authored order; their frame counts remain 36/37/27/37. All 40 `recoveredMovement.test.mjs` tests pass. The new mixed-order control is outside the existing test coverage. |
+
+### Alternatives and recommendation
+
+| Approach | Assessment |
+| --- | --- |
+| Fire every relation as soon as its anchors or their connecting structure exist. | Reject as a general rule. Availability proves that a relation can reference a node, not that the model intended the relation at that point. Unanchored context can matter. It would silently replace late scheduling with early scheduling. |
+| Infer before/after from Stage Record prose. | Reject for deterministic playback. Open wording, negation, conditional statements and retrospective explanations require semantic interpretation. A second model pass would add cost and another analysis-authoring step. |
+| Encode timing through anchor names, field order, token indices or child order. | Reject. Those fields already have other meanings. A private convention would recreate the hidden authoring rules this audit is removing. |
+| Put Select/Project/Merge events into relations, or add an ordered event ledger. | Expressive, but changes the contract substantially, duplicates tree construction and reopens the agreed exclusion of branching-only relation records. Not needed for the demonstrated defect. |
+| Add an optional before/after timing field. | More compact than some extra states, but it needs an unambiguous target event, not merely a node: selecting, projecting, merging, moving and realizing the same node are different events. That introduces another reference and validation system. Keep it as a future alternative only if measured stage overhead becomes unacceptable. |
+| Preserve explicit order in one scheduler; use existing stages for otherwise missing intermediate states. | Recommended. Fixes an actual engine violation without new authoring fields. Intermediate states supply information the engine cannot infer; ordinary ordered movement/realization sequences can stay together. Extra stage content has a token cost, although existing `refId` references can reuse genuinely unchanged subtrees. No new provider cost was measured here. |
+
+The proposed scheduler change is a bounded consolidation of the existing
+placement logic, not a new linguistic engine. Keep the relation list in authored
+order. Structural prerequisites may be built before a relation, but a later
+relation cannot jump ahead simply because its preferred insertion position is
+earlier. Reserve each established transition's output until that transition.
+When a prerequisite depends on a later relation, report the exact contradiction
+instead of silently sorting around it or exposing future material. Preserve the
+original record and inspection access; no new public rejection policy follows.
+
+Do not promote anchor readiness into evidence of precise linguistic timing.
+Where the current fields establish only a partial order, any deterministic
+display order must be described as derived presentation, not a chronology read
+from the prose. For a specifically required Agree-before-later-Merge sequence,
+the intermediate authored workspace supplies the missing boundary.
+
+The earlier blanket proposal, "If a relation must precede a later structural
+change, record them in separate stages", is not approved and is too broad. It
+would also split working sequences in which ordered relations already own their
+changes. Any prompt clarification must explain intermediate-state boundaries
+without making the model know Babel's finite recognition dictionary. The approved
+wording below does this; this audit does not claim that the existing fields
+can encode every possible timing distinction in one stage.
+
+### Approved implementation, 12 September
+
+Francis approved the scheduler fix and prompt clarification together. The local
+implementation is confined to these timing issues. Shared-participant ownership,
+binding-index presentation and approved relation drawings are unchanged.
+
+- Replay emits relations in authored order. A movement's preferred insertion
+  position cannot put it ahead of an earlier relation. Independent structural
+  prerequisites may be built first, each once, with children before parents.
+- Movement retains ownership of its new landing and required attachment.
+  Pending structure is also withheld from later visibility passes, so an anchor
+  cannot reveal a future landing or parent merely by referencing it. Existing
+  wordless destination heads remain distinct from new movement attachments.
+- The scheduler reports `RELATION_TIMING_CONFLICT` when an earlier relation
+  needs a later movement's output, directly or through a structural prerequisite.
+  It names the stage, both relations and unavailable node. Both affected moments
+  carry the diagnostic. The old separate direct-landing diagnostic is replaced,
+  avoiding duplicate messages and claims made before the schedule is known.
+- Non-movement transitions retain their existing output and parent visibility.
+  No source record, relation order, linguistic notation or stage is rewritten.
+
+The stage paragraph changed from:
+
+> Include the intermediate states needed to explain how the derivation proceeds. An occurrence moves only from a position that an earlier stage already shows. Several connected operations may share a stage when their order and effects are explicit. An unchanged workspace needs a sentence-specific syntactic reason for the new stage.
+
+To:
+
+> An occurrence moves only from a position that an earlier stage already shows. Several connected operations may share a stage when their sequence is represented by the ordered relations and resulting workspace. If the required order depends on an intermediate workspace, record that workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific syntactic reason for the new stage.
+
+No new field or linguistic vocabulary was introduced. The paragraph clarifies
+how existing stages express an otherwise missing state. It does not make anchor
+readiness determine timing, require one stage per relation, or claim that prompt
+wording guarantees compliance. Old prose-only ordering remains an audit finding
+in the saved records, not something this scheduler can infer or silently repair.
+
+Full `buildSystemInstruction` SHA-256 values:
+
+| Framework | Before | After |
+| --- | --- | --- |
+| Minimalism | `32b56bc6507dc835852e1e73d2b8937cd70d5a880ac3112041f074347ff188f6` | `9cb8b95d207a37c3dce4b61cecc001d878103a5f8374a629a5382cc84de69c9e` |
+| X-bar | `0217342ce5cbacd99ad917f6f96f26a0c51ce49da99eced7e42d1a5d5a505c61` | `70c691f50392c07e9001be9e3a695d763ae30b59cc88e088cb57788db071c0cf` |
+
+Generation provenance already hashes the exact sent system instruction. No
+transport configuration changed and no provider call was made. This is offline
+contract verification, not evidence from new generations.
+
+Verification covers nine new timing regressions, the existing movement and PF
+ordering cases, screenshot-derived assertions and fallback transitions. All 85
+focused tests pass. `npm run verify:all` passes typecheck, all 1,470 tests and
+parse-contract verification. Every committed Replay snapshot matches without regeneration.
+The four saved analyses retain 36/37/27/37 frames, identical canvas data,
+visible-node sets, relation links and panel content. Only Astra X-bar's two
+affected diagnostics change. Browser policy blocked fresh visual inspection;
+no browser or server was started and this is not a visual sign-off.
+
+## Original audit baseline
+
 These outputs expose failures across Babel's parser, relation recovery, Replay, and presentation. They are not a collection of unrelated visual blemishes, and they are not sufficient evidence that the models cannot produce the analyses.
 
-The most consequential findings are:
+The most consequential findings at the original audit baseline were:
 
 1. **Babel caused the misleading Fable reference errors.** Fable used the wrong container shape for three `values` fields. Babel discarded their entire stages, then complained that subsequent references to nodes in those discarded stages did not exist. Those nodes do exist in Fable's original history.
 2. **Movement recovery and movement playback are disconnected.** The generic relation recipes reject several well-supported movements. Separately, Replay's atomic movement machinery still depends on registered movement identities. Merely adding aliases to the classifier would not finish the repair.
@@ -1575,11 +2268,11 @@ binding notation, conflicting authored orders and public failure policy remain o
 
 #### Remaining fallback inventory
 
-This is the follow-up to the shared-pipeline implementation, using current
-dispatch, plan compilation and Replay on all 36 saved relation objects. It is
-an audit, not a change to rendering or acceptance policy. Stage/relation/frame
-numbers below are one-based and refer to the current compiled Replay, not older
-screenshots elsewhere in this audit.
+This historical follow-up used that pass's dispatch, plan compilation and Replay
+on all 36 saved relation objects. It changed no rendering or acceptance policy.
+Stage/relation/frame numbers below are one-based and refer to that snapshot.
+The latest prototype compilation counts 22 relations with neutral content, as
+recorded in the reconciliation above; the then-24 inventory is retained here.
 
 The inputs are the preserved Astra bundles and the previously approved Fable
 inspection copies in `/tmp/babel-batch4-offline-me5zTk`. Those files are
@@ -1589,7 +2282,7 @@ not be cited as the prompt that originally produced the saved answer. Original
 raw hashes remain in their source metadata. No new provider calls or browser
 sessions were made for this follow-up.
 
-There are 24 neutral primary/remainder claims across the 36 relations:
+At this pass there were 24 neutral primary/remainder claims across the 36 relations:
 
 - 10 relations have only Tier 3.
 - 14 have a recognized drawing plus a Tier-3 remainder.
@@ -1612,7 +2305,7 @@ contain several assertions that the coverage counter does not distinguish.
 | S6 R2 F30, Do-support | PF plaque on `raisedT`; badge on `lexicalVerb: buyV`. | The realization sentence explicitly mentions unchanged buy and stays on the plaque. The extra anchor relates that sentence to V but does not identify another realization or movement. Preserve the connection to the parent relation; do not delete V because the PF plate drew. |
 | S7 R1 F32, Wh-Agree | Tier-2 feature path; `nonInterveningSubject`, valuation and locality remain neutral. | Probe/goal establish the path. Nonintervention is not intervention. Singular `valuation` is not the recognized feature-row key, and the neutral drawing does not print the prose. Literal presentation and semantic recovery are separate issues. |
 | S7 R2 F33, Internal Merge | Tier-2 movement; remaining `licensor: questionC` and `thematicOccurrence: objectDP` form a neutral two-anchor connector. | The connector comes from applying fallback topology after subtracting movement endpoints. It is not another movement and not proof of an independent C-to-thematic-position dependency. The full relation must remain its context; changing this composition requires the shared-anchor decision below. |
-| S7 R3 F34, Transfer | Entire relation is Tier 3. | Two independent blockers: transferred status appears in the title/completion sentence, not an explicit transferred-domain role; and `questionC` is inside `complexC`, whereas TP is a sibling of `complexC`. The structural check incorrectly requires the anchored head itself to share TP's parent. Fixing either blocker alone does not recover this saved case. |
+| S7 R3 F34, Transfer | Entire relation is Tier 3. | Updated 12 September: transferred status appears in the title/completion sentence, not an explicit transferred-domain role. This is the remaining blocker. The complex-head sibling check was repaired in the broad pipeline pass; it is not outstanding geometry work. |
 | S7 R4 F35, Convergence | Entire relation is Tier 3; root badge. | `root` is not an analysis-anchor alias; judgment is a sentence, not an explicit glyph. Preserve the authored judgment and surface statement. Do not infer a success symbol or suppress the relation because the tree is complete. A latent verdict-slot issue is described below. |
 
 **Astra X-bar: all seven remainders**
@@ -1743,7 +2436,7 @@ from meanings the current machinery cannot establish.
 | Finding | Change and boundary |
 | --- | --- |
 | Most neutral claims had no useful internal explanation. | Every neutral primary/remainder now has one `claim-evidence` report with full authored context, exact fields, original item indices and relevant candidate failures. A missing role no longer prevents reporting why its candidate failed. Candidates are possibilities, not claims about the model's intent. Their failures are grouped rather than emitted as a dozen separate warnings for a generic `target`. No public warning was added. |
-| Field subtraction obscured shared context. | Dispatch now reports all owners of every original field/item and retains the complete relation beside that accounting. An unused field is not treated as proof of an independent dependency. This does not yet change the neutral drawing's geometry or reconnect a governor badge to an already-consumed trace; that is still a composition decision. |
+| Field subtraction obscured shared context. | This pass added ownership accounting without changing geometry. Superseded by the approved 12 September shared-participant implementation: a mixed neutral remainder now retains the full current-anchor context separately from unconsumed evidence. This no longer requires a composition decision; fresh visual verification is still pending. |
 | Partial-array references used positions in the shortened remainder. | Tier-1 context and Tier-3 remainder references now retain original positions. A Tier-2 outcome at index 0 and qualifications at indices 1 and 2 remain traceable to those exact original slots. No array or literal is rewritten. |
 | An independent Tier-2 judgment could remove the registered primary's outcome. | If the registered render family uses outcomes, its authored `values.outcome` remains available while Tier 2 also uses it. A failed Binding can no longer turn into the renderer's licensed default merely because a sibling judgment used the same value. Tests cover both positive and negative outcomes. Other values are not indiscriminately copied back into the primary. |
 | Transfer demanded an immediate head/domain sibling relationship. | Its check now follows an unambiguous same-category head complex and projection spine. Tests vary C, v, P and an arbitrary Z label, with two accessible edges, unrelated ancestors, separate workspaces, nested higher heads and edges inside the transferred domain. P is not stripped to an empty category. The walk stops at a different higher head rather than accepting its edge for the lower phase. No phase inference from labels was added. |
@@ -1930,16 +2623,16 @@ in Babel's interpretation need different diagnostics.
 | --- | --- | --- | --- |
 | HC01 | Joint groups are concatenated when several keys normalize to the same role. `tier2RelationDispatch.normalizeBlock`, every recipe. | `occurrences:[a,b]` plus `copies:[c,d]` must not become one chain. Preserve original groups; diagnose ambiguity, while retaining genuinely independent pieces. The approved prompt sentence explains grouping without examples or a vocabulary. | Fixed in the connected grouping pass above. |
 | HC02 | Prior/current order columns share one value concept. Synonyms, native linearization preparation. | Separate their meanings before lookup; retain original order and repetitions. | Fixed in the grouping pass. |
-| HC03 | Equal-length lists imply pairwise correspondence. `literalThetaRoles`, `paired-values`, `paired-cardinality`, `feature-dependency`, Tier-1 ATB and gapping lowering, PF fission output slots. | Theta arguments/roles, Case targets/labels, gap nodes/indices, correspondence endpoints/indices, correlates/remnants, ATB sources/witnesses and fission outputs/features use positions as associations. Equal lengths alone prove none of these. One node/one value is not the same ambiguity. Prefer actual containment/identity where it establishes a unique association, otherwise an explicit shared association rule. Do not silently add a blanket zip rule or a new field. | Decided and implemented, 11 September. The contract now states the rule: a values entry that lists one literal per item of an anchor entry carries the same name and the same length; two anchor entries that pair item by item have the same length and order. `pairedLiterals` in `tier2FacetRecipes.ts` is the one resolver: same-name and same-length pairs by position; one item with one literal pairs regardless of name; a same-name entry of the wrong length blocks the drawing with a reason; a differently named list is not a pairing and stays in the residue (an optional annotation is merely context, a required one fails the recipe). Theta grids, Case literals, gap notation, correspondence indices and Tier-1 gapping labels all use it; the same-name entry is consumed with the drawing. Native-plate string formats (HC05) remain separate. |
-| HC04 | Scalar consumers take the first item even though values remain open lists. `renderPlanCompiler.scalarValue`, direct `[0]` consumers, Tier-2 `firstValue`. | Many Tier-2 scalar recipes already enforce max 1. Tier-1 values do not. Structured PF preparation also has exact cardinality checks. Audit each scalar against its eligibility check; multiple unequal literals must stay available rather than silently selecting one. Preserve raw values and report which original slots the drawing uses. | Remaining shared content-validation work. |
+| HC03 | Equal-length lists imply pairwise correspondence. `literalThetaRoles`, `paired-values`, `paired-cardinality`, `feature-dependency`, Tier-1 ATB and gapping lowering, PF fission output slots. | Theta arguments/roles, Case targets/labels, gap nodes/indices, correspondence endpoints/indices, correlates/remnants, ATB sources/witnesses and fission outputs/features use positions as associations. Equal lengths alone prove none of these. One node/one value is not the same ambiguity. Prefer actual containment/identity where it establishes a unique association, otherwise an explicit shared association rule. Do not silently add a blanket zip rule or a new field. | Decided and implemented, 11 September. A values entry listing one literal per item of an anchor entry carries the same name and length; any two entries authored as itemwise pairs have the same length and order. `pairedLiterals` in `tier2FacetRecipes.ts` resolves the per-anchor literal lists: same-name and same-length pairs by position; one item with one literal pairs regardless of name; a same-name entry of the wrong length blocks the drawing with a reason; a differently named list is not a pairing and stays in the residue. Theta grids, Case literals, gap notation, correspondence indices and Tier-1 gapping labels use it; the same-name entry is consumed with the drawing. HC05 records the completed plain-field plate readers, not another pending format decision. |
+| HC04 | Scalar value consumers took the first item even though values remain open lists. `renderPlanCompiler.scalarValue` and the former Tier-2 `firstValue`. | Native one-value slots now have matching eligibility checks and a precise cardinality diagnostic; lowering does not select item zero. Tier-2 binding/covert indices now declare their single-value requirement. Full-row/list and paired content remain supported. Case/Agree composition retains the full plaque when one row cannot carry the values. | Implemented for the scalar value consumers in the connected batch, with all declared native slots and both uncovered Tier-2 slots tested. This is not a claim that all open semantic interpretations or participant-array compositions are solved. |
 | HC05 | Native plates require literal field spellings and mini-languages not in the prompt. `nativeDrawingContent`, Tier-1 PF branches, Tier-2 native checks. | Correspondence requires `=>` and unique matching source/exponent strings; fission expects input/first/second feature rows and exactly two outputs; impoverishment expects a uniquely named cut in an ordered hierarchy; linearization uses `<`; rebracketing uses brackets; storage expects category/qstore/retrieved rows; Dependent Case step accepts only `1` or `2`. First use the same normalized meanings in both tiers and prepare content before claiming successful drawing eligibility. Then decide any genuinely necessary generic association syntax once, instead of teaching a separate serialization trick for every card. Keep unsupported literals visible. | Fixed, 11 September. No plate reads a private syntax any more. Correspondence pairs the sources and exponents lists item by item, with repeated literals for many-to-many and blank slots unlinked. Fission takes the two output terminals from anchors and one feature-bundle literal per output through the same-name rule. Linearization reads node orders from anchors and priorAnchors and renders the precedence rows itself. Local dislocation is claimed only when the prior and current trees regroup the sequence with unchanged terminal order. The dependent-Case step is any single literal, shown as written. Tier 1 and Tier 2 read the same evidence. The pairing sentence now covers any two entries. |
 | HC06 | Literal meanings have another private grammar. `featureNotationStatus`, `explicit-npi`, outcome resolver, movement-route and glyph readers. | Exact feature tokens, polarity/dependent-Case notations, `strong NPI`, bounded outcome words and `orthogonal` affect eligibility. These are finite recognition limits, not mandatory authoring rules. Negation/qualification must remain distinguishable; diagnostic wording must say unsupported interpretation, not missing authored data. Sharing one reader avoids different tiers disagreeing; arbitrary prose remains an explicit limitation. | Finite limits retained and documented; do not expand the prompt into their dictionary. |
 | HC07 | Outcomes work only under the literal key `outcome` in parts of Tier 1, although matching recognizes `status`, `result` and `judgment`. An independent facet can consume that same evidence. | Shared outcome-role lookup now feeds the painter and signature checks; ownership retains a recognized outcome needed by the primary. A literal judgment such as `*` remains a separate glyph, not an outcome word. Tests exercise both polarities and equivalent keys. | Fixed. |
 | HC08 | Potential obstacles imply failed dependencies. Transfer access and Intervention painters always include a cross, while the old eligibility tests called their absent-outcome geometry neutral. Tier-2 blocked extraction also inferred the negative meaning from structural anchors. | Require an authored negative outcome or an explicitly blocking participant role belonging to that drawing. Known `blocker`, `inaccessibleGoal` and `blockedDomain` meanings are supported; mere `intervener`, `target` or containment are not enough. Explicit positive/uninterpretable outcomes cannot be ignored to retain a cross. Complete Tier-1 recipes remain complete; these are eligibility checks, not partial rescue. | Fixed for these shared negative-claim paths. No pixels or symbols redesigned. |
 | HC09 | Overlapping aliases establish multiple linguistic claims. Binding and operator-variable recipes. | `operator`, `variable`, `domain` previously earned both drawings. Contextual aliases now fill slots only when the relevant meaning is established. A remaining hybrid tie stays neutral with `binding-or-operator-reading`, retaining other independent pieces and original fields. Distinct relation records still have distinct moments. | Fixed. |
-| HC10 | Generated coindices can look model-authored. `tier2RenderPlanCompiler` identity, Binding, scope movement and operator-binding; Tier-1 chain allocation, parasitic-gap defaults and gapping labels. | Relation position, `i`, or first-encounter order supplies some indices. Theta table pointers and Tier-3 numbered badges are presentation labels, not automatically linguistic coindexation. Keep that distinction explicit. Prefer authored coindices; otherwise choose one documented presentation policy with provenance rather than reading list positions as linguistic identity. | Index presentation remains a decision. Badges unchanged. |
+| HC10 | Generated coindices can look model-authored. `tier2RenderPlanCompiler` identity, Binding, scope movement and operator-binding; Tier-1 chain allocation, parasitic-gap defaults and gapping labels. | Relation position, `i`, or first-encounter order supplies some indices. Theta table pointers and Tier-3 numbered badges are presentation labels, not automatically linguistic coindexation. Keep that distinction explicit. Prefer authored coindices; otherwise choose one documented presentation policy with provenance rather than reading list positions as linguistic identity. | Linguistic index presentation remains a decision. Tier-3 badge numbering is separately settled: authored relation position within the stage, implemented 12 September. |
 | HC11 | Replay treats an ID suffix as bookkeeping. Former `normalizeReplayStructuralNodeId`. | `dp_stage1` and `dp_stage3` both became `dp`. Their names are opaque occurrence IDs, not instructions to strip a suffix. The suffix rewrite is removed and both remain distinct in canvas data. | Fixed; regression test added. |
-| HC12 | Other node-ID text still affects behavior. `resolveCarriedRelationEndpointForCanvas`, `stripSyntheticReplayLeafSuffix`, synthetic workspace/leaf IDs, continuity preparation. | Endpoint remapping filters by the prefix before `_`/`:` and scores `trace`/`final`; `cp_` affects reserved layout space; synthesized names can collide with authored IDs; unresolved IDs are prettified into English. Replace text heuristics with exact IDs, explicit generated-node metadata and unique authored identity matches. Reserve renderer IDs through a collision-free mapping, not an unstated model naming rule. Never choose the first ambiguous lineage mate. | Fixed for endpoints: a carried movement link keeps its authored endpoint ids and is simply not drawn on a canvas that lacks one; the prefix filter, `trace`/`final` scoring and the `__silent` id convention are gone. Replay's own display-leaf ids stay in the `::__` namespace. Prettified unresolved ids in panel text remain a presentation limit. |
+| HC12 | Other node-ID text still affects behavior. `resolveCarriedRelationEndpointForCanvas`, `stripSyntheticReplayLeafSuffix`, synthetic workspace/leaf IDs, continuity preparation. | Endpoint remapping formerly used ID spelling. Synthesized names can still collide with open authored IDs. Use exact IDs and explicit generated-node identity, never an undocumented author namespace. | Endpoint prefix/scoring and `__silent` heuristics are removed. The connected batch preserves unresolved panel IDs verbatim, resolves prior labels exactly, reserves authored IDs/aliases in D3 allocation, and excludes duplicate authored IDs from lookup. Still open: the broader `::__` synthetic-leaf and workspace-ID convention and its suffix readers; the D3 fix does not close these. |
 | HC13 | Lineage is sometimes treated as an occurrence ID, and reconstruction needs more correspondence evidence than its callers report. `prepareDerivationReplay` continuity seeding and `buildPreMovementStructuralForest`. | `previousVisibleNodeIds.has(lineageId)` compares different concepts. Restoration without a prior source also needs a unique lineage counterpart for each newly silent leaf and can abort when one is missing. Use exact previous occurrences first; report the specific unreconstructable leaf. Do not give every descendant its ancestor's lineage: that would assert an unauthored identity and can make siblings indistinguishable. | Fixed. Continuity compares the current lineageId with the lineageIds of previously visible occurrences. Reconstruction no longer exists: the contract now says an occurrence moves only from a position an earlier stage already shows, so every movement source is restored exactly from the preceding stage, and a source that is not there leaves the stage as authored with the existing unproven-source diagnostic. Ancestor-lineage inheritance rejected. |
 | HC14 | Word spelling overrides authored pronunciation. Server `derivationHelpers`/`syntaxTree`, Replay surface/trace helpers and terminal filters. | Direct reproduction: `{label:'N',word:'copy',tokenIndex:0}` is excluded by both server and Replay overt collectors. `trace`, `null`, `pro`, bracketed words and index-like strings meet related special cases; Replay filters subscript-like words too. Use the existing `word`, `silent`, `tokenIndex` fields consistently. An explicitly pronounced input token must not become a trace because of its spelling. Keep notation interpretation in the unpronounced-display path. | Fixed. `server/babelParser/nodePronunciation.js` is the single field-based classification (`isPronouncedLeaf`, `isSilentWordLeaf`, `isWordlessLeaf`); the parser's overt collectors and every Replay pronunciation decision use it. `t`/`∅` notation is read only on leaves that are already unpronounced. |
 | HC15 | Label casing decides whether a wordless node is spoken or styled as a word. Server structural-label lists differ from Replay's lists. | Reproduced `appl`/`voice` as server overt tokens while `Appl`/`Voice` are excluded; Replay counts both forms. `Neg` is excluded by server but counted by Replay. The prompt says lexical content is in `word`. One field-based classification should serve both layers; no extra capitalization instruction for the model. Preserve the approved category treatment and the model's wordless/null/copy choice. | Fixed. A wordless leaf is an abstract category whatever its label spells or however it is cased; `STRUCTURAL_LEAF_LABELS`, the casing tests and the label-fallback surface are removed. The Atlas lab bank, which authored silent lexical content in labels, now authors it in `word`. |
@@ -1949,7 +2642,7 @@ in Babel's interpretation need different diagnostics.
 | HC19 | First two anchors imply directional endpoints; unresolved anchors disappear. `buildResolvedRelationLinksFromFrames`, `resolveRelationAnchors`, `isRenderableReplayRelation`. | An unfamiliar three-member relation gets legacy source/target fields from the first two resolved items; that alone is not proof that an arrow appears in production. A relation with no resolved current anchors can lose its Replay moment. Keep fallback participants unordered unless direction is established. Preserve the relation event and attach exact stage/key/index diagnostics for unresolved witnesses; do not manufacture nodes or select remaining anchors as a repair. | Fixed. `classifyRelationAnchors` reports every unresolved anchor at its authored field; the relation keeps its Replay moment with a `RELATION_ANCHOR_UNRESOLVED` diagnostic even when nothing resolved. Unregistered relations record `authored-anchor-order` provenance and only trajectory families draw direction. Public failure behavior unchanged. |
 | HC20 | Movement/frame preparation adds naming and chronology assumptions. `baseGenerationSurface`, movement-stage comparison, first-leaf selection, first-active-link detail rows. | A fallback lowercases initial D/C words; other paths choose the first lexical leaf or first active link. Prefer exact authored prior surfaces, stable occurrence identity and the owning relation's complete details. Movement evidence is expected in the stage where its result first exists. The prompt already requires chronological relations and persistent occurrence IDs; diagnose violations instead of adding duplicate prose or reordering the analysis. | Fixed. Pre-movement surfaces are never reconstructed from the landing, so the lowercase rule and the first-leaf selection are deleted with the reconstruction path. An authored prior-stage occurrence is restored exactly. The Replay boilerplate-text filter and the legacy detail-block classifiers are removed; the local model route records its own name. |
 | HC21 | Order and span interpretation differs by consumer. Final server alignment versus `collectPronouncedTerminalSequence`. | The final prompt explicitly requires tree order to match input. The sentence fallback collector sorts fully indexed terminals, and also reads undeclared authored spans. Keep token identity, tree order and presentation order distinct. Validate final order from traversal; never use sorting to hide a mismatch. This is not a newly discovered model-facing requirement. | Fixed, 11 September. The Replay sentence reader returns pronounced words in tree order through the shared pronunciation module; it no longer sorts by token index or reads spans. A token index that disagrees with tree position is reported by the parser's token alignment. |
-| HC22 | Dead prose classifiers and provider-route labels remain. `buildReplayDisplayDetailBlocks`, old low-signal/operation regexes, local-model `promptRoute`. | Current detail producers use Stage Record/Relations, not the legacy titles that move Case/selection/locality prose. Verify callers and remove unreachable routing, not add instructions that could activate it. The local provider borrows the `gemini` route name and defaults; separate actual transport from configuration provenance, checking defaults before changing it. | Remaining cleanup; no provider request/configuration changed here. |
+| HC22 | Dead prose classifiers and provider-route labels remain. `buildReplayDisplayDetailBlocks`, old low-signal/operation regexes, local-model `promptRoute`. | Current detail producers use Stage Record/Relations, not the legacy titles that move Case/selection/locality prose. Verify callers and remove unreachable routing, not add instructions that could activate it. The local provider borrows the `gemini` route name and defaults; separate actual transport from configuration provenance, checking defaults before changing it. | Fixed in the 11 September pass: legacy prose classifiers were removed and the local route records its own name. This is not outstanding cleanup. |
 
 Every proposed remedy above applies to a class of inputs. Tests should vary
 unknown labels, opaque/Unicode IDs, field order, aliases, array length/order,
@@ -2056,29 +2749,31 @@ and `1`/`2` readers are deleted. The lab cards that authored them were
 re-authored in plain form. The gate passes 1,461 tests; the saved Astra/Fable
 digest is unchanged.
 
-HC21 is closed the same day: every code row of this inventory is now resolved
-or decided. What remains is design (Tier 3 presentation) and process (the joint
-review of the four saved analyses in Replay before any paid run). No return to
-sentence-by-sentence patching, and no claim that finite lookup makes open prose
-universally decidable.
+HC21 is closed the same day. The earlier completion report overstated closure.
+The 12 September connected batch now records the scalar-value repair for HC04
+and D3 allocation/prior-label fixes for HC12. HC10's later prototype uses generated
+letter coindices, pending reviewed integration; HC12 still retains the
+synthetic-leaf/workspace namespace boundary.
+The combined four-analysis review is still required before any paid run. Finite
+lookup does not make open prose universally decidable.
 
 #### Remaining decisions
 
 These require concrete examples and discussion before their implementation, not another repetition of settled principles:
 
-1. **Ambiguous relation evidence and grouping.** How to state several participant/value associations clearly and what to do when the saved record does not establish a pairing or direction. The smaller Control, covert-movement, idiom and transferred-domain combinations and their connected regression checks are implemented under the evidence boundaries immediately above. The existing fields remain the working format, with redesign available if its benefits and costs are demonstrated. No implicit array pairing, title scraping, or partial Tier-1 rescue is approved.
-2. **Timing beyond ordinary ordered relations.** How genuinely simultaneous claims are represented and how previously saved conflicting orders are inspected. Do not silently rearrange a saved analysis. Normal forward chronology, complete movement landings, and model ownership are already agreed.
-3. **Silence over a whole subtree.** Whether a phrase-level silent mark makes descendants unpronounced, or whether terminal status must be explicit, and how conflicting markings are diagnosed. Terminal words may remain on silent copies; the model still chooses copy versus trace.
-4. **Plaques and Tier 3.** Decided 12 September for Tier 3: a neutral fallback marks its own stage only, and its numeral is the relation's authored position in that stage. Hiding leftover anchors and one-mark-per-relation were rejected. Still open: long values, many rows, mobile interaction, and exports. No overflow button or moving selected values into Replay-only content is approved.
+1. **Unsupported associations and interpretation.** Explicit list pairing and shared current-participant context are decided and implemented, as are the smaller Control, covert-movement, idiom and transferred-domain Tier-2 combinations. Genuinely ambiguous meanings and unsupported annotations remain neutral unless a specific interpretation is established. The existing fields remain the working format; arbitrary title scraping and partial Tier-1 rescue are not approved. These settled fallback rules do not need another approval.
+2. **Timing beyond ordinary ordered relations.** Genuinely simultaneous separate claims remain an open contract question. Inspection of saved conflicting orders is implemented with event-owned diagnostics; the original order stays unchanged. Normal forward chronology, complete movement landings, model ownership and using an intermediate authored workspace for required structural interleaving are already agreed.
+3. **Index and judgment presentation.** The accepted prototype uses letters for generated coindices, replacing Binding's relation-position default while preserving authored literals. Literal judgments versus outcome glyphs remain a separate question. Tier-3 numbers are settled locators, not linguistic indices.
+4. **Plaques and Tier 3.** Neutral marks remain stage-scoped with original-position locator numbers. The approved prototype reserves local plaque width/height and space below the terminal words for large plaques, revealing them at their relation moments. Saved-case desktop/mobile checks pass. General long values, many rows, mobile reading and integrated exports remain to be qualified. No reading-view button, hidden rows or moving selected values into Replay-only content is approved.
 5. **Incomplete-record handling.** Whether any formatting correction is automatic, how partially compilable or multi-analysis responses remain inspectable, and what the public app does if processing cannot finish. Surface-token mismatches, extra final roots, and conflicting field types need precise diagnostics separately from deciding display behavior. Ungrammatical sentences remain legitimate inputs, not grounds for discarding an analysis. No regeneration after a downstream processing failure is already agreed.
 
-The unknown cause of Fable's missing ending and the remaining code/visual checks are investigations, not decisions Francis must guess. Their uncertainty does not block settled fixes or authorize a helper. Next implementation can address stage-scoped anchor diagnostics and recognized movement/Replay ownership; remaining policy and display choices must stay explicit.
+The unknown cause of Fable's missing ending and remaining code/visual checks are investigations, not decisions Francis must guess. Their uncertainty does not authorize a helper. Stage-scoped anchor diagnostics, shared movement/Replay ownership, shared-participant context and inspection-panel repairs are implemented. The [joint saved-analysis review](#joint-saved-analysis-review-12-september) completed the independent source/frame reviews. The [later prototype pass](#prototype-and-main-reconciliation-12-september) supplies browser evidence and identifies remaining transition defects. Next are those defects and general content qualification, followed by the separate interpretation and processing work in the roadmap. Main integration is outside the prototype checkpoint. The synthetic-ID boundary remains a code investigation.
 
-Batch-discussion clarification: Francis conditionally accepts whole-phrase silence but requests its linguistic edge cases before implementation. He has not chosen simultaneous versus sequential presentation for concurrent relations; sharing a completed derivation stage must not be confused with simultaneous operations. Stage Record, relations, and trees must describe one consistent derivation. Preparing explicitly distinguished debugging copies, inspecting available trees despite formatting problems, and evaluating what the provider actually returned are routine requirements, not questions to reopen. Such copies must not replace the original evidence or become silent production corrections. Public incomplete-record behavior and automatic repair remain separate from this agreement. No runtime or prompt change follows from this clarification.
+Current decisions, reconciled 12 September: whole-phrase silence is approved and implemented on both layers, including diagnostics for token indices beneath silent ancestors. Earlier conditional discussion is superseded. Movement requires an authored earlier source; reconstruction from a later landing and its lowercase rule are deleted. Separate relations retain separate moments; sharing a stage does not establish simultaneity. Stage Record, relations and trees must describe one consistent derivation. Clearly labelled inspection copies and inspection of imperfect outputs are routine requirements, not questions to reopen. They never replace the originals. Public incomplete-record behavior and automatic repair remain separate, unresolved policies.
 
 ### Approval is not established by a successful render
 
-The clipping F18 plaque can be traced to the existing Agree branch. It is not a new probe design added by the review page. The bad fit is nevertheless real. The current Tier 2 Phase drawing is also an existing piece, but it does not mean the full Transfer statement has been drawn.
+The historical clipping F18 plaque came from the existing Agree branch. The later prototype supplies saved-case placement checks; general overflow and integrated export qualification remain open. A successful Tier-2 Phase or transferred-domain drawing still does not establish that every assertion in the full Transfer statement has been interpreted.
 
 All current claims were checked against dispatch evidence and the documented drawing inventory. The later shared-pipeline pass captured the Fable inspection copies and checked the approved smaller drawings in the production renderer. A fresh pixel-by-pixel comparison of every generated mark with every Orchard example remains outside that pass. These limits prevent calling this a complete visual sign-off.
 

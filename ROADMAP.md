@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-11
+Status date: 2026-09-13
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -10,10 +10,10 @@ and research notebooks are evidence or history, not competing roadmaps.
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
 | Authored contract | Implemented: each analysis is only four-field `derivationStages`; `relations` is open; `values` and immediate-prior `priorAnchors` are supported. | Empirically qualify model-facing choices before changing the contract or recovery policy. |
-| Deterministic engine | Implemented, but the September live-output audit found discarded stages, misleading reference errors, and missing validation diagnostics. Earlier fixture passes did not detect these failures. | Resolve the Program 1 audit findings without silently changing an authored analysis or deciding a new rejection policy. |
-| Relation renderer | The Orchard and earlier fixture checks passed. **Renderer completion is reopened by reproducible defects** in movement recovery, Replay timing, relation text, and layout on real outputs. | Resolve and verify the Program 1 audit findings. Tier 3 design changes still require discussion and approval. |
+| Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Synthetic identity, automatic JSON repair and public incomplete-processing policy remain unresolved. |
+| Relation renderer | The accepted prototype retains available Tier-3 participants and prevents the do-support stretch, preserving the preceding layout and all other 135 saved desktop frames. | Other Replay shifts, no-participant presentation, long-content and application/export qualification remain open. The broader coordinate rewrite remains rejected. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
-| Tree Bank | Functional browser-local IndexedDB v1 storing whole parse bundles. | Replace the legacy entry with durable per-analysis records and a thin saved-work wrapper. |
+| Tree Bank | The prototype retains the baseline browser-local IndexedDB v1 implementation. Main has a separately verified thumbnail fix. | Main and its thumbnail fix are outside this prototype checkpoint. The later durable-record migration remains separate product work. |
 | Durable record layer | W17a-d pure record envelope, evidence schemas, adapter, canonical native export, and provider-free proofs exist. | No storage engine, product integration, query layer, import UI, collaboration, or publication system exists. |
 | Benchmark | Extensive provider-free W13-W16 infrastructure exists for manifests, schedules, validation, statistics, review plans, reports, corrections, and release refusal. | No current item suite, approved provider run, adjudication workflow, fitted method, claim-bearing release, or benchmark web surface exists. |
 | Public research site | Research archive exists. The current renderer is published as the Relation Orchard artifact in this checkout. | Ship the organized checkout and later design the benchmark/product sites without mixing their data or authority. |
@@ -166,10 +166,174 @@ proven Fable field/reference failure causes, cost and timing evidence, and the
 unresolved cause of the missing JSON ending.
 It is supporting evidence; this roadmap is the only active checklist.
 
-#### Repair work order
+#### Current reconciliation and next work
 
-Current position, 10 September: the approved preservation/diagnostic work and
-connected recognition, native-drawing and Replay repairs are implemented locally.
+Francis accepted the prototype and requested commits of its resolved work on
+13 September, then explicitly limited the scope to `Babel-proto`. This branch
+contains the inherited evidence/timing repairs, plaque/badge composition,
+generated letter coindices, stage-size reservation, narrow neutral-participant
+repair and bounded stage continuity. Codex reviewed and separated the changes
+into coherent commits. The final production sources match the verified preview;
+the full gate passes 1,574 tests, typecheck and both parse fixtures.
+The current preview is `/tmp/babel-stage-continuity-candidate/index.html`.
+
+Main and its separate Tree Bank thumbnail repair remain untouched and outside
+this checkpoint. No merge, combined-app qualification, push or paid run is part
+of this work. Prototype approval covers the checked appearance and fixes; it does
+not certify every renderer case or the saved linguistic analyses.
+
+Francis rejected the subsequent general Replay repair because its coordinate
+planner changed overall spacing and fitted sizing. That entire repair has been
+reverted to the exact preceding source. Its 1,572-test gate and browser measurements
+remain historical evidence, not visual approval or current implementation status.
+Francis subsequently requested a proper repair while objecting to the changed
+size, branch lengths, stage movement and detached plaques. The replacement only
+changes neutral-participant binding and reveal. It preserves the restored layout,
+camera and plaque placement; it does not reinstate the rejected coordinate planner.
+Francis subsequently accepted the current prototype's appearance. Desktop is the
+current priority; mobile qualification is deferred. Preserve this version's sizing,
+fitting and plaque attachment. The historical future-position approach is a lead
+for later stability work, not a reason to change the accepted preview now.
+
+Francis then reported the specific Astra X-bar F35→36 do-support stretch and
+authorized a small general repair. The cause was per-stage width/depth budgeting
+and refitting, not the PF plaque's bounds. Consecutive stages now share dimensions
+and fit only when their exact authored structure and ordinary node positions agree.
+They retain the first stage's dimensions; upcoming content contributes to the fit
+before reveal. New structure or incompatible positions starts a separate layout.
+The candidate retains all 30 existing labels, branch geometry and four persistent
+plaques across do-support, including zoom, backward navigation and Fit. All other
+135 saved desktop Replay frames match the accepted preview. Francis accepted this
+prototype for committing; the other movement-related shifts remain open.
+
+All four archived bundles were checked through production Replay in that
+prototype: 137 frames at each of desktop and mobile sizes, plus 80 backward
+revisits. The checks found no plaque/tree intersections or plaque clipping in
+those saved cases. Small plaques reserve local space, large plaques use reserved
+space below the terminal words, and Case connectors remain short. The restored
+stage-size repair fixes Astra Minimalism F29→30, but other topology-related shifts
+and active zoom/Next remain open. The narrow repair shows C's neutral badge in the
+wh-licensing frame. All 274 before/after frame comparisons and four zoom/Fit pairs
+retain identical camera transforms, labels, branch paths and plaque positions.
+Arbitrary long-content readability remains unqualified. The
+[latest evidence and limits](docs/implementation/contract-qualification/system-audit.md#prototype-and-main-reconciliation-12-september)
+supersede the earlier browser-blocked status below.
+
+| Starting-point items | Current disposition | Remaining work |
+| --- | --- | --- |
+| 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the prototype. Generated coindices use letters there; circled Tier-3 numbers keep their approved locator meaning. | Preserve the accepted appearance; stress long values/many rows and verify application exports. Mobile readability is deferred. |
+| 17: Replay stability | The restored stage-size repair fixes F29→30. The new bounded continuity rule fixes Astra X-bar F35→36 without changing existing proportions or plaque attachment. The broader coordinate rewrite remains rejected. | Resolve other within-stage shifts separately while preserving accepted sizing and spacing; qualify active zoom/Next. |
+| 6, 16–17: empty relation moments | The narrow repair shows ① at C in Astra X-bar F32. F33 adds the operator badge and connector. Available neutral participants survive independently in partial pairs and fans. Layout and sizing match the restored prototype exactly; Francis accepts its current appearance. | Preserve the accepted appearance. Design the no-participant state below. Complete specialized dependencies remain atomic, unavailable syntax stays hidden and the original timing diagnostic remains. |
+| 5–8: interpretation and neutral content | Shared-participant preservation is fixed. Current plans contain neutral content in 22 of 36 relations, not 24. | Audit equivalent roles with negative controls; distinguish drawable wh licensing/percolation, Spec-head agreement, government and PF context from unsupported meaning. Title/prose evidence remains a policy boundary. Preserve contextual prose without manufacturing extra dependencies. |
+| 9: generated identity | D3 allocation reserves authored IDs. | Remove the broader dependence on synthetic suffix spelling without reinterpreting open authored IDs. |
+| 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. | Decide permitted JSON transformations and automatic use, then public handling of malformed/mixed/unresolved results, surface mismatches and extra roots. Fable's missing ending still has no proven generation-side cause. No helper or paid experiment is authorized. |
+| 13–14: simultaneity and judgments | Ordinary relation order and required intermediate stages are settled. | Define genuinely simultaneous separate relations and distinguish authored judgment literals from inferred verdict symbols. |
+| 15–16: linguistic review and old chronology | Original conflicts remain inspectable, including Astra X-bar F32 wh licensing before its landing. | Qualified review must establish each analysis's assumptions, including Fable's object Case, early did, wh status and government claims. Do not silently rewrite the originals. |
+| 18: operational qualification | Offline provider and adapter checks exist. | Exercise queued OpenAI polling through the full public route and measure long-derivation processing before caching. Real-model compliance, revised-prompt cost/latency and caching benefit remain unmeasured. |
+| 19: review and consolidation | The rejected rewrite remains reverted. Codex reviewed the accepted prototype changes for coherent commits; Fable was waived. | Main integration is outside this checkpoint. Keep the rejected attempt and remaining defects documented. |
+
+Next work, in order:
+
+1. Preserve the committed prototype's accepted desktop sizing, fitting and plaque
+   attachment. Investigate the remaining within-stage shifts and active zoom/Next
+   as separate reproducible defects. Mobile work is deferred.
+2. Qualify long plaque values/many rows, identical-sentence casing and application
+   exports. Design the still-unimplemented no-participant Tier-3 presentation.
+   Main integration and the separate Tree Bank fix are outside the current scope.
+3. Complete the shared interpretation audit with positive and negative examples.
+   Explain each of the 22 neutral-content relations. The wh-licensing frame
+   remains a preserved conflicting claim requiring a visible neutral representation;
+   a relation moment does not prove licensing succeeded. Missing geometry must
+   not erase the available participant marks.
+4. Resolve synthetic identity and the concrete processing, repair, simultaneity
+   and judgment policies. Keep these separate from the completed prompt cleanup.
+5. Complete linguistic review and offline public-route/performance qualification.
+   Propose a bounded live qualification run only after its purpose, cost and
+   remaining questions are concrete. Further paid generation remains unauthorized.
+
+Do not reopen model-owned traces/nulls/wordless heads, whole-phrase silence,
+explicit list pairing, complete Tier-1 requirements, smaller Tier-2 combinations,
+stage-scoped Tier 3, original-position badge numbering, source-preserving atomic
+movement or the completed prompt cleanup. No reading-view button, hidden rows or
+Replay-only relocation of plaque content has been approved.
+
+The remaining no-participant case needs a Tier-3 presentation state, not another
+linguistic relation family. Proposed direction: reuse the existing relation
+locator in reserved canvas space, with the missing/future-participant explanation
+in Replay. Its placement and wording still need review. Never attach it to an
+unrelated node or draw an absent endpoint. This applies to an otherwise blank
+authored relation moment; contextual prose left over from an already drawn claim
+does not automatically earn an additional graphic. No such new presentation was
+implemented; the subsequent general Replay repair has been reverted.
+
+#### Repair history and evidence
+
+Earlier 12 September baseline: PRs #6-#11 are merged on `main` at `0a8f0cc`.
+Codex and Fable completed the
+[joint saved-analysis source/frame review](docs/implementation/contract-qualification/system-audit.md#joint-saved-analysis-review-12-september):
+23 stages, 36 relations and 137 Replay frames. All 11 movements pass the checked
+source/landing timing invariants. After the connected repairs below, the full gate passes
+1,509 tests, typecheck and parse-contract verification. Fresh visual
+inspection was blocked at that pass. The later prototype verification above
+supersedes that limitation for its explicitly checked cases.
+
+Shared-participant preservation is now implemented locally. Mixed neutral claims
+keep authored current-participant context, separately from unconsumed
+evidence. Verified movement enclosure fields are excluded once the movement
+accounts for them. This restores the shared trace/variable in both reported government
+cases without inventing government arrows or changing Tier-1 requirements.
+The initial pass changed eleven fallback contexts across the saved analyses; all specialized plan
+items and 137 Replay frames remain unchanged. This can increase visible badges
+within a stage; visual composition was still unverified at that pass.
+
+The approved connected batch is implemented locally: inspection Replay shows
+existing diagnostics at the affected relation event; prior participants resolve
+against the previous authored tree, with unresolved or ambiguous IDs unchanged.
+Generated D3 IDs reserve authored IDs and aliases before allocation. Native
+single-value slots and the two uncovered Tier-2 index slots no longer select the
+first list item. Agree keeps its full plaque when a Case companion curve cannot
+display all its values. Public warnings, the live prompt and saved records are
+unchanged in this batch. See the audit's
+[connected repair batch](docs/implementation/contract-qualification/system-audit.md#connected-repair-batch-12-september)
+for the tests and remaining synthetic-ID boundary.
+
+The subsequent [badge composition review](docs/implementation/contract-qualification/system-audit.md#badge-composition-review-12-september)
+used Francis's screenshot and all 137 compiled Replay frames. Stage scoping is
+correct in the data, but shared context increases final badges from 7 to 11 in
+Astra Minimalism and 4 to 8 in Fable X-bar. It also exposes an accounting defect:
+Fable's enclosing CP was structurally checked by movement recovery but then treated
+as unhandled. Other head-host roles were unchecked. Both defects are now repaired
+locally through shared structural verification and per-field evidence ownership.
+Wrong or ambiguous context retains an exact diagnostic; independent claims stay
+in fallback. Eighteen new tests cover these boundaries and drawing identity.
+All 137 serialized Replay frames and specialized plan items remain unchanged.
+Fable X-bar's final badges fall from eight to five; Astra Minimalism remains at
+eleven. No prompt, analysis, layout or persistence policy changed in this repair.
+
+At this point the next work was badge/plaque composition and generated-index
+presentation. The separate prototype and its later browser evidence are recorded
+above. Removing badges from Stage Record remains unapproved. Long-content
+qualification, public incomplete-record handling and the broader synthetic-ID
+convention remain open; the D3 allocator fix does not close those boundaries.
+
+The subsequent [timing audit](docs/implementation/contract-qualification/system-audit.md#timing-audit-12-september)
+found a separate scheduler defect: a later movement can overtake an earlier
+ordinary relation when higher structure is built afterward. A conflicting control
+also received a false "authored order is preserved" diagnostic. Francis then
+approved the scheduler fix and the narrow stage-boundary clarification together.
+Both are now implemented locally: relation order controls playback, independent
+structural prerequisites can be built when needed, and future movement outputs
+stay hidden with an exact diagnostic when an earlier relation requires them.
+The prompt asks for an intermediate workspace when that state is needed to
+represent the required order. Connected relation-owned transitions may still
+share a stage. No timing field, prose interpreter or blanket extra-stage rule
+was added. The four saved analyses remain unchanged; their prose-only chronology
+is not retroactively repaired. See the audit for checks and exact prompt hashes.
+
+The following dated implementation evidence records the preceding passes; older
+test counts and visual checks are not claims about the latest snapshot.
+On 10 September the approved preservation/diagnostic work and
+connected recognition, native-drawing and Replay repairs were implemented locally.
 This includes Tier-3 movement introducing its landing and necessary parent
 together, without earning an arrow or relaxing a Tier-1 recipe. Original model
 outputs remain unchanged. No new Babel generation or prompt change was made in
@@ -235,14 +399,15 @@ keeps residual anchors separate from complete Tier-1 ownership, and passes the
 same interpreted evidence to drawing and Replay. Francis rejected suppressing
 leftover fallback merely because another part of the same relation rendered.
 Recover supported additional Tier-2 pieces and retain unresolved content through
-Tier 3. The saved-output inventory still contains 24 neutral primary/remainder
-claims; these are not 24 failed analyses and must not be deleted to improve a
-coverage number. Recognition of arbitrary new wording is not claimed solved.
+Tier 3. That pass counted 24 neutral primary/remainder claims. The current
+prototype count is 22 relations containing neutral content; these are not failed
+analyses and must not be deleted to improve a coverage number. Recognition of
+arbitrary new wording is not claimed solved.
 
 The [remaining fallback inventory](docs/implementation/contract-qualification/system-audit.md#remaining-fallback-inventory)
-now traces every one of the 24 entries: 10 wholly neutral relations and 14 mixed
-relations, including three remainders with no current canvas marks. It records
-exact current Replay frames, missing meanings/literals, justified neutral claims,
+records the then-24 entries: 10 wholly neutral relations and 14 mixed
+relations, including three remainders with no canvas marks at that pass. It records
+that snapshot's Replay frames, missing meanings/literals, justified neutral claims,
 complex-head Transfer geometry, and the problem of subtracting shared witnesses
 from a relation's remainder. Field ownership is not complete interpretation of
 every assertion in a title or prose value. No saved record or rendering behavior
@@ -255,15 +420,16 @@ shared outcome, corrects complex-head/PP Transfer checks without crossing into a
 different higher head's projection, and repairs missing review output identities.
 The screenshot check also exposed and fixed the opaque fill on Binding outlines.
 All 52 recipes have broader invariant checks. The 36 saved relations retain their
-drawings, tiers and Replay frames; all 24 neutral remainders now have diagnostics.
+drawings, tiers and Replay frames; all then-24 neutral remainders gained diagnostics.
 
 The [anchor-list clarification and matching correction](docs/implementation/contract-qualification/system-audit.md#anchor-list-contract-clarification)
 are implemented together: open-role wording with no examples, no concatenation of
 conflicting joint groups, original-field diagnostics across all recipes, and
 preserved independent outlines, labelled plaques and organizational rails.
 Prior/current order columns retain distinct meanings. All 36 saved relations
-retain drawing content, tiers and Replay moments. General participant/value
-pairing remains an explicit contract gap.
+retain drawing content, tiers and Replay moments. Participant/value pairing was
+still a contract gap at that point; the 11 September decision below closes it
+for explicitly paired entries.
 
 The [hidden-authoring-convention inventory](docs/implementation/contract-qualification/system-audit.md#hidden-authoring-conventions)
 compares the live prompt with all 59 production entries, all 52 Tier-2 recipes,
@@ -299,18 +465,20 @@ deleted. The gate passes 1,461 tests; saved outputs are unchanged.
 
 The five native plates now read plain fields: paired lists, node orders and
 open literals, with the pairing sentence widened to any two entries. The Replay
-sentence reader follows tree order. No hidden authoring convention remains in
-the inventory.
+sentence reader follows tree order. The completed hidden-convention repairs do
+not establish universal recognition or settle the inventory's remaining scalar,
+index-presentation and generated-ID limits. Verify those against current code
+before treating the inventory as fully closed.
 
 Tier 3 presentation, decided 12 September: a neutral fallback marks its own
 stage only, and its badge number is the relation's authored position in that
 stage, matching the panel. Hiding leftover anchors and one-mark-per-relation
-were rejected. Long plaques and mobile composition remain open. Shared-context
-presentation remains open before mixed-tier presentation: repeated badges,
-composition and long plaques. Free-prose recognition and literal-versus-glyph judgment presentation
-remain explicit design questions. Do not conceal recognition gaps with layout
-changes. Binding index notation and Astra X-bar's conflicting authored order
-remain separate open decisions. No fresh paid generation.
+were rejected. The later prototype improves plaques, horizontal badge groups,
+mixed-tier composition and generated letter indices, with the saved-case evidence
+above. General overflow/mobile qualification and integration remain open.
+Free-prose recognition and literal-versus-glyph judgment presentation remain
+explicit design questions. Astra X-bar's conflicting authored order stays
+diagnosed and preserved. No fresh paid generation.
 
 The [implementation evidence](docs/implementation/contract-qualification/system-audit.md#stage-preservation-and-diagnostics),
 [movement evidence](docs/implementation/contract-qualification/system-audit.md#movement-recognition-and-replay-implementation),
@@ -422,10 +590,12 @@ overflow and remaining annotation overlap are not closed by this work.
   mobile, resizing, relation persistence and motion. A layout redesign is not
   implied by correcting collisions.
 
-Tier-3 numbering, stacked fallback layout and long-content interaction require a
-single concrete design review after avoidable fallback is reduced. Do not
-redesign them, add a reading-view button, or move selected plaque values into
-Replay-only content without agreement.
+Tier-3 numbering and stage persistence are settled. Francis subsequently approved
+prototyping local plaques with reserved width/height and large plaques below the
+terminal words, with placement reserved before their relation moments. That
+prototype has the saved-case visual evidence above. General long-content and
+mobile qualification remain open. No reading-view button, hidden rows or moving
+selected plaque values into Replay-only content has been approved.
 
 **Batch 4: instructions and offline end-to-end proof**
 
@@ -460,13 +630,22 @@ polling test.
 #### Decisions that remain
 
 Only concrete unresolved cases need more discussion:
-- ambiguous multi-part associations; the smaller Control, covert-movement,
-  idiom and standalone Transfer drawings are approved for Tier 2 and await implementation;
-- genuine simultaneous relations and inconsistent saved chronology;
-- phrase-level silence and conflicting descendant pronunciation;
-- Tier-3 composition, numbering and long-content interaction;
+- ambiguous or unsupported multi-part associations beyond the implemented
+  explicit pairing rule; the smaller Control, covert-movement, idiom and
+  standalone Transfer drawings are approved and implemented for Tier 2;
+- genuinely simultaneous separate relations; saved chronology conflicts remain
+  preserved and diagnosed under the settled ordinary-order rule;
+- long-content interaction and mobile layout; shared current-participant context,
+  Tier-3 numbering and stage persistence are implemented, with prototype saved-case
+  visuals checked and assembled application qualification still pending;
+- authored judgment literals versus inferred verdict symbols; generated letter
+  coindices are accepted in the prototype;
 - automatic formatting repair and public handling of incomplete processing,
   token mismatches or extra final roots.
+
+Phrase-level silence and its descendant token-index diagnostic are implemented.
+Movement uses an authored earlier source, without reconstructing it from a later
+landing. These decisions must not be reopened as unfinished design work.
 
 The model still owns the linguistic analysis, including ungrammatical inputs and
 copy/trace choices. Keep the current anchors/values contract. Inspecting imperfect
@@ -488,50 +667,51 @@ an earlier renderer closeout or a passing fixture suite.
 | --- | --- | --- |
 | 01 | Implemented locally | Both original Fable outputs now report the exact values field at original stage 3 or 4, before reference expansion. See implementation evidence and `tests/derivationDiagnostics.test.mjs`. |
 | 02 | Implemented locally | Stage conversion no longer filters malformed stages. Tests cover earlier bad fields with a complete final tree, unchanged input, and route-level raw retention. Compilation stops with a diagnostic; recovery/public presentation remains undecided. |
-| 03 | Partial | Clarified values containers, current/prior references, chronology, and retained silent words in both prompt files. Broader node-field validation and subtree-silence questions remain open; no new field or provider schema. |
+| 03 | Implemented; live qualification pending | The prompt now defines values, current/prior references, chronology, retained silent words, inherited phrase silence, explicit pairing and earlier movement sources. Node-field diagnostics are implemented. No new relation field or provider schema was added; fresh model qualification remains unauthorized. |
 | 04 | Open | Investigate why Fable's original API text lacks its outer JSON closing characters. Separately establish what each delimiter repair changes and whether any helper is necessary or admissible; prevention first. |
 | 05 | Implemented locally | Inspection diagnoses exact current/prior anchor paths, including missing, future-only, previous-only, duplicate and carried references. It preserves all analyses and does not introduce a public rejection policy. |
 | 06 | Partial | Optional node-field types, duplicate token indices and extra final roots have inspection diagnostics. Linguistic branching constraints and public acceptance remain decisions, not new implicit validators. |
-| 07 | Partial | Wordless categories now use category geometry with the agreed muted silent colour. Overt lexical selection remains intact; missing content and broader silence semantics remain separate. |
-| 08 | Partial | Saved movement sources remain overt until their movement; model-authored lower forms are preserved and silent words are permitted. Conflicting chronology and subtree silence remain open. |
+| 07 | Saved-case prototype visuals checked; integration pending | Wordless categories use category geometry with the agreed muted silent colour. Overt lexical selection remains intact. Field-based pronunciation and inherited silence are implemented; model-authored wordless heads and compact traces are accepted choices. |
+| 08 | Partial | Saved movement sources remain overt until movement; authored lower forms and retained silent words are preserved. Phrase-level silence is implemented. Conflicting saved chronology remains open. |
 | 09 | Implemented locally | Saved Internal Merge cases now recover supported movement through shared evidence. Broader ambiguity and false-recognition checks continue under 32-39. |
-| 10 | Partial | Shared movement evidence is implemented, but carry-forward still reveals Astra X-bar's landing placeholder before movement. Fable's recovered head movement also suppresses independent C construction. Fix visibility and scheduling together; the authored licensing-order conflict remains diagnosed, not silently changed. |
-| 11 | Partial | Saved abstract and overt head movements have source/host checks and actual arrows; Astra's complete equivalent head roles qualify for Tier 1. Fable X-bar still reveals its C host late because structural prerequisites are suppressed. |
+| 10 | Partial | The screenshot fixes hide future landing nodes and restore C before head movement. Earlier movement sources now come only from authored prior structure. The saved licensing-order conflict remains diagnosed, not silently reordered; inspect the combined result. |
+| 11 | Saved-case prototype visuals checked; integration pending | Saved abstract and overt head movements have source/host checks and arrows; complete equivalent roles qualify for Tier 1. The screenshot fixes restore independent C construction. Verify the combined Replay against the saved records. |
 | 12 | Implemented locally | All eleven saved cases receive the evidenced head/phrasal distinction, including Fable's bare maximal nominal. Positive and negative structural checks are in recoveredMovement.test.mjs. |
-| 13 | Partial | The bounded fallback movement attachment works, but future wh scaffolding still pulls an already-authored unary CP left. Separate current topology from future-space reservation. Both saved X-bar analyses explicitly author CP before wh; do not erase it to change the picture. |
-| 14 | Partial | External Merge and original relation names are primary headings, but Batch 3 regressed Select buy / Project V to Select / Project. Restore targets and correct tests that asserted the shortened headings. Macro statements remain intact. |
+| 13 | Saved-case prototype visuals checked; integration pending | The approved display rule introduces the waiting unary top projection with wh movement, while preserving earlier CP in the saved stages. Fallback movement introduces its landing and necessary parent together without earning an arrow. Verify the combined Replay. |
+| 14 | Implemented | External Merge and original relation names are primary headings. Select/Project targets were restored in the screenshot fixes, with regression checks. Macro statements remain intact. |
 | 15 | Implemented locally | Original relation names, punctuation, scripts and whitespace are preserved rather than passed through identifier formatting. |
-| 16 | Partial | Shared feature-plaque layout and wordless anchors are repaired, but the separate PF realization painter still uses fixed-width unwrapped text and was omitted from the ink checks. Verify every native plaque path. Oversized-content interaction remains undecided. |
+| 16 | Prototype verified on saved cases | Reserved local/below-tree plaques pass the four-archive desktop/mobile collision checks. Arbitrary long values, many rows, mobile readability and integrated exports still need qualification. |
 | 17 | Implemented locally | Removed the eight-row truncation. Every row retains its original index and literal content; a twelve-row wordless-head control is verified in Node and desktop/mobile SVG. Visibility of a very tall plaque remains under 16. |
-| 18 | Implemented locally | Decided 12 September: a fallback badge shows the relation's authored position within its stage, matching the panel's relation list, regardless of relation names. It is a locator, never a score or a linguistic index. Fable's binding 3 remains a separate relation-position default. |
-| 19 | Implemented locally | Decided 12 September: a neutral fallback marks its own stage only; its badges and rails leave the canvas when the next stage begins and return when that stage is replayed. Tier 1 and Tier 2 keep their own persistence. Hiding leftover anchors and one-mark-per-relation were rejected. Final-frame fallback counts on the saved outputs fall from 9, 7 and 8 to 4, 1 and 3 with no other drawing changed. |
+| 18 | Accepted in the prototype | A fallback badge shows the relation's authored position within its stage. It is a locator, never a score or a linguistic index. The separate prototype uses letters for generated coindices, replacing the misleading Binding relation-position default there. |
+| 19 | Implemented locally | A neutral fallback marks its own stage only and returns when that stage is replayed. Tier 1 and Tier 2 retain their persistence. Hiding leftover anchors and one-mark-per-relation were rejected. Later shared-context/accounting repairs supersede the original badge counts; Astra Minimalism ends with eleven badges and Fable X-bar with five. |
 | 20 | Implemented locally | Single and explicitly paired theta/Case assignments retain literal labels and repeated participants. Solid assignment and dotted collection remain distinct. Missing or mismatched associations stay neutral; title-only role/Case prose is not converted into missing fields. |
 | 21 | Implemented locally | Complete Tier-1 recipes accept equivalent roles and harmless context. Missing or contradictory core roles still fail that recipe. Unused extra anchors receive an aggregated internal context diagnostic; the complete raw relation remains inspectable. |
-| 22 | Partial | Exact phase/projection witnesses and both accessible-DP outlines are implemented without duplicate edges. A phase head is not silently promoted. Standalone transferred-domain meaning remains a separate decision; incomplete exact Tier 1 is not rescued. |
-| 23 | Partial | Header/Replay bounds and manual pan/zoom are improved, but future theta marks reserve badge slots before appearing, shifting an existing wh badge at an unrelated selection. Fix mark allocation rather than camera geometry. Tall plaques, annotation overlap and CP centering remain open. |
+| 22 | Saved-case prototype visuals checked; integration pending | Exact phase/projection witnesses, both accessible-DP outlines and the approved standalone Tier-2 transferred-domain mark are implemented. A phase head is not silently promoted, and an incomplete exact Tier-1 recipe is not rescued. |
+| 23 | Partial; bounded continuity accepted | Stage-size reservation fixes F29→30, and bounded continuity fixes Astra X-bar F35→36. Other saved within-stage shifts and active zoom/Next remain open. The broader coordinate rewrite remains rejected. |
 | 24 | Implemented locally | The review page says Normalized or Normalized after repair. Inspection separately records linguistic/visual review as unreviewed, including on successful runs. |
 | 25 | Implemented locally | The self-contained qualification page mounts production TreeVisualizer and Replay controls, including play/pause, scrubbing, pan and zoom. Stage-only inspection stays distinct. Explicit correction copies carry original-response hashes and do not replace archived failures. All four saved analyses passed desktop/mobile navigation. |
 | 26 | Open | Reduce evidenced cost and latency waste without weakening derivations; preserve measured versus estimated versus unknown values. |
-| 27 | Open | Implement and test the agreed no-429-retry, no downstream replacement-generation and three-total-attempt rules. Verify uncertain timeout/recovery behavior separately. |
+| 27 | Implemented; live qualification pending | Offline Batch 4 implemented and tested no 429 retry, no replacement generation after downstream failure and the three-total-attempt ceiling. Timeout/recovery limits remain recorded separately; no new paid run is authorized. |
 | 28 | Implemented locally | Replay reads literal original relation values, including arrays, repeated entries and whitespace. Formatting tests preserve x_i, scripts and punctuation. |
 | 29 | Implemented locally | Movement panels retain Source/Landing plus all values and remaining current/prior anchors from the original relation, even when no drawing link carries them. |
 | 30 | Implemented locally | Supported PF hosts and literal rows reach the existing plate without invented equations. Where an authored PF relation follows head movement, the abstract head moves first and did appears at realization. Both saved cases and registered/open variants are tested without changing the raw records. |
-| 31 | Partial | The supported binder-variable path no longer requires an invented scope hull. Its default displayed index is still the relation position, and the persistent movement path overlaps it. Extra government/ECP evidence remains separate. |
+| 31 | Prototype verified on saved cases | The supported binder-variable path no longer requires an invented scope hull. The prototype replaces generated numeric coindices with letters and improves mixed composition. Extra government/ECP evidence remains separate; general composition coverage remains open; main integration is outside this checkpoint. |
 | 32 | Implemented locally | Generic licensing/membership/order and negated or contradictory specialized features no longer earn the reported unsupported graphics. Established bracketed feature notation remains supported. Broader recovery qualification continues under 39. |
 | 33 | Implemented locally | Ordered/repeated endpoints and literal slots survive recovery. Blank slots cannot silently repair unequal pairings. Consumed array items and residual qualifiers remain distinguishable; missing labels or groupings are not invented. |
 | 34 | Partial | Exact named parent, carrier and projection proofs are shared with drawing; the approved complement-to-head focus hop is retained. Overt and covert movement require whole-occurrence evidence, not one shared descendant. General argument-sharing sufficiency remains a linguistic boundary. |
 | 35 | Implemented locally | The reported native branches consume prepared participants/content, including focus, theta, Case, PF morphology/correspondence, storage, Transfer, candidates and cyclic columns. Missing grouping and ambiguous step multiplicity receive diagnostics, not truncated drawings. Independent native and browser checks cover the repaired cases; universal alias/composition coverage is not claimed. |
-| 36 | Partial | Transfer/cyclic duplicates are repaired, but recovered movement still adds residual context rails and a separate gap-notation I beside the already-rendered I trace. Audit claim/mark ownership and shared badge slots across native and fallback painters without deleting genuine independent claims. |
+| 36 | Prototype verified on saved cases | Transfer/cyclic duplicates and the duplicated gap-notation I are repaired. Residual rails retain authored current-participant context with stage-scoped persistence. Saved-case mixed composition has prototype browser evidence; broader composition and integration remain to be qualified. Independent claims are not deleted. |
 | 37 | Implemented locally | Outcome data reaches existing path/candidate graphics. Allowed outcomes do not earn blocked-only marks; contradictory same-host claims stay neutral with a cause diagnostic. All-variant native qualification remains under 39. |
 | 38 | Implemented locally | Recovery checks the exact authored gap/copy, including category-typed silent occurrences and t variants. A containing VP is not that trace; ordinary silence does not imply deletion. |
-| 39 | Partial | The 1,225-test gate and Batch-3 browser checks missed the screenshot defects; heading tests even encoded the regression. The PF painter was outside the plaque assertion. Add exact before/at/after visibility, native mark ownership, fixed-anchor badge stability and all-plaque ink checks. The 16-state screenshot follow-up reproduces these failures; previous counts do not establish renderer correctness. |
+| 39 | Partial | The bounded stage-continuity candidate has a 1,574-test gate, all 137 saved desktop frame comparisons and focused do-support zoom/Fit/backward recordings. It preserves the other 135 frames. The broader coordinate rewrite remains rejected. Main's 1,512-test gate includes Tree Bank. The prototype diff has been reviewed for committing. Application/export checks and linguistic review remain open; main integration is outside scope. |
 
 Additional required proof from the audit, beyond the numbered findings:
 
-- [ ] Review all four linguistic analyses with Francis, including lexical
+- [ ] Discuss the completed Codex/Fable review of all four analyses with Francis,
+  including lexical
   selection/projection, theta and Case, Agree/wh licensing, locality/Transfer,
   head movement, do-support, and operation order. Resolve Fable Minimalism's
-  unexplained object Case and look-ahead account, the typed X-bar trace question,
+  unexplained object Case and look-ahead account, necessary operation interleaving,
   and relations that refer to a landing before its movement moment. Keep
   legitimate framework choices separate from errors and unspecified assumptions.
 - [x] Render both Fable inspection copies with every change disclosed. Keep raw
@@ -540,8 +720,14 @@ Additional required proof from the audit, beyond the numbered findings:
 - [ ] Recheck all 36 relation entries against approved Tier 1/Tier 2 drawings.
   Every remaining fallback needs an explanation. Do not force a known drawing
   where the authored evidence does not support it.
-- [ ] Complete the unfinished coordinate-level CP investigation and live
-  desktop/mobile, motion, zoom, hover, text-bounds, and panel-overlap checks.
+- [x] Check all 137 prototype Replay frames on desktop/mobile, plus backward
+  revisits and the fixed Astra Minimalism F29→30 transition at fit/settled zoom.
+- [x] Retain available Tier-3 participants without changing existing sizing or spacing
+  in the narrow prototype repair; checked against all four archived bundles.
+- [ ] Resolve the remaining saved transition findings and qualify active zoom/Next.
+  The broader coordinate repair remains rejected and reverted.
+- [ ] Qualify the assembled app's motion, hover, text bounds, panels, exports and
+  identical-input casing, plus the no-participant presentation decision.
   Still screenshots and an unchanged camera transform alone are insufficient.
 - [ ] Verify the same saved outputs through the production generation/review
   path, with focused regression tests for these failure classes. Review any
