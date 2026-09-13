@@ -765,3 +765,79 @@ test('every executable canonical Atlas card remains entirely Tier 1', async () =
     await server.close();
   }
 });
+
+test('cross-family combinations preserve claims or expose a specific ambiguity without losing evidence', () => {
+  const prefix = (fixture, prefix) => {
+    const copy = structuredClone(fixture);
+    const visited = new WeakSet();
+    const visit = node => {
+      if (visited.has(node)) return;
+      visited.add(node);
+      node.id = prefix + node.id;
+      if (node.lineageId) node.lineageId = prefix + node.lineageId;
+      (node.children || []).forEach(visit);
+    };
+    copy.currentForest.forEach(visit);
+    copy.priorForest.forEach(visit);
+    for (const field of ['anchors', 'priorAnchors']) {
+      if (!copy.relation[field]) continue;
+      copy.relation[field] = Object.fromEntries(Object.entries(copy.relation[field]).map(([key, ids]) =>
+        [key, Array.isArray(ids) ? ids.map(id => prefix + id) : prefix + ids]));
+    }
+    return copy;
+  };
+  const claims = TIER2_FACET_RECIPES.filter(recipe => recipe.kind === 'claim');
+  const counts = { complete: 0, competingRoles: 0, competingStages: 0, includedByLargerDrawing: 0 };
+  for (let a = 0; a < claims.length; a++) for (let b = a + 1; b < claims.length; b++) {
+    const left = prefix(buildFacetFixture(claims[a]), 'left:');
+    const right = prefix(buildFacetFixture(claims[b]), 'right:');
+    const fields = ['anchors', 'priorAnchors', 'values'];
+    if (fields.some(field => Object.keys(left.relation[field] || {}).some(key => Object.hasOwn(right.relation[field] || {}, key)))) continue;
+    const fixture = {
+      relation: { relation: 'Two independent authored claims', ...Object.fromEntries(fields.map(field =>
+        [field, { ...left.relation[field], ...right.relation[field] }])) },
+      currentForest: [...left.currentForest, ...right.currentForest],
+      priorForest: [...left.priorForest, ...right.priorForest], activeLens: true, stageIndex: 1, relationIndex: 0
+    };
+    const original = structuredClone(fixture);
+    const result = dispatchRelationClaims(fixture);
+    const missing = [claims[a], claims[b]].filter(recipe => !result.facets.some(facet => facet.recipe.id === recipe.id));
+    const failures = missing.flatMap(recipe => evaluateFixture(recipe, fixture).evaluation.failures);
+    const context = `${claims[a].id} + ${claims[b].id}`;
+    if (!missing.length) counts.complete++;
+    else if (failures.length && failures.every(failure => failure.startsWith('ambiguous-group:'))) counts.competingRoles++;
+    else if (failures.length === 1 && failures[0] === 'anchor:either:rewrite.input:cardinality:2,expected:1..1') counts.competingStages++;
+    else {
+      assert.deepEqual(missing.map(recipe => recipe.id), ['phase.edge'], context);
+      assert.ok(result.facets.some(facet => facet.recipe.id === 'transfer.domain'), context);
+      assert.ok(result.diagnostics.some(diagnostic => diagnostic.collision === 'transfer-owns-edge'), context);
+      counts.includedByLargerDrawing++;
+    }
+    for (const field of result.evidenceCoverage.fields) {
+      const values = fixture.relation[field.field][field.key];
+      const length = Array.isArray(values) ? values.length : 1;
+      const accounted = new Set([...field.recognizedBy.flatMap(claim => claim.itemIndices), ...field.unrecoveredItemIndices]);
+      assert.equal(accounted.size, length, `${context}: ${field.field}.${field.key}`);
+    }
+    const reversed = { ...fixture, relation: { relation: fixture.relation.relation,
+      ...Object.fromEntries(fields.map(field => [field, Object.fromEntries(Object.entries(fixture.relation[field]).reverse())])) } };
+    assert.deepEqual(dispatchRelationClaims(reversed).facets.map(f => f.recipe.id).sort(), result.facets.map(f => f.recipe.id).sort(), context);
+    assert.deepEqual(fixture, original, context);
+  }
+  // These are interpreter controls. In particular, the legacy sharing fixtures
+  // do not establish admission under the public single-position ID contract.
+  assert.deepEqual(counts, { complete: 1078, competingRoles: 40, competingStages: 1, includedByLargerDrawing: 1 });
+});
+
+test('legacy sharing topology controls are not valid public single-position trees', async () => {
+  const { __test__ } = await import('../server/babelParser.js');
+  for (const id of ['multidominance', 'argument-sharing']) {
+    const fixture = buildFacetFixture(TIER2_FACET_RECIPES.find(recipe => recipe.id === id));
+    const stages = [{ statement: 'Sharing control.', stageRecord: 'Topology-only control.',
+      relations: [fixture.relation], workspaceForest: fixture.currentForest }];
+    const inspected = __test__.inspectDerivationWorkspaces(stages);
+    assert.ok(inspected[0].anchorChecks.some(check => check.status === 'duplicate'), id);
+    assert.throws(() => __test__.normalizeParseBundle({ derivationStages: stages }, 'xbar', 'word', 'claude', true),
+      error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID', id);
+  }
+});
