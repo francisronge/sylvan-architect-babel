@@ -206,7 +206,7 @@ const encodeUtf8ToBase64 = (value: string): string => {
 const captureVisibleTreeSnapshot = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
 
-  const svg = document.querySelector('.tree-canvas-bg svg') as SVGSVGElement | null;
+  const svg = document.querySelector('svg[data-babel-tree="true"]') as SVGSVGElement | null;
   if (!svg) return undefined;
 
   const SNAPSHOT_WIDTH = 1600;
@@ -214,6 +214,24 @@ const captureVisibleTreeSnapshot = (): string | undefined => {
   const SNAPSHOT_PADDING = 72;
 
   const clone = svg.cloneNode(true) as SVGSVGElement;
+  // An SVG used as an image cannot inherit the application's stylesheet.
+  // Keep geometry attributes intact so the snapshot can still be fitted below.
+  const paintProperties = [
+    'color', 'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-opacity',
+    'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
+    'stroke-dasharray', 'stroke-dashoffset', 'opacity', 'visibility', 'display',
+    'font-family', 'font-size', 'font-weight', 'font-style', 'letter-spacing',
+    'word-spacing', 'text-anchor', 'dominant-baseline', 'text-transform',
+    'text-decoration', 'paint-order', 'vector-effect', 'filter', 'rx', 'ry'
+  ];
+  const liveElements = [svg, ...svg.querySelectorAll<SVGElement>('*')];
+  const clonedElements = [clone, ...clone.querySelectorAll<SVGElement>('*')];
+  liveElements.forEach((element, index) => {
+    const computed = getComputedStyle(element);
+    paintProperties.forEach((property) => {
+      clonedElements[index].style.setProperty(property, computed.getPropertyValue(property));
+    });
+  });
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
   clone.setAttribute('width', String(SNAPSHOT_WIDTH));

@@ -8997,6 +8997,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       )}
       <svg
         ref={svgRef}
+        data-babel-tree="true"
         data-babel-hovered-relation-stage-index={hoveredRelationMoment?.stageIndex}
         data-babel-hovered-relation-index={hoveredRelationMoment?.relationIndex}
         className="cursor-grab active:cursor-grabbing w-full h-full block"
