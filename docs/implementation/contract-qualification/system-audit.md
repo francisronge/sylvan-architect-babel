@@ -21,6 +21,96 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Extended offline checks, 13 September
+
+Francis authorized safe independent verification while away and questioned the
+visible preparation text. Two bounded changes are separately committed:
+`dca6237` reuses the existing parse loading mark, and `d2fc4ba` reduces redundant
+plaque text measurements. No compiler semantics, accepted tree geometry, camera
+policy, recognizer, prompt, provider configuration or JSON behavior changed.
+
+### Loading feedback
+
+The compact mark remains invisible for 200 ms, then fades in. Preparation never
+waits for the animation to finish. An immediate screen-reader status remains;
+reduced-motion preferences disable spinning and pulsing. The original full-size
+parse mark is now shared, with identical normal-motion paint and geometry.
+
+Production-browser evidence includes an ordinary two-stage preparation finishing
+in 78 ms without a visible mark; an actual 64-stage wait of about 2.9 seconds;
+controlled checks immediately before and after the CSS reveal delay; and reduced
+motion. The actual parse-loading overlay matches the preceding build. Its two
+test requests were intercepted locally before any provider call.
+
+### Long plaque measurement
+
+Previously, every line break searched far into the remaining paragraph. The
+search now grows a nearby bound before binary search. It retains the same width
+rule, whitespace boundaries and indivisible graphemes. A 20,000-character repeated
+literal required 8,064,047 measured characters before and 21,027 afterward; the
+same Node probe decreased from about 457 ms to 5 ms. This is a wrapping benchmark,
+not an end-to-end parsing speedup. A distinct 8,000-character regression fails on
+the old code and passes on the new code using measured work, not a timing limit.
+
+Complete layouts match across 1,440 seeded generic, feature and PF comparisons,
+including Unicode, whitespace, narrow widths and rewrite columns. A separate
+greedy oracle covers 120 varied strings. All 137 archived production Replay frames
+and nine ordinary/extreme plaque controls retain identical SVG geometry and text.
+
+### Larger derivations and exports
+
+The following provider-free controls ran through the production app, including
+worker transfer, first render, forward jumps and backward revisits:
+
+| Shape | Stages | Replay frames | Preparation and first render | Maximum animation-frame gap | Sampled frame changes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Deep left branching | 96 | 479 | 8.1 s | 77 ms | 29–145 ms |
+| Alternating branches | 80 | 399 | 5.3 s | 41 ms | 24–103 ms |
+| Wide | 96 | 385 | 3.9 s | 28 ms | 30–86 ms |
+| Balanced, multiple workspaces | 128 | 639 | 12.6 s | 92 ms | 35–175 ms |
+
+Every preparation completed, its worker terminated, and sampled drawings had
+finite geometry without page errors. This establishes completion and bounded
+observed UI pauses, not general readability or a latency guarantee. Post-GC main
+page JavaScript heaps were approximately 18–48 MB; worker peak memory and repeated
+session growth remain unmeasured. A separate profiled 96-stage preparation
+serialized to 37.3 MB from a 0.54 MB input. Those serialization sizes are not wire
+transfer or peak-memory measurements.
+
+The CPU profile identifies repeated tree and path searches, particularly in
+sentence-initial casing, as a substantial cost. A later optimization should
+collect the needed node, parent and inherited visibility information in one
+traversal per canvas, preserving exact-ID versus alias lookup semantics. The
+profile does not justify a persistent cache or a layout rewrite. No such
+optimization was included in this pass.
+
+The nine plaque controls include ordinary two-row plaques, many rows through 200,
+and long Unicode values in PF and feature plaques. Extreme viewports reach their
+last line without moving the camera; Home restores their start. Their boxes stay
+above Replay. Save/reopen retains the exact stages and Replay count. Standalone
+SVG previews preserve all text and the saved scroll position, with correct tree
+bounds. At Fit, extreme text can still need user zoom; containment is not blanket
+readability approval.
+
+Browser print-to-PDF confirms the remaining export boundary: only the visible
+plaque window is printed, and print layout can reset it to the start. A static
+preview does not provide access to every retained row. There is no complete
+all-rows print/export design yet. This needs an explicit presentation decision;
+it is not evidence that saving lost the analysis, nor a reason to enlarge the
+interactive tree or change its accepted placement.
+
+The full gate passes 1,643 tests, typecheck and both normalized fixtures.
+Production build and release-asset checks pass. Browser recordings, comparisons,
+CPU profile and print evidence are outside the worktree in
+`/tmp/babel-overnight-checks/`. All owned browser contexts and local servers were
+stopped after verification.
+
+Fable's generation-side omission remains unexplained. This pass supplies no new
+causal evidence or prevention claim. Existing automatic repair remains unchanged;
+no new delimiter helper, paid call or incomplete-record policy was introduced.
+Honest presentation of an incomplete original is a separate possible product
+choice from attempting to repair its syntax; that choice remains undecided.
+
 ## Fit and background preparation, 13 September
 
 Francis approved these two bounded fixes after the isolated camera recheck. They
