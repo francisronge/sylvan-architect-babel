@@ -1037,28 +1037,23 @@ const collectWorkspaceRootIds = (workspaceRoots: SyntaxNode[]): string[] =>
     .map((node) => String(node?.id || '').trim())
     .filter(Boolean);
 
-const replayLayoutContinuitySignature = (node?: SyntaxNode | null): string => {
-  if (!node || typeof node !== 'object') return '';
-  return JSON.stringify([
-    String(node.id || '').trim(),
-    String(node.label || '').trim(),
-    String(node.word || '').trim(),
-    node.silent === true,
-    Number.isFinite(Number(node.tokenIndex)) ? Number(node.tokenIndex) : null,
-    String(node.lineageId || '').trim(),
-    (Array.isArray(node.children) ? node.children : [])
-      .map((child) => replayLayoutContinuitySignature(child))
-  ]);
+const replayLayoutTreeSignature = (
+  node: SyntaxNode | null | undefined,
+  describe: (node: SyntaxNode) => string
+): string => {
+  // Serialize the nested structure once. Serializing each child signature
+  // again at every parent makes quote escaping grow exponentially with depth.
+  const shape = (current?: SyntaxNode | null): unknown => !current || typeof current !== 'object'
+    ? ''
+    : [describe(current), (Array.isArray(current.children) ? current.children : []).map(shape)];
+  return JSON.stringify(shape(node));
 };
 
-const replayLayoutTopologySignature = (node?: SyntaxNode | null): string => {
-  if (!node || typeof node !== 'object') return '';
-  return JSON.stringify([
-    String(node.id || '').trim(),
-    (Array.isArray(node.children) ? node.children : [])
-      .map((child) => replayLayoutTopologySignature(child))
-  ]);
-};
+const replayLayoutContinuitySignature = (node?: SyntaxNode | null): string =>
+  replayLayoutTreeSignature(node, replayLayoutMaterialSignature);
+
+const replayLayoutTopologySignature = (node?: SyntaxNode | null): string =>
+  replayLayoutTreeSignature(node, current => String(current.id || '').trim());
 
 const replayLayoutMaterialSignature = (node?: SyntaxNode | null): string => {
   if (!node || typeof node !== 'object') return '';

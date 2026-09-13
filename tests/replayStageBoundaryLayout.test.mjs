@@ -62,6 +62,28 @@ const layoutPositions = (canvas) => {
   );
 };
 
+test('deep future layouts compare tree structure without exponentially escaping child signatures', () => {
+  for (const depth of [24, 48, 96]) {
+    let tree = leaf('word', 'N', 'word', { tokenIndex: 0 });
+    const ids = ['word'];
+    for (let index = 0; index < depth; index++) {
+      const id = `projection "${index}"`;
+      ids.push(id);
+      tree = node(id, "N'", [tree]);
+    }
+    const stage = { statement: 'Project', stageRecord: 'Nested structural control.', relations: [], workspaceForest: [tree] };
+    const future = { ...stage, workspaceForest: [node('outer', 'NP', [tree])] };
+    const originals = structuredClone([stage, future]);
+    const steps = compile([stage, future], 'word');
+    const firstRecord = steps.find(step => step.replayFrameIndex === 0 && step.replayKind === 'macro');
+    assert.ok(firstRecord);
+    for (const id of ids) assert.ok(firstRecord.replayVisibleNodeIds.includes(id), id);
+    assert.equal(firstRecord.replayVisibleNodeIds.includes('outer'), false);
+    assert.ok(steps.at(-1).replayVisibleNodeIds.includes('outer'));
+    assert.deepEqual([stage, future], originals);
+  }
+});
+
 test('detached workspace roots remain roots until their authored wrapper is built', () => {
   const left = node('tp_left', 'TP', [leaf('left_name', 'N', 'Mia')]);
   const right = node('cp_right', 'CP', [leaf('right_name', 'Adv', 'why')]);
