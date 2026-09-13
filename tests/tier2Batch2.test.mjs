@@ -46,6 +46,41 @@ test('theta rejects missing literals and unequal associations in either directio
   }
 });
 
+test('paired literals prefer the exact authored key regardless of property order', () => {
+  for (const entries of [
+    [['ARGUMENTS', ['Agent', 'Theme']], ['arguments', ['Theme', 'Agent']]],
+    [['arguments', ['Theme', 'Agent']], ['ARGUMENTS', ['Agent', 'Theme']]]
+  ]) {
+    const result = inspect(relation({ predicate: 'v', arguments: ['a', 'b'] }, Object.fromEntries(entries)));
+    assert.deepEqual(result.items.find(item => item.plaqueStyle === 'theta-grid').thetaRoles,
+      [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Agent' }]);
+    assert.deepEqual(result.dispatch.primaryRelation.values, { ARGUMENTS: ['Agent', 'Theme'] });
+  }
+});
+
+test('ambiguous normalized literal keys never choose the first association', () => {
+  for (const [anchors, key, facet] of [
+    [{ predicate: 'v', arguments: ['a', 'b'] }, 'arguments', 'theta-grid'],
+    [{ assigner: 'v', recipient: ['a', 'b'] }, 'recipient', 'feature.dependency'],
+    [{ correspondenceSource: ['a', 'b'], correspondenceTarget: ['b', 'c'] }, 'correspondenceSource', 'correspondence.alignment']
+  ]) {
+    const entries = [[key.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase(), ['x', 'y']], [` ${key} `, ['y', 'x']]];
+    for (const ordered of [entries, entries.toReversed()]) {
+      const values = Object.fromEntries(ordered);
+      const result = inspect(relation(anchors, values));
+      assert(!has(result, facet), `${facet} must not guess a paired field`);
+      assert.deepEqual(result.dispatch.primaryRelation.values, values);
+      assert(result.dispatch.facetDiagnostics.some(item => item.facetId === facet && JSON.stringify(item).includes('ambiguous')));
+    }
+  }
+});
+
+test('one unambiguous normalized key still supplies the authored pairing', () => {
+  const result = inspect(relation({ predicate: 'v', arguments: ['a', 'b'] }, { ARGUMENTS: ['Theme', 'Agent'] }));
+  assert.deepEqual(result.items.find(item => item.plaqueStyle === 'theta-grid').thetaRoles,
+    [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Agent' }]);
+});
+
 test('Case assignment uses a solid assignment path with each paired Case literal', () => {
   const result = inspect(relation({ assigner: 'v', recipient: ['a', 'b'] }, { recipient: ['NOM', 'ACC'] }));
   const paths = result.items.filter(item => item.pathStyle === 'case-assignment');

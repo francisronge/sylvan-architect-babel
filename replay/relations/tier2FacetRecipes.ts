@@ -920,6 +920,8 @@ const featureNotationStatus = (literal: string, tokens: readonly string[]): 'aff
  */
 export type PairedLiterals =
   | { status: 'paired' | 'none'; literals: string[] }
+  /** Several normalized keys compete without an exact authored-name match. */
+  | { status: 'ambiguous'; literals: string[] }
   /** A same-name values entry exists but its length differs from the anchor entry. */
   | { status: 'unequal'; literals: string[] }
   /** Literals exist under another name and more than one item is involved. */
@@ -933,7 +935,11 @@ export const pairedLiteralsDetail = (
   const ids = anchorIds(evidence, role);
   const anchorEntries = (evidence.authoredCurrentAnchors ?? []).filter(entry =>
     entry.concepts.includes(role) && entry.items.length > 0);
-  const sameName = anchorEntries.map(entry => sameNameValueEntry(evidence, entry))
+  const candidates = anchorEntries.map(entry => sameNameValueEntries(evidence, entry));
+  if (candidates.some(entries => entries.length > 1)) {
+    return { status: 'ambiguous', literals: candidates.flatMap(entries => entries.flatMap(entry => [...entry.items])) };
+  }
+  const sameName = candidates.map(entries => entries[0])
     .map(entry => entry && sameNameEntryServes(entry, role, valueConcept) ? entry : undefined);
   if (anchorEntries.length > 0 && sameName.some(Boolean)) {
     if (sameName.every(entry => entry && entry.items.length === entry.anchorLength)) {
@@ -958,13 +964,17 @@ export const pairedLiterals = (
   return detail.status === 'paired' || detail.status === 'none' ? detail.literals : undefined;
 };
 
-const sameNameValueEntry = (
+const sameNameValueEntries = (
   evidence: Tier2FacetEvidence,
   anchorEntry: Tier2AuthoredEvidenceEntry
-): (Tier2AuthoredEvidenceEntry & { anchorLength: number }) | undefined => {
-  const entry = (evidence.authoredValues ?? []).find(candidate =>
+): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
+  const entries = evidence.authoredValues ?? [];
+  const exact = entries.filter(candidate => candidate.key === anchorEntry.key);
+  // A spelling-equivalent key may fill an absent slot, but cannot override an
+  // exact authored pair or choose between competing fields by object order.
+  const matches = exact.length ? exact : entries.filter(candidate =>
     normalizeTier2Synonym(candidate.key) === normalizeTier2Synonym(anchorEntry.key));
-  return entry ? { ...entry, anchorLength: anchorEntry.items.length } : undefined;
+  return matches.map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 
 /** Every per-item literal concept a recipe pairs with this role, in recipe order. */
@@ -987,7 +997,9 @@ const sameNameEntryServes = (entry: Tier2AuthoredEvidenceEntry, role: string, va
 };
 
 const unpairedReason = (role: string, valueConcept: string, status: PairedLiterals['status']): string =>
-  status === 'unequal'
+  status === 'ambiguous'
+    ? `${valueConcept} literals for ${role} have ambiguous normalized field names`
+    : status === 'unequal'
     ? `${valueConcept} literals for ${role} use the anchor entry's name but not its length`
     : `${valueConcept} literals are not paired with ${role}: pairing needs a values entry with the same name and length as the anchor entry`;
 
@@ -1184,7 +1196,7 @@ const evaluateStructuralCheck = (
       return ids(check.roles[0]).length === ids(check.roles[1]).length;
     case 'paired-values': {
       const detail = pairedLiteralsDetail(evidence, check.role, check.value);
-      if (detail.status === 'unequal') return unpairedReason(check.role, check.value, detail.status);
+      if (detail.status === 'unequal' || detail.status === 'ambiguous') return unpairedReason(check.role, check.value, detail.status);
       // An optional list under another name is context, left in the residue.
       if (detail.status === 'unpaired') return check.optional || unpairedReason(check.role, check.value, detail.status);
       if (detail.literals.length === 0) return Boolean(check.optional);
@@ -1250,7 +1262,7 @@ const evaluateStructuralCheck = (
     }
     case 'feature-dependency': {
       const caseDetail = pairedLiteralsDetail(evidence, 'feature.target', 'case.literal');
-      if (caseDetail.status === 'unequal' || caseDetail.status === 'unpaired') return unpairedReason('feature.target', 'case.literal', caseDetail.status);
+      if (caseDetail.status === 'unequal' || caseDetail.status === 'unpaired' || caseDetail.status === 'ambiguous') return unpairedReason('feature.target', 'case.literal', caseDetail.status);
       const caseValues = caseDetail.literals;
       if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
       if (valueLiterals(evidence, 'feature.rows').length) return true;
@@ -1689,8 +1701,9 @@ export const evaluateTier2FacetRecipe = (
           return (evidence.authoredCurrentAnchors ?? [])
             .filter(entry => entry.concepts.includes(role) && entry.items.length > 0)
             .flatMap(entry => {
-              const paired = sameNameValueEntry(evidence, entry);
-              if (!paired || paired.items.length !== paired.anchorLength) return [];
+              const candidates = sameNameValueEntries(evidence, entry);
+              const paired = candidates[0];
+              if (candidates.length !== 1 || paired.items.length !== paired.anchorLength) return [];
               const optional = check.kind === 'paired-values' && Boolean(check.optional);
               const indices = paired.items.flatMap((item, index) => (!optional || item.trim().length > 0) ? [index] : []);
               return indices.length ? [consumedReference('values', paired, valueConcept, indices)] : [];

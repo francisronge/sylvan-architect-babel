@@ -63,6 +63,11 @@ their field identity, so an empty optional field cannot be treated as absence.
 Different arrays under equivalent role/value keys cannot be concatenated to
 guess an idiom group or positional association. Unresolved references and failed
 semantic/structural checks remain available as stage-scoped diagnostics.
+For an authored anchor/literal pair, an exact field-name match takes precedence.
+A normalized spelling may supply the pair only when it is unique. Competing
+normalized fields remain neutral with an ambiguity diagnostic; object property
+order cannot choose which literal belongs to an argument. This applies to every
+paired literal reader, including theta roles, Case and correspondence indices.
 
 The approved smaller Control connector, covert path, idiom underlines and
 transferred-domain mark are Tier-2 combinations. Optional enclosures add their
