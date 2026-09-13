@@ -5,7 +5,8 @@
  * These terms are invisible to the model. Lookup is exact after declared
  * Unicode/case/separator normalization. A collision returns every candidate;
  * the complete facet signature must disambiguate it. Vocabulary order never
- * selects a winner, and this module performs no fuzzy or semantic matching.
+ * selects a winner. Qualified assignment roles compose through the explicit
+ * domain/direction rules below; there is no fuzzy or title/prose matching.
  */
 
 export type Tier2SynonymScope = 'role' | 'value';
@@ -78,8 +79,8 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
 
   group('role', 'plaque.anchor', ['plaque anchor', 'anchor', 'participant', 'terminal', 'word', 'predicate']),
   group('role', 'feature.bearers', ['feature bearers', 'bearers', 'participants', 'feature holders', 'sharing members']),
-  group('role', 'probe', ['probe', 'searcher', 'agree probe', 'licensor', 'feature source']),
-  group('role', 'goal', ['goal', 'goals', 'target', 'agree goal', 'licensee', 'feature target']),
+  group('role', 'probe', ['probe', 'searcher', 'agree probe', 'feature source'], ['licensor']),
+  group('role', 'goal', ['goal', 'goals', 'agree goal', 'feature target'], ['target', 'licensee']),
   group('role', 'feature.source', ['feature source', 'source', 'probe', 'assigner', 'licensor', 'collector']),
   group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'recipient', 'licensee', 'valued node']),
   group('role', 'feature.hierarchy', ['feature hierarchy', 'hierarchy', 'feature tree', 'feature sequence', 'feature links']),
@@ -199,3 +200,40 @@ export const lookupTier2SynonymCandidates = (
 ): string[] => (index.get(normalizeTier2Synonym(literal)) ?? [])
   .filter((candidate) => candidate.scope === scope)
   .map((candidate) => candidate.concept);
+
+/** Interpret qualified assignment roles as a domain plus a direction, never from titles or prose. */
+export const qualifiedAssignmentConcepts = (key: string): string[] => {
+  const [domain, ...rest] = normalizeTier2Synonym(key).split(' ');
+  const role = rest.join(' ');
+  const source = ['assigner', 'source', 'licensor'].includes(role) || (domain === 'case' && role === 'governor');
+  const target = ['target', 'recipient', 'bearer', 'marked'].includes(role);
+  if (['theta', 'thematic', 'θ'].includes(domain)) {
+    return source ? ['predicate'] : target || role === 'argument' ? ['theta.arguments'] : [];
+  }
+  if (['case', 'feature'].includes(domain)) return source ? ['feature.source'] : target ? ['feature.target'] : [];
+  return [];
+};
+
+export const relationRoleConcepts = (
+  index: Tier2SynonymIndex,
+  key: string,
+  context: { anchors?: Record<string, unknown>; values?: Record<string, unknown> } = {}
+): string[] => {
+  const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key)]);
+  // Searching and valuing are the more specific roles of a feature dependency.
+  if (concepts.has('probe')) concepts.add('feature.source');
+  if (concepts.has('goal')) concepts.add('feature.target');
+  const hasLiteral = (concept: string) => Object.entries(context.values ?? {}).some(([key, value]) =>
+    lookupTier2SynonymCandidates(index, 'value', key).includes(concept)
+      && (Array.isArray(value) ? value : [value]).some(item => typeof item === 'string' && item.trim()));
+  const spelling = normalizeTier2Synonym(key);
+  if (spelling === 'assigner' && hasLiteral('role.label') && Object.keys(context.anchors ?? {}).some(role =>
+    [...lookupTier2SynonymCandidates(index, 'role', role), ...qualifiedAssignmentConcepts(role)].includes('theta.arguments'))) {
+    concepts.add('predicate');
+  }
+  if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
+    normalizeTier2Synonym(role).startsWith('case ') && qualifiedAssignmentConcepts(role).includes('feature.target'))) {
+    concepts.add('feature.source');
+  }
+  return [...concepts];
+};

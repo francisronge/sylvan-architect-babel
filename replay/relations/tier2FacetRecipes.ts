@@ -1273,10 +1273,11 @@ const evaluateStructuralCheck = (
       const caseValues = caseDetail.literals;
       if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
       if (valueLiterals(evidence, 'feature.rows').length) return true;
-      const hasRole = (concept: string, names: string[]) => (evidence.authoredCurrentAnchors ?? []).some(entry =>
-        entry.concepts.includes(concept) && names.includes(normalizeTier2Synonym(entry.key)));
-      return hasRole('feature.source', ['probe', 'agree probe', 'feature source', 'collector'])
-        && hasRole('feature.target', ['goal', 'agree goal', 'feature target']);
+      const hasRole = (concept: string, specific: string, names: string[]) => (evidence.authoredCurrentAnchors ?? []).some(entry =>
+        entry.concepts.includes(concept) && (entry.concepts.includes(specific) && isExplicitTier2Role(specific, entry.key)
+          || names.includes(normalizeTier2Synonym(entry.key))));
+      return hasRole('feature.source', 'probe', ['feature source', 'collector'])
+        && hasRole('feature.target', 'goal', ['feature target']);
     }
     case 'native-linearization':
       return Boolean(prepareNativeLinearizationContent(evidence));

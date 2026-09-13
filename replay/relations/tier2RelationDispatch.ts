@@ -37,6 +37,7 @@ import {
 import {
   buildTier2SynonymIndex,
   lookupTier2SynonymCandidates,
+  relationRoleConcepts,
   normalizeTier2Synonym,
   type Tier2SynonymIndex,
   type Tier2SynonymScope
@@ -283,7 +284,8 @@ const appendItems = (
 const normalizeBlock = (
   block: Record<string, string | string[]> | undefined,
   scope: Tier2SynonymScope,
-  synonymIndex: Tier2SynonymIndex
+  synonymIndex: Tier2SynonymIndex,
+  context?: DerivationStageRelation
 ): {
   concepts: Record<string, string[]>;
   authored: Tier2AuthoredEvidenceEntry[];
@@ -293,7 +295,8 @@ const normalizeBlock = (
   const conceptBlocks = new Map<string, string[]>();
   Object.entries(block ?? {}).forEach(([authoredKey, value]) => {
     const items = authoredItems(value);
-    const concepts = lookupTier2SynonymCandidates(synonymIndex, scope, authoredKey);
+    const concepts = scope === 'role' ? relationRoleConcepts(synonymIndex, authoredKey, context)
+      : lookupTier2SynonymCandidates(synonymIndex, scope, authoredKey);
     const activeConcepts: string[] = [];
     const conceptItemIndices: Record<string, number[]> = {};
     concepts.forEach((concept) => {
@@ -336,8 +339,8 @@ export const buildTier2FacetEvidence = ({
   activeLens,
   synonymIndex = DEFAULT_SYNONYM_INDEX
 }: Omit<ExclusiveRelationDispatchInput, 'stageIndex' | 'relationIndex' | 'registry'>): Tier2FacetEvidence => {
-  const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex);
-  const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex);
+  const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, relation);
+  const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {} });
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
   const realizationHost = currentAnchors.authored.some(entry =>
     ['supported tense', 'tense host', 'realization host'].includes(normalizeTier2Synonym(entry.key)));

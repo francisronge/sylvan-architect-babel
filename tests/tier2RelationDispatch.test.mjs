@@ -63,6 +63,52 @@ test('shared tree indices are discarded between evaluations of changing forests'
     'another forest with the same authored IDs must be evaluated independently');
 });
 
+test('qualified assignment roles compose from domain and direction with complete literal evidence', () => {
+  const forest = [leaf('source', 'read'), leaf('target', 'books'), leaf('second', 'Ada')];
+  for (const [anchors, values, family] of [
+    [{ caseGovernor: 'source', caseMarked: 'target' }, { Case: 'accusative' }, 'feature.dependency'],
+    [{ caseSource: 'source', caseBearer: 'target' }, { Case: 'accusative' }, 'feature.dependency'],
+    [{ governor: 'source', caseRecipient: 'target' }, { Case: 'accusative' }, 'feature.dependency'],
+    [{ thetaAssigner: 'source', thematicArgument: 'target' }, { thetaRole: 'Theme' }, 'theta-grid'],
+    [{ thematicSource: 'source', thetaBearer: 'target' }, { thetaRole: 'Theme' }, 'theta-grid'],
+    [{ thetaAssigner: 'source', arguments: ['target', 'second'] }, { arguments: ['Theme', 'Agent'] }, 'theta-grid'],
+    [{ assigner: 'source', argument: 'target' }, { thetaRole: 'Theme' }, 'theta-grid'],
+    [{ searcher: 'source', agreeGoal: 'target' }, {}, 'feature.dependency']
+  ]) {
+    const relation = { relation: 'Open claim', anchors, values };
+    const original = structuredClone(relation);
+    assert(facetIds(dispatch(relation, forest)).includes(family), JSON.stringify(anchors));
+    assert.deepEqual(relation, original);
+    assert.deepEqual(facetIds(dispatch({ ...relation, anchors: Object.fromEntries(Object.entries(anchors).reverse()) }, forest)),
+      facetIds(dispatch(relation, forest)), 'property order must not choose the interpretation');
+  }
+});
+
+test('qualified roles share Tier-1 binding without completing a malformed registered claim', () => {
+  const forest = [leaf('source', 'read'), leaf('target', 'books')];
+  const canonical = dispatch({ relation: 'CaseAssignment', anchors: { assigner: 'source', bearer: 'target' } }, forest);
+  const qualified = dispatch({ relation: 'CaseAssignment', anchors: { caseGovernor: 'source', caseMarked: 'target' } }, forest);
+  assert.deepEqual(claimTiers(qualified), [1]);
+  assert.deepEqual(qualified.boundPrimaryRelation.anchors, canonical.boundPrimaryRelation.anchors);
+  assert(qualified.claims[0].consumedEvidence.some(ref => ref.key === 'caseGovernor'));
+  assert.deepEqual(claimTiers(dispatch({ relation: 'CaseAssignment', anchors: { caseGovernor: 'source' },
+    values: { Case: 'accusative' } }, forest)), [3]);
+});
+
+test('assignment interpretation cannot fill missing literals or turn government and licensing into Agree', () => {
+  const forest = [leaf('source', 'read'), leaf('target', 'books')];
+  for (const [anchors, values] of [
+    [{ governor: 'source', trace: 'target' }, { licensing: 'ECP', Case: 'accusative' }],
+    [{ governor: 'source', caseMarked: 'target' }, {}],
+    [{ caseGovernor: 'source', caseMarked: 'target' }, {}],
+    [{ thetaAssigner: 'source', argument: 'target' }, {}],
+    [{ licensor: 'source', licensee: 'target' }, {}],
+    [{ interrogativeHead: 'source', operator: 'target' }, { feature: '[+wh]' }],
+    [{ caseGovernor: 'source', caseMarked: 'missing' }, { Case: 'accusative' }],
+    [{ caseGovernor: 'source', caseMarked: 'target' }, { Case: ['accusative', 'nominative'] }]
+  ]) assert.deepEqual(facetIds(dispatch({ relation: 'Case accusative, theta Theme, successful licensing', anchors, values }, forest)), [], JSON.stringify(anchors));
+});
+
 test('a valid registered identity dispatches only to Tier 1', () => {
   const result = dispatch({
     relation: 'Identity',

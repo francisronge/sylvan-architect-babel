@@ -1,10 +1,11 @@
-import { normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
+import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from '../relations/tier2Synonyms.ts';
 import { movementContextFailure, recoverMovementEvidence } from '../relations/movementEvidence.ts';
 import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
+const roleVocabulary = buildTier2SynonymIndex();
 
 // Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
@@ -21,10 +22,13 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       && groups.some(group => group.includes(a) && group.includes(b)));
     const candidatesFor = key => {
       const spelling = normalizeTier2Synonym(key);
+      const concepts = field === 'values' ? [] : relationRoleConcepts(roleVocabulary, key,
+        { anchors: relation[field], values: relation.values });
       const spelled = Object.keys(rules).filter(role => role === key
         || (rules[role].aliases && normalizeTier2Synonym(role) === spelling));
       const candidates = spelled.length ? spelled : Object.keys(rules).filter(role =>
-        rules[role].aliases?.some(alias => normalizeTier2Synonym(alias) === spelling));
+        rules[role].aliases && (rules[role].aliases.some(alias => normalizeTier2Synonym(alias) === spelling)
+          || concepts.includes(rules[role].concept)));
       return { spelled, candidates };
     };
     const record = Object.create(null);
