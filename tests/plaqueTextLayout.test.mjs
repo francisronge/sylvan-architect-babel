@@ -32,7 +32,7 @@ const assertContained = (layout) => {
       assert.ok(line.x >= 0);
       assert.ok(line.x + line.width <= layout.width, `${line.text} exceeds the right edge`);
       assert.ok(line.y - line.ascent >= 0, `${line.text} exceeds the top edge`);
-      assert.ok(line.y + line.descent <= layout.height, `${line.text} exceeds the bottom edge`);
+      assert.ok(line.y + line.descent <= (layout.overflow?.contentHeight ?? layout.height), `${line.text} exceeds the bottom edge`);
     }
   }
 };
@@ -220,4 +220,32 @@ test('a feature plaque binds to its exact wordless category without requiring a 
   assert.ok(attachments.every(({ nodeId, attachment }) => nodeId === wordless.id && attachment !== 'terminal'));
   assertContained(plaque.textLayout);
   assert.deepEqual(wordless, { id: 'wordless-v', label: 'v' });
+});
+
+test('only extreme plaques use a bounded viewport, while every authored row remains available', async () => {
+  const { preparePfPlaqueTextLayout, reservePlaqueViewport } = await import('../replay/relations/plaqueTextLayout.ts');
+  const prepare = [
+    rows => preparePlaqueTextLayout({ title: 'Context', rows }, { variant: 'generic' }),
+    rows => preparePlaqueTextLayout({ title: 'Context', rows }, { variant: 'feature' }),
+    rows => preparePfPlaqueTextLayout(rows.map((row, rowIndex) => ({ ...row, rowIndex, kind: 'literal', isFinal: false })))
+  ];
+  for (const layoutFor of prepare) {
+    const ordinary = layoutFor([{ label: 'Case', value: 'nominative' }]);
+    assert.equal(ordinary.overflow, undefined);
+    const input = Array.from({ length: 100 }, (_, i) => ({ label: `row ${i}`, value: `exact value ${i}` }));
+    const layout = layoutFor(input);
+    assert.equal(layout.rows.length, 100);
+    assert.ok(layout.overflow.contentHeight > layout.height * 2);
+    const last = layout.rows.at(-1);
+    const blocks = last.parts?.map(part => part.block) ?? [last];
+    assert.ok(blocks.flatMap(block => block.lines).map(line => line.text).join('').includes('exact value 99'));
+    for (const block of blocks) for (const line of block.lines) {
+      assert.ok(line.y + line.descent <= layout.overflow.contentHeight);
+    }
+    const partlyRevealed = { height: layout.height + 20, rows: layout.rows.slice(0, 20) };
+    const reserved = reservePlaqueViewport(partlyRevealed, layout.height);
+    assert.equal(reserved.height, layout.height);
+    assert.equal(reserved.overflow.contentHeight, partlyRevealed.height);
+    assert.equal(reserved.rows, partlyRevealed.rows);
+  }
 });

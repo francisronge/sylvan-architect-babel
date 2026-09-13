@@ -46,7 +46,7 @@ test('do-support preserves the preceding fit with either overlay policy and in e
   }
 });
 
-test('new large plaques reserve their full height before their relation moment', () => {
+test('extreme plaques reserve their scroll viewport before their relation moment', () => {
   const plan = compileRelationRenderPlan(astra.derivationStages);
   const pf = plan.frames[5].items.find(item => item.kind === 'node-plaque' && item.familyId === 'pf.realization');
   pf.rows = Array.from({ length: 60 }, (_, index) => ({ label: `Row ${index}`, value: 'A long authored explanation remains available in full.' }));
@@ -57,7 +57,8 @@ test('new large plaques reserve their full height before their relation moment',
   assert.deepEqual(after, before, 'future content must not trigger a refit at reveal');
   const placements = buildStagePlaqueLayout({ ...input, stageIndex: 5 });
   const placement = placements.get(plan.frames[5].items.indexOf(pf));
-  assert(placement.height > 2000);
+  assert.equal(placement.height, 560);
+  assert.equal(placement.scrollHeight, placement.height);
   assert(placement.y + placement.height <= before.maxY, 'the whole plaque contributes to the layout');
 });
 

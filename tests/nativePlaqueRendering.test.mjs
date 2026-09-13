@@ -9,7 +9,8 @@ import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relat
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
-import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
+import { appendPlaqueContent } from '../components/plaqueViewport.ts';
 import { caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
@@ -52,6 +53,7 @@ class Element {
   }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
   getAttribute(name) { return this.attrs[name] ?? null; }
+  getScreenCTM() { return { d: 1 }; }
   get parentElement() { return this.parent; }
   closest(selector) { return matches(this, selector) ? this : this.parent?.closest(selector) ?? null; }
   getBoundingClientRect() { return { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 }; }
@@ -89,6 +91,7 @@ class Selection {
     this.items.forEach(node => value === null ? delete node.attrs[name] : node.attrs[name] = String(value));
     return this;
   }
+  on(name, handler) { this.items.forEach(node => { (node.handlers ??= {})[name] = handler; }); return this; }
   style(name, value) { this.items.forEach(node => node.styles[name] = value); return this; }
   text(value) { this.items.forEach(node => { node.text = String(value); node.children = []; }); return this; }
   selectAll(selector) { return new Selection(this.items.flatMap(descendants).filter(node => matches(node, selector))); }
@@ -157,7 +160,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   };
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
-    replayPlaqueLayout: layout, drawPlaqueText,
+    replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
     ensureFeatureRelationLayer: () => host,
@@ -182,7 +185,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
       playedRelationIndices: played, activeDerivationFrameIndex: stageIndex,
       measuredTerminalSubtreesRect: ids => rectFor(ids[0]), measuredShellRect: rectFor,
       measuredTerminalRect: () => null, unionRects: rects => rects[0],
-      replayPlaqueLayout: layout, withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText
+      replayPlaqueLayout: layout, withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent
     });
     host.selectAll('.babel-pf-relation-layer').each(painter);
   }
@@ -309,6 +312,7 @@ const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 
     class: 'babel-pf-relation-layer', 'data-pf-targets': '["head"]',
     'data-pf-rows': JSON.stringify(rows), 'data-pf-row-kinds': JSON.stringify(kinds), 'data-pf-row-refs': JSON.stringify(refs)
   });
+  const fullLayout = preparePfPlaqueTextLayout(rows.map((row, index) => ({ ...row, kind: kinds[index] || 'literal', rowIndex: index })), { measureText });
   const target = { x: 600, y: 400, width: 80, height: 60 };
   const draw = productionFunction('renderPfRealizationPlate', {
     d3: { select }, svg: select(svgRoot), g: select(new Element('g')),
@@ -320,8 +324,8 @@ const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 
       constructor(x, y) { this.x = x; this.y = y; }
       matrixTransform(matrix) { return { x: this.x * matrix.scale, y: this.y * matrix.scale }; }
     },
-    replayPlaqueLayout: new Map([[0, { x: 700, y: 550, location: 'below', domainId: 'head' }]]),
-    withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText
+    replayPlaqueLayout: new Map([[0, { x: 700, y: 550, location: 'below', domainId: 'head', ...(fullLayout.overflow ? { scrollHeight: fullLayout.height } : {}) }]]),
+    withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent
   });
   draw.call(layer);
   assert.equal(svgRoot.children.length, 0, 'temporary measuring text is removed');
@@ -330,9 +334,15 @@ const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 
   const texts = elements.filter(node => node.tag === 'text');
   return { layer, shell, texts, elements };
 };
-const assertContained = ({ shell, texts }) => {
+const assertContained = ({ shell, texts, elements }) => {
+  const viewport = elements.find(node => node.attrs['data-babel-plaque-viewport']);
+  const scrollRange = Number(viewport?.attrs['data-scroll-max'] || 0);
+  if (viewport) {
+    assert.equal(Number(viewport.attrs.height), Number(shell.attrs.height) - 8);
+    assert.equal(Number(viewport.attrs.width), Number(shell.attrs.width) - 8);
+  }
   const left = Number(shell.attrs.x), top = Number(shell.attrs.y);
-  const right = left + Number(shell.attrs.width), bottom = top + Number(shell.attrs.height);
+  const right = left + Number(shell.attrs.width), bottom = top + Number(shell.attrs.height) + scrollRange;
   for (const text of texts) {
     for (const line of text.children) {
       const { width, ascent, descent } = measureText(line.textContent, {
@@ -392,7 +402,7 @@ test('native PF keeps every visible row and its original ownership, never promot
   assertContained(partial);
   const complete = drawPf({ rows, kinds, refs, stage: 3, played: new Set() });
   assert.equal(complete.elements.filter(node => node.attrs['data-plaque-row-index'] !== undefined).length, 12);
-  assert.ok(Number(complete.shell.attrs.height) > Number(partial.shell.attrs.height));
+  assert.equal(complete.shell.attrs.height, partial.shell.attrs.height, 'revealed rows keep the reserved viewport');
   assertContained(complete);
 });
 
@@ -585,4 +595,37 @@ test('temporary SVG text measurement is cleaned up even when layout throws', () 
   const svg = new Element('svg');
   assert.throws(() => withPlaqueTextMeasure(select(svg), () => { throw Error('layout failed'); }), /layout failed/);
   assert.equal(svg.children.length, 0);
+});
+
+
+test('extreme plaque scrolling keeps all rows and never passes navigation to the tree', () => {
+  const rows = Array.from({ length: 60 }, (_, i) => ({ label: `field${i}`, value: `authored value ${i}` }));
+  const rendered = drawPf({ rows });
+  const viewport = rendered.elements.find(node => node.attrs['data-babel-plaque-viewport']);
+  assert(viewport);
+  const ring = viewport.parent.children.find(node => node.attrs['vector-effect'] === 'non-scaling-stroke');
+  viewport.handlers.focus();
+  assert.equal(ring.attrs.visibility, 'visible');
+  assert.equal(Number(ring.attrs.height), Number(rendered.shell.attrs.height));
+  viewport.handlers.blur();
+  assert.equal(ring.attrs.visibility, 'hidden');
+  const shell = { ...rendered.shell.attrs };
+  const allText = rendered.layer.textContent;
+  let prevented = 0, stopped = 0;
+  const event = properties => ({ preventDefault() { prevented++; }, stopPropagation() { stopped++; }, ...properties });
+  viewport.parent.handlers.wheel(event({ deltaY: 100, deltaMode: 0 }));
+  assert.equal(Number(viewport.attrs['data-scroll-offset']), 100);
+  viewport.parent.handlers.keydown(event({ key: 'End' }));
+  assert.equal(viewport.attrs['data-scroll-offset'], viewport.attrs['data-scroll-max']);
+  const last = rendered.texts.at(-1).children.at(-1);
+  assert(Number(last.attrs.y) - Number(viewport.attrs['data-scroll-offset']) < Number(rendered.shell.attrs.y) + Number(rendered.shell.attrs.height));
+  viewport.parent.handlers.keydown(event({ key: 'Home' }));
+  viewport.parent.handlers.wheel(event({ deltaY: -100, deltaMode: 0 }));
+  assert.equal(viewport.attrs['data-scroll-offset'], '0');
+  viewport.parent.handlers.keydown(event({ key: 'Tab' }));
+  assert.equal(prevented, 4);
+  assert.equal(stopped, 4);
+  assert.equal(rendered.layer.textContent, allText);
+  assert.deepEqual(rendered.shell.attrs, shell);
+  assertContained(rendered);
 });

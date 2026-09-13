@@ -34,12 +34,20 @@ const element = (tag, attrs, textContent, parent = null, computed = {}) => ({
   cloneNode() {
     const clone = element(this.tag, this.attrs, this.textContent);
     clone.children = this.children.map(child => child.cloneNode());
+    if (this.getBBox) clone.getBBox = this.getBBox;
     return clone;
   },
   setAttribute(name, value) { this.attrs[name] = value; },
   insertBefore() {},
-  querySelector() { return null; },
-  querySelectorAll() { return this.children.flatMap(child => [child, ...child.querySelectorAll()]); }
+  querySelector(selector) { return select(this.querySelectorAll('*'), selector); },
+  querySelectorAll(selector = '*') {
+    const all = this.children.flatMap(child => [child, ...child.querySelectorAll('*')]);
+    return selector === '*' ? all : all.filter(node => matches(node, selector));
+  },
+  appendChild(child) { child.parent = this; this.children.push(child); },
+  remove() { this.parent.children.splice(this.parent.children.indexOf(this), 1); },
+  replaceChildren(...children) { this.children = children; },
+  get viewBox() { const [x, y, width, height] = this.attrs.viewBox.split(' ').map(Number); return { baseVal: { x, y, width, height } }; }
 });
 const matches = (node, selector) => {
   const tag = selector.match(/^[a-z]+/u)?.[0];
@@ -63,8 +71,9 @@ const select = (nodes, selector) => {
     return true;
   }) ?? null;
 };
-const capture = (nodes, serialized = []) => {
+const capture = (nodes, serialized = [], body = element('body', {}, '')) => {
   const document = {
+    body,
     querySelector: selector => select(nodes, selector),
     createElementNS: (_namespace, tag) => element(tag, {}, '')
   };
@@ -111,4 +120,25 @@ test('Tree Bank preview keeps stylesheet-only paint and hidden syntax without ch
   assert.deepEqual(savedHidden.attrs, hidden.attrs);
   assert.equal('transform' in savedHidden.styles, false, 'paint must not override the geometry transform');
   assert.deepEqual(path.styles, {}, 'the live tree must remain untouched');
+});
+
+
+test('Tree Bank fits the visible plaque viewport without dropping its clipped rows', () => {
+  const tree = element('svg', treeAttributes, 'tree');
+  const group = element('g', {}, '', tree);
+  const viewport = element('svg', { 'data-babel-plaque-viewport': 'true', viewBox: '4 4 582 552' }, '', group);
+  viewport.children = [element('text', {}, 'All authored rows, including the last one', viewport)];
+  group.children = [viewport];tree.children = [group];
+  group.getBBox = function () {
+    return { x: 0, y: 0, width: 1000, height: this.querySelector('text') ? 6000 : 600 };
+  };
+  const body = element('body', {}, '');
+  const saved = [];
+  capture([tree], saved, body);
+  assert.equal(saved[0].querySelector('text').textContent, viewport.children[0].textContent);
+  const transform = saved[0].querySelector('g').attrs.transform;
+  assert.match(transform, /scale\(1\.393/);
+  assert.equal(body.children.length, 0, 'the measurement copy is removed');
+  assert.equal(group.attrs.transform, undefined, 'the live tree remains untouched');
+  assert.equal(viewport.children.length, 1);
 });

@@ -4,11 +4,12 @@ import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
+import { appendPlaqueContent } from './plaqueViewport';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
-import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
@@ -6102,10 +6103,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const anchorRect = measuredTerminalSubtreeRectNow(anchorId)
               || measuredTreeLabelRectNow(anchorId, false);
             if (!anchorId || !anchorRect) return;
-            const layout = primitive.textLayout;
-            const { width: plaqueWidth, height: plaqueHeight } = layout;
             const origin = replayPlaqueLayout.get(primitive.itemIndex);
             if (!origin) return;
+            const layout = reservePlaqueViewport(primitive.textLayout, origin.scrollHeight);
+            const { width: plaqueWidth, height: plaqueHeight } = layout;
             const layer = ensureFeatureRelationLayer();
             const plaque = layer.append('g')
               .attr('class', 'babel-feature-plaque')
@@ -6121,9 +6122,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('width', plaqueWidth.toFixed(1))
               .attr('height', plaqueHeight.toFixed(1))
               .attr('rx', 14);
-            if (layout.title) drawPlaqueText(plaque, layout.title, 'babel-feature-plaque-title', origin);
+            const content = appendPlaqueContent(plaque, layout, origin);
+            if (layout.title) drawPlaqueText(content, layout.title, 'babel-feature-plaque-title', origin);
             layout.rows.forEach((row) => {
-              const rowGroup = plaque.append('g')
+              const rowGroup = content.append('g')
                 .attr('class', 'babel-feature-row')
                 .attr('data-feature-label', primitive.rows[row.rowIndex].label)
                 .attr('data-plaque-row-index', row.rowIndex);
@@ -6164,6 +6166,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           }
           const origin = replayPlaqueLayout.get(primitive.itemIndex);
           if (!origin) return;
+          const layout = reservePlaqueViewport(primitive.textLayout, origin.scrollHeight);
           const marker = host.append('g')
             .attr('data-plaque-location', origin.location)
             .attr('data-plaque-domain', origin.domainId)
@@ -6173,14 +6176,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('x', 0)
             .attr('y', 0)
             .attr('width', primitive.width)
-            .attr('height', primitive.height)
+            .attr('height', layout.height)
             .attr('rx', 5)
             .attr('fill', 'rgba(2,24,15,0.94)')
             .attr('stroke', '#34d399')
             .attr('stroke-width', 1);
-          if (primitive.textLayout.title) drawPlaqueText(marker, primitive.textLayout.title, 'babel-plaque-title');
-          primitive.textLayout.rows.forEach(row => {
-            const rowGroup = marker.append('g').attr('data-plaque-row-index', row.rowIndex);
+          const content = appendPlaqueContent(marker, layout);
+          if (layout.title) drawPlaqueText(content, layout.title, 'babel-plaque-title');
+          layout.rows.forEach(row => {
+            const rowGroup = content.append('g').attr('data-plaque-row-index', row.rowIndex);
             drawPlaqueText(rowGroup, row, 'babel-plaque-row');
           });
           return;
@@ -7811,12 +7815,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             }));
         if (!targetRect) return;
 
-        const layout = withPlaqueTextMeasure(svg, measureText =>
-          preparePfPlaqueTextLayout(visibleRows, { isZeroRealization, measureText }));
-        const { width: plateWidth, height: plateHeight } = layout;
-        const platePadX = 26;
         const origin = replayPlaqueLayout.get(Number(layer.attr('data-plaque-item-index')));
         if (!origin) return;
+        const layout = reservePlaqueViewport(withPlaqueTextMeasure(svg, measureText =>
+          preparePfPlaqueTextLayout(visibleRows, { isZeroRealization, measureText })), origin.scrollHeight);
+        const { width: plateWidth, height: plateHeight } = layout;
+        const platePadX = 26;
         layer.attr('data-plaque-location', origin.location).attr('data-plaque-domain', origin.domainId);
 
         layer.append('rect')
@@ -7827,8 +7831,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .attr('width', plateWidth.toFixed(1))
           .attr('height', plateHeight.toFixed(1))
           .attr('rx', 8);
-        drawPlaqueText(layer, layout.title, 'babel-pf-plate-title', origin);
-        const appendRule = (y: number) => layer.append('line')
+        const content = appendPlaqueContent(layer, layout, origin);
+        drawPlaqueText(content, layout.title, 'babel-pf-plate-title', origin);
+        const appendRule = (y: number) => content.append('line')
           .attr('class', 'babel-pf-plate-rule')
           .attr('x1', (origin.x + platePadX).toFixed(1))
           .attr('x2', (origin.x + plateWidth - platePadX).toFixed(1))
@@ -7836,7 +7841,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .attr('y2', y.toFixed(1));
         appendRule(origin.y + layout.titleRuleY);
         layout.rows.forEach(row => {
-          const rowGroup = layer.append('g').attr('data-plaque-row-index', row.rowIndex);
+          const rowGroup = content.append('g').attr('data-plaque-row-index', row.rowIndex);
           if (row.ruleY !== undefined) appendRule(origin.y + row.ruleY);
           row.parts.forEach(part => {
             const className = part.kind === 'arrow' ? 'babel-pf-plate-arrow'

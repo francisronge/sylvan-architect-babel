@@ -8,6 +8,7 @@ export type PlaqueRect = { x: number; y: number; width: number; height: number }
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
+  scrollHeight?: number;
   attachmentNodeId: string; attachmentX: number; attachmentY: number;
 };
 /** Identify the same drawn claim across plan frames, never by its changing array position. */
@@ -78,7 +79,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
   const result = new Map<number, PlaquePlacement>();
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const occupied: PlaqueRect[] = [...obstacles];
-  const requests: Array<{ index: number; ids: string[]; width: number; height: number; caseAssignment?: boolean }> = [];
+  const requests: Array<{ index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean }> = [];
   items.forEach((item, index) => {
     if (item.kind === 'node-plaque') {
       if (item.plaqueStyle === 'feature') {
@@ -99,7 +100,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       if (item.plaqueStyle === 'theta-grid') size = { ...size, width: 430, height: 126 };
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
-        width: size.width, height: size.height });
+        width: size.width, height: size.height, ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
       const assignments = items.filter(other => other.kind === 'directed-path'
         && other.pathStyle === 'case-assignment' && other.toNodeId === item.toNodeId
@@ -164,6 +165,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     }
     const attachment = location === 'local' ? anchor : domain;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
+      ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
       attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y });
     occupied.push(placement);
   }

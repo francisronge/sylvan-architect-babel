@@ -32,6 +32,20 @@ shared ink/halo class without replacing relation-moment opacity. See the
 [production restoration and verification](../implementation/contract-qualification/system-audit.md#repairs-and-verification)
 for the September integration corrections; the original review below is retained.
 
+## Extreme text overflow
+
+Ordinary text plaques retain their accepted geometry and placement. Only content
+exceeding forty row-font heights uses a twenty-row-font-height scroll viewport.
+The entire stage reserves that viewport before any of its rows appear. All rows
+remain in the authored record and SVG; wheel and keyboard input scroll the plaque
+without changing the tree camera. Small/local and larger/below-subtree placement
+continue to use the shared allocator. This exception does not introduce a reading
+view or a new relation drawing.
+
+Tree Bank previews capture the visible portion at its correct bounds, with all
+rows preserved in the saved analysis. A static thumbnail does not promise a full
+print layout for extreme content. See the [dependability evidence](../implementation/contract-qualification/system-audit.md#extreme-plaque-overflow-and-active-camera-gestures).
+
 ## Review
 
 Fable reviewed the broad renderer closeout and returned **GREEN**, with no

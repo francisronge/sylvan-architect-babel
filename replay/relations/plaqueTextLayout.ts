@@ -31,7 +31,27 @@ export type PlaqueTextBlock = {
   lines: PlaqueTextLine[];
 };
 
-export type PlaqueTextLayout = {
+export type PlaqueViewport = {
+  height: number;
+  /** Present only when fitting the complete text would make an extreme plaque unreadable. */
+  overflow?: { contentHeight: number };
+};
+
+// The limit follows the text's own scale. Ordinary plaques retain their exact
+// dimensions; only more than forty font-heights use a twenty-font-height viewport.
+const plaqueViewport = (contentHeight: number, fontSize: number): PlaqueViewport =>
+  contentHeight > fontSize * 40
+    ? { height: fontSize * 20, overflow: { contentHeight } }
+    : { height: contentHeight };
+
+/** Later PF rows may be unrevealed; the complete stage has already reserved its viewport. */
+export const reservePlaqueViewport = <T extends PlaqueViewport>(layout: T, scrollHeight?: number): T => {
+  const contentHeight = layout.overflow?.contentHeight ?? layout.height;
+  return scrollHeight && contentHeight > scrollHeight
+    ? { ...layout, height: scrollHeight, overflow: { contentHeight } } : layout;
+};
+
+export type PlaqueTextLayout = PlaqueViewport & {
   width: number;
   height: number;
   title?: PlaqueTextBlock;
@@ -192,7 +212,7 @@ export const preparePlaqueTextLayout = (
     rowTop = row.bottom + (feature ? 12 : 0);
     return { ...row.block, rowIndex };
   });
-  return { width, height: rowTop + (feature ? 16 : 0), ...(title ? { title: title.block } : {}), rows };
+  return { width, ...plaqueViewport(rowTop + (feature ? 16 : 0), font.row.fontSize), ...(title ? { title: title.block } : {}), rows };
 };
 
 const pfTitleStyle: PlaqueTextStyle = {
@@ -244,5 +264,5 @@ export const preparePfPlaqueTextLayout = (
     rowTop = bottom;
     return { rowIndex: row.rowIndex, isFinal: row.isFinal, parts, ruleY };
   });
-  return { width, height: rowTop + 30, title: title.block, titleRuleY, rows: layouts };
+  return { width, ...plaqueViewport(rowTop + 30, pfRowStyle.fontSize), title: title.block, titleRuleY, rows: layouts };
 };

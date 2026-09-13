@@ -251,7 +251,22 @@ const captureVisibleTreeSnapshot = (): string | undefined => {
   const clonedGroup = clone.querySelector('g');
   if (liveGroup && clonedGroup) {
     try {
-      const bbox = liveGroup.getBBox();
+      let bbox = liveGroup.getBBox();
+      if (liveGroup.querySelector('[data-babel-plaque-viewport]')) {
+        // SVG getBBox includes clipped text. Measure the visible viewport boxes
+        // on a disposable copy, leaving every authored row in the saved image.
+        const measurement = clone.cloneNode(true) as SVGSVGElement;
+        measurement.style.cssText = 'position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none';
+        measurement.querySelectorAll<SVGSVGElement>('[data-babel-plaque-viewport]').forEach(viewport => {
+          const box = viewport.viewBox.baseVal;
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          for (const key of ['x', 'y', 'width', 'height'] as const) rect.setAttribute(key, String(box[key]));
+          viewport.replaceChildren(rect);
+        });
+        document.body.appendChild(measurement);
+        try { bbox = measurement.querySelector<SVGGElement>('g')!.getBBox(); }
+        finally { measurement.remove(); }
+      }
       if (Number.isFinite(bbox.width) && Number.isFinite(bbox.height) && bbox.width > 0 && bbox.height > 0) {
         const availableWidth = Math.max(1, SNAPSHOT_WIDTH - SNAPSHOT_PADDING * 2);
         const availableHeight = Math.max(1, SNAPSHOT_HEIGHT - SNAPSHOT_PADDING * 2);
