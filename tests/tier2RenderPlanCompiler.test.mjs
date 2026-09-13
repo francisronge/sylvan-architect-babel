@@ -198,7 +198,8 @@ test('Task 8 organizes only the authored array that earned the large-array compa
     stage([relation], forest)
   ]);
   const residual = plan.frames[0].items.find((item) => item.kind === 'fallback');
-  assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), ['large_root']);
+  assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), [...members, ...members, 'large_root']);
+  assert.deepEqual(residual.relationRef.anchors, { anchor: 'large_root' });
   const organization = plan.frames[0].items.find(
     (item) => item.tier2FacetId === 'organization.large-anchor-set'
   );

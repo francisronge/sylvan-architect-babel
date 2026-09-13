@@ -8,7 +8,40 @@ export interface RecoveredMovement {
   trajectoryKind: 'head' | 'phrasal';
   transition: boolean;
   roles: Record<string, string[]>;
+  /** Exact authored fields verified as structural context, not extra dependencies. */
+  context?: Array<{ key: string; nodeId: string; kind: MovementContextKind }>;
 }
+
+type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing';
+
+const categoryLabel = (node: SyntaxNode) => String(node.label || '').replace(/[′']/g, '').trim();
+const onlyExponents = (node: SyntaxNode): boolean => !node.children?.length || node.children.every(child => !child.children?.length);
+const isHeadComplex = (parent: SyntaxNode, landingId: string): boolean => {
+  const siblings = (parent.children || []).filter(node => node.id !== landingId);
+  return siblings.length === 1 && categoryLabel(siblings[0]) === categoryLabel(parent)
+    && onlyExponents(siblings[0]) && !/P$/.test(categoryLabel(parent)) && !/[′'’]/.test(parent.label);
+};
+
+/** Shared exact structural check for Tier 1 and recovered movement context. */
+export const movementContextFailure = (
+  forest: readonly SyntaxNode[], landingId: string, contextId: string, kind: MovementContextKind
+): string | undefined => {
+  const nodes: SyntaxNode[] = [];
+  const visit = (node: SyntaxNode) => { nodes.push(node); (node.children || []).forEach(visit); };
+  forest.forEach(visit);
+  const landing = nodes.filter(node => node.id === landingId);
+  const context = nodes.filter(node => node.id === contextId);
+  if (landing.length !== 1 || context.length !== 1) return 'landing-or-context-id-missing-or-ambiguous';
+  const parents = nodes.filter(node => node.children?.includes(landing[0]));
+  const parent = parents.length === 1 ? parents[0] : undefined;
+  if (!parent || nodes.filter(node => node.id === parent.id).length !== 1) return 'landing-parent-missing-or-ambiguous';
+  const isParent = parent === context[0];
+  if (kind === 'site') return isParent ? undefined : 'not-the-immediate-landing-parent';
+  if (!isHeadComplex(parent, landingId)) return 'landing-is-not-in-a-supported-head-complex';
+  const isHost = context[0] !== landing[0] && Boolean(parent.children?.includes(context[0]));
+  const valid = kind === 'head-complex' ? isParent : kind === 'head-host' ? isHost : isParent || isHost;
+  return valid ? undefined : 'not-the-landing-host-or-complex';
+};
 
 export interface MovementEvidenceResult {
   movement?: RecoveredMovement;
@@ -43,7 +76,7 @@ export function recoverMovementEvidence(
   const current = index(forest);
   const prior = index(previous);
   const entries = Object.entries(relation.anchors || {}).map(([key, value]) => ({
-    key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
+    authoredKey: key, key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
   }));
   const pick = (concept: string) => [...new Set(entries.filter(e => hasRole(e.key, concept)).flatMap(e => e.ids))];
   const contains = (n: SyntaxNode, id: string): boolean => n.id === id || (n.children || []).some(c => contains(c, id));
@@ -107,31 +140,37 @@ export function recoverMovementEvidence(
   const parent = current.parents.get(targetId);
   if (!parent) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `${targetId} has no enclosing structure that establishes the supported head or phrasal landing.`);
   const siblings = (parent.children || []).filter(n => n.id !== targetId);
-  const label = (n: SyntaxNode) => String(n.label || '').replace(/[′']/g, '').trim();
-  // A head's children are terminals; their words, silence or wordlessness are
-  // authored facts, not a spelling test.
-  const onlyExponents = (n: SyntaxNode): boolean => !n.children?.length || n.children.every(c => !c.children?.length);
-  const complexHead = siblings.length === 1 && label(siblings[0]) === label(parent)
-    && onlyExponents(siblings[0]) && !/P$/.test(label(parent)) && !/[′'’]/.test(parent.label);
-  const specifier = siblings.some(n => label(n) === label(parent) && !onlyExponents(n));
-  const phrase = !onlyExponents(target) || /P$/.test(label(target)) || specifier;
+  const complexHead = isHeadComplex(parent, targetId);
+  const specifier = siblings.some(n => categoryLabel(n) === categoryLabel(parent) && !onlyExponents(n));
+  const phrase = !onlyExponents(target) || /P$/.test(categoryLabel(target)) || specifier;
   if (!complexHead && !phrase) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
   const roles: Record<string, string[]> = {};
+  const context: NonNullable<RecoveredMovement['context']> = [];
+  const diagnostics: string[] = [];
   entries.forEach(e => {
     const concepts: string[] = [];
     if (e.ids.length === 1 && e.ids[0] === sourceId && (hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.source');
     if (e.ids.length === 1 && e.ids[0] === witnessId && (hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.witness');
     if (e.ids.length === 1 && e.ids[0] === targetId && hasRole(e.key, 'movement.landing')) concepts.push('movement.landing');
     if (concepts.length) roles[e.key] = concepts;
+    const kind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
+      : hasRole(e.key, 'movement.host') ? ['landing head', 'receiving head'].includes(e.key) ? 'head-landing' : 'head-host'
+      : e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId)) ? 'site' : undefined;
+    if (!kind) return;
+    const reason = e.ids.length !== 1 ? 'context-needs-one-exact-node'
+      : movementContextFailure(forest, targetId, e.ids[0], kind);
+    if (reason) diagnostics.push(`MOVEMENT_CONTEXT_UNPROVEN: anchors.${e.authoredKey} (${e.ids.join(', ')}) for landing ${targetId}: ${reason}. The authored field remains unresolved.`);
+    else context.push({ key: e.authoredKey, nodeId: e.ids[0], kind });
   });
   return {
-    diagnostics: [],
+    diagnostics,
     movement: {
       sourceNodeId: sourceId, targetNodeId: targetId, witnessNodeId: witnessId,
       trajectoryKind: complexHead ? 'head' : 'phrasal',
       transition: !prior.nodes.has(targetId) && (!silent(before)
         || [...prior.nodes.values()].filter(n => n.lineageId === source.lineageId).length === 1),
-      roles
+      roles,
+      ...(context.length ? { context } : {})
     }
   };
 }

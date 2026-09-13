@@ -99,6 +99,8 @@ export type Tier3RecoveredClaim = {
     | 'no-complete-tier2-facet'
     | 'unconsumed-envelope-evidence';
   consumedEvidence: RecoveredEvidenceReference[];
+  /** Current participants of the authored relation, not an inferred extra dependency. */
+  contextAnchors?: Record<string, string | string[]>;
 };
 
 export type RecoveredClaim =
@@ -173,13 +175,15 @@ const canonicalize = (value: unknown): unknown => {
 const primaryClaimIdentity = (
   relation: DerivationStageRelation,
   registryEntryId?: string,
-  kind: Tier1RecoveredClaim['kind'] | Tier3RecoveredClaim['kind'] = 'registered-primary'
+  kind: Tier1RecoveredClaim['kind'] | Tier3RecoveredClaim['kind'] = 'registered-primary',
+  contextAnchors?: Record<string, string | string[]>
 ): string => JSON.stringify(canonicalize({
   kind,
   identity: registryEntryId ?? normalizeTier2Synonym(relation.relation),
   anchors: relation.anchors ?? {},
   priorAnchors: relation.priorAnchors ?? null,
-  values: relation.values ?? null
+  values: relation.values ?? null,
+  ...(contextAnchors ? { contextAnchors } : {})
 }));
 
 const authoredEvidenceReferences = (
@@ -455,6 +459,10 @@ const attachFacetIdentities = (
   return facets.flatMap(({ recipe, evaluation }) => {
     const consumedEntries = (field: RecoveredEvidenceReference['field'], entries: readonly Tier2AuthoredEvidenceEntry[] = []) =>
       entries.flatMap(entry => {
+        // Verified enclosure context is accounted for by the movement, but is
+        // not another trajectory endpoint or part of its replacement identity.
+        if (field === 'anchors' && ['movement.path', 'movement.carrier'].includes(recipe.id)
+          && evidence.movement?.context?.some(context => context.key === entry.key)) return [];
         const refs = evaluation.consumedEvidence.filter(ref => ref.field === field && ref.key === entry.key);
         if (!refs.length) return [];
         if (refs.some(ref => ref.itemIndices === undefined)) return [entry];
@@ -709,6 +717,24 @@ export const dispatchRelationClaims = (
       return { field: entry.field, key: entry.key,
         ...(entry.unrecoveredItemIndices.length === count ? {} : { itemIndices: entry.unrecoveredItemIndices }) };
     });
+    // A drawing can account for an anchor without exhausting every assertion
+    // involving it. Keep current context beside remaining participants, excluding
+    // verified enclosure fields already owned by movement. Value-only and
+    // prior-only remainders do not acquire new current connectors.
+    if (unrecovered.some(entry => entry.field === 'anchors' && entry.unrecoveredItemIndices.length)
+      && evidenceCoverage.fields.some(entry => entry.field === 'anchors' && entry.recognizedBy.length)) {
+      const verifiedContext = new Set((evidence.movement?.context || []).filter(context =>
+        evidenceCoverage.fields.some(field => field.field === 'anchors' && field.key === context.key
+          && field.recognizedBy.length && !field.unrecoveredItemIndices.length)).map(context => context.key));
+      claim.contextAnchors = structuredClone(Object.fromEntries(Object.entries(relation.anchors)
+        .filter(([key]) => !verifiedContext.has(key))));
+      claim.canonicalClaimIdentity = primaryClaimIdentity(
+        claim.kind === 'fallback-residual' && residualRelation ? residualRelation : primaryRelation,
+        claim.kind === 'fallback-primary' ? registryEntry?.id : undefined,
+        claim.kind,
+        claim.contextAnchors
+      );
+    }
   });
   // Explain candidates connected to leftover evidence, not every failed rule.
   // A candidate failure does not establish the model's intended meaning.

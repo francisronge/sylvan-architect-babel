@@ -91,9 +91,10 @@ const valueItems = (evidence: Tier2FacetEvidence, name: string): string[] => (
   flatten(evidence.values[name])
 );
 
-const firstValue = (evidence: Tier2FacetEvidence, name: string, fallback = ''): string => (
-  valueItems(evidence, name)[0] ?? fallback
-);
+const singleValue = (evidence: Tier2FacetEvidence, name: string, fallback = ''): string => {
+  const items = valueItems(evidence, name);
+  return items.length === 1 ? items[0] : fallback;
+};
 
 const authoredRows = (evidence: Tier2FacetEvidence): Array<{ label: string; value: string }> => (
   (evidence.authoredValues || []).flatMap(({ key, items }) =>
@@ -337,7 +338,7 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Coindex', 'Forest light'], 'identity.occurrences'),
           kind: 'coindex',
           nodeIds: many('occurrences'),
-          index: firstValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
         });
         return;
       }
@@ -380,7 +381,7 @@ export const compileTier2RelationOutputs = ({
           domainMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
           subtreeDerived: [{ field: 'domainMemberNodeIds', rootNodeId: domain, mode: 'all' }],
           ...(state === 'licensed' || state === 'failed' ? { outcome: state } : {}),
-          index: firstValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
         });
         return;
       }
@@ -524,7 +525,7 @@ export const compileTier2RelationOutputs = ({
             badgeStyle: 'shared-object',
             badges: [{
               nodeId: one('shared.argument'),
-              text: firstValue(evidence, 'role.label'),
+              text: singleValue(evidence, 'role.label'),
               shape: 'plain'
             }]
           });
@@ -583,7 +584,7 @@ export const compileTier2RelationOutputs = ({
             fromNodeId: one('probe'),
             toNodeId: goal,
             pathStyle: 'agree-cyclic',
-            label: firstValue(evidence, 'cycle')
+            label: singleValue(evidence, 'cycle')
           });
         });
         return;
@@ -625,8 +626,8 @@ export const compileTier2RelationOutputs = ({
           fromNodeId: one('feature.source'),
           toNodeId: one('goal'),
           pathStyle: 'accord',
-          label: firstValue(evidence, 'index'),
-          secondaryLabel: firstValue(evidence, 'index'),
+          label: singleValue(evidence, 'index'),
+          secondaryLabel: singleValue(evidence, 'index'),
           featureRow: rows.find(row => valueItems(evidence, 'feature.rows').includes(row.value))
         });
         return;
@@ -671,7 +672,7 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Overlay annotation'], 'tier2.domain-annotation'),
           kind: 'node-badges',
           badgeStyle: 'phase-edge',
-          badges: [{ nodeId: one('domain'), text: firstValue(evidence, 'label'), shape: 'plain' }]
+          badges: [{ nodeId: one('domain'), text: singleValue(evidence, 'label'), shape: 'plain' }]
         });
         return;
       }
@@ -699,8 +700,8 @@ export const compileTier2RelationOutputs = ({
         return;
       }
       case 'judgment.verdict': {
-        const judgment = firstValue(evidence, 'verdict');
-        const label = firstValue(evidence, 'label');
+        const judgment = singleValue(evidence, 'verdict');
+        const label = singleValue(evidence, 'label');
         const analysisNodeId = one('analysis.anchor');
         const missing = [
           ...(!analysisNodeId ? ['analysis anchor'] : []),
@@ -835,8 +836,8 @@ export const compileTier2RelationOutputs = ({
             pathStyle: 'f-projection',
             projectionTargetAttachment: nodes.get(nodesInProjection[index + 1])?.word
               && !(nodes.get(nodesInProjection[index + 1])?.children?.length) ? 'terminal' : 'shell',
-            ...(firstValue(evidence, 'feature.label') ? { projectionFeature: firstValue(evidence, 'feature.label') } : {}),
-            ...(index === 0 && firstValue(evidence, 'accent.label') ? { label: firstValue(evidence, 'accent.label') } : {})
+            ...(singleValue(evidence, 'feature.label') ? { projectionFeature: singleValue(evidence, 'feature.label') } : {}),
+            ...(index === 0 && singleValue(evidence, 'accent.label') ? { label: singleValue(evidence, 'accent.label') } : {})
           });
         });
         if (facet.evaluation.outputs.includes('Feature annotation')) {
@@ -846,7 +847,7 @@ export const compileTier2RelationOutputs = ({
             badgeStyle: 'path-status',
             badges: many('projection.nodes').map((nodeId) => ({
               nodeId,
-              text: firstValue(evidence, 'feature.label'),
+              text: singleValue(evidence, 'feature.label'),
               shape: 'plain'
             }))
           });
@@ -858,7 +859,7 @@ export const compileTier2RelationOutputs = ({
             badgeStyle: 'path-status',
             badges: [{
               nodeId: one('accent.bearer'),
-              text: firstValue(evidence, 'accent.label'),
+              text: singleValue(evidence, 'accent.label'),
               shape: 'plain'
             }]
           });
@@ -871,8 +872,8 @@ export const compileTier2RelationOutputs = ({
           kind: 'undirected-link',
           pairs: [{ fromNodeId: one('licensor'), toNodeId: one('licensee') }],
           linkStyle: 'strong-npi',
-          ...(firstValue(evidence, 'feature.label')
-            ? { label: firstValue(evidence, 'feature.label') }
+          ...(singleValue(evidence, 'feature.label')
+            ? { label: singleValue(evidence, 'feature.label') }
             : {})
         });
         return;
@@ -895,7 +896,7 @@ export const compileTier2RelationOutputs = ({
           pronouncedNodeId: one('scope.source'),
           lfNodeId: one('scope.landing'),
           ...(one('scope.domain') ? { scopeDomainNodeId: one('scope.domain') } : {}),
-          index: firstValue(evidence, 'index', 'i')
+          index: singleValue(evidence, 'index', 'i')
         });
         return;
       }
@@ -909,7 +910,7 @@ export const compileTier2RelationOutputs = ({
           ...(domain ? { scopeDomainNodeId: domain,
             scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
             subtreeDerived: [{ field: 'scopeMemberNodeIds' as const, rootNodeId: domain, mode: 'all' as const }] } : {}),
-          index: firstValue(evidence, 'index', String(relationRef.relationIndex + 1))
+          index: singleValue(evidence, 'index', String(relationRef.relationIndex + 1))
         });
         return;
       }

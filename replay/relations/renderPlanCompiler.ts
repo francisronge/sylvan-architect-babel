@@ -12,10 +12,9 @@
  *
  * Appearance and persistence: an item first appears at its authored stage and
  * never leaks backward. Registered families carry exact per-design
- * persistence metadata. An unregistered fallback persists from introduction
- * onward: making an unknown authored claim disappear would itself invent
- * semantics. Large-anchor organization inherits its parent instance's
- * persistence.
+ * persistence metadata. A neutral fallback is stage-scoped; its authored record
+ * remains available after its marks leave the canvas. Large-anchor organization
+ * inherits its parent instance's persistence.
  *
  * Composition: every instance compiles (no first-instance sampling), ordering
  * is deterministic (layer order, then stage, then authored relation index).
@@ -668,9 +667,12 @@ const scalarValue = (
   key: string,
   fallback = ''
 ): string => {
-  if (key === 'outcome') return authoredOutcomeLiterals(values)[0] ?? fallback;
+  if (key === 'outcome') {
+    const items = authoredOutcomeLiterals(values);
+    return items.length === 1 ? items[0] : fallback;
+  }
   const value = values?.[key];
-  return String(Array.isArray(value) ? value[0] || fallback : value || fallback);
+  return String(Array.isArray(value) ? value.length === 1 ? value[0] : fallback : value ?? fallback);
 };
 
 const SUBSCRIPT_GLYPHS: Readonly<Record<string, string>> = {
@@ -922,6 +924,11 @@ export const compileRelationRenderPlan = (
     const dispatch = stageDispatches[stageIndex][relationIndex];
     return dispatch.primaryClaim?.tier === 1 ? dispatch.boundPrimaryRelation.anchors : {};
   };
+  // The combined curve has only one feature/value row. Other authored content
+  // stays in Agree's full plaque instead of disappearing during composition.
+  const canComposeCaseAgreement = (relation: DerivationStageRelation) =>
+    Object.entries(relation.values || {}).every(([key, value]) =>
+      ['feature', 'value'].includes(key) && (!Array.isArray(value) || value.length === 1));
   const diagnostics: PlanDiagnostic[] = [];
   const unregisteredCounts = new Map<string, number>();
   const items: RelationPlanItem[] = [];
@@ -1179,7 +1186,9 @@ export const compileRelationRenderPlan = (
         claimIdentity = claimDispatch.primaryClaim?.canonicalClaimIdentity
       ) => {
         const resolvedAnchors: Record<string, string | string[]> = {};
-        Object.entries(anchorSource || {}).forEach(([role, value]) => {
+        const fallbackClaim = claimDispatch.claims.find(claim => claim.canonicalClaimIdentity === claimIdentity);
+        const anchorContext = fallbackClaim?.tier === 3 ? fallbackClaim.contextAnchors : undefined;
+        Object.entries(anchorContext || anchorSource || {}).forEach(([role, value]) => {
           const ids = flattenAnchorIds(value);
           const resolved = ids.filter((nodeId) => {
             if (nodes.has(nodeId)) return true;
@@ -1907,7 +1916,7 @@ export const compileRelationRenderPlan = (
           if (familyId === 'agree.plaque') {
             const probe = flattenAnchorIds(anchors.probe)[0];
             const goal = flattenAnchorIds(anchors.goal)[0];
-            const composedWithCase = relations.some((companion, companionIndex) => {
+            const composedWithCase = canComposeCaseAgreement(relation) && relations.some((companion, companionIndex) => {
               const companionEntry = findRelationRegistryEntry(registry, companion.relation);
               return companionEntry?.id === 'case-assignment.path'
                 && flattenAnchorIds(companionAnchors(stageIndex, companionIndex).bearer)[0] === probe;
@@ -2084,7 +2093,8 @@ export const compileRelationRenderPlan = (
            */
           relations.forEach((companion, companionIndex) => {
             const companionEntry = findRelationRegistryEntry(registry, companion.relation);
-            if (!companionEntry || families[companionEntry.id]?.family !== 'feature-plaque') return;
+            if (!companionEntry || families[companionEntry.id]?.family !== 'feature-plaque'
+              || !canComposeCaseAgreement(companion)) return;
             const boundAnchors = companionAnchors(stageIndex, companionIndex);
             const companionProbe = flattenAnchorIds(boundAnchors.probe)[0];
             const companionGoal = flattenAnchorIds(boundAnchors.goal)[0];

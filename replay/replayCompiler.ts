@@ -247,6 +247,7 @@ export const indexHierarchyNodesByIdAndAliases = <T extends HierNode>(
   nodes.forEach((node) => {
     const ids = Array.from(new Set([
       getNodeId(node),
+      node.data?.id,
       ...(Array.isArray(node.data?.aliasIds) ? node.data.aliasIds : [])
     ].map((id) => String(id || '').trim()).filter(Boolean)));
     ids.forEach((id) => {
@@ -268,12 +269,18 @@ export const MOVEMENT_ARC_STROKE = 2.6;
 
 export const applyVizIds = (root: HierNode) => {
   const used = new Set<string>();
+  const reserved = new Set<string>();
+  root.eachBefore(node => {
+    [node.data.id, ...(node.data.aliasIds || [])].forEach(id => {
+      if (typeof id === 'string' && id.trim()) reserved.add(id.trim());
+    });
+  });
   let generated = 1;
   root.eachBefore((node) => {
     const raw = typeof node.data.id === 'string' ? node.data.id.trim() : '';
     let id = raw;
     if (!id || used.has(id)) {
-      while (used.has(`n${generated}`)) generated += 1;
+      while (used.has(`n${generated}`) || reserved.has(`n${generated}`)) generated += 1;
       id = `n${generated}`;
       generated += 1;
     }
@@ -6897,10 +6904,10 @@ export const getFrameRelations = (
       witnessNodeId: evidence.currentAnchors['scope.source'][0],
       trajectoryKind: 'phrasal', transition: facet.evaluation.earnedTransitions.includes('movement'), roles: {}
     } : evidence.movement;
-    const priorDiagnostics = Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : [];
+    const priorDiagnostics = [...(Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : []),
+      ...(movementDiagnostics || [])];
     if (!movement) {
-      const merged = [...priorDiagnostics, ...(movementDiagnostics || [])];
-      return merged.length ? { ...step, movementDiagnostics: merged } : step;
+      return priorDiagnostics.length ? { ...step, movementDiagnostics: priorDiagnostics } : step;
     }
     // A proved tree transition and permission to draw a trajectory are separate.
     // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.

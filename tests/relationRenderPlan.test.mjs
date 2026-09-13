@@ -132,7 +132,7 @@ test('Task 8 coalesces identical Tier-2 outputs but keeps every authored relatio
   assert.equal(planItemOwnsRelationMoment(trajectories[0], 0, 1), true);
 });
 
-test('Task 8 renders a complete Tier-2 claim and only the unconsumed residue through Tier 3', () => {
+test('Task 8 renders a complete Tier-2 claim and preserves the residual participant context', () => {
   const plan = compileRelationRenderPlan([
     stage([{
       relation: 'UnknownMovementWithResidual',
@@ -149,7 +149,8 @@ test('Task 8 renders a complete Tier-2 claim and only the unconsumed residue thr
 
   assert.equal(trajectory?.claimTier, 2);
   assert.equal(fallback?.claimTier, 3);
-  assert.deepEqual(fallback?.drawing.marks.map(({ witness }) => witness), ['tier2_landing_d']);
+  assert.deepEqual(fallback?.drawing.marks.map(({ witness }) => witness),
+    ['tier2_source', 'tier2_witness', 'tier2_landing', 'tier2_landing_d']);
   assert.deepEqual(fallback?.relationRef.anchors, { mystery: 'tier2_landing_d' });
 });
 
@@ -400,9 +401,10 @@ test('a malformed named primary stays Tier 3 while its disjoint verdict remains 
   assert.equal(fallback.claimTier, 3);
   assert.deepEqual(
     fallback.drawing.marks.map(({ witness }) => witness),
-    ['mixed_bad_target', 'mixed_bad_adjunct'],
-    'the fallback must not consume the independent verdict anchor'
+    ['mixed_bad_target', 'mixed_bad_adjunct', 'mixed_bad_analysis'],
+    'the fallback retains current context without taking ownership of the verdict'
   );
+  assert.deepEqual(fallback.relationRef.anchors, { target: 'mixed_bad_target', adjunctDomain: 'mixed_bad_adjunct' });
   assert.equal(verdict?.claimTier, 2);
   assert.equal(verdict?.analysisNodeId, 'mixed_bad_analysis');
 });

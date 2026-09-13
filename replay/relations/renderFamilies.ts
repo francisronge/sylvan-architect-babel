@@ -114,6 +114,27 @@ export type ProductionRenderFamily = {
   agreementMode?: 'multiple' | 'cyclic';
 };
 
+/** Literal slots read as one value by the native drawing, not model-facing restrictions. */
+export const PRODUCTION_SCALAR_VALUE_KEYS: Partial<Record<ProductionFamilyKind, readonly string[]>> = {
+  trajectory: ['phase'],
+  'binding-domain': ['outcome'],
+  'parasitic-gap': ['index', 'outcome'],
+  'argument-sharing': ['role'],
+  'agreement-paths': ['outcome', 'cycle'],
+  'feature-sharing': ['feature', 'value'],
+  'case-assignment': ['feature', 'value', 'case'],
+  'dependent-case': ['probeLabel', 'goalLabel'],
+  accord: ['feature', 'value', 'index'],
+  'boundary-cuts': ['outcome'],
+  'blocked-access': ['outcome'],
+  'anti-locality': ['outcome'],
+  'blocked-extraction': ['outcome'],
+  intervention: ['outcome'],
+  'analysis-judgment': ['outcome', 'judgment', 'label'],
+  'strong-npi': ['feature'],
+  'f-projection': ['feature', 'accent']
+};
+
 const persistent = (family: ProductionFamilyKind, extra: Partial<ProductionRenderFamily> = {}): ProductionRenderFamily => ({
   family,
   acceptedOutcomeConcepts: [],

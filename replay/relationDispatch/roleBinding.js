@@ -1,6 +1,7 @@
 import { normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
-import { recoverMovementEvidence } from '../relations/movementEvidence.ts';
+import { movementContextFailure, recoverMovementEvidence } from '../relations/movementEvidence.ts';
 import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
+import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -96,22 +97,15 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     if (contextRoles.length && issues.length === 0) {
       const roles = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
       const landings = [...new Set(Object.keys(anchors).filter(role => roles[role]?.concept === 'movement.landing').flatMap(role => items(anchors[role])))];
-      const parents = [];
-      const visit = node => {
-        if (node.children?.some(child => child.id === landings[0])) parents.push(node);
-        (node.children || []).forEach(visit);
-      };
-      (currentForest || []).forEach(visit);
       for (const role of contextRoles) {
         const ids = items(anchors[role]);
         if (ids.length !== 1 || landings.length !== 1) continue;
-        const parent = parents.length === 1 ? parents[0] : null;
-        const valid = parent && (role === 'complexHead' ? parent.id === ids[0]
-          : parent.children.some(child => child.id === ids[0] && child.id !== landings[0]));
-        if (!valid) issues.push({ kind: 'head-context-unproven', field: 'anchors',
+        const reason = currentForest ? movementContextFailure(currentForest, landings[0], ids[0],
+          role === 'complexHead' ? 'head-complex' : 'head-host') : 'workspace-required';
+        if (reason) issues.push({ kind: 'head-context-unproven', field: 'anchors',
           role: bindings.find(binding => binding.field === 'anchors' && binding.role === role)?.authoredRole || role,
           nodeId: ids[0], landing: landings[0],
-          reason: currentForest ? 'not-the-landing-host-or-complex' : 'workspace-required' });
+          reason });
       }
     }
   }
@@ -124,6 +118,14 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     });
   }
   if (entry.signature.anchors.allowContext) {
+    const family = PRODUCTION_RENDER_FAMILIES[entry.id]?.family;
+    for (const key of PRODUCTION_SCALAR_VALUE_KEYS[family] || []) {
+      const literals = key === 'outcome' ? authoredOutcomeLiterals(relation.values)
+        : relation.values?.[key] === undefined ? [] : items(relation.values[key]);
+      if (literals.length > 1) issues.push({ kind: 'drawing-value-cardinality', field: 'values', role: key,
+        observedItems: literals.length, maxItems: 1, offendingValue: literals,
+        reason: 'This drawing has one literal slot; no item was selected from the authored list.' });
+    }
     const outcomeLiterals = authoredOutcomeLiterals(relation.values);
     const outcomes = outcomeLiterals.map(value => resolveOutcomeLiteral(value)?.concept).filter(Boolean);
     if (new Set(outcomes).size > 1) issues.push({ kind: 'ambiguous-outcome-values', field: 'values', outcomes });

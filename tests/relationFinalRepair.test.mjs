@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { hierarchy } from 'd3';
 
 import {
   compileRelationRenderPlan,
@@ -8,6 +9,7 @@ import {
 } from '../replay/relations/renderPlanCompiler.ts';
 import {
   adaptDerivationStagesForReplay,
+  applyVizIds,
   buildPlaybackStepsFromDerivationFrames,
   buildReplaySupportLines,
   indexHierarchyNodesByIdAndAliases,
@@ -46,6 +48,24 @@ test('hierarchy relation lookup accepts unique authored aliases and rejects ambi
   assert.equal(index.get('stable_first'), first);
   assert.equal(index.get('authored_first'), first);
   assert.equal(index.has('ambiguous'), false, 'an ambiguous alias fails closed');
+});
+
+test('display ID allocation reserves all authored IDs and aliases before generating any', () => {
+  const data = { label: 'XP', children: [
+    { label: 'X' }, { id: 'n1', label: 'N' }, { id: 'n2', label: 'D', aliasIds: ['n3'] },
+    { id: 'duplicate', label: 'A' }, { id: 'duplicate', label: 'B' }
+  ] };
+  const original = structuredClone(data);
+  const root = hierarchy(data);
+  applyVizIds(root);
+  const nodes = root.descendants();
+  const index = indexHierarchyNodesByIdAndAliases(nodes);
+  assert.equal(new Set(nodes.map(node => node.__vizId)).size, nodes.length);
+  assert.equal(index.get('n1').data.label, 'N');
+  assert.equal(index.get('n2').data.label, 'D');
+  assert.equal(index.get('n3').data.label, 'D');
+  assert.equal(index.has('duplicate'), false, 'ambiguous authored references cannot pick the first node');
+  assert.deepEqual(data, original);
 });
 
 test('one PF plate remains focusable during every authored relation step it presents', () => {
@@ -529,7 +549,8 @@ test('Tier-2 large-array organization preserves unrelated envelope evidence as T
   const stageOneKinds = plan.frames[0].items.map((item) => item.kind).sort();
   assert.deepEqual(stageOneKinds, ['anchor-set', 'coindex', 'fallback']);
   const residual = plan.frames[0].items.find((item) => item.kind === 'fallback');
-  assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), ['anno_ch']);
+  assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), [...members, ...members, 'anno_ch']);
+  assert.deepEqual(residual.relationRef.anchors, { annotation: 'anno_ch' });
   const stageTwoKinds = plan.frames[1].items.map((item) => item.kind);
   assert.deepEqual(stageTwoKinds.sort(), ['anchor-set', 'coindex'],
     'the identity claim and its own rail persist; the neutral remainder marks its own stage only');

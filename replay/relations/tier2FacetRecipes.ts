@@ -484,7 +484,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('binding.dependency', {
     anchors: [current('binder', 1, 1), current('dependent', 1, 1), current('domain', 1, 1)],
-    values: [optionalValue('outcome', 1, 1)],
+    values: [optionalValue('outcome', 1, 1), optionalValue('index', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
     checks: [{ kind: 'explicit-role', roles: ['binder', 'dependent'] }, { kind: 'contains', containerRole: 'domain', memberRole: 'dependent' }],
     outputs: [output('Elliptic domain')]
@@ -723,7 +723,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('scope.movement', {
     anchors: [current('scope.source', 1, 1), current('scope.landing', 1, 1), optionalCurrent('scope.domain', 1, 1)],
-    values: [],
+    values: [optionalValue('index', 1, 1)],
     checks: [
       { kind: 'explicit-role', roles: ['scope.source', 'scope.landing'] },
       { kind: 'distinct', roles: ['scope.source', 'scope.landing'] },
@@ -1660,6 +1660,8 @@ export const evaluateTier2FacetRecipe = (
   const complete = failures.length === 0;
   const consumedEvidence = complete
     ? [
+        ...(['movement.path', 'movement.carrier'].includes(recipeEntry.id)
+          ? (evidence.movement?.context || []).map(({ key }) => ({ field: 'anchors' as const, key })) : []),
         ...recipeEntry.anchors.flatMap((requirement) => {
           const entries = requirement.source === 'current'
             ? [

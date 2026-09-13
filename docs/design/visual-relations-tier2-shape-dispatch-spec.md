@@ -545,6 +545,14 @@ Outcome aliases use shared interpretation in signature checks and production
 lowering. A literal judgment glyph is not an outcome word. An independent claim
 using the same recognized outcome cannot deprive the primary of it.
 
+A drawing that has one literal slot accepts one value, not the first member of
+a list. Production scalar slots declare that limitation in render-family metadata;
+Tier-2 recipes declare matching cardinality. A diagnostic retains the original
+field and list when the drawing cannot carry them. This restricts the drawing,
+not the open authoring contract. Full-row and explicitly paired drawings keep
+their list support. Case/Agree uses its combined single-row curve only when it
+can carry all Agree values; otherwise Agree retains its full existing plaque.
+
 Dispatch retains the complete authored relation alongside a per-field report of
 the recipes using each original item and the items not recovered. A field may
 support several claims. Every item index refers to the original array, including
@@ -556,7 +564,33 @@ Evidence ownership is not a count of linguistic assertions or visible marks.
 In particular, recognized structural witnesses and registered literal context
 need not each produce an independent mark. Unknown leftovers remain attached to
 the complete relation; subtracting fields does not establish a new dependency.
-The current Tier-3 topology is unchanged, pending the separate composition decision.
+When a neutral claim retains current participants and another drawing has used
+current anchors from the same relation, dispatch supplies `contextAnchors` with
+the authored current-anchor block, except verified movement-context fields already
+owned by that movement. This is derived display context,
+not a new model field or proof of a particular dependency. The neutral drawing
+uses that context; its unconsumed evidence remains separately recorded. Context
+also participates in fallback identity so different participant sets cannot
+coalesce merely because their leftover fields match.
+
+Movement recovery records each verified host, complex or landing-site field under
+its original authored key. A site must identify the immediate landing parent;
+a head host must be the other head in the supported complex, and a complex anchor
+must identify that parent. All referenced nodes and the parent must be unique.
+Tier 1 uses the same structural check while retaining its full signature and
+role requirements. An incomplete exact claim is not rescued through Tier 2.
+Only a complete selected movement facet owns these context fields. They do not
+add trajectory witnesses or alter drawing/replacement identity. Missing,
+ambiguous or structurally unrelated context stays unresolved with its field,
+node, landing and reason in inspection diagnostics, even if the independent
+movement succeeds. Licensing, thematic occurrences, government and other
+additional claims are not consumed merely because a trajectory exists.
+
+Value-only and prior-only remainders do not gain current connectors. Context
+never imports a recognized earlier-stage witness or earns a backward cue. The
+existing Tier-3 topology, stage-only persistence and authored-position numbering
+remain unchanged. Current-anchor roles, arrays and repetitions are preserved;
+no subset is selected by guessing which participant an unfamiliar claim means.
 
 The plan emits one `claim-evidence` report per relation with a neutral claim,
 including exact fields and original indices, full authored context and candidate
