@@ -8,7 +8,7 @@ import {
   RawOutputArtifact,
   SyntaxNode
 } from './types';
-import TreeVisualizer from './components/TreeVisualizer';
+import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import FailurePanel from './components/FailurePanel';
 import { collectDerivationStageRecords } from './derivationNotes.js';

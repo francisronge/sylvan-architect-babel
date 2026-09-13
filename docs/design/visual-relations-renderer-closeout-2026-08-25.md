@@ -54,6 +54,25 @@ manual input, even while D3 still carries the source event of an unfinished whee
 gesture. One zoom dispatcher remains attached to the current tree group across
 redraws. These lifecycle rules do not change tree layout or the stage-fit math.
 
+## Replay preparation
+
+`replay/prepareReplay.ts` assembles the existing Replay compiler and relation plan
+without React or DOM access. The application invokes it through a dedicated worker
+before mounting `TreeVisualizer`. The standalone Orchard and archived-review
+renderers invoke the same function directly, so their self-contained builds do not
+need a worker asset. Neither path has separate linguistic or scheduling rules.
+
+Each preparation owns one worker. Completion, failure, view changes and unmounting
+release it; stale results cannot mount a previous analysis. A failed preparation
+shows a retryable view error and leaves the authored record intact. The camera
+choice survives preparation when switching between Canopy and Replay. Display-only
+changes such as glyphing do not prepare the same Replay again.
+
+The worker removes compilation from the app's UI thread, not its CPU cost. Message
+transfer and D3 layout/painting still involve the UI thread. There is no persistent
+cache, worker pool, automatic provider retry or change to JSON processing. Canopy
+preparation omits Replay steps; switching into Replay prepares those steps then.
+
 ## Review
 
 Fable reviewed the broad renderer closeout and returned **GREEN**, with no

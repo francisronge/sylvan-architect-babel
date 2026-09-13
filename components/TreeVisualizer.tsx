@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
-import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
 import RootLogo from './RootLogo';
 import { appendPlaqueContent } from './plaqueViewport';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
@@ -16,16 +16,12 @@ import {
   MOVEMENT_ARC_STROKE,
   MOVEMENT_ARROW_COLOR,
   STEP_DELAY_MS,
-  adaptDerivationStagesForReplay,
-  applyPreFrontingSentenceInitialCasing,
   applyVizIds,
-  buildAuthoredRelationLinksForFrames,
   buildFirstRevealNodeStepIndex,
   buildMovementArrowsFromLinks,
   buildMovementCopyTraceIndexByTerminalId,
   buildMovementProtectedNodeIds,
   buildNodeStepIndex,
-  buildPlaybackStepsFromDerivationFrames,
   buildRenderableCommittedCanvasData,
   buildRenderableDerivationCanvasData,
   buildReplayDisplayDetailBlocks,
@@ -35,7 +31,6 @@ import {
   buildResolvedLinkTraceIndexMap,
   cloneSyntaxTree,
   collectPronouncedLeafNodeIdsInOrder,
-  decoratePlaybackStepsWithTraceIndices,
   extractMovementIndex,
   findParentLabelInForest,
   formatOperationLabel,
@@ -46,7 +41,6 @@ import {
   formatTraceSurfaceForDisplayValue,
   getNodeId,
   indexHierarchyNodesByIdAndAliases,
-  hidePendingInflSpecifierWrappersInStep,
   isDisplayTraceLabel,
   isDisplayTerminalSurface,
   isFrontingLikeOperationLabel,
@@ -69,18 +63,15 @@ import {
   shouldExpandPreterminalLeaf,
   stepRepresentsMovement,
   tokenizeReplaySentenceSurface,
-  type DerivationReplayPlan,
   type HierNode,
   type MovementArrow,
   type VisibleLink
 } from '../replay/replayCompiler.ts';
 import {
-  compileRelationRenderPlan,
   resolveDisplayedTrajectoryAttachments,
   planItemOwnsRelationMoment,
   planItemRelationRefs,
   planItemDependencyNodeIds,
-  type RelationRenderPlan,
   type DirectedPathPlanItem,
   type NodePlaquePlanItem,
   type RelationPlanItem
@@ -184,7 +175,13 @@ const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boolean =>
     || Boolean(node?.data && (node.data.aliasIds?.includes(id) || isReplayDisplayChild(node.data, id)));
 };
 
-interface TreeVisualizerProps {
+export type TreeCameraState = {
+  data: SyntaxNode; signature: string; width: number; height: number; transform: d3.ZoomTransform;
+};
+
+export interface TreeVisualizerProps {
+  preparedReplay?: PreparedReplay;
+  manualCameraState?: React.RefObject<TreeCameraState | null>;
   data: SyntaxNode;
   animated?: boolean;
   derivationStages?: DerivationStage[];
@@ -212,7 +209,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   disableRelationOverlay = false,
-  inspection = false
+  inspection = false,
+  preparedReplay,
+  manualCameraState
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   // An active D3 gesture must dispatch to the current frame's handler after a redraw.
@@ -221,7 +220,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const replayHeaderRef = useRef<HTMLDivElement>(null);
   const replayPanelRef = useRef<HTMLDivElement>(null);
   const [uiBounds, setUiBounds] = useState({ top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity });
-  const manualCameraRef = useRef<{ data: SyntaxNode; signature: string; width: number; height: number; transform: d3.ZoomTransform } | null>(null);
+  const ownManualCameraRef = useRef<TreeCameraState | null>(null);
+  const manualCameraRef = manualCameraState ?? ownManualCameraRef;
   const relationPointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const relationHoverResolutionFrameRef = useRef<number | null>(null);
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
@@ -244,9 +244,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       document.fonts?.removeEventListener('loadingdone', settle);
     };
   }, []);
-  const replayDerivationFrames = useMemo(
-    () => adaptDerivationStagesForReplay(derivationStages),
-    [derivationStages]
+  const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks, playbackSteps } = useMemo(
+    () => preparedReplay ?? prepareReplay({ derivationStages, sentence, includePlayback: animated }),
+    [preparedReplay, derivationStages, sentence, animated]
   );
   const hasDerivationFrames = replayDerivationFrames.length > 0;
   const derivationStagesSignature = useMemo(() => {
@@ -259,22 +259,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       workspaceForest: stage.workspaceForest || []
     })).join('|');
   }, [derivationStages]);
-  const derivationReplayPlan = useMemo<DerivationReplayPlan | null>(() => {
-    if (!Array.isArray(derivationStages) || derivationStages.length === 0) return null;
-    return buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan;
-  }, [derivationStages, derivationStagesSignature]);
-  /*
-   * The production visual-relations render plan: semantic compilation lives in
-   * the React-free replay/relations modules; this component only lays
-   * out the tree, supplies real node positions, and draws the bound
-   * primitives. The compiled plan owns authored trajectories; the legacy
-   * movement adapter remains only as a compatibility path when the plan has
-   * no authored trajectory items.
-   */
-  const relationRenderPlan = useMemo<RelationRenderPlan | null>(() => {
-    if (!Array.isArray(derivationStages) || derivationStages.length === 0) return null;
-    return compileRelationRenderPlan(derivationStages);
-  }, [derivationStages, derivationStagesSignature]);
   const derivationFramesSignature = useMemo(() => {
     const frames = replayDerivationFrames || [];
     return frames.map((frame, index) => JSON.stringify({
@@ -296,15 +280,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const committedDerivationFrame = hasDerivationFrames && committedDerivationFrameIndex >= 0
     ? replayDerivationFrames[committedDerivationFrameIndex] || null
     : null;
-  const committedDerivationVisualLinks = useMemo(() => {
-    if (!hasDerivationFrames || !committedDerivationFrame || committedDerivationFrameIndex < 0) return [];
-    return buildAuthoredRelationLinksForFrames(
-      replayDerivationFrames,
-      derivationReplayPlan,
-      committedDerivationFrameIndex,
-      committedDerivationFrame.workspaceForest || []
-    );
-  }, [committedDerivationFrame, committedDerivationFrameIndex, derivationReplayPlan, hasDerivationFrames, replayDerivationFrames]);
   const movementProtectedNodeIds = useMemo(
     () => buildMovementProtectedNodeIds(committedDerivationVisualLinks),
     [committedDerivationVisualLinks]
@@ -330,50 +305,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       committedDerivationVisualLinks
     );
   }, [data, committedDerivationVisualLinks, usesDerivationFrames]);
-  const playbackSteps = useMemo(() => {
-    if (!animated) return [];
-    if (!usesDerivationFrames || !committedDerivationFrame) return [];
-    const playbackRootData = usesDerivationFrames
-      ? committedCanonicalDerivationCanvasData || committedDerivationCanvasData
-      : data;
-    const clonedData = cloneSyntaxTree(playbackRootData);
-    if (!clonedData) return [];
-    const hierarchy = d3.hierarchy(clonedData);
-    applyVizIds(hierarchy);
-    if (abstractionMode) {
-      markTriangulatedNodes(hierarchy, movementProtectedNodeIds);
-    }
-    const workspaceForest = committedDerivationFrame.workspaceForest || [];
-    const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
-      workspaceForest,
-      committedDerivationVisualLinks,
-      Number.MAX_SAFE_INTEGER
-    );
-    const steps = buildPlaybackStepsFromDerivationFrames(
-      replayDerivationFrames,
-      sentence,
-      derivationReplayPlan
-    ).map(hidePendingInflSpecifierWrappersInStep);
-    return applyPreFrontingSentenceInitialCasing(
-      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId),
-      sentence
-    );
-  }, [
-    animated,
-    data,
-    derivationReplayPlan,
-    derivationStagesSignature,
-    usesDerivationFrames,
-    replayDerivationFrames,
-    derivationFramesSignature,
-    committedCanonicalDerivationCanvasData,
-    committedDerivationCanvasData,
-    committedDerivationFrame,
-    committedDerivationVisualLinks,
-    abstractionMode,
-    movementProtectedNodeIds,
-    sentence
-  ]);
   const firstFrontingStepIndex = useMemo(
     () => playbackSteps.findIndex((step) => isFrontingLikeOperationLabel(step?.operation)),
     [playbackSteps]
