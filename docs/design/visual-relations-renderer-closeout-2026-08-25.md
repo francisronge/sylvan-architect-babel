@@ -68,6 +68,11 @@ shows a retryable view error and leaves the authored record intact. The camera
 choice survives preparation when switching between Canopy and Replay. Display-only
 changes such as glyphing do not prepare the same Replay again.
 
+Preparation reuses the parse animation's loading mark at a smaller size. It stays
+invisible for 200 ms, so quick preparations do not flash an indicator; completion
+never waits for the animation. Screen readers receive a status immediately, and
+reduced-motion preferences disable the spinning and pulsing decoration.
+
 The worker removes compilation from the app's UI thread, not its CPU cost. Message
 transfer and D3 layout/painting still involve the UI thread. There is no persistent
 cache, worker pool, automatic provider retry or change to JSON processing. Canopy

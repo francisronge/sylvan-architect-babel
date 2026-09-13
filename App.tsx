@@ -10,6 +10,7 @@ import {
 } from './types';
 import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
+import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
 import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
@@ -1256,19 +1257,7 @@ const App: React.FC = () => {
         <div className="absolute inset-0 z-0">
           {loading && (
             <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
-                <div className="relative z-10 w-32 h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <div className="absolute inset-0 rounded-full border-[6px] border-emerald-950/50 border-t-emerald-500 animate-spin shadow-[0_0_100px_rgba(16,185,129,0.2)]"></div>
-                  <RootLogo
-                    size={104}
-                    shape="circle"
-                    blend={true}
-                    zoom={0.92}
-                    className="animate-pulse"
-                  />
-                </div>
-              </div>
+              <LoadingMark />
               <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
                 <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>

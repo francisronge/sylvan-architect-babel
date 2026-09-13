@@ -155,6 +155,15 @@ body,
   will-change: opacity;
 }
 
+.babel-preparation-mark {
+  animation: preparation-reveal 120ms ease-out 200ms both;
+}
+
+@keyframes preparation-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes float-spore {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -173,6 +182,7 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .babel-preparation-mark { animation-duration: 1ms; }
   .spore {
     animation: none;
     opacity: 0.12;

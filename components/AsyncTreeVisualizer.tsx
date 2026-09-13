@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import TreeVisualizer, { type TreeCameraState, type TreeVisualizerProps } from './TreeVisualizer';
+import LoadingMark from './LoadingMark';
 import { startReplayPreparation } from '../replay/replayWorkerClient.ts';
 import type { PreparedReplay, ReplayPreparationInput } from '../replay/prepareReplay.ts';
 
@@ -25,7 +26,10 @@ const AsyncTreeVisualizer: React.FC<Omit<TreeVisualizerProps, 'preparedReplay' |
     {current?.error ? <>
       <p role="alert">Could not prepare this view. Your analysis is unchanged.</p>
       <button className="rounded-xl border border-emerald-500/30 px-4 py-2" onClick={() => setAttempt(value => value + 1)}>Retry</button>
-    </> : <p role="status">{props.animated ? 'Preparing Replay...' : 'Preparing tree...'}</p>}
+    </> : <div role="status">
+      <span className="sr-only">{props.animated ? 'Preparing Replay' : 'Preparing tree'}</span>
+      <div className="babel-preparation-mark"><LoadingMark compact /></div>
+    </div>}
   </div>;
 };
 

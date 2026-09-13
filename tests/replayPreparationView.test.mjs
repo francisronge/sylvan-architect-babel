@@ -39,8 +39,8 @@ const mount = () => {
     return () => { job.cancelled = true; };
   };
   const React = { createElement: (type, props, ...children) => ({ type, props, children }) };
-  const component = new Function('React', 'useEffect', 'useMemo', 'useRef', 'useState', 'TreeVisualizer', 'startReplayPreparation', code)(
-    React, useEffect, useMemo, useRef, useState, 'tree', start
+  const component = new Function('React', 'useEffect', 'useMemo', 'useRef', 'useState', 'TreeVisualizer', 'startReplayPreparation', 'LoadingMark', code)(
+    React, useEffect, useMemo, useRef, useState, 'tree', start, 'loading-mark'
   );
   return { jobs, render: props => { cursor = 0; return component(props); }, flush: () => { while (effects.length) effects.shift()(); } };
 };
