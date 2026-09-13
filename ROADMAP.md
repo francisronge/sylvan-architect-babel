@@ -11,7 +11,8 @@ and research notebooks are evidence or history, not competing roadmaps.
 | --- | --- | --- |
 | Authored contract | Implemented: each analysis is only four-field `derivationStages`; `relations` is open; `values` and immediate-prior `priorAnchors` are supported. | Empirically qualify model-facing choices before changing the contract or recovery policy. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
-| Relation renderer | The accepted composition is integrated. All 137 saved desktop frames remain unchanged after the shared literal-binding and deep-tree comparison repairs. | Actual plaque overflow is contained without changing already-fitting compositions. Extreme text plaque scrolling and active-gesture camera continuity are covered by the latest follow-up below; topology-changing movement and broader export cases remain under audit. No participant-free drawing is justified yet. |
+| Relation renderer | Accepted Orchard paint and composition are integrated. All 137 saved desktop frames retain their geometry through the latest Fit and worker changes. | Extreme text scrolling is bounded; Fit restores automatic framing even during a wheel gesture. Topology-changing movement and broader export cases remain under audit. No participant-free drawing is justified yet. |
+| Replay preparation | The app prepares views in a disposable worker using the same compiler as standalone review pages. Cancellation, retry and cross-view camera continuity pass. | The measured long-input UI pause is removed; CPU time, larger varied derivations and deployment hardware still need measurement. No persistent cache is introduced. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
 | Tree Bank | The merged app captures the styled tree for its browser-local preview. Eight desktop save/preview/reopen cases pass across all four archived bundles in Canopy and Replay. | Existing icon thumbnails require a fresh save. The later durable-record migration remains separate product work. |
 | Durable record layer | W17a-d pure record envelope, evidence schemas, adapter, canonical native export, and provider-free proofs exist. | No storage engine, product integration, query layer, import UI, collaboration, or publication system exists. |
@@ -170,7 +171,18 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-The accepted prototype is integrated into main together with the separately
+Latest checkpoint: the Fit lifecycle repair and background Replay preparation
+are committed separately in `3f49461` and `46e4930`. The full offline gate passes
+1,641 tests, typecheck and both parse fixtures; the production build and asset
+check pass. All 137 saved desktop frames retain identical geometry. The app's
+64-stage controls remain responsive during preparation, with maximum observed
+animation-frame gaps of 30–40 ms instead of 2.6–2.8 seconds. Total preparation time
+remains about 2.8 seconds. See the [current evidence and limits](docs/implementation/contract-qualification/system-audit.md#fit-and-background-preparation-13-september).
+
+The following paragraphs preserve earlier integration checkpoints. The table and
+work order below are the current disposition of the complete starting-point list.
+
+The accepted prototype was integrated into main together with the separately
 reviewed Tree Bank thumbnail fix. The combined full gate passes 1,577 tests,
 typecheck and both parse fixtures; the production build passes. All 137 saved
 desktop Replay frames match the accepted prototype exactly, including camera,
@@ -183,7 +195,7 @@ live paint and labels, the stored stages are unchanged, and reopening restores
 the expected Replay count. No provider call or push was made. The unrelated
 local AGENTS.md edit was subsequently committed separately in `a88b2f4`.
 
-The current review preview is `/tmp/babel-merged-candidate/index.html`.
+That integration's review preview was `/tmp/babel-merged-candidate/index.html`.
 This merge supersedes the earlier prototype-only checkpoint in the audit.
 Remaining renderer and linguistic qualifications below are still open.
 
@@ -246,14 +258,14 @@ supersede the earlier browser-blocked status below.
 | Starting-point items | Current disposition | Remaining work |
 | --- | --- | --- |
 | 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated coindices use letters; circled Tier-3 numbers keep their approved locator meaning. | Preserve the accepted appearance. Extreme scrolling text and ordinary application previews now pass the follow-up checks. Broader print/export behavior and mobile readability remain deferred. |
-| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Five remaining within-stage shifts in the saved captures all accompany structural movement. Historical future-position reservation is already represented in current Replay. | Preserve accepted sizing and spacing. Determine whether those movement shifts can be reduced without changing current syntax. The active wheel-gesture/Next lifecycle defect is now repaired and recorded. The theta-grid clipping control now fits by translation alone; within-stage fitting, manual zoom and Fit controls pass. Extreme text now has the bounded scroll treatment; ordinary plaque dimensions are unchanged. The raw-name QR timing defect is repaired; all 114 name-variation Replay checks match. |
+| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Active-gesture redraw and Fit ownership defects are repaired. Manual zoom survives Canopy/Replay preparation. Five remaining within-stage shifts in earlier captures accompany structural movement; current Replay already reserves future positions. | Preserve accepted sizing and spacing. Assess a movement shift only if it is a reproducible visual defect; newly introduced structure may legitimately require movement. The theta-grid containment control, ordinary plaque geometry and all 114 name-variation Replay checks retain their prior qualifications. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 saved relation moments have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
 | 5–8: interpretation and neutral content | The saved audit accounts for all 22 neutral-content relations. A later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes. It reproduces downstream spelling-dependent value loss, duplicate internal slots, and checks that extend beyond their owning claim. | Shared value/identity handoff, optional slot equivalence and claim-scoped checks are repaired and verified. All 42 remaining mixed controls are classified: 40 role ambiguities, one competing PF-input pair, and one absorbed phase-edge claim. No further semantic fix is justified by this matrix. The model authors the linguistics; Babel must not judge or invent it. Preserve negative controls, exact field ownership and missing-literal boundaries. See the [cross-family audit](docs/implementation/contract-qualification/system-audit.md#cross-family-recognition-audit-13-september). |
 | 9: generated identity | Generated words, lexical display IDs, workspace roots and layout placeholders carry explicit ownership. Compilation reserves authored IDs from every stage; scheduling and label attachment do not parse suffixes. Collision and renamed-archive regressions pass. | Preserve opaque authored IDs when adding future display objects. |
 | 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. Saved HTTP/text hashes reconfirm Fable's omission before Babel processing; its generation-side cause is unknown. | Investigate the failure before changing behavior or settling policy. Distinguish facts, hypotheses and prevention evidence. No helper or paid experiment is authorized. |
 | 13–14: simultaneity and judgments | Separate authored relation moments remain the accepted default. | No contract change for simultaneity. Consider it only if an extremely simple unchanged-contract solution is worthwhile. Existing local licensing checks require explicit outcome and participant evidence. Request completion and convergence prose do not produce a check mark; regression tests protect this distinction. No new verdict design is planned. |
 | 15–16: linguistic review and old chronology | Original conflicts remain inspectable, including Astra X-bar F32 wh licensing before its landing. | Review these claims for benchmark scoring or gold-corpus use; an individual model linguistic mistake is not a product shipping blocker. Investigate a demonstrated prompt-induced degradation separately. Do not silently rewrite the originals. |
-| 18: operational qualification | Public HTTP route tests cover queued/in-progress/completed, failed, cancelled and incomplete OpenAI responses without regeneration. Success preserves Replay and Tree Bank data. The deep-signature crash is fixed; sharing tree indices reduces the assembled 64-stage/319-frame synthetic compile from 11–12 seconds to about 8.2 seconds. | Further copy/index reuse lowers the 64-stage compile to 2.6–2.7 seconds. Local public-route timeout/disconnect tests pass without regeneration. Chromium measured a 2.3-second UI-thread pause for 64 stages. Larger varied derivations, production proxy deadlines and live compliance/cost/latency still need qualification. |
+| 18: operational qualification | Scripted public HTTP tests cover queued/in-progress/completed, failed, cancelled, incomplete, timeout and disconnect cases without regeneration. Copy/index repairs reduce CPU work; app preparation now runs in a worker. Two 64-stage/319-frame production-browser controls reduce maximum frame gaps from 2.6–2.8 seconds to 30–40 ms, with identical output. | Preparation still takes about 2.8 seconds. Larger varied derivations, memory/transfer cost, export completion, production proxy deadlines and live compliance/cost/latency remain unqualified. Worker assets load under the local production CSP; hosted deployment is still untested. |
 | 19: review and consolidation | The accepted prototype and Tree Bank fix are reviewed, committed and integrated into main. The combined offline gate and desktop Replay/Tree Bank checks pass; Fable was waived. | Keep the rejected attempt and remaining defects documented. Broader qualification remains open. |
 
 Next work, in order:
@@ -261,11 +273,12 @@ Next work, in order:
 1. Preserve the accepted Orchard appearance and the latest verified ordinary
    Replay geometry. Review only reproduced defects. Extreme plaque scrolling is
    the bounded exception; mobile readability remains deferred.
-2. Address measured browser responsiveness on long derivations. Copy/index repairs
-   reduce the Node 64-stage control from about 8.5 seconds to 2.6–2.7 seconds.
-   Chromium still pauses its UI thread for about 2.3 seconds. Investigate running
-   the existing compiler off the UI thread, then measure varied derivations. Do
-   not duplicate compiler rules or add persistent caching without evidence.
+2. Complete targeted offline qualification before spending on models: varied long
+   derivations and export/print behavior for extreme plaques. All four archived
+   saves reopen through asynchronous Canopy and Replay successfully. The compiler
+   worker removes the measured UI freeze; it does not make compilation instant. Profile new bottlenecks before
+   changing compiler rules or adding persistent caching. No exhaustive claim about
+   an open relation vocabulary is possible from a finite fixture matrix.
 3. Keep the sharing-topology boundary explicit. Two legacy controls use duplicate
    IDs and are not valid public positive fixtures. Do not change the contract or
    silently choose an occurrence to make those controls draw.
@@ -277,18 +290,23 @@ Next work, in order:
    are benchmark results, not shipping blockers. Request completion is software
    status; a licensing check mark requires an authored claim. Keep separate
    relation moments and do not invent a participant-free graphic.
-6. Qualify real provider and deployment behavior only with an approved purpose and
-   budget. Offline public-route tests now cover timeout and disconnect cleanup;
-   they do not measure production proxy limits, remote cancellation, live model
-   compliance, revised-prompt cost or provider latency.
+6. Prepare a small, capped live check using cheaper models before broader provider
+   qualification. Confirm current prices and supported native settings at that
+   point; do not change the prompt or reduce requested linguistic content to make
+   the test cheaper. Record exact prompt/configuration hashes, raw replies, usage,
+   latency and processing results. Cheap-model checks qualify the pipeline, not
+   stronger models' linguistic quality. Production proxy limits, remote background
+   cancellation and deployed worker loading remain separate checks. Provider calls
+   and deployment still require an approved purpose and spending cap.
 
 See the [dependability follow-up](docs/implementation/contract-qualification/system-audit.md#dependability-follow-up-13-september)
 for the classified recognition matrix, performance measurements, public-route
 checks, extreme plaque/camera fixes and renewed saved-response investigation.
-The current gate passes 1,626 tests, typecheck and both parse-contract fixtures;
-the production build and release-asset check pass. All 137 saved desktop frames
-retain their accepted geometry. Five current app preview cases pass. Earlier counts and timings below
-are historical checkpoints, not the current gate.
+The preceding follow-up gate passed 1,626 tests, typecheck and both parse-contract
+fixtures; the production build and release-asset check passed. All 137 saved desktop frames
+retained their accepted geometry, and five app preview cases passed. The latest
+1,641-test checkpoint above supersedes its gate count. Earlier counts and timings
+below are historical checkpoints, not the current gate.
 
 The integrated drawing restoration passes the 1,616-test offline gate, both
 parse-contract fixtures, the production build and release-asset checks. The earlier

@@ -21,6 +21,89 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Fit and background preparation, 13 September
+
+Francis approved these two bounded fixes after the isolated camera recheck. They
+are separate commits, `3f49461` for Fit and `46e4930` for preparation. This section
+supersedes the prior next-step recommendation to investigate a worker; the dated
+measurements below remain evidence of the earlier implementation.
+
+### Fit restores automatic framing
+
+The stable D3 dispatcher fixed detached-frame camera updates but exposed another
+inherited edge case. A programmatic fit during an active wheel gesture retained
+D3's wheel `sourceEvent`. The callback therefore saved that fitted transform as a
+manual choice, and the next stage kept the previous stage's framing. Programmatic
+updates now have explicit ownership during their synchronous dispatch. Manual input still takes control, and Fit clears it. No camera math or tree layout
+changed. The new real-D3 regressions cover active and finished wheel gestures.
+
+The unchanged and repaired production apps reproduce the distinction at 1600 and
+1280 pixels wide. A 390-pixel SVG event control passes too; it is not mobile touch
+or readability qualification. Before the repair, the next stage's camera equals
+the previous stage's fit. Afterward it equals the independently measured automatic
+fit for the new stage. Ordinary manual zoom, Next and Fit retain their prior result.
+
+### Preparation runs outside the app UI thread
+
+`replay/prepareReplay.ts` extracts the former component preparation sequence. It
+calls the same stage, relation and Replay compilers, including trace decoration
+and sentence casing. The app worker passes the complete result to TreeVisualizer;
+the standalone Orchard/review builds call the same function directly. A discarded
+temporary D3 hierarchy in the old sequence had no effect on its returned steps and
+was removed. No recognizer, scheduling, layout or authored-data rule changed.
+
+One worker belongs to one preparation. Success, error, cancellation and unmounting
+terminate it; stale callbacks cannot display a departed analysis. Loading errors
+show a retry button while preserving the record. The camera choice remains outside
+the temporarily unmounted drawing, preserving the old Canopy-to-Replay zoom. This
+last detail was caught in final review, reproduced against the old app, and repaired
+before committing. Canopy does not compile Replay steps; glyphing does not restart
+preparation. There is no persistent cache, worker pool, new dependency or provider
+retry. The built worker is about 336 kB before transport compression.
+
+The extraction matches the old component's actual preparation expressions across
+117 controls and archived analyses in both Canopy and Replay mode. All 1,967 Replay
+frames and complete render plans are identical. The worker's structured-clone path
+also preserves all 137 archived frames exactly, and frozen inputs remain unchanged.
+
+Measured in Chromium through the production app and its local Express CSP, using
+64 completed stages and 319 Replay frames:
+
+| Control | Old maximum animation-frame gap | Worker maximum gap | Approximate total preparation and first-render time |
+| --- | --- | --- | --- |
+| Left branching | 2,648 ms | 30 ms | 2.7 s before; 2.8 s after |
+| Right branching | 2,780 ms | 40 ms | 2.8 s before; 2.9 s after |
+
+The worker improves responsiveness, not CPU duration. Message transfer and D3
+layout/painting still use the UI thread. These timings are observations on this
+Mac, not a universal latency guarantee or a performance test threshold. Larger
+derivations and deployment hardware remain unmeasured.
+
+### Verification and remaining qualification
+
+The full gate passes typecheck, 1,641 tests and both normalized fixtures. Production
+build and release-asset checks pass. All 137 saved desktop Replay frames match the
+old app's camera, labels, branches and plaques. Four archived app saves preserve
+their stages and syntax thumbnails, reopen in Canopy, and prepare the expected
+Replay frame counts. Browser checks also verify cancellation by leaving Replay, successful re-entry, failed worker loading and retry, and unchanged
+Canopy-to-Replay manual framing. No page errors occurred in successful cases.
+
+Playwright exercised local production builds. Evidence, recordings, source
+comparison and the clickable Replay comparison are
+outside the worktree in `/tmp/babel-fit-worker-review/`.
+
+Remaining product qualification includes varied larger derivations, extreme plaque
+print/export behavior and hosted provider/worker behavior. The original nineteen-item
+reconciliation remains in ROADMAP.md. The open sharing-topology and incomplete-record decisions are not
+silently implemented. Separate relation moments and existing authored judgment
+handling remain accepted. Model linguistic mistakes still belong to benchmarking.
+
+Fable's saved provider text is known to lack the outer `]}`. Its generation-side
+cause is still unknown, and another reading of the same bytes cannot establish
+prevention. No provider-support request, paid experiment or JSON-policy change is
+part of this work. A future cheap-model run needs an explicit spending cap and exact
+provenance; it will not by itself explain this historical failure.
+
 ## Dependability follow-up, 13 September
 
 Francis authorized small, separately reviewed fixes and reaffirmed that model
