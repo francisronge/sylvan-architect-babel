@@ -46,6 +46,14 @@ Tree Bank previews capture the visible portion at its correct bounds, with all
 rows preserved in the saved analysis. A static thumbnail does not promise a full
 print layout for extreme content. See the [dependability evidence](../implementation/contract-qualification/system-audit.md#extreme-plaque-overflow-and-active-camera-gestures).
 
+## Camera input ownership
+
+Manual zoom and pan persist across Replay frames. Fit clears that manual choice
+and restores automatic stage framing. Programmatic camera updates never become
+manual input, even while D3 still carries the source event of an unfinished wheel
+gesture. One zoom dispatcher remains attached to the current tree group across
+redraws. These lifecycle rules do not change tree layout or the stage-fit math.
+
 ## Review
 
 Fable reviewed the broad renderer closeout and returned **GREEN**, with no

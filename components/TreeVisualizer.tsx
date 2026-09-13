@@ -896,10 +896,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         if (strokePx > 0) text.style('stroke-width', `${strokePx / safeScale}px`);
       });
     };
+    let applyingCameraTransform = false;
     const zoom = zoomBehavior
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
-        if (event.sourceEvent) {
+        if (event.sourceEvent && !applyingCameraTransform) {
           manualCameraRef.current = { data, signature: derivationStagesSignature, width: containerWidth, height: containerHeight, transform: event.transform };
         }
         // Overlay markers keep a stable screen size: their world position is
@@ -7038,6 +7039,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const fitRight = cyclicPlacement?.treeRight ?? treeViewport.right;
     const fitTop = cyclicPlacement?.treeTop ?? treeViewport.top;
     const fitBottom = treeViewport.bottom;
+    const applyCameraTransform = (transform: d3.ZoomTransform) => {
+      // D3 can retain a wheel sourceEvent during a programmatic fit.
+      applyingCameraTransform = true;
+      try {
+        svg.call(zoom.transform as any, transform);
+      } finally {
+        applyingCameraTransform = false;
+      }
+    };
     const applyFittedCamera = (fitted: d3.ZoomTransform) => {
       const manual = manualCameraRef.current;
       if (manual?.data === data && manual.signature === derivationStagesSignature) {
@@ -7046,7 +7056,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           manual.transform.y + (containerHeight - manual.height) / 2
         ).scale(manual.transform.k);
         manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
-        svg.call(zoom.transform as any, transform);
+        applyCameraTransform(transform);
         return;
       }
       if (stagePlaqueContainmentBounds && stageCameraBounds) {
@@ -7059,7 +7069,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const contained = containCamera(fitted, bounds, { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
         fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
       }
-      svg.call(zoom.transform as any, fitted);
+      applyCameraTransform(fitted);
     };
     const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;
     const fitToRenderedBounds = () => {
