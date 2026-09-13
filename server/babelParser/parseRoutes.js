@@ -241,6 +241,15 @@ const classifyProviderRouteError = ({
       providerMessage: providerMessage || null
     });
   }
+  if (error?.code === 'PROVIDER_TIMEOUT' || statusCode === 408 || statusCode === 504
+    || haystack.includes('timed out') || haystack.includes('timeout')) {
+    return new ParseApiError('PROVIDER_TIMEOUT', `${providerLabel} timed out before a result was received.`, 504, {
+      provider: providerLabel,
+      model,
+      ...providerAttemptDetails,
+      providerMessage: providerMessage || null
+    });
+  }
   if (isNetworkTransportError(error)) {
     return new ParseApiError('PROVIDER_UNAVAILABLE', `${providerLabel} transport failed before the model returned a result.`, 503, {
       provider: providerLabel,

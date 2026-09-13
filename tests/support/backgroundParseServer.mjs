@@ -19,6 +19,16 @@ globalThis.fetch = async (url, options) => {
   assert.equal(options.method, reply.method);
   const request = options.body ? JSON.parse(options.body) : undefined;
   process.send({ type: 'provider-call', url: String(url), method: options.method, request });
+  if (reply.waitForAbort) {
+    await new Promise((_, reject) => {
+      const abort = () => {
+        process.send({ type: 'provider-aborted' });
+        reject(options.signal.reason);
+      };
+      if (options.signal.aborted) abort();
+      else options.signal.addEventListener('abort', abort, { once: true });
+    });
+  }
   return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
 };
 process.on('message', message => {

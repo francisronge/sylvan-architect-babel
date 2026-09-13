@@ -11,12 +11,12 @@ const rawOutput = JSON.stringify(fixture.payload);
 const endpoint = 'https://api.openai.com/v1/responses';
 const decode = artifact => Buffer.from(artifact.data, 'base64').toString('utf8');
 
-test('public HTTP parse route completes queued responses and preserves terminal failures without regenerating', { timeout: 30000 }, async t => {
+test('public HTTP parse route completes queued responses and preserves terminal failures without regenerating', { timeout: 45000 }, async t => {
   const child = fork(new URL('./support/backgroundParseServer.mjs', import.meta.url), [], {
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: {
       ...process.env, NODE_ENV: 'production', PORT: '0', OPENAI_API_KEY: 'test-only-provider-key',
-      OPENAI_BACKGROUND_POLL_INTERVAL_MS: '1000', BABEL_SAVE_PROVIDER_RAW: '0',
+      OPENAI_BACKGROUND_POLL_INTERVAL_MS: '1000', BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3500', BABEL_SAVE_PROVIDER_RAW: '0',
       BABEL_REQUIRE_ORIGIN: '0', BABEL_ALLOW_NO_ORIGIN: '1', BABEL_PARSE_API_TOKEN: '',
       BABEL_TRUST_PROXY: '0', BABEL_MAX_IN_FLIGHT_PARSES: '1'
     }
@@ -92,6 +92,53 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       assert.ok(JSON.stringify(body).toLowerCase().includes(status));
     }
     assert.doesNotMatch(JSON.stringify(body), /test-only-provider-key/);
+  }
+  const request = () => ({
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sentence: fixture.sentence, framework: fixture.framework,
+      modelId: 'openai:gpt-6-astra', settings: { 'reasoning.effort': 'high' } })
+  });
+  const url = `http://127.0.0.1:${port}/api/parse`;
+  for (const disconnect of [false, true]) {
+    const before = calls.length;
+    const id = `resp_interrupt_${before}`;
+    const configured = message('configured');
+    child.send({ type: 'replies', replies: [
+      { url: endpoint, method: 'POST', body: { id, status: 'queued' } },
+      { url: `${endpoint}/${id}`, method: 'GET', waitForAbort: true }
+    ] });
+    await configured;
+    const controller = new AbortController();
+    const providerAborted = message('provider-aborted');
+    const providerCalled = message('provider-call');
+    const responsePromise = fetch(url, { ...request(), signal: controller.signal });
+    if (disconnect) {
+      const rejection = assert.rejects(responsePromise, error => error.name === 'AbortError');
+      await providerCalled;
+      controller.abort();
+      await rejection;
+    } else {
+      const response = await responsePromise;
+      const body = await response.json();
+      assert.equal(response.status, 504);
+      assert.match(body.error.message, /timed out|timeout/i);
+      assert.equal(body.analyses, undefined);
+      assert.doesNotMatch(JSON.stringify(body), /test-only-provider-key/);
+    }
+    await providerAborted;
+    assert.equal(calls.length - before, 2, 'one POST and one GET; no replacement generation');
+
+    // Observe the route releasing its slot after timeout, including a client
+    // disconnect. An invalid model request can never reach the provider.
+    let settled;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const response = await fetch(url, { ...request(), body: '{}' });
+      settled = await response.json();
+      if (settled.error?.code !== 'SERVER_BUSY') break;
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    assert.equal(settled.error?.code, 'INVALID_REQUEST');
+    assert.equal(calls.length - before, 2);
   }
   child.send({ type: 'stop' });
   const [code, signal] = await exited;
