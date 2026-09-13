@@ -485,7 +485,9 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
 
   const cloneVisibleNode = (node: HierNode): SyntaxNode | null => {
     if (!nodeMatchesVisibleId(node)) return null;
-    const dataClone = cloneSyntaxTree(node.data);
+    // Children are rebuilt below; copying their entire subtrees here is quadratic.
+    const { children: _children, ...material } = node.data;
+    const dataClone = cloneSyntaxTree(material);
     if (!dataClone) return null;
     const childSnapshots = (node.children || [])
       .map((child) => {
@@ -1197,7 +1199,8 @@ const buildCurrentMaterialLayoutScaffold = (
     path: number[],
     replacement: SyntaxNode
   ): SyntaxNode[] => {
-    const nextRoots = roots.map((root) => cloneSyntaxTree(root) || root);
+    // These skeleton nodes belong to this build and have no external readers.
+    const nextRoots = roots;
     if (path.length === 1) {
       nextRoots[path[0]] = replacement;
       return nextRoots;
@@ -1237,11 +1240,15 @@ const buildCurrentMaterialLayoutScaffold = (
     currentNode: SyntaxNode,
     futureNode: SyntaxNode
   ): SyntaxNode => {
-    const next = cloneSyntaxTree(currentNode) || currentNode;
+    const { children: _children, ...material } = currentNode;
+    const next = cloneSyntaxTree(material)!;
     delete (next as any).replayLayoutOnly;
     const currentChildren = Array.isArray(currentNode.children) ? currentNode.children : [];
     const futureChildren = Array.isArray(futureNode.children) ? futureNode.children : [];
-    if (currentChildren.length === 0 || futureChildren.length === 0) return next;
+    if (currentChildren.length === 0 || futureChildren.length === 0) {
+      if (_children) next.children = currentChildren.map(child => cloneSyntaxTree(child)!);
+      return next;
+    }
 
     const childMatches = currentChildren.map((currentChild) => ({
       currentChild,
@@ -1280,10 +1287,14 @@ const buildCurrentMaterialLayoutScaffold = (
     .forEach(({ currentRoot, paths }) => {
       const futureMatch = getNodeAtPath(futureRoots, paths[0]);
       if (!futureMatch) return;
+      // One unchanged retained tree needs no recursive child grafting. Keeping
+      // this fast path at the sole root also preserves placeholder allocation order.
+      const retainedTree = rootMatches.length === 1
+        && replayLayoutContinuitySignature(currentRoot) === replayLayoutContinuitySignature(futureMatch);
       scaffold = replaceNodeAtPath(
         scaffold,
         paths[0],
-        graftCurrentMaterial(currentRoot, futureMatch)
+        retainedTree ? cloneSyntaxTree(currentRoot)! : graftCurrentMaterial(currentRoot, futureMatch)
       );
     });
 
@@ -4429,17 +4440,18 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
       return step;
     }
 
+    const exactNodesById = collectExactNodesByIdInForest([canvas]);
     const nextVisibleIds = new Set(
       rawVisibleIds.filter((visibleNodeId) => !suppressedAutoRevealNodeIds.has(visibleNodeId))
     );
     persistentVisibleNodeIds.forEach((visibleNodeId) => {
       if (suppressedAutoRevealNodeIds.has(visibleNodeId)) return;
-      const exactNode = findExactNodeByIdInForest([canvas], visibleNodeId);
+      const exactNode = exactNodesById.get(visibleNodeId)?.[0];
       if (!exactNode || (exactNode as any).replayLayoutOnly === true) return;
       nextVisibleIds.add(visibleNodeId);
     });
     const preserveProjectedNode = (nodeId: string) => {
-      const node = findExactNodeByIdInForest([canvas], nodeId);
+      const node = exactNodesById.get(nodeId)?.[0];
       if (!node || (node as any).replayLayoutOnly === true) return;
       if (suppressedAutoRevealNodeIds.has(nodeId)) return;
       nextVisibleIds.add(nodeId);
@@ -4474,7 +4486,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
       const nodeId = String(node?.id || '').trim();
       if (!nodeId || !nextVisibleIds.has(nodeId)) return;
       const completeSubtreeIsVisible = collectSubtreeNodeIds(node).every((subtreeNodeId) => {
-        const subtreeNode = findExactNodeByIdInForest([canvas], subtreeNodeId);
+        const subtreeNode = exactNodesById.get(subtreeNodeId)?.[0];
         return (subtreeNode as any)?.replayLayoutOnly === true
           || nextVisibleIds.has(subtreeNodeId);
       });

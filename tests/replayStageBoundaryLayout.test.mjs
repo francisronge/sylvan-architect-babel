@@ -624,3 +624,31 @@ test('a non-trajectory pronouncedCopy anchor cannot authorize a duplicate future
     false
   );
 });
+
+test('successive retained trees compile without mutating inputs or sharing mutable snapshots', () => {
+  let tree;
+  const stages = [];
+  for (let i = 0; i < 24; i++) {
+    const word = leaf(`w${i}`, 'N', `word${i}`, { tokenIndex: i, surfaceSpan: [i, i + 1] });
+    tree = tree ? node(`p${i}`, 'XP', [tree, word]) : word;
+    stages.push({ statement: `Add ${i}`, stageRecord: 'Structural test.', relations: [], workspaceForest: [tree] });
+  }
+  const freeze = object => {
+    Object.values(object).filter(value => value && typeof value === 'object').forEach(freeze);
+    return Object.freeze(object);
+  };
+  freeze(stages);
+  const sentence = Array.from({ length: 24 }, (_, i) => `word${i}`).join(' ');
+  const steps = compile(stages, sentence);
+  assert.deepEqual(compile(stages, sentence), steps);
+  const records = steps.filter(step => step.replayKind === 'macro');
+  assert.equal(records.length, stages.length);
+  for (const [i, step] of records.entries()) {
+    assert.ok(step.replayVisibleNodeIds.includes(`w${i}`));
+    if (i < 23) assert.equal(step.replayVisibleNodeIds.includes(`w${i + 1}`), false);
+    assert.equal(findNode(step.replayCanvasData, 'w0').word, 'word0');
+  }
+  findNode(records[0].replayCanvasData, 'w0').word = 'edited snapshot';
+  assert.equal(findNode(records.at(-1).replayCanvasData, 'w0').word, 'word0');
+  assert.equal(stages[0].workspaceForest[0].word, 'word0');
+});

@@ -406,10 +406,16 @@ export const findRelationRegistryEntry = (registry, authoredName) => {
     throw new TypeError('registry must be created by createRelationRegistry.');
   }
   if (typeof authoredName !== 'string') return null;
+  // Each registry uses at most four normalization modes, shared by its matchers.
+  const normalizedNames = new Map();
+  const normalizedName = (mode) => {
+    if (!normalizedNames.has(mode)) normalizedNames.set(mode, normalizeIdentity(authoredName, mode));
+    return normalizedNames.get(mode);
+  };
   const matchingEntryIds = new Set(
     registry.matchers
       .filter((candidate) => (
-        normalizeIdentity(authoredName, candidate.normalization) === candidate.normalizedName
+        normalizedName(candidate.normalization) === candidate.normalizedName
       ))
       .map(({ entryId }) => entryId)
   );
