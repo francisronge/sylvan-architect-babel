@@ -165,6 +165,54 @@ test('wrapping preserves whitespace, explicit blank lines, and complete Unicode 
   assertContained(layout);
 });
 
+test('wrapping agrees with a greedy line oracle across varied widths and Unicode', () => {
+  const alphabet = ['a', 'W', ' ', '\t', '中', 'e\u0301', '👩‍💻', '\n', '\r\n'];
+  let seed = 721;
+  const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0);
+  for (let sample = 0; sample < 120; sample++) {
+    const literal = Array.from({ length: 10 + random() % 100 }, () => alphabet[random() % alphabet.length]).join('');
+    const maxWidth = 17 + random() % 140;
+    const layout = preparePlaqueTextLayout({ rows: [{ label: literal, value: '' }] }, { maxWidth, measureText });
+    const style = layout.rows[0].style;
+    const expected = literal.split(/\r\n|\r|\n/u).flatMap(paragraph => {
+      const remaining = segments(paragraph), lines = [];
+      if (!remaining.length) return [''];
+      while (remaining.length) {
+        let count = 1;
+        while (count < remaining.length && measureText(remaining.slice(0, count + 1).join(''), style).width <= maxWidth - 16) count++;
+        if (count < remaining.length) {
+          for (let index = count - 1; index >= 0; index--) {
+            if (/\s/u.test(remaining[index])) { count = index + 1; break; }
+          }
+        }
+        lines.push(remaining.splice(0, count).join(''));
+      }
+      return lines;
+    });
+    assert.deepEqual(layout.rows[0].lines.map(line => line.text), expected, `sample ${sample}`);
+    assertContained(layout);
+  }
+});
+
+test('a long literal does not repeatedly measure distant text to wrap each short line', () => {
+  let seed = 42;
+  const literal = Array.from({ length: 8000 }, () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return String.fromCharCode(33 + seed % 90);
+  }).join('');
+  let measuredCharacters = 0;
+  const layout = preparePlaqueTextLayout({ rows: [{ label: literal, value: '' }] }, {
+    maxWidth: 160,
+    measureText: text => {
+      measuredCharacters += text.length;
+      return { width: text.length * 6, ascent: 8, descent: 2 };
+    }
+  });
+  assert.equal(layout.rows[0].lines.map(line => line.text).join(''), literal);
+  assert.ok(measuredCharacters < literal.length * 20, `measured ${measuredCharacters} characters`);
+  assertContained(layout);
+});
+
 test('an indivisible measured grapheme grows the plaque rather than clipping or disappearing', () => {
   const layout = preparePlaqueTextLayout({ rows: [{ label: '\u{1f469}\u200d\u{1f4bb}', value: '' }] }, {
     maxWidth: 40, measureText: () => ({ width: 100, ascent: 10, descent: 2 })

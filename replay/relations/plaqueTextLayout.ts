@@ -99,9 +99,15 @@ const wrapText = (text: string, width: number, measure: (text: string) => Requir
     let start = 0;
     while (start < units.length) {
       let low = start + 1;
-      let high = units.length;
+      let high = low;
       // A single oversized grapheme stays intact; the final plaque width grows to contain it.
       let end = low;
+      // Bound the search near this line instead of repeatedly measuring the whole remainder.
+      while (high < units.length && measure(units.slice(start, high).join('')).width <= width) {
+        end = high;
+        low = high + 1;
+        high = Math.min(units.length, start + (high - start) * 2);
+      }
       while (low <= high) {
         const middle = Math.floor((low + high) / 2);
         if (measure(units.slice(start, middle).join('')).width <= width) {
