@@ -1,4 +1,5 @@
-import { TIER2_ROLE_SYNONYMS, normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
+import { TIER2_ROLE_SYNONYMS, TIER2_VALUE_SYNONYMS, normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
+import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 const movement = {
   lowerCopy: 'movement.source', source: 'movement.source', from: 'movement.source',
@@ -62,4 +63,30 @@ export const withProductionRoleVocabulary = (entryId, signature) => {
     return [role, { ...rule, aliases: [role, ...(groups.get(concept)?.aliases || [])], ...(concept ? { concept } : {}) }];
   }));
   return { ...signature, required: roles(signature.required), optional: roles(signature.optional) };
+};
+
+const valueConcepts = {
+  feature: 'feature.label', accent: 'accent.label', role: 'role.label', case: 'case.literal',
+  featureHierarchy: 'feature.hierarchy', delinkAfter: 'delink.position',
+  category: 'storage.category', qstore: 'storage.qstore', retrieved: 'storage.retrieved'
+};
+const nativeValueKeys = {
+  'dependent-case': ['step'],
+  impoverishment: ['featureHierarchy', 'delinkAfter'],
+  'cooper-storage': ['category', 'qstore', 'retrieved'],
+  'phrasal-spellout': ['exponent']
+};
+const valueGroups = new Map(TIER2_VALUE_SYNONYMS.map(group => [group.concept, group]));
+
+// Bind only the slots this drawing reads. Open rows keep their authored keys;
+// outcome/judgment interpretation remains with the shared outcome resolver.
+export const productionValueRules = entryId => {
+  const family = PRODUCTION_RENDER_FAMILIES[entryId]?.family;
+  const keys = [...(PRODUCTION_SCALAR_VALUE_KEYS[family] || []), ...(nativeValueKeys[family] || [])]
+    .filter(key => key !== 'outcome' && key !== 'judgment');
+  return Object.fromEntries(keys.map(key => {
+    const concept = valueConcepts[key] || key;
+    return [key, { minItems: 0, maxItems: null, concept,
+      aliases: [key, ...(valueGroups.get(concept)?.aliases || [])] }];
+  }));
 };

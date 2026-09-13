@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 12 binds recognized equivalent role wording before
+Production registry version 13 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -43,6 +43,23 @@ claims and residual anchors are separated.
 composition. Replay uses that same binding for an accepted Tier-1 claim and
 retains the authored wording for display. Unknown relation names do not become
 Tier 1 merely because their roles are familiar.
+
+Drawing value slots use that same binder and shared value vocabulary. Prepared
+keys supply scalar labels and native plaque content; verbatim rows and relation
+records keep authored keys, ordering and literals. Drawing slots do not close the
+open `values` contract. Empty ledgers remain valid; ambiguous aliases and multiple
+values for a scalar drawing slot are diagnosed without selecting an item.
+Outcome/judgment interpretation remains separate. Optional `equivalentRoles`
+groups declare one existing slot explicitly and must share meaning and arity.
+They do not add required roles. Replay carries the resolved registry entry ID
+forward so name capitalization cannot change a registered transition.
+
+Collision rules compare the exact participants consumed by each claim. Ambiguous
+readings of the same participant set remain neutral. A preferred drawing suppresses
+another only when it includes that drawing's participants; distinct claim owners
+survive. Local rebracketing compares terminal identity and surface order within
+the named sequence, including its descendants, rather than the whole forest.
+
 
 Tier 1 still requires its complete curated recipe. Tier 2 requires each smaller
 claim to be independently complete; sharing vocabulary and graphics does not

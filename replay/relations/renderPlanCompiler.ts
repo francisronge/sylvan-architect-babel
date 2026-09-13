@@ -743,9 +743,7 @@ const loweringIsPhraseSized = (
     return Boolean(anchorNode) && (anchorNode?.children || [])
       .some((child) => Array.isArray(child.children) && child.children.length > 0);
   };
-  const authorsPhrasalRoles = ['lowerCopy', 'pronouncedCopy', 'landing']
-    .some((role) => relation.anchors?.[role] !== undefined)
-    || TRAJECTORY_WITNESS_ROLES.some((role) => relation.anchors?.[role] !== undefined);
+  const authorsPhrasalRoles = TRAJECTORY_WITNESS_ROLES.some((role) => relation.anchors?.[role] !== undefined);
   return authorsPhrasalRoles
     || dominatesInternalStructure(sourceNodeId)
     || dominatesInternalStructure(targetNodeId);
@@ -1337,7 +1335,8 @@ export const compileRelationRenderPlan = (
       const resolvedIds = (role: string, value: string | string[] | undefined): string[] =>
         flattenAnchorIds(value).filter((nodeId) => requireResolved(role, nodeId));
       const anchors = claimDispatch.boundPrimaryRelation.anchors || {};
-      const values = primaryRelation.values;
+      const values = claimDispatch.boundPrimaryRelation.values;
+      const authoredValues = primaryRelation.values;
 
       const pushCompositeTrajectory = (trajectoryKind: 'phrasal' | 'head'): boolean => {
         const source = firstRole(anchors, TRAJECTORY_SOURCE_ROLES);
@@ -1495,7 +1494,7 @@ export const compileRelationRenderPlan = (
             trajectoryKind = 'phrasal';
           }
           if (trajectoryKind === 'lowering'
-            && loweringIsPhraseSized(relation, nodes, source.nodeId, target.nodeId)) {
+            && loweringIsPhraseSized(claimDispatch.boundPrimaryRelation, nodes, source.nodeId, target.nodeId)) {
             trajectoryKind = 'phrasal';
           }
 
@@ -2063,7 +2062,7 @@ export const compileRelationRenderPlan = (
               positionNodeIds: collectSubtreeLeafIds(nodes.get(bearer)),
               plaqueStyle: 'feature',
               title: String(nodes.get(bearer)?.label || bearer),
-              rows: verbatimRows(values)
+              rows: verbatimRows(authoredValues)
             });
             return;
           }
@@ -2733,7 +2732,7 @@ export const compileRelationRenderPlan = (
             anchorNodeIds: [phrase],
             plaqueStyle: 'spellout-label',
             title: scalarValue(values, 'exponent'),
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2754,7 +2753,7 @@ export const compileRelationRenderPlan = (
             anchorNodeIds: [anchor],
             plaqueStyle: 'correspondence',
             nativeContent,
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2776,7 +2775,7 @@ export const compileRelationRenderPlan = (
             anchorNodeIds: outputs,
             plaqueStyle: 'fission',
             nativeContent,
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2796,7 +2795,7 @@ export const compileRelationRenderPlan = (
             anchorNodeIds: [terminal],
             plaqueStyle: 'impoverishment',
             nativeContent,
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2809,7 +2808,7 @@ export const compileRelationRenderPlan = (
             kind: 'node-plaque',
             anchorNodeIds: sequence,
             plaqueStyle: 'dislocation-lane',
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2839,7 +2838,7 @@ export const compileRelationRenderPlan = (
             plaqueStyle: 'linearization',
             nativeContent,
             ...(scalarValue(values, 'outcome') ? { title: scalarValue(values, 'outcome') } : {}),
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }
@@ -2930,7 +2929,7 @@ export const compileRelationRenderPlan = (
             anchorNodeIds: [scope],
             plaqueStyle: 'cooper-storage',
             nativeContent,
-            rows: verbatimRows(values)
+            rows: verbatimRows(authoredValues)
           });
           return;
         }

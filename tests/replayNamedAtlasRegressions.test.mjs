@@ -102,6 +102,32 @@ const layoutPositions = (canvas) => {
   );
 };
 
+test('registered name normalization preserves every covert movement moment and visible tree', async (t) => {
+  const { rawCases } = await loadAtlasCases(t);
+  const cards = rawCases.filter(card => card.derivationStages?.some(stage =>
+    stage.relations.some(relation => relation.relation === 'QuantifierRaising')));
+  assert.ok(cards.length > 0);
+  const visibleFrames = steps => steps.map(step => ({
+    kind: step.replayKind, stage: step.replayFrameIndex,
+    relationIndex: step.replayRelationIdentity?.relationIndex,
+    visible: step.replayVisibleNodeIds,
+    tree: collectNodes(step.replayCanvasData, []).map(node => ({
+      id: node.id, children: node.children?.map(child => child.id),
+      label: node.label, word: node.word, silent: node.silent
+    }))
+  }));
+  for (const card of cards) {
+    const expected = visibleFrames(playback(card));
+    for (const name of ['QUANTIFIERRAISING', '  QuantifierRaising  ']) {
+      const changed = structuredClone(card);
+      changed.derivationStages.forEach(stage => stage.relations.forEach(relation => {
+        if (relation.relation === 'QuantifierRaising') relation.relation = name;
+      }));
+      assert.deepEqual(visibleFrames(playback(changed)), expected, `${card.title}: ${name}`);
+    }
+  }
+});
+
 test('PF spell-out and the archived ACD composition reveal tree changes only at their owning relation moment', async (t) => {
   const { rawCases } = await loadAtlasCases(t);
 

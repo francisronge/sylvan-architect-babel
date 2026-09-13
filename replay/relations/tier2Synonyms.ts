@@ -60,7 +60,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'parasitic.gap', ['parasitic gap', 'parasitic gaps', 'secondary gap', 'pg']),
   group('role', 'boundary', ['boundary', 'boundaries', 'bounding node', 'bounding nodes', 'barrier', 'crossed boundary']),
 
-  group('role', 'ellipsis.site', ['ellipsis site', 'site', 'silent site', 'elided site', 'ellipsis domain', 'deleted domain', 'unpronounced domain']),
+  group('role', 'ellipsis.site', ['ellipsis site', 'elided site', 'ellipsis domain', 'deleted domain'], ['site', 'silent site', 'unpronounced domain']),
   group('role', 'correspondence.source', ['correspondence source', 'source correlate', 'antecedent', 'antecedent member', 'left correlate']),
   group('role', 'correspondence.sources', ['correspondence sources', 'sources', 'antecedents', 'input set', 'source set']),
   group('role', 'correspondence.target', ['correspondence target', 'target correlate', 'site', 'remnant', 'right correlate']),
@@ -120,6 +120,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'theta.arguments', ['theta arguments', 'arguments', 'argument', 'role bearers', 'thematic arguments']),
   group('role', 'rewrite.input', ['rewrite input', 'input', 'prior terminal', 'source form', 'underlying form']),
   group('role', 'rewrite.output', ['rewrite output', 'output', 'current terminal', 'surface form', 'exponent', 'supported head', 'supported tense', 'tense host', 'realization host']),
+  group('role', 'pf.host', ['supported tense', 'tense host', 'realization host']),
   group('role', 'rewrite.outputs', ['rewrite outputs', 'outputs', 'current terminals', 'surface forms', 'exponents']),
   group('role', 'terminal', ['terminal', 'target terminal', 'word', 'morpheme', 'feature terminal']),
   group('role', 'sequence', ['sequence', 'order', 'items', 'pieces', 'linear sequence']),

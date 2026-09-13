@@ -3,6 +3,8 @@ import { movementContextFailure, recoverMovementEvidence } from '../relations/mo
 import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
+import { productionValueRules } from './productionRoleConcepts.js';
+
 const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
@@ -15,9 +17,10 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
   const bound = { ...relation };
   for (const field of ['anchors', 'priorAnchors', 'values']) {
     const signature = entry.signature[field];
-    const rules = { ...signature.required, ...signature.optional };
+    const rules = { ...(field === 'values' && entry.signature.anchors.allowContext ? productionValueRules(entry.id) : {}),
+      ...signature.required, ...signature.optional };
     if (!isRecord(relation[field]) || !Object.values(rules).some(rule => rule.aliases)) continue;
-    const groups = [...signature.requiredAny, ...signature.requiredAlternatives.flat()];
+    const groups = [...signature.requiredAny, ...signature.requiredAlternatives.flat(), ...signature.equivalentRoles];
     const sameSlot = (a, b) => a === b || (rules[a]?.concept && rules[a].concept === rules[b]?.concept
       && groups.some(group => group.includes(a) && group.includes(b)));
     const candidatesFor = key => {
@@ -43,7 +46,7 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       }
       // Open slots may use these words for independent participants. A synonym
       // must not overwrite that evidence or compete with an explicit slot.
-      if (signature.allowAdditional && !spelled.length && candidates.length) {
+      if (field !== 'values' && signature.allowAdditional && !spelled.length && candidates.length) {
         const ambiguous = !candidates.every(role => sameSlot(role, candidates[0]));
         const competing = Object.entries(relation[field]).some(([other, otherValue]) => other !== authoredRole
           && JSON.stringify(items(otherValue)) !== JSON.stringify(items(value))
@@ -125,7 +128,7 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     const family = PRODUCTION_RENDER_FAMILIES[entry.id]?.family;
     for (const key of PRODUCTION_SCALAR_VALUE_KEYS[family] || []) {
       const literals = key === 'outcome' ? authoredOutcomeLiterals(relation.values)
-        : relation.values?.[key] === undefined ? [] : items(relation.values[key]);
+        : bound.values?.[key] === undefined ? [] : items(bound.values[key]);
       if (literals.length > 1) issues.push({ kind: 'drawing-value-cardinality', field: 'values', role: key,
         observedItems: literals.length, maxItems: 1, offendingValue: literals,
         reason: 'This drawing has one literal slot; no item was selected from the authored list.' });

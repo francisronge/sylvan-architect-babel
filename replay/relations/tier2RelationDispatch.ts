@@ -342,8 +342,7 @@ export const buildTier2FacetEvidence = ({
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, relation);
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {} });
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
-  const realizationHost = currentAnchors.authored.some(entry =>
-    ['supported tense', 'tense host', 'realization host'].includes(normalizeTier2Synonym(entry.key)));
+  const realizationHost = (currentAnchors.concepts['pf.host']?.length ?? 0) > 0;
   if (realizationHost) {
     values.authored.filter(entry => normalizeTier2Synonym(entry.key) === 'notation').forEach(entry => {
       entry.concepts = [...entry.concepts, 'pf.rows'];
@@ -387,7 +386,8 @@ const evaluateClaims = (evidence: Tier2FacetEvidence, indexes: Tier2ForestIndexe
 );
 
 const resolveClaimCollisions = (
-  completeClaims: readonly Tier2EvaluatedFacet[]
+  completeClaims: readonly Tier2EvaluatedFacet[],
+  evidence: Tier2FacetEvidence
 ): { selected: Tier2EvaluatedFacet[]; diagnostics: Tier2CollisionDiagnostic[] } => {
   const initial = new Map<string, Tier2EvaluatedFacet>(
     completeClaims.map((facet) => [facet.recipe.id, facet])
@@ -395,15 +395,28 @@ const resolveClaimCollisions = (
   const selected = new Map<string, Tier2EvaluatedFacet>(initial);
   const diagnostics: Tier2CollisionDiagnostic[] = [];
 
+  const participants = (id: string): Set<string> => new Set(initial.get(id)?.evaluation.consumedEvidence
+    .filter(ref => ref.field === 'anchors')
+    .flatMap(ref => {
+      const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === ref.key);
+      return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
+        .flatMap(index => entry?.items[index] === undefined ? [] : [entry.items[index]]);
+    }));
+  const covers = (owner: string, other: string): boolean => {
+    const owned = participants(owner);
+    const compared = participants(other);
+    return compared.size > 0 && [...compared].every(id => owned.has(id));
+  };
+
   const failClosed = (collision: string, facetIds: readonly string[]) => {
     const tied = facetIds.filter((id) => initial.has(id));
-    if (tied.length < 2) return;
+    if (tied.length < 2 || !tied.every(id => covers(id, tied[0]) && covers(tied[0], id))) return;
     tied.forEach((id) => selected.delete(id));
     diagnostics.push({ kind: 'ambiguous-facets', collision, facets: [...tied] });
   };
 
   const prefer = (collision: string, winner: string, loser: string) => {
-    if (!selected.has(winner) || !selected.has(loser)) return;
+    if (!selected.has(winner) || !selected.has(loser) || !covers(winner, loser)) return;
     selected.delete(loser);
     diagnostics.push({
       kind: 'more-specific-facet',
@@ -571,7 +584,7 @@ export const dispatchRelationClaims = (
         );
       })
     : completeClaims;
-  const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims);
+  const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims, evidence);
   const licensed = evidence.currentAnchors['licensed.hosts'] ?? [];
   const rejected = evidence.currentAnchors['rejected.hosts'] ?? [];
   const conflictingHosts = licensed.filter(id => rejected.includes(id));

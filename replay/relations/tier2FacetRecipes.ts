@@ -211,7 +211,6 @@ export type Tier2StructuralCheck =
   /** The sequence is regrouped between the prior and current trees without changing terminal order. */
   | { kind: 'rebracketing-configuration' }
   | { kind: 'explicit-npi' }
-  | { kind: 'explicit-ellipsis' }
   | { kind: 'movement-carrier' }
   | { kind: 'native-plaque'; style: 'fission' | 'impoverishment' | 'correspondence' | 'cooper-storage'; anchorRole: string }
   | { kind: 'shared-native-parent'; roles: readonly [string, string] }
@@ -520,7 +519,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('ellipsis.site', {
     anchors: [current('ellipsis.site', 1, 1)],
     values: [],
-    checks: [{ kind: 'contains-authored-silent', role: 'ellipsis.site' }, { kind: 'explicit-ellipsis' }],
+    checks: [{ kind: 'contains-authored-silent', role: 'ellipsis.site' }, { kind: 'explicit-role', roles: ['ellipsis.site'] }],
     outputs: [output('Ghosting')],
     transitionRules: [{ kind: 'deletion', evidence: 'deletion-stage-difference' }]
   }),
@@ -1291,9 +1290,6 @@ const evaluateStructuralCheck = (
     }
     case 'explicit-npi':
       return valueLiterals(evidence, 'feature.label').some(literal => normalizeTier2Synonym(literal) === 'strong npi');
-    case 'explicit-ellipsis':
-      return !evidence.authoredCurrentAnchors || evidence.authoredCurrentAnchors.some(entry =>
-        entry.concepts.includes('ellipsis.site') && ['ellipsis.site', 'ellipsis site', 'elided site', 'ellipsis domain', 'deleted domain'].includes(normalizeTier2Synonym(entry.key)));
     case 'movement-carrier':
       return ['movement.source', 'movement.landing'].some(role =>
         nodeContainsAny(currentIndex, ids('movement.carrier'), ids(role)));
@@ -1500,18 +1496,19 @@ const fissionTransition = (
   );
 };
 
-const terminalOrder = (forest: readonly SyntaxNode[] | undefined): string[] => {
+const terminalOrder = (forest: readonly SyntaxNode[] | undefined, sequence: ReadonlySet<string>): string[] => {
   const order: string[] = [];
-  const visit = (node: SyntaxNode) => {
+  const visit = (node: SyntaxNode, withinSequence = false) => {
+    const included = withinSequence || sequence.has(node.id);
     const children = Array.isArray(node.children) ? node.children : [];
     if (children.length === 0) {
       const word = String(node.word || '').trim();
-      if (word) order.push(word);
+      if (included && word) order.push(JSON.stringify([node.id, word]));
       return;
     }
-    children.forEach(visit);
+    children.forEach(child => visit(child, included));
   };
-  (Array.isArray(forest) ? forest : []).forEach(visit);
+  (Array.isArray(forest) ? forest : []).forEach(node => visit(node));
   return order;
 };
 
@@ -1526,8 +1523,10 @@ const rebracketingTransition = (
 ): boolean => {
   if (!evidence.priorForest) return false;
   const ids = anchorIds(evidence, 'sequence');
+  const sequence = new Set(ids);
   return ids.length >= 2
-    && terminalOrder(evidence.priorForest).join('\u0000') === terminalOrder(evidence.currentForest).join('\u0000')
+    && ids.every(id => priorIndex.nodes.get(id)?.length === 1 && currentIndex.nodes.get(id)?.length === 1)
+    && terminalOrder(evidence.priorForest, sequence).join('\u0000') === terminalOrder(evidence.currentForest, sequence).join('\u0000')
     && parentSignature(priorIndex, ids) !== parentSignature(currentIndex, ids);
 };
 

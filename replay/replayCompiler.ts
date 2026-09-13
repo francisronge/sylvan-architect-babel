@@ -176,6 +176,7 @@ export interface ReplayDerivationFrame {
 }
 
 interface DerivationReplayPlanStep {
+  registeredEntryId?: string;
   recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
@@ -1583,32 +1584,15 @@ const stripSemanticPayloadFromMicrostep = (step: PlaybackStep): PlaybackStep => 
   movementDiagnostics: undefined
 });
 
-const RELATION_OWNED_PHRASAL_TREE_TRANSITIONS = new Set([
-  'QuantifierRaising'
-]);
+// Dispatch has already resolved the authored name and validated its signature.
+const relationOwnsPhrasalTreeTransition = (relation: DerivationReplayPlanStep): boolean =>
+  relation.registeredEntryId === 'qr.covert';
 
-const relationOwnedPhrasalSourceRoles = (
-  relation?: string,
-  _anchors: ReplayResolvedRelationAnchor[] = []
-): readonly string[] => {
-  if (String(relation || '').trim() === 'QuantifierRaising') return ['pronouncedQP', 'source'];
-  return TRAJECTORY_SOURCE_ROLES;
-};
+const relationOwnedPhrasalSourceRoles = (relation: DerivationReplayPlanStep): readonly string[] =>
+  relationOwnsPhrasalTreeTransition(relation) ? ['pronouncedQP', 'source'] : TRAJECTORY_SOURCE_ROLES;
 
-const relationOwnedPhrasalTargetRoles = (
-  relation?: string,
-  _anchors: ReplayResolvedRelationAnchor[] = []
-): readonly string[] => {
-  if (String(relation || '').trim() === 'QuantifierRaising') return ['lfQP', 'target'];
-  return TRAJECTORY_TARGET_ROLES;
-};
-
-const relationOwnsPhrasalTreeTransition = (
-  relation: string | undefined,
-  _forest: SyntaxNode[],
-  _sourceNodeIds: string[],
-  _targetNodeId: string
-): boolean => RELATION_OWNED_PHRASAL_TREE_TRANSITIONS.has(String(relation || '').trim());
+const relationOwnedPhrasalTargetRoles = (relation: DerivationReplayPlanStep): readonly string[] =>
+  relationOwnsPhrasalTreeTransition(relation) ? ['lfQP', 'target'] : TRAJECTORY_TARGET_ROLES;
 
 /**
  * A final movement tree serializes the landed occurrence and silent lower
@@ -1718,8 +1702,8 @@ const buildPreMovementStructuralForest = (
     const anchors = Array.isArray(relation.resolvedAnchors)
       ? relation.resolvedAnchors
       : [];
-    const sourceRoles = relationOwnedPhrasalSourceRoles(relation.relation, anchors);
-    const targetRoles = relationOwnedPhrasalTargetRoles(relation.relation, anchors);
+    const sourceRoles = relationOwnedPhrasalSourceRoles(relation);
+    const targetRoles = relationOwnedPhrasalTargetRoles(relation);
     const sourceIds = Array.from(new Set([
       ...getRelationSourceNodeIds(relation),
       ...findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
@@ -1737,12 +1721,7 @@ const buildPreMovementStructuralForest = (
     if (
       trajectoryDisplayKind !== 'phrasal'
       && trajectoryDisplayKind !== 'head'
-      && !relationOwnsPhrasalTreeTransition(
-        relation.relation,
-        structuralForest,
-        sourceIds,
-        targetId
-      )
+      && !relationOwnsPhrasalTreeTransition(relation)
     ) return;
     const restoredFromPreviousStage = new Set<string>();
     sourceIds.forEach((sourceId) => {
@@ -2333,19 +2312,18 @@ export const buildPlaybackStepsFromDerivationFrames = (
       && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')
       && plannedFrameRelations.some((relation) => {
         if (!isRegisteredTrajectoryRelation(relation?.relation, relation?.anchors)) return false;
-        const relationLabel = String(relation?.relation || '').trim();
         const resolvedAnchors = getResolvedReplayRelationAnchors(relation);
         const targetNodeId = getRelationTargetNodeId(relation)
           || String(findResolvedReplayAnchorByRoles(
             resolvedAnchors,
-            relationOwnedPhrasalTargetRoles(relationLabel, resolvedAnchors)
+            relationOwnedPhrasalTargetRoles(relation)
           )?.nodeId || '').trim();
         const explicitSourceNodeIds = getRelationSourceNodeIds(relation);
         const sourceNodeIds = explicitSourceNodeIds.length > 0
           ? explicitSourceNodeIds
           : findResolvedReplayAnchorsByRoles(
               resolvedAnchors,
-              relationOwnedPhrasalSourceRoles(relationLabel, resolvedAnchors)
+              relationOwnedPhrasalSourceRoles(relation)
             )
               .map((anchor) => String(anchor.nodeId || '').trim())
               .filter(Boolean);
@@ -2605,8 +2583,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
         const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
           const relationLabel = String(relation?.relation || '').trim() || 'Visual Relation';
           const resolvedAnchors = getResolvedReplayRelationAnchors(relation);
-          const sourceRoles = relationOwnedPhrasalSourceRoles(relationLabel, resolvedAnchors);
-          const targetRoles = relationOwnedPhrasalTargetRoles(relationLabel, resolvedAnchors);
+          const sourceRoles = relationOwnedPhrasalSourceRoles(relation);
+          const targetRoles = relationOwnedPhrasalTargetRoles(relation);
           const registeredSourceAnchors = findResolvedReplayAnchorsByRoles(
             resolvedAnchors,
             sourceRoles
@@ -2636,12 +2614,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             && rawSourceNodeIds.length > 0;
           const ownsPhrasalTreeTransition =
             Boolean(relation.recoveredMovement?.transition)
-            || (relationOwnsPhrasalTreeTransition(
-              relationLabel,
-              workspaceRoots,
-              rawSourceNodeIds,
-              rawAuthoredTargetNodeId
-            )
+            || (relationOwnsPhrasalTreeTransition(relation)
             && Boolean(rawAuthoredTargetNodeId)
             && rawSourceNodeIds.length > 0);
           const ownsTrajectoryPlacement = isTrajectoryRelation || ownsPhrasalTreeTransition;
@@ -6872,6 +6845,7 @@ export const getFrameRelations = (
     const evidence = dispatch.evidence;
     const boundStep = dispatch.primaryClaim?.tier === 1 ? {
       ...authoredStep,
+      registeredEntryId: dispatch.primaryClaim.registryEntryId,
       resolvedAnchors: authoredStep.resolvedAnchors?.map(anchor => {
         const binding = dispatch.tier1Dispatch.roleBindings.find(binding =>
           binding.field === 'anchors' && binding.authoredRole === anchor.role);

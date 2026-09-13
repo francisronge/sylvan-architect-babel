@@ -167,6 +167,7 @@ const normalizeSignatureBlock = (value, path) => {
       'optional',
       'requiredAny',
       'requiredAlternatives',
+      'equivalentRoles',
       'allOrNone',
       'sameLength',
       'minPresentItems',
@@ -211,6 +212,17 @@ const normalizeSignatureBlock = (value, path) => {
     allowAdditional,
     { minRoles: 2 }
   );
+  const equivalentRoles = normalizeRoleGroups(
+    block.equivalentRoles, `${path}.equivalentRoles`, declaredRoles, false, { minRoles: 2 }
+  );
+  const rules = { ...required, ...optional };
+  equivalentRoles.forEach(group => {
+    const first = rules[group[0]];
+    if (!first.concept || group.some(role => rules[role].concept !== first.concept
+      || rules[role].minItems !== first.minItems || rules[role].maxItems !== first.maxItems)) {
+      throw new TypeError(`${path}.equivalentRoles must share a concept and cardinality.`);
+    }
+  });
   const sameLength = normalizeRoleGroups(
     block.sameLength,
     `${path}.sameLength`,
@@ -227,6 +239,7 @@ const normalizeSignatureBlock = (value, path) => {
     optional,
     requiredAny,
     requiredAlternatives,
+    equivalentRoles,
     allOrNone,
     sameLength,
     minPresentItems,
