@@ -96,7 +96,6 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Do not treat elapsed time as proof. Bounded polling may observe a real condition when no event API exists.
 - For screenshots only, a brief settle after confirmed readiness is acceptable.
 - Subagents must not start their own development servers or browsers.
-- Ask before browser automation, computer control, or inspecting another application or session.
 - The primary agent performs at most one integrated visual pass after relevant UI work is assembled.
 - `test/` is gitignored; add executable tests under `tests/` as `*.test.mjs`.
 - A diff in `fixtures/normalized/` or `fixtures/replay-snapshots/` is a behavior change. Review it; never accept blind regeneration.
