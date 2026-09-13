@@ -30,9 +30,9 @@ whether a drawing can faithfully express the authored claim. It must not decide
 whether Binding, Case, government, locality or an analysis is linguistically
 correct. A failure to prepare a drawing is not a verdict on the analysis.
 
-This pass changes documentation only. No recognizer, renderer, Replay, prompt,
-original analysis or processing policy changed. The proposals below are not
-implemented. No provider call, browser session or paid experiment was used.
+The initial audit changed documentation only and used no provider or browser.
+The subsequent implementation below supersedes the proposals' pending status.
+Original analyses, prompts and processing policy remain unchanged.
 
 ### Scope and evidence
 
@@ -145,6 +145,61 @@ only for egregiously long plaques **if demonstrated necessary** and considers it
 visually undesirable. Use available width in the existing bottom area first;
 ordinary large plaques must not acquire scrolling. No scroll implementation or
 new layout is part of this audit.
+
+## Shared recognition repairs, 13 September
+
+Francis authorized implementation, independent review and merging of the bounded
+cross-family repairs. The implementation carries prepared value slots into drawing
+labels/native content, reuses resolved registry identity in Replay, declares optional
+slot equivalence, and confines collision and rebracketing checks to their named
+participants. It centralizes ellipsis specificity and PF-host evidence in the shared
+vocabulary. Registry version 13 records the changed interpretation. No model-facing
+field, linguistic judgment, new relation drawing, layout or camera policy was added.
+
+Review caught an initial attempt to put drawing value slots into signature validation:
+that rejected empty Cooper-storage ledgers. The final implementation keeps these as
+binder lookup rules, preserving open values and all existing empty-ledger tests.
+
+Verification:
+
+- The complete offline gate passes 1,608 tests plus typecheck and both parse-contract
+  fixtures. The public background-response test uses a local mocked provider and
+  requires host-level permission to bind its port. No provider/model call was made.
+- All 114 relation-name Replay comparisons now match. The 2,455 production wording
+  controls have 87 fewer differences, with no newly divergent variant. Remaining
+  differences include verbatim-label changes, ambiguity and interpretation limits;
+  neither 219 differences nor the earlier 306 is a bug count.
+- All 52 reorder checks, 52 record-preservation checks and 143 Tier-2 capitalization
+  checks pass. The same eight of 665 Tier-2 alias substitutions remain correctly
+  incomplete. Mixed controls retain both intended claims in 1,078 of 1,120 pairs,
+  up from 1,030, with no newly failing pair. The remaining 42 need classification;
+  they are not 42 established bugs or a promise that all open wording is supported.
+- All 137 saved Replay frames are data-identical. All specialized plan items are
+  unchanged. Beyond registry-version metadata, one diagnostic now also identifies
+  `supportedTense` as a PF host. Saved chronology conflicts remain intact.
+- One integrated desktop browser pass compared all four saved bundles, 137 frames
+  before/after, at 1600 by 1100. Cameras, labels, branches, plaques, badges, headings
+  and panels matched. Zoom/Fit interactions passed; no browser errors occurred.
+  Four Atlas-based wording controls have before/after captures and recordings.
+  Browser plugin was unavailable; local Playwright blocked external requests.
+
+That visual pass also found an inherited production-style omission: Cyclic/Multiple
+Agree paths used SVG's default black fill because their accepted curve/arrow styles
+existed only in the review stylesheet. The shared production styles now restore the
+accepted unfilled, 1.8px emerald curves and arrow color. A focused browser follow-up
+checked both modes, Replay and zoom; this changes no tree geometry or camera code.
+The code regression reads only committed production CSS, not temporary review assets.
+
+Temporary review pages, baseline source snapshot, executable comparisons, screenshots,
+SVG captures, recordings and receipts are in `/tmp/babel-shared-recognition-fixes/`.
+The before/after entry page is `index.html`. All started browsers and test servers
+were closed. This is desktop rendering qualification, not application export
+qualification, mobile approval, linguistic review or live-provider compliance proof.
+
+Next: classify the remaining mixed-evidence cases and audit the handoff of accepted
+styles into production. Measure long-derivation responsiveness; qualify application
+exports/casing and extreme plaque content separately. Missing wh/government meanings,
+judgments and incomplete-processing policy remain open. No scrolling was implemented.
 
 ## Reliability implementation, 13 September
 
