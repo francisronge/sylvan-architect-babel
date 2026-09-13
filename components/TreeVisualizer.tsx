@@ -5,7 +5,7 @@ import { DerivationStage, SyntaxNode } from '../types';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import RootLogo from './RootLogo';
 import { availableTreeViewport, linearizationViewport } from './treeViewport';
-import { buildStageCameraBounds, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
+import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
@@ -542,20 +542,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     || item.familyId === 'focus.prominence'
     || item.familyId === 'focus.f-projection'
     || item.familyId === 'theta.grid');
+  const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(playbackSteps, replayDerivationFrames),
+    [playbackSteps, replayDerivationFrames]);
   const stageLayoutSize = useMemo(() => (
     animated && usesDerivationFrames
-      ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height)
+      ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups)
       : null
-  ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height]);
+  ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
   const stagePlaqueLayout = useMemo(() => {
     if (!activeDerivationFrame || dimensions.width === 0 || disableRelationOverlay) return new Map();
     return buildStagePlaqueLayout({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds
+      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      layoutGroups: stageLayoutGroups
     });
   }, [activeDerivationFrame, activeDerivationFrameIndex, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay]);
+    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups]);
   const stageCameraBounds = useMemo(() => {
     if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
     return buildStageCameraBounds({
@@ -563,11 +566,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
-      plaqueLayout: stagePlaqueLayout
+      plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups
     });
   }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout]);
+    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups]);
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;

@@ -14,11 +14,55 @@ type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
   plan: RelationRenderPlan | null; width: number; height: number;
   abstractionMode?: boolean; protectedNodeIds?: Set<string>;
+  layoutGroups?: readonly (readonly number[])[];
 };
 
-function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
+/** Share dimensions only across unchanged authored syntax with compatible ordinary layouts. */
+export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspaceForest: SyntaxNode[] }[]) {
+  const structure = (forest: SyntaxNode[]) => {
+    const ids = new Set<string>();
+    let valid = forest.length > 0;
+    const visit = (node: SyntaxNode): unknown => {
+      if (!node.id || ids.has(node.id)) valid = false;
+      ids.add(node.id ?? '');
+      return [node.id, node.label, (node.children ?? []).map(visit)];
+    };
+    const key = JSON.stringify(forest.map(visit));
+    return valid ? { key, ids: [...ids] } : null;
+  };
+  const positions = (canvas: SyntaxNode, ids: string[]) => {
+    const root = d3.hierarchy(canvas);
+    applyVizIds(root);
+    const tree = d3.tree<SyntaxNode>().size([1, 1])
+      .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+    const byId = new Map<string | undefined, d3.HierarchyPointNode<SyntaxNode>>(
+      tree.descendants().map(node => [node.data.id, node]));
+    return ids.map(id => byId.get(id));
+  };
+  const groups: number[][] = [];
+  const structures = stages.map(stage => structure(stage.workspaceForest));
+  stages.forEach((_stage, stageIndex) => {
+    const current = structures[stageIndex];
+    const previous = structures[stageIndex - 1];
+    const preceding = steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
+    const currentSteps = steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData);
+    let compatible = false;
+    if (current && previous?.key === current.key && preceding?.replayCanvasData && currentSteps.length) {
+      const reference = positions(preceding.replayCanvasData, current.ids);
+      compatible = currentSteps.every(step => positions(step.replayCanvasData!, current.ids).every((node, index) => {
+        const prior = reference[index];
+        return node && prior && Math.abs(node.x - prior.x) < 1e-10 && Math.abs(node.y - prior.y) < 1e-10;
+      }));
+    }
+    if (compatible) groups[groups.length - 1].push(stageIndex);
+    else groups.push([stageIndex]);
+  });
+  return groups;
+}
+
+function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
   abstractionMode = false, protectedNodeIds = new Set<string>() }: StageLayoutInput) {
-  const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height);
+  const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -88,12 +132,14 @@ export function treeLayoutSize(nodeCount: number, depth: number, width: number, 
     Math.max(height, (depth + 2) * 220) - 520] as [number, number];
 }
 
-/** Reserve the same dimensions for every Replay layout in one authored stage. */
-export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, width: number, height: number) {
+/** Compatible continuations retain the original stage's dimensions; new content still expands fit bounds. */
+export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, width: number, height: number,
+  layoutGroups?: StageLayoutInput['layoutGroups']) {
+  const layoutStageIndex = layoutGroups?.find(group => group.includes(stageIndex))?.[0] ?? stageIndex;
   let nodeCount = 0;
   let depth = 0;
   for (const step of steps) {
-    if (step.replayFrameIndex !== stageIndex || !step.replayCanvasData) continue;
+    if (step.replayFrameIndex !== layoutStageIndex || !step.replayCanvasData) continue;
     const root = d3.hierarchy(step.replayCanvasData);
     nodeCount = Math.max(nodeCount, root.descendants().length);
     depth = Math.max(depth, root.height);
@@ -101,21 +147,24 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, w
   return nodeCount ? treeLayoutSize(nodeCount, depth, width, height) : null;
 }
 
-/** Fit every layout used by a stage, independent of which step is visited first. */
-export function buildStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height,
+type StageCameraInput = StageLayoutInput & { includeOverlays?: boolean; plaqueLayout?: Map<number, PlaquePlacement> };
+
+/** Reserve upcoming content before reveal, using one fit for a compatible layout group. */
+export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds | null {
+  const stageIndices = input.layoutGroups?.find(group => group.includes(input.stageIndex)) ?? [input.stageIndex];
+  const bounds = stageIndices.map(stageIndex => measureStageCameraBounds({
+    ...input, stageIndex,
+    plaqueLayout: stageIndex === input.stageIndex ? input.plaqueLayout : undefined
+  })).filter((bounds): bounds is OverlayBounds => bounds !== null);
+  return bounds.length ? {
+    minX: Math.min(...bounds.map(bounds => bounds.minX)), minY: Math.min(...bounds.map(bounds => bounds.minY)),
+    maxX: Math.max(...bounds.map(bounds => bounds.maxX)), maxY: Math.max(...bounds.map(bounds => bounds.maxY))
+  } : null;
+}
+
+function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
-  plaqueLayout }: {
-  steps: PlaybackStep[];
-  stageIndex: number;
-  completedCanvas: SyntaxNode;
-  plan: RelationRenderPlan | null;
-  width: number;
-  height: number;
-  abstractionMode?: boolean;
-  protectedNodeIds?: Set<string>;
-  includeOverlays?: boolean;
-  plaqueLayout?: Map<number, PlaquePlacement>;
-}): OverlayBounds | null {
+  plaqueLayout }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
     if (!next) return;
@@ -124,7 +173,7 @@ export function buildStageCameraBounds({ steps, stageIndex, completedCanvas, pla
       maxX: Math.max(bounds.maxX, next.maxX), maxY: Math.max(bounds.maxY, next.maxY)
     } : { ...next };
   };
-  const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds };
+  const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds, layoutGroups };
   const placements = includeOverlays ? plaqueLayout ?? buildStagePlaqueLayout(input) : new Map();
   for (const { currentTree, visibleIds } of stageLayouts(input).scenes) {
     const positions = indexHierarchyNodesByIdAndAliases(currentTree.descendants());
