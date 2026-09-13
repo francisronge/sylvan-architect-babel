@@ -26,6 +26,8 @@ import {
   buildTier2FacetIdentity,
   buildTier2FacetOutputIdentities,
   evaluateTier2FacetRecipe,
+  indexTier2Forests,
+  type Tier2ForestIndexes,
   type Tier2AuthoredEvidenceEntry,
   type Tier2FacetEvidence,
   type Tier2FacetEvaluation,
@@ -375,10 +377,10 @@ export const buildTier2FacetEvidence = ({
   };
 };
 
-const evaluateClaims = (evidence: Tier2FacetEvidence): Tier2EvaluatedFacet[] => (
+const evaluateClaims = (evidence: Tier2FacetEvidence, indexes: Tier2ForestIndexes): Tier2EvaluatedFacet[] => (
   TIER2_FACET_RECIPES
     .filter((recipe) => recipe.kind === 'claim')
-    .map((recipe) => ({ recipe, evaluation: evaluateTier2FacetRecipe(recipe, evidence) }))
+    .map((recipe) => ({ recipe, evaluation: evaluateTier2FacetRecipe(recipe, evidence, indexes) }))
 );
 
 const resolveClaimCollisions = (
@@ -434,7 +436,8 @@ const resolveClaimCollisions = (
 
 const evaluateCompanions = (
   evidence: Tier2FacetEvidence,
-  parentFacetComplete: boolean
+  parentFacetComplete: boolean,
+  indexes: Tier2ForestIndexes
 ): Tier2EvaluatedFacet[] => (
   TIER2_FACET_RECIPES
     .filter((recipe) => recipe.kind !== 'claim')
@@ -443,7 +446,7 @@ const evaluateCompanions = (
       evaluation: evaluateTier2FacetRecipe(recipe, {
         ...evidence,
         parentFacetComplete
-      })
+      }, indexes)
     }))
     .filter(({ evaluation }) => evaluation.complete)
 );
@@ -452,6 +455,7 @@ const attachFacetIdentities = (
   facets: readonly Tier2EvaluatedFacet[],
   evidence: Tier2FacetEvidence,
   authoredStageIndex: number,
+  indexes: Tier2ForestIndexes,
   parentFacets: readonly Tier2ResolvedFacet[] = []
 ): Tier2ResolvedFacet[] => {
   const parentFacetIds = parentFacets.map(({ recipe }) => recipe.id).sort();
@@ -486,6 +490,7 @@ const attachFacetIdentities = (
       recipe,
       evaluation,
       evidence: facetEvidence,
+      indexes,
       authoredStageIndex,
       ...(parentFacetIdentities.length > 0 ? { parentFacetIdentities } : {})
     };
@@ -544,7 +549,8 @@ export const dispatchRelationClaims = (
         : lookupTier2SynonymCandidates(synonymIndex, 'role', role))
     : []);
   const primaryAcceptsAdditionalAnchors = registryEntry?.signature.anchors.allowAdditional === true;
-  const evaluations = evaluateClaims(evidence);
+  const indexes = indexTier2Forests(evidence);
+  const evaluations = evaluateClaims(evidence, indexes);
   const completeClaims = evaluations.filter(({ evaluation }) => evaluation.complete);
   const eligibleClaims = registryEntry
     ? completeClaims.filter(({ evaluation }) => {
@@ -573,11 +579,12 @@ export const dispatchRelationClaims = (
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
     kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
   });
-  const tier2ClaimFacets = attachFacetIdentities(selected, evidence, stageIndex);
+  const tier2ClaimFacets = attachFacetIdentities(selected, evidence, stageIndex, indexes);
   const companions = attachFacetIdentities(
-    evaluateCompanions(evidence, tier2ClaimFacets.length > 0),
+    evaluateCompanions(evidence, tier2ClaimFacets.length > 0, indexes),
     evidence,
     stageIndex,
+    indexes,
     tier2ClaimFacets
   );
   const facets = [...tier2ClaimFacets, ...companions];

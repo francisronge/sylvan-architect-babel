@@ -48,6 +48,21 @@ const facetOutputKeys = (result, facetId) => result.facets
   .find(({ recipe }) => recipe.id === facetId)
   ?.outputIdentities.map(({ key }) => key) ?? [];
 
+test('shared tree indices are discarded between evaluations of changing forests', () => {
+  const forest = movementForest();
+  const relation = { relation: 'Unregistered movement', anchors: {
+    source: 'source', 'trace witness': 'witness', landing: 'landing'
+  } };
+  const original = structuredClone(dispatch(relation, forest));
+  assert.deepEqual(facetIds(original), ['movement.path']);
+  forest[0].children.pop();
+  const changed = dispatch(relation, forest);
+  assert.deepEqual(facetIds(changed), []);
+  assert.deepEqual(claimTiers(changed), [3]);
+  assert.deepEqual(dispatch(relation, movementForest()), original,
+    'another forest with the same authored IDs must be evaluated independently');
+});
+
 test('a valid registered identity dispatches only to Tier 1', () => {
   const result = dispatch({
     relation: 'Identity',

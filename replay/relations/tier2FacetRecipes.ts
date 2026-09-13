@@ -863,6 +863,13 @@ const buildTreeIndex = (forest: readonly SyntaxNode[] | undefined): TreeIndex =>
   return index;
 };
 
+/** Shared only during one evaluation; callers must rebuild after changing either forest. */
+export const indexTier2Forests = (evidence: Pick<Tier2FacetEvidence, 'currentForest' | 'priorForest'>) => ({
+  currentIndex: buildTreeIndex(evidence.currentForest),
+  priorIndex: buildTreeIndex(evidence.priorForest)
+});
+export type Tier2ForestIndexes = ReturnType<typeof indexTier2Forests>;
+
 const anchorIds = (
   evidence: Tier2FacetEvidence,
   role: string,
@@ -1589,10 +1596,10 @@ const consumedReference = (field: 'anchors' | 'priorAnchors' | 'values', entry: 
 
 export const evaluateTier2FacetRecipe = (
   recipeEntry: Tier2FacetRecipe,
-  evidence: Tier2FacetEvidence
+  evidence: Tier2FacetEvidence,
+  indexes: Tier2ForestIndexes = indexTier2Forests(evidence)
 ): Tier2FacetEvaluation => {
-  const currentIndex = buildTreeIndex(evidence.currentForest);
-  const priorIndex = buildTreeIndex(evidence.priorForest);
+  const { currentIndex, priorIndex } = indexes;
   const failures: string[] = [];
   const ambiguousFields = new Set<string>();
 
@@ -1755,6 +1762,7 @@ export type Tier2FacetOutputIdentity = {
 };
 
 export type Tier2FacetOutputIdentityInput = {
+  indexes?: Tier2ForestIndexes;
   recipe: Tier2FacetRecipe;
   evaluation: Tier2FacetEvaluation;
   evidence: Tier2FacetEvidence;
@@ -1857,7 +1865,8 @@ export const buildTier2FacetIdentity = ({
   evaluation,
   evidence,
   authoredStageIndex,
-  parentFacetIdentities
+  parentFacetIdentities,
+  indexes = indexTier2Forests(evidence)
 }: Tier2FacetOutputIdentityInput): string | null => {
   if (!evaluation.complete) return null;
   if (recipeEntry.outputIdentity.kind === 'inherit-parent') {
@@ -1865,8 +1874,7 @@ export const buildTier2FacetIdentity = ({
       .map((identity) => String(identity || '').trim())
       .filter(Boolean))].sort();
     if (parents.length === 0) return null;
-    const currentIndex = buildTreeIndex(evidence.currentForest);
-    const priorIndex = buildTreeIndex(evidence.priorForest);
+    const { currentIndex, priorIndex } = indexes;
     return JSON.stringify(canonicalizeIdentity({
       facet: recipeEntry.id,
       parents,
@@ -1889,8 +1897,7 @@ export const buildTier2FacetIdentity = ({
     }));
   }
 
-  const currentIndex = buildTreeIndex(evidence.currentForest);
-  const priorIndex = buildTreeIndex(evidence.priorForest);
+  const { currentIndex, priorIndex } = indexes;
   return JSON.stringify(canonicalizeIdentity({
     facet: recipeEntry.id,
     authoredMoment: authoredStageIndex,
