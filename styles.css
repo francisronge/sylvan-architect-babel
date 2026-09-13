@@ -190,6 +190,19 @@ body,
   fill: var(--emerald-terminal, #10b981) !important;
 }
 
+.babel-agree-directed-path {
+  fill: none;
+  stroke: rgba(110, 231, 183, 0.82);
+  stroke-width: 1.8px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.babel-agree-arrowhead {
+  fill: rgba(110, 231, 183, 0.94);
+}
+
 .babel-agree-cycle-badge circle {
   fill: rgba(6, 78, 55, 0.86);
 }

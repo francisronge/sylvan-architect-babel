@@ -9,6 +9,16 @@ import {
 
 const sourceUrl = new URL('../components/TreeVisualizer.tsx', import.meta.url);
 const stylesUrl = new URL('../styles.css', import.meta.url);
+
+test('production agreement curves cannot use SVG default black fills', async () => {
+  const styles = await readFile(stylesUrl, 'utf8');
+  const rule = name => styles.match(new RegExp(`\\.${name}\\s*\\{([^}]+)\\}`))?.[1] ?? '';
+  const curve = rule('babel-agree-directed-path');
+  assert.match(curve, /fill:\s*none;/);
+  assert.match(curve, /stroke:\s*rgba?\(/);
+  assert.match(curve, /vector-effect:\s*non-scaling-stroke;/);
+  assert.match(rule('babel-agree-arrowhead'), /fill:\s*rgba?\(/);
+});
 const atlasUrl = new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url);
 
 test('the Binding outline cannot inherit the opaque SVG default fill over syntax', async () => {
