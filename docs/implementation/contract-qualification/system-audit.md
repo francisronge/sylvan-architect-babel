@@ -21,6 +21,200 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Reliability audit, 13 September
+
+Francis authorized general recognition repairs and offline investigation, while
+preserving the accepted rendering. Camera changes require evidence of an
+improvement or serious defect. Participant-free notation needs a demonstrated
+linguistic need first. JSON repair and incomplete-processing policy remain on
+hold pending investigation of Fable's failure. Separate relation moments remain
+acceptable; no simultaneity contract change is requested. Fable review and paid
+experiments are not required or authorized for this pass.
+
+### Implemented and verified
+
+- **Literal association:** `values.ARGUMENTS` and `values.arguments` could compete
+  for `anchors.arguments`, with the first JSON property deciding which theta
+  role each argument received. Exact authored names now take precedence; an
+  alternate normalized spelling must be unique. Ambiguous alternatives remain
+  neutral and diagnosed. The shared reader covers theta, Case and correspondence
+  labels, without adding role aliases or changing positional-pairing rules.
+- **Deep-tree crash:** the future-layout continuity and topology signatures
+  recursively JSON-encoded child strings. Escaping grew exponentially with tree
+  depth and caused `RangeError: Invalid string length` in the synthetic long
+  derivation. They now serialize one nested comparison structure. The compared
+  material and ordered topology are unchanged. Controls at depths 24, 48 and 96
+  compile without exposing future parents or mutating authored stages.
+- **Public-route qualification:** a provider-free test exercises the real Express
+  `POST /api/parse` handler and middleware with scripted OpenAI replies. Each job
+  creates one response, polls that ID through queued/in-progress to completion
+  or a failed/cancelled/incomplete ending, and makes no replacement generation.
+  Successful output retains original text, the final provider envelope, Replay
+  and Tree Bank round-trip data. A later success verifies the in-flight slot was
+  released after errors. These are transport outcomes, not new processing policy.
+
+The repairs are commits `6550aff` and `af55dea`; the public-route test is
+`d5625c0`. The complete gate passes **1,582 tests**, typecheck and both parse
+fixtures; the production build passes.
+All four saved records retain identical full render plans and 137 serialized
+Replay steps. One integrated desktop browser pass compares all 137 frames plus
+two zoom/Fit states, with zero differences in camera, labels, branches, plaques
+or panel content. It also checks backward participant reveal and do-support
+continuity, captures a recording and verifies the literal-binding control.
+The browser closes successfully. No live provider call, JSON repair change,
+prompt edit, fixture regeneration or layout-rule change occurred.
+
+Local evidence is in `/tmp/babel-recognition-audit-20260913/`, including
+`full-gate.log`, `public-route.log`, `replay-visual/evidence.json`, captures,
+recordings, the relation inventory and profiling output. The archived original
+data remains under the September admission run. Temporary evidence is not part
+of the committed product.
+
+### Recognition boundary
+
+The inventory remains **22 of 36 relations with neutral content**, including
+10 wholly neutral relations. This is not a count of 22 renderer bugs. The
+remaining content falls into the following groups. Stage/relation positions
+are one-based, and a row does not certify the linguistic analysis.
+
+| Record and relations | What remains neutral and why |
+| --- | --- |
+| Astra Minimalism S4R1, S5R2, S7R2 | Movement renders. Licensors, thematic occurrence, triggers, dependency descriptions and pronunciation claims exceed what the recovered trajectory establishes. |
+| Astra Minimalism S4R2, S5R1 | Transfer/Agree render. Locality and the inactive intervener remain contextual evidence. |
+| Astra Minimalism S6R2 | PF realization renders at the supported tense. The separate lexical-verb participant is retained; a PF plate does not independently explain host selection. |
+| Astra Minimalism S7R1 | A feature dependency renders. Nonintervention and valuation/locality prose are retained rather than converted into additional arrows. |
+| Astra Minimalism S7R3, S7R4 | Final Transfer relies on completion prose; its complement role does not assert transferred status. Convergence carries judgment/surface prose, not an authored verdict glyph. |
+| Astra X-bar S1R1, S5R1 | Wh percolation and licensing lack a supported specialized interpretation. Licensing also names a landing introduced by the next relation; C is available and has its neutral mark. |
+| Astra X-bar S4R1, S5R2 | Movement renders. Head-movement constraints and A'-chain theta/Case/locality statements remain attached context. |
+| Astra X-bar S4R2, S5R3 | Head government has independently drawable trace notation; government itself remains neutral. Lexical government has no supported government drawing. Rendering a trace does not certify ECP. |
+| Astra X-bar S6R1 | PF realization renders; the prior abstract-head reference is retained as prior-stage context. |
+| Fable X-bar S2R1, S3R1 | Theta literals occur only in titles. S2's `assigner` wording is also not sufficient for the predicate slot under the current shared rules. Fixing wording alone cannot supply the missing literal. |
+| Fable X-bar S2R2, S3R2 | `governor`/`caseMarked` recognition is incomplete, and the Case literals occur only in titles. A global governor-to-Case-assigner mapping would misclassify government claims. |
+| Fable X-bar S5R2, S5R3 | Spec-head agreement remains unsupported. Operator binding renders separately from the retained lexical-government claim. |
+
+Fable Minimalism's five relations have no Tier-3 remainder; that does not resolve
+its object Case, early *did*, wh-feature or phase-assumption questions. The shared
+vocabulary already feeds registry binding, Tier-2 evaluation, lowering and Replay.
+The next recognition extension must establish which authored roles, literal
+evidence and structure prove a particular claim. Adding aliases alone is not a
+general interpretation solution. A wh feature does not by itself prove probing,
+movement, focus projection or agreement. No such meanings were forced into those
+drawings during this pass. Positive and negative role/recipe tests remain in the
+default gate; arbitrary open wording is not claimed to be fully recognized.
+
+### Camera history and remaining visual evidence
+
+Commit `8bb17df` positioned the complete tree with D3 and changed only visibility
+at each playback step. That explains the older stable reveal behavior. The later
+`20d0fc7` implementation also reserved future daughter order and hidden layout
+material. Current `inferFutureLayoutScaffold` already retains that approach where
+current material, dominance edges and movement timing permit it. Reusing the old
+complete-tree layout wholesale would assume current and future structures share
+one topology. It is not a demonstrated improvement for today's authored stages.
+
+Reanalysis of the accepted desktop captures found five within-stage transitions
+with existing-label shifts above 0.5 pixels: Astra Minimalism F32→33, Astra X-bar
+F32→33, and Fable Minimalism F19→20, F22→23 and F25→26. All add movement landings
+and parents while the camera stays fixed. Maximum existing-label displacement
+ranges from about 43 to 74 pixels. No remaining captured within-stage shift is
+caused only by revealing a plaque. These measurements do not prove all structural
+shifts are necessary, nor do they authorize restoring the rejected coordinate
+planner. Active wheel zoom followed immediately by Next remains unqualified.
+
+**New visual defect:** the synthetic three-terminal theta-grid control clips the
+left side of its plaque in both baseline and repaired builds at 1600×1100.
+`acceptedCompositionIsTreeFirst` excludes overlay bounds for this family. The
+literal fix changes the correct role association, not this placement. Saved-case
+parity therefore does not establish general containment. Next investigate a
+bounded correction for actual viewport overflow that preserves already-fitting
+compositions and reserves space before reveal. Do not globally refit all overlays
+or move plaques away from their owning subtrees merely to fix this control.
+
+### Participant-free moments
+
+All 36 saved relation moments have at least one available current participant.
+Astra X-bar F32 has one available participant, C, and one future participant.
+The accepted repair draws C; it does not create the future landing early.
+
+A controlled variant naming only `frontedNP` produces a participant-free F32 with
+`RELATION_TIMING_CONFLICT`: the next relation introduces that landing. Its cause
+is contradictory authored order, not a legitimate participantless dependency.
+The contract requires a nonempty current `anchors` block. Empty/missing anchors
+and unresolved references are contract or processing failures, while prior-only
+information does not satisfy that requirement. An otherwise available anchor
+that disappears would be a renderer defect to reproduce separately.
+
+Inspection has reason to preserve a conflicting authored relation and diagnostic;
+it has no basis to invent an endpoint or linguistic arrow. Public treatment
+belongs to the deferred incomplete-processing decision. No legitimate new
+participant-free linguistic relation was established, so no publication-notation
+research or new Tier-3 prototype is justified yet. The earlier reserved-locator
+proposal below is historical and withdrawn from the active roadmap.
+
+### Identity, Fable's ending and judgments
+
+The identity collision is reproducible with a node `head` carrying *read* and a
+separate authored node `head::__leaf` carrying *books*. Renderable-canvas expansion
+gives the generated *read* leaf and the authored *books* category the same ID,
+`head::__leaf`. Suffix-stripping can also interpret an authored name as generated.
+Unique D3 allocation addresses a later layer and does not remove this ambiguity.
+The repair direction is explicit internal identity/ownership separate from open
+authored IDs, not another reserved string convention. Identity code is unchanged.
+
+The saved-byte recheck confirms Fable Minimalism's original **6,819 bytes** already
+omit `]}` in the sole API text block. HTTP, retained-envelope and extracted-text
+copies agree. The response records `end_turn`, 5,779 output tokens against a
+20,000-token allowance, no custom stop sequence and no streaming. All five stage
+objects close. Fable X-bar's outer JSON is complete. These facts exclude later
+Babel parsing as the source of the missing ending; they do not reveal why the
+provider returned it. The historical adapter replay receipt remains historical:
+rerunning that old script against today's request defaults stops at its exact
+request assertion, so it is not a fresh passing adapter qualification. No new
+generation-side cause or prevention evidence was obtained. Nesting/serialization
+load remains a hypothesis; output-cap truncation is not supported by this record.
+JSON repair and public incomplete-processing behavior remain unchanged.
+
+Three distinct assertions must not be merged in presentation:
+
+- An authored `judgment: "*"` means the author supplied that judgment about the
+  anchored example. Displaying it reports the author's analysis.
+- Babel's processing success means it read and processed the record. It says
+  nothing by itself about whether the sentence is grammatical.
+- Prose such as "the derivation converges" is an authored theoretical claim.
+  It does not itself supply a checkmark, smiley or grammaticality verdict.
+
+The renderer has literal-verdict and interpreted-outcome paths; their desired
+presentation remains a decision. No judgment, simultaneity or contract behavior
+changed here.
+
+### Operational limits
+
+Operational qualification asks whether the application reliably completes a job,
+reports failures and retains the available evidence. It is separate from whether
+the linguistic analysis is correct. The new HTTP tests close the specific queued
+OpenAI route gap using local replies. They do not qualify real provider behavior,
+public client-disconnect/timeout handling, mixed-analysis display policy or browser
+responsiveness on large derivations.
+
+Four in-process measurements per synthetic size, including the first call, gave:
+
+| Stages / Replay frames | Replay compilation | Full qualification evidence |
+| --- | --- | --- |
+| 16 / 79 | 252–301 ms | 254–315 ms |
+| 32 / 159 | 1.47–1.49 s | 1.48–1.52 s |
+| 64 / 319 | 11.29–11.96 s | 11.38–12.63 s |
+
+These Node 24.16.0 measurements on this Mac use synthetic nested merges and one
+neutral relation per stage. They are not browser frame-rate measurements or a
+representative linguistic benchmark. A separate CPU profile places tree-index
+construction, syntax cloning and repeated tree searches among the largest costs.
+The code also repeats relation interpretation while producing evidence, render
+plans and Replay. Sharing work within one immutable evaluation is the next
+candidate; no cache or measured caching benefit exists yet. Live-model compliance,
+revised-prompt cost/latency and provider reliability require a separately approved
+run. Linguistic review, long-content/export checks and varied derivation controls
+remain necessary before calling Babel dependable across inputs.
+
 ## Prototype and main reconciliation, 12 September
 
 ### Main integration, 13 September
