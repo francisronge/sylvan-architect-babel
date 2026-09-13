@@ -1,3 +1,5 @@
+import { dependentCaseStatePlaques } from '../replay/relations/markGeometry.ts';
+import postcss from 'postcss';
 import assert from 'node:assert/strict';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { readFileSync } from 'node:fs';
@@ -141,7 +143,9 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
     replayPlaqueLayout: new Map(items.map((_, index) => [index,
       { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
     relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
+    dependentCaseStatePlaques,
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
+    measureGraphicsElementsInTreeSpace: elements => elements.length ? ({ x: 0, y: 0, width: 260, height: 280 }) : null,
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
     exactScreenDirectTreeLabelRectNow: () => ({ x: 0, y: 0, width: 50, height: 30 }),
     exactScreenTreeLabelRectForNodeIdsNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
@@ -326,7 +330,8 @@ test('native dependent-case elbow uses the prepared step, including the unchange
     const root = new Element('g');
     const rectFor = (id) => ({ x: id === 'a' ? 100 : 350, y: id === 'a' ? 100 : 280, width: 50, height: 30 });
     const dependencies = { planItem: guarded([item])[0], primitive, emphasis: null, opacity: null,
-      queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
+      dependentCaseStatePlaques,
+    queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
       acceptedAnchorRect: rectFor, acceptedTerminalRect: rectFor,
       ensureAgreementCaseRelationLayer: () => new Selection([root]), markPreterminalLensNode() {} };
     new Function(...Object.keys(dependencies), ts.transpile(branch.getText(parsed), { target: ts.ScriptTarget.ES2023 }))
@@ -417,6 +422,10 @@ test('native morphology consumes verified bundles and delinking position', () =>
   } });
   const fissionSvg = drawNative('scheduleAcceptedPfMorphologyRelation', fission.frames[0].items);
   assert.deepEqual(fissionSvg('babel-fission-bundle-row').map((node) => node.textContent), ['phi', 'phi', 'person', 'number']);
+  const forestSvg = drawNative('scheduleAcceptedPfMorphologyRelation', fission.frames[0].items, forest,
+    fission.frames[0].items, { exactScreenTreeLabelRectNow: () => null });
+  assert.deepEqual(forestSvg('babel-fission-bundle-row').map(node => node.textContent),
+    ['phi', 'phi', 'person', 'number'], 'an invisible workspace root cannot suppress a PF plaque');
   const impoverishment = compile({ relation: 'Impoverishment', anchors: { terminal: 'a' }, values: {
     featureHierarchy: ['person', 'number', 'plural'], delinkAfter: 'number'
   } });
@@ -466,20 +475,24 @@ test('the exact displayed wordless landing binds its category shell until PF rea
   assert.equal(resolveDisplayedTrajectoryAttachments(item, (id) => nodes.get(id)), item, 'trace notation remains a terminal');
 });
 
-test('production ships FProjection ink and type rules without an Orchard dependency', () => {
-  const styles = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(styles, /\.babel-f-projection-path\s*\{[^}]*fill: none;[^}]*stroke: var\(--babel-relation-ink[^}]*stroke-width: 3px;/u);
-  assert.match(styles, /\.babel-f-projection-feature,\s*\.babel-f-projection-accent\s*\{[^}]*font: 900 34px/u);
+test('production shares the Orchard FProjection paint and typography', () => {
+  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.babel-f-projection-path\s*\{[^}]*fill: none;[^}]*stroke:[^}]*stroke-width: 3px;/u);
+  assert.match(styles, /\.babel-f-projection-feature\s*\{[^}]*font: 900 34px/u);
   assert.doesNotMatch(styles.match(/\.babel-f-projection-path\s*\{[^}]*\}/u)[0], /filter:/u);
 });
 
 test('native cyclic columns and their anchor rail ship the approved readable ink', () => {
-  const styles = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  const rule = (name) => {
-    const match = styles.match(new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`, 'u'));
-    assert.ok(match, `missing native ink rule: ${name}`);
-    assert.doesNotMatch(match[1], /(?:filter|opacity|position)\s*:/u);
-    return match[1];
+  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const sheet = postcss.parse(styles);
+  const rule = name => {
+    const properties = new Map();
+    sheet.walkRules(entry => {
+      if (entry.selectors.includes(`.${name}`)) entry.walkDecls(decl => properties.set(decl.prop, decl.value));
+    });
+    assert(properties.size, `missing native ink rule: ${name}`);
+    assert(!['filter', 'opacity', 'position'].some(property => properties.has(property)));
+    return [...properties].map(([key, value]) => `${key}: ${value};`).join('\n');
   };
   for (const [name, fill] of [
     ['babel-linearization-column-title', 'rgba(110, 231, 183, 0.82)'],
@@ -490,7 +503,7 @@ test('native cyclic columns and their anchor rail ship the approved readable ink
     ['babel-anchor-set-badge-number', 'rgba(167, 243, 208, 0.98)'],
     ['babel-anchor-set-rail-label', 'rgba(110, 231, 183, 0.95)']
   ]) assert.ok(rule(name).includes(`fill: ${fill};`), name);
-  assert.match(rule('babel-linearization-row'), /paint-order: stroke;[\s\S]*font: 800 19px/u);
+  assert.match(rule('babel-linearization-row'), /paint-order: stroke;[\s\S]*font: 800 21px[\s\S]*font-size: 19px/u);
   assert.match(rule('babel-linearization-row-conflict'), /text-decoration: underline;/u);
   for (const name of ['babel-anchor-set-badge', 'babel-anchor-set-rail', 'babel-anchor-set-stub']) {
     assert.match(rule(name), /stroke: rgba\(52, 211, 153,/u);

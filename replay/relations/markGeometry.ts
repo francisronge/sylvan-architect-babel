@@ -159,6 +159,27 @@ export const vineConvergence = (bearerRects: Rect[]): Point => ({
   y: Math.max(...bearerRects.map((rect) => rect.y + rect.height)) + 156
 });
 
+/** Native plaque footprints are shared by painting and the stage camera reservation. */
+export const featureSharingPlaqueRect = (bearerRects: Rect[]): Rect => {
+  const convergence = vineConvergence(bearerRects);
+  return { x: convergence.x - 124, y: convergence.y + 10, width: 248, height: 92 };
+};
+
+export const dependentCaseStatePlaques = (
+  probe: Rect, goal: Rect, probeLabel: string, goalLabel: string, step: string, probeIsHigher: boolean
+): { probe: Rect; goal: Rect } => {
+  const state = (anchor: Rect, label: string, minimumCentreY = -Infinity): Rect => {
+    const width = Math.min(340, Math.max(190, label.length * 22 + 40));
+    return { x: Math.max(38, anchor.x + anchor.width / 2 - width / 2),
+      y: Math.max(anchor.y + anchor.height + 80, minimumCentreY) - 34, width, height: 68 };
+  };
+  const probeFirst = step === '1' || probeIsHigher;
+  const first = state(probeFirst ? probe : goal, probeFirst ? probeLabel : goalLabel);
+  const second = state(probeFirst ? goal : probe, probeFirst ? goalLabel : probeLabel,
+    first.y + (step === '1' ? first.height / 2 + 96 : first.height + 72));
+  return probeFirst ? { probe: first, goal: second } : { probe: second, goal: first };
+};
+
 /**
  * The solid Case-assignment path: the accepted cubic from beneath the
  * assigner toward the bearer-side target, bowing with the direction of

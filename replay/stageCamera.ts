@@ -8,7 +8,7 @@ import {
 import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal,
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
 import type { RelationRenderPlan } from './relations/renderPlanCompiler.ts';
-import { placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { placeStagePlaques, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
 
 type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
@@ -191,8 +191,27 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       include({ minX: node.x, maxX: node.x, minY: node.y,
         maxY: node.y + (node.children?.length ? 0 : 130) });
     }
-    if (!includeOverlays || !plan) continue;
     const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
+    if (includePlaques && plan) {
+      const rectFor = (id: string, terminal: boolean) => {
+        const node = byId.get(id);
+        if (!node) return null;
+        const leaves = terminal ? node.descendants().filter(child =>
+          !child.children?.length && isDisplayTerminalSurface(resolveLeafSurface(child))) : [];
+        const rects = (leaves.length ? leaves : [node]).map(child => {
+          const word = leaves.length ? resolveLeafSurface(child) : '';
+          const width = Math.max(150, String(word || child.data.label || '').length * 40);
+          return { x: child.x - width / 2, y: child.y + (word ? 85 : -42), width, height: word ? 90 : 84 };
+        });
+        const x = Math.min(...rects.map(rect => rect.x)), y = Math.min(...rects.map(rect => rect.y));
+        return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
+          height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
+      };
+      nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor).forEach(rect => include({
+        minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
+      }));
+    }
+    if (!includeOverlays || !plan) continue;
     const positionFor: PlanPositionProvider = (id, attachment = 'position') => {
       const node = byId.get(id);
       if (!node) return null;

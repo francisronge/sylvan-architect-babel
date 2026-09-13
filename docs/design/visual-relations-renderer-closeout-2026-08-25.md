@@ -24,6 +24,14 @@ Status: verified and closed.
 The production Orchard loads
 `visual-relations-current-lab.production-only-audit.r96.bundle.js`.
 
+Drawing paint is shared in
+[`relation-visuals.css`](../research/relation-orchard/relation-visuals.css). The app
+imports it, both Orchard pages link it, and the Tier-2 review build includes it.
+Keep page layout and lens visibility outside that stylesheet. Hover uses the
+shared ink/halo class without replacing relation-moment opacity. See the
+[production restoration and verification](../implementation/contract-qualification/system-audit.md#repairs-and-verification)
+for the September integration corrections; the original review below is retained.
+
 ## Review
 
 Fable reviewed the broad renderer closeout and returned **GREEN**, with no

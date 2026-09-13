@@ -119,6 +119,10 @@ const replayDeterminerHasNominalComplement = (node: HierNode): boolean => {
 };
 
 import {
+  featureSharingPlaqueRect,
+  dependentCaseStatePlaques,
+  vineConvergence,
+  featureSharingVinePath,
   fongComponentArcPath,
   fongComponentLabelPoint,
   fongEdgeOutlineRect,
@@ -429,7 +433,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // Keeping it out of the D3 render effect preserves the user's exact zoom
   // and pan transform while the pointer moves between relations.
   const focusedRelationMoment = activeRelationMoment;
-  const interactiveRelationMoment = hoveredRelationMoment ?? activeRelationMoment;
   const playedRelationIndices = animated
     ? playbackSteps.reduce((played, step, stepIndex) => {
         if (stepIndex > currentStepIndex || (step as any).replayKind !== 'relation') return played;
@@ -3057,7 +3060,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               selection: d3.Selection<T, unknown, null, undefined>,
               pixels: number
             ) => selection.style('stroke-width', `${localPx(pixels)}px`);
-            const rootRect = exactScreenTreeLabelRectNow(getNodeId(treeData as unknown as HierNode), true);
+            // Replay can contain several workspaces under an invisible root. Measure
+            // the visible forest, without requiring a label on that wrapper.
+            const rootRect = measureGraphicsElementsInTreeSpace(
+              g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label').nodes()
+            );
             if (!rootRect) {
               layer.remove();
               return;
@@ -5387,40 +5394,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (bearerRects.length < 2) return;
             const layer = ensureAgreementCaseRelationLayer();
             bearerIds.forEach((nodeId) => markPreterminalLensNode(nodeId, 'feature-bearer'));
-            const convergenceX = bearerRects.reduce(
-              (sum, entry) => sum + entry.rect.x + entry.rect.width / 2,
-              0
-            ) / bearerRects.length;
-            const convergenceY = Math.max(
-              ...bearerRects.map((entry) => entry.rect.y + entry.rect.height)
-            ) + 156;
+            const convergence = vineConvergence(bearerRects.map(entry => entry.rect));
             bearerRects.forEach(({ rect }) => {
               const start = {
                 x: rect.x + rect.width / 2,
                 y: rect.y + rect.height + 22
               };
-              const spanY = convergenceY - start.y;
-              const c1 = { x: start.x, y: start.y + spanY * 0.64 };
-              const c2 = {
-                x: convergenceX + (start.x - convergenceX) * 0.16,
-                y: convergenceY - Math.max(22, spanY * 0.08)
-              };
               layer.append('path')
                 .attr('class', 'babel-feature-sharing-vine')
                 .attr('opacity', opacity)
-                .attr('d', [
-                  `M ${start.x.toFixed(1)} ${start.y.toFixed(1)}`,
-                  `C ${c1.x.toFixed(1)} ${c1.y.toFixed(1)},`,
-                  `${c2.x.toFixed(1)} ${c2.y.toFixed(1)},`,
-                  `${convergenceX.toFixed(1)} ${convergenceY.toFixed(1)}`
-                ].join(' '));
+                .attr('d', featureSharingVinePath(start, convergence));
             });
             const [feature, ...valueParts] = String(sharingItem.label || '').split(':');
             const value = valueParts.join(':').trim();
-            const plaqueWidth = 248;
-            const plaqueHeight = 92;
-            const plaqueX = convergenceX - plaqueWidth / 2;
-            const plaqueY = convergenceY + 10;
+            const { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight } =
+              featureSharingPlaqueRect(bearerRects.map(entry => entry.rect));
             const plaque = layer.append('g')
               .attr('class', 'babel-feature-plaque babel-shared-feature-plaque')
               .attr('data-feature-anchor', 'shared-feature')
@@ -5655,18 +5643,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               if (!probeRect || !probeTerminalRect || !goalCategoryRect || !goalTerminalRect) return;
               const layer = ensureAgreementCaseRelationLayer();
               markPreterminalLensNode(pathItem.fromNodeId, 'probe');
-              const appendState = (
-              rect: { x: number; y: number; width: number; height: number },
-              label: string,
-              kind: 'probe' | 'goal',
-              minimumCentreY?: number
-            ) => {
-              const plaqueHeight = 68;
-              const plaqueWidth = Math.min(340, Math.max(190, label.length * 22 + 40));
-              const plaqueX = Math.max(38, rect.x + rect.width / 2 - plaqueWidth / 2);
-              const naturalCentreY = rect.y + rect.height + 46 + plaqueHeight / 2;
-              const centreY = Math.max(naturalCentreY, minimumCentreY ?? naturalCentreY);
-              const plaqueY = centreY - plaqueHeight / 2;
+              const step = pathItem.dependentCaseStep || '2';
+              const probeIsHigher = probeRect.y + probeRect.height / 2 <= goalCategoryRect.y + goalCategoryRect.height / 2;
+              const states = dependentCaseStatePlaques(probeTerminalRect, goalTerminalRect,
+                primitive.label || '', primitive.badge?.text || '', step, probeIsHigher);
+              const appendState = (label: string, kind: 'probe' | 'goal') => {
+              const { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight } = states[kind];
+              const centreY = plaqueY + plaqueHeight / 2;
               const group = layer.append('g')
                 .attr('class', `babel-dependent-case-state-plaque babel-dependent-case-state-plaque-${kind}`)
                 .attr('opacity', opacity);
@@ -5692,21 +5675,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             };
             const probeLabel = primitive.label || '';
             const goalLabel = primitive.badge?.text || '';
-            const probeIsHigher = (
-              probeRect.y + probeRect.height / 2
-              <= goalCategoryRect.y + goalCategoryRect.height / 2
-            );
-            const step = pathItem.dependentCaseStep || '2';
             let endpoints: Array<{ x: number; y: number }>;
             let commands: string[];
             if (step === '1') {
-              const probeState = appendState(probeTerminalRect, probeLabel, 'probe');
-              const goalState = appendState(
-                goalTerminalRect,
-                goalLabel,
-                'goal',
-                probeState.centreY + 96
-              );
+              const probeState = appendState(probeLabel, 'probe');
+              const goalState = appendState(goalLabel, 'goal');
               const probePoint = { x: probeState.left - 14, y: probeState.centreY };
               const goalPoint = { x: goalState.left - 14, y: goalState.centreY };
               const gutterX = Math.min(probePoint.x, goalPoint.x) - 66;
@@ -5718,19 +5691,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 `L ${goalPoint.x.toFixed(1)} ${goalPoint.y.toFixed(1)}`
               ];
             } else {
-              const upperAnchor = probeIsHigher ? probeTerminalRect : goalTerminalRect;
-              const lowerAnchor = probeIsHigher ? goalTerminalRect : probeTerminalRect;
               const upperKind = probeIsHigher ? 'probe' : 'goal';
               const lowerKind = probeIsHigher ? 'goal' : 'probe';
               const upperLabel = probeIsHigher ? probeLabel : goalLabel;
               const lowerLabel = probeIsHigher ? goalLabel : probeLabel;
-              const upperState = appendState(upperAnchor, upperLabel, upperKind);
-              const lowerState = appendState(
-                lowerAnchor,
-                lowerLabel,
-                lowerKind,
-                upperState.bottom + 72
-              );
+              const upperState = appendState(upperLabel, upperKind);
+              const lowerState = appendState(lowerLabel, lowerKind);
               const upperPoint = { x: upperState.centreX, y: upperState.bottom + 14 };
               const lowerPoint = { x: lowerState.left - 14, y: lowerState.centreY };
               endpoints = [upperPoint, lowerPoint];
@@ -8634,21 +8600,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const focusKey = interactiveRelationMoment
-      ? `${interactiveRelationMoment.stageIndex}:${interactiveRelationMoment.relationIndex}`
+    const focusKey = activeRelationMoment
+      ? `${activeRelationMoment.stageIndex}:${activeRelationMoment.relationIndex}`
       : '';
     const ownerKey = (element: SVGElement) => (
       element.getAttribute('data-vr-owner-refs')?.trim()
       || `${element.getAttribute('data-vr-stage-index')}:${element.getAttribute('data-vr-relation-index')}`
     );
-    const ownsFocus = (element: SVGElement) => {
-      if (!focusKey) return false;
+    const hoverKey = hoveredRelationMoment
+      ? `${hoveredRelationMoment.stageIndex}:${hoveredRelationMoment.relationIndex}` : '';
+    const ownsMoment = (element: SVGElement, momentKey: string) => {
+      if (!momentKey) return false;
       const ownerRefs = element.getAttribute('data-vr-owner-refs')
         ?.split(/\s+/u)
         .filter(Boolean) || [];
       return ownerRefs.length > 0
-        ? ownerRefs.includes(focusKey)
-        : ownerKey(element) === focusKey;
+        ? ownerRefs.includes(momentKey)
+        : ownerKey(element) === momentKey;
     };
     const applyInteractiveEmphasis = () => {
       const relationElements = Array.from(svg.querySelectorAll(
@@ -8659,11 +8627,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           '.vr-item[data-vr-stage-index][data-vr-relation-index]'
         );
         const isVisualRoot = !ancestor || ownerKey(ancestor) !== ownerKey(element);
-        const active = ownsFocus(element);
+        const active = ownsMoment(element, focusKey);
         const quiet = Boolean(focusKey) && !active;
         element.setAttribute('data-vr-emphasis', active ? 'active' : quiet ? 'quiet' : 'none');
         element.classList.toggle('vr-relation-active', isVisualRoot && active);
         element.classList.toggle('vr-relation-quiet', isVisualRoot && quiet);
+        // Hover changes ink and halo only; the relation moment owns opacity.
+        element.classList.toggle('vr-relation-hovered', isVisualRoot && ownsMoment(element, hoverKey));
       });
     };
     applyInteractiveEmphasis();
@@ -8673,9 +8643,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     activeRelationMoment?.stageIndex,
     activeRelationMoment?.relationIndex,
     hoveredRelationMoment?.stageIndex,
-    hoveredRelationMoment?.relationIndex,
-    interactiveRelationMoment?.stageIndex,
-    interactiveRelationMoment?.relationIndex
+    hoveredRelationMoment?.relationIndex
   ]);
 
   const activeStepRaw = currentReplayStep;

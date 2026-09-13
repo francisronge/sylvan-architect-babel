@@ -1,6 +1,7 @@
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationPlanItem } from './renderPlanCompiler.ts';
+import { featureSharingPlaqueRect, dependentCaseStatePlaques } from './markGeometry.ts';
 import { preparePlaqueTextLayout, preparePfPlaqueTextLayout } from './plaqueTextLayout.ts';
 
 export type PlaqueRect = { x: number; y: number; width: number; height: number };
@@ -167,4 +168,22 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     occupied.push(placement);
   }
   return result;
+}
+
+/** Native compounds retain their Orchard placement while contributing their full boxes to fitting. */
+export function nativeRelationPlaqueRects(items: RelationPlanItem[],
+  rectFor: (id: string, terminal: boolean) => PlaqueRect | null): PlaqueRect[] {
+  return items.flatMap(item => {
+    if (item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing') {
+      const ids = [...new Set(item.pairs.flatMap(pair => [pair.fromNodeId, pair.toNodeId]))];
+      const rects = ids.map(id => rectFor(id, true)).filter((rect): rect is PlaqueRect => rect !== null);
+      return rects.length >= 2 ? [featureSharingPlaqueRect(rects)] : [];
+    }
+    if (item.kind !== 'directed-path' || item.pathStyle !== 'dependent-case') return [];
+    const probe = rectFor(item.fromNodeId, true), goal = rectFor(item.toNodeId, true);
+    const probeCategory = rectFor(item.fromNodeId, false), goalCategory = rectFor(item.toNodeId, false);
+    if (!probe || !goal || !probeCategory || !goalCategory) return [];
+    return Object.values(dependentCaseStatePlaques(probe, goal, item.label ?? '', item.secondaryLabel ?? '',
+      item.dependentCaseStep ?? '2', probeCategory.y + probeCategory.height / 2 <= goalCategory.y + goalCategory.height / 2));
+  });
 }

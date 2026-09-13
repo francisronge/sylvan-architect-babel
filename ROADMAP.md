@@ -256,16 +256,14 @@ supersede the earlier browser-blocked status below.
 
 Next work, in order:
 
-1. Repair the incomplete transfer of accepted drawing styles into production.
-   The [complete drawing-style audit](docs/implementation/contract-qualification/system-audit.md#production-drawing-style-audit-13-september)
-   confirms missing fonts, strokes, fills and deletion marks across several
-   families, beyond the already-restored Agree curves. Use one production-owned
-   style source for the app and review surfaces, preserve intentional neutral
-   paint overrides, and verify actual rendered marks. This audit made no product
-   changes. It also found a shared-feature plaque behind Replay and three Tier-2
-   controls with compiled but absent drawings; trace their geometry/attachment
-   handoff before choosing repairs. Reconcile hover opacity with the accepted
-   no-opacity-change contract. Do not redesign the accepted tree or camera.
+1. Reconcile the Tier-2 sharing topology checks and test fixtures with the public
+   single-position node-ID contract. Two artificial controls duplicated their
+   shared node; their missing drawing was correct ambiguity handling. Do not weaken
+   that safeguard or silently choose one occurrence. The
+   [drawing repair and verification](docs/implementation/contract-qualification/system-audit.md#repairs-and-verification)
+   restores the Orchard stylesheet, native plaque containment, PF relation timing
+   and hover behavior. All 477 desktop states, 113 zoom/Fit and 99 hover checks pass;
+   all 137 saved camera transforms are unchanged. Do not redesign the accepted tree.
 2. Classify the remaining 42 mixed-evidence controls. The shared repairs now retain
    both claims in 1,078 of 1,120 combinations without introducing a failing pair.
    Separate real lost claims from ambiguity and legitimate overlap before changing
@@ -287,9 +285,11 @@ Next work, in order:
    undecided. Finish remaining offline public-route checks. Paid qualification needs
    a separately approved purpose and budget.
 
-The shared recognition repair passes the 1,608-test offline gate, both parse-contract
-fixtures and the desktop checks recorded in the [implementation evidence](docs/implementation/contract-qualification/system-audit.md#shared-recognition-repairs-13-september).
-No model-facing contract, prompt, new linguistic drawing or layout policy changed.
+The integrated drawing restoration passes the 1,616-test offline gate, both
+parse-contract fixtures, the production build and release-asset checks. The earlier
+[shared recognition evidence](docs/implementation/contract-qualification/system-audit.md#shared-recognition-repairs-13-september)
+is retained. No model-facing contract, prompt, authored analysis or new linguistic
+drawing changed; native plaque extents now contribute to existing stage fitting.
 
 Do not reopen model-owned traces/nulls/wordless heads, whole-phrase silence,
 explicit list pairing, complete Tier-1 requirements, smaller Tier-2 combinations,

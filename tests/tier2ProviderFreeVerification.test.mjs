@@ -713,7 +713,7 @@ test('independent multi-stage Tier-2 plaques stack at one stable anchor', () => 
 test('the production drawing surface has no Tier-2-specific renderer or CSS branch', async () => {
   const sources = await Promise.all([
     readFile(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../styles.css', import.meta.url), 'utf8')
+    readFile(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8')
   ]);
 
   sources.forEach((source) => {

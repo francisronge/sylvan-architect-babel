@@ -8,7 +8,7 @@ import {
 } from '../replay/relations/overlayGeometry.ts';
 
 const sourceUrl = new URL('../components/TreeVisualizer.tsx', import.meta.url);
-const stylesUrl = new URL('../styles.css', import.meta.url);
+const stylesUrl = new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url);
 
 test('production agreement curves cannot use SVG default black fills', async () => {
   const styles = await readFile(stylesUrl, 'utf8');
@@ -20,6 +20,7 @@ test('production agreement curves cannot use SVG default black fills', async () 
   assert.match(rule('babel-agree-arrowhead'), /fill:\s*rgba?\(/);
 });
 const atlasUrl = new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url);
+const readAtlasStyles = async () => `${await readFile(stylesUrl, 'utf8')}\n${await readFile(atlasUrl, 'utf8')}`;
 
 test('the Binding outline cannot inherit the opaque SVG default fill over syntax', async () => {
   const source = await readFile(sourceUrl, 'utf8');
@@ -73,7 +74,7 @@ test('TreeVisualizer exposes the exact Replay relation state used by painting', 
 
 test('the Orchard keeps Replay controls fixed while compact details scroll', async () => {
   const source = await readFile(sourceUrl, 'utf8');
-  const atlas = await readFile(atlasUrl, 'utf8');
+  const atlas = await readAtlasStyles();
 
   assert.match(source, /data-babel-replay-timeline="true"/u);
   assert.match(source, /data-babel-replay-details="true"/u);
@@ -93,15 +94,15 @@ test('the Orchard keeps Replay controls fixed while compact details scroll', asy
   );
 });
 
-test('hovering a rendered relation temporarily drives the Replay relation lens', async () => {
+test('hovering a rendered relation adds emphasis without replacing the Replay relation moment', async () => {
   const source = await readFile(sourceUrl, 'utf8');
   const styles = await readFile(stylesUrl, 'utf8');
-  const atlas = await readFile(atlasUrl, 'utf8');
+  const atlas = await readAtlasStyles();
 
   assert.match(
     source,
-    /const focusedRelationMoment = activeRelationMoment;[\s\S]*?const interactiveRelationMoment = hoveredRelationMoment \?\? activeRelationMoment/u,
-    'hover focus must override mounted emphasis without entering the D3 render state'
+    /const focusedRelationMoment = activeRelationMoment;/u,
+    'the relation moment alone owns D3 stage emphasis'
   );
   const renderEffect = source.match(
     /useEffect\(\(\) => \{\n    if \(!canvasData[\s\S]*?\n  \}, \[([\s\S]*?)\n  \]\);/u
@@ -119,7 +120,7 @@ test('hovering a rendered relation temporarily drives the Replay relation lens',
   );
   assert.match(
     source,
-    /data-vr-owner-refs[\s\S]*?planItemRelationRefs\(item\)[\s\S]*?ownerRefs\.includes\(focusKey\)/u,
+    /data-vr-owner-refs[\s\S]*?planItemRelationRefs\(item\)[\s\S]*?ownerRefs\.includes\(momentKey\)/u,
     'hover focus must preserve composed and coalesced relation ownership on mounted marks'
   );
   assert.match(
@@ -275,7 +276,7 @@ test('hovering a rendered relation temporarily drives the Replay relation lens',
 
 test('neutral geometric relation paint is shared while semantic marks retain their notation', async () => {
   const styles = await readFile(stylesUrl, 'utf8');
-  const atlas = await readFile(atlasUrl, 'utf8');
+  const atlas = await readAtlasStyles();
   const policyFrom = (source, endPattern) => {
     const policy = source.match(new RegExp(
       `Neutral geometric relations share one ink([\\s\\S]*?)${endPattern}`,
@@ -284,7 +285,7 @@ test('neutral geometric relation paint is shared while semantic marks retain the
     assert.ok(policy, 'the shared neutral relation-paint policy must remain inspectable');
     return policy[1];
   };
-  const stylesPolicy = policyFrom(styles, '\\.loading-overlay');
+  const stylesPolicy = policyFrom(styles, '$');
   const atlasPolicy = policyFrom(
     atlas,
     '\\.babel-render-card\\[data-lens-active="true"\\] \\.terminal-label'
@@ -463,7 +464,7 @@ test('Replay paints only direct visible dominance links', async () => {
 test('analysis verdicts keep each glyph and label attached to their authored analysis anchor', async () => {
   const source = await readFile(sourceUrl, 'utf8');
   const styles = await readFile(stylesUrl, 'utf8');
-  const atlas = await readFile(atlasUrl, 'utf8');
+  const atlas = await readAtlasStyles();
 
   assert.match(
     source,
@@ -918,11 +919,8 @@ test('production paints the accepted control, binding, coreference, and predicat
 
 test('renderer-owned indices share one emerald annotation class', async () => {
   const source = await readFile(sourceUrl, 'utf8');
-  const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
-  const atlas = await readFile(
-    new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url),
-    'utf8'
-  );
+  const styles = await readFile(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const atlas = await readAtlasStyles();
   const indexEmitters = [
     'babel-accord-index babel-relation-index',
     'babel-theta-grid-index babel-relation-index',
@@ -952,7 +950,7 @@ test('renderer-owned indices share one emerald annotation class', async () => {
   );
   assert.match(
     atlas,
-    /\.babel-relation-index\s*\{\s*fill:\s*var\(--emerald\) !important;/u,
+    /\.babel-relation-index\s*\{\s*fill:\s*var\(--emerald-terminal, #10b981\) !important;/u,
     'the standalone Orchard must preserve the renderer-owned index color'
   );
 });

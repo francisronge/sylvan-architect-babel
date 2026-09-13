@@ -231,7 +231,10 @@ style reached the current application.
   changed 67 class/parent groups, including intentional differences; that number
   is not a defect count.
 
-### Confirmed production defects
+### Initial findings
+
+The sharing-control finding is corrected below after tracing the authored IDs.
+The other failures were confirmed production defects.
 
 | Area | Observed failure | Underlying boundary |
 | --- | --- | --- |
@@ -262,12 +265,55 @@ captures and the gate receipt are in `/tmp/babel-style-audit-20260913/`. All sta
 browsers and test processes exited. No model/provider calls, mobile sign-off,
 application export qualification or linguistic judgments were performed.
 
-The next repair should restore the missing primitive styles from one production
-source shared by review surfaces, with browser assertions for visible strokes and
-explicit text styles. Keep accepted neutral paint and tree geometry. Treat native
-plaque accounting, the three absent-drawing controls and hover emphasis as separate
-bounded investigations, not a reason to copy the entire historical stylesheet or
-replace the current layout.
+### Repairs and verification
+
+The application, both Orchard pages and the Tier-2 review now consume
+`docs/research/relation-orchard/relation-visuals.css`. The complete Orchard drawing
+paint lives there; page layout, Replay panels and Orchard lens visibility remain
+in their own surfaces. This restores fonts, curve fills, strokes, line weights,
+dashes, enclosures and deletion marks without another partial style copy. The
+shared neutral ink policy and generated-index color remain intact.
+
+Native feature-sharing and dependent-case boxes now use the same geometry
+functions for painting and stage-bound reservations. Their Orchard placement and
+connector distances are unchanged; the whole box contributes to fitting before
+its relation is revealed. PF morphology measures visible forest labels instead
+of requiring a label on an invisible workspace wrapper. Fission therefore draws
+at its relation moment. Hover gets its own ink/halo class; only relation moments
+control active/quiet opacity.
+
+**Correction: the two sharing controls were invalid input, not missing native
+renderers.** Their generated trees repeat `shared_1` or `shared_argument_1` under
+two parents. The public derivation compiler rejects duplicate active node IDs;
+the renderer's identity index deliberately omits ambiguous IDs. Visible labels
+alone do not establish an unambiguous anchor. These controls bypassed public
+normalization, so their compiled plans did not prove a production drawing bug.
+The existing Tier-2 topology checks and their fixtures still need reconciliation
+with the single-position ID contract. No identity safeguard or recognition rule
+was weakened. Canonical Orchard sharing drawings remain visible.
+
+Verification after assembly:
+
+- All 477 desktop production states were rendered again: 225 Atlas, 107 Tier-2,
+  eight neutral and 137 archived frames. Captures were visually reviewed, and
+  computed paint, relation geometry and panel intersections were recorded.
+- Cyclic Agree text uses 34px/800 monospace; its measured center differs from the
+  badge center by less than 0.4 screen pixels in the canonical control.
+- No tested plaque intersects Replay. The Fission relation moment contains its
+  13 native marks, matching the subsequent Stage Record's drawing content.
+- All 113 zoom/Fit checks retain geometry/stroke width and restore the camera.
+  All 99 activated hover checks retain geometry and opacity. No browser errors
+  or unresolved marker references occurred.
+- All 137 archived frames retain their exact previous camera transforms. The
+  accepted syntax layout, authored records and Replay sequencing were not changed.
+- `npm run verify:all` passes typecheck, 1,616 tests and both parse-contract fixtures.
+  The HTTP test uses a mocked provider and needs host-level local port binding.
+  The Vite build and release-asset verification also pass.
+
+Before/after pages, captures, the short Replay recording and verification receipts
+are in `/tmp/babel-orchard-restoration/`. No provider calls or paid experiments were
+used. This desktop repair does not certify arbitrary long literals, mobile
+readability, application exports or linguistic correctness.
 
 ## Reliability implementation, 13 September
 

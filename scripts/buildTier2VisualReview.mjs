@@ -8,6 +8,7 @@ const auditHtml = path.join(repoRoot, 'docs/design/babel-visual-relations-resear
 const reviewCss = path.join(repoRoot, 'docs/design/visual-relations-tier2-review.production.css');
 
 const html = fs.readFileSync(auditHtml, 'utf8');
+const relationStyles = fs.readFileSync(path.join(repoRoot, 'docs/research/relation-orchard/relation-visuals.css'), 'utf8');
 const productionStyles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/gu)]
   .map((match) => match[1].trim())
   .filter(Boolean);
@@ -18,7 +19,7 @@ if (productionStyles.length === 0) {
 
 fs.writeFileSync(
   reviewCss,
-  `/* Generated from babel-visual-relations-research.production-only-audit.html. */\n${productionStyles.join('\n\n')}\n`,
+  `/* Generated from babel-visual-relations-research.production-only-audit.html. */\n${relationStyles}\n${productionStyles.join('\n\n')}\n`,
   'utf8'
 );
 
