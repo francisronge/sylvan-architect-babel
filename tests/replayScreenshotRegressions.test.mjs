@@ -50,8 +50,8 @@ test('early wh licensing retains its original relation and diagnostic without re
   const steps = play(record);
   const step = steps[moment(steps, 4, 0)];
   assert.equal(buildReplayPanelContent(step, record.derivationStages).heading, 'wh licensing');
-  assert.match(step.movementDiagnostics.join('\n'), /references frontedNP before relation 2/);
-  assert.match(step.movementDiagnostics.join('\n'), /earlier relation names a landing not yet introduced/);
+  assert.match(step.movementDiagnostics.join('\n'), /requires frontedNP before relation 2/);
+  assert.match(step.movementDiagnostics.join('\n'), /unavailable structure is not introduced early/);
   for (const node of nodes(step.replayCanvasData)) {
     if (node.replayLayoutOnly) assert(!visible(step, node.id), `future node exposed: ${node.id}`);
   }

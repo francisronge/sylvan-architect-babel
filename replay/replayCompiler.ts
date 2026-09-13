@@ -51,7 +51,7 @@ export interface PlaybackStep {
   replayKind?: 'micro' | 'relation' | 'macro';
   /**
    * Exact authored identity of the relation this Replay moment plays.
-   * Placement may reorder relation moments around structural construction,
+   * Placement interleaves relation moments with structural construction,
    * so a count of played moments is NOT a reliable identity — consumers must
    * reveal and focus plan items from this exact identity.
    */
@@ -2681,34 +2681,6 @@ export const buildPlaybackStepsFromDerivationFrames = (
           // relation that authored no anchors at all has nothing to place.
           const authoredUnresolved = Array.isArray(relation.unresolvedAnchors) && relation.unresolvedAnchors.length > 0;
           if (relationAnchorNodeIds.length === 0 && !authoredUnresolved) return null;
-          const targetWitnessNodeId = ownsTrajectoryPlacement
-            ? (
-                findParentNodeIdInForest(workspaceRoots, authoredTargetNodeId)
-                || authoredTargetNodeId
-              )
-            : '';
-          const sourceWitnessNodeIds = (ownsTrajectoryPlacement
-            ? sourceNodeIds
-            : [
-                ...relationAnchorNodeIds,
-                ...relationAnchorNodeIds.map((nodeId) =>
-                  findParentNodeIdInForest(workspaceRoots, nodeId))
-              ])
-            .map((nodeId) => String(nodeId || '').trim())
-            .filter(Boolean);
-          const witnessNodeIds = Array.from(new Set([
-            targetWitnessNodeId,
-            ...sourceWitnessNodeIds
-          ].filter(Boolean)));
-          const insertAfterStepIndex = (() => {
-            if (structuralSteps.length === 0) return -1;
-            if (witnessNodeIds.length === 0) return structuralSteps.length - 1;
-            const foundIndex = structuralSteps.findIndex((step) => {
-              const visibleNodeIds = new Set(Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : []);
-              return witnessNodeIds.every((nodeId) => visibleNodeIds.has(nodeId));
-            });
-            return foundIndex >= 0 ? foundIndex : structuralSteps.length - 1;
-          })();
           return {
             relation,
             relationIndex,
@@ -2717,86 +2689,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
             authoredTargetNodeId,
             relationAnchorNodeIds,
             renderableTrajectory: isTrajectoryRelation,
-            ownsPhrasalTreeTransition,
-            insertAfterStepIndex
+            ownsPhrasalTreeTransition
           };
         };
-        let relationPlacements = frameRelationSteps
+        const relationPlacements = frameRelationSteps
           .map((relation, relationIndex) => resolveRelationPlacement(relation, relationIndex))
           .filter((placement): placement is NonNullable<ReturnType<typeof resolveRelationPlacement>> => Boolean(placement))
-          .sort((left, right) =>
-            left.insertAfterStepIndex === right.insertAfterStepIndex
-              ? left.relationIndex - right.relationIndex
-              : left.insertAfterStepIndex - right.insertAfterStepIndex
-          );
-        const resolveRelationInsertAfterStepIndex = (
-          placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
-        ): number => {
-          if (structuralSteps.length === 0) return -1;
-          const targetWitnessNodeId = (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-            ? (
-                findParentNodeIdInForest(workspaceRoots, placement.authoredTargetNodeId)
-                || placement.authoredTargetNodeId
-              )
-            : '';
-          const sourceWitnessNodeIds = ((placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-            ? placement.sourceNodeIds
-            : [
-                ...placement.relationAnchorNodeIds,
-                ...placement.relationAnchorNodeIds.map((nodeId) =>
-                  findParentNodeIdInForest(workspaceRoots, nodeId))
-              ])
-            .map((nodeId) => String(nodeId || '').trim())
-            .filter(Boolean);
-          const witnessNodeIds = Array.from(new Set([
-            targetWitnessNodeId,
-            ...sourceWitnessNodeIds
-          ].filter(Boolean)));
-          const firstWitnessIndex = witnessNodeIds.length === 0
-            ? structuralSteps.length - 1
-            : structuralSteps.findIndex((step) => {
-                const visibleNodeIds = new Set(Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : []);
-                return witnessNodeIds.every((nodeId) => visibleNodeIds.has(nodeId));
-              });
-          const targetParentNodeId = (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-            ? findParentNodeIdInForest(workspaceRoots, placement.authoredTargetNodeId)
-            : '';
-          const targetParentLocalCompletionIndex = (() => {
-            if (!targetParentNodeId) return -1;
-            const targetParentNode = findNodeByIdInForest(workspaceRoots, targetParentNodeId);
-            const targetChildIds = (Array.isArray(targetParentNode?.children) ? targetParentNode.children : [])
-              .map((child) => String(child?.id || '').trim())
-              .filter(Boolean);
-            if (targetChildIds.length === 0) return -1;
-            return structuralSteps.findIndex((step) => {
-              const visibleNodeIds = new Set(Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : []);
-              return visibleNodeIds.has(targetParentNodeId)
-                && targetChildIds.every((childId) => visibleNodeIds.has(childId));
-            });
-          })();
-          const targetParentIndex = targetParentNodeId
-            ? structuralSteps.findIndex((step) => {
-                const visibleNodeIds = new Set(Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : []);
-                return stripSyntheticReplayLeafSuffix(String(step.targetNodeId || '').trim()) === targetParentNodeId
-                  || visibleNodeIds.has(targetParentNodeId);
-              })
-            : -1;
-          return Math.max(
-            firstWitnessIndex >= 0 ? firstWitnessIndex : structuralSteps.length - 1,
-            targetParentIndex,
-            targetParentLocalCompletionIndex
-          );
-        };
-        relationPlacements = relationPlacements
-          .map((placement) => ({
-            ...placement,
-            insertAfterStepIndex: resolveRelationInsertAfterStepIndex(placement)
-          }))
-          .sort((left, right) =>
-            left.insertAfterStepIndex === right.insertAfterStepIndex
-              ? left.relationIndex - right.relationIndex
-              : left.insertAfterStepIndex - right.insertAfterStepIndex
-          );
+          .sort((left, right) => left.relationIndex - right.relationIndex);
         const getMovementCreatedLandingHostNodeIds = (
           placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
         ): string[] => {
@@ -3076,6 +2975,11 @@ export const buildPlaybackStepsFromDerivationFrames = (
             ...activeRelationVisibleNodeIds,
             ...extraVisibleNodeIds
           ].filter(Boolean));
+          if (frameHasNonMovementTreeTransition
+            && (registeredNonMovementTreeTransitionIsActive || activeFallbackTransitionRelations.length > 0)) {
+            snapshotWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
+              .forEach(nodeId => requestedVisibleNodeIds.add(nodeId));
+          }
           const inactiveTrajectoryTargetNodeIds = collectInactiveTrajectoryTargetNodeIds(
             activeRelationIndexes,
             snapshotWorkspaceRoots
@@ -3433,6 +3337,119 @@ export const buildPlaybackStepsFromDerivationFrames = (
               : left.insertionIndex - right.insertionIndex
           );
         const stagePlaybackSteps: PlaybackStep[] = [];
+        const availableNodeIds = new Set(previousFrameWorkspaceRoots.flatMap(root =>
+          collectSyntaxSubtreeNodeIds(buildRenderableCommittedCanvasData(root))));
+        const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
+        const relationProducers = new Map<string, number>();
+        relationPlacements.forEach((placement) => {
+          if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return;
+          const ownedIds = [
+            ...collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId))
+              .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
+            ...getMovementCreatedLandingHostNodeIds(placement)
+          ];
+          ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
+            if (!relationProducers.has(nodeId)) relationProducers.set(nodeId, placement.relationIndex);
+          });
+        });
+        const emittedStructuralSteps = new Set<number>();
+        const visitingStructuralSteps = new Set<number>();
+        let nextRelation = 0;
+        const withPendingStructureHidden = (step: PlaybackStep): PlaybackStep => {
+          const pendingIds = new Set([
+            ...structuralProducers.keys(),
+            ...relationProducers.keys()
+          ].filter(nodeId => !availableNodeIds.has(nodeId)));
+          return {
+            ...step,
+            replayVisibleNodeIds: (step.replayVisibleNodeIds || []).filter(nodeId => !pendingIds.has(nodeId)),
+            replaySuppressAutoRevealNodeIds: Array.from(new Set([
+              ...(step.replaySuppressAutoRevealNodeIds || []),
+              ...pendingIds
+            ]))
+          };
+        };
+
+        // Preferred insertion positions control presentation, never authored
+        // relation order. A prerequisite may pull independent tree-building
+        // forward, but may not activate a later relation to satisfy an earlier one.
+        const ensureNodeAvailable = (nodeId: string, forRelation?: number): string[] => {
+          if (availableNodeIds.has(nodeId)) return [];
+          const relationProducer = relationProducers.get(nodeId);
+          if (relationProducer !== undefined) {
+            if (forRelation !== undefined && relationProducer >= forRelation) return [nodeId];
+            emitRelationsThrough(relationProducer);
+            return availableNodeIds.has(nodeId) ? [] : [nodeId];
+          }
+          const structuralProducer = structuralProducers.get(nodeId);
+          return structuralProducer === undefined ? [] : emitStructuralStep(structuralProducer, forRelation);
+        };
+        const emitStructuralStep = (stepIndex: number, forRelation?: number): string[] => {
+          if (emittedStructuralSteps.has(stepIndex)) return [];
+          const step = pendingStructuralSteps[stepIndex];
+          if (visitingStructuralSteps.has(stepIndex)) return [step.targetNodeId];
+          visitingStructuralSteps.add(stepIndex);
+          const missing = (step.sourceNodeIds || [])
+            .filter(nodeId => nodeId !== step.targetNodeId)
+            .flatMap(nodeId => ensureNodeAvailable(nodeId, forRelation));
+          visitingStructuralSteps.delete(stepIndex);
+          if (missing.length) return missing;
+          availableNodeIds.add(step.targetNodeId);
+          pendingStructuralStepEntries[stepIndex].introducedVisibleNodeIds.forEach(id => availableNodeIds.add(id));
+          const lastVisible = stagePlaybackSteps.at(-1)?.replayVisibleNodeIds || [];
+          const rebuilt = rebuildStructuralStepForActiveRelations({
+            ...step,
+            replayVisibleNodeIds: Array.from(new Set([
+              ...(step.replayVisibleNodeIds || []),
+              ...lastVisible,
+              step.targetNodeId
+            ]))
+          }, activeRelationIndexes);
+          stagePlaybackSteps.push(withPendingStructureHidden(rebuilt));
+          emittedStructuralSteps.add(stepIndex);
+          return [];
+        };
+        const emitRelationsThrough = (relationIndex: number) => {
+          while (nextRelation < relationPlacements.length
+            && relationPlacements[nextRelation].relationIndex <= relationIndex) {
+            const placement = relationPlacements[nextRelation++];
+            const requiredIds = placement.relationAnchorNodeIds.filter(nodeId =>
+              relationProducers.get(nodeId) !== placement.relationIndex);
+            const missing = Array.from(new Set(requiredIds.flatMap(nodeId =>
+              ensureNodeAvailable(nodeId, placement.relationIndex))));
+            if (missing.length) {
+              const descriptions = missing.map(nodeId => {
+                const owner = relationProducers.get(nodeId);
+                return owner === undefined ? `${nodeId} before its structural prerequisites are available`
+                  : `${nodeId} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
+              });
+              const message = `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) requires ${descriptions.join('; ')}. Authored relation order is preserved; unavailable structure is not introduced early.`;
+              const involvedRelations = new Set([
+                placement.relationIndex,
+                ...missing.map(nodeId => relationProducers.get(nodeId))
+              ]);
+              relationPlacements.filter(candidate => involvedRelations.has(candidate.relationIndex))
+                .forEach(candidate => {
+                  candidate.relation = { ...candidate.relation, movementDiagnostics: [
+                    ...(candidate.relation.movementDiagnostics || []), message
+                  ] };
+                });
+            }
+            activeRelationIndexes.add(placement.relationIndex);
+            relationProducers.forEach((owner, nodeId) => {
+              if (owner === placement.relationIndex) availableNodeIds.add(nodeId);
+            });
+            const baseStep = stagePlaybackSteps.at(-1) ?? {
+              ...frameSemanticStep,
+              replayVisibleNodeIds: Array.from(availableNodeIds)
+            };
+            const relationStep = withPendingStructureHidden(
+              buildRelationPlaybackStep(placement, activeRelationIndexes, baseStep)
+            );
+            stagePlaybackSteps.push(relationStep);
+            (relationStep.replayVisibleNodeIds || []).forEach(id => availableNodeIds.add(id));
+          }
+        };
         for (
           let structuralStepIndex = 0;
           structuralStepIndex <= pendingStructuralSteps.length;
@@ -3441,22 +3458,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
           scheduledRelationPlacements
             .filter(({ insertionIndex }) => insertionIndex === structuralStepIndex)
             .forEach(({ placement }) => {
-              activeRelationIndexes.add(placement.relationIndex);
-              const relationBaseStep =
-                stagePlaybackSteps[stagePlaybackSteps.length - 1]
-                ?? structuralSteps[Math.max(0, structuralStepIndex - 1)]
-                ?? frameSemanticStep;
-              stagePlaybackSteps.push(buildRelationPlaybackStep(
-                placement,
-                activeRelationIndexes,
-                relationBaseStep
-              ));
+              emitRelationsThrough(placement.relationIndex);
             });
           if (structuralStepIndex >= pendingStructuralSteps.length) continue;
-          stagePlaybackSteps.push(rebuildStructuralStepForActiveRelations(
-            pendingStructuralSteps[structuralStepIndex],
-            activeRelationIndexes
-          ));
+          emitStructuralStep(structuralStepIndex);
         }
         const stageStepCount = stagePlaybackSteps.length + 1;
         let stageStepNumber = 1;
@@ -6869,7 +6874,6 @@ export const getFrameRelations = (
         `RELATION_ANCHOR_UNRESOLVED: Stage ${stageNumber}, relation ${relationNumber} (${authoredStep.relation}) ${anchor.fieldPath} names ${JSON.stringify(anchor.nodeId)}, which is not in this stage's expanded workspace. The anchor was not replaced; the relation is shown without it.`)
     };
   });
-  const earlierConflicts = new Map<number, string[]>();
   const recovered = authored.map((authoredStep, relationIndex) => {
     const input = {
       relation: authoredStep as DerivationStageRelation,
@@ -6925,27 +6929,15 @@ export const getFrameRelations = (
           `Tier 1 signature: ${JSON.stringify(issue)}`)
       ] : [];
     const transition = facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition;
-    const landing = findExactNodeByIdInForest(currentForest, movement.targetNodeId);
-    const landingIds = new Set(collectSyntaxSubtreeNodeIds(landing));
-    const conflicts = transition ? authored.slice(0, relationIndex).flatMap((earlier, earlierIndex) => {
-      const ids = getRelationAllAnchorNodeIds(earlier).filter(id =>
-        landingIds.has(id) && !findExactNodeByIdInForest(previousForest, id));
-      if (!ids.length) return [];
-      const message = `Stage ${input.stageIndex + 1}: relation ${(earlier.authoredRelationIndex ?? earlierIndex) + 1} (${earlier.relation}) references ${ids.join(', ')} before relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) introduces that landing. Authored relation order is preserved; the earlier relation names a landing not yet introduced.`;
-      earlierConflicts.set(earlierIndex, [...(earlierConflicts.get(earlierIndex) || []), message]);
-      return [message];
-    }) : [];
     return {
       ...step,
-      ...((priorDiagnostics.length || conflicts.length || drawingDiagnostics.length)
-        ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics, ...conflicts] } : {}),
+      ...((priorDiagnostics.length || drawingDiagnostics.length)
+        ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics] } : {}),
       recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
       sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
     };
   });
-  return recovered.map((step, i) => earlierConflicts.has(i)
-    ? { ...step, movementDiagnostics: [...(step.movementDiagnostics || []), ...earlierConflicts.get(i)!] }
-    : step);
+  return recovered;
 };
 
 /**
@@ -7176,7 +7168,7 @@ const formatRelationAnchorValue = (
       return formatRelationParticipantValue(
         { role, nodeId, value: nodeId } as ResolvedRelationAnchor,
         replayCanvasData
-      ) || formatReplayIdentifier(nodeId);
+      ) || nodeId;
     })
     .filter(Boolean)
     .join(', ');
@@ -7317,7 +7309,8 @@ const buildLiteralRelationValueLines = (
 const buildAuthoredRelationAnchorLines = (
   step: PlaybackStep,
   relation: DerivationStageRelation,
-  movementLines: ReplaySupportLine[] = []
+  movementLines: ReplaySupportLine[] = [],
+  priorForest: readonly SyntaxNode[] = []
 ): ReplaySupportLine[] => {
   const links = getReplayContentRelationLinks(step);
   const endpointIsCovered = (role: string, value: string | string[]) => {
@@ -7344,7 +7337,12 @@ const buildAuthoredRelationAnchorLines = (
   });
   const prior = Object.entries(relation.priorAnchors ?? {}).flatMap(([role, value]) => {
     const ids = Array.isArray(value) ? value : [value];
-    return (ids.length ? ids : ['[]']).map(nodeId => ({ label: `priorAnchors.${role}`, value: nodeId }));
+    return (ids.length ? ids : ['[]']).map(nodeId => {
+      const matches = priorForest.flatMap(collectReplayCanvasNodes).filter(node => node.id === nodeId);
+      const display = matches.length === 1
+        ? formatRelationParticipantValue({ role, nodeId, value: nodeId }, matches[0]) : '';
+      return { label: `priorAnchors.${role}`, value: display || nodeId };
+    });
   });
   return [...current, ...prior];
 };
@@ -7490,7 +7488,8 @@ const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string)
 
 export const buildReplaySupportLines = (
   step: PlaybackStep | null,
-  authoredRelation?: DerivationStageRelation | null
+  authoredRelation?: DerivationStageRelation | null,
+  priorForest: readonly SyntaxNode[] = []
 ): ReplaySupportLine[] => {
   if (!step) return [];
 
@@ -7540,15 +7539,12 @@ export const buildReplaySupportLines = (
     else if (mentionsMissingSource) lines.push({ label: 'Source', value: 'not serialized' });
     if (landingValue) lines.push({ label: 'Landing', value: landingValue });
     else if (mentionsMissingLanding) lines.push({ label: 'Landing', value: 'not serialized' });
-    diagnostics
-      .filter((message) => !/source omitted|landing omitted/i.test(String(message || '')))
-      .forEach((message) => lines.push({ label: 'Audit', value: String(message) }));
-    return [...lines, ...(authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, lines) : []), ...valueLines];
+    return [...lines, ...(authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, lines, priorForest) : []), ...valueLines];
   }
 
   if (step.replayKind === 'relation') {
     const participants = authoredRelation === undefined ? buildRelationParticipantSupportLines(step)
-      : authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation) : [];
+      : authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, [], priorForest) : [];
     return [...participants, ...valueLines];
   }
 
@@ -7561,14 +7557,21 @@ export const buildReplaySupportLines = (
 /** Panel content uses the original relation, including evidence with no drawing link. */
 export const buildReplayPanelContent = (
   step: PlaybackStep | null | undefined,
-  derivationStages: readonly DerivationStage[] | null | undefined = []
+  derivationStages: readonly DerivationStage[] | null | undefined = [],
+  options: { inspection?: boolean } = {}
 ): ReplayPanelContent => {
   const identity = step?.replayKind === 'relation' ? step.replayRelationIdentity : undefined;
   const authoredRelation = identity && Number.isInteger(identity.stageIndex) && identity.stageIndex >= 0
     && Number.isInteger(identity.relationIndex) && identity.relationIndex >= 0
     ? derivationStages?.[identity.stageIndex]?.relations?.[identity.relationIndex] ?? null : null;
   const prefix = identity ? `${identity.stageIndex}:${identity.relationIndex}` : 'structural';
-  const supportLines = buildReplaySupportLines(step ?? null, authoredRelation);
+  const priorForest = identity && identity.stageIndex > 0
+    ? derivationStages?.[identity.stageIndex - 1]?.workspaceForest ?? [] : [];
+  const supportLines = buildReplaySupportLines(step ?? null, authoredRelation, priorForest);
+  if (options.inspection && identity) {
+    (step?.movementDiagnostics || []).filter(Boolean)
+      .forEach(value => supportLines.push({ label: 'Audit', value }));
+  }
   const stageIndex = step?.replayKind === 'macro' ? step.replayFrameIndex : undefined;
   const statement = typeof stageIndex === 'number' && Number.isInteger(stageIndex) && stageIndex >= 0
     ? derivationStages?.[stageIndex]?.statement : undefined;

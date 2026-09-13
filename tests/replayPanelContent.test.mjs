@@ -37,6 +37,42 @@ const freeze = value => {
 };
 const unkey = rows => rows.map(({ label, value }) => ({ label, value }));
 
+test('inspection diagnostics belong to relation moments, including nonmovement relations', () => {
+  const record = { relation: 'Wh licensing', anchors: { operator: 'high' } };
+  const diagnostic = 'RELATION_TIMING_CONFLICT: Stage 1, relation 1 requires high before relation 2 introduces it.';
+  for (const operation of ['Wh licensing', 'AbarMove']) {
+    const current = movementStep({ operation, replayRelationLinks: [], movementDiagnostics: [diagnostic] });
+    const stages = [stage([record])];
+    assert.deepEqual(buildReplayPanelContent(current, stages).supportLines.filter(row => row.label === 'Audit'), []);
+    assert.deepEqual(unkey(buildReplayPanelContent(current, stages, { inspection: true }).supportLines.filter(row => row.label === 'Audit')),
+      [{ label: 'Audit', value: diagnostic }]);
+    assert.deepEqual(buildReplayPanelContent({ ...current, replayKind: 'micro' }, stages, { inspection: true })
+      .supportLines.filter(row => row.label === 'Audit'), []);
+    assert.deepEqual(buildReplayPanelContent({ ...current, movementDiagnostics: [] }, stages, { inspection: true })
+      .supportLines.filter(row => row.label === 'Audit'), []);
+  }
+});
+
+test('prior participants use the preceding authored occurrence, not the current label or lineage', () => {
+  const record = { relation: 'Dependency', anchors: { participant: 'same_id' },
+    priorAnchors: { source: ['same_id', 'same_id'], missing: 'unknown_x_i', ambiguous: 'duplicate' } };
+  const stages = freeze([
+    { ...stage([]), workspaceForest: [leaf('same_id', 'before'), leaf('duplicate', 'one'), leaf('duplicate', 'two')] },
+    { ...stage([record]), workspaceForest: [leaf('same_id', 'after')] }
+  ]);
+  const current = step({ replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 },
+    replayCanvasData: stages[1].workspaceForest[0] });
+  const content = buildReplayPanelContent(current, stages);
+  assert.deepEqual(unkey(content.supportLines), [
+    { label: 'participant', value: 'after' },
+    { label: 'priorAnchors.source', value: 'before' },
+    { label: 'priorAnchors.source', value: 'before' },
+    { label: 'priorAnchors.missing', value: 'unknown_x_i' },
+    { label: 'priorAnchors.ambiguous', value: 'duplicate' }
+  ]);
+  assert.strictEqual(content.authoredRelation, record);
+});
+
 test('structural operation headings do not disappear behind a differing recipe', () => {
   for (const [operation, recipe, targetLabel, heading] of [
     ['LexicalSelect', 'Select x_i', 'x_i', 'Select x_i'],
@@ -183,6 +219,17 @@ test('link-only compatibility callers also retain movement values literally', ()
 });
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url), 'utf8'));
+test('the saved Astra licensing conflict is visible on its own inspection frame, never as a public warning', () => {
+  const record = saved.find(record => record.name === 'astra-xbar');
+  const stages = record.derivationStages;
+  const plan = buildDerivationReplayPlan({ derivationStages: stages });
+  const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages), undefined, plan);
+  const licensing = steps.find(step => step.replayRelationIdentity?.stageIndex === 4 && step.replayRelationIdentity?.relationIndex === 0);
+  const audit = buildReplayPanelContent(licensing, stages, { inspection: true }).supportLines.filter(line => line.label === 'Audit');
+  assert.equal(audit.length, 1);
+  assert.match(audit[0].value, /Stage 5, relation 1 \(wh licensing\) requires frontedNP before relation 2/);
+  assert.equal(buildReplayPanelContent(licensing, stages).supportLines.some(line => line.label === 'Audit'), false);
+});
 for (const record of saved) {
   test(`${record.name}: every compiled relation panel resolves the full original without changing Replay`, () => {
     const stages = freeze(structuredClone(record.derivationStages));

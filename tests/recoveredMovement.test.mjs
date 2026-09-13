@@ -103,7 +103,7 @@ for (const [name, stageIndex, relationIndex, source, target, kind, exception] of
       if (exception === 'order') {
         assert.match(step.movementDiagnostics.join('\n'), /before relation 2/);
         assert.equal(steps[moment - 1].operation, 'wh licensing');
-        assert.match(steps[moment - 1].movementDiagnostics.join('\n'), /references frontedNP before relation 2/);
+        assert.match(steps[moment - 1].movementDiagnostics.join('\n'), /requires frontedNP before relation 2/);
         assert.ok(!steps[moment - 1].replayVisibleNodeIds.includes(target), 'the earlier licensing must not expose a future landing');
       } else {
         const hasLaterRealization = (name === 'astra-minimalism' && stageIndex === 5)
