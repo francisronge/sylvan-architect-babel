@@ -288,3 +288,25 @@ test('Tier-1 judgment families accept only their reviewed concepts', () => {
     ['illicit']
   );
 });
+
+test('stage prose and processing success do not create a judgment graphic', () => {
+  const tree = node('analysis', 'TP', [leaf('word', 'N', 'Mia')]);
+  for (const prose of ['The derivation converges.', 'This sentence is grammatical.', 'The request completed successfully.', '✓']) {
+    const record = { ...stage([{ relation: prose, anchors: { analysis: 'analysis' } }], [tree]),
+      statement: prose, stageRecord: prose, processingStatus: 'completed' };
+    const items = compileRelationRenderPlan([record]).frames[0].items;
+    assert.equal(items.some(item => item.kind === 'analysis-verdict' || item.badgeStyle === 'local-judgment'), false, prose);
+  }
+});
+
+test('a local check requires an authored positive outcome and preserves its literal', () => {
+  const tree = node('analysis', 'TP', [leaf('word', 'N', 'Mia')]);
+  for (const outcome of ['licensed', 'converged', 'The derivation converges.', 'completed', 'not licensed']) {
+    const relation = { relation: 'Model judgment', anchors: { 'judged.anchor': 'word' }, values: { outcome } };
+    const items = compileRelationRenderPlan([stage([relation], [tree])]).frames[0].items;
+    const check = items.find(item => item.badgeStyle === 'local-judgment');
+    assert.equal(Boolean(check), outcome === 'licensed', outcome);
+    assert.ok(buildLiteralRelationDisplays({ relation, stageIndex: 0, relationIndex: 0 })
+      .some(row => row.kind === 'value-row' && row.values.includes(outcome)));
+  }
+});
