@@ -21,6 +21,66 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Reliability implementation, 13 September
+
+Francis authorized implementation, verification and merging of the bounded fixes.
+The earlier audit below remains the record of what was known before this work.
+The implementation commits are `f1d08b3` (index reuse), `d92e87c` (recognition),
+`5f09f03` (display identity) and `c8159c8` (plaque containment).
+
+- Plaque containment preserves a fitting camera exactly. If content overflows,
+  it first translates the view, then reduces scale only when containment requires
+  it. The complete stage reserves plaque bounds before reveal. Manual zoom/pan
+  remains authoritative, and tree coordinates and plaque placement do not change.
+  The reproduced desktop theta grid needs translation only. A narrow viewport and
+  a 12-row PF plaque also remain inside the canvas and above Replay. The latter
+  requires a small fit and exposes an unresolved readability limit, not a claim
+  that arbitrary long content is visually approved.
+- Recognition composes qualified assignment roles from their domain and direction.
+  A bare governor needs both an explicitly Case-qualified target and Case literals;
+  it is never globally treated as an assigner. Generic assigner wording needs theta
+  literal evidence and an argument. Feature-search roles imply feature-dependency
+  slots, while generic licensing remains neutral. Tier 1 and Tier 2 share these
+  rules, retain full signature requirements, and preserve exact same-name list
+  pairing. Positive, negative, cardinality, property-order and missing-literal
+  controls pass. No wh/government graphic or title-derived literal was added.
+- Relation evaluation shares current/prior tree indices across its candidate
+  drawings and output identities. Each evaluation owns its indices; mutation and
+  same-ID/different-forest controls rule out cross-evaluation reuse. No persistent
+  cache was added. Two calls of the assembled 64-stage/319-frame synthetic control
+  took 8.20–8.31 seconds for Replay and 8.27–8.28 seconds for qualification evidence,
+  against the earlier 11.29–11.96 and 11.38–12.63 second ranges. This is a local Node
+  control, not a browser or linguistic benchmark.
+- Generated words, lexical display nodes, workspace roots and layout placeholders
+  have explicit internal origin metadata. Each Replay compilation reserves the
+  authored IDs from all stages before allocating display IDs. Suffix parsing and
+  prefix-based label ownership were removed. Authored projection drops the internal
+  metadata. A real authored `head::__leaf` can coexist with the generated word under
+  `head`; future collisions and all four archives with every ID renamed to resemble
+  internal IDs preserve event order and visible occurrences.
+
+Verification passes 1,595 tests, typecheck, both parse fixtures and the production
+build. One integrated desktop browser pass compares 137 archived frames and two
+zoom/Fit states with zero changes to camera, labels, branches, plaques, headings
+or panels. Eleven focused final-frame/movement comparisons also preserve those
+measurements after the last ownership cleanup. Focused controls check
+reveal/revisit stability, manual zoom followed
+by frame changes, Fit, desktop/narrow containment and new recognition. Captures
+and recordings use the production renderer with no outgoing provider requests.
+
+All 137 serialized Replay events differ only by the added internal origin metadata.
+All saved drawing items remain identical. Fable X-bar's two Case diagnostics now
+recognize the target-role candidate and explain the missing complete claim; its
+original missing literals and all 22 neutral-content relations remain. Chronology
+conflicts remain intact. No prompt, JSON repair or incomplete-processing behavior
+changed, and no paid experiment occurred.
+
+Temporary captures, recordings, benchmarks and command receipts are under
+`/tmp/babel-reliability-implementation-20260913/`. The interactive archived preview
+is `/tmp/babel-reliability-candidate/index.html`. These are local review artifacts,
+not committed product files. Extreme-content readability, full application exports,
+broad mobile use and live provider qualification remain open.
+
 ## Reliability audit, 13 September
 
 Francis authorized general recognition repairs and offline investigation, while

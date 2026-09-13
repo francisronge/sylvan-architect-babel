@@ -10,8 +10,8 @@ and research notebooks are evidence or history, not competing roadmaps.
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
 | Authored contract | Implemented: each analysis is only four-field `derivationStages`; `relations` is open; `values` and immediate-prior `priorAnchors` are supported. | Empirically qualify model-facing choices before changing the contract or recovery policy. |
-| Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Synthetic identity, automatic JSON repair and public incomplete-processing policy remain unresolved. |
-| Relation renderer | The accepted composition is integrated. All 137 saved desktop frames remain unchanged after the shared literal-binding and deep-tree comparison repairs. | A new synthetic theta grid clips at the left edge under the existing fitting exception. Movement-stage shifts, long content and application exports remain under audit. No participant-free drawing is justified yet. |
+| Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
+| Relation renderer | The accepted composition is integrated. All 137 saved desktop frames remain unchanged after the shared literal-binding and deep-tree comparison repairs. | Actual plaque overflow is contained without changing already-fitting compositions. Very long plaques still reduce fitted readability; movement-stage shifts and application exports remain under audit. No participant-free drawing is justified yet. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
 | Tree Bank | The merged app captures the styled tree for its browser-local preview. Eight desktop save/preview/reopen cases pass across all four archived bundles in Canopy and Replay. | Existing icon thumbnails require a fresh save. The later durable-record migration remains separate product work. |
 | Durable record layer | W17a-d pure record envelope, evidence schemas, adapter, canonical native export, and provider-free proofs exist. | No storage engine, product integration, query layer, import UI, collaboration, or publication system exists. |
@@ -179,20 +179,30 @@ The merged app also passes eight desktop Tree Bank save/preview/reopen cases:
 four archived bundles in Canopy and Replay. Saved standalone SVGs retain the
 live paint and labels, the stored stages are unchanged, and reopening restores
 the expected Replay count. No provider call or push was made. The unrelated
-local AGENTS.md edit remains outside these commits.
+local AGENTS.md edit was subsequently committed separately in `a88b2f4`.
 
 The current review preview is `/tmp/babel-merged-candidate/index.html`.
 This merge supersedes the earlier prototype-only checkpoint in the audit.
 Remaining renderer and linguistic qualifications below are still open.
 
-The 13 September reliability pass adds two bounded repairs: paired literal
+The earlier 13 September reliability pass added two bounded repairs: paired literal
 fields no longer select an ambiguous spelling by property order, and recursive
 layout comparisons no longer build exponentially escaped strings. The full gate
 passes 1,582 tests. All 137 complete serialized Replay frames and render plans
 are unchanged; 139 desktop browser comparisons, including zoom/Fit, also match.
 No layout policy, prompt, JSON repair or incomplete-processing policy changed.
 The [reliability audit](docs/implementation/contract-qualification/system-audit.md#reliability-audit-13-september)
-records the new clipping control and measured long-derivation limits.
+records that pass's clipping control and measured long-derivation limits.
+
+The subsequent authorized implementation contains plaque overflow, shares tree
+indices within each relation evaluation, interprets qualified assignment roles
+through shared evidence rules, and records generated-node ownership explicitly.
+The gate passes 1,595 tests. All 137 saved frames and two zoom/Fit comparisons
+retain identical desktop appearance. Existing Replay events are unchanged apart
+from added internal ownership metadata. Two Fable Case diagnostics now identify
+the candidate target role; missing literals still prevent a specialized drawing.
+The combined 64-stage benchmark improves from 11–12 seconds to about 8.2 seconds.
+No persistent cache, provider call or processing-policy change was added.
 
 Francis rejected the subsequent general Replay repair because its coordinate
 planner changed overall spacing and fitted sizing. That entire repair has been
@@ -234,33 +244,31 @@ supersede the earlier browser-blocked status below.
 | Starting-point items | Current disposition | Remaining work |
 | --- | --- | --- |
 | 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the prototype. Generated coindices use letters there; circled Tier-3 numbers keep their approved locator meaning. | Preserve the accepted appearance; stress long values/many rows and verify application exports. Mobile readability is deferred. |
-| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Five remaining within-stage shifts in the saved captures all accompany structural movement. Historical future-position reservation is already represented in current Replay. | Preserve accepted sizing and spacing. Determine whether those movement shifts can be reduced without changing current syntax; qualify active zoom/Next. The new theta-grid clipping control needs a focused fitting audit. |
+| 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Five remaining within-stage shifts in the saved captures all accompany structural movement. Historical future-position reservation is already represented in current Replay. | Preserve accepted sizing and spacing. Determine whether those movement shifts can be reduced without changing current syntax; qualify active zoom/Next. The theta-grid clipping control now fits by translation alone; within-stage fitting, manual zoom and Fit controls pass. Extreme content still needs a readable overflow design. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 saved relation moments have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
-| 5–8: interpretation and neutral content | The 36-relation audit accounts for all 22 neutral-content relations. Shared-participant preservation and property-order-independent paired literals are fixed. | Recognition coverage remains incomplete. Establish evidence requirements for Case/theta roles, wh meanings, government and PF context before extending the shared interpretation rules. Keep negative controls and exact field ownership; do not substitute an alias patch or extract missing literals from titles. |
-| 9: generated identity | D3 allocation reserves authored IDs. | Remove the broader dependence on synthetic suffix spelling without reinterpreting open authored IDs. |
+| 5–8: interpretation and neutral content | The 36-relation audit accounts for all 22 neutral-content relations. Shared-participant preservation and property-order-independent paired literals are fixed. Qualified Case/theta assignment roles and feature-search role implications use shared evidence rules in Tier 1 and Tier 2. | Recognition coverage remains incomplete. Continue establishing evidence requirements for unsupported wh meanings, government and PF context. Keep negative controls and exact field ownership; do not substitute an alias patch or extract missing literals from titles. |
+| 9: generated identity | Generated words, lexical display IDs, workspace roots and layout placeholders carry explicit ownership. Compilation reserves authored IDs from every stage; scheduling and label attachment do not parse suffixes. Collision and renamed-archive regressions pass. | Preserve opaque authored IDs when adding future display objects. |
 | 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. Saved HTTP/text hashes reconfirm Fable's omission before Babel processing; its generation-side cause is unknown. | Investigate the failure before changing behavior or settling policy. Distinguish facts, hypotheses and prevention evidence. No helper or paid experiment is authorized. |
 | 13–14: simultaneity and judgments | Separate authored relation moments remain the accepted default. | No contract change for simultaneity. Consider it only if an extremely simple unchanged-contract solution is worthwhile. Keep authored judgment literals, application processing status and convergence prose distinct; judgment presentation remains undecided. |
 | 15–16: linguistic review and old chronology | Original conflicts remain inspectable, including Astra X-bar F32 wh licensing before its landing. | Qualified review must establish each analysis's assumptions, including Fable's object Case, early did, wh status and government claims. Do not silently rewrite the originals. |
-| 18: operational qualification | Public HTTP route tests cover queued/in-progress/completed, failed, cancelled and incomplete OpenAI responses without regeneration. Success preserves Replay and Tree Bank data. The deep-signature crash is fixed; a 64-stage/319-frame synthetic derivation still takes about 11–12 seconds to compile locally. | Profile repeated tree indexing, cloning and relation interpretation before caching. Browser responsiveness, disconnect/timeout handling through the public route, varied derivations and live compliance/cost/latency remain unqualified. |
+| 18: operational qualification | Public HTTP route tests cover queued/in-progress/completed, failed, cancelled and incomplete OpenAI responses without regeneration. Success preserves Replay and Tree Bank data. The deep-signature crash is fixed; sharing tree indices reduces the assembled 64-stage/319-frame synthetic compile from 11–12 seconds to about 8.2 seconds. | Profile remaining cloning and repeated interpretation; the measured improvement uses no persistent cache. Browser responsiveness, disconnect/timeout handling through the public route, varied derivations and live compliance/cost/latency remain unqualified. |
 | 19: review and consolidation | The accepted prototype and Tree Bank fix are reviewed, committed and integrated into main. The combined offline gate and desktop Replay/Tree Bank checks pass; Fable was waived. | Keep the rejected attempt and remaining defects documented. Broader qualification remains open. |
 
 Next work, in order:
 
-1. Audit the reproduced theta-grid clipping against the existing fitting exception.
-   Prefer containing actual overflow while keeping already-fitting compositions
-   unchanged. Any repair must preserve stage reservation, accepted proportions and
-   short local connectors. Then qualify long plaques, identical-sentence casing,
-   application exports and active zoom/Next. Mobile is deferred.
-2. Extend recognition only where a complete claim has sufficient authored evidence.
-   Use the shared interpretation layer and positive/negative controls. Case/theta
-   literals in old titles, unsupported wh/government meanings and contextual prose
-   are distinct boundaries, not one alias problem.
-3. Address the measured long-derivation cost. A local CPU profile identifies repeated
-   tree indexing and cloning as major costs; first share work within one derivation
-   evaluation, then measure any benefit. No cache has been added.
-4. Design generated identity after the concrete collision explanation. Keep authored
-   references distinct from internal display identity; never reserve an authored
-   string suffix. Continue qualified linguistic review and preserve old chronology.
+1. Resolve readability for extreme plaque content. The bounded fit now prevents
+   clipping and preserves already-fitting views, but fitting a very tall plaque
+   makes the whole tree small. Investigate use of available width and layout space
+   before changing accepted composition. Verify application exports and identical
+   sentence casing. Broad mobile readability remains deferred.
+2. Continue interpretation research for unsupported wh meanings, government and
+   PF host context. Existing Case/theta records without value literals stay neutral.
+   Keep complete evidence, negative controls and exact field ownership as the gate.
+3. Measure remaining long-derivation costs and browser responsiveness. Shared tree
+   indices improved compilation, but eight seconds for 64 stages is still too slow.
+   Reuse work within the compilation before proposing persistent caching.
+4. Continue qualified linguistic review and preserve the saved chronology conflicts.
+   No participant-free graphic is justified by the current evidence.
 5. Hold JSON-repair and incomplete-processing policy changes while Fable's cause is
    unresolved. Separate relation frames remain acceptable. Discuss judgment examples
    before changing presentation. Finish remaining offline public-route checks;
