@@ -214,6 +214,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   inspection = false
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  // An active D3 gesture must dispatch to the current frame's handler after a redraw.
+  const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.05, 10]), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const replayHeaderRef = useRef<HTMLDivElement>(null);
   const replayPanelRef = useRef<HTMLDivElement>(null);
@@ -893,8 +895,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         if (strokePx > 0) text.style('stroke-width', `${strokePx / safeScale}px`);
       });
     };
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.05, 10])
+    const zoom = zoomBehavior
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
         if (event.sourceEvent) {
@@ -8565,6 +8566,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       forestLightCanvas?.remove();
     };
   }, [
+    zoomBehavior,
     activeDerivationFrame,
     activeDerivationFrameIndex,
     activeDerivationArrowLinks,
