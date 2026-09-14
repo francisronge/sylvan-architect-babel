@@ -1859,6 +1859,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       // Screen-stable marker sizing, capped so far-out zoom never lets the
       // markers dwarf the tree they annotate.
       const markerScale = Math.min(1 / zoomK, 3);
+      const badgeGap = 46;
       const frameMaxNodeY = d3.max([...frameLayoutById.values()], (frameNode) => frameNode.y) ?? 0;
       // Share the exact displayed-notation decision between slot allocation and painting.
       const hasExistingGapNotation = (nodeId: string, text: string): boolean => Boolean(
@@ -1885,7 +1886,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         {
           labelWidth: 150,
           labelHeight: 70,
-          badgeGap: 46,
+          badgeGap,
           laneGap: 60,
           markerScale,
           hasExistingGapNotation,
@@ -1980,10 +1981,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         acceptedEllipsisStyle: boolean;
         item: RelationPlanItem;
       }> = [];
-      const appendMarker = (markX: number, markY: number) => primitiveHost.append('g')
-        .attr('class', 'vr-overlay-marker')
-        .attr('data-vr-x', String(markX))
+      const appendMarker = (markX: number, markY: number, treeNotation = false, stackIndex = 0) => primitiveHost.append('g')
+        .attr('class', treeNotation ? 'vr-tree-notation' : 'vr-overlay-marker')
+        .attr('data-vr-x', String(markX - (treeNotation ? stackIndex * badgeGap * markerScale : 0)))
         .attr('data-vr-y', String(markY))
+        .attr('data-vr-stack-offset', treeNotation ? String(stackIndex * badgeGap) : null)
         .attr('transform', `translate(${markX},${markY}) scale(${markerScale})`);
       /*
        * Complete, frame-stable overlay bounds (all four sides, glyph and
@@ -6301,7 +6303,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             }
             return;
           }
-          const marker = appendMarker(primitive.x, primitive.y);
+          const marker = appendMarker(primitive.x, primitive.y, primitive.badgeStyle === 'gap-notation', primitive.stackIndex);
           if (primitive.shape === 'circle') {
             marker.append('circle')
               .attr('r', 9)
@@ -6537,7 +6539,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .text(primitive.index);
             return;
           }
-          const marker = appendMarker(primitive.x, primitive.y);
+          const marker = appendMarker(primitive.x, primitive.y, true, primitive.stackIndex);
           marker.append('text')
             .attr('class', 'vr-index-badge babel-relation-index')
             .attr('x', 8)
@@ -6977,16 +6979,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       }
     };
     const applyFittedCamera = (fitted: d3.ZoomTransform) => {
-      const manual = manualCameraRef.current;
-      if (manual?.data === data && manual.signature === derivationStagesSignature) {
-        const transform = d3.zoomIdentity.translate(
-          manual.transform.x + (containerWidth - manual.width) / 2,
-          manual.transform.y + (containerHeight - manual.height) / 2
-        ).scale(manual.transform.k);
-        manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
-        applyCameraTransform(transform);
-        return;
-      }
       if (stagePlaqueContainmentBounds && stageCameraBounds) {
         const bounds = {
           minX: Math.min(stagePlaqueContainmentBounds.minX, stageCameraBounds.minX - 220),
@@ -6996,6 +6988,24 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         };
         const contained = containCamera(fitted, bounds, { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
         fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
+      }
+      // Preserve the accepted size at automatic Fit. These linguistic labels
+      // then share the tree's coordinates and scale, including after a redraw
+      // under a retained manual camera.
+      g.selectAll<SVGGElement, unknown>('.vr-tree-notation').attr('transform', function () {
+        const scale = Math.min(1 / fitted.k, 3);
+        const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * scale;
+        return `translate(${x},${this.dataset.vrY}) scale(${scale})`;
+      });
+      const manual = manualCameraRef.current;
+      if (manual?.data === data && manual.signature === derivationStagesSignature) {
+        const transform = d3.zoomIdentity.translate(
+          manual.transform.x + (containerWidth - manual.width) / 2,
+          manual.transform.y + (containerHeight - manual.height) / 2
+        ).scale(manual.transform.k);
+        manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
+        applyCameraTransform(transform);
+        return;
       }
       applyCameraTransform(fitted);
     };

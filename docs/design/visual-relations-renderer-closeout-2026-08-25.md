@@ -51,6 +51,10 @@ print layout for extreme content. See the [dependability evidence](../implementa
 Gap notation reuses an existing category or terminal belonging to the exact
 authored occurrence. Generated terminal ownership is explicit metadata; an ID's
 spelling never proves ownership. A distinct authored annotation remains visible.
+Generic gap labels and coindices retain their accepted size at automatic Fit,
+then share the tree's scale during manual zoom. Their size and stacked offsets
+use that same Fit reference when redrawn under a retained manual camera. This
+does not change native Orchard paint or circled Tier-3 marker sizing.
 
 Manual zoom and pan persist across Replay frames. Fit clears that manual choice
 and restores automatic stage framing. Programmatic camera updates never become

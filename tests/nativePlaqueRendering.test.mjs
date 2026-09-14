@@ -53,6 +53,9 @@ class Element {
   }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
   getAttribute(name) { return this.attrs[name] ?? null; }
+  get dataset() { return Object.fromEntries(Object.entries(this.attrs)
+    .filter(([name]) => name.startsWith('data-'))
+    .map(([name, value]) => [name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value])); }
   getScreenCTM() { return { d: 1 }; }
   get parentElement() { return this.parent; }
   closest(selector) { return matches(this, selector) ? this : this.parent?.closest(selector) ?? null; }
@@ -88,7 +91,11 @@ class Selection {
   }
   attr(name, value) {
     if (arguments.length === 1) return this.node()?.getAttribute(name);
-    this.items.forEach(node => value === null ? delete node.attrs[name] : node.attrs[name] = String(value));
+    this.items.forEach(node => {
+      const result = typeof value === 'function' ? value.call(node, node.datum) : value;
+      if (result === null) delete node.attrs[name];
+      else node.attrs[name] = String(result);
+    });
     return this;
   }
   on(name, handler) { this.items.forEach(node => { (node.handlers ??= {})[name] = handler; }); return this; }
@@ -543,6 +550,39 @@ test('gap notation reuses its owned display word even when its allocated ID coll
       id: 'lower::__leaf', replayOrigin }], 'did');
     assert.equal(result, 'draw-extra-label', 'authored ID spelling cannot establish display ownership');
   }
+});
+
+test('stacked linguistic notation keeps automatic-fit size and spacing through manual zoom and redraw', () => {
+  const root = new Element('g');
+  const appendMarker = productionFunction('appendMarker', { primitiveHost: select(root), markerScale: 2, badgeGap: 46 });
+  const notation = appendMarker(100, 200, true).node();
+  const second = appendMarker(192, 200, true, 1).node();
+  const locator = appendMarker(100, 240).node();
+  const manualCameraRef = { current: null };
+  const data = {};
+  let camera;
+  const fit = productionFunction('applyFittedCamera', {
+    g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
+    containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
+    d3, applyCameraTransform: transform => { camera = transform; }
+  });
+  const automatic = d3.zoomIdentity.scale(0.5);
+  fit(automatic);
+  assert.equal(notation.attrs.transform, 'translate(100,200) scale(2)');
+  assert.equal(second.attrs.transform, 'translate(192,200) scale(2)');
+  assert.equal(locator.attrs.class, 'vr-overlay-marker');
+  assert.equal(notation.attrs.class, 'vr-tree-notation');
+  manualCameraRef.current = { data, signature: 'stage', width: 1600, height: 1100,
+    transform: d3.zoomIdentity.translate(20, 30).scale(2) };
+  // The geometry binder observes the retained manual zoom during a redraw.
+  const redraw = productionFunction('appendMarker', { primitiveHost: select(root), markerScale: 0.5, badgeGap: 46 });
+  const redrawnSecond = redraw(123, 200, true, 1).node();
+  fit(automatic);
+  assert.equal(camera.k, 2);
+  assert.equal(notation.attrs.transform, 'translate(100,200) scale(2)',
+    'redrawing under manual zoom must not shrink notation back to screen size');
+  assert.equal(redrawnSecond.attrs.transform, second.attrs.transform,
+    'stacked labels must retain their spacing after redraw at a different camera scale');
 });
 
 test('a changed terminal cannot absorb its old label just because data-default-label still contains it', () => {
