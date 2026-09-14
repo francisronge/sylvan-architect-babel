@@ -10,6 +10,13 @@ On 9 September, Francis approved the bounded wording review followed by stage-pr
 
 ## Read this first
 
+Scope correction, 14 September: Francis rejected treating full-row static plaque
+printing as unfinished product work. Tree Bank thumbnails preview the final tree;
+reopening provides the complete saved record. A preview need not expose every
+detail. The print-window observations below remain evidence of behavior, not a
+defect, shipping blocker or requirement for a new export design. This supersedes
+the earlier statements that an all-rows print decision was needed.
+
 Status reconciliation, 12 September: the original findings and dated discussion
 below are historical evidence, not new requests for approval. The current
 [remaining decisions](#remaining-decisions) and roadmap supersede their pending
@@ -97,10 +104,10 @@ and Playwright Chromium. Measurements, recordings and comparisons are outside th
 worktree in `/tmp/babel-optimization/`. All owned browsers and servers were stopped.
 
 No linguistic interpretation rule, accepted appearance, camera policy, prompt,
-provider payload, JSON repair or incomplete-record policy changed. The extreme
-plaque export boundary below remains: saving retains all rows, but a static image
-or printed page shows only the visible scroll window. Full-row print presentation
-still needs an agreed design.
+provider payload, JSON repair or incomplete-record policy changed. Saving retains
+all rows; a static image or printed page shows the visible scroll window. Francis
+subsequently confirmed that this is sufficient for previews and rejected a new
+all-rows print requirement. No export implementation is needed for this observation.
 
 ## Extended offline checks, 13 September
 
