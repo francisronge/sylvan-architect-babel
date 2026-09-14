@@ -177,6 +177,8 @@ export interface ReplayDerivationFrame {
 
 interface DerivationReplayPlanStep {
   registeredEntryId?: string;
+  /** Exact evidence owned by the neutral primary, excluding recovered sibling claims. */
+  neutralTransitionEvidence?: Pick<DerivationStageRelation, 'anchors' | 'priorAnchors'>;
   recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
@@ -1827,13 +1829,14 @@ const resolveFallbackTreeTransitionOwnership = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): FallbackTreeTransitionOwnership | null => {
-  if (findRelationRegistryEntry(
+  if (!relation.neutralTransitionEvidence && findRelationRegistryEntry(
     productionRelationRegistry,
     String(relation.relation || '').trim()
   )) return null;
 
-  const currentAnchorIds = relationAnchorNodeIds(relation.anchors);
-  const priorAnchorIds = relationAnchorNodeIds(relation.priorAnchors);
+  const evidence = relation.neutralTransitionEvidence ?? relation;
+  const currentAnchorIds = relationAnchorNodeIds(evidence.anchors);
+  const priorAnchorIds = relationAnchorNodeIds(evidence.priorAnchors);
   if (currentAnchorIds.length === 0 || priorAnchorIds.length === 0) return null;
 
   const currentAnchors = currentAnchorIds.map((nodeId) =>
@@ -2204,7 +2207,7 @@ const relationOwnsNonMovementTreeTransition = (
     relationName
   );
 
-  if (!registryEntry) {
+  if (!registryEntry || relation.neutralTransitionEvidence) {
     return Boolean(resolveFallbackTreeTransitionOwnership(
       relation,
       previousForest,
@@ -6906,8 +6909,15 @@ export const getFrameRelations = (
     };
     const dispatch = dispatchRelationClaims(input);
     const evidence = dispatch.evidence;
-    const boundStep = dispatch.primaryClaim?.tier === 1 ? {
+    const interpretedStep = dispatch.primaryClaim?.tier === 3 ? {
       ...authoredStep,
+      neutralTransitionEvidence: {
+        anchors: dispatch.primaryRelation.anchors,
+        priorAnchors: dispatch.primaryRelation.priorAnchors
+      }
+    } : authoredStep;
+    const boundStep = dispatch.primaryClaim?.tier === 1 ? {
+      ...interpretedStep,
       registeredEntryId: dispatch.primaryClaim.registryEntryId,
       resolvedAnchors: authoredStep.resolvedAnchors?.map(anchor => {
         const binding = dispatch.tier1Dispatch.roleBindings.find(binding =>
@@ -6915,7 +6925,7 @@ export const getFrameRelations = (
         return binding && binding.role !== anchor.role
           ? { ...anchor, role: binding.role, authoredRole: anchor.role } : anchor;
       })
-    } : authoredStep;
+    } : interpretedStep;
     const pronunciationNodeIds = dispatch.primaryClaim?.tier === 1
       && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.transitionKinds?.includes('pronunciation')
       ? relationAnchorNodeIds(dispatch.boundPrimaryRelation.anchors)

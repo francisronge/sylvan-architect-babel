@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { getFrameRelations } from '../replay/replayCompiler.ts';
 import { __test__ as parser } from '../server/babelParser.js';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
@@ -40,6 +41,43 @@ test('an added container is completed after existing children are attached to it
     assert.equal(material.filter(n => n.id === 'old').length, 1);
     assert.deepEqual(record, original);
   }
+});
+
+test('neutral structural timing is independent of an incomplete registered name', () => {
+  for (const name of ['wh-movement', 'Unregistered change']) {
+    const phrase = { id: 'phrase', label: 'DP', lineageId: 'phrase-family', children: [{ id: 'word', label: 'D', word: 'what' }] };
+    const state = (children, relations = []) => ({ statement: 'Authored state', stageRecord: '', relations,
+      workspaceForest: [{ id: 'root', label: 'CP', children }] });
+    const record = { derivationStages: [
+      state([{ id: 'origin', label: 'VP', children: [phrase] }]),
+      state([phrase, { id: 'origin', label: 'VP', children: [{ id: 'trace', label: 'DP', lineageId: 'phrase-family', silent: true }] }], [
+        { relation: name, anchors: { headOfChain: 'phrase', footOfChain: 'trace' }, priorAnchors: { location: 'origin' } }
+      ])
+    ] };
+    const original = structuredClone(record);
+    const steps = play(record);
+    const moment = moments(steps, 1)[0];
+    const before = steps[steps.indexOf(moment) - 1];
+    const parent = (step, id) => nodes(step.replayCanvasData).find(n => n.children?.some(c => c.id === id))?.id;
+    assert.equal(parent(before, 'phrase'), 'origin', 'the phrase remains at its prior position until the relation');
+    assert.ok(!visible(before, 'trace'));
+    assert.equal(parent(moment, 'phrase'), 'root');
+    assert.ok(visible(moment, 'trace'));
+    const items = compileRelationRenderPlan(record.derivationStages).frames.at(-1).items;
+    assert.ok(items.some(i => i.kind === 'fallback'));
+    assert.ok(!items.some(i => i.kind === 'trajectory'), 'correct timing does not earn an arrow');
+    assert.deepEqual(record, original);
+  }
+});
+
+test('neutral transition evidence excludes an independently recovered sibling claim', () => {
+  const forest = [{ id: 'a', label: 'DP' }, { id: 'b', label: 'DP' }, { id: 'c', label: 'X' }, { id: 'd', label: 'X' }];
+  const relation = { relation: 'wh-movement', anchors: { headOfChain: 'a', footOfChain: 'b', assigner: 'c', recipient: 'd' },
+    priorAnchors: { location: 'b' }, values: { case: 'Accusative' } };
+  const [step] = getFrameRelations({ workspaceForest: forest }, { relationSteps: [relation] }, forest);
+  assert.deepEqual(step.neutralTransitionEvidence.anchors, { headOfChain: 'a', footOfChain: 'b' });
+  assert.deepEqual(step.neutralTransitionEvidence.priorAnchors, { location: 'b' });
+  assert.deepEqual(step.anchors, relation.anchors, 'all original participants remain available for display');
 });
 
 const mixedHeadStage = (anchor = 'd_john_hi') => {
