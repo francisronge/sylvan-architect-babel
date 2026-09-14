@@ -242,7 +242,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       document.fonts?.removeEventListener('loadingdone', settle);
     };
   }, []);
-  const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks, playbackSteps } = useMemo(
+  const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+    movementChainIndexCatalogue, playbackSteps } = useMemo(
     () => preparedReplay ?? prepareReplay({ derivationStages, sentence, includePlayback: animated }),
     [preparedReplay, derivationStages, sentence, animated]
   );
@@ -410,10 +411,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? buildResolvedLinkTraceIndexMap(
           traceDisplayFrame.workspaceForest || [],
           traceDisplayRelationLinks,
-          traceDisplayFrameIndex
+          traceDisplayFrameIndex,
+          movementChainIndexCatalogue
         )
       : new Map<string, string>()
-  ), [traceDisplayFrame, traceDisplayFrameIndex, traceDisplayRelationLinks]);
+  ), [traceDisplayFrame, traceDisplayFrameIndex, traceDisplayRelationLinks, movementChainIndexCatalogue]);
   const isFinalDerivationReplayStep = usesDerivationFrames
     && activeStepIndex >= playbackSteps.length - 1;
   useEffect(() => {
@@ -719,9 +721,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         );
         if (lexicalMovementTraceIndex) {
           /*
-           * Occupant-as-authored: a silent lexical movement copy keeps its
-           * authored words. Babel contributes only silence styling and the
-           * chain-index subscript; it never converts a copy into a trace.
+           * Each movement occurrence keeps its authored words and gains only
+           * the chain-index subscript. Pronunciation remains independently
+           * authored; an index never converts a copy into a trace.
            * Trace display is reserved for occupants the model authored as
            * traces.
            */
@@ -1380,13 +1382,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       return false;
     }
     const getMovementCopyTraceIndex = (d: HierNode): string => {
-      const arrowTraceIndex = movedFromCopyTraceIndexByTerminalId.get(getNodeId(d));
-      if (arrowTraceIndex) return arrowTraceIndex;
-      return resolveLexicalMovementTraceDisplayIndex(
+      const chainIndex = resolveLexicalMovementTraceDisplayIndex(
         d,
         resolveLeafSurface(d),
         resolveTraceIndexFromNodeContext(d, derivationTraceIndexByNodeId)
       );
+      if (hasDerivationFrames) return chainIndex;
+      const arrowTraceIndex = movedFromCopyTraceIndexByTerminalId.get(getNodeId(d));
+      if (arrowTraceIndex) return arrowTraceIndex;
+      return '';
     };
     // Every leaf that is not a wordless category is terminal material: a
     // pronounced word, a silent copy, or authored notation.
@@ -1402,10 +1406,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const nodeId = getNodeId(d);
       const movedFromCopyTraceIndex = getMovementCopyTraceIndex(d);
       if (movedFromCopyTraceIndex) {
-        // Occupant-as-authored: the vacated copy keeps its authored words and
-        // gains only the chain-index subscript.
+        // Both endpoints keep their authored words and pronunciation.
         return formatIndexedSurfaceForDisplayValue(
-          getReplayTerminalSurface(d),
+          maybeCapitalizeSurfacedSentenceInitialLeaf(d, getReplayTerminalSurface(d)),
           movedFromCopyTraceIndex
         );
       }
@@ -1497,7 +1500,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     g.selectAll<SVGTextElement, HierNode>('.terminal-label')
       .filter((candidate) => {
         const nodeId = getNodeId(candidate);
-        if (getMovementCopyTraceIndex(candidate)) return true;
+        if (getMovementCopyTraceIndex(candidate) && isRenderedReplaySilentTerminalLeaf(candidate)) return true;
         return isTraceLike(getReplayRenderedTerminalText(candidate))
           && !operatorVariableWitnessNodeIds.has(nodeId);
       })

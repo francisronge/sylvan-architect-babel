@@ -5215,6 +5215,7 @@ export const formatIndexedSurfaceForDisplayValue = (
   surface: string,
   index?: string | null
 ): string => {
+  if (extractMovementIndex(surface)) return surface;
   const suffix = normalizeTraceIndexForDisplay(index);
   return suffix ? `${surface}${toSubscriptDigits(suffix)}` : surface;
 };
@@ -5226,7 +5227,8 @@ export const formatTraceSurfaceForDisplayValue = (
   const raw = String(surface || '').trim();
   if (!raw) return buildTraceDisplayLabel(fallbackIndex);
   if (!isTraceLike(raw)) return raw;
-  return buildTraceDisplayLabel(fallbackIndex || extractMovementIndex(raw));
+  const authoredIndex = normalizeTraceIndexForDisplay(extractMovementIndex(raw));
+  return buildTraceDisplayLabel(/^\d+$/.test(authoredIndex) ? authoredIndex : fallbackIndex || authoredIndex);
 };
 
 const DISPLAY_TRACE_LABEL_RE = /^t(?:[₀₁₂₃₄₅₆₇₈₉]+)?$/;
@@ -5257,7 +5259,7 @@ export const isDisplayTraceLabel = (value?: string): boolean =>
   DISPLAY_TRACE_LABEL_RE.test(String(value || '').trim());
 
 export const resolveLexicalMovementTraceDisplayIndex = (
-  node: HierNode,
+  _node: HierNode,
   surface: string,
   traceIndex?: string | null
 ): string => {
@@ -5271,14 +5273,8 @@ export const resolveLexicalMovementTraceDisplayIndex = (
     return '';
   }
 
-  let current: HierNode | null = node;
-  while (current) {
-    if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) {
-      return normalizeTraceIndexForDisplay(traceIndex);
-    }
-    current = current.parent;
-  }
-  return '';
+  // Membership in an established movement chain is independent of pronunciation.
+  return normalizeTraceIndexForDisplay(traceIndex);
 };
 
 export const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
@@ -5438,13 +5434,48 @@ export const resolveTraceIndexFromNodeContext = (
   return undefined;
 };
 
+export interface MovementChainIndexCatalogue {
+  forest: SyntaxNode[];
+  links: ResolvedRelationLink[];
+  authoredIndicesByNodeId?: Map<string, Set<string>>;
+}
+
+/** Retain disappeared occurrences and authored indices without changing any stage. */
+export const buildMovementChainIndexCatalogue = (
+  forests: SyntaxNode[][],
+  links: ResolvedRelationLink[] = []
+): MovementChainIndexCatalogue => {
+  const forest: SyntaxNode[] = [];
+  const retainedIds = new Set<string>();
+  const authoredIndicesByNodeId = new Map<string, Set<string>>();
+  const retain = (node: SyntaxNode) => {
+    if (!retainedIds.has(node.id)) {
+      forest.push(node);
+      collectSubtreeNodeIds(node).forEach(id => retainedIds.add(id));
+    }
+    const index = normalizeTraceIndexForDisplay(extractMovementIndex(String(node.word || node.label || '')));
+    if (/^\d+$/.test(index)) {
+      const indices = authoredIndicesByNodeId.get(node.id) ?? new Set<string>();
+      indices.add(index);
+      authoredIndicesByNodeId.set(node.id, indices);
+    }
+    (node.children || []).forEach(retain);
+  };
+  for (let stage = forests.length - 1; stage >= 0; stage -= 1) forests[stage].forEach(retain);
+  return { forest, links, authoredIndicesByNodeId };
+};
+
 export const buildResolvedLinkTraceIndexMap = (
   currentForest: SyntaxNode[],
   resolvedRelationLinks: ResolvedRelationLink[] | undefined,
-  activeStepIndex: number
+  activeStepIndex: number,
+  catalogue?: MovementChainIndexCatalogue
 ): Map<string, string> => {
   const traceIndexByNodeId = new Map<string, string>();
   const links = Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : [];
+  const catalogueForest = catalogue?.forest ?? currentForest;
+  const movementLinks = (catalogue?.links ?? links).filter(isResolvedMovementLink)
+    .sort((left, right) => (left.stepIndex ?? 0) - (right.stepIndex ?? 0));
   const partialDeletionNodeIds = new Set<string>();
   links.forEach((link) => {
     const relationName = String(link?.relation || link?.operation || '')
@@ -5501,18 +5532,6 @@ export const buildResolvedLinkTraceIndexMap = (
       .filter((leafId) => Boolean(leafId) && !partialDeletionNodeIds.has(leafId))
       .forEach((leafId) => assignIndexIfUnclaimed(leafId, normalizedIndex));
   };
-  const resolveAuthoredMovementIndex = (...nodeIds: string[]): string => {
-    for (const nodeId of nodeIds) {
-      const node = findNodeByIdInForest(currentForest, String(nodeId || '').trim());
-      if (!node) continue;
-      for (const candidate of [node, ...collectLeafSyntaxNodes(node)]) {
-        const surface = String(candidate?.word || candidate?.label || '').trim();
-        const authoredIndex = normalizeTraceIndexForDisplay(extractMovementIndex(surface));
-        if (/^\d+$/.test(authoredIndex)) return authoredIndex;
-      }
-    }
-    return '';
-  };
   /*
    * Multi-source trajectories (across-the-board, and any authored array of
    * source/witness anchors) carry only their first pair in the scalar
@@ -5532,9 +5551,6 @@ export const buildResolvedLinkTraceIndexMap = (
       .map((anchor) => String((anchor as { nodeId?: string })?.nodeId || '').trim())
       .filter(Boolean);
   };
-  const activeMovementLinks = links.filter((link) =>
-    isResolvedMovementLink(link)
-    && (!Number.isInteger(link?.stepIndex) || Number(link.stepIndex) <= activeStepIndex));
   const movementParent = new Map<string, string>();
   const findMovementRoot = (nodeId: string): string => {
     const currentParent = movementParent.get(nodeId);
@@ -5553,32 +5569,64 @@ export const buildResolvedLinkTraceIndexMap = (
     const rightRoot = findMovementRoot(right);
     if (leftRoot !== rightRoot) movementParent.set(rightRoot, leftRoot);
   };
-  activeMovementLinks.forEach((link) => {
-    const nodeIds = Array.from(new Set([
-      link.sourceNodeId,
-      link.targetNodeId,
-      link.witnessNodeId,
-      ...linkAnchorIdsByRoles(link, TRAJECTORY_SOURCE_ROLES),
-      ...linkAnchorIdsByRoles(link, TRAJECTORY_WITNESS_ROLES)
-    ].map((nodeId) => String(nodeId || '').trim()).filter(Boolean)));
+  const movementNodeIds = (link: ResolvedRelationLink): string[] => Array.from(new Set([
+    link.sourceNodeId,
+    link.targetNodeId,
+    link.witnessNodeId,
+    ...linkAnchorIdsByRoles(link, TRAJECTORY_SOURCE_ROLES),
+    ...linkAnchorIdsByRoles(link, TRAJECTORY_WITNESS_ROLES)
+  ].map((nodeId) => String(nodeId || '').trim()).filter(Boolean)));
+  movementLinks.forEach((link) => {
+    const nodeIds = movementNodeIds(link);
     nodeIds.forEach((nodeId) => findMovementRoot(nodeId));
     nodeIds.slice(1).forEach((nodeId) => unionMovementNodes(nodeIds[0], nodeId));
   });
-  const componentIndices = new Map<string, string>();
-  activeMovementLinks.forEach((link) => {
-    const nodeIds = [link.sourceNodeId, link.targetNodeId, link.witnessNodeId]
-      .map((nodeId) => String(nodeId || '').trim())
-      .filter(Boolean);
+  const authoredIndices = new Map<string, Set<string>>();
+  const reservedIndices = new Set<string>();
+  const authoredIndex = (node: SyntaxNode): string => {
+    const index = normalizeTraceIndexForDisplay(extractMovementIndex(String(node.word || node.label || '')));
+    return /^\d+$/.test(index) ? index : '';
+  };
+  const reserveAuthoredIndices = (node: SyntaxNode) => {
+    const index = authoredIndex(node);
+    if (index) reservedIndices.add(index);
+    (node.children || []).forEach(reserveAuthoredIndices);
+  };
+  catalogueForest.forEach(reserveAuthoredIndices);
+  catalogue?.authoredIndicesByNodeId?.forEach(indices => indices.forEach(index => reservedIndices.add(index)));
+  movementLinks.forEach((link) => {
+    const nodeIds = movementNodeIds(link);
     const root = nodeIds[0] ? findMovementRoot(nodeIds[0]) : '';
     if (!root) return;
-    const authoredIndex = resolveAuthoredMovementIndex(...nodeIds);
-    const fallbackIndex = String(link?.relationIndex || '').trim();
-    const candidate = authoredIndex || fallbackIndex;
-    if (!candidate) return;
-    const existing = componentIndices.get(root);
-    if (!existing || (Number.isFinite(Number(candidate)) && Number(candidate) < Number(existing))) {
-      componentIndices.set(root, candidate);
+    const indices = authoredIndices.get(root) ?? new Set<string>();
+    const collect = (node: SyntaxNode) => {
+      // An embedded gap keeps the index of its own chain, not its carrier's.
+      if (movementParent.has(node.id) && findMovementRoot(node.id) !== root) return;
+      const index = authoredIndex(node);
+      if (index) indices.add(index);
+      catalogue?.authoredIndicesByNodeId?.get(node.id)?.forEach(index => indices.add(index));
+      (node.children || []).forEach(collect);
+    };
+    nodeIds.forEach((nodeId) => {
+      const node = findNodeByIdInForest(catalogueForest, nodeId);
+      if (node) collect(node);
+    });
+    authoredIndices.set(root, indices);
+  });
+  // Number complete connected chains once. Relation position, drawing tier and
+  // the currently visible prefix do not determine chain identity or numbering.
+  const componentIndices = new Map<string, string>();
+  let nextIndex = 1;
+  authoredIndices.forEach((indices, root) => {
+    if (indices.size > 1) return; // Conflicting authored indices are not repaired.
+    if (indices.size === 1) {
+      componentIndices.set(root, indices.values().next().value as string);
+      return;
     }
+    while (reservedIndices.has(String(nextIndex))) nextIndex += 1;
+    const index = String(nextIndex++);
+    reservedIndices.add(index);
+    componentIndices.set(root, index);
   });
   links.forEach((link) => {
     /* A resolved relation is not automatically a movement chain. */
@@ -5591,9 +5639,7 @@ export const buildResolvedLinkTraceIndexMap = (
     const componentIndex = componentNodeId
       ? componentIndices.get(findMovementRoot(componentNodeId))
       : '';
-    const index = resolveAuthoredMovementIndex(traceId, sourceId)
-      || componentIndex
-      || String(link?.relationIndex || '').trim();
+    const index = componentIndex;
     const stepIndex = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
     if (!index || stepIndex > activeStepIndex) return;
 
@@ -5607,12 +5653,7 @@ export const buildResolvedLinkTraceIndexMap = (
     linkAnchorIdsByRoles(link, TRAJECTORY_SOURCE_ROLES)
       .filter((nodeId) => nodeId !== sourceId)
       .forEach((nodeId) => assignIndexToMovementSource(nodeId, index));
-    if (movedId) {
-      const movedNode = findNodeByIdInForest(currentForest, movedId);
-      if (movedNode && isNotationLeaf(movedNode)) {
-        assignIndexToNodeAndLeaves(movedId, index);
-      }
-    }
+    if (movedId) assignIndexToNodeAndLeaves(movedId, index);
   });
   return traceIndexByNodeId;
 };
@@ -7169,9 +7210,8 @@ export const buildAuthoredRelationLinksForFrames = (
   const links: ResolvedRelationLink[] = [];
 
   for (let frameIndex = 0; frameIndex <= Math.min(activeFrameIndex, frames.length - 1); frameIndex += 1) {
-    const plannedStage = getReplayPlanStage(replayPlan, frameIndex);
     const relations = frameRelations?.(frameIndex)
-      ?? getFrameRelations(frames[frameIndex], plannedStage, frames[frameIndex - 1]?.workspaceForest || []);
+      ?? getFrameRelations(frames[frameIndex], getReplayPlanStage(replayPlan, frameIndex), frames[frameIndex - 1]?.workspaceForest || []);
     const relationLimit = frameIndex === activeFrameIndex
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
@@ -7265,6 +7305,19 @@ export const buildAuthoredRelationLinksForFrames = (
   }
 
   return links;
+};
+
+export const buildMovementChainIndexCatalogueForFrames = (
+  frames: ReplayDerivationFrame[],
+  replayPlan: DerivationReplayPlan | null | undefined
+): MovementChainIndexCatalogue => {
+  const links = frames.flatMap((frame, stageIndex) => {
+    const relations = getFrameRelations(frame, getReplayPlanStage(replayPlan, stageIndex),
+      frames[stageIndex - 1]?.workspaceForest || []);
+    return buildAuthoredRelationLinksForFrames(frames, replayPlan, stageIndex, frame.workspaceForest || [],
+      Number.POSITIVE_INFINITY, index => index === stageIndex ? relations : []);
+  });
+  return buildMovementChainIndexCatalogue(frames.map(frame => frame.workspaceForest || []), links);
 };
 
 const formatRelationAnchorValue = (

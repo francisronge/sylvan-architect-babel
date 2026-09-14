@@ -334,7 +334,7 @@ test('a movement relation still assigns its index to the authored trace witness'
 
   assert.equal(traceIndices.get('low_dp'), '1');
   assert.equal(traceIndices.get('low_d'), '1');
-  assert.equal(traceIndices.has('high_dp'), false);
+  assert.equal(traceIndices.get('high_dp'), '1');
 });
 
 test('successive movement links preserve one authored index across the chain', () => {

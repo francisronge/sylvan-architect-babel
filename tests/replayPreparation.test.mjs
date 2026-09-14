@@ -34,7 +34,8 @@ test('worker preparation preserves all archived frames, decorations and render p
       const legacySteps = buildReplayPlayback({ sentence: input.sentence, analyses: [{ derivationStages }] }).steps;
       const legacyDecorated = applyPreFrontingSentenceInitialCasing(decoratePlaybackStepsWithTraceIndices(
         legacySteps.map(hidePendingInflSpecifierWrappersInStep),
-        buildResolvedLinkTraceIndexMap(finalForest, prepared.committedDerivationVisualLinks, Number.MAX_SAFE_INTEGER)
+        buildResolvedLinkTraceIndexMap(finalForest, prepared.movementChainIndexCatalogue.links,
+          Number.MAX_SAFE_INTEGER, prepared.movementChainIndexCatalogue)
       ), input.sentence);
       assert.deepEqual(prepared.playbackSteps, legacyDecorated);
       const reply = once(worker, 'message');
@@ -57,7 +58,8 @@ test('Canopy preparation keeps its plan without preparing playback, and empty in
   assert.deepEqual(canopy, { ...replay, playbackSteps: [] });
   assert.deepEqual(prepareReplay({ sentence: '', includePlayback: true }), {
     replayDerivationFrames: [], derivationReplayPlan: null, relationRenderPlan: null,
-    committedDerivationVisualLinks: [], playbackSteps: []
+    committedDerivationVisualLinks: [],
+    movementChainIndexCatalogue: { forest: [], links: [], authoredIndicesByNodeId: new Map() }, playbackSteps: []
   });
 });
 

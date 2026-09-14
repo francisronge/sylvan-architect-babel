@@ -162,6 +162,15 @@ phrase attaches through a neutral relation's existing current/prior ownership.
 Earlier relations referencing that projection prevent deferral. This changes
 display timing only; it does not earn a movement drawing or rewrite the stage.
 
+Movement indices identify connected established occurrences, not relation-list
+positions. A complete history catalogue resolves links against their own stages
+and reserves numbering before playback; active links control index visibility.
+Both lower and landing occurrences show their chain membership independently of
+pronunciation. Numeric authored indices take precedence and reserve their numbers;
+conflicts remain authored rather than receiving a generated resolution. Existing
+alphabetic trace formatting, other dependency letters and Tier-3 locators retain
+their separate conventions. Shared words or lineage alone do not prove movement.
+
 When an exact movement endpoint is a wordless category leaf, attach to that
 category's shell bottom. Do not request an absent lexical child, invent a null
 or trace, or search for another nearby endpoint. Lexical endpoints still require

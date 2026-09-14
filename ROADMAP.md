@@ -171,7 +171,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,602 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,614 tests, typecheck and both parse-contract fixtures pass.
 Compiler diagnostics remain in inspection evidence, never in the Replay bar.
 The inspection-only `Audit` rows were removed after Francis rejected that
 placement; retaining diagnostic evidence did not authorize adding it to Replay.
@@ -238,6 +238,37 @@ linguistic reasoning without endocentricity, branching or label prescriptions.
 The base JSON contract is unchanged. Generation provenance hashes the exact new
 prompt; saved requests and prose are untouched. Whether this reduces checklist
 prose or changes analysis quality requires a future authorized provider check.
+
+The next notation/timing pass repairs four reproduced defects:
+
+- Gap notation reuses its exact owned display terminal, including allocated-ID
+  collisions. Grok X-bar's extra floating `did` disappears; the authored lower
+  occurrence remains. This is Tier-2 notation reuse, not movement recognition.
+- Generic gap labels and coindices retain their accepted automatic-Fit size, then
+  scale with the tree. Their stack spacing uses the same Fit reference across
+  zoom and redraw. Native Orchard paint and circled Tier-3 sizing are unchanged.
+- A neutral relation that already owns an exact phrase's relocation can reveal
+  its waiting unary projection with that attachment. Earlier projection anchors
+  prevent deferral. Grok X-bar now has 40 frames; CP first appears at its wh
+  relation, frame 37, instead of the deleted premature projection step.
+- Established movement chains receive stable, separate numeric indices from the
+  full authored history, with both endpoints marked after their relation moment.
+  Unrelated relation positions and drawing tiers do not assign those numbers.
+  Numeric authored indices take precedence, generated indices avoid collisions,
+  and conflicting authored indices are not repaired. Existing alphabetic trace
+  typography is unchanged. Historical links resolve against their actual stages.
+
+The integrated comparison checks 208 before and 207 after frames across the six
+saved analyses. No label clipping, Replay-panel coverage, within-stage camera
+change or browser error occurs. Zoom/pan/Next/Fit pass on all six; twelve narrow
+spot checks pass. A separately labelled notation control confirms unchanged
+initial sizing and proportional zoom with stable stacked positions after redraw.
+These checks do not approve every possible annotation composition or viewport.
+
+Shared evidence-based participant recognition is explicitly deferred. No aliases,
+new role interpretation, movement acceptance rule, prompt change or provider call
+was added in this pass. Grok X-bar's wh signature and I-to-C identity/shape limits
+remain part of that broader investigation; display timing does not certify them.
 
 Previous checkpoint: the 1,588-test cleanup removed 71 source-spelling, import-list, quantity-only and
 redundant checks. Behavioral, data-preservation and declarative paint checks

@@ -4,6 +4,7 @@ import {
   adaptDerivationStagesForReplay,
   applyPreFrontingSentenceInitialCasing,
   buildAuthoredRelationLinksForFrames,
+  buildMovementChainIndexCatalogueForFrames,
   buildPlaybackStepsFromDerivationFrames,
   buildResolvedLinkTraceIndexMap,
   decoratePlaybackStepsWithTraceIndices,
@@ -31,10 +32,13 @@ export const prepareReplay = ({ derivationStages, sentence, includePlayback }: R
   const committedDerivationVisualLinks = finalFrame
     ? buildAuthoredRelationLinksForFrames(replayDerivationFrames, derivationReplayPlan, finalIndex, finalFrame.workspaceForest || [])
     : [];
+  const movementChainIndexCatalogue = buildMovementChainIndexCatalogueForFrames(
+    replayDerivationFrames, derivationReplayPlan);
   let playbackSteps: PlaybackStep[] = [];
   if (includePlayback && finalFrame) {
     const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
-      finalFrame.workspaceForest || [], committedDerivationVisualLinks, Number.MAX_SAFE_INTEGER
+      finalFrame.workspaceForest || [], movementChainIndexCatalogue.links, Number.MAX_SAFE_INTEGER,
+      movementChainIndexCatalogue
     );
     const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan)
       .map(hidePendingInflSpecifierWrappersInStep);
@@ -42,7 +46,8 @@ export const prepareReplay = ({ derivationStages, sentence, includePlayback }: R
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence
     );
   }
-  return { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks, playbackSteps };
+  return { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+    movementChainIndexCatalogue, playbackSteps };
 };
 
 export type PreparedReplay = ReturnType<typeof prepareReplay>;

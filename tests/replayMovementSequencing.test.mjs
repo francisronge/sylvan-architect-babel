@@ -58,7 +58,7 @@ const node = (id, label, children, extra = {}) => ({
   ...extra
 });
 
-test('derived movement traces replace only silent lexical copies', () => {
+test('established movement indices apply to overt and silent occurrences without changing pronunciation', () => {
   const overtRoot = d3.hierarchy(node('dp_overt', 'DP', [
     leaf('d_overt', 'D', 'keoi')
   ]));
@@ -68,14 +68,16 @@ test('derived movement traces replace only silent lexical copies', () => {
 
   assert.equal(
     resolveLexicalMovementTraceDisplayIndex(overtRoot.leaves()[0], 'keoi', '1'),
-    '',
-    'an overt resumptive exponent must remain pronounced even when its earlier copy relation persists'
+    '1',
+    'a pronounced occurrence can show its chain membership'
   );
   assert.equal(
     resolveLexicalMovementTraceDisplayIndex(silentRoot.leaves()[0], 'which', '1'),
     '1',
-    'a vacated silent lexical occurrence may display its derived movement trace'
+    'a silent lexical occurrence can show the same chain membership'
   );
+  assert.equal(overtRoot.leaves()[0].data.silent, undefined);
+  assert.equal(silentRoot.data.silent, true);
 });
 
 // Replay may give a pronounced leaf a stable synthetic id and keep the
