@@ -28,6 +28,59 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Large Replay lifecycle checks, 14 September
+
+The authorized follow-up measured production-browser preparation memory and
+repeated use without further renderer or compiler changes. These synthetic
+controls exercise tree size and repeated stage structure; they are not linguistic
+analyses or evidence of typical model-output complexity. The flow was saved-data
+loading into Replay, jumps to the middle/end/start, Canopy/Replay switching,
+interruption during preparation and successful re-entry. Provider calls were
+blocked. The Browser plugin was unavailable, so the existing Playwright Chromium
+installation ran against the local production app at 1600×1100.
+
+| Control | Stages | Frames | Load through first render | Highest sampled worker JS heap | Page JS heap after final-frame GC | Sampled frame jumps |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Deep left branching | 64 | 319 | 1.25 s | 26.5 MB | 17.3 MB | 26–65 ms |
+| Balanced | 128 | 639 | 6.16 s | 89.2 MB | 48.0 MB | 25–153 ms |
+| Deep left branching | 160 | 799 | 11.96 s | 126.3 MB | 96.3 MB | 29–245 ms |
+| Balanced, two final workspaces | 192 | 958 | 19.11 s | 181.9 MB | 101.6 MB | 31–274 ms |
+
+Worker heap usage was queried through Chrome's worker inspector about every
+100 ms, producing 11, 57, 112 and 179 samples respectively. These are observed
+maxima, not exact peaks, and exclude non-JavaScript worker allocations. Summed
+RSS across the owned browser's processes reached about 0.67–1.12 GB; shared memory
+can be counted more than once. This is whole-browser RSS, not worker-only memory.
+Preparation and navigation animation-frame gaps reached about 46–254 ms. The
+instrumented single runs are capacity observations, not a replacement for the
+earlier alternating three-run performance comparison.
+
+Forty Canopy/Replay cycles on the 64-stage/319-frame control completed all 81
+workers. Post-GC main-page heaps at cycles 1/10/20/30/40 were
+17.77/18.86/18.97/19.13/19.27 MB. This shows no accumulation of complete prepared
+derivations in that session; it does not prove zero memory growth indefinitely.
+Fifteen further preparations were interrupted after worker creation and before
+a result. Every worker terminated, Replay reopened with all 319 frames, and the
+post-GC page heap was 19.33 MB.
+
+Every tested preparation completed, and sampled frames contained finite tree
+geometry without page errors. Screenshots confirm rendering, but full-tree views
+of these extreme trees have tiny labels and can require zoom/pan. This is not
+blanket readability approval, nor a new reason to change accepted camera/layout
+policy. The probe's initial one-root frame-count assumption was corrected for
+the 192-stage control's two authored final workspaces; no application change was
+needed. Completed cases were retained while the remaining checks resumed.
+
+No additional rendering or memory fix was justified by this bounded pass. Large
+stress preparations still take seconds and extreme navigation can pause briefly.
+Slower devices, exact peak native memory and deployed runtime behavior remain
+outside these results. The full gate passes 1,659 tests, typecheck and both
+normalized fixtures; production build and release-asset checks pass. Browser
+evidence and screenshots remain in `/tmp/babel-lifecycle-checks/`. The browser
+closed, the owned production server exited, and no provider calls were made.
+The requested offline lifecycle work is complete; the other decisions remain for
+discussion with Francis.
+
 ## Request lifecycle, 14 September
 
 Francis authorized completing stalled/disconnected-request work while leaving
