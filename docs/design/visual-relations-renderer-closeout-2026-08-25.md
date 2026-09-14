@@ -78,6 +78,13 @@ transfer and D3 layout/painting still involve the UI thread. There is no persist
 cache, worker pool, automatic provider retry or change to JSON processing. Canopy
 preparation omits Replay steps; switching into Replay prepares those steps then.
 
+Within one compilation, interpreted stage relations are reused when constructing
+cumulative links. Links still resolve against their current forest and relation
+limit. Tree lookups for casing and visible-token accounting are local to one
+canvas. They preserve first-preorder ID/alias resolution, inherited flags and
+existing count rules. Neither reuse mechanism survives a new preparation or
+changes the serialized result.
+
 ## Review
 
 Fable reviewed the broad renderer closeout and returned **GREEN**, with no

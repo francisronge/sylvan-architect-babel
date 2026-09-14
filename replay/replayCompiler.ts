@@ -2220,6 +2220,15 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const identity = createReplayIdentityContext(frames.flatMap(frame => frame.workspaceForest || []));
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
   const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
+  const resolvedRelationsByFrame = new Map<number, DerivationReplayPlanStep[]>();
+  // Authored stages stay fixed during this compilation. Reuse their interpreted
+  // relations when building cumulative links; each link still binds to its current forest.
+  const resolveFrameRelations = (index: number) => {
+    if (!resolvedRelationsByFrame.has(index)) resolvedRelationsByFrame.set(index, getFrameRelations(
+      frames[index], getReplayPlanStage(replayPlan, index), frames[index - 1]?.workspaceForest || []
+    ));
+    return resolvedRelationsByFrame.get(index)!;
+  };
   const pendingProjectionReveals: Array<{
     nodeId: string;
     firstStageIndex: number;
@@ -2284,7 +2293,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       ? frames[index - 1].workspaceForest
       : [];
     const plannedFrameRelations = plannedStage
-      ? getFrameRelations(frame, plannedStage, previousFrameWorkspaceRoots)
+      ? resolveFrameRelations(index)
       : [];
     plannedRelationsByFrame[index] = plannedFrameRelations;
     plannedFrameRelations.forEach((relation, relationIndex) => {
@@ -2414,7 +2423,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
           frames,
           replayPlan,
           index - 1,
-          workspaceRoots
+          workspaceRoots,
+          Number.POSITIVE_INFINITY,
+          resolveFrameRelations
         )
       : [];
     const authoredCumulativeRelationRelationLinks = plannedStage
@@ -2422,7 +2433,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
           frames,
           replayPlan,
           index,
-          workspaceRoots
+          workspaceRoots,
+          Number.POSITIVE_INFINITY,
+          resolveFrameRelations
         )
       : [];
     const currentFrameVisibleNodeIds = collectVisibleDerivationNodeIds(
@@ -2718,14 +2731,16 @@ export const buildPlaybackStepsFromDerivationFrames = (
             replayPlan,
             index,
             workspaceRoots,
-            authoredRelationIndex
+            authoredRelationIndex,
+            resolveFrameRelations
           );
           const beforeRelationLinks = buildAuthoredRelationLinksForFrames(
             frames,
             replayPlan,
             index,
             workspaceRoots,
-            authoredRelationIndex - 1
+            authoredRelationIndex - 1,
+            resolveFrameRelations
           );
           const beforeLinkKeys = new Set(beforeRelationLinks.map((link) => resolvedRelationLinkKey(link)));
           singleRelationLinksByIndex.set(
@@ -3989,21 +4004,45 @@ const collectVisibleReplayOvertTokenCounts = (step?: PlaybackStep | null): Map<s
       .filter(Boolean)
   );
   const countedLeafIds = new Set<string>();
+  const nodesByName = new Map<string, SyntaxNode>();
+  const index = (node: SyntaxNode) => {
+    for (const name of [node.id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
+      const key = String(name || '').trim();
+      if (!nodesByName.has(key)) nodesByName.set(key, node);
+    }
+    (Array.isArray(node.children) ? node.children : []).forEach(index);
+  };
+  index(step.replayCanvasData);
+  const countedSubtrees = new Set<SyntaxNode>();
+  const countLeaves = (node: SyntaxNode): boolean => {
+    if (countedSubtrees.has(node)) return true;
+    const children = Array.isArray(node.children) ? node.children : [];
+    let complete: boolean;
+    if (children.length) {
+      // Visit every child even when an earlier child contains an unnamed leaf.
+      complete = true;
+      for (const child of children) {
+        if (!countLeaves(child)) complete = false;
+      }
+    } else {
+      const leafId = String(node.id || '').trim();
+      complete = Boolean(leafId);
+      if ((!leafId || visibleIds.has(leafId)) && (!leafId || !countedLeafIds.has(leafId))) {
+        if (leafId) countedLeafIds.add(leafId);
+        const key = isLexicalLeaf(node) ? normalizeToken(authoredWord(node)) : '';
+        if (key) counts.set(key, (counts.get(key) || 0) + 1);
+      }
+    }
+    // Named leaves are counted once. Preserve the existing multiplicity of
+    // unnamed leaves when several visible ancestors expose the same subtree.
+    if (complete) countedSubtrees.add(node);
+    return complete;
+  };
   step.replayVisibleNodeIds.forEach((nodeIdValue) => {
     const nodeId = String(nodeIdValue || '').trim();
     if (!nodeId) return;
-    const node = findNodeByIdInForest([step.replayCanvasData as SyntaxNode], nodeId);
-    if (!node) return;
-    collectLeafSyntaxNodes(node).forEach((leaf) => {
-      const leafId = String(leaf?.id || '').trim();
-      if (leafId && !visibleIds.has(leafId)) return;
-      if (leafId && countedLeafIds.has(leafId)) return;
-      if (leafId) countedLeafIds.add(leafId);
-      if (!isLexicalLeaf(leaf)) return;
-      const key = normalizeToken(authoredWord(leaf));
-      if (!key) return;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
+    const node = nodesByName.get(nodeId);
+    if (node) countLeaves(node);
   });
   return counts;
 };
@@ -4332,21 +4371,29 @@ const normalizeReplaySentenceInitialCasing = (
     if (clonedCanvas.replayOrigin?.kind === 'workspace') return step;
 
     let changed = false;
-    const currentLeaves = collectOvertLeafNodeIdsInOrder(clonedCanvas)
-      .map((leafId) => {
-        const path = findNodePathInForest([clonedCanvas], leafId);
-        if (!path || path.length === 0) return null;
-        const pathNodes = path.map((_, index) => (
-          getNodeAtForestPath([clonedCanvas], path.slice(0, index + 1))
-        ));
-        if (pathNodes.some((node) => node.replayOrigin?.kind === 'layout')) return null;
-        const leaf = findNodeByIdInForest([clonedCanvas], leafId);
-        return leaf
-          ? {
-              leaf,
-              silent: pathNodes.some((node) => (node as any)?.silent === true)
-            }
-          : null;
+    // Keep first-preorder lookup semantics, including aliases, while collecting
+    // parent and inherited flags once instead of searching a path for every leaf.
+    const exactNodes = new Map<string, { parent: SyntaxNode | null; silent: boolean; layout: boolean }>();
+    const nodesByName = new Map<string, SyntaxNode>();
+    const leafIds: string[] = [];
+    const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean) => {
+      silent ||= node.silent === true;
+      layout ||= node.replayOrigin?.kind === 'layout';
+      const id = String(node.id || '').trim();
+      if (!exactNodes.has(id)) exactNodes.set(id, { parent, silent, layout });
+      for (const name of [id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
+        const key = String(name || '').trim();
+        if (!nodesByName.has(key)) nodesByName.set(key, node);
+      }
+      const children = Array.isArray(node.children) ? node.children : [];
+      if (!children.length && id && isLexicalLeaf(node)) leafIds.push(id);
+      children.forEach(child => visit(child, node, silent, layout));
+    };
+    visit(clonedCanvas, null, false, false);
+    const currentLeaves = leafIds.map(leafId => {
+        const info = exactNodes.get(leafId)!;
+        const leaf = nodesByName.get(leafId);
+        return !info.layout && leaf ? { leaf, silent: info.silent } : null;
       })
       .filter((entry): entry is { leaf: SyntaxNode; silent: boolean } => Boolean(entry));
     const firstPronouncedLeafId = String(
@@ -4358,10 +4405,7 @@ const normalizeReplaySentenceInitialCasing = (
       const surface = String(leaf.word || leaf.label || '').trim();
       if (normalizeToken(surface) !== initialKey) return;
       const leafId = String(leaf.id || '').trim();
-      const leafPath = findNodePathInForest([clonedCanvas], leafId);
-      const parent = leafPath && leafPath.length > 1
-        ? getNodeAtForestPath([clonedCanvas], leafPath.slice(0, -1))
-        : null;
+      const parent = exactNodes.get(leafId)?.parent;
       if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label)) return;
       const nextSurface = leafId && leafId === firstPronouncedLeafId ? uppercaseInitial : lowercaseInitial;
       casingByLeafId.set(leafId, nextSurface);
@@ -4380,7 +4424,7 @@ const normalizeReplaySentenceInitialCasing = (
       if (!normalizedNodeId) return '';
       const exact = casingByLeafId.get(normalizedNodeId);
       if (exact) return exact;
-      const node = findNodeByIdInForest([clonedCanvas], replayOwnerId(clonedCanvas, normalizedNodeId));
+      const node = nodesByName.get(replayOwnerId(clonedCanvas, normalizedNodeId));
       if (!node) return '';
       const matchingLeafId = collectOvertLeafNodeIdsInOrder(node).find((leafId) => casingByLeafId.has(leafId));
       return matchingLeafId ? String(casingByLeafId.get(matchingLeafId) || '') : '';
@@ -7026,14 +7070,16 @@ export const buildAuthoredRelationLinksForFrames = (
   replayPlan: DerivationReplayPlan | null | undefined,
   activeFrameIndex: number,
   forest: SyntaxNode[],
-  currentFrameRelationLimit: number = Number.POSITIVE_INFINITY
+  currentFrameRelationLimit: number = Number.POSITIVE_INFINITY,
+  frameRelations?: (frameIndex: number) => DerivationReplayPlanStep[]
 ): ResolvedRelationLink[] => {
   if (!Array.isArray(frames) || activeFrameIndex < 0) return [];
   const links: ResolvedRelationLink[] = [];
 
   for (let frameIndex = 0; frameIndex <= Math.min(activeFrameIndex, frames.length - 1); frameIndex += 1) {
     const plannedStage = getReplayPlanStage(replayPlan, frameIndex);
-    const relations = getFrameRelations(frames[frameIndex], plannedStage, frames[frameIndex - 1]?.workspaceForest || []);
+    const relations = frameRelations?.(frameIndex)
+      ?? getFrameRelations(frames[frameIndex], plannedStage, frames[frameIndex - 1]?.workspaceForest || []);
     const relationLimit = frameIndex === activeFrameIndex
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
@@ -7682,5 +7728,6 @@ export const __TEST_ONLY__ = {
   getRelationAllAnchorNodeIds,
   isRenderableReplayRelation,
   resolveRelationAnchorNodeId,
-  materializeReplayPreterminals
+  materializeReplayPreterminals,
+  collectVisibleReplayOvertTokenCounts
 };
