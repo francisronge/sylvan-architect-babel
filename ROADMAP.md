@@ -171,8 +171,41 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,588 tests, typecheck and both parse-contract fixtures pass.
-Test-suite cleanup removed 71 source-spelling, import-list, quantity-only and
+Current offline gate: 1,599 tests, typecheck and both parse-contract fixtures pass.
+The authorized Grok admission pair is complete. Both successful outputs contain
+valid JSON and needed no repair. Original response bytes, request provenance,
+usage and inspection records remain in the local qualification archive. The
+successful runs used a corrected verification transport; this does not qualify
+the production native-fetch path for the same long wait. The interrupted first
+attempt has no usage receipt, so its charge remains unknown. No further provider
+calls were made for the repairs below.
+
+Five general repairs follow from that audit:
+
+- Complete all owned children when a relation attaches a new container whose
+  shell was already inserted. Unrelated future additions remain hidden.
+- Schedule a neutral primary from its own current/prior evidence, including an
+  incomplete registered claim; independent sibling evidence cannot authorize it.
+- Attach explicit feature rows to a single unambiguous current participant using
+  the existing plaque. Multiple participants still need an authored recipient.
+- Interpret generic assignment directions only with explicit domain evidence;
+  titles, ambiguous domains and unpaired lists do not supply missing meaning.
+- Track the preceding movement occurrence separately from the current lower and
+  landing IDs. A new lower ID requires proven prior identity and exact position;
+  root lineage, authored silence and supported landing structure remain required.
+
+The integrated desktop comparison covers 209 baseline and 208 repaired Replay
+frames across both Grok outputs and the four earlier archives. Grok Minimalism's
+new head appears at its owning InternalMerge moment; Grok X-bar's neutral
+wh-movement no longer introduces its landing in an earlier selection frame.
+All 137 earlier tree drawings retain identical pixels; differences are confined
+to the animated Replay slider. No label clipping, panel coverage, within-stage
+camera change or zoom/Fit regression occurred in these checks. This is bounded
+desktop evidence, not universal readability or mobile qualification. Existing
+Grok claims with missing identity, unsupported structure or meaning only in
+titles remain neutral; their linguistic omissions were not repaired by Babel.
+
+Previous checkpoint: the 1,588-test cleanup removed 71 source-spelling, import-list, quantity-only and
 redundant checks. Behavioral, data-preservation and declarative paint checks
 remain; the useful verdict-geometry and agreement-paint tests moved into their
 focused files. Product code, fixtures and rendering are unchanged. The test count
@@ -333,14 +366,14 @@ next discussion with Francis; they are not authorization to continue implementin
    are benchmark results, not shipping blockers. Request completion is software
    status; a licensing check mark requires an authored claim. Keep separate
    relation moments and do not invent a participant-free graphic.
-6. Prepare a small, capped live check using cheaper models before broader provider
-   qualification. Confirm current prices and supported native settings at that
-   point; do not change the prompt or reduce requested linguistic content to make
-   the test cheaper. Record exact prompt/configuration hashes, raw replies, usage,
-   latency and processing results. Cheap-model checks qualify the pipeline, not
-   stronger models' linguistic quality. Production proxy limits, remote background
-   cancellation and deployed worker loading remain separate checks. Provider calls
-   and deployment still require an approved purpose and spending cap.
+6. Review the completed Grok pair and its repaired Replay before selecting another
+   capped provider check. Qualify the production long-wait transport separately
+   from the successful verification transport. Future runs must preserve exact
+   prompt/configuration hashes, raw replies, usage, latency and processing results.
+   Do not reduce requested linguistic content to make a check cheaper. Production
+   proxy limits, remote background cancellation and deployed worker loading remain
+   separate checks. New provider calls and deployment still require an approved
+   purpose and spending cap.
 
 See the [dependability follow-up](docs/implementation/contract-qualification/system-audit.md#dependability-follow-up-13-september)
 for the classified recognition matrix, performance measurements, public-route
