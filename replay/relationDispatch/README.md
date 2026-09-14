@@ -18,6 +18,12 @@ Registry entries used by the test suite are fixtures only. A test entry does
 not approve a production entry or renderer. Production population and any
 renderer or fallback integration remain separately gated.
 
+Registries frozen by `createRelationRegistry` have a private identity index for
+each declared normalization mode. Lookup still checks all modes and rejects
+ambiguous matches. The index contains only registry data, never a growing cache
+of authored names. Caller-owned registry copies are indexed afresh on each lookup
+so later edits remain observable.
+
 The literal layer here is relation-local: authored relation names, anchor-role
 rows, `priorAnchors` rows, `values` rows, authored-order ordinals, and derived
 stage timing. Existing replay transforms own π silence and ι identity displays;

@@ -49,6 +49,24 @@ const normalizeIdentity = (value, normalization) => {
   return normalized;
 };
 
+// Only registries frozen by this module retain a lookup. Parsed or caller-owned
+// registries are indexed afresh so later edits cannot leave stale matches.
+const registryLookups = new WeakMap();
+const indexRegistry = (registry) => {
+  const identities = new Map();
+  const entries = new Map();
+  for (const entry of registry.entries) {
+    if (!entries.has(entry.id)) entries.set(entry.id, entry);
+  }
+  for (const { normalization, normalizedName, entryId } of registry.matchers) {
+    if (!identities.has(normalization)) identities.set(normalization, new Map());
+    const names = identities.get(normalization);
+    if (!names.has(normalizedName)) names.set(normalizedName, new Set());
+    names.get(normalizedName).add(entryId);
+  }
+  return { identities, entries };
+};
+
 const normalizeRoleRules = (value, path) => {
   if (value === undefined) return {};
   if (!isRecord(value)) throw new TypeError(`${path} must be an object.`);
@@ -393,12 +411,14 @@ export const createRelationRegistry = ({
     });
   });
 
-  return deepFreeze({
+  const registry = deepFreeze({
     registryId,
     version,
     entries: normalizedEntries,
     matchers
   });
+  registryLookups.set(registry, indexRegistry(registry));
+  return registry;
 };
 
 export const findRelationRegistryEntry = (registry, authoredName) => {
@@ -406,24 +426,16 @@ export const findRelationRegistryEntry = (registry, authoredName) => {
     throw new TypeError('registry must be created by createRelationRegistry.');
   }
   if (typeof authoredName !== 'string') return null;
-  // Each registry uses at most four normalization modes, shared by its matchers.
-  const normalizedNames = new Map();
-  const normalizedName = (mode) => {
-    if (!normalizedNames.has(mode)) normalizedNames.set(mode, normalizeIdentity(authoredName, mode));
-    return normalizedNames.get(mode);
-  };
-  const matchingEntryIds = new Set(
-    registry.matchers
-      .filter((candidate) => (
-        normalizedName(candidate.normalization) === candidate.normalizedName
-      ))
-      .map(({ entryId }) => entryId)
-  );
+  const { identities, entries } = registryLookups.get(registry) ?? indexRegistry(registry);
+  const matchingEntryIds = new Set();
+  for (const [mode, names] of identities) {
+    for (const id of names.get(normalizeIdentity(authoredName, mode)) ?? []) matchingEntryIds.add(id);
+  }
   if (matchingEntryIds.size > 1) {
     throw new TypeError(`Ambiguous registry identity for authored relation: ${authoredName}.`);
   }
   const [entryId] = matchingEntryIds;
   return entryId
-    ? registry.entries.find((entry) => entry.id === entryId) ?? null
+    ? entries.get(entryId) ?? null
     : null;
 };
