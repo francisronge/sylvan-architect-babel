@@ -444,6 +444,99 @@ export type BoundFrame = {
   failed: Array<{ itemIndex: number; nodeId: string; reason: string }>;
 };
 
+type UnroutedFallbackSegment = Omit<BoundSegment, 'd' | 'lane' | 'laneY'>;
+type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY'>;
+
+const routeFallbackSegments = (
+  segments: UnroutedFallbackSegment[],
+  options: FallbackRoutingOptions
+): BoundSegment[] => {
+  const markerScale = Math.max(0.1, options.markerScale ?? 1);
+  const laneGap = options.laneGap ?? 24;
+  const counterSegments = segments.filter(segment => segment.route === 'counter-lane');
+  const lanes = allocateSpanLanes(counterSegments.map(segment => ({
+    start: Math.min(segment.from.x, segment.to.x),
+    end: Math.max(segment.from.x, segment.to.x)
+  })), laneGap);
+  const measuredBaseline = options.connectorBaselineY
+    ?? (counterSegments.length > 0
+      ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) + 46 * markerScale
+      : 0);
+  let counterIndex = 0;
+  return segments.map(segment => {
+    if (segment.route === 'direct') {
+      const trim = 10 * markerScale;
+      const length = Math.hypot(segment.to.x - segment.from.x, segment.to.y - segment.from.y) || 1;
+      const unit = { x: (segment.to.x - segment.from.x) / length, y: (segment.to.y - segment.from.y) / length };
+      const start = { x: segment.from.x + unit.x * trim, y: segment.from.y + unit.y * trim };
+      const end = { x: segment.to.x - unit.x * trim, y: segment.to.y - unit.y * trim };
+      return { ...segment, lane: null,
+        d: `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}` };
+    }
+    const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
+    const to = from === segment.from ? segment.to : segment.from;
+    const lane = lanes[counterIndex++];
+    const laneY = measuredBaseline + lane * laneGap;
+    const stem = 6 * markerScale;
+    const corner = 9 * markerScale;
+    const d = [
+      `M ${from.x.toFixed(1)} ${(from.y + stem).toFixed(1)}`,
+      `L ${from.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
+      `Q ${from.x.toFixed(1)} ${laneY.toFixed(1)} ${(from.x + corner).toFixed(1)} ${laneY.toFixed(1)}`,
+      `L ${(to.x - corner).toFixed(1)} ${laneY.toFixed(1)}`,
+      `Q ${to.x.toFixed(1)} ${laneY.toFixed(1)} ${to.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
+      `L ${to.x.toFixed(1)} ${(to.y + stem).toFixed(1)}`
+    ].join(' ');
+    return { ...segment, from, to, lane, laneY, d };
+  });
+};
+
+const fallbackRailY = (
+  rail: BoundAnchorSetRail,
+  deepestConnectorLaneY: number,
+  options: Pick<BindGeometryOptions, 'railBaseY' | 'railLaneGap'>
+): number => Math.max(
+  options.railBaseY ?? 0,
+  deepestConnectorLaneY > 0 ? deepestConnectorLaneY + 90 : 0
+) + rail.lane * (options.railLaneGap ?? 60);
+
+/** Refit neutral connectors and dependent rails to their marks' Fit scale, preserving exact SVG ownership. */
+export const fitFallbackGeometry = (
+  frame: BoundFrame,
+  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap'>
+    & { fittedMarkerScale: number }
+): Map<BoundSegment | BoundAnchorSetRail, BoundSegment | BoundAnchorSetRail> => {
+  const segments = frame.primitives.filter((primitive): primitive is BoundSegment => primitive.type === 'segment');
+  const rails = frame.primitives.filter((primitive): primitive is BoundAnchorSetRail => primitive.type === 'anchor-set-rail');
+  const markerScale = Math.max(0.1, options.markerScale ?? 1);
+  const fittedMarkerScale = Math.max(0.1, options.fittedMarkerScale);
+  if (markerScale === fittedMarkerScale) return new Map([...segments, ...rails].map(primitive => [primitive, primitive]));
+  const badgeGap = options.badgeGap ?? 22;
+  const centers = new Map<number, Map<string, Point>>();
+  frame.primitives.forEach(primitive => {
+    if (primitive.type !== 'fallback-mark') return;
+    const itemCenters = centers.get(primitive.itemIndex) ?? new Map<string, Point>();
+    itemCenters.set(primitive.nodeId, {
+      x: primitive.x + primitive.stackIndex * badgeGap * (fittedMarkerScale - markerScale),
+      y: primitive.y
+    });
+    centers.set(primitive.itemIndex, itemCenters);
+  });
+  const fitted = routeFallbackSegments(segments.map(segment => {
+    const itemCenters = centers.get(segment.itemIndex);
+    return { ...segment,
+      from: itemCenters?.get(segment.witnessNodeIds[0]) ?? segment.from,
+      to: itemCenters?.get(segment.witnessNodeIds[1]) ?? segment.to };
+  }), { ...options, markerScale: fittedMarkerScale });
+  const updates = new Map<BoundSegment | BoundAnchorSetRail, BoundSegment | BoundAnchorSetRail>(
+    segments.map((segment, index) => [segment, fitted[index]])
+  );
+  const deepestConnectorLaneY = fitted.reduce((deepest, segment) =>
+    Math.max(deepest, segment.laneY ?? 0), 0);
+  rails.forEach(rail => updates.set(rail, { ...rail, y: fallbackRailY(rail, deepestConnectorLaneY, options) }));
+  return updates;
+};
+
 /**
  * The Replay-lens presentation of authored-silence ghosting, pure and
  * testable. Silent material must never look pronounced: even at its most
@@ -924,8 +1017,7 @@ export const bindRelationPlanFrame = (
     || right.y + right.height + gap <= left.y
   );
 
-  const segmentSpans: Array<{ start: number; end: number }> = [];
-  const pendingSegments: Array<Omit<BoundSegment, 'lane' | 'd'>> = [];
+  const pendingSegments: UnroutedFallbackSegment[] = [];
 
   const bindPlanItem = (item: RelationPlanItem, itemIndex: number) => {
     if (item.kind === 'trajectory') {
@@ -2036,10 +2128,6 @@ export const bindRelationPlanFrame = (
             directed: false,
             itemIndex
           });
-          segmentSpans.push({
-            start: Math.min(left.x, right.x),
-            end: Math.max(left.x, right.x)
-          });
         }
       }
       if (item.drawing.fan) {
@@ -2049,22 +2137,15 @@ export const bindRelationPlanFrame = (
           if (!hub || !target) return;
           // Direct thin spoke between the visible marks, trimmed clear of
           // both mark glyphs — never rerouted through a counter lane.
-          const trim = 10 * markerScale;
-          const length = Math.hypot(target.x - hub.x, target.y - hub.y) || 1;
-          const unit = { x: (target.x - hub.x) / length, y: (target.y - hub.y) / length };
-          const start = { x: hub.x + unit.x * trim, y: hub.y + unit.y * trim };
-          const end = { x: target.x - unit.x * trim, y: target.y - unit.y * trim };
-          primitives.push({
+          primitives.push(...routeFallbackSegments([{
             type: 'segment',
             route: 'direct',
             witnessNodeIds: [item.drawing.fan!.hub, spoke],
-            d: `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
             from: hub,
             to: target,
-            lane: null,
             directed: false,
             itemIndex
-          });
+          }], { markerScale }));
         });
       }
       return;
@@ -2160,7 +2241,6 @@ export const bindRelationPlanFrame = (
       primitives: primitives.length,
       failed: failed.length,
       routable: routableCurves.length,
-      spans: segmentSpans.length,
       pending: pendingSegments.length,
       plaques: plaqueRects.length,
       stacks: new Map(stackCounts),
@@ -2170,7 +2250,6 @@ export const bindRelationPlanFrame = (
     if (failed.length > txn.failed && item.kind !== 'fallback') {
       primitives.length = txn.primitives;
       routableCurves.length = txn.routable;
-      segmentSpans.length = txn.spans;
       pendingSegments.length = txn.pending;
       plaqueRects.length = txn.plaques;
       restoreMap(stackCounts, txn.stacks);
@@ -2298,26 +2377,9 @@ export const bindRelationPlanFrame = (
    * spans therefore occupy visibly distinct lanes; the renderer draws `d`
    * verbatim and cannot discard the routing.
    */
-  const lanes = allocateSpanLanes(segmentSpans, laneGap);
-  const measuredBaseline = options.connectorBaselineY
-    ?? (pendingSegments.length > 0
-      ? Math.max(...pendingSegments.flatMap((segment) => [segment.from.y, segment.to.y])) + 46 * markerScale
-      : 0);
-  pendingSegments.forEach((segment, index) => {
-    const lane = lanes[index];
-    const laneY = measuredBaseline + lane * laneGap;
-    const stem = 6 * markerScale;
-    const corner = 9 * markerScale;
-    const d = [
-      `M ${segment.from.x.toFixed(1)} ${(segment.from.y + stem).toFixed(1)}`,
-      `L ${segment.from.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
-      `Q ${segment.from.x.toFixed(1)} ${laneY.toFixed(1)} ${(segment.from.x + corner).toFixed(1)} ${laneY.toFixed(1)}`,
-      `L ${(segment.to.x - corner).toFixed(1)} ${laneY.toFixed(1)}`,
-      `Q ${segment.to.x.toFixed(1)} ${laneY.toFixed(1)} ${segment.to.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
-      `L ${segment.to.x.toFixed(1)} ${(segment.to.y + stem).toFixed(1)}`
-    ].join(' ');
-    primitives.push({ ...segment, lane, laneY, d });
-  });
+  primitives.push(...routeFallbackSegments(pendingSegments, {
+    markerScale, laneGap, connectorBaselineY: options.connectorBaselineY
+  }));
   /*
    * The one vertical allocation law: rails sit a safe gap below the deepest
    * ACTUALLY allocated connector lane (or at the caller's measured base,
@@ -2327,14 +2389,9 @@ export const bindRelationPlanFrame = (
     (primitive.type === 'segment' && primitive.route === 'counter-lane'
       ? Math.max(deepest, primitive.laneY ?? 0)
       : deepest), 0);
-  const railLaneGap = options.railLaneGap ?? 60;
-  const effectiveRailBase = Math.max(
-    options.railBaseY ?? 0,
-    deepestConnectorLaneY > 0 ? deepestConnectorLaneY + 90 : 0
-  );
   primitives.forEach((primitive) => {
     if (primitive.type === 'anchor-set-rail') {
-      primitive.y = effectiveRailBase + primitive.lane * railLaneGap;
+      primitive.y = fallbackRailY(primitive, deepestConnectorLaneY, options);
     }
   });
 

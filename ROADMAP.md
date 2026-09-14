@@ -11,7 +11,7 @@ and research notebooks are evidence or history, not competing roadmaps.
 | --- | --- | --- |
 | Authored contract | Implemented: each analysis is only four-field `derivationStages`; `relations` is open; `values` and immediate-prior `priorAnchors` are supported. Earlier morphology can become final whole-word terminals. | Final alignment still requires one pronounced terminal per input token. Retained final morphology needs a separate representation decision; see the morphology audit below. Qualify model-facing changes and preserve recovery policy pending agreement. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
-| Relation renderer | Accepted Orchard paint and composition are integrated. The original 137-frame corpus retained its geometry through Fit/worker repairs; the later six-analysis notation/timing comparison covers 208 before and 207 after frames. | Circled Tier-3 zoom is still open. Extreme text scrolling and viewport checks are bounded. Review only reproduced movement defects; no participant-free drawing is justified. |
+| Relation renderer | Accepted Orchard paint and composition are integrated. The original 137-frame corpus retained its geometry through Fit/worker repairs; the later six-analysis notation/timing comparison covers 208 before and 207 after frames. | Circled Tier-3 badges now retain their fitted appearance and grow with the tree. Extreme text scrolling and viewport checks are bounded. Review only reproduced movement defects; no participant-free drawing is justified. |
 | Replay preparation | The measured optimization remains unchanged. Extended controls through 192 stages/958 frames complete. Forty large view cycles release all 81 workers and retain about 18–19 MB of page heap; 15 mid-preparation cancellations also recover correctly. | Instrumented 160/192-stage controls take about 12/19 seconds, with sampled worker heaps up to 182 MB and frame jumps up to 274 ms. These bounds do not establish instant preparation, exact peak memory or slower-device behavior. No layout rewrite or persistent derivation cache is introduced. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
 | Tree Bank | The merged app captures the styled tree for its browser-local preview. Eight desktop save/preview/reopen cases pass across all four archived bundles in Canopy and Replay. Previews need not show every plaque row; reopening provides the full record. | Existing icon thumbnails require a fresh save. The later durable-record migration remains separate product work. |
@@ -286,12 +286,15 @@ spot checks pass. A separately labelled notation control confirms unchanged
 initial sizing and proportional zoom with stable stacked positions after redraw.
 These checks do not approve every possible annotation composition or viewport.
 
-Circled Tier-3 badge zoom remains unresolved. The circles still keep approximately
-the same screen size as syntax enlarges; the preceding small-label zoom fix did
-not change them. A focused check at four times the fitted zoom enlarged the I label
-from 16 to 63 pixels while its circle changed from about 18 to 20 pixels. Preserving
-the initial fitted badge size and then scaling the complete badge with the tree is
-the proposed follow-up, not an implemented change.
+The later circle-badge repair preserves the complete Tier-3 group at its accepted
+automatic-Fit size, then lets it scale with the syntax. Previously, four times the
+tree zoom enlarged I from 16 to 63 pixels while its circle changed only from about
+18 to 20 pixels. The repaired circle grows from about 18 to 72 pixels. Its number,
+array position and backward cue remain in the same coordinate group. Stack offsets
+and owned connectors use the Fit reference on redraw; dependent rails retain their
+clearance. All 207 saved frames keep the same syntax positions and camera settings.
+The browser comparison also covers 2×/4× zoom, backward/forward redraw, Fit and
+eight narrow checks. This is a badge repair, without a tree-layout change.
 
 Shared evidence-based participant recognition is explicitly deferred. No aliases,
 new role interpretation, movement acceptance rule, prompt change or provider call
@@ -423,7 +426,7 @@ supersede the earlier browser-blocked status below.
 
 | Starting-point items | Current disposition | Remaining work |
 | --- | --- | --- |
-| 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated dependency coindices use letters; movement-copy indices retain numbers, and circled Tier-3 numbers keep their approved locator meaning. Extreme plaques through 200 rows retain their text and save/reopen correctly. Static previews need not include every row; no all-rows print design is required. | Fix the circled Tier-3 zoom behavior while preserving its fitted appearance and numbering. Mobile readability remains open; extreme Fit readability is not universally approved. |
+| 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated dependency coindices use letters; movement-copy indices retain numbers, and circled Tier-3 numbers keep their approved locator meaning. Extreme plaques through 200 rows retain their text and save/reopen correctly. Static previews need not include every row; no all-rows print design is required. | Circled Tier-3 zoom is repaired with its fitted appearance and numbering preserved. Mobile readability remains open; extreme Fit readability is not universally approved. |
 | 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Active-gesture redraw and Fit ownership defects are repaired. Manual zoom survives Canopy/Replay preparation. Five remaining within-stage shifts in earlier captures accompany structural movement; current Replay already reserves future positions. | Preserve accepted sizing and spacing. Assess a movement shift only if it is a reproducible visual defect; newly introduced structure may legitimately require movement. The theta-grid containment control, ordinary plaque geometry and all 114 name-variation Replay checks retain their prior qualifications. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 relation moments in the original Astra/Fable corpus have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
 | 5–8: interpretation and neutral content | The original four Astra/Fable records contain 22 relations with neutral content. The later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes; shared value/identity handoff, optional slot equivalence and claim-scoped checks are repaired. Its 42 remaining mixed controls are classified as 40 role ambiguities, one competing PF-input pair, and one absorbed phase-edge claim. | The separately deferred general recognition investigation includes Grok's remaining movement signatures, identity limits and unsupported meanings. This matrix alone justifies no further semantic promotion. Preserve negative controls, exact field ownership and missing-literal boundaries. The model authors the linguistics. See the [cross-family audit](docs/implementation/contract-qualification/system-audit.md#cross-family-recognition-audit-13-september). |
@@ -441,11 +444,10 @@ The morphology audit is complete separately from implementation. The work below
 records the remaining scope; unsettled designs and provider/hosting changes await
 discussion with Francis.
 
-1. **Circled Tier-3 zoom.** Preserve its current fitted size, then scale the whole
-   owned badge, number, attachments and stack spacing with the syntax. The small
-   gap/coindex fix did not cover it. Produce a clear before/after comparison and
-   the required zoom/redraw regression evidence. Keep approved locator semantics
-   and Orchard paint; no shared layout rewrite.
+1. **Circled Tier-3 zoom: complete.** The complete badge grows with the syntax
+   from its unchanged fitted size. Focused geometry and production browser checks
+   cover stacked marks, connectors, backward cues, zoom/redraw and Fit. Locator
+   meaning, Orchard paint and tree layout are unchanged.
 2. **Morphological transition ownership.** Reproduce the audit's emptied-parent
    case in the browser. Test whether fully removed ancestors belong to the same
    neutral transition, with negative controls for surviving siblings, overlapping
@@ -901,8 +903,8 @@ The current work order above owns these decisions:
 - Purpose and spending caps for further provider checks, and deployed request
   limits. Mobile and extreme Fit readability remain bounded qualification work.
 
-Circled Tier-3 scaling and the morphology transition finding are concrete
-follow-ups, not reasons to reopen general layout. Separate relation moments,
+Circled Tier-3 scaling is repaired; the morphology transition finding is a
+separate follow-up. Neither requires reopening general layout. Separate relation moments,
 judgment handling, ordinary plaques, generated coindices, integrated Tree Bank
 previews and the decision not to require full-row static exports are settled.
 
@@ -945,7 +947,7 @@ an earlier renderer closeout or a passing fixture suite.
 | 15 | Implemented locally | Original relation names, punctuation, scripts and whitespace are preserved rather than passed through identifier formatting. |
 | 16 | Integrated; bounded qualification | Reserved local/below-tree plaques and extreme scrolling through 200 rows are verified within recorded controls. Tree Bank save/reopen preserves all rows; static previews need not include them all. Mobile and arbitrary extreme Fit readability remain unqualified. |
 | 17 | Implemented locally | Removed the eight-row truncation. Every row retains its original index and literal content; a twelve-row wordless-head control is verified in Node and desktop/mobile SVG. Visibility of a very tall plaque remains under 16. |
-| 18 | Integrated; circle zoom pending | A fallback circle locates the relation's authored position within its stage. Other dependency coindices use letters; stable movement-chain indices use numbers. The circle still resists tree zoom and needs its separately listed scaling fix. |
+| 18 | Integrated; circle zoom repaired | A fallback circle locates the relation's authored position within its stage. Other dependency coindices use letters; stable movement-chain indices use numbers. The complete circle group retains its fitted appearance and grows with the syntax, including stacked marks across redraw. |
 | 19 | Implemented locally | A neutral fallback marks its own stage only and returns when that stage is replayed. Tier 1 and Tier 2 retain their persistence. Hiding leftover anchors and one-mark-per-relation were rejected. Later shared-context/accounting repairs supersede the original badge counts; Astra Minimalism ends with eleven badges and Fable X-bar with five. |
 | 20 | Implemented locally | Single and explicitly paired theta/Case assignments retain literal labels and repeated participants. Solid assignment and dotted collection remain distinct. Missing or mismatched associations stay neutral; title-only role/Case prose is not converted into missing fields. |
 | 21 | Implemented locally | Complete Tier-1 recipes accept equivalent roles and harmless context. Missing or contradictory core roles still fail that recipe. Unused extra anchors receive an aggregated internal context diagnostic; the complete raw relation remains inspectable. |
@@ -994,8 +996,9 @@ Proof reconciliation beyond the original numbered findings:
   The original available-participant audit does not justify an empty-frame graphic.
 - [x] Verify the saved outputs with production Replay and the recorded offline
   route/inspection checks; complete the authorized Grok pair and its review.
-- [ ] Fix circled Tier-3 scaling with focused visual evidence. Review the new
-  morphology ownership control separately; do not reopen all accepted layout.
+- [x] Fix circled Tier-3 scaling with focused visual evidence.
+- [ ] Review and repair the morphology ownership control separately; preserve
+  unrelated structure and accepted layout.
 - [ ] Decide retained final morphology representation and qualify any approved
   implementation across its full data path.
 - [ ] Complete the specifically unverified live/deployed, slower-device and

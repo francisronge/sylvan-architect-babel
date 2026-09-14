@@ -564,7 +564,7 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
   const fit = productionFunction('applyFittedCamera', {
     g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
-    d3, applyCameraTransform: transform => { camera = transform; }
+    d3, fitFallbackOverlays: undefined, applyCameraTransform: transform => { camera = transform; }
   });
   const automatic = d3.zoomIdentity.scale(0.5);
   fit(automatic);
@@ -583,6 +583,48 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
     'redrawing under manual zoom must not shrink notation back to screen size');
   assert.equal(redrawnSecond.attrs.transform, second.attrs.transform,
     'stacked labels must retain their spacing after redraw at a different camera scale');
+});
+
+test('fallback frame, number, position and backward cue scale together from automatic Fit', () => {
+  const branch = findNode(node => ts.isIfStatement(node)
+    && node.expression.getText(parsed) === "primitive.type === 'fallback-mark'");
+  for (const frame of ['circle', 'box']) {
+    const root = new Element('g');
+    const draw = (markerScale) => {
+      const appendMarker = productionFunction('appendMarker', { primitiveHost: select(root), markerScale, badgeGap: 46 });
+      const primitive = { type: 'fallback-mark', x: 100 + 46 * markerScale, y: 200,
+        stackIndex: 1, frame, instance: 2, numeral: 3, backward: true };
+      new Function('primitive', 'appendMarker', ts.transpile(branch.getText(parsed),
+        { target: ts.ScriptTarget.ES2023 }))(primitive, appendMarker);
+      return root.children.at(-1);
+    };
+    const marker = draw(2);
+    const data = {};
+    const manualCameraRef = { current: null };
+    let camera;
+    const connectorScales = [];
+    const fit = productionFunction('applyFittedCamera', {
+      g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
+      containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
+      d3, fitFallbackOverlays: scale => connectorScales.push(scale),
+      applyCameraTransform: transform => { camera = transform; }
+    });
+    const automatic = d3.zoomIdentity.scale(0.5);
+    fit(automatic);
+    assert.equal(marker.attrs.class, 'vr-tree-notation');
+    assert.equal(marker.attrs.transform, 'translate(192,200) scale(2)');
+    assert.deepEqual(marker.children.map(child => [child.tag, child.text]),
+      [[frame === 'circle' ? 'circle' : 'rect', ''], ['text', '2'], ['text', '3'], ['text', '◂']]);
+    assert.ok(marker.children.every(child => child.attrs.transform === undefined),
+      'inseparable badge pieces inherit one coordinate group');
+    manualCameraRef.current = { data, signature: 'stage', width: 1600, height: 1100,
+      transform: d3.zoomIdentity.translate(20, 30).scale(2) };
+    const redrawn = draw(0.5);
+    fit(automatic);
+    assert.equal(camera.k, 2);
+    assert.equal(redrawn.attrs.transform, marker.attrs.transform);
+    assert.deepEqual(connectorScales, [2, 2], 'connectors receive Fit scale, never retained manual zoom');
+  }
 });
 
 test('a changed terminal cannot absorb its old label just because data-default-label still contains it', () => {

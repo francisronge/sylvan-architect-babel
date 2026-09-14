@@ -79,9 +79,12 @@ import {
 import {
   bindRelationPlanFrame,
   boundOverlayBounds,
+  fitFallbackGeometry,
   resolveUniqueDisplayTerminal,
   ghostLensPresentation,
   type BoundPrimitive,
+  type BoundSegment,
+  type BoundAnchorSetRail,
   type OverlayBounds,
   type PlanPositionProvider
 } from '../replay/relations/geometryBinding.ts';
@@ -1597,6 +1600,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // Complete frame-stable overlay bounds, fed into viewport fitting so no
     // generated geometry on any side of the tree is clipped.
     let overlayFitBounds: OverlayBounds | null = null;
+    let fitFallbackOverlays: ((scale: number) => void) | undefined;
     const deferredAcceptedRelationDraws: Array<() => void> = [];
     const identityForestLightFamilies: Array<{
       occurrencePools: string[][];
@@ -1903,6 +1907,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           railBaseY: frameMaxNodeY + 240
         }
       ));
+      const fallbackConnectorPaths = new Map<BoundSegment, d3.Selection<SVGPathElement, unknown, null, undefined>>();
+      const fallbackRailLines = new Map<BoundAnchorSetRail, d3.Selection<SVGLineElement, unknown, null, undefined>>();
+      fitFallbackOverlays = (fittedMarkerScale) => {
+        fitFallbackGeometry(boundFrame, {
+          markerScale, fittedMarkerScale, badgeGap, laneGap: 60,
+          connectorBaselineY: frameMaxNodeY + 130, railBaseY: frameMaxNodeY + 240
+        }).forEach((fitted, original) => {
+          if (original.type === 'segment' && fitted.type === 'segment') {
+            fallbackConnectorPaths.get(original)
+              ?.attr('d', fitted.d)
+              .attr('data-vr-lane', fitted.lane === null ? 'direct' : String(fitted.lane));
+          } else if (original.type === 'anchor-set-rail' && fitted.type === 'anchor-set-rail') {
+            fallbackRailLines.get(original)?.attr('y1', fitted.y).attr('y2', fitted.y);
+          }
+        });
+      };
       const revealedItemIndices = new Set<number>();
       frameItems.forEach((planItem, planItemIndex) => {
         const superseded = playedRelationIndices === null
@@ -6431,7 +6451,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           // centers) or the row-3 direct mark-to-mark spoke. Draw exactly
           // that path — the routing decision is not this component's to
           // discard. Quiet, undirected, arrowless.
-          host.append('path')
+          const path = host.append('path')
             .attr('class', `vr-fallback-segment vr-fallback-segment-${primitive.route}`)
             .attr('data-vr-lane', primitive.lane === null ? 'direct' : String(primitive.lane))
             .attr('d', primitive.d)
@@ -6441,6 +6461,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('stroke-width', 1.6)
             .attr('stroke-linecap', 'round')
             .attr('vector-effect', 'non-scaling-stroke');
+          fallbackConnectorPaths.set(primitive, path);
           return;
         }
         if (primitive.type === 'domain-ellipse') {
@@ -6554,7 +6575,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return;
         }
         if (primitive.type === 'fallback-mark') {
-          const marker = appendMarker(primitive.x, primitive.y);
+          const marker = appendMarker(primitive.x, primitive.y, true, primitive.stackIndex);
           if (primitive.frame === 'box') {
             marker.append('rect')
               .attr('class', 'vr-fallback-frame')
@@ -6623,7 +6644,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return;
         }
         if (primitive.type === 'anchor-set-rail') {
-          host.append('line')
+          const line = host.append('line')
             .attr('class', 'vr-anchor-set-rail')
             .attr('x1', primitive.x1)
             .attr('x2', primitive.x2)
@@ -6633,6 +6654,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('stroke-opacity', 0.6)
             .attr('stroke-width', 1.4)
             .attr('vector-effect', 'non-scaling-stroke');
+          fallbackRailLines.set(primitive, line);
         }
       });
 
@@ -6992,14 +7014,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const contained = containCamera(fitted, bounds, { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
         fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
       }
-      // Preserve the accepted size at automatic Fit. These linguistic labels
-      // then share the tree's coordinates and scale, including after a redraw
-      // under a retained manual camera.
+      // Labels and complete fallback badges keep their accepted automatic-Fit
+      // size, then scale with the tree. Their connectors use the same reference
+      // when redrawn under a retained manual camera.
+      const fittedMarkerScale = Math.min(1 / fitted.k, 3);
       g.selectAll<SVGGElement, unknown>('.vr-tree-notation').attr('transform', function () {
-        const scale = Math.min(1 / fitted.k, 3);
-        const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * scale;
-        return `translate(${x},${this.dataset.vrY}) scale(${scale})`;
+        const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * fittedMarkerScale;
+        return `translate(${x},${this.dataset.vrY}) scale(${fittedMarkerScale})`;
       });
+      fitFallbackOverlays?.(fittedMarkerScale);
       const manual = manualCameraRef.current;
       if (manual?.data === data && manual.signature === derivationStagesSignature) {
         const transform = d3.zoomIdentity.translate(

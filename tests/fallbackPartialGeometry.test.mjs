@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 const node = id => ({ id, label: id });
 const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: [node('a'), node('b'), node('c')] });
@@ -46,6 +46,91 @@ test('partial neutral marks reserve their slots without poisoning the next indep
   assert.notEqual(atA[0].x, atA[1].x);
   assert.equal(bound.primitives.filter(p => p.type === 'segment').length, 1);
 });
+
+test('fitted scalar connectors and fan spokes stay attached to their exact stacked marks', () => {
+  const mixed = compileRelationRenderPlan([stage([
+    { relation: 'First open claim', anchors: { first: 'a', second: 'b' } },
+    { relation: 'Open fan', anchors: { hub: 'b', spokes: ['a', 'c'] } },
+    { relation: 'Second open claim', anchors: { first: 'a', second: 'c' } }
+  ])]);
+  const points = { a: { x: 50, y: 20 }, b: { x: 270, y: 80 }, c: { x: 500, y: 140 } };
+  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 60, connectorBaselineY: 400 };
+  const bound = bindRelationPlanFrame(mixed, 0, id => points[id], options);
+  const original = structuredClone(bound);
+  const segments = bound.primitives.filter(primitive => primitive.type === 'segment');
+  for (const fittedMarkerScale of [options.markerScale, 3]) {
+    const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale });
+    assert.deepEqual([...fitted.keys()], segments, 'each update retains its exact original primitive');
+    const fresh = bindRelationPlanFrame(mixed, 0, id => points[id], { ...options, markerScale: fittedMarkerScale });
+    assert.deepEqual([...fitted.values()], fresh.primitives.filter(primitive => primitive.type === 'segment'));
+    const marks = fresh.primitives.filter(primitive => primitive.type === 'fallback-mark');
+    for (const segment of fitted.values()) {
+      const centers = segment.witnessNodeIds.map(nodeId => marks.find(mark =>
+        mark.itemIndex === segment.itemIndex && mark.nodeId === nodeId));
+      if (segment.route === 'counter-lane') {
+        assert.deepEqual([segment.from.x, segment.to.x], centers.map(mark => mark.x).sort((a, b) => a - b));
+        assert.equal(segment.laneY, options.connectorBaselineY + segment.lane * options.laneGap);
+      } else {
+        assert.deepEqual(segment.from, { x: centers[0].x, y: centers[0].y });
+        assert.deepEqual(segment.to, { x: centers[1].x, y: centers[1].y });
+        const [x1, y1, x2, y2] = segment.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+        assert.ok(Math.abs(Math.hypot(x1 - segment.from.x, y1 - segment.from.y) - 10 * fittedMarkerScale) < 0.1);
+        assert.ok(Math.abs(Math.hypot(x2 - segment.to.x, y2 - segment.to.y) - 10 * fittedMarkerScale) < 0.1);
+      }
+    }
+  }
+  assert.deepEqual(bound, original, 'Fit does not mutate the bound frame or its source geometry');
+});
+
+test('fitted stack offsets can reverse endpoints and require a different collision lane', () => {
+  const claimStage = stage([
+    { relation: 'Earlier context', anchors: { participant: 'a' } },
+    { relation: 'First open claim', anchors: { first: 'a', second: 'b' } },
+    { relation: 'Second open claim', anchors: { first: 'c', second: 'd' } }
+  ]);
+  claimStage.workspaceForest.push(node('d'));
+  const p = compileRelationRenderPlan([claimStage]);
+  const points = { a: { x: 0, y: 0 }, b: { x: 60, y: 0 }, c: { x: 80, y: 0 }, d: { x: 100, y: 0 } };
+  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 5, connectorBaselineY: 200 };
+  const bound = bindRelationPlanFrame(p, 0, id => points[id], options);
+  const original = structuredClone(bound);
+  const before = bound.primitives.filter(primitive => primitive.type === 'segment');
+  assert.deepEqual(before.map(segment => segment.lane), [0, 0]);
+  const fitted = [...fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 }).values()];
+  assert.deepEqual([before[0].from.x, before[0].to.x], [23, 60]);
+  assert.deepEqual([fitted[0].from.x, fitted[0].to.x], [60, 138]);
+  assert.deepEqual(fitted.map(segment => segment.lane), [0, 1]);
+  assert.deepEqual(fitted.map(segment => segment.laneY), [200, 205]);
+  assert.deepEqual(fitted[0].witnessNodeIds, ['a', 'b'], 'geometry never changes authored participant identity');
+  assert.deepEqual(bound, original);
+});
+
+test('organizational rails remain below the deepest fitted connector lane', () => {
+  const ids = Array.from({ length: 4 }, (_, i) => [`a${i}`, `b${i}`]).flat();
+  const points = new Map(ids.map(id => [id, { x: Number(id[1]) * 300 + (id[0] === 'b' ? 250 : 0), y: 0 }]));
+  const relations = [];
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 10; j++) relations.push({ relation: `Context ${i} ${j}`,
+      anchors: { participant: `a${i}` }, values: { information: String(j) } });
+    relations.push({ relation: `Pair ${i}`, anchors: { first: `a${i}`, second: `b${i}` } });
+  }
+  relations.push({ relation: 'Large set', anchors: { members: ids } });
+  const p = compileRelationRenderPlan([{ ...stage(relations), workspaceForest: ids.map(node) }]);
+  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 60, connectorBaselineY: 200, railBaseY: 240 };
+  const bound = bindRelationPlanFrame(p, 0, id => points.get(id), options);
+  const original = structuredClone(bound);
+  const rail = bound.primitives.find(primitive => primitive.type === 'anchor-set-rail');
+  assert.equal(rail.y, 290);
+  const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 });
+  assert.deepEqual([...fitted.values()].filter(primitive => primitive.type === 'segment').map(segment => segment.laneY),
+    [200, 260, 320, 380]);
+  assert.equal(fitted.get(rail).y, 470, 'the rail follows the last lane with the existing 90-unit clearance');
+  const fresh = bindRelationPlanFrame(p, 0, id => points.get(id), { ...options, markerScale: 3 });
+  assert.deepEqual([...fitted.values()], fresh.primitives.filter(primitive => primitive.type === 'segment')
+    .concat(fresh.primitives.filter(primitive => primitive.type === 'anchor-set-rail')));
+  assert.deepEqual(bound, original);
+});
+
 test('specialized two-occurrence coindex remains atomic', () => {
   const specialized = structuredClone(plan);
   specialized.frames[0].items = [{ kind: 'coindex', nodeIds: ['a', 'b'], index: 'i', relationRef: plan.frames[0].items[0].relationRef }];
