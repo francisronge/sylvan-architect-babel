@@ -95,6 +95,40 @@ test('qualified roles share Tier-1 binding without completing a malformed regist
     values: { Case: 'accusative' } }, forest)), [3]);
 });
 
+test('explicit assignment domains interpret generic directions without relation-name aliases', () => {
+  const forest = [leaf('a', 'read'), leaf('b', 'books'), leaf('c', 'Ada')];
+  for (const anchors of [{ assigner: 'a', recipient: 'b' }, { source: 'a', target: 'b' },
+    { thetaAssigner: 'a', recipient: 'b' }, { source: 'a', thetaBearer: 'b' }]) {
+    const relation = { relation: 'Open claim', anchors, values: { thetaRole: 'Authored role' } };
+    const original = structuredClone(relation);
+    assert.ok(facetIds(dispatch(relation, forest)).includes('theta-grid'));
+    assert.deepEqual(facetIds(dispatch({ ...relation, anchors: Object.fromEntries(Object.entries(anchors).reverse()) }, forest)),
+      facetIds(dispatch(relation, forest)));
+    assert.deepEqual(relation, original);
+  }
+  assert.ok(facetIds(dispatch({ relation: 'Open claim', anchors: { thetaAssigner: 'a', recipient: ['b', 'c'] },
+    values: { recipient: ['Theme', 'Agent'] } }, forest)).includes('theta-grid'));
+  for (const values of [{ case: 'Accusative' }, { features: ['Case: Accusative'] }]) {
+    assert.ok(facetIds(dispatch({ relation: 'Open claim', anchors: { assigner: 'a', recipient: 'b' }, values }, forest))
+      .includes('feature.dependency'));
+  }
+});
+
+test('assignment context cannot guess a domain or choose between competing interpretations', () => {
+  const forest = [leaf('a', 'read'), leaf('b', 'books'), leaf('c', 'Ada')];
+  for (const [anchors, values] of [
+    [{ assigner: 'a', recipient: 'b' }, { role: 'Theme' }],
+    [{ assigner: 'a', recipient: 'b' }, { functionLabel: 'administrator' }],
+    [{ assigner: 'a', recipient: 'b' }, { thetaRole: 'Theme', case: 'Accusative' }],
+    [{ assigner: 'a', recipient: 'b', target: 'c' }, { thetaRole: 'Theme' }],
+    [{ assigner: 'a', recipient: ['b', 'c'] }, { thetaRole: 'Theme' }],
+    [{ assigner: 'a', recipient: ['b', 'c'] }, { thetaRole: ['Theme', 'Agent'] }],
+    [{ assigner: 'a', recipient: 'b' }, { thetaRole: '', functionLabel: 'administrator' }],
+    [{ assigner: 'a', recipient: 'missing' }, { thetaRole: 'Theme' }],
+    [{ governor: 'a', recipient: 'b' }, { thetaRole: 'Theme' }]
+  ]) assert.ok(!facetIds(dispatch({ relation: 'theta-assignment', anchors, values }, forest)).includes('theta-grid'));
+});
+
 test('assignment interpretation cannot fill missing literals or turn government and licensing into Agree', () => {
   const forest = [leaf('source', 'read'), leaf('target', 'books')];
   for (const [anchors, values] of [

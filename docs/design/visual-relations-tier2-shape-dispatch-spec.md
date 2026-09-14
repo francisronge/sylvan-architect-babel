@@ -81,6 +81,11 @@ It prints the authored field names and literals without asserting a dependency,
 valuation or outcome. Multiple recipients still require explicit roles; ambiguous
 feature blocks, prior-only anchors and prose alone do not earn this plaque.
 Exact-primary ownership and independent-claim checks remain unchanged.
+Assignment roles compose from explicit domain evidence and source/recipient
+direction. Qualified theta roles or a typed theta-role value can establish that
+domain; a generic `role` literal or the relation title cannot. Competing feature
+evidence does not select a theta reading. Literal pairing, cardinality and
+missing-reference checks still apply, including to lists with equal lengths.
 They do not independently repeat alias lookup. Empty authored arrays retain
 their field identity, so an empty optional field cannot be treated as absence.
 Different arrays under equivalent role/value keys cannot be concatenated to
