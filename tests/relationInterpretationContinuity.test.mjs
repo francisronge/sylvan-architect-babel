@@ -13,6 +13,35 @@ const dispatch = (relation, currentForest = forest, priorForest) => dispatchRela
 });
 const graphic = relation => plan(relation).frames[0].items[0];
 
+test('single-participant feature records reuse the existing plaque without interpreting the title', () => {
+  for (const role of ['head', 'bearer', 'arbitraryParticipant']) for (const field of ['features', 'rows']) {
+    const relation = { relation: 'An open record', anchors: { [role]: 'a' }, values: { [field]: ['+Q', '+wh'], locality: 'A qualification' } };
+    const original = structuredClone(relation);
+    const items = plan(relation).frames[0].items;
+    const plaques = items.filter(item => item.kind === 'node-plaque');
+    assert.equal(plaques.length, 1);
+    assert.equal(plaques[0].plaqueStyle, 'feature');
+    assert.deepEqual(plaques[0].anchorNodeIds, ['a']);
+    assert.deepEqual(plaques[0].rows.map(row => [row.label, row.value]), [[field, '+Q'], [field, '+wh']]);
+    assert.ok(items.some(item => item.kind === 'fallback'), 'the qualification remains available');
+    assert.ok(!items.some(item => item.kind === 'feature-connector' || item.kind === 'trajectory'));
+    assert.deepEqual(relation, original);
+  }
+});
+
+test('feature records do not guess recipients, rescue exact claims or duplicate a dependency', () => {
+  for (const relation of [
+    { relation: 'Open record', anchors: { first: 'a', second: 'b' }, values: { features: ['+Q'] } },
+    { relation: 'Open record', anchors: { head: ['a', 'a'] }, values: { features: ['+Q'] } },
+    { relation: 'Open record', anchors: { head: 'missing' }, values: { features: ['+Q'] } },
+    { relation: 'Open record', anchors: {}, priorAnchors: { head: 'a' }, values: { features: ['+Q'] } },
+    { relation: 'Open record', anchors: { head: 'a' }, values: { features: ['+Q'], featureValues: ['-Q'] } },
+    { relation: 'Open record', anchors: { head: 'a' }, values: { note: 'All features checked' } },
+    { relation: 'Agree', anchors: { probe: 'a' }, values: { features: ['+Q'] } },
+    { relation: 'Open dependency', anchors: { source: 'a', target: 'b' }, values: { features: ['+Q'] } }
+  ]) assert.ok(!plan(relation).frames[0].items.some(item => item.kind === 'node-plaque'), JSON.stringify(relation));
+});
+
 for (const [name, anchors, key, concept, value, output] of [
   ['CyclicAgree', { probe: 'a', goal: 'b' }, 'cycle', 'cycle', '7', 'label'],
   ['FProjection', { accentBearer: 'a', projections: ['root'] }, 'accent', 'accent.label', 'H*', 'label'],

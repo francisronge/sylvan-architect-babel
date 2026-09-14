@@ -75,6 +75,12 @@ correspondence and ordinary complements. Explicit-role checks are internal to
 the facet evaluator; the model receives no linguistic menu.
 
 Dispatch passes its interpreted evidence directly to the lowerer and Replay.
+An explicit feature or record-row block with exactly one current anchor can
+use the existing structured plaque regardless of that anchor's role wording.
+It prints the authored field names and literals without asserting a dependency,
+valuation or outcome. Multiple recipients still require explicit roles; ambiguous
+feature blocks, prior-only anchors and prose alone do not earn this plaque.
+Exact-primary ownership and independent-claim checks remain unchanged.
 They do not independently repeat alias lookup. Empty authored arrays retain
 their field identity, so an empty optional field cannot be treated as absence.
 Different arrays under equivalent role/value keys cannot be concatenated to

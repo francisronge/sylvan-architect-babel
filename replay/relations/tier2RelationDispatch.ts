@@ -342,6 +342,22 @@ export const buildTier2FacetEvidence = ({
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, relation);
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {} });
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
+  // One current participant makes explicit record rows attachable without
+  // interpreting its role or the relation title. Multiple participants still
+  // need an authored recipient; this rule never earns a dependency.
+  const participant = currentAnchors.authored.length === 1 ? currentAnchors.authored[0] : undefined;
+  if (participant?.items.length === 1 && (values.concepts['plaque.rows']?.length || values.concepts['feature.rows']?.length)) {
+    currentAnchors.concepts['plaque.anchor'] = [...participant.items];
+    participant.concepts = [...new Set([...participant.concepts, 'plaque.anchor'])];
+    participant.conceptItemIndices = { ...participant.conceptItemIndices, 'plaque.anchor': [0] };
+    if (values.concepts['feature.rows']?.length) {
+      appendItems(values.concepts, 'plaque.rows', values.concepts['feature.rows']);
+      values.authored.filter(entry => entry.concepts.includes('feature.rows')).forEach(entry => {
+        entry.concepts = [...entry.concepts, 'plaque.rows'];
+        entry.conceptItemIndices = { ...entry.conceptItemIndices, 'plaque.rows': entry.items.map((_, index) => index) };
+      });
+    }
+  }
   const realizationHost = (currentAnchors.concepts['pf.host']?.length ?? 0) > 0;
   if (realizationHost) {
     values.authored.filter(entry => normalizeTier2Synonym(entry.key) === 'notation').forEach(entry => {
