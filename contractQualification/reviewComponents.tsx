@@ -34,7 +34,7 @@ export function ReviewTree({ choice, stage, mode, source = 'original' }: {
   const forest = useMemo(() => Array.isArray(stage?.workspaceForest)
     ? structuredClone(stage.workspaceForest) : [], [stage]);
   if (mode === 'replay') return analysis
-    ? <TreeVisualizer data={analysis.tree} animated inspection derivationStages={analysis.derivationStages}
+    ? <TreeVisualizer data={analysis.tree} animated derivationStages={analysis.derivationStages}
       sentence={source === 'copy' ? choice.copySentence : choice.sentence} />
     : <p className="review-empty">No complete Replay was compiled for this analysis.</p>;
   const tree = buildDerivationCanvasData(forest);

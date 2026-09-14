@@ -193,7 +193,6 @@ export interface TreeVisualizerProps {
    * disable it to avoid double-drawing; nothing else should.
    */
   disableRelationOverlay?: boolean;
-  inspection?: boolean;
 }
 
 type RelationMoment = {
@@ -209,7 +208,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   disableRelationOverlay = false,
-  inspection = false,
   preparedReplay,
   manualCameraState
 }) => {
@@ -8596,7 +8594,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
   const activeStepRaw = currentReplayStep;
   const activeStep = activeStepRaw;
-  const activePanelContent = buildReplayPanelContent(activeStep, derivationStages, { inspection });
+  const activePanelContent = buildReplayPanelContent(activeStep, derivationStages);
   const activeReplaySupportLines = activePanelContent.supportLines;
   const replayDisplayDetailBlocksByStepIndex = useMemo(
     () => buildReplayDisplayDetailBlocks(playbackSteps),

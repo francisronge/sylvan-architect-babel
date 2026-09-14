@@ -37,19 +37,17 @@ const freeze = value => {
 };
 const unkey = rows => rows.map(({ label, value }) => ({ label, value }));
 
-test('inspection diagnostics belong to relation moments, including nonmovement relations', () => {
-  const record = { relation: 'Wh licensing', anchors: { operator: 'high' } };
+test('Replay panels exclude compiler diagnostics and preserve authored content and stored evidence', () => {
+  const record = { relation: 'Wh licensing', anchors: { operator: 'high' }, values: { Audit: 'An authored qualification' } };
   const diagnostic = 'RELATION_TIMING_CONFLICT: Stage 1, relation 1 requires high before relation 2 introduces it.';
   for (const operation of ['Wh licensing', 'AbarMove']) {
-    const current = movementStep({ operation, replayRelationLinks: [], movementDiagnostics: [diagnostic] });
-    const stages = [stage([record])];
-    assert.deepEqual(buildReplayPanelContent(current, stages).supportLines.filter(row => row.label === 'Audit'), []);
-    assert.deepEqual(unkey(buildReplayPanelContent(current, stages, { inspection: true }).supportLines.filter(row => row.label === 'Audit')),
-      [{ label: 'Audit', value: diagnostic }]);
-    assert.deepEqual(buildReplayPanelContent({ ...current, replayKind: 'micro' }, stages, { inspection: true })
-      .supportLines.filter(row => row.label === 'Audit'), []);
-    assert.deepEqual(buildReplayPanelContent({ ...current, movementDiagnostics: [] }, stages, { inspection: true })
-      .supportLines.filter(row => row.label === 'Audit'), []);
+    const current = freeze(movementStep({ operation, replayRelationLinks: [], movementDiagnostics: [diagnostic] }));
+    const stages = freeze([stage([record])]);
+    const content = buildReplayPanelContent(current, stages);
+    assert.deepEqual(content, buildReplayPanelContent({ ...current, movementDiagnostics: [] }, stages));
+    assert.deepEqual(unkey(content.supportLines.filter(row => row.label === 'Audit')),
+      [{ label: 'Audit', value: 'An authored qualification' }]);
+    assert.deepEqual(current.movementDiagnostics, [diagnostic]);
   }
 });
 
@@ -219,15 +217,13 @@ test('link-only compatibility callers also retain movement values literally', ()
 });
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url), 'utf8'));
-test('the saved Astra licensing conflict is visible on its own inspection frame, never as a public warning', () => {
+test('the saved Astra licensing conflict remains stored without appearing in the Replay panel', () => {
   const record = saved.find(record => record.name === 'astra-xbar');
   const stages = record.derivationStages;
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
   const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages), undefined, plan);
   const licensing = steps.find(step => step.replayRelationIdentity?.stageIndex === 4 && step.replayRelationIdentity?.relationIndex === 0);
-  const audit = buildReplayPanelContent(licensing, stages, { inspection: true }).supportLines.filter(line => line.label === 'Audit');
-  assert.equal(audit.length, 1);
-  assert.match(audit[0].value, /Stage 5, relation 1 \(wh licensing\) requires frontedNP before relation 2/);
+  assert.match(licensing.movementDiagnostics.join('\n'), /Stage 5, relation 1 \(wh licensing\) requires frontedNP before relation 2/);
   assert.equal(buildReplayPanelContent(licensing, stages).supportLines.some(line => line.label === 'Audit'), false);
 });
 for (const record of saved) {

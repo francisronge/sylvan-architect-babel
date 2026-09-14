@@ -172,6 +172,9 @@ It is supporting evidence; this roadmap is the only active checklist.
 #### Current reconciliation and next work
 
 Current offline gate: 1,599 tests, typecheck and both parse-contract fixtures pass.
+Compiler diagnostics remain in inspection evidence, never in the Replay bar.
+The inspection-only `Audit` rows were removed after Francis rejected that
+placement; retaining diagnostic evidence did not authorize adding it to Replay.
 The authorized Grok admission pair is complete. Both successful outputs contain
 valid JSON and needed no repair. Original response bytes, request provenance,
 usage and inspection records remain in the local qualification archive. The

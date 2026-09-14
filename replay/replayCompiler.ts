@@ -7621,8 +7621,7 @@ export const buildReplaySupportLines = (
 /** Panel content uses the original relation, including evidence with no drawing link. */
 export const buildReplayPanelContent = (
   step: PlaybackStep | null | undefined,
-  derivationStages: readonly DerivationStage[] | null | undefined = [],
-  options: { inspection?: boolean } = {}
+  derivationStages: readonly DerivationStage[] | null | undefined = []
 ): ReplayPanelContent => {
   const identity = step?.replayKind === 'relation' ? step.replayRelationIdentity : undefined;
   const authoredRelation = identity && Number.isInteger(identity.stageIndex) && identity.stageIndex >= 0
@@ -7632,10 +7631,6 @@ export const buildReplayPanelContent = (
   const priorForest = identity && identity.stageIndex > 0
     ? derivationStages?.[identity.stageIndex - 1]?.workspaceForest ?? [] : [];
   const supportLines = buildReplaySupportLines(step ?? null, authoredRelation, priorForest);
-  if (options.inspection && identity) {
-    (step?.movementDiagnostics || []).filter(Boolean)
-      .forEach(value => supportLines.push({ label: 'Audit', value }));
-  }
   const stageIndex = step?.replayKind === 'macro' ? step.replayFrameIndex : undefined;
   const statement = typeof stageIndex === 'number' && Number.isInteger(stageIndex) && stageIndex >= 0
     ? derivationStages?.[stageIndex]?.statement : undefined;
