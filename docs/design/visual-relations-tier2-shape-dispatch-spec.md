@@ -157,6 +157,11 @@ The movement moment includes the shortest new ancestor chain required to
 connect the landing to existing syntax; higher projections keep their own
 micro-steps.
 
+A waiting unary root projection can also be withheld until an exact persistent
+phrase attaches through a neutral relation's existing current/prior ownership.
+Earlier relations referencing that projection prevent deferral. This changes
+display timing only; it does not earn a movement drawing or rewrite the stage.
+
 When an exact movement endpoint is a wordless category leaf, attach to that
 category's shell bottom. Do not request an absent lexical child, invent a null
 or trace, or search for another nearby endpoint. Lexical endpoints still require

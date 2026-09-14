@@ -2359,35 +2359,48 @@ export const buildPlaybackStepsFromDerivationFrames = (
     plannedRelationsByFrame[index] = plannedFrameRelations;
     plannedFrameRelations.forEach((relation, relationIndex) => {
       const movement = relation.recoveredMovement;
-      if (!movement?.transition || movement.trajectoryKind !== 'phrasal') return;
-      const parent = workspaceRoots.find(root => root.children?.some(child => child.id === movement.targetNodeId));
-      const previousParent = previousFrameWorkspaceRoots.find(root => root.id === parent?.id);
-      if (!parent?.id || parent.word || parent.children?.length !== 2 || previousParent?.children?.length !== 1) return;
-      const carriedChildId = previousParent.children[0].id;
-      if (!parent.children.some(child => child.id === carriedChildId)
-        || previousParent.children.some(child => child.id === movement.targetNodeId)) return;
+      const ownership = movement?.transition ? null : resolveFallbackTreeTransitionOwnership(
+        relation, previousFrameWorkspaceRoots, workspaceRoots
+      );
+      if (!(movement?.transition && movement.trajectoryKind === 'phrasal') && !ownership) return;
+      workspaceRoots.forEach(parent => {
+        const previousParent = previousFrameWorkspaceRoots.find(root => root.id === parent.id);
+        if (!parent.id || parent.word || parent.children?.length !== 2 || previousParent?.children?.length !== 1) return;
+        const carriedChildId = previousParent.children[0].id;
+        if (!parent.children.some(child => child.id === carriedChildId)) return;
+        const landing = parent.children.find(child => child.id !== carriedChildId);
+        if (!landing?.id) return;
+        const ownsLanding = movement?.transition
+          ? movement.targetNodeId === landing.id
+          : Boolean(landing.children?.length
+            && ownership?.currentNodeIds.has(landing.id)
+            && ownership.priorNodeIds.has(landing.id)
+            && findExactNodesByIdInForest(previousFrameWorkspaceRoots, landing.id).length === 1
+            && findExactNodesByIdInForest(workspaceRoots, landing.id).length === 1);
+        if (!ownsLanding || pendingProjectionReveals.some(reveal => reveal.nodeId === parent.id && reveal.stageIndex === index)) return;
 
-      let firstStageIndex = index - 1;
-      while (firstStageIndex > 0) {
-        const earlier = frames[firstStageIndex - 1].workspaceForest?.find(root => root.id === parent.id);
-        if (earlier?.children?.length !== 1 || earlier.children[0].id !== carriedChildId) break;
-        firstStageIndex -= 1;
-      }
-      const precedingRelations = [
-        ...plannedRelationsByFrame.slice(firstStageIndex, index).flat(),
-        ...plannedFrameRelations.slice(0, relationIndex)
-      ];
-      if (precedingRelations.some(candidate => [
-        ...getRelationAllAnchorNodeIds(candidate),
-        ...relationAnchorNodeIds(candidate.priorAnchors),
-        getRelationTargetNodeId(candidate),
-        ...getRelationSourceNodeIds(candidate)
-      ].includes(parent.id!))) return;
-      // The saved unary projection remains authored. Replay withholds only
-      // its display until the later phrase attaches, unless an earlier claim
-      // needs that projection as an anchor.
-      pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index,
-        relationIndex: relation.authoredRelationIndex ?? relationIndex });
+        let firstStageIndex = index - 1;
+        while (firstStageIndex > 0) {
+          const earlier = frames[firstStageIndex - 1].workspaceForest?.find(root => root.id === parent.id);
+          if (earlier?.children?.length !== 1 || earlier.children[0].id !== carriedChildId) break;
+          firstStageIndex -= 1;
+        }
+        const precedingRelations = [
+          ...plannedRelationsByFrame.slice(firstStageIndex, index).flat(),
+          ...plannedFrameRelations.slice(0, relationIndex)
+        ];
+        if (precedingRelations.some(candidate => [
+          ...getRelationAllAnchorNodeIds(candidate),
+          ...relationAnchorNodeIds(candidate.priorAnchors),
+          getRelationTargetNodeId(candidate),
+          ...getRelationSourceNodeIds(candidate)
+        ].includes(parent.id!))) return;
+        // Withhold the saved unary shell until its second child attaches. A
+        // fallback can own an exact node's relocation without proving a
+        // linguistic movement drawing; earlier claims still retain their anchors.
+        pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index,
+          relationIndex: relation.authoredRelationIndex ?? relationIndex });
+      });
     });
     const plannedStageRelocatesPriorLandingOccurrence = index > 0
       && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')

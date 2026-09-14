@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { adaptDerivationStagesForReplay, buildAuthoredRelationLinksForFrames, buildReplayPanelContent } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay, buildAuthoredRelationLinksForFrames, buildReplayPanelContent, getFrameRelations } from '../replay/replayCompiler.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const records = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
@@ -157,4 +157,58 @@ test('withholding a top projection preserves its carried child and an independen
   assert(!visible(before, 'cp1'));
   for (const id of ['cbar1', 'c0', 'independent', 'independent::__leaf']) assert(visible(before, id), id);
   assert(visible(steps[moment(steps, 4, 0)], 'cp1'));
+});
+
+const neutralAttachmentRecord = () => {
+  const phrase = { id: 'phrase', label: 'YP', children: [{ id: 'word', label: 'Y', word: 'what' }] };
+  const body = children => ({ id: 'body', label: 'X', children });
+  const root = children => ({ id: 'top', label: 'XP', children });
+  return { sentence: 'what stays', derivationStages: [
+    { statement: 'First state', stageRecord: 'First state.', relations: [], workspaceForest: [
+      root([body([phrase, { id: 'predicate', label: 'V', word: 'stays' }])])
+    ] },
+    { statement: 'Second state', stageRecord: 'Second state.', relations: [
+      { relation: 'Unclassified claim', anchors: { one: 'phrase', two: 'lower' }, priorAnchors: { context: 'body' } },
+      { relation: 'Later context', anchors: { context: 'phrase' } }
+    ], workspaceForest: [root([structuredClone(phrase), body([
+      { id: 'lower', label: 'YP', silent: true }, { id: 'predicate', label: 'V', word: 'stays' }
+    ])])] }
+  ] };
+};
+
+test('a fallback-owned phrase relocation reveals its waiting projection at the relation moment', () => {
+  const record = neutralAttachmentRecord();
+  const original = JSON.stringify(record);
+  const steps = play(record);
+  const attachment = moment(steps, 1, 0);
+  assert(attachment > 0);
+  assert(!steps.slice(0, attachment).some(step => visible(step, 'top')));
+  assert(visible(steps[attachment], 'top'));
+  for (const id of ['phrase', 'word', 'word::__leaf', 'body', 'lower']) assert(visible(steps[attachment], id), id);
+  assert.equal(nodes(steps[attachment - 1].replayCanvasData).find(node => node.id === 'body').children[0].id, 'phrase');
+  assert.equal(nodes(steps[attachment].replayCanvasData).find(node => node.id === 'body').children[0].id, 'lower');
+  assert(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'top'));
+  assert.equal(JSON.stringify(record), original);
+  const frames = adaptDerivationStagesForReplay(record.derivationStages);
+  const plan = buildDerivationReplayPlan(record);
+  const relation = getFrameRelations(frames[1], plan.stages[1], record.derivationStages[0].workspaceForest)[0];
+  assert(relation.neutralTransitionEvidence, 'display timing must preserve the neutral claim');
+  assert.equal(relation.recoveredMovement, undefined, 'display timing must not invent movement evidence');
+});
+
+test('fallback projection deferral requires an owned persistent phrase and respects earlier projection anchors', () => {
+  const cases = [
+    record => { delete record.derivationStages[1].relations[0].priorAnchors; },
+    record => { record.derivationStages[1].relations[0].priorAnchors = { context: 'predicate' }; },
+    record => { record.derivationStages[0].workspaceForest.push({ id: 'phrase', label: 'Other' }); },
+    record => { record.derivationStages[1].workspaceForest[0].children[0].id = 'new-phrase'; record.derivationStages[1].relations[0].anchors.one = 'new-phrase'; },
+    record => { record.derivationStages[0].relations.push({ relation: 'Earlier context', anchors: { context: 'top' } }); },
+    record => { record.derivationStages[1].relations.unshift({ relation: 'Earlier context', anchors: {}, priorAnchors: { context: 'top' } }); }
+  ];
+  for (const alter of cases) {
+    const record = neutralAttachmentRecord();
+    alter(record);
+    const steps = play(record);
+    assert(visible(steps.find(step => step.replayFrameIndex === 0 && step.replayKind === 'macro'), 'top'));
+  }
 });
