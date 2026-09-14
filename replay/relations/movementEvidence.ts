@@ -2,6 +2,8 @@ import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 export interface RecoveredMovement {
+  /** The actual preceding occurrence; its ID may persist at either current endpoint. */
+  priorSourceNodeId: string;
   sourceNodeId: string;
   targetNodeId: string;
   witnessNodeId: string;
@@ -124,15 +126,29 @@ export function recoverMovementEvidence(
   const witnessId = witnesses[0] || sourceId;
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
-  const before = prior.nodes.get(sourceId);
-  if (!before || prior.duplicates.has(sourceId) || before.lineageId !== source.lineageId) {
-    return fail('MOVEMENT_PRIOR_SOURCE_UNPROVEN', `${sourceId} has no unique occurrence with matching lineage in the preceding stage.`);
-  }
   const explicitPriorSources = Object.entries(relation.priorAnchors || {})
     .filter(([key]) => hasRole(key, 'movement.source'))
     .flatMap(([, value]) => Array.isArray(value) ? value : [value]);
-  if (explicitPriorSources.some(id => id !== sourceId)) {
-    return fail('MOVEMENT_PRIOR_SOURCE_CONFLICT', `The prior source anchors do not identify ${sourceId}; the source was not replaced with a guessed occurrence.`);
+  const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
+    : [...new Set(explicitPriorSources.length ? explicitPriorSources : [targetId])];
+  const priorSourceId = priorCandidates.length === 1 ? priorCandidates[0] : '';
+  const before = prior.nodes.get(priorSourceId);
+  if (!before || prior.duplicates.has(priorSourceId) || before.lineageId !== source.lineageId) {
+    return fail('MOVEMENT_PRIOR_SOURCE_UNPROVEN', `${sourceId} has no unique occurrence with matching lineage in the preceding stage.`);
+  }
+  if (explicitPriorSources.some(id => id !== priorSourceId)) {
+    return fail('MOVEMENT_PRIOR_SOURCE_CONFLICT', `The prior source anchors do not identify ${priorSourceId}; the source was not replaced with a guessed occurrence.`);
+  }
+  if (priorSourceId !== sourceId) {
+    const oldParent = prior.parents.get(priorSourceId);
+    const lowerParent = current.parents.get(sourceId);
+    // A fresh lower ID must occupy the exact prior structural slot. Shared
+    // lineage alone cannot relocate an unrelated occurrence or guess a source.
+    if (!oldParent || !lowerParent || oldParent.id !== lowerParent.id
+      || prior.duplicates.has(oldParent.id) || current.duplicates.has(lowerParent.id)
+      || oldParent.children?.findIndex(n => n.id === priorSourceId) !== lowerParent.children?.findIndex(n => n.id === sourceId)) {
+      return fail('MOVEMENT_PRIOR_POSITION_UNPROVEN', `${sourceId} does not occupy the preceding position of ${priorSourceId}.`);
+    }
   }
   const lower = current.nodes.get(witnessId);
   const silent = (n: SyntaxNode): boolean => n.silent === true || Boolean(n.children?.length && n.children.every(silent));
@@ -165,9 +181,10 @@ export function recoverMovementEvidence(
   return {
     diagnostics,
     movement: {
+      priorSourceNodeId: priorSourceId,
       sourceNodeId: sourceId, targetNodeId: targetId, witnessNodeId: witnessId,
       trajectoryKind: complexHead ? 'head' : 'phrasal',
-      transition: !prior.nodes.has(targetId) && (!silent(before)
+      transition: (priorSourceId !== sourceId || !prior.nodes.has(targetId)) && (!silent(before)
         || [...prior.nodes.values()].filter(n => n.lineageId === source.lineageId).length === 1),
       roles,
       ...(context.length ? { context } : {})

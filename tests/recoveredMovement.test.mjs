@@ -134,6 +134,106 @@ const sample = () => {
     previous: c.derivationStages[1].workspaceForest };
 };
 
+const retainedOccurrence = (kind, retainLanding) => {
+  const source = retainLanding ? 'lower' : 'original';
+  const target = retainLanding ? 'original' : 'higher';
+  const phrase = (id, silent = false) => ({ id, label: kind === 'head' ? 'T' : 'DP', lineageId: 'identity',
+    ...(silent ? { silent: true } : kind === 'head' ? { word: 'did' }
+      : { children: [{ id: 'word', label: 'N', word: 'book' }] }) });
+  const host = { id: 'host', label: 'C', silent: true };
+  const lower = phrase(source, true);
+  const landing = phrase(target);
+  const prior = [{ id: 'root', label: 'CP', children: [host, { id: 'site', label: 'VP', children: [phrase('original')] }] }];
+  const current = [{ id: 'root', label: 'CP', children: kind === 'head'
+    ? [{ id: 'complex', label: 'C', children: [landing, host] }, { id: 'site', label: 'VP', children: [lower] }]
+    : [landing, host, { id: 'site', label: 'VP', children: [lower] }] }];
+  const relation = { relation: 'An open movement claim', anchors: { source, landing: target }, priorAnchors: { source: 'original' } };
+  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state', stageRecord: '', workspaceForest, relations });
+  return { source, target, prior, current, relation, record: { derivationStages: [stage(prior), stage(current, [relation])] } };
+};
+
+test('movement distinguishes the preceding occurrence from either current ID-retention convention', () => {
+  for (const kind of ['phrasal', 'head']) for (const retainLanding of [false, true]) {
+    const c = retainedOccurrence(kind, retainLanding);
+    const original = structuredClone(c.record);
+    const movement = recoverMovementEvidence(c.relation, c.current, c.prior).movement;
+    assert.equal(movement?.priorSourceNodeId, 'original');
+    assert.equal(movement.sourceNodeId, c.source);
+    assert.equal(movement.targetNodeId, c.target);
+    assert.equal(movement.trajectoryKind, kind);
+    assert.equal(movement.transition, true);
+    const { steps } = buildReplayPlayback({ sentence: kind === 'head' ? 'did' : 'book', analyses: [c.record] });
+    const index = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+    const before = steps[index - 1];
+    const moment = steps[index];
+    const material = step => nodes(step.replayCanvasData).filter(n => !n.replayLayoutOnly);
+    assert.equal(material(before).find(n => n.children?.some(c => c.id === 'original'))?.id, 'site', `${kind}: retain landing ${retainLanding}`);
+    assert.equal(material(before).filter(n => n.id === 'original').length, 1);
+    assert.ok(before.replayVisibleNodeIds.includes('original'), 'the original remains visible at its source');
+    assert.equal(find([moment.replayCanvasData], c.source).silent, true);
+    assert.ok(moment.replayVisibleNodeIds.includes(c.target));
+    assert.ok(moment.replayRelationLinks.some(l => l.renderFamily === 'trajectory' && l.sourceNodeId === c.source && l.targetNodeId === c.target));
+    assert.deepEqual(c.record, original);
+  }
+});
+
+test('a fresh lower occurrence needs exact prior identity and position, and never replays a completed chain', () => {
+  const c = retainedOccurrence('phrasal', true);
+  const relation = { ...c.relation, priorAnchors: undefined };
+  assert.equal(recoverMovementEvidence(relation, c.current, c.prior).movement?.priorSourceNodeId, 'original');
+  assert.equal(recoverMovementEvidence(relation, c.current, c.current).movement?.transition, false);
+  const fresh = structuredClone(c);
+  find(fresh.current, 'original').id = 'fresh-upper';
+  fresh.relation.anchors.landing = 'fresh-upper';
+  assert.equal(recoverMovementEvidence(fresh.relation, fresh.current, fresh.prior).movement?.priorSourceNodeId, 'original');
+  delete fresh.relation.priorAnchors;
+  assert.equal(recoverMovementEvidence(fresh.relation, fresh.current, fresh.prior).movement, undefined, 'lineage alone cannot choose an unanchored prior ID');
+  for (const damage of [
+    copy => { copy.relation.priorAnchors.source = 'absent'; },
+    copy => { copy.prior[0].children.push(structuredClone(find(copy.prior, 'original'))); },
+    copy => { find(copy.current, 'site').children.unshift({ id: 'unrelated', label: 'X' }); },
+    copy => { find(copy.current, 'lower').lineageId = 'different'; }
+  ]) {
+    const copy = structuredClone(c);
+    damage(copy);
+    assert.equal(recoverMovementEvidence(copy.relation, copy.current, copy.prior).movement, undefined);
+  }
+});
+
+test('a retained landing ID can move again while earlier lower occurrences remain intact', () => {
+  const c = retainedOccurrence('phrasal', true);
+  const last = structuredClone(c.record.derivationStages.at(-1));
+  const higher = last.workspaceForest[0].children.shift();
+  last.workspaceForest[0].children.unshift({ id: 'intermediate', label: 'DP', lineageId: 'identity', silent: true });
+  last.workspaceForest = [{ id: 'outer', label: 'XP', children: [higher, ...last.workspaceForest] }];
+  last.relations = [{ relation: 'Another authored movement', anchors: { source: 'intermediate', landing: 'original' },
+    priorAnchors: { source: 'original' } }];
+  c.record.derivationStages.push(last);
+  const { steps } = buildReplayPlayback({ sentence: 'book', analyses: [c.record] });
+  const index = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 2);
+  const before = steps[index - 1];
+  const after = steps[index];
+  assert.equal(nodes(before.replayCanvasData).find(n => n.children?.some(c => c.id === 'original'))?.id, 'root');
+  assert.ok(before.replayVisibleNodeIds.includes('original'));
+  assert.equal(nodes(after.replayCanvasData).find(n => n.children?.some(c => c.id === 'original'))?.id, 'outer');
+  for (const id of ['lower', 'intermediate']) {
+    assert.ok(after.replayVisibleNodeIds.includes(id));
+    assert.equal(find([after.replayCanvasData], id).silent, true);
+  }
+});
+
+test('later realization of a retained landing reads the actual preceding head', () => {
+  const c = retainedOccurrence('head', true);
+  find(c.current, 'original').word = 'does';
+  c.record.derivationStages.at(-1).relations.push({ relation: 'PFRealization', anchors: { terminal: 'original' }, values: { realization: 'does' } });
+  const { steps } = buildReplayPlayback({ sentence: 'does', analyses: [c.record] });
+  const [movement, realization] = steps.filter(s => s.replayRelationIdentity?.stageIndex === 1);
+  const surface = step => nodes(step.replayCanvasData).filter(n => n.word && !n.replayLayoutOnly && !n.silent).map(n => n.word);
+  assert.ok(surface(movement).includes('did'));
+  assert.ok(!surface(movement).includes('does'));
+  assert.ok(surface(realization).includes('does'));
+});
+
 test('Tier 3 reveals a proved landing and its new parent together without earning an arrow', () => {
   const record = structuredClone(saved.find(c => c.name === 'fable-minimalism'));
   const stageIndex = 4;

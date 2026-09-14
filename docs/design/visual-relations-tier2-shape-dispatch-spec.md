@@ -134,6 +134,15 @@ subtype. Replay executes only a movement transition earned by the surviving
 claim, preserves the preceding source until that moment, and does not repeat an
 unchanged chain. This does not relax the exact Tier-1 signature safeguard.
 
+Derived movement evidence records the preceding occurrence separately from the
+current lower and landing IDs. The old ID may persist at either endpoint. A
+fresh lower ID requires the exact prior parent and child slot, matching root
+lineage, and either the retained landing ID or an explicit prior-source anchor.
+No search by word spelling or unanchored lineage substitutes a different ID.
+Replay restores the complete prior occurrence before movement, retains earlier
+lower copies in later movements, and reads later realization from that same
+prior occurrence. Silence and supported landing-shape requirements still apply.
+
 An accepted Tier-1 head/phrasal trajectory uses the same recovered movement
 timing when the recovered kind agrees with its registered family. This is not
 a second acceptance path. Special trajectory recipes retain their own behavior.

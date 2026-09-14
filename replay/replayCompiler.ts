@@ -1736,6 +1736,22 @@ const buildPreMovementStructuralForest = (
       && trajectoryDisplayKind !== 'head'
       && !relationOwnsPhrasalTreeTransition(relation)
     ) return;
+    const movement = relation.recoveredMovement;
+    if (movement && movement.priorSourceNodeId !== movement.sourceNodeId) {
+      const before = findNodeInForest(previousForest, movement.priorSourceNodeId);
+      const lower = findNode(movement.sourceNodeId);
+      const landing = findNode(movement.targetNodeId);
+      if (!before || !lower || !landing) return;
+      const restored = restoreCurrentSourceState(lower, before);
+      if (!restored) return;
+      // The retained ID may currently be at the landing. Remove that occurrence
+      // before restoring the complete prior object at its proven lower slot.
+      const parent = findParent(movement.targetNodeId);
+      if (parent) parent.children = parent.children?.filter(child => child !== landing);
+      else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      replaceStructuralNode(movement.sourceNodeId, restored);
+      return;
+    }
     const restoredFromPreviousStage = new Set<string>();
     sourceIds.forEach((sourceId) => {
       const previousSource = findNodeInForest(previousForest, sourceId);
@@ -1924,7 +1940,7 @@ const buildAnchoredTreeTransitionForest = (
             const node = findExactNodeByIdInForest(currentForest, id);
             return node ? [...collectExactSubtreeNodeIds(node)] : [];
           })),
-          priorNodeIds: collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement.sourceNodeId)!)
+          priorNodeIds: collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement.priorSourceNodeId)!)
         };
       }
       return resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
@@ -2825,6 +2841,16 @@ export const buildPlaybackStepsFromDerivationFrames = (
           ) => {
             const normalizedTargetNodeId = String(targetNodeId || '').trim();
             if (!normalizedTargetNodeId) return;
+            const retainedSource = relationPlacements.some(placement => {
+              const movement = placement.relation.recoveredMovement;
+              return !activeRelationIndexes.has(placement.relationIndex)
+                && movement?.priorSourceNodeId === normalizedTargetNodeId
+                && movement.sourceNodeId !== normalizedTargetNodeId
+                && Boolean(findNodeByIdInForest(preservedForest, normalizedTargetNodeId))
+                && findParentNodeIdInForest(preservedForest, normalizedTargetNodeId)
+                  === findParentNodeIdInForest(previousFrameWorkspaceRoots, normalizedTargetNodeId);
+            });
+            if (retainedSource) return;
             const targetStillExists = Boolean(
               findNodeByIdInForest(preservedForest, normalizedTargetNodeId)
             );
@@ -2951,7 +2977,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) =>
               relationIndex > movementIndex && relation.pronunciationNodeIds?.includes(movement.targetNodeId));
             if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex)) return;
-            const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.sourceNodeId);
+            const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.priorSourceNodeId);
             const landing = findExactNodeByIdInForest(snapshotWorkspaceRoots, movement.targetNodeId);
             if (!prior || !landing || prior.children?.length || landing.children?.length) return;
             if (prior.word === landing.word) return;
@@ -6938,6 +6964,7 @@ export const getFrameRelations = (
     if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
     const { movementDiagnostics } = evidence;
     const movement: RecoveredMovement | undefined = covert ? {
+      priorSourceNodeId: evidence.currentAnchors['scope.source'][0],
       sourceNodeId: evidence.currentAnchors['scope.source'][0],
       targetNodeId: evidence.currentAnchors['scope.landing'][0],
       witnessNodeId: evidence.currentAnchors['scope.source'][0],
