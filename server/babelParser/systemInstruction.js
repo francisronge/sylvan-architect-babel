@@ -1,6 +1,6 @@
-const XBAR_INSTRUCTION = "Analyze the input within X-bar Theory and Government and Binding Theory. Use consistent X-bar constituent labels and endocentric projections headed by the corresponding lexical or functional category. Phrasal nodes have one or two children in every stage. Attach overt words at heads, not directly at intermediate or maximal projections. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
+const XBAR_INSTRUCTION = "Analyze the input within X-bar Theory and Government and Binding Theory. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
 
-const MINIMALISM_INSTRUCTION = "Analyze the input within the Minimalist Program using Bare Phrase Structure. Use consistent, framework-internal labels without bar-level prime notation or X-bar shells. Keep structure endocentric and Merge outputs binary. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
+const MINIMALISM_INSTRUCTION = "Analyze the input within the Minimalist Program using Bare Phrase Structure. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
 
 export const DERIVATION_STAGES_BASE_INSTRUCTION = `Analyze the exact input, including an ungrammatical input. Explain any judgment within the selected framework rather than changing the sentence.
 

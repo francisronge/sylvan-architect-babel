@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { __test__ } from '../server/babelParser.js';
-import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
+import { buildSystemInstruction, DERIVATION_STAGES_BASE_INSTRUCTION } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 
@@ -103,9 +103,16 @@ const buildCurrentContractPayload = () => ({
   ]
 });
 
-test('both framework contracts define open roles, anchor lists, optional values and priorAnchors', () => {
+test('both frameworks select the theory and share the open derivation contract without theoretical coaching', () => {
   for (const framework of ['xbar', 'minimalism']) {
     const instruction = buildSystemInstruction(framework);
+    const frameworkInstruction = instruction.slice(0, instruction.indexOf('\n\n'));
+    assert.match(frameworkInstruction, framework === 'xbar'
+      ? /X-bar Theory and Government and Binding Theory/
+      : /Minimalist Program using Bare Phrase Structure/);
+    assert.match(frameworkInstruction, /Explain the sentence-specific structural choices and derivational commitments/);
+    assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
+    assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
     assert.match(instruction, /anchors: a nonempty object with nonblank role names/);
