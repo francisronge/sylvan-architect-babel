@@ -21,6 +21,87 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Measured optimization pass, 14 September
+
+Francis authorized a broad performance pass. The local audit covered normalization,
+relation lookup and planning, Canopy/Replay preparation, app startup, input and
+Notes interaction, zoom/Fit, saving, Tree Bank opening and repeated view switching.
+The demonstrated dominant cost was repeated work during Replay preparation.
+Two independently shippable changes preserve the existing results:
+
+- `95bc928` indexes declared relation identities once for each immutable registry.
+  All normalization modes and ambiguity checks remain. Mutable registry copies
+  are indexed afresh, and authored names do not accumulate in a cache.
+- `1118817` interprets each stage's relations once within a compilation, collects
+  casing context in one traversal per canvas, and avoids repeatedly counting
+  overlapping visible subtrees. Links still bind to the current forest. Exact-ID
+  and alias precedence, inherited silence, hidden layout and unnamed-leaf counting
+  retain their previous behavior. Reuse ends with the preparation call.
+
+### Measured result
+
+These are medians of three alternating before/after runs through local production
+builds on this Mac. They include worker preparation, result transfer and first
+render. The baseline is `56d426d`; each version receives the same provider-free
+input. They are not provider latency measurements or device-independent promises.
+
+| Control | Stages | Replay frames | Before | After | Less time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Deep left branching | 64 | 319 | 2.81 s | 1.12 s | 60% |
+| Deep left branching | 96 | 479 | 7.86 s | 2.92 s | 63% |
+| Balanced, multiple workspaces | 128 | 639 | 12.61 s | 6.00 s | 52% |
+
+A separate 100,000-lookup registry probe decreases from 386 ms to 15 ms with the
+same matches. This measures only registry lookup, not the whole app.
+
+The remaining sampled costs include future-layout construction, tree comparison
+and copying. Complete prepared results can still be large: the 96-stage control
+serializes to 37.3 MB and the balanced control to 58.8 MB. These are serialized
+output sizes, not peak memory or wire-transfer measurements. Further changes need
+fresh profiles and exact-result checks; this pass does not justify a layout rewrite.
+
+### Other surfaces and limits
+
+Local startup is about 112 ms after the change versus 120 ms before it. Typing
+causes zero tree redraws; Notes, zoom and Fit retain their behavior. Ordinary
+saving takes about 71 ms and a 200-row plaque save about 127 ms, retaining exact
+stages and snapshot trees. A seeded 100-record Tree Bank, about 22 MB serialized,
+opens in about 56 ms. These paths were not specifically optimized; small timing
+differences are observations, not established speedups. Bundle sizes are nearly
+unchanged, and slow-network startup remains unqualified.
+
+Across 12 Canopy/Replay cycles, all 25 workers terminate. Post-GC main-page heap
+is 5.80 MB after cycle 1, 6.74 MB after cycle 6 and 6.86 MB after cycle 12. This
+bounded check shows no obvious runaway growth; longer sessions, worker peak memory
+and much larger libraries remain unqualified. Four archived bundles normalize in
+roughly 0.2–1.2 ms after the first call, which takes about 9 ms. No normalization
+change is justified by these measurements. Existing scripted public-route checks
+continue to pass; no live provider, deployed proxy or network performance claim
+is made.
+
+### Preservation and verification
+
+Complete preparation results match in 234 comparisons covering 1,967 Replay frames
+across 117 controls and archives in both view modes. Three larger controls also
+retain byte-identical complete output. Additional temporary comparisons cover
+1,000 varied casing inputs and 2,000 visible-token cases with aliases, duplicate
+IDs, unnamed leaves, silence and hidden layout. Focused regression tests protect
+the lookup/reuse boundaries and bound tree reads without relying on wall time.
+
+All 137 archived frames retain identical production-browser camera, node, branch,
+label and plaque geometry. Manual zoom followed by Next, Fit, saved previews and
+reopening pass. No browser errors occur. The full gate passes 1,650 tests,
+typecheck and both normalized fixtures; production build and release-asset checks
+pass. No fixture snapshot changes. Harness: Node 24.16.0, production Express builds
+and Playwright Chromium. Measurements, recordings and comparisons are outside the
+worktree in `/tmp/babel-optimization/`. All owned browsers and servers were stopped.
+
+No linguistic interpretation rule, accepted appearance, camera policy, prompt,
+provider payload, JSON repair or incomplete-record policy changed. The extreme
+plaque export boundary below remains: saving retains all rows, but a static image
+or printed page shows only the visible scroll window. Full-row print presentation
+still needs an agreed design.
+
 ## Extended offline checks, 13 September
 
 Francis authorized safe independent verification while away and questioned the
