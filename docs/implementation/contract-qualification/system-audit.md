@@ -10,6 +10,18 @@ On 9 September, Francis approved the bounded wording review followed by stage-pr
 
 ## Read this first
 
+Current-status correction, 14 September: later integration and checks supersede
+the pending wording in dated sections below, including the internal "Remaining
+decisions" list. Generated identity, ordinary plaque integration, judgment
+handling, separate relation moments, public-route scripted polling/cancellation
+and measured Replay preparation repairs are no longer open merely because an
+earlier entry says so. The authorized Grok pair has also been completed. Current
+pending work is listed only in [ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+The separate [morphology and surface realization audit](../../research/morphology-realization-audit.md)
+records the newly investigated representation limit and neutral-transition
+ownership finding. Historical prompt quotations and raw-analysis findings below
+remain evidence of their original versions.
+
 Scope correction, 14 September: Francis rejected treating full-row static plaque
 printing as unfinished product work. Tree Bank thumbnails preview the final tree;
 reopening provides the complete saved record. A preview need not expose every
@@ -18,8 +30,8 @@ defect, shipping blocker or requirement for a new export design. This supersedes
 the earlier statements that an all-rows print decision was needed.
 
 Status reconciliation, 12 September: the original findings and dated discussion
-below are historical evidence, not new requests for approval. The current
-[remaining decisions](#remaining-decisions) and roadmap supersede their pending
+below are historical evidence, not new requests for approval. The later
+roadmap supersedes the historical [remaining decisions](#remaining-decisions) and pending
 wording. PRs #6-#11 are merged. Phrase silence, explicit list pairing, earlier
 movement sources, plain-field plate readers, tree-order sentence reading, and
 Tier-3 stage persistence/numbering are settled. The prior reconstruction and
@@ -4515,7 +4527,7 @@ In the table, "accepted" means normalization returned a bundle. It does not mean
 | Other node fields | No complete optional-node-field definition. The prompt forbids aliases/shorthand and ends with a broad ban on extra fields. | Arbitrary node fields survive. `aliasIds` can resolve a `refId` despite the prompt's ban. `type` and `silentFeature` have pronunciation behavior. `surfaceSpan`, not requested by the prompt, can affect final validation. | Audit the raw node boundary separately from derived/browser fields. Undocumented fields must not accidentally become an alternate authored contract. Do not delete product metadata indiscriminately. |
 | Final surface comparison | Exact supplied token strings/order in the sentence prompt. Ungrammatical inputs must still be analyzed as written. | Comparison lowercases and strips edge punctuation/symbols. `WHICH` matches `Which`. Alignment is applied to a final-root candidate, not every earlier stage. | Document the comparison actually intended. Token accounting is not a grammaticality judgment and cannot establish the quality of the derivation. |
 
-Source owners are [systemInstruction.js](../../../server/babelParser/systemInstruction.js), [prompts.js](../../../server/babelParser/prompts.js), [derivationCompiler.js](../../../server/babelParser/derivationCompiler.js), [parseNormalization.js](../../../server/babelParser/parseNormalization.js), [derivationHelpers.js](../../../server/babelParser/derivationHelpers.js), [syntaxTree.js](../../../server/babelParser/syntaxTree.js), and [surfaceTokens.js](../../../server/babelParser/surfaceTokens.js).
+Source owners at this checkpoint were [systemInstruction.js](../../../server/babelParser/systemInstruction.js), [prompts.js](../../../server/babelParser/prompts.js), [derivationCompiler.js](../../../server/babelParser/derivationCompiler.js), [parseNormalization.js](../../../server/babelParser/parseNormalization.js), `derivationHelpers.js`, [syntaxTree.js](../../../server/babelParser/syntaxTree.js), and [surfaceTokens.js](../../../server/babelParser/surfaceTokens.js). The historical `derivationHelpers.js` is no longer a current file; its pronunciation behavior is now owned by [nodePronunciation.js](../../../server/babelParser/nodePronunciation.js).
 
 The browser declaration in [types.ts](../../../types.ts#L1) is not a schema sent to either model. It allows optional `id`/`children`, lacks `features`, and describes IDs as optional D3 indexing. That description is unsuitable as a guide to the authored identity contract. However, a browser type also contains derived data, so it should not simply be copied into the model prompt or treated as the raw response specification.
 
