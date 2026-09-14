@@ -120,14 +120,34 @@ export const parseFromBodyWithProviders = async (
     gpt: parseSentenceWithOpenAI,
     claude: parseSentenceWithClaude,
     research: parseSentenceWithResearchModel
-  }
-  ) => {
+  },
+  { abortSignal } = {}
+) => {
+  abortSignal?.throwIfAborted();
   const { sentence, framework, modelId, settings, modelRoute, reasoningEffort } = validateParseBody(body);
-  if (modelId) return providers.research(sentence, framework, modelId, { settings });
-  return providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort });
+  if (modelId) return providers.research(sentence, framework, modelId, { settings, abortSignal });
+  return providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal });
 };
 
-export const parseFromBody = async (body) => parseFromBodyWithProviders(body);
+export const parseFromBody = async (body, options) => parseFromBodyWithProviders(body, undefined, options);
+
+/** Both HTTP entry points cancel work only when the response connection closes early. */
+export const parseFromRequest = async (req, res, parse = parseFromBody) => {
+  const controller = new AbortController();
+  const onClose = () => {
+    if (!res.writableFinished) {
+      controller.abort(new DOMException('Client disconnected.', 'AbortError'));
+    }
+  };
+  res.once('close', onClose);
+  try {
+    if (req.aborted || res.destroyed) onClose();
+    controller.signal.throwIfAborted();
+    return await parse(req.body, { abortSignal: controller.signal });
+  } finally {
+    res.removeListener('close', onClose);
+  }
+};
 
 const isProduction = process.env.NODE_ENV === 'production';
 

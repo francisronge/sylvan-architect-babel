@@ -7,7 +7,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
-import { formatApiError, parseFromBody } from './parseApi.js';
+import { formatApiError, parseFromRequest } from './parseApi.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -224,9 +224,10 @@ app.post('/api/parse', parseLimiter, enforceDailyIpQuota, enforceParseRequestSec
   inFlightParses += 1;
 
   try {
-    const result = await parseFromBody(req.body);
-    res.status(200).json(result);
+    const result = await parseFromRequest(req, res);
+    if (!res.destroyed) res.status(200).json(result);
   } catch (error) {
+    if (res.destroyed) return;
     const formatted = formatApiError(error);
     if (formatted.status >= 500) {
       console.error('[api/parse] server error', {

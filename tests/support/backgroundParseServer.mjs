@@ -14,6 +14,7 @@ Server.prototype.listen = function (...args) {
 };
 globalThis.fetch = async (url, options) => {
   const reply = replies.shift();
+  if (!reply) process.send({ type: 'unexpected-provider-call', url: String(url), method: options.method });
   assert.ok(reply, 'No provider call is permitted beyond the scripted response sequence');
   assert.equal(String(url), reply.url);
   assert.equal(options.method, reply.method);
@@ -22,12 +23,25 @@ globalThis.fetch = async (url, options) => {
   if (reply.waitForAbort) {
     await new Promise((_, reject) => {
       const abort = () => {
-        process.send({ type: 'provider-aborted' });
+        process.send({ type: 'provider-aborted', url: String(url) });
         reject(options.signal.reason);
       };
       if (options.signal.aborted) abort();
       else options.signal.addEventListener('abort', abort, { once: true });
     });
+  }
+  if (reply.waitInBody) {
+    return new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{'));
+        const abort = () => {
+          process.send({ type: 'provider-aborted', url: String(url) });
+          controller.error(options.signal.reason);
+        };
+        if (options.signal.aborted) abort();
+        else options.signal.addEventListener('abort', abort, { once: true });
+      }
+    }));
   }
   return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
 };
@@ -41,4 +55,13 @@ process.on('message', message => {
     server.closeAllConnections();
   }
 });
-await import('../../server/index.js');
+if (process.env.BABEL_TEST_SERVERLESS_ENTRY === '1') {
+  const { default: express } = await import('express');
+  const { default: handler } = await import('../../api/parse.js');
+  const app = express();
+  app.use(express.json());
+  app.post('/api/parse', handler);
+  app.listen(0, '127.0.0.1');
+} else {
+  await import('../../server/index.js');
+}

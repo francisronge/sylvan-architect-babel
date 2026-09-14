@@ -31,13 +31,13 @@ test('public HTTP parse route completes queued responses and preserves terminal 
   child.stderr.on('data', data => { output += data; });
   const calls = [];
   child.on('message', message => { if (message.type === 'provider-call') calls.push(message); });
-  const message = type => new Promise((resolve, reject) => {
+  const message = (type, matches = () => true) => new Promise((resolve, reject) => {
     const cleanup = () => {
       child.off('message', onMessage);
       child.off('exit', onExit);
     };
     const onMessage = result => {
-      if (result.type !== type) return;
+      if (result.type !== type || !matches(result)) return;
       cleanup();
       resolve(result);
     };
@@ -99,18 +99,20 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       modelId: 'openai:gpt-6-astra', settings: { 'reasoning.effort': 'high' } })
   });
   const url = `http://127.0.0.1:${port}/api/parse`;
-  for (const disconnect of [false, true]) {
+  for (const [disconnect, phase] of [[false, 'waitForAbort'], [false, 'waitInBody'], [true, 'waitForAbort']]) {
     const before = calls.length;
     const id = `resp_interrupt_${before}`;
     const configured = message('configured');
     child.send({ type: 'replies', replies: [
       { url: endpoint, method: 'POST', body: { id, status: 'queued' } },
-      { url: `${endpoint}/${id}`, method: 'GET', waitForAbort: true }
+      { url: `${endpoint}/${id}`, method: 'GET', [phase]: true },
+      { url: `${endpoint}/${id}/cancel`, method: 'POST', body: { id, status: 'cancelled' } }
     ] });
     await configured;
     const controller = new AbortController();
     const providerAborted = message('provider-aborted');
-    const providerCalled = message('provider-call');
+    const providerCalled = message('provider-call', call => call.method === 'GET');
+    const cancellationCalled = message('provider-call', call => call.url.endsWith('/cancel'));
     const responsePromise = fetch(url, { ...request(), signal: controller.signal });
     if (disconnect) {
       const rejection = assert.rejects(responsePromise, error => error.name === 'AbortError');
@@ -126,10 +128,11 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       assert.doesNotMatch(JSON.stringify(body), /test-only-provider-key/);
     }
     await providerAborted;
-    assert.equal(calls.length - before, 2, 'one POST and one GET; no replacement generation');
+    await cancellationCalled;
+    assert.equal(calls.length - before, 3, 'one creation, one poll and cancellation; no replacement generation');
 
-    // Observe the route releasing its slot after timeout, including a client
-    // disconnect. An invalid model request can never reach the provider.
+    // Observe slot release after timeout or disconnect. An invalid model
+    // request can never reach the provider.
     let settled;
     for (let attempt = 0; attempt < 50; attempt++) {
       const response = await fetch(url, { ...request(), body: '{}' });
@@ -138,7 +141,7 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       await new Promise(resolve => setTimeout(resolve, 10));
     }
     assert.equal(settled.error?.code, 'INVALID_REQUEST');
-    assert.equal(calls.length - before, 2);
+    assert.equal(calls.length - before, 3);
   }
   child.send({ type: 'stop' });
   const [code, signal] = await exited;

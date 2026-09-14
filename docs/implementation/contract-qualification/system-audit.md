@@ -28,6 +28,46 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Request lifecycle, 14 September
+
+Francis authorized completing stalled/disconnected-request work while leaving
+provider runs and processing-policy decisions for later. The old Express and
+function handlers continued waiting after the client disconnected. New public
+HTTP regressions fail on that baseline because provider transport remains active.
+
+Both entry points now use `parseFromRequest` in `server/parseApi.js`. It ties an
+AbortSignal to an unfinished response connection, removes its listener on every
+exit, and passes cancellation through body routing and provider options. A normal
+request-body close does not cancel the response. The existing timeout wrapper
+combines client cancellation with its deadline and cleans up both listeners and
+the timer. Retry backoff is interruptible, with no further submission after
+cancellation. Express releases its request slot; neither handler writes a response
+or logs a server failure to an already destroyed connection.
+
+The real public HTTP path covers all six enabled model IDs at both entry points,
+disconnecting before provider headers and during a stalled response body. OpenAI
+checks also cover cancellation between polls, during polling and while reading a
+poll response. Existing best-effort remote cancellation is exercised with failure
+and a five-second stall. It does not block the next successful parse or start a
+replacement generation. Scripted provider timeouts return 504 for both stalled
+headers and bodies, abort transport and release the slot. Focused checks cover
+legacy Gemini/OpenAI/Claude routing, ignored abort signals, already disconnected
+clients, ordinary completion, error cleanup and cancellation during retry backoff.
+
+The function entry is exercised under a local HTTP server, not a deployed host.
+An abort stops Babel's transport wait; it cannot prove that a remote provider has
+stopped computation or billing. OpenAI cancellation remains best effort. No
+request endpoint, generation payload, model setting or timeout budget changed.
+The checked-in function ceiling is 120 seconds while the external-provider budget
+defaults to 900 seconds; reconciling those deployment settings remains part of the
+later hosting work, not a reason to shorten model generation in this patch.
+
+The full offline gate passes 1,659 tests, typecheck and both normalized fixtures;
+production build and release-asset checks pass. No renderer or fixture changes.
+Evidence is outside the worktree in `/tmp/babel-lifecycle-checks/`. All HTTP tests
+intercept outgoing provider requests and verify child-server exit. No live calls,
+JSON repair changes, incomplete-record policy changes or new cancellation UI.
+
 ## Measured optimization pass, 14 September
 
 Francis authorized a broad performance pass. The local audit covered normalization,

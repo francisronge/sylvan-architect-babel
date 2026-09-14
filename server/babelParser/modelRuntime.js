@@ -85,29 +85,33 @@ export const summarizeErrorForLog = (error) => {
   };
 };
 
-export const withTimeout = async (run, timeoutMs, label) => {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+export const withTimeout = async (run, timeoutMs, label, abortSignal) => {
+  abortSignal?.throwIfAborted();
+  const hasTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
+  if (!hasTimeout && !abortSignal) {
     return run(undefined);
   }
 
   const controller = new AbortController();
+  const onAbort = () => controller.abort(abortSignal.reason);
+  abortSignal?.addEventListener('abort', onAbort, { once: true });
   let timeoutId = null;
   const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms.`);
   timeoutError.code = 'PROVIDER_TIMEOUT';
+  let rejectOnAbort;
+  const aborted = new Promise((_, reject) => {
+    rejectOnAbort = () => reject(controller.signal.reason);
+    controller.signal.addEventListener('abort', rejectOnAbort, { once: true });
+  });
+  if (hasTimeout) timeoutId = setTimeout(() => controller.abort(timeoutError), timeoutMs);
   try {
-    return await Promise.race([
-      run(controller.signal),
-      new Promise((_, reject) => {
-        timeoutId = setTimeout(() => {
-          controller.abort(timeoutError);
-          reject(timeoutError);
-        }, timeoutMs);
-      })
-    ]);
+    return await Promise.race([run(controller.signal), aborted]);
   } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
+    abortSignal?.removeEventListener('abort', onAbort);
+    controller.signal.removeEventListener('abort', rejectOnAbort);
   }
 };
 
@@ -447,7 +451,7 @@ export const buildGenerationOutcome = ({
   attempts
 });
 
-const retryDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const retryDelay = (ms, abortSignal) => delayWithAbort(ms, abortSignal);
 
 const providerFailureReason = (error) => {
   const chain = getErrorChain(error);
@@ -491,6 +495,7 @@ export const runWithTransportRetries = async ({
   backoffBaseMs = 250,
   // Absolute epoch milliseconds; the caller still bounds each in-flight call.
   deadlineAt = Number.POSITIVE_INFINITY,
+  abortSignal,
   delay = retryDelay,
   now = () => new Date(),
   runId = randomUUID()
@@ -514,6 +519,7 @@ export const runWithTransportRetries = async ({
   };
 
   for (let attemptNumber = 1; attemptNumber <= boundedMaxAttempts; attemptNumber += 1) {
+    if (abortSignal?.aborted) throw terminalFailure(abortSignal.reason, 'cancelled');
     const startedAt = now();
     if (Number.isFinite(deadlineAt) && startedAt.getTime() >= deadlineAt) {
       const error = lastFailure || Object.assign(new Error('Provider request deadline exhausted.'), {
@@ -555,9 +561,9 @@ export const runWithTransportRetries = async ({
         throw terminalFailure(error, 'deadline_exhausted');
       }
       try {
-        await delay(backoffMs);
+        await delay(backoffMs, abortSignal);
       } catch (delayError) {
-        throw terminalFailure(delayError, 'backoff_failed');
+        throw terminalFailure(delayError, abortSignal?.aborted ? 'cancelled' : 'backoff_failed');
       }
     }
   }

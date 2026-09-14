@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { formatApiError, parseFromBody } from '../server/parseApi.js';
+import { formatApiError, parseFromRequest } from '../server/parseApi.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -99,9 +99,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await parseFromBody(req.body);
-    return res.status(200).json(result);
+    const result = await parseFromRequest(req, res);
+    if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
+    if (res.destroyed) return;
     const formatted = formatApiError(error);
     if (formatted.status >= 500) {
       console.error('[api/parse] server error', {

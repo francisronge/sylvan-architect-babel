@@ -612,6 +612,7 @@ export const createParseRoutes = ({
 
       generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        abortSignal: options.abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
@@ -637,7 +638,8 @@ export const createParseRoutes = ({
               baseTimeoutMs: resolveModelTimeoutMs(selectedModel, normalizedModelRoute),
               remainingBudgetMs: attemptRemainingBudgetMs
             }),
-            `Model generation (${selectedModel})`
+            `Model generation (${selectedModel})`,
+            options.abortSignal
           );
         }
       });
@@ -818,6 +820,7 @@ export const createParseRoutes = ({
     providerLabel,
     generate,
     selection,
+    abortSignal,
     reasoningEffort: requestedReasoningEffort
   }) => {
     if (!apiKey) {
@@ -867,6 +870,7 @@ export const createParseRoutes = ({
 
       generationStartedAt = Date.now();
       const generationReceipt = await runWithTransportRetries({
+        abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
           const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
@@ -878,16 +882,17 @@ export const createParseRoutes = ({
             );
           }
           return withTimeout(
-            (abortSignal) => generate({
+            (attemptSignal) => generate({
               apiKey,
               ...generationOptions,
-              abortSignal
+              abortSignal: attemptSignal
             }),
             resolveRequestTimeoutMs({
               baseTimeoutMs: resolveModelTimeoutMs(selectedModel, modelRoute),
               remainingBudgetMs: attemptRemainingBudgetMs
             }),
-            `Model generation (${selectedModel})`
+            `Model generation (${selectedModel})`,
+            abortSignal
           );
         }
       });
@@ -1069,6 +1074,7 @@ export const createParseRoutes = ({
       selectedModel: OPENAI_MODEL,
       providerLabel: 'OpenAI',
       generate: generateOpenAI,
+      abortSignal: options.abortSignal,
       reasoningEffort: options.reasoningEffort
     });
 
@@ -1081,6 +1087,7 @@ export const createParseRoutes = ({
       selectedModel: ANTHROPIC_MODEL,
       providerLabel: 'Claude',
       generate: generateClaude,
+      abortSignal: options.abortSignal,
       reasoningEffort: options.reasoningEffort
     });
 
@@ -1103,6 +1110,7 @@ export const createParseRoutes = ({
       selectedModel: selection.providerModel,
       providerLabel: provider.label,
       generate: provider.generate,
+      abortSignal: options.abortSignal,
       selection
     });
   };
