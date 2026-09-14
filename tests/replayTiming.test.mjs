@@ -13,6 +13,35 @@ const moments = (steps, stage) => steps.filter(step => step.replayFrameIndex ===
 const visible = (step, id) => step.replayVisibleNodeIds.includes(id);
 const higherHead = () => ({ id: 'higher_head', label: 'X', silent: true, children: [] });
 
+test('an added container is completed after existing children are attached to its temporary shell', () => {
+  for (const nested of [false, true]) for (const reverse of [false, true]) {
+    const leaf = id => ({ id, label: 'X', word: id });
+    const container = { id: 'container', label: 'XP', children: [leaf('new'), leaf('old')] };
+    const attachment = nested ? { id: 'outer', label: 'XP', children: [container] } : container;
+    const anchors = { container: attachment.id, participant: 'new' };
+    const state = (workspaceForest, relations = []) => ({ statement: 'Authored change', stageRecord: '', workspaceForest, relations });
+    const record = { derivationStages: [
+      state([{ id: 'root', label: 'XP', children: [leaf('old'), leaf('other')] }]),
+      state([{ id: 'root', label: 'XP', children: [attachment, leaf('other'), leaf('later')] }], [
+        { relation: 'Authored change', anchors: reverse ? Object.fromEntries(Object.entries(anchors).reverse()) : anchors,
+          priorAnchors: { participant: 'old' } },
+        { relation: 'Later change', anchors: { participant: 'later' }, priorAnchors: { participant: 'other' } }
+      ])
+    ] };
+    const original = structuredClone(record);
+    const steps = play(record);
+    const moment = moments(steps, 1)[0];
+    const before = steps[steps.indexOf(moment) - 1];
+    assert.ok(!visible(before, 'new'));
+    assert.ok(visible(moment, 'new'), 'the new child must appear with its owning relation');
+    assert.ok(!visible(moment, 'later'), 'unrelated later material remains pending');
+    const material = nodes(moment.replayCanvasData);
+    assert.deepEqual(material.find(n => n.id === 'container').children.map(n => n.id), ['new', 'old']);
+    assert.equal(material.filter(n => n.id === 'old').length, 1);
+    assert.deepEqual(record, original);
+  }
+});
+
 const mixedHeadStage = (anchor = 'd_john_hi') => {
   const record = copy('fable-minimalism');
   record.derivationStages = record.derivationStages.slice(0, 4);

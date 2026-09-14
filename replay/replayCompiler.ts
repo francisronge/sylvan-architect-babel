@@ -2154,7 +2154,14 @@ const buildAnchoredTreeTransitionForest = (
     .forEach((nodeId) => {
       const destination = exactLocation(currentLocations, nodeId);
       if (!destination) return;
-      if (exactLocation(indexExactForestNodeLocations(result), nodeId)) return;
+      const shell = exactLocation(indexExactForestNodeLocations(result), nodeId);
+      if (shell) {
+        // Ancestor construction may already have attached existing children.
+        // This added subtree is wholly owned by the active relation, so finish
+        // its authored contents rather than mistaking the shell for completion.
+        Object.assign(shell.node, cloneSyntaxTree(destination.node));
+        return;
+      }
       insertExactNode(
         cloneSyntaxTree(destination.node) || destination.node,
         destination.parentId,
