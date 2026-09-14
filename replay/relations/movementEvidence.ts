@@ -81,10 +81,19 @@ export function recoverMovementEvidence(
     authoredKey: key, key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
   }));
   const pick = (concept: string) => [...new Set(entries.filter(e => hasRole(e.key, concept)).flatMap(e => e.ids))];
+  const explicitPriorSources = Object.entries(relation.priorAnchors || {})
+    .filter(([key]) => hasRole(key, 'movement.source'))
+    .flatMap(([, value]) => Array.isArray(value) ? value : [value]);
   const contains = (n: SyntaxNode, id: string): boolean => n.id === id || (n.children || []).some(c => contains(c, id));
   let sources = pick('movement.source');
   const witnesses = pick('movement.witness');
   if (!sources.length) sources = witnesses;
+  // A prior source may supply the lower endpoint only when that exact
+  // occurrence still exists now. Never search for a substitute by lineage.
+  if (!entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
+    && explicitPriorSources.length === 1 && current.nodes.has(explicitPriorSources[0])) {
+    sources = explicitPriorSources;
+  }
   let targets = pick('movement.landing');
   // A separately anchored enclosing landing site is not another occurrence.
   // Do not discard unrelated candidates or narrow an authored array this way.
@@ -108,6 +117,12 @@ export function recoverMovementEvidence(
   if (!occurrenceRoles && !sharedLineage && !(witnesses.length && sources.length && targets.length)) {
     return { diagnostics: [] };
   }
+  if (entries.some(e => e.ids.length !== 1 && ['movement.source', 'movement.witness', 'movement.landing']
+    .some(concept => hasRole(e.key, concept)))
+    || Object.entries(relation.priorAnchors || {}).some(([key, value]) => hasRole(key, 'movement.source')
+      && Array.isArray(value) && value.length !== 1)) {
+    return fail('MOVEMENT_ENDPOINTS_UNRESOLVED', 'Movement endpoint fields must each identify one occurrence; repeated list entries were not collapsed.');
+  }
   if (sources.length !== 1 || targets.length !== 1 || witnesses.length > 1) {
     return fail('MOVEMENT_ENDPOINTS_UNRESOLVED', 'Movement needs one identifiable source occurrence and one landing occurrence; the authored roles are incomplete or ambiguous.');
   }
@@ -126,9 +141,6 @@ export function recoverMovementEvidence(
   const witnessId = witnesses[0] || sourceId;
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
-  const explicitPriorSources = Object.entries(relation.priorAnchors || {})
-    .filter(([key]) => hasRole(key, 'movement.source'))
-    .flatMap(([, value]) => Array.isArray(value) ? value : [value]);
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
     : [...new Set(explicitPriorSources.length ? explicitPriorSources : [targetId])];
   const priorSourceId = priorCandidates.length === 1 ? priorCandidates[0] : '';
@@ -150,9 +162,6 @@ export function recoverMovementEvidence(
       return fail('MOVEMENT_PRIOR_POSITION_UNPROVEN', `${sourceId} does not occupy the preceding position of ${priorSourceId}.`);
     }
   }
-  const lower = current.nodes.get(witnessId);
-  const silent = (n: SyntaxNode): boolean => n.silent === true || Boolean(n.children?.length && n.children.every(silent));
-  if (!lower || !silent(lower)) return fail('MOVEMENT_LOWER_FORM_UNPROVEN', `${witnessId} is not an authored silent lower occurrence. No silence or trace was inferred.`);
   const parent = current.parents.get(targetId);
   if (!parent) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `${targetId} has no enclosing structure that establishes the supported head or phrasal landing.`);
   const siblings = (parent.children || []).filter(n => n.id !== targetId);
@@ -184,8 +193,7 @@ export function recoverMovementEvidence(
       priorSourceNodeId: priorSourceId,
       sourceNodeId: sourceId, targetNodeId: targetId, witnessNodeId: witnessId,
       trajectoryKind: complexHead ? 'head' : 'phrasal',
-      transition: (priorSourceId !== sourceId || !prior.nodes.has(targetId)) && (!silent(before)
-        || [...prior.nodes.values()].filter(n => n.lineageId === source.lineageId).length === 1),
+      transition: priorSourceId !== sourceId || !prior.nodes.has(targetId),
       roles,
       ...(context.length ? { context } : {})
     }

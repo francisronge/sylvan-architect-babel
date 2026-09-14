@@ -325,7 +325,6 @@ for (const [name, damage] of [
   ['two candidate landings', s => { s.relation.anchors.higherCopy = ['d_john_hi', 't_did']; }],
   ['missing landing reference', s => { s.relation.anchors.higherCopy = 'absent'; }],
   ['duplicated endpoint ID', s => { s.forest.push(structuredClone(find(s.forest, 'd_john_hi'))); }],
-  ['no silent lower occurrence', s => { delete find(s.forest, 'd_john').silent; }],
   ['an enclosing host instead of an occurrence', s => { s.relation.anchors.higherCopy = 'tp_full'; }]
 ]) {
   test(`does not claim movement with ${name}`, () => {
@@ -336,6 +335,83 @@ for (const [name, damage] of [
     assert.ok(result.diagnostics.length);
   });
 }
+
+test('movement timing and arrows are independent of the authored pronunciation of either copy', () => {
+  const stage = (workspaceForest, relations = []) => ({ statement: 'State', stageRecord: 'Authored state.', workspaceForest, relations });
+  for (const kind of ['head', 'phrasal']) for (const priorSilent of [false, true]) {
+    for (const lowerSilent of [false, true]) for (const upperSilent of [false, true]) {
+      const c = retainedOccurrence(kind, false);
+      const before = find(c.prior, c.source);
+      before.silent = priorSilent;
+      const lower = find(c.current, c.source);
+      Object.assign(lower, structuredClone(before), { silent: lowerSilent });
+      const upper = find(c.current, c.target);
+      upper.silent = upperSilent;
+      if (kind === 'phrasal') upper.children[0].id = 'upper-word';
+      const unchanged = structuredClone(c);
+      const result = recoverMovementEvidence(c.relation, c.current, c.prior);
+      assert.equal(result.movement?.transition, true, `${kind}: ${priorSilent}/${lowerSilent}/${upperSilent}`);
+      const stages = [stage(c.prior), stage(c.current, [c.relation])];
+      // A later pronunciation decision must not introduce another movement.
+      const later = structuredClone(stages[1]);
+      find(later.workspaceForest, c.source).silent = !lowerSilent;
+      stages.push(later);
+      assert.equal(recoverMovementEvidence(c.relation, later.workspaceForest, c.current).movement?.transition, false);
+      const { steps } = buildReplayPlayback({ sentence: 'word', analyses: [{ derivationStages: stages }] });
+      const momentIndex = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+      const moment = steps[momentIndex];
+      assert.ok(moment.replayRelationLinks.some(link => link.renderFamily === 'trajectory'
+        && link.sourceNodeId === c.source && link.targetNodeId === c.target));
+      for (const [step, expected] of [[steps[momentIndex - 1], before], [moment, lower]]) {
+        assert.deepEqual(tree(find([step.replayCanvasData], c.source)), tree(buildRenderableCommittedCanvasData(expected)));
+      }
+      assert.deepEqual(tree(find([moment.replayCanvasData], c.target)), tree(buildRenderableCommittedCanvasData(upper)));
+      assert.deepEqual(c, unchanged, 'neither pronunciation nor structure is rewritten');
+    }
+  }
+});
+
+test('a prior-only source resolves only to the same exact current occurrence', () => {
+  for (const kind of ['head', 'phrasal']) {
+    const c = retainedOccurrence(kind, false);
+    delete c.relation.anchors.source;
+    const original = structuredClone(c);
+    const dispatch = () => dispatchRelationClaims({ relation: c.relation,
+      currentForest: c.current, priorForest: c.prior, stageIndex: 1, relationIndex: 0 });
+    const result = dispatch();
+    assert.equal(result.evidence.movement?.sourceNodeId, 'original');
+    assert.ok(result.facets.some(f => f.recipe.id === 'movement.path' && f.evaluation.earnedTransitions.includes('movement')));
+    assert.ok(result.claims.some(claim => claim.consumedEvidence.some(ref => ref.field === 'priorAnchors' && ref.key === 'source')));
+    assert.deepEqual(c, original);
+    for (const damage of [
+      copy => { copy.relation.priorAnchors.source = 'absent'; },
+      copy => { copy.relation.priorAnchors.source = ['original', 'host']; },
+      copy => { copy.relation.priorAnchors.source = ['original', 'original']; },
+      copy => { copy.relation.anchors.source = 'absent'; },
+      copy => { copy.relation.anchors.source = []; },
+      copy => { copy.relation.anchors.landing = [copy.target, copy.target]; },
+      copy => { find(copy.current, 'original').id = 'same-lineage-different-id'; },
+      copy => { copy.current.push(structuredClone(find(copy.current, 'original'))); },
+      copy => { copy.prior.push(structuredClone(find(copy.prior, 'original'))); },
+      copy => { find(copy.current, 'original').lineageId = 'different'; }
+    ]) {
+      const damaged = structuredClone(c); damage(damaged);
+      assert.equal(recoverMovementEvidence(damaged.relation, damaged.current, damaged.prior).movement, undefined);
+    }
+  }
+});
+
+test('current movement endpoint lists retain their authored cardinality', () => {
+  for (const [key, value] of [['source', 'original'], ['landing', 'higher'], ['traceWitness', 'original']]) {
+    const c = retainedOccurrence('phrasal', false);
+    c.relation.anchors[key] = [value, value];
+    const dispatch = dispatchRelationClaims({ relation: c.relation, currentForest: c.current, priorForest: c.prior,
+      stageIndex: 1, relationIndex: 0 });
+    assert.equal(dispatch.evidence.movement, undefined);
+    assert.ok(!dispatch.facets.some(facet => facet.recipe.id === 'movement.path'));
+    assert.deepEqual(c.relation.anchors[key], [value, value]);
+  }
+});
 
 test('a repeated chain keeps its already visible landing and silent lower copy', () => {
   const c = structuredClone(saved.find(c => c.name === 'fable-minimalism'));

@@ -106,7 +106,11 @@ consistent prior-source references; its drawing remains the covert path, not
 an overt movement arrow. Existing exact Tier-1 signatures are unchanged,
 including optional fields already present in those signatures.
 
-Previous-stage references are not current-stage drawing roles. Production
+Previous-stage references are not automatically current-stage drawing roles. A
+movement's prior source can identify its current lower endpoint when that exact
+ID uniquely persists in both stages with matching root lineage. Missing,
+ambiguous or replaced IDs do not authorize a search for another occurrence.
+Production
 Tier-1 `priorAnchors` remains an open literal block. A Tier-2 facet keeps
 same-role prior witnesses in its identity and validates them against the previous
 stage before emitting continuity cues. Missing witnesses are retained and
@@ -126,7 +130,7 @@ evidence before Tier 1 can treat it as the moved occurrence rather than its host
 Movement occurrence recovery is shared by Tier-2 lowering and Replay in
 `replay/relations/movementEvidence.ts`. Source and landing must identify distinct
 occurrences with the same authored root lineage; shared descendants alone do
-not suffice. The lower occurrence can itself supply the silent witness, without
+not suffice. The lower occurrence can itself supply the occurrence witness, without
 requiring a third node or an extra authored role. Anchored context distinguishes
 supported complex-head landings from phrasal landings, including bare maximal
 nominals. Unsupported context produces an internal diagnostic, not an invented
@@ -141,7 +145,10 @@ lineage, and either the retained landing ID or an explicit prior-source anchor.
 No search by word spelling or unanchored lineage substitutes a different ID.
 Replay restores the complete prior occurrence before movement, retains earlier
 lower copies in later movements, and reads later realization from that same
-prior occurrence. Silence and supported landing-shape requirements still apply.
+prior occurrence. Supported landing-shape requirements still apply. Pronunciation
+is independent: either occurrence may be pronounced or silent as authored. A
+new landing or a proven relocation earns the movement moment; a later change in
+pronunciation does not replay that movement.
 
 An accepted Tier-1 head/phrasal trajectory uses the same recovered movement
 timing when the recovered kind agrees with its registered family. This is not
@@ -396,12 +403,13 @@ The permitted transition kinds are `movement`, `pronunciation`, `deletion`,
 already authored between two stages. It never creates or repairs a stage
 difference. Judgment facets declare no transition rules.
 
-Overt movement requires a shared-lineage occurrence to be added and the same
-lower terminal to change from overt to silent or trace form. Covert movement
+Recovered movement requires a proven preceding source and a newly established
+landing, with exact occurrence identity and supported landing structure. It
+does not require the lower occurrence to become silent. Covert movement
 requires the number of shared-lineage occurrences to increase but does not
 require the pronounced lower occurrence to become silent. Deletion requires
-the same terminal to change from overt to `silent: true`. Unpaired mixtures of
-overt and silent material never earn a transition.
+the same terminal to change from overt to `silent: true`. Pronunciation state
+alone never earns a movement transition.
 
 The recipe evaluator is provider-free. It does not perform Tier dispatch.
 Claim dispatch passes it unknown envelopes and disjoint extra evidence from
