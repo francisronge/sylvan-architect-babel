@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -308,28 +307,4 @@ test('does not mutate caller data while validating a serialized record', () => {
   const before = structuredClone(decoded);
   validateDurableRecord(decoded);
   assert.deepEqual(decoded, before);
-});
-
-test('durable-record core imports only Node crypto and W17 local modules', async () => {
-  const [coreSource, indexSource] = await Promise.all([
-    readFile('derivationalDatabase/durableRecord.js', 'utf8'),
-    readFile('derivationalDatabase/index.js', 'utf8')
-  ]);
-  assert.deepEqual(
-    [...coreSource.matchAll(/from ['"]([^'"]+)['"]/gu)].map((match) => match[1]),
-    ['node:crypto', './jsonData.js']
-  );
-  assert.deepEqual(
-    [...indexSource.matchAll(/from ['"]([^'"]+)['"]/gu)].map((match) => match[1]),
-    [
-      './durableRecord.js',
-      './recordEvidence.js',
-      './recordEnvelopeAdapter.js',
-      './nativeRecordExport.js'
-    ]
-  );
-  assert.doesNotMatch(
-    `${coreSource}\n${indexSource}`,
-    /(?:App|TreeBank|bench\/|components\/|server\/|fetch|https?:|visual)/u
-  );
 });

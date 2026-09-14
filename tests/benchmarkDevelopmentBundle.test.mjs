@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -405,25 +404,4 @@ test('receipts are deterministic, immutable, and preserve callers', () => {
   }), before);
   assert.equal(Object.isFrozen(first), true);
   assert.equal(Object.isFrozen(first.reportReceipt.tables.Run), true);
-});
-
-test('development bundling imports only local utilities and crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/developmentBundle.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkStage.js',
-    './benchmarkValidation.js',
-    './jsonData.js',
-    './releaseBundle.js',
-    './reportStarSchema.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch|axios|TreeVisualizer|database|deploy|provider/iu
-  );
 });

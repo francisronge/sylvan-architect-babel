@@ -8,6 +8,9 @@ import {
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { splitAntecedenceLinkPath } from '../replay/relations/markGeometry.ts';
 import {
+  analysisVerdictCompoundOrigin,
+  analysisVerdictInitialLocalScale,
+  planAnalysisVerdictRows,
   placeRectBelowCollisions,
   placeStackedRect
 } from '../replay/relations/overlayGeometry.ts';
@@ -405,4 +408,35 @@ test('the Phillips island marks are path-following circles and squares with the 
   const degenerate = bindRelationPlanFrame(plan, 0, degenerateProvider);
   assert.equal(degenerate.primitives.filter((p) => p.itemIndex === 0).length, 0);
   assert.ok(degenerate.failed.some((f) => f.nodeId === 'in_b_ms' && /slash fails closed/.test(f.reason)));
+});
+
+test('analysis verdict geometry keeps the complete compound outside its tree', () => {
+  const treeRect = { x: 100, y: 40, width: 240, height: 180 };
+  const compoundRect = { x: -2, y: -18, width: 84, height: 36 };
+  const origin = analysisVerdictCompoundOrigin(treeRect, compoundRect, 130);
+  assert.equal(origin.x + compoundRect.x + compoundRect.width, treeRect.x - 24);
+  assert.equal(origin.y + compoundRect.y + compoundRect.height / 2, 130);
+  for (const initialCameraScale of [0.05, 0.1, 0.25, 1, 4]) {
+    const localScale = analysisVerdictInitialLocalScale(initialCameraScale);
+    assert.ok(Math.abs(localScale * initialCameraScale * 160 - 28) < 1e-9);
+  }
+
+  const anchors = [
+    { analysisNodeId: 'later', desiredY: 110, order: 1 },
+    { analysisNodeId: 'earlier', desiredY: 100, order: 0 }
+  ];
+  const rows = planAnalysisVerdictRows(anchors);
+  assert.deepEqual(
+    rows.map(({ analysisNodeId, y }) => ({ analysisNodeId, y })),
+    [
+      { analysisNodeId: 'earlier', y: 100 },
+      { analysisNodeId: 'later', y: 290 }
+    ],
+    'each row keeps its authored anchor identity while close verdicts de-collide'
+  );
+  assert.deepEqual(
+    anchors.map(({ analysisNodeId }) => analysisNodeId),
+    ['later', 'earlier'],
+    'planning must not mutate authored verdict order'
+  );
 });

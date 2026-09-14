@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -304,7 +303,7 @@ test('all evidence sets are hash-bound and empty external plans stay empty', () 
   assert.equal(receipt.observedDoubleRatingShare, null);
 });
 
-test('receipts are deterministic, immutable, and locally importable', () => {
+test('receipts are deterministic and immutable without changing caller data', () => {
   const inputs = structuredClone({
     plan: plan(),
     runs,
@@ -321,16 +320,4 @@ test('receipts are deterministic, immutable, and locally importable', () => {
   );
   assert.ok(Object.isFrozen(first));
   assert.ok(Object.isFrozen(first.assignments));
-  const source = fs.readFileSync(
-    new URL('../bench/judgedUnitPlan.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/g)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
 });

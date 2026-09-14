@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -444,22 +443,4 @@ test('receipts are deterministic, immutable, and preserve caller input', () => {
   assert.throws(() => {
     first.items[0].language = 'changed';
   }, TypeError);
-});
-
-test('draft-item lint imports only local utilities and Node crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/draftItems.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch[(]|axios|provider client|TreeVisualizer|App[.]tsx|database|publish[(]/iu
-  );
 });

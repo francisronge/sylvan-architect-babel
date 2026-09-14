@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -314,19 +313,4 @@ test('non-JSON provenance fails before any receipt is produced', () => {
     }),
     /must be an object|plain JSON objects/
   );
-});
-
-test('propagation infrastructure imports only local utilities and Node crypto', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/raterEffectPropagation.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/g)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
 });

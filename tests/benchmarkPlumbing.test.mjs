@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -331,19 +330,4 @@ test('invalid failure classes and non-stub boundaries fail closed', async () => 
     artifactSink: invalidProvenanceSink
   }), /transport\.provenance\.invalid must be JSON data/);
   assert.deepEqual(invalidProvenanceSink.inspectWrites(), []);
-});
-
-test('benchmark plumbing imports no product, database, visual, or provider client', async () => {
-  const sources = await Promise.all([
-    'bench/benchmarkDryRun.js',
-    'bench/jsonData.js',
-    'bench/runPlan.js',
-    'bench/stubs.js',
-    'bench/index.js'
-  ].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
-  const joined = sources.join('\n');
-
-  assert.doesNotMatch(joined, /App\.tsx|TreeBank|TreeVisualizer|replayCompiler/u);
-  assert.doesNotMatch(joined, /fetch\(|node:http|node:https|node:net|node:tls/u);
-  assert.doesNotMatch(joined, /openai|anthropic|gemini|claude/u);
 });

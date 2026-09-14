@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -399,18 +398,4 @@ test('freezing requires external authorization and is deterministic', () => {
     () => validateFrozenReleaseManifest(tamperedFrozen),
     /manifest hash does not match its content/
   );
-});
-
-test('manifest tooling contains no roster, launch, provider, or product client', async () => {
-  const sources = await Promise.all([
-    '../bench/benchmarkValidation.js',
-    '../bench/modelRegistry.js',
-    '../bench/admissionProbe.js',
-    '../bench/releaseManifest.js'
-  ].map((path) => readFile(new URL(path, import.meta.url), 'utf8')));
-  const joined = sources.join('\n');
-
-  assert.doesNotMatch(joined, /fetch\(|node:http|node:https|openai|anthropic|gemini|claude/u);
-  assert.doesNotMatch(joined, /TreeBank|TreeVisualizer|replayCompiler|App\.tsx/u);
-  assert.doesNotMatch(joined, /sampleSize|reviewerCount|publicationRule|candidateRoster/u);
 });

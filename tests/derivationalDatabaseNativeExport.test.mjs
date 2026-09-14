@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -172,24 +171,4 @@ test('exports are deterministic, immutable, and do not mutate records', () => {
   assert.deepEqual(record, before);
   assert.deepEqual(first, second);
   assert.ok(Object.isFrozen(first));
-});
-
-test('the native exporter imports only W17-local modules and Node crypto', async () => {
-  const source = await readFile(
-    'derivationalDatabase/nativeRecordExport.js',
-    'utf8'
-  );
-  assert.deepEqual(
-    [...source.matchAll(/from ['"]([^'"]+)['"]/gu)].map((match) => match[1]),
-    [
-      'node:crypto',
-      './durableRecord.js',
-      './jsonData.js',
-      './recordEnvelopeAdapter.js'
-    ]
-  );
-  assert.doesNotMatch(
-    source,
-    /(?:App|TreeBank|bench\/|components\/|server\/|fetch|https?:|visual|writeFile)/u
-  );
 });

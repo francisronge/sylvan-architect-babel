@@ -14,7 +14,6 @@ import {
   LARGE_ANCHOR_ARRAY_THRESHOLD,
   compileLargeAnchorSets
 } from '../replay/relations/largeAnchorSets.ts';
-import { PRODUCTION_RENDER_FAMILIES } from '../replay/relations/renderFamilies.ts';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : {}), ...extra });
 const node = (id, label, children, extra = {}) => ({ id, label, children, ...extra });
@@ -1044,11 +1043,6 @@ test('the fallback dispatcher rows match the accepted table', () => {
   // Frames distinguish role groups only for two array groups.
   const twoArrays = fallbackDrawing({ relation: 'X', anchors: { a: ['n1', 'n2'], b: ['n3', 'n4'] } });
   assert.deepEqual(twoArrays.marks.map((mark) => mark.frame), ['circle', 'circle', 'box', 'box']);
-});
-
-test('every registry entry has a production render family', () => {
-  const wiredEntryIds = new Set(Object.keys(PRODUCTION_RENDER_FAMILIES));
-  assert.ok(wiredEntryIds.size >= 45, `expected the full accepted grammar, got ${wiredEntryIds.size}`);
 });
 
 test('bound HeadMove endpoints are pronounced-terminal positions, never preterminal shells', () => {

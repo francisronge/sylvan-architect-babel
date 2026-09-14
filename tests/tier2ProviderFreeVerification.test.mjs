@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -708,21 +707,6 @@ test('independent multi-stage Tier-2 plaques stack at one stable anchor', () => 
       || plaques[1].y + plaques[1].height <= plaques[0].y,
     'persisted plaques at one anchor must not overlap'
   );
-});
-
-test('the production drawing surface has no Tier-2-specific renderer or CSS branch', async () => {
-  const sources = await Promise.all([
-    readFile(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8')
-  ]);
-
-  sources.forEach((source) => {
-    assert.doesNotMatch(
-      source,
-      /tier(?:[\s_-]*2|2)/iu,
-      'Tier 2 must use the shared production drawing surface without alternate styling'
-    );
-  });
 });
 
 test('every executable canonical Atlas card remains entirely Tier 1', async () => {

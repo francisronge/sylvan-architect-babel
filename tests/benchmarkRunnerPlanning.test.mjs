@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -573,16 +572,4 @@ test('archives reject schedule mismatch and receipt tampering', async () => {
     }),
     /providerIdentity does not match/
   );
-});
-
-test('runner planning imports no provider, product, visual, or database client', async () => {
-  const sources = await Promise.all([
-    '../bench/conditionMatrix.js',
-    '../bench/runSchedule.js',
-    '../bench/runArchive.js'
-  ].map((path) => readFile(new URL(path, import.meta.url), 'utf8')));
-  const joined = sources.join('\n');
-  assert.doesNotMatch(joined, /fetch\(|node:http|node:https|openai|anthropic|gemini|claude/u);
-  assert.doesNotMatch(joined, /TreeBank|TreeVisualizer|replayCompiler|App\.tsx/u);
-  assert.doesNotMatch(joined, /sampleSize|reviewerCount|publicationRule|candidateRoster/u);
 });

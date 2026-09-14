@@ -10,8 +10,6 @@ import {
 import {
   assertGenerationComplete,
   buildGenerationOutcome,
-  isRetryableProviderFailure,
-  runWithTransportRetries,
   summarizeGeneration
 } from '../server/babelParser/modelRuntime.js';
 import {
@@ -522,70 +520,6 @@ test('legacy Gemini model timeout still applies only to Gemini', () => {
   });
 });
 
-test('transport retry uses one run id, at most three attempts, and exponential backoff', async () => {
-  const delays = [];
-  let calls = 0;
-  const clockValues = [
-    '2026-07-23T10:00:00.000Z',
-    '2026-07-23T10:00:00.010Z',
-    '2026-07-23T10:00:00.020Z',
-    '2026-07-23T10:00:00.030Z',
-    '2026-07-23T10:00:00.040Z',
-    '2026-07-23T10:00:00.050Z'
-  ].map((value) => new Date(value));
-  const result = await runWithTransportRetries({
-    runId: 'fixed-run-id',
-    backoffBaseMs: 10,
-    delay: async (ms) => delays.push(ms),
-    now: () => clockValues.shift(),
-    run: async ({ runId, attemptNumber }) => {
-      calls += 1;
-      assert.equal(runId, 'fixed-run-id');
-      if (attemptNumber < 3) {
-        const error = new Error('provider unavailable');
-        error.status = 503;
-        throw error;
-      }
-      return {
-        text: '{}',
-        status: 'completed',
-        candidates: [{ finishReason: 'STOP' }]
-      };
-    }
-  });
-
-  assert.equal(calls, 3);
-  assert.deepEqual(delays, [10, 20]);
-  assert.equal(result.runId, 'fixed-run-id');
-  assert.deepEqual(result.attempts.map((attempt) => attempt.outcome), [
-    'retryable_transport_failure',
-    'retryable_transport_failure',
-    'completed'
-  ]);
-});
-
-test('a completed stop state is never retried', async () => {
-  let calls = 0;
-  await assert.rejects(
-    () => runWithTransportRetries({
-      runId: 'completed-stop',
-      delay: async () => assert.fail('completed stop must not back off'),
-      run: async () => {
-        calls += 1;
-        const error = new Error('content filtered');
-        error.status = 502;
-        error.completedStopState = true;
-        throw error;
-      }
-    }),
-    (error) => {
-      assert.equal(error.providerAttempts.length, 1);
-      return true;
-    }
-  );
-  assert.equal(calls, 1);
-});
-
 test('provider allowances are route/model policy, never sentence-derived', () => {
   assert.equal(resolveRouteMaxOutputTokens('gemini', 'x'), 65536);
   assert.equal(resolveRouteMaxOutputTokens('gemini', 'x '.repeat(5000)), 65536);
@@ -655,23 +589,4 @@ test('API errors expose typed failure while raw output is capped and hash-bound'
   assert.ok(
     Buffer.byteLength(JSON.stringify(formatted.body), 'utf8') <= MAX_RAW_OUTPUT_BODY_BYTES
   );
-});
-
-test('transient failures retry, but rate limits and completed stops do not', () => {
-  const rateLimited = new Error('rate limited');
-  rateLimited.status = 429;
-  assert.equal(isRetryableProviderFailure(rateLimited), false);
-
-  const unavailable = new Error('temporarily unavailable');
-  unavailable.status = 503;
-  assert.equal(isRetryableProviderFailure(unavailable), true);
-
-  const invalid = new Error('invalid request');
-  invalid.status = 400;
-  assert.equal(isRetryableProviderFailure(invalid), false);
-
-  const completed = new Error('failed after completed stop');
-  completed.status = 503;
-  completed.completedStopState = true;
-  assert.equal(isRetryableProviderFailure(completed), false);
 });

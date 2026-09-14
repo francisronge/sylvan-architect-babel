@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -355,20 +354,4 @@ test('stub construction snapshots outcomes against later mutation', async () => 
     fitter
   });
   assert.equal(receipt.posterior.draws[0].components.item, 0.4);
-});
-
-test('the fitting boundary imports no provider, product, visual, or database client', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/varianceComponentFit.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/g)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    './stubs.js',
-    'node:crypto'
-  ]);
 });

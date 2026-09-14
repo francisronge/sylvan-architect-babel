@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -8,8 +7,7 @@ import {
   REPORT_ACCESSIBILITY_CHECK_IDS
 } from '../bench/reportAccessibilityAudit.js';
 import {
-  createReportPreviewReceipt,
-  hashReportPreviewData
+  createReportPreviewReceipt
 } from '../bench/reportPreview.js';
 import {
   createReportStarSchemaReceipt,
@@ -307,23 +305,4 @@ test('receipts are deterministic, immutable, and preserve callers', () => {
   }), before);
   assert.equal(Object.isFrozen(first), true);
   assert.equal(Object.isFrozen(first.records[0].findingArtifacts), true);
-});
-
-test('accessibility evidence tooling imports only local utilities and crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/reportAccessibilityAudit.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    './reportPreview.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch|axios|TreeVisualizer|database|deploy|provider/iu
-  );
 });

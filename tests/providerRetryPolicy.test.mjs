@@ -127,6 +127,7 @@ test('only recognized transient failures retry, with one run ID and at most thre
         }
       });
       assert.equal(isRetryableProviderFailure(error), true);
+      assert.equal(receipt.runId, 'transient');
       assert.equal(calls, 3);
       assert.deepEqual(delays, [10, 20]);
       assert.deepEqual(receipt.attempts.map(({ outcome }) => outcome), [

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -282,21 +281,5 @@ test('non-JSON evidence fails without mutating the caller', () => {
   assert.throws(
     () => validateRecordEvidenceArtifacts(nonPlain),
     /must be a plain object/u
-  );
-});
-
-test('record-evidence schemas import only the W17 core', async () => {
-  const [source, jsonSource] = await Promise.all([
-    readFile('derivationalDatabase/recordEvidence.js', 'utf8'),
-    readFile('derivationalDatabase/jsonData.js', 'utf8')
-  ]);
-  assert.deepEqual(
-    [...source.matchAll(/from ['"]([^'"]+)['"]/gu)].map((match) => match[1]),
-    ['./jsonData.js']
-  );
-  assert.doesNotMatch(jsonSource, /from ['"]/u);
-  assert.doesNotMatch(
-    `${source}\n${jsonSource}`,
-    /(?:App|TreeBank|bench\/|components\/|server\/|fetch|https?:|visual)/u
   );
 });

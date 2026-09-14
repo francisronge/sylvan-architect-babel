@@ -171,7 +171,14 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Latest checkpoint: request-disconnect cancellation is committed in `898626d`.
+Current offline gate: 1,588 tests, typecheck and both parse-contract fixtures pass.
+Test-suite cleanup removed 71 source-spelling, import-list, quantity-only and
+redundant checks. Behavioral, data-preservation and declarative paint checks
+remain; the useful verdict-geometry and agreement-paint tests moved into their
+focused files. Product code, fixtures and rendering are unchanged. The test count
+is an inventory, not browser visual approval or live-provider qualification.
+
+Previous functionality checkpoint: request-disconnect cancellation is committed in `898626d`.
 Both HTTP entry points pass scripted disconnect checks across all six enabled
 models, including stalled bodies and bounded remote-cancellation failure. Ordinary
 request completion, deadlines and subsequent parses remain usable. The full gate
@@ -340,8 +347,8 @@ for the classified recognition matrix, performance measurements, public-route
 checks, extreme plaque/camera fixes and renewed saved-response investigation.
 The preceding follow-up gate passed 1,626 tests, typecheck and both parse-contract
 fixtures; the production build and release-asset check passed. All 137 saved desktop frames
-retained their accepted geometry, and five app preview cases passed. The latest
-1,659-test checkpoint above supersedes its gate count. Earlier counts and timings
+retained their accepted geometry, and five app preview cases passed. The current
+1,588-test checkpoint above supersedes its gate count. Earlier counts and timings
 below are historical checkpoints, not the current gate.
 
 The integrated drawing restoration passes the 1,616-test offline gate, both

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -576,24 +575,4 @@ test('receipts are deterministic, immutable, and preserve callers', () => {
   assert.equal(JSON.stringify({ auditSource, report, records, plan }), before);
   assert.equal(Object.isFrozen(first), true);
   assert.equal(Object.isFrozen(first.correctionEntries[0].scoreArtifacts), true);
-});
-
-test('correction-ledger tooling imports only local utilities and crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/correctionLedger.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './itemAudit.js',
-    './jsonData.js',
-    './reportStarSchema.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch|axios|provider|TreeVisualizer|database|deploy|publish\(/iu
-  );
 });

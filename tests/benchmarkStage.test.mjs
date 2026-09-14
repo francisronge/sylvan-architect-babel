@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -248,22 +247,4 @@ test('receipts are deterministic, immutable, and preserve callers', () => {
   assert.equal(JSON.stringify({ planInput, evidenceInput }), before);
   assert.equal(Object.isFrozen(first), true);
   assert.equal(Object.isFrozen(first.evidence[0].provenance), true);
-});
-
-test('stage tooling imports only local utilities and crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/benchmarkStage.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch|axios|TreeVisualizer|database|deploy|provider/iu
-  );
 });

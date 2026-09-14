@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import { canonicalizeJsonData } from '../bench/jsonData.js';
@@ -183,15 +182,4 @@ test('identical inputs yield identical immutable receipts without mutation', () 
   assert.deepEqual(first, second);
   assert.equal(first.receiptSha256, second.receiptSha256);
   assert.equal(schedule[0][0].multiplier, -1);
-});
-
-test('wild-bootstrap infrastructure imports no provider, visual, or RNG client', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/clusterBootstrap.js', import.meta.url),
-    'utf8'
-  );
-  assert.doesNotMatch(
-    source,
-    /(?:fetch|axios|openai|anthropic|provider|TreeVisualizer|Math\.random|randomBytes)/
-  );
 });

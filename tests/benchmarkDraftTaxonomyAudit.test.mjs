@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -409,30 +408,4 @@ test('receipts are deterministic, immutable, and preserve caller input', () => {
 
   records[0].auditorRefs[0] = 'mutated-after-receipt';
   assert.equal(first.audits[0].auditorRefs[0], 'external-auditor');
-});
-
-test('taxonomy-audit tooling imports no provider, product, visual, or database client', () => {
-  const source = readFileSync(
-    new URL('../bench/draftTaxonomyAudit.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(
-    /from\s+['"]([^'"]+)['"]/gu
-  )].map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './draftItems.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
-  for (const forbidden of [
-    'fetch(',
-    'provider',
-    'TreeVisualizer',
-    'treeBank',
-    'supabase',
-    'database'
-  ]) {
-    assert.equal(source.includes(forbidden), false);
-  }
 });

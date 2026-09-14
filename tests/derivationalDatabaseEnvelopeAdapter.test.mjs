@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -189,19 +188,4 @@ test('evidence-bound records are immutable without mutating caller data', () => 
   assert.deepEqual(input, before);
   assert.deepEqual(first, second);
   assert.ok(Object.isFrozen(first.artifacts.reviewState));
-});
-
-test('the adapter imports only W17-local modules', async () => {
-  const source = await readFile(
-    'derivationalDatabase/recordEnvelopeAdapter.js',
-    'utf8'
-  );
-  assert.deepEqual(
-    [...source.matchAll(/from ['"]([^'"]+)['"]/gu)].map((match) => match[1]),
-    ['./durableRecord.js', './jsonData.js', './recordEvidence.js']
-  );
-  assert.doesNotMatch(
-    source,
-    /(?:App|TreeBank|bench\/|components\/|server\/|fetch|https?:|visual)/u
-  );
 });

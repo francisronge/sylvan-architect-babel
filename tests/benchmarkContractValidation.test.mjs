@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -211,21 +210,5 @@ test('tampered plans fail canonical reconstruction even when structurally plausi
       ))
     }),
     /does not match its content/
-  );
-});
-
-test('contract validation imports no provider, product, visual, or scoring client', async () => {
-  const source = await readFile(
-    new URL('../bench/contractValidation.js', import.meta.url),
-    'utf8'
-  );
-  assert.doesNotMatch(
-    source,
-    /fetch\(|node:http|node:https|openai|anthropic|gemini|claude/u
-  );
-  assert.doesNotMatch(source, /TreeBank|TreeVisualizer|replayCompiler|App\.tsx/u);
-  assert.doesNotMatch(
-    source,
-    /sampleSize|reviewerCount|publicationRule|candidateRoster|capabilityScore/u
   );
 });

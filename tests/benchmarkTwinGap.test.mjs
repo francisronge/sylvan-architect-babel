@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -279,19 +278,4 @@ test('receipts are deterministic, immutable, and preserve caller inputs', () => 
   assert.deepEqual({ plan: plan(), records }, inputs);
   assert.ok(Object.isFrozen(first));
   assert.ok(Object.isFrozen(first.pairComparisons));
-});
-
-test('twin-gap tooling imports only local utilities and Node crypto', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/twinGap.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/gu)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
 });

@@ -11,7 +11,6 @@ import {
   adaptDerivationStagesForReplay,
   applyVizIds,
   buildPlaybackStepsFromDerivationFrames,
-  buildReplaySupportLines,
   indexHierarchyNodesByIdAndAliases,
   isDisplayTerminalSurface
 } from '../replay/replayCompiler.ts';
@@ -1537,47 +1536,6 @@ test('authored path labels remain post-fit regardless of their length', async ()
   assert.ok(short.labels.includes('F'));
   assert.ok(medium.labels.includes('FEATURE-VALUE'));
   assert.ok(long.labels.includes('AN-EXTREMELY-LONG-AUTHORED-GAPPING-LABEL-VALUE'));
-});
-
-/* ------------------------------------------------------------------ *
- * Anchored text bounds: renderer parity.
- * ------------------------------------------------------------------ */
-
-test('every overlay text branch in TreeVisualizer is known to the bounds law', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const source = await readFile(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-  const overlayBlock = source.slice(
-    source.indexOf('orderedPrimitives.forEach'),
-    source.indexOf('Resolve ghost lens states')
-  );
-  const textSites = overlayBlock.match(/\.append\('text'\)/g) || [];
-  // The parity ledger: every overlay text-emitting branch, each accounted
-  // for in boundOverlayBounds (geometryBinding.ts). Adding a new text
-  // branch MUST extend the bounds law AND this count/list.
-  const coveredMarkers = [
-    'babel-binding-index',     // post-fit binding and QR occurrence indices
-    'babel-operator-variable-index', // post-fit operator/variable indices; semantic composition is tree-first
-    'babel-pg-gap-label',      // post-fit parasitic-gap relation annotation beside the authored terminal
-    'babel-analysis-judgment', // post-fit whole-analysis judgment beside the authored final root
-    'babel-gapping-index',     // post-fit gapping indices; the whole plate is tree-first
-    'babel-analysis-verdict-label', // post-fit optional label owned by the anchored verdict
-    'babel-feature-text',     // post-fit literal label for an independently drawn collection path
-    'babel-plaque-title',     // shared measured plaque textLayout
-    'babel-plaque-row',       // shared measured plaque textLayout
-    'vr-path-label',          // shape label — middle 11px
-    'vr-index-badge',         // index — start-anchored at +8, 13px
-    'vr-fallback-instance',   // instance — middle 11px inside the frame
-    'vr-fallback-position',   // external position — start at +12, 9px
-    'vr-backward-cue',        // backward cue — start at -16, 10px
-  ];
-  coveredMarkers.forEach((marker) => {
-    assert.ok(overlayBlock.includes(marker), `text site ${marker} missing from renderer`);
-  });
-  assert.equal(
-    textSites.length,
-    29, // Four plaque text sites now use drawPlaqueText with the bound textLayout.
-    'overlay text call-site count changed: classify every new branch as pre-fit or accepted post-fit text'
-  );
 });
 
 test('a left-edge TransferDomain label and a long index are fully inside the bounds', async () => {

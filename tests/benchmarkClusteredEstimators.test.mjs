@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -140,20 +139,4 @@ test('identical inputs produce identical frozen receipts without mutation', () =
   assert.match(first.observationsSha256, /^[0-9a-f]{64}$/u);
   assert.deepEqual(observations, before);
   assert.ok(Object.isFrozen(first.plan));
-});
-
-test('clustered estimators import no provider, product, visual, or policy client', async () => {
-  const source = await readFile(
-    new URL('../bench/clusteredEstimators.js', import.meta.url),
-    'utf8'
-  );
-  assert.doesNotMatch(
-    source,
-    /fetch\(|node:http|node:https|openai|anthropic|gemini|claude/u
-  );
-  assert.doesNotMatch(source, /TreeBank|TreeVisualizer|replayCompiler|App\.tsx/u);
-  assert.doesNotMatch(
-    source,
-    /sampleSize|reviewerCount|publicationRule|candidateRoster|defaultConfidence/u
-  );
 });

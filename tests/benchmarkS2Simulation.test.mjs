@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -360,20 +359,4 @@ test('identical inputs produce identical immutable receipts without mutation', a
   assert.equal(first.receiptSha256, second.receiptSha256);
   assert.equal(posteriorDraws[0].components.item, 0.2);
   assert.equal(designs[0].design.items, 20);
-});
-
-test('S2 infrastructure imports only local benchmark utilities and Node crypto', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/s2Simulation.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/g)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    './stubs.js',
-    'node:crypto'
-  ]);
 });

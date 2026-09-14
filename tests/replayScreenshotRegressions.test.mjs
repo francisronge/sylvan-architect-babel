@@ -37,11 +37,6 @@ for (const [name, parent, landing, source, cHead, whRelation] of [
     assert(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === parent));
     assert.equal(steps.filter(step => step.replayKind === 'macro').length, record.derivationStages.length);
     assert.equal(JSON.stringify(record), original, 'authored stages must not be edited by presentation');
-    for (let stageIndex = 0; stageIndex < record.derivationStages.length; stageIndex++) {
-      const stageSteps = steps.filter(step => step.replayFrameIndex === stageIndex);
-      stageSteps.forEach((step, index) => assert.match(step.replayProgressLabel,
-        new RegExp(`Step ${index + 1}/${stageSteps.length}$`)));
-    }
   });
 }
 

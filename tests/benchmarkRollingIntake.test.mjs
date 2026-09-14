@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -290,22 +289,4 @@ test('receipts are deterministic, immutable, and preserve caller inputs', () => 
   assert.throws(() => {
     first.orderedEntries[0].itemId = 'changed';
   }, TypeError);
-});
-
-test('rolling-intake tooling imports only local utilities and Node crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/rollingIntake.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports.sort(), [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /provider|fetch\(|axios|TreeVisualizer|App\.tsx|database/iu
-  );
 });

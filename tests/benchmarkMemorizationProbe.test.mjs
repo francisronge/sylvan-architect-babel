@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -398,22 +397,4 @@ test('receipts are deterministic, immutable, and do not mutate callers', () => {
   assert.ok(Object.isFrozen(first));
   assert.ok(Object.isFrozen(first.probeLifecycle));
   assert.ok(Object.isFrozen(first.observationEvidence[0]));
-});
-
-test('memorization-probe tooling imports only local utilities and Node crypto', () => {
-  const source = readFileSync(
-    new URL('../bench/memorizationProbe.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from ['"]([^'"]+)['"]/gu)]
-    .map((match) => match[1]);
-  assert.deepEqual(imports, [
-    'node:crypto',
-    './jsonData.js',
-    './benchmarkValidation.js'
-  ]);
-  assert.doesNotMatch(
-    source,
-    /fetch\s*\(|axios|openai|anthropic|google|TreeVisualizer|App\.tsx/u
-  );
 });

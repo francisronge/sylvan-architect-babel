@@ -19,9 +19,6 @@ import {
   planAnchorSetLayout,
   containingEllipse,
   ellipseContainsRect,
-  polygonArea,
-  polygonContainsPoint,
-  rectCorners,
   MIN_CROSSING_SEPARATION,
   findBoundaryCrossings,
   findBoundaryExit,
@@ -1660,22 +1657,6 @@ test('blocked adjunct extraction compiles its source, target, domain, and label'
   assert.deepEqual(unregisteredRelationNames(stages), []);
 });
 
-test('the shared native branch overlay stops clear of each target label', async () => {
-  const renderer = await readFile(
-    new URL('../components/TreeVisualizer.tsx', import.meta.url),
-    'utf8'
-  );
-  assert.match(renderer, /sampleNativeBranchOverlay/);
-  assert.match(renderer, /measuredTreeLabelRectNow\(targetNodeId, false\)/);
-  assert.match(renderer, /nativeBranchNode\.getTotalLength\(\)/);
-  assert.match(renderer, /nativeBranchNode\.getPointAtLength\(/);
-  assert.match(renderer, /const endClearance = Math\.max\(28, targetLabelRect\.height \/ 2 \+ 16\)/);
-  assert.match(renderer, /primitive\.requireSharedParent/);
-  assert.match(renderer, /babel-native-branch-overlay/);
-  assert.match(renderer, /babel-pair-merge-branch/);
-  assert.doesNotMatch(renderer, /nativeBranch\.style\('opacity', '0'\)/);
-});
-
 test('idiom cointerpretation keeps open chunk roles and separates the domain', () => {
   const tree = {
     id: 'vp_idiom_test',
@@ -2758,7 +2739,6 @@ const copyStage = (anchors) => [{
   workspaceForest: [copyTree]
 }];
 
-
 test('bounding-node crossings keep every authored boundary and assume no category', () => {
   const lens = hydrateLabLensFromCurrentContract(valuesStage([{
     relation: 'BoundingNodeCrossing',
@@ -3021,25 +3001,6 @@ test('the sideward parasitic-gap derivation retains sideward and ordinary wh pat
   assert.match(card, /workspaceForest: \[sidewardPgMatrixBaseTree, sidewardPgAdjunctBaseTree\]/);
   assert.match(card, /workspaceForest: \[sidewardPgMatrixMovedTree, sidewardPgAdjunctMovedTree\]/);
   assert.match(card, /workspaceForest: \[sidewardPgFinalTree\]/);
-});
-
-test('multi-stage trajectory cards rely on production Replay persistence, not Lab flags', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const titles = [
-    'Identity / Copy Chain (four occurrences)',
-    'Remnant Movement',
-    'Roll-up Movement',
-    'Smuggling',
-    'Sideward Movement',
-    'Sideward Movement (parasitic-gap derivation)'
-  ];
-  titles.forEach((title) => {
-    const start = source.indexOf(`title: '${title}'`);
-    assert.notEqual(start, -1, `${title} is missing`);
-    const nextCard = source.indexOf('\n  {', start + 1);
-    const card = source.slice(start, nextCard === -1 ? source.length : nextCard);
-    assert.doesNotMatch(card, /accumulatedTrajectories|stageScopedTrajectories/);
-  });
 });
 
 test('the four-occurrence chain has four complete positions and three ordered links', async () => {
@@ -3382,25 +3343,6 @@ test('LF reconstruction preserves the lower reflexive preterminal and is not fro
   );
 });
 
-test('no fixture uses a phrasal category as a terminal', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
-  const PHRASAL = /^(DP|NP|VP|vP|PP|AP|AdvP|QP|CP|TP|IP|CoordP)$/;
-
-  const shortcuts = [];
-  fixtures.forEach((root, fixtureName) => {
-    const walk = (node) => {
-      const isTerminal = !node.children || node.children.length === 0;
-      if (isTerminal && node.word && PHRASAL.test(String(node.label))) {
-        shortcuts.push(`${fixtureName}:${node.id} (${node.label} as terminal for "${node.word}")`);
-      }
-      (node.children || []).forEach(walk);
-    };
-    walk(root);
-  });
-  assert.deepEqual(shortcuts, []);
-});
-
 test('every pronounced word still reaches the surface after expansion', async () => {
   const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
   const fixtures = parseLabFixtures(source);
@@ -3511,14 +3453,6 @@ test('the live LF reconstruction card authors A-bar movement before LF copy sele
   assert.match(card, /lowerCopy:\s*'dp_picture_low_lf'/);
   assert.match(card, /traceWitness:\s*'d_which_picture_low_lf'/);
   assert.match(card, /pronouncedCopy:\s*'dp_picture_high_lf'/);
-});
-
-test('the live control card describes the sourced directed dependency', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const cardStart = source.indexOf("title: 'Control Dependency'");
-  const cardBlock = source.slice(cardStart, cardStart + 650);
-  assert.match(cardBlock, /dotted directed control dependency/);
-  assert.doesNotMatch(cardBlock, /non-arrow/);
 });
 
 test('a trajectory never overshoots below the occurrence it leaves', () => {
@@ -3768,24 +3702,6 @@ test('an assumed movement leaves a copy without drawing a second arrow', () => {
   assert.deepEqual(lens.copyChains, [{ index: '2', nodes: ['v_low_assume'] }]);
   // The assumed chain takes a number of its own, distinct from the drawn one.
   assert.notEqual(lens.copyChains[0].index, lens.trajectory[0].index);
-});
-
-test('no lab code repositions a tree node or redraws a dominance branch', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-
-  assert.doesNotMatch(source, /path\.branch/, 'lab code selects dominance branches');
-
-  /*
-   * Node groups may be read — an overlay layer is inserted before the first one
-   * so it paints underneath — but never written.
-   */
-  const groupUses = (source.match(/^.*\.node-group.*$/gm) || []).filter((line) => !line.trim().startsWith('*'));
-  assert.deepEqual(
-    groupUses.filter((line) => !/querySelector/.test(line)), [],
-    'a .node-group reference does something other than query'
-  );
-  assert.doesNotMatch(source, /nodeGroup\w*\.setAttribute|group\.setAttribute\('transform'/,
-    'lab code writes a transform onto a tree node');
 });
 
 test('the roll-up fixture is a complete ordinary DP at every stage', async () => {

@@ -32,6 +32,14 @@ test('cycle labels keep their approved size and badge outline independently of p
   assert.equal(properties('.babel-agree-cycle-badge circle')['stroke-width'], '1.4px');
 });
 
+test('production agreement curves cannot use SVG default black fills', () => {
+  const curve = properties('.babel-agree-directed-path');
+  assert.equal(curve.fill, 'none');
+  assert.match(curve.stroke, /rgba?\(/);
+  assert.equal(curve['vector-effect'], 'non-scaling-stroke');
+  assert.match(properties('.babel-agree-arrowhead').fill, /rgba?\(/);
+});
+
 test('native paths and deletion marks cannot inherit invisible strokes or opaque default fills', () => {
   for (const name of ['control-domain', 'control-dependency', 'predication-path', 'feature-sharing-vine',
     'dependent-case-elbow', 'phase-arc', 'accord-path', 'strong-npi-path', 'intervention-search-path',

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -346,19 +345,4 @@ test('hashing rejects non-JSON inputs and hashes validated copies', () => {
     () => hashAgreementData({ invalid: Number.NaN }),
     /must be finite JSON data/
   );
-});
-
-test('agreement infrastructure imports only local benchmark utilities and Node crypto', () => {
-  const source = fs.readFileSync(
-    new URL('../bench/agreementCoefficients.js', import.meta.url),
-    'utf8'
-  );
-  const imports = [...source.matchAll(/from '([^']+)'/g)]
-    .map((match) => match[1])
-    .sort();
-  assert.deepEqual(imports, [
-    './benchmarkValidation.js',
-    './jsonData.js',
-    'node:crypto'
-  ]);
 });
