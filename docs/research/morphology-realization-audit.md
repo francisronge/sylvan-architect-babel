@@ -197,11 +197,16 @@ The controls isolate ownership from recognition. They preserve a correct final
 | Neutral combination without prior anchors | The result appears in selection/projection before the relation |
 | Abstract input becomes two final output words with PF realization | Both words appear at the relation moment in the tested completed workspace |
 
-The residual parent is a reproduced compiler defect candidate. Investigate
-whether a fully exhausted, removed ancestor belongs to the same transition,
-without swallowing unrelated siblings or another relation's change. Add negative
-controls for a surviving sibling, retained parent, overlapping claims, changed
-root identity and multiple workspaces before any repair.
+The table records the original audit result. The residual parent was subsequently
+confirmed visually and repaired on 14 September: an absent prior container retires
+when its last child has left through owned edits. Nested exhausted ancestors retire
+with it. A surviving sibling, a parent retained in the current authored state or
+an independently empty item prevents deletion. Regression controls cover changed
+root identity, relocation, overlapping claims, ambiguous IDs, independent workspaces
+and source immutability. Re-running all 84 controls changes only this leaf-anchored
+case in each framework. The browser now shows the same resulting tree at the
+relation moment and Stage Record. This repair adds no morphology representation
+and does not broaden which relations own transitions.
 
 The no-prior case is different. A current result and a final tree do not always
 identify which preceding objects the relation transforms. Establish when the
@@ -373,8 +378,9 @@ for evaluating a new representation, not claims that new support was tested here
 
 ## Recommended next decision
 
-Keep the already supported early-pieces-to-final-word path. Review the neutral
-transition's residual-parent defect as a small, independent Replay issue.
+Keep the already supported early-pieces-to-final-word path. The neutral
+transition's residual-parent repair is complete as recorded above; the
+representation decisions remain open.
 Design retained final morphology separately, starting from explicit occurrence
 alignment rather than alias recognition or automatic concatenation. The user
 wants this capability; the contract format and implementation remain undecided.

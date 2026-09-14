@@ -80,6 +80,83 @@ test('neutral transition evidence excludes an independently recovered sibling cl
   assert.deepEqual(step.anchors, relation.anchors, 'all original participants remain available for display');
 });
 
+const abstractItem = (id, children = []) => ({ id, label: 'X', children });
+const realizedItem = id => ({ id, label: 'V', word: 'walked', children: [] });
+const transformation = (output, input) => ({ relation: 'Authored transformation',
+  anchors: { output }, priorAnchors: { input } });
+const transitionRecord = (previous, current, relations) => ({ derivationStages: [
+  { statement: 'Initial structure', stageRecord: '', workspaceForest: previous, relations: [] },
+  { statement: 'Changed structure', stageRecord: '', workspaceForest: current, relations }
+] });
+
+test('owned removal or relocation retires exhausted prior containers at the relation moment', () => {
+  const inputs = [abstractItem('stem'), abstractItem('tense')];
+  const output = realizedItem('output');
+  const independent = abstractItem('independent', [abstractItem('independent_child')]);
+  const cases = [
+    { previous: abstractItem('old', inputs), current: output, output: 'output' },
+    { previous: abstractItem('older', [abstractItem('old', inputs)]), current: output, output: 'output' },
+    { previous: abstractItem('old', inputs), current: abstractItem('new', [output]), output: 'output' },
+    { previous: abstractItem('old', inputs), current: abstractItem('new', inputs), output: ['stem', 'tense'] }
+  ];
+  for (const item of cases) {
+    const record = transitionRecord([item.previous, independent], [item.current, independent], [
+      transformation(item.output, ['stem', 'tense'])
+    ]);
+    const original = structuredClone(record);
+    const steps = play(record);
+    const moment = moments(steps, 1)[0];
+    const before = steps[steps.indexOf(moment) - 1];
+    for (const id of ['old', 'stem', 'tense']) assert.ok(visible(before, id), id);
+    for (const id of ['old', 'older']) assert.ok(!visible(moment, id), id);
+    for (const id of [item.output].flat()) assert.ok(visible(moment, id), id);
+    const material = nodes(moment.replayCanvasData);
+    assert.deepEqual(material.find(node => node.id === 'independent'),
+      nodes(before.replayCanvasData).find(node => node.id === 'independent'));
+    if (item.current.id === 'new') {
+      assert.deepEqual(material.find(node => node.id === 'new').children.map(node => node.id),
+        item.current.children.map(node => node.id));
+    }
+    assert.deepEqual(record, original);
+  }
+});
+
+test('ancestor cleanup preserves authored empty parents and unowned siblings or empty items', () => {
+  const inputs = [abstractItem('stem'), abstractItem('tense')];
+  const output = realizedItem('output');
+  const cases = [
+    { previous: [abstractItem('old', inputs)], current: [abstractItem('old'), output], kept: ['old'] },
+    { previous: [abstractItem('old', [...inputs, abstractItem('sibling')])], current: [output], kept: ['old', 'sibling'] },
+    { previous: [abstractItem('old', inputs), abstractItem('empty')], current: [output], kept: ['empty'] },
+    { previous: [abstractItem('old', inputs)], current: [abstractItem('old'), abstractItem('old'), output], kept: ['old'] }
+  ];
+  for (const item of cases) {
+    const record = transitionRecord(item.previous, item.current, [transformation('output', ['stem', 'tense'])]);
+    const original = structuredClone(record);
+    const moment = moments(play(record), 1)[0];
+    for (const id of item.kept) assert.ok(visible(moment, id), id);
+    for (const id of ['stem', 'tense']) assert.ok(!visible(moment, id), id);
+    assert.ok(visible(moment, 'output'));
+    assert.deepEqual(record, original);
+  }
+});
+
+test('overlapping claims retire a removed parent only when its last child has changed', () => {
+  const record = transitionRecord([abstractItem('old', [abstractItem('stem'), abstractItem('tense')])],
+    [realizedItem('first'), realizedItem('second')], [
+      transformation('first', 'stem'),
+      transformation('second', ['stem', 'tense'])
+    ]);
+  const original = structuredClone(record);
+  const [first, second] = moments(play(record), 1);
+  for (const id of ['old', 'tense', 'first']) assert.ok(visible(first, id), id);
+  for (const id of ['stem', 'second']) assert.ok(!visible(first, id), id);
+  for (const id of ['old', 'stem', 'tense']) assert.ok(!visible(second, id), id);
+  for (const id of ['first', 'second']) assert.ok(visible(second, id), id);
+  assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  assert.deepEqual(record, original);
+});
+
 const mixedHeadStage = (anchor = 'd_john_hi') => {
   const record = copy('fable-minimalism');
   record.derivationStages = record.derivationStages.slice(0, 4);

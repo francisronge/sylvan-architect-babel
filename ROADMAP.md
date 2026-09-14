@@ -171,7 +171,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,614 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,621 tests, typecheck and both parse-contract fixtures pass.
 Compiler diagnostics remain in inspection evidence, never in the Replay bar.
 The inspection-only `Audit` rows were removed after Francis rejected that
 placement; retaining diagnostic evidence did not authorize adding it to Replay.
@@ -255,10 +255,14 @@ All 48 accepted results complete Replay preparation and a Tree Bank snapshot/loa
 round trip. Final separate pronounced pieces cannot currently realize one input
 token, and a PF plaque does not override that rule. Supporting retained final
 morphology needs an explicit representation decision; no mapping format, prompt
-change or linguistic repair was implemented. The audit also reproduces an emptied
+change or linguistic repair was implemented. The audit also reproduced an emptied
 prior parent lingering until Stage Record in a neutral transition anchored only
-to its removed leaves. That ownership issue requires a focused repair review;
-the no-prior-anchor variant needs an evidence-sufficiency decision first.
+to its removed leaves. That defect is now visually confirmed and repaired: an
+absent prior container leaves when its last owned child leaves. A surviving child
+or a parent retained in the authored current forest prevents cleanup. Tests cover
+nested ancestors, changed roots, overlapping claims, ambiguous identity and
+independent workspaces; originals remain unchanged. The no-prior-anchor variant
+still needs an evidence-sufficiency decision first.
 
 The completed notation/timing pass repairs four reproduced defects:
 
@@ -448,11 +452,12 @@ discussion with Francis.
    from its unchanged fitted size. Focused geometry and production browser checks
    cover stacked marks, connectors, backward cues, zoom/redraw and Fit. Locator
    meaning, Orchard paint and tree layout are unchanged.
-2. **Morphological transition ownership.** Reproduce the audit's emptied-parent
-   case in the browser. Test whether fully removed ancestors belong to the same
-   neutral transition, with negative controls for surviving siblings, overlapping
-   claims and multiple workspaces. Repair only the demonstrated ownership defect.
-   A result with no prior anchors needs evidence analysis before implementation.
+2. **Emptied-parent transition ownership: complete.** Browser confirmation and
+   the narrow repair remove exhausted prior containers at their owning relation
+   moment. Unowned siblings, authored empty parents and independent workspaces
+   survive. The 84 morphology controls change only the targeted leaf-anchored
+   case in each framework. A result with no prior anchors still needs evidence
+   analysis before implementation.
 3. **Final morphology representation.** Review the [separate audit](docs/research/morphology-realization-audit.md).
    Early pieces becoming a final whole word already work. The desired extension
    preserves separate final morphology and explicitly associates it with input
@@ -501,7 +506,7 @@ checks, extreme plaque/camera fixes and renewed saved-response investigation.
 The preceding follow-up gate passed 1,626 tests, typecheck and both parse-contract
 fixtures; the production build and release-asset check passed. All 137 saved desktop frames
 retained their accepted geometry, and five app preview cases passed. The current
-1,614-test checkpoint above supersedes its gate count. Earlier counts and timings
+1,621-test checkpoint above supersedes its gate count. Earlier counts and timings
 below are historical checkpoints, not the current gate.
 
 The integrated drawing restoration passes the 1,616-test offline gate, both
@@ -903,8 +908,9 @@ The current work order above owns these decisions:
 - Purpose and spending caps for further provider checks, and deployed request
   limits. Mobile and extreme Fit readability remain bounded qualification work.
 
-Circled Tier-3 scaling is repaired; the morphology transition finding is a
-separate follow-up. Neither requires reopening general layout. Separate relation moments,
+Circled Tier-3 scaling and the emptied-parent transition defect are repaired
+without reopening general layout. The no-prior-anchor transition remains a
+separate evidence question. Separate relation moments,
 judgment handling, ordinary plaques, generated coindices, integrated Tree Bank
 previews and the decision not to require full-row static exports are settled.
 
@@ -968,7 +974,7 @@ an earlier renderer closeout or a passing fixture suite.
 | 36 | Integrated; bounded composition verified | Transfer/cyclic duplicates and repeated gap labels are repaired. Gap notation reuses its exact owned display terminal. Residual rails retain authored participant context with stage-scoped persistence. Saved-case mixed composition is browser-verified; arbitrary combinations remain unqualified. |
 | 37 | Implemented locally | Outcome data reaches existing path/candidate graphics. Allowed outcomes do not earn blocked-only marks; contradictory same-host claims stay neutral with a cause diagnostic. All-variant native qualification remains under 39. |
 | 38 | Implemented locally | Recovery checks the exact authored gap/copy, including category-typed silent occurrences and t variants. A containing VP is not that trace; ordinary silence does not imply deletion. |
-| 39 | Bounded integrated qualification | Current gate: 1,614 tests, typecheck and both fixtures. Latest notation/timing comparison covers 208 before/207 after frames across six analyses, zoom/pan/Next/Fit and twelve narrow spot checks. Earlier eight Tree Bank save/preview/reopen controls remain evidence. Circle zoom, new morphology transition controls, arbitrary compositions and slower/deployed conditions remain distinct follow-ups. |
+| 39 | Bounded integrated qualification | Current gate: 1,621 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. Earlier notation/timing and Tree Bank evidence remains historical qualification. Arbitrary compositions, slower/deployed conditions and the no-prior-anchor transition remain distinct follow-ups. |
 
 Proof reconciliation beyond the original numbered findings:
 
@@ -997,8 +1003,9 @@ Proof reconciliation beyond the original numbered findings:
 - [x] Verify the saved outputs with production Replay and the recorded offline
   route/inspection checks; complete the authorized Grok pair and its review.
 - [x] Fix circled Tier-3 scaling with focused visual evidence.
-- [ ] Review and repair the morphology ownership control separately; preserve
-  unrelated structure and accepted layout.
+- [x] Confirm and repair the emptied-parent ownership control; preserve unrelated
+  structure, authored empty parents and accepted layout. The no-prior-anchor
+  variant remains separate evidence work.
 - [ ] Decide retained final morphology representation and qualify any approved
   implementation across its full data path.
 - [ ] Complete the specifically unverified live/deployed, slower-device and

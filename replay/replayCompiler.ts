@@ -1959,7 +1959,8 @@ const syntaxNodeMaterialSignature = (node: SyntaxNode): string => {
  * Apply only the raw tree deltas witnessed by active relations.
  * A relation owns its current/prior anchor subtrees, never the whole
  * stage forest. It may add the minimum current ancestor chain needed to keep
- * those subtrees attached; unrelated current-stage additions remain hidden.
+ * those subtrees attached and retire removed prior containers exhausted by
+ * those edits; unrelated current-stage additions remain hidden.
  */
 const buildAnchoredTreeTransitionForest = (
   previousForest: SyntaxNode[],
@@ -2243,7 +2244,21 @@ const buildAnchoredTreeTransitionForest = (
     if (children) resultLocation.node.children = children;
   });
 
-  return result;
+  const pruneExhaustedPriorContainers = (forest: SyntaxNode[]): SyntaxNode[] =>
+    forest.filter((node) => {
+      if (Array.isArray(node.children)) {
+        node.children = pruneExhaustedPriorContainers(node.children);
+      }
+      const nodeId = String(node.id || '').trim();
+      const prior = exactLocation(previousLocations, nodeId);
+      // Never infer deletion of an authored empty item or a surviving parent.
+      // An absent former container can disappear only after its owned children
+      // have actually left; any unowned sibling keeps it in this frame.
+      return currentLocations.has(nodeId)
+        || !prior?.node.children?.length
+        || Boolean(node.children?.length);
+    });
+  return pruneExhaustedPriorContainers(result);
 };
 
 const relationOwnsNonMovementTreeTransition = (
