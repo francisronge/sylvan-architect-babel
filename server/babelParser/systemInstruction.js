@@ -23,7 +23,7 @@ Syntax nodes
 Each workspaceForest item and child is either a complete node or a reference to an earlier subtree.
 A complete node has these required fields:
 - id: a nonblank string identifying this occurrence.
-- label: a nonblank string naming the syntactic item or category at this node. A projection's label names the projection, not merely its head.
+- label: a nonblank string naming the syntactic item or category at this node. Label each node according to the selected framework, preserving the distinctions made in the analysis.
 - children: an ordered array of nodes or references, empty for a leaf.
 Its optional fields are word, tokenIndex, silent, and lineageId:
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.

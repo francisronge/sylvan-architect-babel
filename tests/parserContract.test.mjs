@@ -113,6 +113,8 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(frameworkInstruction, /Explain the sentence-specific structural choices and derivational commitments/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
+    assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
+    assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
     assert.match(instruction, /anchors: a nonempty object with nonblank role names/);

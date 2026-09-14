@@ -239,6 +239,15 @@ The base JSON contract is unchanged. Generation provenance hashes the exact new
 prompt; saved requests and prose are untouched. Whether this reduces checklist
 prose or changes analysis quality requires a future authorized provider check.
 
+The shared label instruction now says, "Label each node according to the selected
+framework, preserving the distinctions made in the analysis." This replaces the
+blanket instruction to name a projection rather than its head, following Francis's
+approval. Node fields and parser behavior are unchanged. The wording asks the model
+to retain its analysis's distinctions without imposing one labeling convention on
+both frameworks. Its effect on fresh model output remains unverified. The proposed
+change from "syntactic reason" to "reason within the analysis" remains for discussion;
+surface-token alignment is unchanged.
+
 The next notation/timing pass repairs four reproduced defects:
 
 - Gap notation reuses its exact owned display terminal, including allocated-ID
@@ -264,6 +273,13 @@ change or browser error occurs. Zoom/pan/Next/Fit pass on all six; twelve narrow
 spot checks pass. A separately labelled notation control confirms unchanged
 initial sizing and proportional zoom with stable stacked positions after redraw.
 These checks do not approve every possible annotation composition or viewport.
+
+Circled Tier-3 badge zoom remains unresolved. The circles still keep approximately
+the same screen size as syntax enlarges; the preceding small-label zoom fix did
+not change them. A focused check at four times the fitted zoom enlarged the I label
+from 16 to 63 pixels while its circle changed from about 18 to 20 pixels. Preserving
+the initial fitted badge size and then scaling the complete badge with the tree is
+the proposed follow-up, not an implemented change.
 
 Shared evidence-based participant recognition is explicitly deferred. No aliases,
 new role interpretation, movement acceptance rule, prompt change or provider call
