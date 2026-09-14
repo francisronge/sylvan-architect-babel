@@ -171,7 +171,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,599 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,602 tests, typecheck and both parse-contract fixtures pass.
 Compiler diagnostics remain in inspection evidence, never in the Replay bar.
 The inspection-only `Audit` rows were removed after Francis rejected that
 placement; retaining diagnostic evidence did not authorize adding it to Replay.
@@ -183,7 +183,7 @@ the production native-fetch path for the same long wait. The interrupted first
 attempt has no usage receipt, so its charge remains unknown. No further provider
 calls were made for the repairs below.
 
-Five general repairs follow from that audit:
+The first five general repairs from that audit were:
 
 - Complete all owned children when a relation attaches a new container whose
   shell was already inserted. Unrelated future additions remain hidden.
@@ -195,7 +195,8 @@ Five general repairs follow from that audit:
   titles, ambiguous domains and unpaired lists do not supply missing meaning.
 - Track the preceding movement occurrence separately from the current lower and
   landing IDs. A new lower ID requires proven prior identity and exact position;
-  root lineage, authored silence and supported landing structure remain required.
+  root lineage and supported landing structure remain required. The original
+  silence requirement was subsequently removed as described below.
 
 The integrated desktop comparison covers 209 baseline and 208 repaired Replay
 frames across both Grok outputs and the four earlier archives. Grok Minimalism's
@@ -207,6 +208,36 @@ camera change or zoom/Fit regression occurred in these checks. This is bounded
 desktop evidence, not universal readability or mobile qualification. Existing
 Grok claims with missing identity, unsupported structure or meaning only in
 titles remain neutral; their linguistic omissions were not repaired by Babel.
+
+The follow-up separates movement from pronunciation. A recovered movement can
+draw and execute while either copy remains pronounced, preserving each stage's
+authored state. An explicit prior source can identify the current lower endpoint
+only when that exact occurrence still exists with matching root lineage. Invalid
+or repeated endpoint lists remain neutral; exact Tier-1 safeguards are unchanged.
+All three Grok Minimalism InternalMerge claims now draw movement. Grok X-bar's
+incomplete movement signatures and missing root identity remain inspectable.
+
+Future layout reservation now stops before an attached object changes parent or
+retained siblings change order. Borrowing future topology cannot reorder current
+children. This fixes the early Grok X-bar switch between movement-landed and base
+positions without changing camera fitting. New visible structure may still need
+a refit. The integrated comparison covers all 208 frames on each side, with no
+label clipping, Replay-panel coverage or within-stage camera change. All 137
+earlier frames retain their labels, positions and camera settings; zoom/pan and
+Fit pass on all six analyses. Twelve narrow-viewport spot checks also pass.
+The subsequent sibling-order guard leaves these saved playbacks byte-identical
+to the browser-tested implementation; focused tests cover that additional case.
+
+Numerical movement-copy indices are retained. The two words of a lower moved
+phrase share its index; the number does not count movement steps. Other generated
+dependency coindices use the existing letter notation, and circled Tier-3 numbers
+remain relation locators. No notation replacement was made.
+
+Framework introductions now select the framework and request sentence-specific
+linguistic reasoning without endocentricity, branching or label prescriptions.
+The base JSON contract is unchanged. Generation provenance hashes the exact new
+prompt; saved requests and prose are untouched. Whether this reduces checklist
+prose or changes analysis quality requires a future authorized provider check.
 
 Previous checkpoint: the 1,588-test cleanup removed 71 source-spelling, import-list, quantity-only and
 redundant checks. Behavioral, data-preservation and declarative paint checks
@@ -332,7 +363,7 @@ supersede the earlier browser-blocked status below.
 
 | Starting-point items | Current disposition | Remaining work |
 | --- | --- | --- |
-| 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated coindices use letters; circled Tier-3 numbers keep their approved locator meaning. Extreme plaques through 200 rows retain their text and save/reopen correctly. Static previews need not include every row; no all-rows print design is required. | Preserve the accepted appearance. Mobile readability remains open; extreme Fit readability is not universally approved. |
+| 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated dependency coindices use letters; movement-copy indices retain numbers, and circled Tier-3 numbers keep their approved locator meaning. Extreme plaques through 200 rows retain their text and save/reopen correctly. Static previews need not include every row; no all-rows print design is required. | Preserve the accepted appearance. Mobile readability remains open; extreme Fit readability is not universally approved. |
 | 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Active-gesture redraw and Fit ownership defects are repaired. Manual zoom survives Canopy/Replay preparation. Five remaining within-stage shifts in earlier captures accompany structural movement; current Replay already reserves future positions. | Preserve accepted sizing and spacing. Assess a movement shift only if it is a reproducible visual defect; newly introduced structure may legitimately require movement. The theta-grid containment control, ordinary plaque geometry and all 114 name-variation Replay checks retain their prior qualifications. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 saved relation moments have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
 | 5–8: interpretation and neutral content | The saved audit accounts for all 22 neutral-content relations. A later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes. It reproduces downstream spelling-dependent value loss, duplicate internal slots, and checks that extend beyond their owning claim. | Shared value/identity handoff, optional slot equivalence and claim-scoped checks are repaired and verified. All 42 remaining mixed controls are classified: 40 role ambiguities, one competing PF-input pair, and one absorbed phase-edge claim. No further semantic fix is justified by this matrix. The model authors the linguistics; Babel must not judge or invent it. Preserve negative controls, exact field ownership and missing-literal boundaries. See the [cross-family audit](docs/implementation/contract-qualification/system-audit.md#cross-family-recognition-audit-13-september). |
