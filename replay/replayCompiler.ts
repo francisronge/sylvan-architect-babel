@@ -1042,6 +1042,24 @@ const collectWorkspaceRootIds = (workspaceRoots: SyntaxNode[]): string[] =>
     .map((node) => String(node?.id || '').trim())
     .filter(Boolean);
 
+const collectWorkspaceRootParents = (forest: SyntaxNode[], rootIds: ReadonlySet<string>) => {
+  const parents = new Map<string, SyntaxNode | null>();
+  const visit = (node: SyntaxNode, parent: SyntaxNode | null) => {
+    const nodeId = String(node.id || '').trim();
+    if (rootIds.has(nodeId)) parents.set(nodeId, parent);
+    (node.children || []).forEach(child => visit(child, node));
+  };
+  forest.forEach(root => visit(root, null));
+  return parents;
+};
+
+const preservesRelativeSiblingOrder = (before: SyntaxNode[], after: SyntaxNode[]): boolean => {
+  const beforeIds = collectWorkspaceRootIds(before), afterIds = collectWorkspaceRootIds(after);
+  const beforeSet = new Set(beforeIds), afterSet = new Set(afterIds);
+  return JSON.stringify(beforeIds.filter(id => afterSet.has(id)))
+    === JSON.stringify(afterIds.filter(id => beforeSet.has(id)));
+};
+
 const replayLayoutTreeSignature = (
   node: SyntaxNode | null | undefined,
   describe: (node: SyntaxNode) => string
@@ -1256,7 +1274,8 @@ const buildCurrentMaterialLayoutScaffold = (
       currentChild,
       paths: findExactPaths(futureChildren, String(currentChild.id || '').trim())
     }));
-    if (childMatches.some(({ paths }) => paths.length !== 1 || paths[0].length !== 1)) {
+    if (childMatches.some(({ paths }) => paths.length !== 1 || paths[0].length !== 1)
+      || !preservesRelativeSiblingOrder(currentChildren, futureChildren)) {
       next.children = currentChildren.map((child) => cloneSyntaxTree(child) || child);
       return next;
     }
@@ -1322,6 +1341,8 @@ const inferFutureLayoutScaffold = (
   const seeksComposedWorkspaceLayout = workspaceRoots.length > 1;
   let bestLayoutScaffold: SyntaxNode[] | null = null;
   const allowedFutureOccurrenceIds = new Set<string>();
+  const currentRootIds = new Set(collectWorkspaceRootIds(workspaceRoots));
+  let previousParents = new Map<string, SyntaxNode | null>();
   const currentForestSignature = JSON.stringify(
     workspaceRoots.map((root) => replayLayoutContinuitySignature(root))
   );
@@ -1331,6 +1352,14 @@ const inferFutureLayoutScaffold = (
     const futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
       ? frames[futureFrameIndex].workspaceForest
       : [];
+    const futureParents = collectWorkspaceRootParents(futureRoots, currentRootIds);
+    // Reserve a detached object's first attachment, never a later relocation.
+    // Otherwise an early selection can start at a movement landing and jump
+    // back to its base position when the containing subtree is constructed.
+    if ([...previousParents].some(([id, parent]) => parent !== null
+      && (futureParents.get(id)?.id !== parent.id
+        || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
+    previousParents = futureParents;
     const preservesCurrentSubtrees = forestCanUseFutureLayoutScaffold(workspaceRoots, futureRoots);
     const preservesCurrentTopology = JSON.stringify(
       workspaceRoots.map((root) => replayLayoutTopologySignature(root))
@@ -1459,6 +1488,7 @@ const inferFutureWorkspaceRootOrder = (
   let bestPreferredOrder: string[] | null = null;
   let bestMergedRoots = -1;
   let bestDepthScore = -1;
+  let previousParents = new Map<string, SyntaxNode | null>();
 
   for (let futureFrameIndex = currentFrameIndex + 1; futureFrameIndex < frames.length; futureFrameIndex += 1) {
     const futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
@@ -1468,6 +1498,11 @@ const inferFutureWorkspaceRootOrder = (
     if (!currentRoots.every(({ id }) => futureForestNodeIds.has(id))) {
       break;
     }
+    const futureParents = collectWorkspaceRootParents(futureRoots, currentRootIds);
+    if ([...previousParents].some(([id, parent]) => parent !== null
+      && (futureParents.get(id)?.id !== parent.id
+        || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
+    previousParents = futureParents;
 
     const rootMembership = currentRoots.map(({ id, originalIndex }) => {
       let futureRootIndex = -1;

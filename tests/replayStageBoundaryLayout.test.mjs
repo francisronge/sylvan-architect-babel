@@ -9,6 +9,7 @@ import {
   buildPlaybackStepsFromDerivationFrames,
   getNodeId
 } from '../replay/replayCompiler.ts';
+import { stageTreeLayoutSize } from '../replay/stageCamera.ts';
 
 const leaf = (id, label, word, extra = {}) => ({
   id,
@@ -130,6 +131,71 @@ test('detached workspace roots remain roots until their authored wrapper is buil
   assert.equal(findNode(completedFirstStage.replayCanvasData, 'coord_but')?.replayLayoutOnly, true);
   assert.equal(completedFirstStage.replayVisibleNodeIds?.includes('coordp_final'), false);
   assert.equal(completedFirstStage.replayVisibleNodeIds?.includes('coord_but'), false);
+});
+
+test('future layout reserves construction positions without relocating or reordering existing syntax', () => {
+  const object = node('object', 'DP', [leaf('object-word', 'N', 'books')]);
+  const subject = node('subject', 'DP', [leaf('subject-word', 'N', 'Ada')]);
+  const vp = node('vp', 'VP', [leaf('verb', 'V', 'reads'), object]);
+  const tp = node('tp', 'TP', [subject, vp]);
+  const moved = node('cp', 'CP', [object, node('tp', 'TP', [subject,
+    node('vp', 'VP', [leaf('verb', 'V', 'reads'), leaf('lower', 'DP', 't', { silent: true })])
+  ])]);
+  const reordered = node('tp', 'TP', [subject, node('vp', 'VP', [object, leaf('verb', 'V', 'reads')])]);
+  const stage = workspaceForest => ({ statement: 'Open operation', stageRecord: 'Authored account.',
+    relations: [], workspaceForest });
+
+  // The attachment rule does not need a registered movement name, and
+  // authored forest order must not decide the reserved constituent positions.
+  for (const relocated of [moved, reordered]) for (const reverseRoots of [false, true]) {
+    const stages = [[object], [object, subject], [vp, subject], [tp], [relocated]].map(roots =>
+      stage(reverseRoots ? [...roots].reverse() : roots));
+    const original = structuredClone(stages);
+    const steps = compile(stages, 'Ada reads books');
+    const records = steps.filter(step => step.replayKind === 'macro');
+    const basePositions = layoutPositions(records[3].replayCanvasData);
+    for (const record of records.slice(2, 4)) {
+      assert.deepEqual(findNode(record.replayCanvasData, 'vp').children.map(child => child.id), ['verb', 'object'],
+        'borrowing a future wrapper cannot reorder the current children');
+    }
+    for (const [stageIndex, ids] of [[0, ['object', 'object-word']],
+      [1, ['object', 'object-word', 'subject', 'subject-word']],
+      [2, ['object', 'object-word', 'subject', 'subject-word', 'verb']]]) {
+      for (const step of steps.filter(step => step.replayFrameIndex === stageIndex)) {
+        const positions = layoutPositions(step.replayCanvasData);
+        for (const id of ids.filter(id => step.replayVisibleNodeIds.includes(id))) {
+          assert.deepEqual(positions.get(id), basePositions.get(id), `${id} keeps its base position`);
+        }
+        assert.equal(step.replayVisibleNodeIds.includes('cp'), false, 'no future parent is revealed');
+        assert.equal(step.replayVisibleNodeIds.includes('lower'), false, 'no future trace is revealed');
+      }
+      for (const [width, height] of [[1596, 1016], [1100, 800], [386, 698]]) {
+        assert.deepEqual(stageTreeLayoutSize(steps, stageIndex, width, height),
+          stageTreeLayoutSize(steps, 3, width, height), 'the same scaffold retains its coordinate scale');
+      }
+    }
+    assert.notDeepEqual(layoutPositions(records[4].replayCanvasData).get('object'),
+      basePositions.get('object'), 'the later authored relocation still has a different destination');
+    assert.deepEqual(stages, original, 'reserving positions does not rewrite the analysis');
+  }
+
+  for (const insertionIndex of [0, 1]) {
+    const children = [...vp.children];
+    children.splice(insertionIndex, 0, leaf('new-sibling', 'Adv', 'often'));
+    const expanded = node('tp', 'TP', [subject, node('vp', 'VP', children)]);
+    const stages = [[object], [object, subject], [vp, subject], [expanded]].map(stage);
+    const steps = compile(stages, 'Ada often reads books');
+    const records = steps.filter(step => step.replayKind === 'macro');
+    const finalPositions = layoutPositions(records[3].replayCanvasData);
+    for (const record of records.slice(0, 3)) {
+      assert.deepEqual(layoutPositions(record.replayCanvasData).get('object'), finalPositions.get('object'),
+        'new siblings before or between retained children may still reserve space');
+      assert.equal(record.replayVisibleNodeIds.includes('new-sibling'), false, 'the reserved sibling remains hidden');
+    }
+    assert.deepEqual(findNode(records[2].replayCanvasData, 'vp').children
+      .filter(child => records[2].replayVisibleNodeIds.includes(child.id)).map(child => child.id), ['verb', 'object'],
+    'the existing siblings retain their authored relative order');
+  }
 });
 
 test('a single movement wrapper reserves its future layout without leaking the mutation', () => {
