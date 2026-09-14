@@ -48,6 +48,10 @@ print layout for extreme content. See the [dependability evidence](../implementa
 
 ## Camera input ownership
 
+Gap notation reuses an existing category or terminal belonging to the exact
+authored occurrence. Generated terminal ownership is explicit metadata; an ID's
+spelling never proves ownership. A distinct authored annotation remains visible.
+
 Manual zoom and pan persist across Replay frames. Fit clears that manual choice
 and restores automatic stage framing. Programmatic camera updates never become
 manual input, even while D3 still carries the source event of an unfinished wheel

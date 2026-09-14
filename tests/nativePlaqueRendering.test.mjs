@@ -468,15 +468,17 @@ const drawGap = new Function('host', 'primitive', ts.transpile(
   `${gapBranch.getText(parsed)}\nreturn 'draw-extra-label';`, { target: ts.ScriptTarget.ES2023 }));
 const gapPredicate = labels => {
   const root = new Element('g');
-  for (const { text, kind = 'category', id = 'lower', original, index } of labels) {
+  for (const { text, kind = 'category', id = 'lower', original, index, replayOrigin } of labels) {
     const label = new Element('text', { class: `${kind}-label`,
       [kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id,
       ...(original ? { 'data-default-label': original } : {}), ...(index ? { 'data-trace-index': index } : {}) });
     label.text = text;
+    label.datum = { data: { id, replayOrigin } };
     root.children.push(label);
   }
   const predicate = productionFunction('hasExistingGapNotation', {
-    g: select(root), isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue
+    g: select(root), isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue,
+    labelBelongsToNode: productionFunction('labelBelongsToNode', { d3: { select }, isReplayDisplayChild })
   });
   return { root, predicate };
 };
@@ -528,6 +530,19 @@ test('matching text on a different occurrence cannot absorb a gap label', () => 
   const { result, host } = gapLabels([{ text: 'I', id: 'upper' }], 'I');
   assert.equal(result, 'draw-extra-label');
   assert.equal(host.attrs['data-gap-notation-reuses'], undefined);
+});
+
+test('gap notation reuses its owned display word even when its allocated ID collides with authored IDs', () => {
+  for (const id of ['lower::__leaf', 'lower::__leaf::2', 'arbitrary-display-id']) {
+    const { result } = gapLabels([{ text: 'I' }, { text: 'did', kind: 'terminal', id,
+      replayOrigin: { kind: 'word', ownerId: 'lower' } }], 'did');
+    assert.equal(result, undefined);
+  }
+  for (const replayOrigin of [undefined, { kind: 'word', ownerId: 'another-occurrence' }]) {
+    const { result } = gapLabels([{ text: 'I' }, { text: 'did', kind: 'terminal',
+      id: 'lower::__leaf', replayOrigin }], 'did');
+    assert.equal(result, 'draw-extra-label', 'authored ID spelling cannot establish display ownership');
+  }
 });
 
 test('a changed terminal cannot absorb its old label just because data-default-label still contains it', () => {

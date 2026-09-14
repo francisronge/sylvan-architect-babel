@@ -1864,8 +1864,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const hasExistingGapNotation = (nodeId: string, text: string): boolean => Boolean(
         g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
           .filter(function exactGapOccurrence() {
-            return this.getAttribute('data-category-node-id') === nodeId
-              || this.getAttribute('data-node-id') === nodeId;
+            return labelBelongsToNode(this, nodeId);
           })
           .filter(function sameGapNotation() {
             if (!text) return false;
