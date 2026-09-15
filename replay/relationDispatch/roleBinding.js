@@ -75,6 +75,29 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     bound[field] = { ...record };
   }
 
+  // Structural recovery binds existing authored occurrences before the unchanged
+  // signature is checked. One lower occurrence may fill both source and witness;
+  // this adds lookup slots, never another node or an authored field.
+  if (entry.id.startsWith('trajectory.') && currentForest && issues.length === 0) {
+    const { movement } = recoverMovementEvidence(relation, currentForest, priorForest);
+    if (movement) {
+      const rules = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
+      const requiredRoles = new Set([...Object.keys(entry.signature.anchors.required),
+        ...entry.signature.anchors.requiredAny.flat(), ...entry.signature.anchors.requiredAlternatives.flat(2)]);
+      for (const concept of ['movement.source', 'movement.witness', 'movement.landing']) {
+        if (Object.keys(bound.anchors || {}).some(role => rules[role]?.concept === concept)) continue;
+        const role = Object.keys(rules).find(key => requiredRoles.has(key) && rules[key].concept === concept);
+        if (!role) continue;
+        for (const [authoredRole, value] of Object.entries(relation.anchors || {})) {
+          if (!movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept)) continue;
+          bound.anchors[role] = value;
+          if (!Object.hasOwn(rules, authoredRole)) delete bound.anchors[authoredRole];
+          bindings.push({ field: 'anchors', authoredRole, role, concept });
+        }
+      }
+    }
+  }
+
   // A bare "head" can name the host instead of the moved occurrence. Only
   // shared root identity can establish that it is an equivalent landing role.
   const genericHead = bindings.find(binding => binding.field === 'anchors'

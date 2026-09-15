@@ -51,7 +51,8 @@ test('neutral structural timing is independent of an incomplete registered name'
     const record = { derivationStages: [
       state([{ id: 'origin', label: 'VP', children: [phrase] }]),
       state([phrase, { id: 'origin', label: 'VP', children: [{ id: 'trace', label: 'DP', lineageId: 'phrase-family', silent: true }] }], [
-        { relation: name, anchors: { headOfChain: 'phrase', footOfChain: 'trace' }, priorAnchors: { location: 'origin' } }
+        { relation: name, anchors: { headOfChain: 'phrase', footOfChain: 'trace' }, priorAnchors: { location: 'origin' },
+          values: { outcome: ['blocked', 'licensed'] } }
       ])
     ] };
     const original = structuredClone(record);
@@ -233,7 +234,8 @@ test('Tier 3 movement retains authored order and atomic attachment without gaini
   stage.workspaceForest = [{ id: 'higher_phrase', label: 'XP', children: [higherHead(), ...stage.workspaceForest] }];
   stage.relations = [
     { relation: 'Nominal interpretation', anchors: { participant: 'd_john_hi' } },
-    { relation: 'AbarMove', anchors: { source: 'dp_wh', landing: 'dp_wh_hi' } }
+    { relation: 'AbarMove', anchors: { source: 'dp_wh', landing: 'dp_wh_hi' },
+      values: { outcome: ['blocked', 'licensed'] } }
   ];
   const steps = play(record);
   const [ordinary, movement] = moments(steps, 4);

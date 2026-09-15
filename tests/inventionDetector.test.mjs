@@ -128,10 +128,11 @@ test('the detector verifies bound role provenance and recovered movement endpoin
   assert.ok(detectDeterministicLinguisticInvention(input).some(i => i.kind === 'displayed-relation-anchor-set-mismatch'));
 });
 
-test('proved Tier 3 movement endpoints do not authorize a trajectory', () => {
+test('proved movement endpoints do not authorize a trajectory with contradictory outcomes', () => {
   const fixture = JSON.parse(fs.readFileSync(path.join(rawFixtureDir, 'what-did-mia-see.xbar.json'), 'utf8'));
   fixture.payload.derivationStages[3].relations[0] = {
-    relation: 'AbarMove', anchors: { landing: 'dp_what_high', source: 'dp_what_low' }
+    relation: 'AbarMove', anchors: { landing: 'dp_what_high', source: 'dp_what_low' },
+    values: { outcome: ['blocked', 'licensed'] }
   };
   const analysis = normalize(clone(fixture.payload), fixture.sentence).analyses[0];
   const replayPlan = buildDerivationReplayPlan({ derivationStages: analysis.derivationStages });

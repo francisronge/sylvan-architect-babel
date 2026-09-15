@@ -239,11 +239,12 @@ test('Tier 3 reveals a proved landing and its new parent together without earnin
   const stageIndex = 4;
   const current = record.derivationStages[stageIndex];
   const original = structuredClone(current);
-  current.relations = [{ relation: 'AbarMove', anchors: { source: 'dp_wh', landing: 'dp_wh_hi' } }];
+  current.relations = [{ relation: 'AbarMove', anchors: { source: 'dp_wh', landing: 'dp_wh_hi' },
+    values: { outcome: ['blocked', 'licensed'] } }];
   const input = { relation: current.relations[0], currentForest: current.workspaceForest,
     priorForest: record.derivationStages[stageIndex - 1].workspaceForest, stageIndex, relationIndex: 0 };
   const dispatch = dispatchRelationClaims(input);
-  assert.equal(dispatch.primaryClaim.tier, 3, 'the curated recipe still requires its witness role');
+  assert.equal(dispatch.primaryClaim.tier, 3, 'structural binding cannot resolve contradictory authored outcomes');
   assert.ok(!dispatch.facets.some(f => f.recipe.id === 'movement.path'), 'Tier 2 cannot salvage that incomplete recipe');
   const { steps } = buildReplayPlayback({ sentence: record.sentence, analyses: [record] });
   const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === stageIndex

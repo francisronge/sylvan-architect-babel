@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 13 binds recognized equivalent role wording before
+Production registry version 14 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -127,6 +127,11 @@ evidence before Tier 1 can treat it as the moved occurrence rather than its host
 
 ## Output-Piece Ownership Audit
 
+Node and lineage IDs are exact strings throughout normalization, inspection,
+Replay and drawing lookup. Whitespace folding belongs to relation/role wording,
+not identity. Generated display ownership comes from explicit provenance, never
+from an authored ID's suffix spelling.
+
 Movement occurrence recovery is shared by Tier-2 lowering and Replay in
 `replay/relations/movementEvidence.ts`. Source and landing must identify distinct
 occurrences with the same authored root lineage; shared descendants alone do
@@ -137,6 +142,26 @@ nominals. Unsupported context produces an internal diagnostic, not an invented
 subtype. Replay executes only a movement transition earned by the surviving
 claim, preserves the preceding source until that moment, and does not repeat an
 unchanged chain. This does not relax the exact Tier-1 signature safeguard.
+
+For an already established movement identity, unfamiliar role names may bind
+through a unique pair of exact anchored occurrences with matching root lineage,
+the preceding source parent/child slot, and a changed landing. Conflicting roles,
+ambiguous endpoints and repeated endpoint lists do not select a candidate. The
+same verified lower anchor can fill required source and witness slots before
+ordinary Tier-1 validation. Optional decoration slots are not populated merely
+because they exist. Unknown movement meaning cannot be inferred from geometry.
+
+Ordinary and carrier movement use the shared structural refusal and transition
+evidence. Current landing context is checked independently of history. A complete
+static drawing may survive absent history, but cannot invent a transition or a
+backward cue. Prior fields contribute continuity only when their exact occurrences
+were verified for this movement; unrelated prior evidence remains neutral.
+
+Cyclic agreement must first satisfy the underlying feature-dependency meaning
+check. A cycle number alone cannot promote generic licensing to Agree. Supported
+outcome literals reach the same existing label through both tiers. The native
+cycle renderer places that label with its badge, preserving their spacing in
+one coordinate group during zoom and redraw.
 
 Derived movement evidence records the preceding occurrence separately from the
 current lower and landing IDs. The old ID may persist at either endpoint. A

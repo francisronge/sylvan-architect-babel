@@ -1,5 +1,6 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
 
 export interface RecoveredMovement {
   /** The actual preceding occurrence; its ID may persist at either current endpoint. */
@@ -107,6 +108,39 @@ export function recoverMovementEvidence(
   const witnesses = pick('movement.witness');
   if (!sources.length) sources = witnesses;
   let targets = pick('movement.landing');
+  let structurallyBound = false;
+  // An established movement claim may name its occurrences with unfamiliar
+  // roles. Exact anchors and the preceding source slot must prove one direction;
+  // neither the word spelling nor pronunciation selects an endpoint.
+  if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
+    && witnesses.length <= 1 && explicitPriorSources.length <= 1 && isMovementIdentity(relation.relation)) {
+    const anchored = [...new Set(entries.filter(e => e.ids.length === 1).flatMap(e => e.ids))];
+    const pairs: Array<{ source: string; target: string }> = [];
+    for (const sourceId of sources.length ? sources : anchored) {
+      const source = current.nodes.get(sourceId);
+      if (!source?.lineageId || current.duplicates.has(sourceId)) continue;
+      for (const targetId of targets.length ? targets : anchored) {
+        const target = current.nodes.get(targetId);
+        if (!target || targetId === sourceId || current.duplicates.has(targetId)
+          || target.lineageId !== source.lineageId || contains(source, targetId) || contains(target, sourceId)) continue;
+        const priorId = prior.nodes.has(sourceId) ? sourceId : explicitPriorSources[0] || targetId;
+        const before = prior.nodes.get(priorId);
+        if (!before || before.lineageId !== source.lineageId || prior.duplicates.has(priorId)
+          || explicitPriorSources.some(id => id !== priorId)) continue;
+        if (!samePriorSlot(sourceId, priorId)) continue;
+        if (priorId === sourceId && prior.nodes.has(targetId)) continue;
+        const kind = landingKind(target, current.parents.get(targetId));
+        const expectedKind = movementIdentityKind(relation.relation);
+        if (!kind || (expectedKind && expectedKind !== kind)) continue;
+        pairs.push({ source: sourceId, target: targetId });
+      }
+    }
+    if (pairs.length === 1) {
+      sources = [pairs[0].source];
+      targets = [pairs[0].target];
+      structurallyBound = true;
+    }
+  }
   // A prior source may supply the lower endpoint only when that exact
   // occurrence still exists now. Never search for a substitute by lineage.
   if (!sources.length && !entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
@@ -183,9 +217,9 @@ export function recoverMovementEvidence(
   const diagnostics: string[] = [];
   entries.forEach(e => {
     const concepts: string[] = [];
-    if (e.ids.length === 1 && e.ids[0] === sourceId && (hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.source');
-    if (e.ids.length === 1 && e.ids[0] === witnessId && (hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.witness');
-    if (e.ids.length === 1 && e.ids[0] === targetId && (hasRole(e.key, 'movement.landing'))) concepts.push('movement.landing');
+    if (e.ids.length === 1 && e.ids[0] === sourceId && (structurallyBound || hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.source');
+    if (e.ids.length === 1 && e.ids[0] === witnessId && (structurallyBound || hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.witness');
+    if (e.ids.length === 1 && e.ids[0] === targetId && (structurallyBound || hasRole(e.key, 'movement.landing'))) concepts.push('movement.landing');
     if (concepts.length) roles[e.key] = concepts;
     const kind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
       : hasRole(e.key, 'movement.host') ? ['landing head', 'receiving head'].includes(e.key) ? 'head-landing' : 'head-host'
