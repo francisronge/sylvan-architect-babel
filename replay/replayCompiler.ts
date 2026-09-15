@@ -5282,9 +5282,8 @@ export const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label
 
 /**
  * Pronunciation is decided by authored fields (nodePronunciation.js). The
- * helpers below add the two Replay-only readings: notation styling for
- * leaves that are already unpronounced, and the inherited-silence rule for
- * hierarchy nodes, which stays until whole-subtree silence is decided.
+ * helpers below add notation styling for unpronounced leaves and inherit
+ * silence from current syntax, never from invisible future layout context.
  */
 const isNotationSurface = (surface?: string): boolean => {
   const trimmed = String(surface || '').trim();
@@ -5299,10 +5298,11 @@ const isNotationLeaf = (node?: SyntaxNode | null): boolean =>
 const isLexicalLeaf = (node?: SyntaxNode | null): boolean =>
   isPronouncedLeaf(node) || (isSilentWordLeaf(node) && !isNotationSurface(authoredWord(node)));
 
-const hasSilentOrGhostAncestor = (node: HierNode | null): boolean => {
+export const hasSilentOrGhostAncestor = (node: HierNode | null): boolean => {
   let current: HierNode | null = node;
   while (current) {
-    if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) return true;
+    if (!(current.data as any)?.replayLayoutOnly
+      && (current.data?.silent === true || (current.data as any)?.ghost === true)) return true;
     current = current.parent;
   }
   return false;

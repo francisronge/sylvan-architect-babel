@@ -40,6 +40,7 @@ import {
   formatAuthoredWitnessSurface,
   formatTraceSurfaceForDisplayValue,
   getNodeId,
+  hasSilentOrGhostAncestor,
   indexHierarchyNodesByIdAndAliases,
   isDisplayTraceLabel,
   isDisplayTerminalSurface,
@@ -1379,12 +1380,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       if (isPronouncedHierLeaf(node)) return false;
       const surface = resolveLeafSurface(node);
       if (isTraceLike(surface) || isNullLike(surface)) return true;
-      let current: HierNode | null = node;
-      while (current) {
-        if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) return true;
-        current = current.parent;
-      }
-      return false;
+      return hasSilentOrGhostAncestor(node);
     }
     const getMovementCopyTraceIndex = (d: HierNode): string => {
       const chainIndex = resolveLexicalMovementTraceDisplayIndex(

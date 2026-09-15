@@ -7,7 +7,8 @@ import {
   adaptDerivationStagesForReplay,
   applyVizIds,
   buildPlaybackStepsFromDerivationFrames,
-  getNodeId
+  getNodeId,
+  isPronouncedHierLeaf
 } from '../replay/replayCompiler.ts';
 import { stageTreeLayoutSize } from '../replay/stageCamera.ts';
 
@@ -717,4 +718,30 @@ test('successive retained trees compile without mutating inputs or sharing mutab
   findNode(records[0].replayCanvasData, 'w0').word = 'edited snapshot';
   assert.equal(findNode(records.at(-1).replayCanvasData, 'w0').word, 'word0');
   assert.equal(stages[0].workspaceForest[0].word, 'word0');
+});
+
+test('future silent parents do not mute selected words before their phrase exists', () => {
+  const words = [leaf('det', 'D', 'which'), leaf('noun', 'N', 'book')];
+  const phrase = node('phrase', 'DP', words, { lineageId: 'nominal' });
+  const high = node('high', 'DP', [leaf('high_det', 'D', 'which'), leaf('high_noun', 'N', 'book')], { lineageId: 'nominal' });
+  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state', stageRecord: '', workspaceForest, relations });
+  const stages = [stage(words), stage([phrase]), stage([node('cp', 'CP', [high,
+    node('phrase', 'DP', words, { lineageId: 'nominal', silent: true })])], [
+    { relation: 'Internal Merge', anchors: { lowerCopy: 'phrase', higherOccurrence: 'high' }, priorAnchors: { source: 'phrase' } }
+  ])];
+  const original = structuredClone(stages);
+  const steps = compile(stages, 'which book');
+  let checked = 0;
+  for (const step of steps.filter(step => step.replayFrameIndex === 0)) {
+    const visible = new Set(step.replayVisibleNodeIds);
+    for (const leaf of d3.hierarchy(step.replayCanvasData).leaves()) {
+      if (!visible.has(leaf.data.id) || !['which', 'book'].includes(leaf.data.word)) continue;
+      checked++;
+      assert.ok(isPronouncedHierLeaf(leaf), `${leaf.data.word} must retain current pronunciation`);
+    }
+  }
+  assert.ok(checked > 0);
+  const lower = d3.hierarchy(steps.at(-1).replayCanvasData).descendants().find(n => n.data.id === 'phrase');
+  assert.ok(lower.leaves().every(leaf => !isPronouncedHierLeaf(leaf)), 'authored phrase silence still applies');
+  assert.deepEqual(stages, original);
 });
