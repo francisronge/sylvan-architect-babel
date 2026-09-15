@@ -190,8 +190,16 @@ findings and Programs 0–8:
 - Before further provider runs, repair the reproduced Sol cases with shared
   rules: feature-bearing category labels and movement evidence binding, the
   X-bar transition assigned to later licensing rather than its earlier movement
-  relation, and future-parent silence affecting earlier Minimalism terminals.
-  These are recorded findings; the generation approval did not implement fixes.
+  relation, the empty finite-T construction frame, and future-parent silence
+  affecting earlier Minimalism terminals. The
+  [deeper 78-frame audit](docs/implementation/contract-qualification/system-audit.md#deeper-sol-frame-audit-15-september)
+  also reproduces unrelated X-bar syntax moving within a stage despite a fixed
+  camera, explicit multi-claim Case binding gaps, tiny fitted labels in a short
+  desktop window, and difficult mixed composition. Address transition evidence
+  and ownership, then isolate future layout from current syntax and verify node
+  positions. Review opening selection/readable fitting and mixed composition
+  separately, preserving the accepted appearance. These are findings and
+  recommendations, not implemented fixes or approval for a general redesign.
   Retained morphology and varied inputs still need separately approved runs.
 - Keep Fable's unknown generation-side failure cause and automatic JSON repair /
   public incomplete-processing policy open. Existing evidence establishes what
@@ -200,7 +208,10 @@ findings and Programs 0–8:
 - Preserve accepted rendering. The remaining extreme/slower-device/mobile checks
   are bounded follow-ups, and hosted verification belongs before deployment.
   The Sol findings justify focused repairs, not a general renderer or camera
-  rewrite. Its apparent post-Fit curve change disappears after settling.
+  rewrite. Its apparent post-Fit curve change disappears after settling. That
+  resolved capture issue does not dismiss the separately reproduced 40→41
+  within-stage tree movement; a fixed camera is insufficient evidence of stable
+  syntax positions.
 - Programs 2–6 still contain the durable Tree Bank, shared public/research app,
   research workspace, operations and archive/corpus work. Benchmark Programs 7–8
   remain deferred and do not block shipping.
