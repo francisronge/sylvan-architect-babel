@@ -32,7 +32,7 @@ const collectAuthoredEvidence = (stages) => {
   const relationAnchorIds = new Set();
   asArray(stages).forEach((stage) => {
     visitSyntaxNodes(stage?.workspaceForest, (node) => {
-      const nodeId = asText(node.id);
+      const nodeId = String(node.id || '');
       if (!nodeId) return;
       const evidence = nodesById.get(nodeId) || {
         labels: new Set(),
@@ -50,7 +50,7 @@ const collectAuthoredEvidence = (stages) => {
         : {};
       Object.values(anchors).forEach((value) => {
         (Array.isArray(value) ? value : [value]).forEach((nodeId) => {
-          const normalizedNodeId = asText(nodeId);
+          const normalizedNodeId = String(nodeId || '');
           if (normalizedNodeId) relationAnchorIds.add(normalizedNodeId);
         });
       });
@@ -59,13 +59,20 @@ const collectAuthoredEvidence = (stages) => {
   return { nodesById, relationLabels, relationAnchorIds };
 };
 
-const sourceAuthoredNodeId = (nodeId) => {
-  const normalized = asText(nodeId);
-  const preterminalSeparator = normalized.indexOf('::__lex_');
-  if (preterminalSeparator > 0) return normalized.slice(0, preterminalSeparator);
-  return normalized.endsWith('::__leaf')
-    ? normalized.slice(0, -'::__leaf'.length)
-    : normalized;
+// Display provenance, rather than a suffix convention, identifies generated
+// word/lexical nodes. An authored ID always retains its exact identity.
+const sourceAuthoredNodeId = (nodeId, canvas) => {
+  let sourceId;
+  let matches = 0;
+  visitSyntaxNodes(canvas, node => {
+    if (node.id !== nodeId) return;
+    matches += 1;
+    const origin = node.replayOrigin;
+    if (origin?.kind === 'word' || origin?.kind === 'lexical') {
+      sourceId = origin.authoredId || origin.ownerId;
+    }
+  });
+  return matches === 1 ? sourceId : undefined;
 };
 
 export const detectDeterministicLinguisticInvention = ({
@@ -82,7 +89,7 @@ export const detectDeterministicLinguisticInvention = ({
 
   const inspectCompiledNodes = (surface, value) => {
     visitSyntaxNodes(value, (node) => {
-      const nodeId = asText(node.id);
+      const nodeId = String(node.id || '');
       const evidence = nodesById.get(nodeId);
       if (!evidence) {
         issues.push({
@@ -157,7 +164,7 @@ export const detectDeterministicLinguisticInvention = ({
       const resolvedAnchors = asArray(step?.resolvedAnchors)
         .map((anchor) => ({
           role: String(anchor?.role || ''),
-          nodeId: asText(anchor?.nodeId)
+          nodeId: String(anchor?.nodeId || '')
         }))
         .filter((anchor) => anchor.role && anchor.nodeId);
       if (resolvedAnchors.length > 0) {
@@ -191,7 +198,7 @@ export const detectDeterministicLinguisticInvention = ({
       step?.targetNodeId,
       ...asArray(step?.sourceNodeIds)
     ].forEach((rawNodeId) => {
-      const nodeId = asText(rawNodeId);
+      const nodeId = String(rawNodeId || '');
       if (
         !nodeId
         || nodesById.has(nodeId)
@@ -236,7 +243,7 @@ export const detectDeterministicLinguisticInvention = ({
     }
     const observedAnchors = asArray(link?.anchors).map((anchor) => ({
       role: String(anchor?.role || ''),
-      nodeId: asText(anchor?.nodeId),
+      nodeId: String(anchor?.nodeId || ''),
       ...(anchor?.authoredRole ? { authoredRole: anchor.authoredRole } : {})
     }));
     if (JSON.stringify(observedAnchors) !== JSON.stringify(expected.anchors)) {
@@ -259,8 +266,8 @@ export const detectDeterministicLinguisticInvention = ({
     const expectedAnchorNodeIds = new Set(
       expected.anchors.map((anchor) => anchor.nodeId)
     );
-    const sourceNodeId = asText(link?.sourceNodeId);
-    const targetNodeId = asText(link?.targetNodeId);
+    const sourceNodeId = String(link?.sourceNodeId || '');
+    const targetNodeId = String(link?.targetNodeId || '');
     const endpointOrderProvenance = asText(link?.endpointOrderProvenance);
     const endpointOrderMatches = endpointOrderProvenance === 'authored-anchor-order'
       ? (
@@ -276,7 +283,7 @@ export const detectDeterministicLinguisticInvention = ({
         : endpointOrderProvenance === 'recovered-movement'
           ? Boolean(expected.movement && sourceNodeId === expected.movement.sourceNodeId
             && targetNodeId === expected.movement.targetNodeId
-            && asText(link?.witnessNodeId) === expected.movement.witnessNodeId)
+            && String(link?.witnessNodeId || '') === expected.movement.witnessNodeId)
           : false;
     if (
       expected.anchors.length >= 2
@@ -325,10 +332,11 @@ export const detectDeterministicLinguisticInvention = ({
       ...asArray(step?.sourceNodeIds),
       ...asArray(step?.replayVisibleNodeIds)
     ].forEach((rawNodeId) => {
-      const nodeId = asText(rawNodeId);
+      const nodeId = String(rawNodeId || '');
       if (!nodeId) return;
-      const authoredNodeId = sourceAuthoredNodeId(nodeId);
-      if (nodesById.has(authoredNodeId)) return;
+      if (nodesById.has(nodeId)) return;
+      const authoredNodeId = sourceAuthoredNodeId(nodeId, step.replayCanvasData);
+      if (authoredNodeId && nodesById.has(authoredNodeId)) return;
       issues.push({
         kind: 'replay-node-id-not-authored-or-declared-preterminal',
         nodeId,
@@ -351,8 +359,5 @@ export const assertNoDeterministicLinguisticInvention = (input) => {
 
 export const DECLARED_PRESENTATION_TRANSFORMS = Object.freeze({
   replayOperations: Array.from(DECLARED_REPLAY_OPERATIONS).sort(),
-  syntheticOvertPreterminalIdForms: [
-    '<authored-node-id>::__leaf',
-    '<authored-node-id>::__lex_<stable-surface-key>'
-  ]
+  generatedDisplayOriginKinds: ['word', 'lexical']
 });

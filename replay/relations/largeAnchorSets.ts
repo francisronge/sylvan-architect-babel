@@ -53,13 +53,13 @@ const exactRelationName = (value: string): string => String(value ?? '').trim();
 
 const flattenAnchorIds = (value: string | string[] | undefined): string[] =>
   (Array.isArray(value) ? value : [value])
-    .map((item) => String(item || '').trim())
-    .filter(Boolean);
+    .map((item) => String(item || ''))
+    .filter((id) => Boolean(id.trim()));
 
 const collectForestNodeIds = (forest: SyntaxNode[] | undefined): Set<string> => {
   const ids = new Set<string>();
   const walk = (node: SyntaxNode) => {
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     if (id) ids.add(id);
     (Array.isArray(node.children) ? node.children : []).forEach(walk);
   };

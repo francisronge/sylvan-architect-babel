@@ -259,7 +259,7 @@ export const indexHierarchyNodesByIdAndAliases = <T extends HierNode>(
       getNodeId(node),
       node.data?.id,
       ...(Array.isArray(node.data?.aliasIds) ? node.data.aliasIds : [])
-    ].map((id) => String(id || '').trim()).filter(Boolean)));
+    ].map((id) => String(id || '')).filter(Boolean)));
     ids.forEach((id) => {
       if (!candidates.has(id)) {
         candidates.set(id, node);
@@ -311,7 +311,7 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
   if (!node || typeof node !== 'object') return null;
 
   const walk = (current: SyntaxNode, parentId: string): SyntaxNode => {
-    const ownId = String(current.id ?? '').trim();
+    const ownId = String(current.id ?? '');
     const ownStableParentId = ownId || parentId;
     const children = Array.isArray(current.children)
       ? current.children
@@ -319,9 +319,6 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
           .map((child) => walk(child, ownStableParentId))
       : [];
     const next: SyntaxNode = { ...current };
-    if (ownId && ownId !== String(current.id || '').trim()) {
-      next.id = ownId;
-    }
     if (children.length > 0) {
       next.children = children;
       return next;
@@ -336,7 +333,7 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
     const stableKey = tokenIndex ? `${tokenIndex}_${surfaceKey}` : surfaceKey;
     next.aliasIds = Array.from(new Set([
       ...(Array.isArray(current.aliasIds) ? current.aliasIds : []),
-      String(current.id || '').trim()
+      String(current.id || '')
     ].filter(Boolean)));
     next.replayOrigin = { kind: 'lexical', ownerId: parentId, authoredId: typeof current.id === 'string' ? current.id : ownId };
     next.id = identity.allocate(`${parentId}::__lex_${stableKey}`, next.replayOrigin);
@@ -371,7 +368,7 @@ const getMovementLandingNodeId = (
   || movement?.targetNodeId
   || movement?.toNodeId
   || ''
-).trim();
+);
 
 const getDerivationFrameChange = (frame?: ReplayDerivationFrame | null): ReplayDerivationChange | null =>
   frame?.change && typeof frame.change === 'object' && !Array.isArray(frame.change)
@@ -465,7 +462,7 @@ const buildVisibleSyntaxSnapshotFromHierarchy = (
     const nodeId = getNodeId(node);
     if (visibleNodeIds.has(nodeId)) return true;
     return (Array.isArray(node.data?.aliasIds) ? node.data.aliasIds : [])
-      .map((aliasId) => String(aliasId || '').trim())
+      .map((aliasId) => String(aliasId || ''))
       .filter(Boolean)
       .some((aliasId) => visibleNodeIds.has(aliasId));
   };
@@ -561,7 +558,7 @@ const collectRenderableVisibleNodeIds = (
     .forEach((node) => {
       nodesById.set(getNodeId(node), node);
       (Array.isArray(node.data?.aliasIds) ? node.data.aliasIds : [])
-        .map((aliasId) => String(aliasId || '').trim())
+        .map((aliasId) => String(aliasId || ''))
         .filter(Boolean)
         .forEach((aliasId) => nodesById.set(aliasId, node));
     });
@@ -579,7 +576,7 @@ const collectRenderableVisibleNodeIds = (
   };
 
   rawVisibleNodeIds.forEach((requestedId) => {
-    const normalizedRequestedId = String(requestedId || '').trim();
+    const normalizedRequestedId = String(requestedId || '');
     if (!normalizedRequestedId) return;
 
     const exactNode = nodesById.get(normalizedRequestedId);
@@ -656,7 +653,7 @@ const materializeReplayPreterminals = (node: SyntaxNode, identity = createReplay
         replayOrigin,
         label: word,
         word,
-        ...(String(current.lineageId || '').trim() ? { lineageId: current.lineageId } : {}),
+        ...(String(current.lineageId || '') ? { lineageId: current.lineageId } : {}),
         ...(current.silent === true ? { silent: true } : {}),
         ...(currentIsReplayLayoutOnly ? { replayLayoutOnly: true } : {})
       }];
@@ -801,7 +798,7 @@ export const buildDerivationReplaySnapshot = (
         .map((node) => [getNodeId(node), node] as const)
     );
     effectiveVisibleNodeIds.forEach((requestedId) => {
-      const normalizedRequestedId = String(requestedId || '').trim();
+      const normalizedRequestedId = String(requestedId || '');
       if (!normalizedRequestedId) return;
       const exactNode = renderableNodesById.get(normalizedRequestedId);
       if (exactNode && exactNode.children && exactNode.children.length > 0) {
@@ -835,15 +832,15 @@ export const buildDerivationReplaySnapshot = (
 export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): PlaybackStep => {
   const visibleIds = new Set(
     (Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
-      .map((nodeId) => String(nodeId || '').trim())
+      .map((nodeId) => String(nodeId || ''))
       .filter(Boolean)
   );
   const protectedRelationEndpointIds = new Set<string>();
   (Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : []).forEach((link) => {
     [
-      String(link?.sourceNodeId || '').trim(),
-      String(link?.targetNodeId || '').trim(),
-      String(link?.witnessNodeId || '').trim()
+      String(link?.sourceNodeId || ''),
+      String(link?.targetNodeId || ''),
+      String(link?.witnessNodeId || '')
     ].filter(Boolean).forEach((nodeId) => protectedRelationEndpointIds.add(nodeId));
   });
   const canvasRoot = step.replayCanvasData || null;
@@ -851,14 +848,14 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
 
   const hiddenIds = new Set<string>();
   const walk = (node: SyntaxNode) => {
-    const nodeId = String(node?.id || '').trim();
+    const nodeId = String(node?.id || '');
     const label = String(node?.label || '').trim().toLowerCase();
     const children = Array.isArray(node?.children) ? node.children : [];
     if (nodeId && visibleIds.has(nodeId) && ['infl', 'ip', 't', 'tp'].includes(label)) {
       if (children.length === 1) {
         const onlyChild = children[0];
         if (
-          visibleIds.has(String(onlyChild?.id || '').trim())
+          visibleIds.has(String(onlyChild?.id || ''))
           && String(onlyChild?.label || '').trim().toLowerCase() === label
         ) {
           if (!protectedRelationEndpointIds.has(nodeId)) hiddenIds.add(nodeId);
@@ -866,7 +863,7 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
       } else if (children.length > 1) {
         const spineChildIndex = children.findIndex((child, index) =>
           index > 0
-          && visibleIds.has(String(child?.id || '').trim())
+          && visibleIds.has(String(child?.id || ''))
           && String(child?.label || '').trim().toLowerCase() === label
         );
         if (spineChildIndex > 0) {
@@ -875,7 +872,7 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
             .some((child) => {
               let found = false;
               const scan = (candidate: SyntaxNode) => {
-                if (visibleIds.has(String(candidate?.id || '').trim())) {
+                if (visibleIds.has(String(candidate?.id || ''))) {
                   found = true;
                   return;
                 }
@@ -894,7 +891,7 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
 
   if (hiddenIds.size === 0) return step;
   const markHiddenInflWrappersAsLayoutOnly = (node: SyntaxNode): SyntaxNode | null => {
-    const nodeId = String(node?.id || '').trim();
+    const nodeId = String(node?.id || '');
     const children = Array.isArray(node?.children) ? node.children : [];
     const nextNode = { ...node };
     if (nodeId && hiddenIds.has(nodeId)) {
@@ -912,7 +909,7 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
     ...step,
     replayCanvasData,
     replayVisibleNodeIds: (step.replayVisibleNodeIds || []).filter((nodeId) =>
-      !hiddenIds.has(String(nodeId || '').trim())
+      !hiddenIds.has(String(nodeId || ''))
     )
   };
 };
@@ -994,13 +991,13 @@ const reorderWorkspaceRootsForReplay = (
 ): SyntaxNode[] => {
   if (!Array.isArray(workspaceRoots) || workspaceRoots.length <= 1) return workspaceRoots;
   const preferredIds = Array.isArray(preferredRootIds)
-    ? preferredRootIds.map((id) => String(id || '').trim()).filter(Boolean)
+    ? preferredRootIds.map((id) => String(id || '')).filter(Boolean)
     : [];
   if (preferredIds.length === 0) return workspaceRoots;
 
   const rootsById = new Map(
     workspaceRoots
-      .map((node) => [String(node?.id || '').trim(), node] as const)
+      .map((node) => [String(node?.id || ''), node] as const)
       .filter(([id]) => Boolean(id))
   );
   const ordered: SyntaxNode[] = [];
@@ -1014,7 +1011,7 @@ const reorderWorkspaceRootsForReplay = (
   });
 
   workspaceRoots.forEach((node) => {
-    const id = String(node?.id || '').trim();
+    const id = String(node?.id || '');
     if (id && used.has(id)) return;
     ordered.push(node);
   });
@@ -1024,13 +1021,13 @@ const reorderWorkspaceRootsForReplay = (
 
 const collectWorkspaceRootIds = (workspaceRoots: SyntaxNode[]): string[] =>
   (Array.isArray(workspaceRoots) ? workspaceRoots : [])
-    .map((node) => String(node?.id || '').trim())
+    .map((node) => String(node?.id || ''))
     .filter(Boolean);
 
 const collectWorkspaceRootParents = (forest: SyntaxNode[], rootIds: ReadonlySet<string>) => {
   const parents = new Map<string, SyntaxNode | null>();
   const visit = (node: SyntaxNode, parent: SyntaxNode | null) => {
-    const nodeId = String(node.id || '').trim();
+    const nodeId = String(node.id || '');
     if (rootIds.has(nodeId)) parents.set(nodeId, parent);
     (node.children || []).forEach(child => visit(child, node));
   };
@@ -1061,17 +1058,17 @@ const replayLayoutContinuitySignature = (node?: SyntaxNode | null): string =>
   replayLayoutTreeSignature(node, replayLayoutMaterialSignature);
 
 const replayLayoutTopologySignature = (node?: SyntaxNode | null): string =>
-  replayLayoutTreeSignature(node, current => String(current.id || '').trim());
+  replayLayoutTreeSignature(node, current => String(current.id || ''));
 
 const replayLayoutMaterialSignature = (node?: SyntaxNode | null): string => {
   if (!node || typeof node !== 'object') return '';
   return JSON.stringify([
-    String(node.id || '').trim(),
+    String(node.id || ''),
     String(node.label || '').trim(),
     String(node.word || '').trim(),
     node.silent === true,
     Number.isFinite(Number(node.tokenIndex)) ? Number(node.tokenIndex) : null,
-    String(node.lineageId || '').trim()
+    String(node.lineageId || '')
   ]);
 };
 
@@ -1079,12 +1076,12 @@ const findExactNodesByIdInForest = (
   forest: SyntaxNode[],
   targetNodeId: string
 ): SyntaxNode[] => {
-  const normalizedTargetNodeId = String(targetNodeId || '').trim();
+  const normalizedTargetNodeId = String(targetNodeId || '');
   if (!normalizedTargetNodeId) return [];
   const matches: SyntaxNode[] = [];
   const visit = (node?: SyntaxNode | null) => {
     if (!node || typeof node !== 'object') return;
-    if (String(node.id || '').trim() === normalizedTargetNodeId) matches.push(node);
+    if (String(node.id || '') === normalizedTargetNodeId) matches.push(node);
     (Array.isArray(node.children) ? node.children : []).forEach(visit);
   };
   (Array.isArray(forest) ? forest : []).forEach(visit);
@@ -1098,7 +1095,7 @@ const forestCanUseFutureLayoutScaffold = (
   if (!Array.isArray(currentRoots) || currentRoots.length === 0) return false;
   if (!Array.isArray(futureRoots) || futureRoots.length === 0) return false;
   return currentRoots.every((currentRoot) => {
-    const currentRootId = String(currentRoot?.id || '').trim();
+    const currentRootId = String(currentRoot?.id || '');
     if (!currentRootId) return false;
     const futureMatches = findExactNodesByIdInForest(futureRoots, currentRootId);
     return futureMatches.length === 1
@@ -1111,7 +1108,7 @@ const futureForestPreservesCurrentRootIdentities = (
   currentRoots: SyntaxNode[],
   futureRoots: SyntaxNode[]
 ): boolean => currentRoots.every((currentRoot) => {
-  const currentRootId = String(currentRoot?.id || '').trim();
+  const currentRootId = String(currentRoot?.id || '');
   return Boolean(currentRootId)
     && findExactNodesByIdInForest(futureRoots, currentRootId).length === 1;
 });
@@ -1120,7 +1117,7 @@ const collectExactNodesByIdInForest = (forest: SyntaxNode[]): Map<string, Syntax
   const nodesById = new Map<string, SyntaxNode[]>();
   const visit = (node?: SyntaxNode | null) => {
     if (!node || typeof node !== 'object') return;
-    const nodeId = String(node.id || '').trim();
+    const nodeId = String(node.id || '');
     if (nodeId) {
       const matches = nodesById.get(nodeId) || [];
       matches.push(node);
@@ -1184,7 +1181,7 @@ const buildCurrentMaterialLayoutScaffold = (
   const findExactPaths = (roots: SyntaxNode[], targetNodeId: string): number[][] => {
     const paths: number[][] = [];
     const visit = (node: SyntaxNode, path: number[]) => {
-      if (String(node.id || '').trim() === targetNodeId) paths.push(path);
+      if (String(node.id || '') === targetNodeId) paths.push(path);
       (Array.isArray(node.children) ? node.children : []).forEach((child, childIndex) => {
         visit(child, [...path, childIndex]);
       });
@@ -1223,7 +1220,7 @@ const buildCurrentMaterialLayoutScaffold = (
   const identity = createReplayIdentityContext([...currentRoots, ...futureRoots]);
   let placeholderIndex = 0;
   const buildLayoutOnlySkeleton = (futureNode: SyntaxNode): SyntaxNode => {
-    const originalNodeId = String(futureNode.id || '').trim();
+    const originalNodeId = String(futureNode.id || '');
     const next: SyntaxNode = { ...futureNode };
     delete next.children;
     if (Array.isArray(futureNode.children)) {
@@ -1257,7 +1254,7 @@ const buildCurrentMaterialLayoutScaffold = (
 
     const childMatches = currentChildren.map((currentChild) => ({
       currentChild,
-      paths: findExactPaths(futureChildren, String(currentChild.id || '').trim())
+      paths: findExactPaths(futureChildren, String(currentChild.id || ''))
     }));
     if (childMatches.some(({ paths }) => paths.length !== 1 || paths[0].length !== 1)
       || !preservesRelativeSiblingOrder(currentChildren, futureChildren)) {
@@ -1283,7 +1280,7 @@ const buildCurrentMaterialLayoutScaffold = (
 
   const rootMatches = currentRoots.map((currentRoot) => ({
     currentRoot,
-    paths: findExactPaths(futureRoots, String(currentRoot.id || '').trim())
+    paths: findExactPaths(futureRoots, String(currentRoot.id || ''))
   }));
   if (rootMatches.some(({ paths }) => paths.length !== 1)) return null;
 
@@ -1352,10 +1349,10 @@ const inferFutureLayoutScaffold = (
       futureRoots.map((root) => replayLayoutTopologySignature(root))
     );
     const addsOnlyOuterWrapper = workspaceRoots.every((currentRoot) => {
-      const currentRootId = String(currentRoot?.id || '').trim();
+      const currentRootId = String(currentRoot?.id || '');
       if (!currentRootId) return false;
       return findExactNodesByIdInForest(futureRoots, currentRootId).length === 1
-        && !futureRoots.some((futureRoot) => String(futureRoot?.id || '').trim() === currentRootId);
+        && !futureRoots.some((futureRoot) => String(futureRoot?.id || '') === currentRootId);
     });
     const futureIntroducesTrajectory = (Array.isArray(futureFrame?.relations) ? futureFrame.relations : [])
       .some((relation) => isRegisteredTrajectoryRelation(relation?.relation, relation?.anchors));
@@ -1377,7 +1374,7 @@ const inferFutureLayoutScaffold = (
             const authoredValue = relation?.anchors?.[role];
             const targetIds = Array.isArray(authoredValue) ? authoredValue : [authoredValue];
             targetIds.forEach((targetId) => {
-              const normalizedTargetId = String(targetId || '').trim();
+              const normalizedTargetId = String(targetId || '');
               if (!normalizedTargetId) return;
               allowedFutureOccurrenceIds.add(normalizedTargetId);
               const targetMatches = findExactNodesByIdInForest(futureRoots, normalizedTargetId);
@@ -1438,7 +1435,7 @@ const buildWorkspaceRootSideHints = (
       ? preferredRootIds
       : collectWorkspaceRootIds(workspaceRoots)
   )
-    .map((id) => String(id || '').trim())
+    .map((id) => String(id || ''))
     .filter(Boolean);
   const hints = new Map<string, number>();
   orderedRootIds.forEach((rootId, index) => {
@@ -1456,7 +1453,7 @@ const inferFutureWorkspaceRootOrder = (
   const currentRoots = workspaceRoots
     .map((root, index) => ({
       root,
-      id: String(root?.id || '').trim(),
+      id: String(root?.id || ''),
       originalIndex: index
     }))
     .filter(({ id }) => Boolean(id));
@@ -1545,14 +1542,14 @@ const collectNextFramePendingRootSubtreeIds = (
 ): Set<string> => {
   const currentRootIds = new Set(
     (Array.isArray(workspaceRoots) ? workspaceRoots : [])
-      .map((node) => String(node?.id || '').trim())
+      .map((node) => String(node?.id || ''))
       .filter(Boolean)
   );
   const nextRoots = Array.isArray(nextFrame?.workspaceForest) ? nextFrame.workspaceForest : [];
   return new Set(
     nextRoots
       .filter((node) => {
-        const nodeId = String(node?.id || '').trim();
+        const nodeId = String(node?.id || '');
         return Boolean(nodeId) && !currentRootIds.has(nodeId);
       })
       .flatMap((node) => collectSubtreeNodeIds(node))
@@ -1652,34 +1649,34 @@ const buildPreMovementStructuralForest = (
     return nodes;
   };
   const findNode = (nodeId: string): SyntaxNode | null => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     if (!normalizedNodeId) return null;
     for (const root of structuralForest) {
-      const found = collectNodes(root).find((node) => String(node.id || '').trim() === normalizedNodeId);
+      const found = collectNodes(root).find((node) => String(node.id || '') === normalizedNodeId);
       if (found) return found;
     }
     return null;
   };
   const findNodeInForest = (candidateForest: SyntaxNode[], nodeId: string): SyntaxNode | null => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     if (!normalizedNodeId) return null;
     for (const root of candidateForest) {
-      const found = collectNodes(root).find((node) => String(node.id || '').trim() === normalizedNodeId);
+      const found = collectNodes(root).find((node) => String(node.id || '') === normalizedNodeId);
       if (found) return found;
     }
     return null;
   };
   const replaceStructuralNode = (nodeId: string, replacement: SyntaxNode): boolean => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     if (!normalizedNodeId) return false;
-    const rootIndex = structuralForest.findIndex((root) => String(root.id || '').trim() === normalizedNodeId);
+    const rootIndex = structuralForest.findIndex((root) => String(root.id || '') === normalizedNodeId);
     if (rootIndex >= 0) {
       structuralForest[rootIndex] = replacement;
       return true;
     }
     const visit = (node: SyntaxNode): boolean => {
       const children = Array.isArray(node.children) ? node.children : [];
-      const childIndex = children.findIndex((child) => String(child.id || '').trim() === normalizedNodeId);
+      const childIndex = children.findIndex((child) => String(child.id || '') === normalizedNodeId);
       if (childIndex >= 0) {
         children[childIndex] = replacement;
         node.children = children;
@@ -1706,11 +1703,11 @@ const buildPreMovementStructuralForest = (
     return cloneSyntaxTree(previousSource);
   };
   const findParent = (nodeId: string): SyntaxNode | null => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     if (!normalizedNodeId) return null;
     const visit = (node: SyntaxNode): SyntaxNode | null => {
       const children = Array.isArray(node.children) ? node.children : [];
-      if (children.some((child) => String(child.id || '').trim() === normalizedNodeId)) return node;
+      if (children.some((child) => String(child.id || '') === normalizedNodeId)) return node;
       for (const child of children) {
         const found = visit(child);
         if (found) return found;
@@ -1740,13 +1737,13 @@ const buildPreMovementStructuralForest = (
     const sourceIds = Array.from(new Set([
       ...getRelationSourceNodeIds(relation),
       ...findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
-        .map((anchor) => String(anchor.nodeId || '').trim())
+        .map((anchor) => String(anchor.nodeId || ''))
     ].filter(Boolean)));
     const targetId = String(
       getRelationTargetNodeId(relation)
       || findAnchor(anchors, targetRoles)?.nodeId
       || ''
-    ).trim();
+    );
     const trajectoryDisplayKind = relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(
       relation.relation,
       relation.resolvedAnchors
@@ -1793,9 +1790,9 @@ const buildPreMovementStructuralForest = (
       .filter((source): source is SyntaxNode => Boolean(source));
     const target = findNode(targetId);
     if (sources.length !== sourceIds.length || sources.length === 0 || !target) return;
-    const targetLineageId = String(target.lineageId || '').trim();
+    const targetLineageId = String(target.lineageId || '');
     if (!targetLineageId || sources.some((source) => {
-      const sourceLineageId = String(source.lineageId || '').trim();
+      const sourceLineageId = String(source.lineageId || '');
       return !sourceLineageId
         || sourceLineageId !== targetLineageId
         || source === target
@@ -1803,7 +1800,7 @@ const buildPreMovementStructuralForest = (
         || collectNodes(target).includes(source);
     })) return;
     const targetParent = findParent(targetId);
-    const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '').trim() === targetId);
+    const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '') === targetId);
     if (!targetParent && targetRootIndex < 0) return;
 
     if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
@@ -1817,7 +1814,7 @@ const buildPreMovementStructuralForest = (
       }
     } else if (targetParent) {
       targetParent.children = (Array.isArray(targetParent.children) ? targetParent.children : [])
-        .filter((child) => String(child.id || '').trim() !== targetId);
+        .filter((child) => String(child.id || '') !== targetId);
     } else {
       structuralForest.splice(targetRootIndex, 1);
     }
@@ -1846,13 +1843,13 @@ type FallbackTreeTransitionOwnership = {
 const relationAnchorNodeIds = (block?: Record<string, unknown>): string[] =>
   Object.values(block || {})
     .flatMap((value) => Array.isArray(value) ? value : [value])
-    .map((value) => String(value || '').trim())
-    .filter(Boolean);
+    .map((value) => String(value || ''))
+    .filter((id) => Boolean(id.trim()));
 
 const collectExactSubtreeNodeIds = (node: SyntaxNode): Set<string> => {
   const nodeIds = new Set<string>();
   const visit = (candidate: SyntaxNode) => {
-    const nodeId = String(candidate.id || '').trim();
+    const nodeId = String(candidate.id || '');
     if (nodeId) nodeIds.add(nodeId);
     (Array.isArray(candidate.children) ? candidate.children : []).forEach(visit);
   };
@@ -1914,12 +1911,12 @@ const indexExactForestNodeLocations = (
     rootIndex: number,
     depth: number
   ) => {
-    const nodeId = String(node.id || '').trim();
+    const nodeId = String(node.id || '');
     if (nodeId) {
       const location = {
         node,
         parent,
-        parentId: String(parent?.id || '').trim(),
+        parentId: String(parent?.id || ''),
         childIndex,
         rootIndex,
         depth
@@ -2081,7 +2078,7 @@ const buildAnchoredTreeTransitionForest = (
       ? currentLocation.node.children
       : [];
     for (const [childIndex, child] of currentChildren.entries()) {
-      const childId = String(child.id || '').trim();
+      const childId = String(child.id || '');
       if (!childId) continue;
       if (
         !activeCurrentNodeIds.has(childId)
@@ -2234,7 +2231,7 @@ const buildAnchoredTreeTransitionForest = (
       if (Array.isArray(node.children)) {
         node.children = pruneExhaustedPriorContainers(node.children);
       }
-      const nodeId = String(node.id || '').trim();
+      const nodeId = String(node.id || '');
       const prior = exactLocation(previousLocations, nodeId);
       // Never infer deletion of an authored empty item or a surviving parent.
       // An absent former container can disappear only after its owned children
@@ -2343,7 +2340,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       .map((node) => String(node?.label || '').trim())
       .filter(Boolean);
     const primaryRoot = workspaceRoots[0];
-    const primaryRootId = String(primaryRoot?.id || '').trim();
+    const primaryRootId = String(primaryRoot?.id || '');
     const primaryRootLabel = String(primaryRoot?.label || '').trim() || 'Workspace';
     const structuralFallbackRecipe = buildStructuralReplayFallback(
       fallbackOperation,
@@ -2411,7 +2408,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           || String(findResolvedReplayAnchorByRoles(
             resolvedAnchors,
             relationOwnedPhrasalTargetRoles(relation)
-          )?.nodeId || '').trim();
+          )?.nodeId || '');
         const explicitSourceNodeIds = getRelationSourceNodeIds(relation);
         const sourceNodeIds = explicitSourceNodeIds.length > 0
           ? explicitSourceNodeIds
@@ -2419,7 +2416,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               resolvedAnchors,
               relationOwnedPhrasalSourceRoles(relation)
             )
-              .map((anchor) => String(anchor.nodeId || '').trim())
+              .map((anchor) => String(anchor.nodeId || ''))
               .filter(Boolean);
         return Boolean(targetNodeId)
           && Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, targetNodeId))
@@ -2430,9 +2427,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
     const authoredLandingNodeId = getMovementLandingNodeId(frame.movement);
     const frameHasMovementPayload = Boolean(
       authoredLandingNodeId
-      || String(frame.movement?.sourceNodeId || '').trim()
-      || String(frame.movement?.traceNodeId || '').trim()
-      || String(frame.chainId || '').trim()
+      || String(frame.movement?.sourceNodeId || '')
+      || String(frame.movement?.traceNodeId || '')
+      || String(frame.chainId || '')
       || plannedStageRelocatesPriorLandingOccurrence
     );
     const frameHasRecoveredMovement = plannedFrameRelations.some(relation => relation.recoveredMovement?.transition);
@@ -2574,28 +2571,28 @@ export const buildPlaybackStepsFromDerivationFrames = (
             : inferHeadLikeTrajectoryKindFromForest({
                 forest: workspaceRoots,
                 operation: fallbackOperation,
-                sourceNodeId: String(frame.movement?.sourceNodeId || '').trim(),
+                sourceNodeId: String(frame.movement?.sourceNodeId || ''),
                 targetNodeId: authoredLandingNodeId,
-                traceNodeId: String(frame.movement?.traceNodeId || '').trim()
+                traceNodeId: String(frame.movement?.traceNodeId || '')
               })
         )
       : '';
 
     const currentWorkspaceRootIds = new Set(
       workspaceRoots
-        .map((node) => String(node?.id || '').trim())
+        .map((node) => String(node?.id || ''))
         .filter(Boolean)
     );
     const newlyIntroducedRootIds = new Set(
       workspaceRoots
-        .map((node) => String(node?.id || '').trim())
+        .map((node) => String(node?.id || ''))
         .filter((nodeId) => Boolean(nodeId) && !previousWorkspaceRootIds.has(nodeId))
     );
     const nextFramePendingRootSubtreeIds = collectNextFramePendingRootSubtreeIds(structuralWorkspaceRoots, nextFrame);
     const moveSourceNodeIds = frameEncodesMovement
       ? Array.from(new Set([
-          String(frame.movement?.traceNodeId || '').trim(),
-          String(frame.movement?.sourceNodeId || '').trim()
+          String(frame.movement?.traceNodeId || ''),
+          String(frame.movement?.sourceNodeId || '')
         ].filter(Boolean)))
       : [];
     const moveSourceLabels = moveSourceNodeIds
@@ -2694,11 +2691,11 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const explicitSourceNodeIds = getRelationSourceNodeIds(relation);
           const rawAuthoredTargetNodeId =
             getRelationTargetNodeId(relation)
-            || String(registeredTargetAnchor?.nodeId || '').trim();
+            || String(registeredTargetAnchor?.nodeId || '');
           const rawSourceNodeIds = explicitSourceNodeIds.length > 0
             ? explicitSourceNodeIds
             : registeredSourceAnchors
-                .map((anchor) => String(anchor.nodeId || '').trim())
+                .map((anchor) => String(anchor.nodeId || ''))
                 .filter(Boolean);
           // Trajectory placement semantics apply only when the plan authored
           // explicit source/target endpoints; every other renderable relation
@@ -2880,14 +2877,14 @@ export const buildPlaybackStepsFromDerivationFrames = (
             relationPlacements
               .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
               .filter((placement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-              .map((placement) => String(placement.authoredTargetNodeId || '').trim())
+              .map((placement) => String(placement.authoredTargetNodeId || ''))
               .filter(Boolean)
           );
           const addInactiveTargetSubtree = (
             targetNodeId: string,
             preserveTargetShell = false
           ) => {
-            const normalizedTargetNodeId = String(targetNodeId || '').trim();
+            const normalizedTargetNodeId = String(targetNodeId || '');
             if (!normalizedTargetNodeId) return;
             const retainedSource = relationPlacements.some(placement => {
               const movement = placement.relation.recoveredMovement;
@@ -2921,17 +2918,17 @@ export const buildPlaybackStepsFromDerivationFrames = (
               const placement = relationPlacements.find((candidate) => candidate.relationIndex === relationIndex);
               if (
                 placement?.ownsPhrasalTreeTransition
-                && !activeTargetNodeIds.has(String(placement.authoredTargetNodeId || '').trim())
+                && !activeTargetNodeIds.has(String(placement.authoredTargetNodeId || ''))
               ) {
                 addInactiveTargetSubtree(placement.authoredTargetNodeId);
               }
               (singleRelationLinksByIndex.get(relationIndex) || [])
                 .filter(isResolvedMovementLink)
                 .filter((link) =>
-                  !activeTargetNodeIds.has(String(link?.targetNodeId || '').trim()))
+                  !activeTargetNodeIds.has(String(link?.targetNodeId || '')))
                 .forEach((link) => {
                   addInactiveTargetSubtree(
-                    String(link?.targetNodeId || '').trim(),
+                    String(link?.targetNodeId || ''),
                     isHeadLikeResolvedRelation(link)
                       && (!placement?.relation.recoveredMovement
                         || Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, String(link.targetNodeId || ''))))
@@ -2990,7 +2987,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             relationPlacements
               .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
               .filter((placement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-              .map((placement) => String(placement.authoredTargetNodeId || '').trim())
+              .map((placement) => String(placement.authoredTargetNodeId || ''))
               .filter(Boolean)
           );
           const nonMovementTransitionForest = !frameHasNonMovementTreeTransition
@@ -3011,7 +3008,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
                 String(
                   relationPlacements.find((placement) => placement.relationIndex === relationIndex)
                     ?.authoredTargetNodeId || ''
-                ).trim()
+                )
               )
             ),
             previousFrameWorkspaceRoots
@@ -3071,9 +3068,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
           ].filter(Boolean));
           activeRelationLinks.filter(isResolvedMovementLink).forEach((link) => {
             [
-              String(link?.sourceNodeId || '').trim(),
-              String(link?.targetNodeId || '').trim(),
-              String(link?.witnessNodeId || '').trim()
+              String(link?.sourceNodeId || ''),
+              String(link?.targetNodeId || ''),
+              String(link?.witnessNodeId || '')
             ].filter(Boolean).forEach((nodeId) => {
               collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)).forEach((subtreeNodeId) => {
                 requestedVisibleNodeIds.add(subtreeNodeId);
@@ -3104,10 +3101,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
             usesFutureLayoutScaffold: Boolean(activeFutureLayoutScaffold),
             visibleNodeIds: snapshotForest.visibleNodeIds.filter((nodeId) =>
               !inactiveTrajectoryTargetNodeIds.has(
-                replayOwnerId(snapshotForest.canvasData, String(nodeId || '').trim())
+                replayOwnerId(snapshotForest.canvasData, String(nodeId || ''))
               )
               && !inactivePhrasalLandingHostNodeIds.has(
-                replayOwnerId(snapshotForest.canvasData, String(nodeId || '').trim())
+                replayOwnerId(snapshotForest.canvasData, String(nodeId || ''))
               )
             ),
             activeRelationLinks,
@@ -3214,7 +3211,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
         ): boolean => {
           const operation = String(step.operation || '').trim();
           if (!['LexicalSelect', 'Project', 'ExternalMerge'].includes(operation)) return false;
-          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
+          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
           if (!stepTargetNodeId) return false;
           return relationPlacements.some((placement) => {
             if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return false;
@@ -3238,7 +3235,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
          */
         const activeRelationIndexes = new Set<number>();
         const normalizeWithheldLandingHostStep = (step: PlaybackStep): PlaybackStep => {
-          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
+          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
           if (!stepTargetNodeId) return step;
           const withheldLandingNodeIds = new Set(
             relationPlacements
@@ -3275,7 +3272,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
         const structuralStepEntries = structuralSteps.map((step, structuralStepIndex) => {
           const visibleNodeIds = new Set(
             (Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
-              .map((nodeId) => String(nodeId || '').trim())
+              .map((nodeId) => String(nodeId || ''))
               .filter(Boolean)
           );
           const introducedVisibleNodeIds = Array.from(visibleNodeIds)
@@ -3317,7 +3314,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
 
           Array.from(landingHostIds)
             .flatMap(nodeId => findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
-            .map((child) => String(child?.id || '').trim())
+            .map((child) => String(child?.id || ''))
             .filter((childNodeId) => Boolean(childNodeId) && !landingTargetNodeIds.has(childNodeId) && !landingHostIds.has(childNodeId))
             .forEach(addSubtree);
           landingPlacements.forEach((placement) => {
@@ -3337,7 +3334,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const afterMovement: typeof pendingStructuralStepEntries = [];
           pendingStructuralStepEntries.forEach((entry) => {
             const stepTargetNodeId = replayOwnerId(entry.step.replayCanvasData,
-              String(entry.step.targetNodeId || '').trim()
+              String(entry.step.targetNodeId || '')
             );
             (movementPrerequisiteNodeIds.has(stepTargetNodeId) ? beforeMovement : afterMovement).push(entry);
           });
@@ -3347,7 +3344,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const deferredStructuralTargetNodeIds = new Set(
             afterMovement
               .map((entry) => replayOwnerId(entry.step.replayCanvasData,
-                String(entry.step.targetNodeId || '').trim()
+                String(entry.step.targetNodeId || '')
               ))
               .filter(Boolean)
           );
@@ -3358,7 +3355,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               replayVisibleNodeIds: (Array.isArray(entry.step.replayVisibleNodeIds)
                 ? entry.step.replayVisibleNodeIds
                 : []).filter((nodeId) => {
-                  const normalizedNodeId = String(nodeId || '').trim();
+                  const normalizedNodeId = String(nodeId || '');
                   return !deferredVisibleNodeIds.has(normalizedNodeId)
                     && !deferredStructuralTargetNodeIds.has(
                       replayOwnerId(entry.step.replayCanvasData, normalizedNodeId)
@@ -3380,7 +3377,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           if (movementCreatedLandingHosts.length === 1) {
             const firstNonPrerequisiteIndex = pendingStructuralSteps.findIndex((step) => {
               const stepTargetNodeId = replayOwnerId(step.replayCanvasData,
-                String(step.targetNodeId || '').trim()
+                String(step.targetNodeId || '')
               );
               return !movementPrerequisiteNodeIds.has(stepTargetNodeId);
             });
@@ -3390,7 +3387,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           }
           const firstHigherProjectionIndex = pendingStructuralSteps.findIndex((step) => {
             const stepTargetNodeId = replayOwnerId(step.replayCanvasData,
-              String(step.targetNodeId || '').trim()
+              String(step.targetNodeId || '')
             );
             if (!stepTargetNodeId) return false;
             return collectSyntaxSubtreeNodeIds(
@@ -3641,7 +3638,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
 
     if (String(fallbackOperation || '').trim() === 'LexicalSelect') {
       const newlySelectedRoots = structuralWorkspaceRoots.filter((root) => {
-        const rootId = String(root?.id || '').trim();
+        const rootId = String(root?.id || '');
         return rootId && !previousWorkspaceRootIds.has(rootId);
       });
       const packsInternalBaseGeneration = newlySelectedRoots.some((root) =>
@@ -3668,7 +3665,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           mode: 'leaf' | 'projected'
         ): string[] => structuralWorkspaceRoots
           .map((candidateRoot) => {
-            const candidateId = String(candidateRoot?.id || '').trim();
+            const candidateId = String(candidateRoot?.id || '');
             if (!candidateId) return '';
             if (candidateId === activeRootId) {
               return mode === 'leaf'
@@ -3681,7 +3678,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           .filter(Boolean);
 
         const lexicalReplaySteps = newlySelectedRoots.flatMap((root, rootIndex) => {
-          const rootId = String(root?.id || '').trim() || `__derivation_${index}_lex_${lexicalStepCursor + 1}`;
+          const rootId = String(root?.id || '') || `__derivation_${index}_lex_${lexicalStepCursor + 1}`;
           const projectedLabel = String(root?.label || '').trim() || 'Workspace';
           const leafTarget = getReplayLeafSelectionTarget(root, identity);
           const rootSubtreeIds = collectSyntaxSubtreeNodeIds(root);
@@ -3873,8 +3870,8 @@ const squashAdjacentStructuralReplayDuplicates = (steps: PlaybackStep[]): Playba
       String(previous.operation || '').trim() === String(step.operation || '').trim();
     const sameTarget =
       previous &&
-      String(previous.targetNodeId || '').trim() &&
-      String(previous.targetNodeId || '').trim() === String(step.targetNodeId || '').trim();
+      String(previous.targetNodeId || '') &&
+      String(previous.targetNodeId || '') === String(step.targetNodeId || '');
     const structuralOnly =
       !stepRepresentsMovement(previous) &&
       !stepRepresentsMovement(step) &&
@@ -3918,20 +3915,20 @@ const squashAdjacentStructuralReplayDuplicates = (steps: PlaybackStep[]): Playba
 const buildReplayVisualStateSignature = (step?: PlaybackStep | null): string => {
   if (!step) return '';
   const visibleNodeIds = Array.isArray(step.replayVisibleNodeIds)
-    ? step.replayVisibleNodeIds.map((id) => String(id || '').trim()).filter(Boolean).sort()
+    ? step.replayVisibleNodeIds.map((id) => String(id || '')).filter(Boolean).sort()
     : [];
   const relationLinks = (Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : [])
     .map((link) => ({
       relationIndex: String(link?.relationIndex || '').trim(),
       relation: String(link?.relation || link?.operation || '').trim(),
-      sourceNodeId: String(link?.sourceNodeId || '').trim(),
-      targetNodeId: String(link?.targetNodeId || '').trim(),
-      witnessNodeId: String(link?.witnessNodeId || '').trim(),
+      sourceNodeId: String(link?.sourceNodeId || ''),
+      targetNodeId: String(link?.targetNodeId || ''),
+      witnessNodeId: String(link?.witnessNodeId || ''),
       renderFamily: link?.renderFamily || undefined,
       trajectoryKind: normalizeTrajectoryKind(link?.trajectoryKind) || undefined,
       stepIndex: Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : null,
       operation: String(link?.operation || '').trim(),
-      chainId: String(link?.chainId || '').trim()
+      chainId: String(link?.chainId || '')
     }))
     .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 
@@ -3988,7 +3985,7 @@ export const insertPreMovementLandingMergeSteps = (steps: PlaybackStep[]): Playb
     const landingRelation = relationLinks.find((link) => {
       const operation = String(link?.operation || link?.relation || step.operation || '').trim();
       if (!isMoveLikeOperation(operation) || isFrontingLikeOperationLabel(operation)) return false;
-      const targetNodeId = String(link?.targetNodeId || '').trim();
+      const targetNodeId = String(link?.targetNodeId || '');
       if (!targetNodeId || !previous?.replayCanvasData) return false;
       const previousVisibleIds = getReplayVisibleNodeIdSet(previous);
       if (!previousVisibleIds.has(targetNodeId)) return false;
@@ -3999,7 +3996,7 @@ export const insertPreMovementLandingMergeSteps = (steps: PlaybackStep[]): Playb
     });
 
     if (previous && landingRelation && previous.replayCanvasData) {
-      const targetNodeId = String(landingRelation.targetNodeId || '').trim();
+      const targetNodeId = String(landingRelation.targetNodeId || '');
       const parentNodeId = findParentNodeIdInForest([previous.replayCanvasData], targetNodeId);
       const parentNode = parentNodeId
         ? findNodeByIdInForest([previous.replayCanvasData], parentNodeId)
@@ -4044,12 +4041,12 @@ const buildVisibleReplayStateSignature = (step?: PlaybackStep | null): string =>
   if (!step?.replayCanvasData || !Array.isArray(step.replayVisibleNodeIds)) return '';
   const visibleIds = new Set(
     step.replayVisibleNodeIds
-      .map((nodeId) => String(nodeId || '').trim())
+      .map((nodeId) => String(nodeId || ''))
       .filter(Boolean)
   );
   const serializeNode = (node?: SyntaxNode | null): any => {
     if (!node || typeof node !== 'object') return null;
-    const nodeId = String(node.id || '').trim();
+    const nodeId = String(node.id || '');
     const children = (Array.isArray(node.children) ? node.children : [])
       .map(serializeNode)
       .filter(Boolean);
@@ -4067,9 +4064,9 @@ const buildVisibleReplayStateSignature = (step?: PlaybackStep | null): string =>
     .map((link) => ({
       relationIndex: String(link?.relationIndex || '').trim(),
       relation: String(link?.relation || link?.operation || '').trim(),
-      sourceNodeId: String(link?.sourceNodeId || '').trim(),
-      targetNodeId: String(link?.targetNodeId || '').trim(),
-      witnessNodeId: String(link?.witnessNodeId || '').trim(),
+      sourceNodeId: String(link?.sourceNodeId || ''),
+      targetNodeId: String(link?.targetNodeId || ''),
+      witnessNodeId: String(link?.witnessNodeId || ''),
       stepIndex: Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : null
     }))
     .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
@@ -4084,14 +4081,14 @@ const collectVisibleReplayOvertTokenCounts = (step?: PlaybackStep | null): Map<s
   if (!step?.replayCanvasData || !Array.isArray(step.replayVisibleNodeIds)) return counts;
   const visibleIds = new Set(
     step.replayVisibleNodeIds
-      .map((nodeId) => String(nodeId || '').trim())
+      .map((nodeId) => String(nodeId || ''))
       .filter(Boolean)
   );
   const countedLeafIds = new Set<string>();
   const nodesByName = new Map<string, SyntaxNode>();
   const index = (node: SyntaxNode) => {
     for (const name of [node.id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
-      const key = String(name || '').trim();
+      const key = String(name || '');
       if (!nodesByName.has(key)) nodesByName.set(key, node);
     }
     (Array.isArray(node.children) ? node.children : []).forEach(index);
@@ -4109,7 +4106,7 @@ const collectVisibleReplayOvertTokenCounts = (step?: PlaybackStep | null): Map<s
         if (!countLeaves(child)) complete = false;
       }
     } else {
-      const leafId = String(node.id || '').trim();
+      const leafId = String(node.id || '');
       complete = Boolean(leafId);
       if ((!leafId || visibleIds.has(leafId)) && (!leafId || !countedLeafIds.has(leafId))) {
         if (leafId) countedLeafIds.add(leafId);
@@ -4123,7 +4120,7 @@ const collectVisibleReplayOvertTokenCounts = (step?: PlaybackStep | null): Map<s
     return complete;
   };
   step.replayVisibleNodeIds.forEach((nodeIdValue) => {
-    const nodeId = String(nodeIdValue || '').trim();
+    const nodeId = String(nodeIdValue || '');
     if (!nodeId) return;
     const node = nodesByName.get(nodeId);
     if (node) countLeaves(node);
@@ -4201,14 +4198,14 @@ const stepIsRedundantOvertLexicalSelect = (
   step: PlaybackStep
 ): boolean => {
   if (!previousStep || String(step.operation || '').trim() !== 'LexicalSelect') return false;
-  const targetNodeId = String(step.targetNodeId || '').trim();
+  const targetNodeId = String(step.targetNodeId || '');
   if (!targetNodeId) return false;
   return getReplayVisibleNodeIdSet(previousStep).has(targetNodeId);
 };
 
 const getReplayVisibleNodeIdSet = (step?: PlaybackStep | null): Set<string> => new Set(
   (Array.isArray(step?.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
-    .map((nodeId) => String(nodeId || '').trim())
+    .map((nodeId) => String(nodeId || ''))
     .filter(Boolean)
 );
 
@@ -4236,7 +4233,7 @@ const findCollapsedNullSelectionInProjectStep = (
 
   const leafId = nullLeafIds[0];
   const leafParentId = findParentNodeIdInForest([step.replayCanvasData as SyntaxNode], leafId);
-  const targetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || '').trim());
+  const targetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
   const leafIsInsideProjectTarget =
     Boolean(leafParentId && newlyVisibleIds.includes(leafParentId))
     || Boolean(targetNodeId && leafParentId === targetNodeId);
@@ -4371,8 +4368,8 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
     // this canvas is simply not drawn here; no lineage mate or id-spelling
     // heuristic stands in for it.
     const linksForStep = activeRelationLinks.filter((link) => {
-      const sourceNodeId = String(link?.sourceNodeId || '').trim();
-      const targetNodeId = String(link?.targetNodeId || '').trim();
+      const sourceNodeId = String(link?.sourceNodeId || '');
+      const targetNodeId = String(link?.targetNodeId || '');
       if (isResolvedMovementLink(link) && (sourceNodeId || targetNodeId)) {
         return Boolean(
           sourceNodeId
@@ -4382,7 +4379,7 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
         );
       }
       const anchorNodeIds = (Array.isArray(link?.anchors) ? link.anchors : [])
-        .map((anchor) => String(anchor?.nodeId || '').trim())
+        .map((anchor) => String(anchor?.nodeId || ''))
         .filter(Boolean);
       return anchorNodeIds.length > 0 && anchorNodeIds.every((nodeId) => (
         Boolean(findNodeByIdInForest([canvas], nodeId))
@@ -4404,12 +4401,12 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
     mergedRelationLinks.forEach((link) => {
       const automaticallyVisibleAnchorNodeIds = (Array.isArray(link?.anchors)
         ? link.anchors
-            .map((anchor) => String(anchor?.nodeId || '').trim())
+            .map((anchor) => String(anchor?.nodeId || ''))
         : []);
       [
-        String(link?.sourceNodeId || '').trim(),
-        String(link?.targetNodeId || '').trim(),
-        String(link?.witnessNodeId || '').trim(),
+        String(link?.sourceNodeId || ''),
+        String(link?.targetNodeId || ''),
+        String(link?.witnessNodeId || ''),
         ...automaticallyVisibleAnchorNodeIds
       ].forEach((nodeId) => {
         const node = findExactNodeByIdInForest([canvas], nodeId);
@@ -4463,10 +4460,10 @@ const normalizeReplaySentenceInitialCasing = (
     const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean) => {
       silent ||= node.silent === true;
       layout ||= node.replayOrigin?.kind === 'layout';
-      const id = String(node.id || '').trim();
+      const id = String(node.id || '');
       if (!exactNodes.has(id)) exactNodes.set(id, { parent, silent, layout });
       for (const name of [id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
-        const key = String(name || '').trim();
+        const key = String(name || '');
         if (!nodesByName.has(key)) nodesByName.set(key, node);
       }
       const children = Array.isArray(node.children) ? node.children : [];
@@ -4482,13 +4479,13 @@ const normalizeReplaySentenceInitialCasing = (
       .filter((entry): entry is { leaf: SyntaxNode; silent: boolean } => Boolean(entry));
     const firstPronouncedLeafId = String(
       currentLeaves.find((entry) => !entry.silent)?.leaf.id || ''
-    ).trim();
+    );
     const casingByLeafId = new Map<string, string>();
 
     currentLeaves.forEach(({ leaf }) => {
       const surface = String(leaf.word || leaf.label || '').trim();
       if (normalizeToken(surface) !== initialKey) return;
-      const leafId = String(leaf.id || '').trim();
+      const leafId = String(leaf.id || '');
       const parent = exactNodes.get(leafId)?.parent;
       if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label)) return;
       const nextSurface = leafId && leafId === firstPronouncedLeafId ? uppercaseInitial : lowercaseInitial;
@@ -4504,7 +4501,7 @@ const normalizeReplaySentenceInitialCasing = (
     });
 
     const casingForNodeId = (nodeId?: string): string => {
-      const normalizedNodeId = String(nodeId || '').trim();
+      const normalizedNodeId = String(nodeId || '');
       if (!normalizedNodeId) return '';
       const exact = casingByLeafId.get(normalizedNodeId);
       if (exact) return exact;
@@ -4554,16 +4551,16 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
   return steps.map((step) => {
     const canvas = step.replayCanvasData;
     const rawVisibleIds = Array.isArray(step.replayVisibleNodeIds)
-      ? step.replayVisibleNodeIds.map((id) => String(id || '').trim()).filter(Boolean)
+      ? step.replayVisibleNodeIds.map((id) => String(id || '')).filter(Boolean)
       : [];
     const suppressedAutoRevealNodeIds = new Set(
       (Array.isArray(step.replaySuppressAutoRevealNodeIds) ? step.replaySuppressAutoRevealNodeIds : [])
-        .map((id) => String(id || '').trim())
+        .map((id) => String(id || ''))
         .filter(Boolean)
     );
     if (!canvas) {
-      if (step.operation === 'Project' && String(step.targetNodeId || '').trim()) {
-        persistentProjectedNodeIds.add(String(step.targetNodeId || '').trim());
+      if (step.operation === 'Project' && String(step.targetNodeId || '')) {
+        persistentProjectedNodeIds.add(String(step.targetNodeId || ''));
       }
       return step;
     }
@@ -4603,15 +4600,15 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
         });
       });
     }
-    if (step.operation === 'Project' && String(step.targetNodeId || '').trim()) {
-      const targetNodeId = String(step.targetNodeId || '').trim();
+    if (step.operation === 'Project' && String(step.targetNodeId || '')) {
+      const targetNodeId = String(step.targetNodeId || '');
       preserveProjectedNode(targetNodeId);
       persistentProjectedNodeIds.add(targetNodeId);
     }
 
     nextVisibleIds.forEach((visibleNodeId) => persistentVisibleNodeIds.add(visibleNodeId));
     collectReplayCanvasNodes(canvas).forEach((node) => {
-      const nodeId = String(node?.id || '').trim();
+      const nodeId = String(node?.id || '');
       if (!nodeId || !nextVisibleIds.has(nodeId)) return;
       const completeSubtreeIsVisible = collectSubtreeNodeIds(node).every((subtreeNodeId) => {
         const subtreeNode = exactNodesById.get(subtreeNodeId)?.[0];
@@ -4632,7 +4629,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
 const collectForestNodesById = (forest: SyntaxNode[]): Map<string, SyntaxNode> => {
   const out = new Map<string, SyntaxNode>();
   const visit = (node: SyntaxNode) => {
-    const id = String(node?.id || '').trim();
+    const id = String(node?.id || '');
     if (id) out.set(id, node);
     const children = Array.isArray(node?.children) ? node.children : [];
     children.forEach(visit);
@@ -4646,7 +4643,7 @@ const collectSubtreeNodeIds = (node?: SyntaxNode | null): string[] => {
   const ids: string[] = [];
   const visit = (current: SyntaxNode) => {
     if ((current as any)?.replayLayoutOnly) return;
-    const nodeId = String(current?.id || '').trim();
+    const nodeId = String(current?.id || '');
     if (nodeId) ids.push(nodeId);
     const children = Array.isArray(current?.children) ? current.children : [];
     children.forEach(visit);
@@ -4751,11 +4748,11 @@ export const findParentLabelInForest = (
   forest: SyntaxNode[],
   targetNodeId: string
 ): string => {
-  const normalizedTargetNodeId = String(targetNodeId || '').trim();
+  const normalizedTargetNodeId = String(targetNodeId || '');
   if (!normalizedTargetNodeId) return '';
   let resolvedParentLabel = '';
   const visit = (node: SyntaxNode, parent?: SyntaxNode | null): boolean => {
-    if (String(node?.id || '').trim() === normalizedTargetNodeId) {
+    if (String(node?.id || '') === normalizedTargetNodeId) {
       resolvedParentLabel = String(parent?.label || '').trim();
       return true;
     }
@@ -4772,7 +4769,7 @@ export const findParentLabelInForest = (
 
 const findNodePathInForest = (forest: SyntaxNode[], targetNodeId: string): number[] | null => {
   const visit = (node: SyntaxNode, path: number[]): number[] | null => {
-    if (String(node.id || '').trim() === targetNodeId) return path;
+    if (String(node.id || '') === targetNodeId) return path;
     const children = Array.isArray(node.children) ? node.children : [];
     for (let childIndex = 0; childIndex < children.length; childIndex += 1) {
       const found = visit(children[childIndex], [...path, childIndex]);
@@ -4801,11 +4798,11 @@ const getNodeAtForestPath = (forest: SyntaxNode[], path: number[] | null): Synta
 };
 
 const findNodeByIdInForest = (forest: SyntaxNode[], targetNodeId: string): SyntaxNode | null => {
-  const normalizedTargetNodeId = String(targetNodeId || '').trim();
+  const normalizedTargetNodeId = String(targetNodeId || '');
   if (!normalizedTargetNodeId) return null;
   const visit = (node: SyntaxNode): SyntaxNode | null => {
-    if (String(node.id || '').trim() === normalizedTargetNodeId) return node;
-    if ((Array.isArray(node.aliasIds) ? node.aliasIds : []).some((aliasId) => String(aliasId || '').trim() === normalizedTargetNodeId)) {
+    if (String(node.id || '') === normalizedTargetNodeId) return node;
+    if ((Array.isArray(node.aliasIds) ? node.aliasIds : []).some((aliasId) => String(aliasId || '') === normalizedTargetNodeId)) {
       return node;
     }
     const children = Array.isArray(node.children) ? node.children : [];
@@ -4824,10 +4821,10 @@ const findNodeByIdInForest = (forest: SyntaxNode[], targetNodeId: string): Synta
 };
 
 const findExactNodeByIdInForest = (forest: SyntaxNode[], targetNodeId: string): SyntaxNode | null => {
-  const normalizedTargetNodeId = String(targetNodeId || '').trim();
+  const normalizedTargetNodeId = String(targetNodeId || '');
   if (!normalizedTargetNodeId) return null;
   const visit = (node: SyntaxNode): SyntaxNode | null => {
-    if (String(node.id || '').trim() === normalizedTargetNodeId) return node;
+    if (String(node.id || '') === normalizedTargetNodeId) return node;
     const children = Array.isArray(node.children) ? node.children : [];
     for (const child of children) {
       const found = visit(child);
@@ -4843,15 +4840,15 @@ const findExactNodeByIdInForest = (forest: SyntaxNode[], targetNodeId: string): 
 };
 
 const findParentNodeIdInForest = (forest: SyntaxNode[], targetNodeId: string): string => {
-  const normalizedTargetNodeId = String(targetNodeId || '').trim();
+  const normalizedTargetNodeId = String(targetNodeId || '');
   if (!normalizedTargetNodeId) return '';
 
   const visit = (node: SyntaxNode, parentId: string): string => {
     if (
-      String(node.id || '').trim() === normalizedTargetNodeId
-      || (Array.isArray(node.aliasIds) ? node.aliasIds : []).some((aliasId) => String(aliasId || '').trim() === normalizedTargetNodeId)
+      String(node.id || '') === normalizedTargetNodeId
+      || (Array.isArray(node.aliasIds) ? node.aliasIds : []).some((aliasId) => String(aliasId || '') === normalizedTargetNodeId)
     ) return parentId;
-    const ownId = String(node.id || '').trim();
+    const ownId = String(node.id || '');
     const children = Array.isArray(node.children) ? node.children : [];
     for (const child of children) {
       const found = visit(child, ownId || parentId);
@@ -4870,10 +4867,10 @@ const findParentNodeIdInForest = (forest: SyntaxNode[], targetNodeId: string): s
 const resolvedRelationLinkKey = (link?: ResolvedRelationLink | null): string => [
   String(link?.relationIndex || '').trim(),
   String(link?.operation || '').trim(),
-  String(link?.sourceNodeId || '').trim(),
-  String(link?.targetNodeId || '').trim(),
-  String(link?.witnessNodeId || '').trim(),
-  String(link?.chainId || '').trim()
+  String(link?.sourceNodeId || ''),
+  String(link?.targetNodeId || ''),
+  String(link?.witnessNodeId || ''),
+  String(link?.chainId || '')
 ].join('|');
 
 const filterResolvedRelationLinks = (
@@ -4888,18 +4885,18 @@ const filterResolvedRelationLinks = (
     return suppressedLinks.some((suppressed) => {
       const sameOperation =
         normalizeReplayTargetLabel(String(link?.operation || '')) === normalizeReplayTargetLabel(String(suppressed?.operation || ''));
-      const sameTarget = String(link?.targetNodeId || '').trim()
-        && String(link?.targetNodeId || '').trim() === String(suppressed?.targetNodeId || '').trim();
+      const sameTarget = String(link?.targetNodeId || '')
+        && String(link?.targetNodeId || '') === String(suppressed?.targetNodeId || '');
       if (!sameOperation || !sameTarget) return false;
-      const sameChain = String(link?.chainId || '').trim()
-        && String(link?.chainId || '').trim() === String(suppressed?.chainId || '').trim();
+      const sameChain = String(link?.chainId || '')
+        && String(link?.chainId || '') === String(suppressed?.chainId || '');
       const linkSources = new Set([
-        String(link?.sourceNodeId || '').trim(),
-        String(link?.witnessNodeId || '').trim()
+        String(link?.sourceNodeId || ''),
+        String(link?.witnessNodeId || '')
       ].filter(Boolean));
       const sourceOverlap = [
-        String(suppressed?.sourceNodeId || '').trim(),
-        String(suppressed?.witnessNodeId || '').trim()
+        String(suppressed?.sourceNodeId || ''),
+        String(suppressed?.witnessNodeId || '')
       ].some((sourceId) => sourceId && linkSources.has(sourceId));
       return sameChain || sourceOverlap;
     });
@@ -4965,7 +4962,7 @@ const isNodeOrImmediateParentHeadShellInForest = (
   forest: SyntaxNode[],
   nodeId?: string
 ): boolean => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!normalizedNodeId) return false;
   const nodePath = findNodePathInForest(forest, normalizedNodeId);
   const node = getNodeAtForestPath(forest, nodePath);
@@ -5010,9 +5007,9 @@ const inferHeadLikeTrajectoryKindFromVisibleNodes = (
   if (explicitKind) return explicitKind;
   if (isHeadLikeOperationLabel(link.operation)) return 'head';
 
-  const targetId = String(link.targetNodeId || '').trim();
-  const sourceId = String(link.sourceNodeId || '').trim();
-  const traceId = String(link.witnessNodeId || '').trim();
+  const targetId = String(link.targetNodeId || '');
+  const sourceId = String(link.sourceNodeId || '');
+  const traceId = String(link.witnessNodeId || '');
   const targetNode = targetId ? nodeById.get(targetId) : undefined;
   const sourceNode = sourceId ? nodeById.get(sourceId) : undefined;
   const traceNode = traceId ? nodeById.get(traceId) : undefined;
@@ -5078,8 +5075,8 @@ export const resolveDerivationMovementTransitions = (
   (Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : []).forEach((link) => {
     if (!isResolvedMovementLink(link)) return;
 
-    const sourceId = String(link?.sourceNodeId || '').trim();
-    const targetId = String(link?.targetNodeId || '').trim();
+    const sourceId = String(link?.sourceNodeId || '');
+    const targetId = String(link?.targetNodeId || '');
     if (!sourceId || !targetId || sourceId === targetId) return;
 
     const step = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
@@ -5094,12 +5091,12 @@ export const resolveDerivationMovementTransitions = (
       authoredLink: link,
       sourceId,
       targetId,
-      traceId: currentNodeIds.has(String(link?.witnessNodeId || '').trim())
-        ? String(link.witnessNodeId).trim()
+      traceId: currentNodeIds.has(String(link?.witnessNodeId || ''))
+        ? String(link.witnessNodeId)
         : null,
       step,
       index: String(link?.relationIndex || '').trim() || `${transitions.length + 1}`,
-      chainId: String(link?.chainId || '').trim() || null,
+      chainId: String(link?.chainId || '') || null,
       operation: link?.relation || link?.operation,
       trajectoryKind: normalizeTrajectoryKind(link?.trajectoryKind) || undefined,
       note: link?.note
@@ -5113,7 +5110,7 @@ export const resolveLeafSurface = (node: HierNode): string => (node.data.word ||
 const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
 const EXPLICIT_NULL_TERMINAL = '∅';
 const buildSyntheticReplayLeafId = (parent: SyntaxNode, suffix: string, word?: string): string => {
-  const parentId = typeof parent?.id === 'string' ? parent.id.trim() : '';
+  const parentId = typeof parent?.id === 'string' ? parent.id : '';
   const parentLabel = String(parent?.label || 'node').trim().replace(/\s+/g, '_') || 'node';
   const leafWord = String(word || '').trim().replace(/\s+/g, '_');
   const stem = parentId || `${parentLabel}__${leafWord || 'leaf'}`;
@@ -5327,7 +5324,7 @@ export const collectOvertLeafNodeIdsInOrder = (root?: SyntaxNode | null): string
   const visit = (node: SyntaxNode) => {
     const children = Array.isArray(node?.children) ? node.children : [];
     if (children.length === 0) {
-      const nodeId = String(node?.id || '').trim();
+      const nodeId = String(node?.id || '');
       if (nodeId && isLexicalLeaf(node)) overtIds.push(nodeId);
       return;
     }
@@ -5344,7 +5341,7 @@ export const collectPronouncedLeafNodeIdsInOrder = (root?: SyntaxNode | null): s
     const silent = silentAncestor || node?.silent === true || (node as any)?.ghost === true;
     const children = Array.isArray(node?.children) ? node.children : [];
     if (children.length === 0) {
-      const nodeId = String(node?.id || '').trim();
+      const nodeId = String(node?.id || '');
       if (!silent && nodeId && isPronouncedLeaf(node)) pronouncedIds.push(nodeId);
       return;
     }
@@ -5358,7 +5355,7 @@ const collectSyntaxSubtreeNodeIds = (root?: SyntaxNode | null): string[] => {
   if (!root || typeof root !== 'object') return [];
   const ids: string[] = [];
   const visit = (node: SyntaxNode) => {
-    const nodeId = String(node?.id || '').trim();
+    const nodeId = String(node?.id || '');
     if (nodeId) ids.push(nodeId);
     const children = Array.isArray(node?.children) ? node.children : [];
     children.forEach(visit);
@@ -5389,7 +5386,7 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   const trimmed = String(surface || '').trim();
   if (!trimmed) return '';
 
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   const normalizedParentLabel = String(parentLabel || '').trim().toUpperCase();
   const normalizedSentenceInitialSurface = String(sentenceInitialSurface || '').trim();
   if (isWorkspaceForest) return trimmed;
@@ -5407,7 +5404,7 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   // position evidence, preserve its spelling instead of guessing from English.
   if (!hasAuthoredTokenIndex && normalizedParentLabel === 'D' && !hasNominalComplement) return trimmed;
 
-  const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '')).filter(Boolean) : [];
   const firstVisibleOvertLeafId = visibleIds[0] || '';
   const isSentenceInitialInVisibleReplay = normalizedNodeId && normalizedNodeId === firstVisibleOvertLeafId;
   if (isSentenceInitialInVisibleReplay) return trimmed;
@@ -5486,7 +5483,7 @@ export const buildResolvedLinkTraceIndexMap = (
     (Array.isArray(link?.anchors) ? link.anchors : []).forEach((anchor) => {
       const role = String(anchor?.role || '').trim().toLowerCase();
       if (role !== 'deletedsubconstituent' && role !== 'deleted') return;
-      const deletedNode = findNodeByIdInForest(currentForest, String(anchor?.nodeId || '').trim());
+      const deletedNode = findNodeByIdInForest(currentForest, String(anchor?.nodeId || ''));
       collectSubtreeNodeIds(deletedNode).forEach((nodeId) => partialDeletionNodeIds.add(nodeId));
     });
   });
@@ -5499,24 +5496,24 @@ export const buildResolvedLinkTraceIndexMap = (
    * inner gap with its own index — the accidental all-t₂ remnant display.
    */
   const assignIndexIfUnclaimed = (rawId: string, index: string) => {
-    const id = String(rawId || '').trim();
+    const id = String(rawId || '');
     if (!id || traceIndexByNodeId.has(id)) return;
     traceIndexByNodeId.set(id, index);
   };
   const assignIndexToNodeAndLeaves = (nodeId: string, index: string) => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = String(index || '').trim();
     if (!normalizedNodeId || !normalizedIndex) return;
     assignIndexIfUnclaimed(normalizedNodeId, normalizedIndex);
     const node = findNodeByIdInForest(currentForest, normalizedNodeId);
     if (!node) return;
     collectLeafSyntaxNodes(node)
-      .map((leaf) => String(leaf?.id || '').trim())
+      .map((leaf) => String(leaf?.id || ''))
       .filter(Boolean)
       .forEach((leafId) => assignIndexIfUnclaimed(leafId, normalizedIndex));
   };
   const assignIndexToMovementSource = (nodeId: string, index: string) => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = String(index || '').trim();
     if (!normalizedNodeId || !normalizedIndex) return;
     const node = findNodeByIdInForest(currentForest, normalizedNodeId);
@@ -5528,7 +5525,7 @@ export const buildResolvedLinkTraceIndexMap = (
       return;
     }
     collectLeafSyntaxNodes(node)
-      .map((leaf) => String(leaf?.id || '').trim())
+      .map((leaf) => String(leaf?.id || ''))
       .filter((leafId) => Boolean(leafId) && !partialDeletionNodeIds.has(leafId))
       .forEach((leafId) => assignIndexIfUnclaimed(leafId, normalizedIndex));
   };
@@ -5548,7 +5545,7 @@ export const buildResolvedLinkTraceIndexMap = (
     if (!Array.isArray(anchors)) return [];
     return anchors
       .filter((anchor) => wanted.has(String((anchor as { role?: string })?.role || '').trim().toLowerCase()))
-      .map((anchor) => String((anchor as { nodeId?: string })?.nodeId || '').trim())
+      .map((anchor) => String((anchor as { nodeId?: string })?.nodeId || ''))
       .filter(Boolean);
   };
   const movementParent = new Map<string, string>();
@@ -5575,7 +5572,7 @@ export const buildResolvedLinkTraceIndexMap = (
     link.witnessNodeId,
     ...linkAnchorIdsByRoles(link, TRAJECTORY_SOURCE_ROLES),
     ...linkAnchorIdsByRoles(link, TRAJECTORY_WITNESS_ROLES)
-  ].map((nodeId) => String(nodeId || '').trim()).filter(Boolean)));
+  ].map((nodeId) => String(nodeId || '')).filter(Boolean)));
   movementLinks.forEach((link) => {
     const nodeIds = movementNodeIds(link);
     nodeIds.forEach((nodeId) => findMovementRoot(nodeId));
@@ -5632,9 +5629,9 @@ export const buildResolvedLinkTraceIndexMap = (
     /* A resolved relation is not automatically a movement chain. */
     if (!isResolvedMovementLink(link)) return;
 
-    const traceId = String(link?.witnessNodeId || '').trim();
-    const sourceId = String(link?.sourceNodeId || '').trim();
-    const movedId = String(link?.targetNodeId || '').trim();
+    const traceId = String(link?.witnessNodeId || '');
+    const sourceId = String(link?.sourceNodeId || '');
+    const movedId = String(link?.targetNodeId || '');
     const componentNodeId = sourceId || movedId || traceId;
     const componentIndex = componentNodeId
       ? componentIndices.get(findMovementRoot(componentNodeId))
@@ -5665,14 +5662,14 @@ export const buildResolvedLinkOperatorVariableIndexMap = (
 ): Map<string, string> => {
   const indexByNodeId = new Map<string, string>();
   const assignIndexToNodeAndLeaves = (nodeId: string, index: string) => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = normalizeTraceIndexForDisplay(index);
     if (!normalizedNodeId || !normalizedIndex) return;
     indexByNodeId.set(normalizedNodeId, normalizedIndex);
     const node = findNodeByIdInForest(currentForest, normalizedNodeId);
     if (!node) return;
     collectLeafSyntaxNodes(node)
-      .map((leaf) => String(leaf?.id || '').trim())
+      .map((leaf) => String(leaf?.id || ''))
       .filter(Boolean)
       .forEach((leafId) => indexByNodeId.set(leafId, normalizedIndex));
   };
@@ -5684,8 +5681,8 @@ export const buildResolvedLinkOperatorVariableIndexMap = (
       return;
     }
     const index = String(link?.relationIndex || '').trim();
-    assignIndexToNodeAndLeaves(String(link?.targetNodeId || '').trim(), index);
-    assignIndexToNodeAndLeaves(String(link?.witnessNodeId || '').trim(), index);
+    assignIndexToNodeAndLeaves(String(link?.targetNodeId || ''), index);
+    assignIndexToNodeAndLeaves(String(link?.witnessNodeId || ''), index);
   });
 
   return indexByNodeId;
@@ -5699,7 +5696,7 @@ export const buildResolvedLinkRawTraceAliasMap = (
   const rawAliasByIndex = new Map<string, string>();
   const links = Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : [];
   const assignFromNode = (nodeId?: string, index?: string) => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = normalizeTraceIndexForDisplay(index);
     if (!normalizedNodeId || !normalizedIndex) return;
     const node = findNodeByIdInForest(currentForest, normalizedNodeId);
@@ -5886,7 +5883,7 @@ export const buildStructuralDerivationPlaybackSteps = (
     // carried the same authored lineageId. Node ids are a different concept.
     const previousVisibleLineageIds = new Set<string>();
     collectForestNodesById(previousFrameForest).forEach((previousNode, previousNodeId) => {
-      const previousLineageId = String(previousNode?.lineageId || '').trim();
+      const previousLineageId = String(previousNode?.lineageId || '');
       if (previousLineageId && previousVisibleNodeIds.has(previousNodeId)) {
         previousVisibleLineageIds.add(previousLineageId);
       }
@@ -5898,7 +5895,7 @@ export const buildStructuralDerivationPlaybackSteps = (
         (node.data as SyntaxNode)?.lineageId
         || rawNodeById.get(nodeId)?.lineageId
         || ''
-      ).trim();
+      );
       if (!lineageId || !previousVisibleLineageIds.has(lineageId)) return;
       if (!hasOvertReplayDescendant(node)) return;
       node.descendants().forEach((descendant) => {
@@ -6165,7 +6162,7 @@ export const stepRepresentsMovement = (step?: PlaybackStep | null): boolean => {
   if (!step) return false;
   if (isMoveLikeOperation(step.operation)) return true;
   if (getActiveReplayRelationLinks(step).some(isResolvedMovementLink)) return true;
-  if (String(step.chainId || '').trim()) return true;
+  if (String(step.chainId || '')) return true;
   if (isTraceLike(step.targetLabel)) return true;
   return (Array.isArray(step.sourceLabels) ? step.sourceLabels : []).some((label) => isTraceLike(label));
 };
@@ -6184,7 +6181,7 @@ export const decoratePlaybackStepsWithTraceIndices = (
   const formatIndexedTraceLabel = (label?: string, nodeId?: string): string => {
     const rawLabel = String(label || '').trim();
     if (!rawLabel || !isTraceLike(rawLabel)) return rawLabel;
-    const fallbackIndex = nodeId ? traceIndexByNodeId.get(String(nodeId || '').trim()) : undefined;
+    const fallbackIndex = nodeId ? traceIndexByNodeId.get(String(nodeId || '')) : undefined;
     return formatTraceSurfaceForDisplayValue(rawLabel, fallbackIndex || extractMovementIndex(rawLabel));
   };
 
@@ -6227,7 +6224,7 @@ export const buildNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> =
 export const buildFirstRevealNodeStepIndex = (steps: PlaybackStep[]): Map<string, number> => {
   const stepIndex = new Map<string, number>();
   steps.forEach((step, idx) => {
-    const nodeId = String(step?.targetNodeId || '').trim();
+    const nodeId = String(step?.targetNodeId || '');
     if (!nodeId || stepIndex.has(nodeId)) return;
     stepIndex.set(nodeId, idx);
   });
@@ -6239,9 +6236,9 @@ const resolveMovementStepForLink = (
   nodeStepIndex: Map<string, number>,
   lastStep: number
 ): number | undefined => {
-  const sourceNodeId = String(link.sourceNodeId || '').trim();
-  const targetNodeId = String(link.targetNodeId || '').trim();
-  const traceNodeId = String(link.witnessNodeId || '').trim();
+  const sourceNodeId = String(link.sourceNodeId || '');
+  const targetNodeId = String(link.targetNodeId || '');
+  const traceNodeId = String(link.witnessNodeId || '');
   const sourceStep = sourceNodeId ? nodeStepIndex.get(sourceNodeId) : undefined;
   const targetStep = targetNodeId ? nodeStepIndex.get(targetNodeId) : undefined;
   const traceStep = traceNodeId ? nodeStepIndex.get(traceNodeId) : undefined;
@@ -6263,7 +6260,7 @@ const resolveMovementStepForLink = (
 const resolveVisibleMovementTargetNode = (
   nodeById: Map<string, HierNode>,
   link: ResolvedRelationLink
-): HierNode | undefined => nodeById.get(String(link?.targetNodeId || '').trim());
+): HierNode | undefined => nodeById.get(String(link?.targetNodeId || ''));
 
 export const buildDisplayRelationLinks = (
   resolvedRelationLinks: ResolvedRelationLink[] | undefined
@@ -6272,12 +6269,12 @@ export const buildDisplayRelationLinks = (
     ...link,
     relationIndex: String(link?.relationIndex || '').trim(),
     relation: String(link?.relation || link?.operation || '').trim() || undefined,
-    sourceNodeId: String(link?.sourceNodeId || '').trim(),
-    targetNodeId: String(link?.targetNodeId || '').trim(),
-    witnessNodeId: String(link?.witnessNodeId || '').trim() || undefined,
+    sourceNodeId: String(link?.sourceNodeId || ''),
+    targetNodeId: String(link?.targetNodeId || ''),
+    witnessNodeId: String(link?.witnessNodeId || '') || undefined,
     renderFamily: link?.renderFamily || 'trajectory',
     trajectoryKind: normalizeTrajectoryKind(link?.trajectoryKind) || undefined,
-    chainId: String(link?.chainId || '').trim() || undefined
+    chainId: String(link?.chainId || '') || undefined
   }));
 
 export const buildMovementArrowsFromLinks = (
@@ -6341,9 +6338,9 @@ export const buildMovementArrowsFromLinks = (
   const lastStep = playbackSteps.length > 0 ? playbackSteps.length - 1 : 0;
 
   displayLinks.filter(isResolvedMovementLink).forEach((link) => {
-    const rawSource = nodeById.get(String(link.sourceNodeId || '').trim());
+    const rawSource = nodeById.get(String(link.sourceNodeId || ''));
     const rawTarget = resolveVisibleMovementTargetNode(nodeById, link);
-    const authoredWitnessId = String(link.witnessNodeId || '').trim();
+    const authoredWitnessId = String(link.witnessNodeId || '');
     const rawTraceNode = authoredWitnessId
       ? nodeById.get(authoredWitnessId) || undefined
       : undefined;
@@ -6456,7 +6453,7 @@ export const buildMovementArrowsFromLinks = (
 
 const collectHierarchyLineageIds = (root?: HierNode): Set<string> => new Set(
   (root ? root.descendants() : [])
-    .map((candidate) => String(candidate.data?.lineageId || '').trim())
+    .map((candidate) => String(candidate.data?.lineageId || ''))
     .filter(Boolean)
 );
 
@@ -6464,7 +6461,7 @@ const collectHierarchyLineageContext = (node: HierNode): Set<string> => {
   const lineageIds = new Set<string>();
   let current: HierNode | null = node;
   while (current) {
-    const lineageId = String(current.data?.lineageId || '').trim();
+    const lineageId = String(current.data?.lineageId || '');
     if (lineageId) lineageIds.add(lineageId);
     current = current.parent;
   }
@@ -6765,7 +6762,7 @@ const findReplayNodePathById = (
 ): SyntaxNode[] | null => {
   if (!root || !nodeId) return null;
   const currentTrail = [...trail, root];
-  if (String(root.id || '').trim() === nodeId) return currentTrail;
+  if (String(root.id || '') === nodeId) return currentTrail;
   const children = Array.isArray(root.children) ? root.children : [];
   for (const child of children) {
     const match = findReplayNodePathById(child, nodeId, currentTrail);
@@ -6778,7 +6775,7 @@ const describeReplayNodePosition = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId) return '';
   const path = findReplayNodePathById(root, normalizedNodeId);
   if (!path || path.length === 0) return '';
@@ -6803,7 +6800,7 @@ const describeReplayNodePosition = (
 
   const parentLabel = formatReplaySupportValue(parent?.label);
   const parentChildren = Array.isArray(parent?.children) ? parent.children : [];
-  const childIndex = parentChildren.findIndex((child) => String(child?.id || '').trim() === normalizedNodeId);
+  const childIndex = parentChildren.findIndex((child) => String(child?.id || '') === normalizedNodeId);
   const sibling = childIndex >= 0
     ? parentChildren.find((_, index) => index !== childIndex)
     : null;
@@ -6835,7 +6832,7 @@ const getReplayNodeDisplayFromCanvas = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId) return '';
   const node = findNodeByIdInForest([root], normalizedNodeId);
   if (!node) return '';
@@ -6867,7 +6864,7 @@ const getReplayNodeOvertYieldFromCanvas = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId) return '';
   const node = findNodeByIdInForest([root], normalizedNodeId);
   if (!node || isTraceOrNullLikeNode(node)) return '';
@@ -6893,7 +6890,7 @@ const getReplayNodeAuthoredYieldFromCanvas = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId) return '';
   const node = findNodeByIdInForest([root], normalizedNodeId);
   if (!node || isTraceOrNullLikeNode(node)) return '';
@@ -6907,7 +6904,7 @@ const getReplayNodeAuthoredYieldFromCanvas = (
       return;
     }
     if (isTraceOrNullLikeNode(candidate)) return;
-    const lineageId = String(candidate.lineageId || '').trim();
+    const lineageId = String(candidate.lineageId || '');
     if (lineageId && seenLineages.has(lineageId)) return;
     const fallbackLeafSurface = authoredWord(candidate);
     const surface = formatReplaySupportValue(fallbackLeafSurface);
@@ -6923,7 +6920,7 @@ const getReplayNodeCategoryFromCanvas = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const normalizedNodeId = String(nodeId || '').trim();
+  const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId) return '';
   const node = findNodeByIdInForest([root], normalizedNodeId);
   if (!node) return '';
@@ -7104,25 +7101,25 @@ const getResolvedReplayRelationAnchors = (
 ): ReplayResolvedRelationAnchor[] => (
   Array.isArray(relation?.resolvedAnchors)
     ? relation.resolvedAnchors
-        .filter((anchor) => Boolean(String(anchor?.nodeId || '').trim()))
+        .filter((anchor) => Boolean(String(anchor?.nodeId || '')))
         .map((anchor) => ({
           ...anchor,
           role: String(anchor.role || ''),
-          nodeId: String(anchor.nodeId || '').trim()
+          nodeId: String(anchor.nodeId || '')
         }))
     : []
 );
 
 const getRelationTargetNodeId = (
   relation?: DerivationReplayPlanStep | null
-): string => String(relation?.targetNodeId || '').trim();
+): string => String(relation?.targetNodeId || '');
 
 const getRelationSourceNodeIds = (
   relation?: DerivationReplayPlanStep | null
 ): string[] => (
   Array.isArray(relation?.sourceNodeIds)
     ? relation.sourceNodeIds
-        .map((nodeId) => String(nodeId || '').trim())
+        .map((nodeId) => String(nodeId || ''))
         .filter(Boolean)
     : []
 );
@@ -7130,7 +7127,7 @@ const getRelationSourceNodeIds = (
 export const getRelationAllAnchorNodeIds = (
   relation?: DerivationReplayPlanStep | null
 ): string[] => getResolvedReplayRelationAnchors(relation)
-  .map((anchor) => String(anchor.nodeId || '').trim())
+  .map((anchor) => String(anchor.nodeId || ''))
   .filter(Boolean);
 
 const findResolvedReplayAnchorByRoles = (
@@ -7165,10 +7162,10 @@ export const resolveRelationAnchorNodeId = (
   rawNodeId: string,
   _role: 'source' | 'target'
 ): string => {
-  const requestedNodeId = String(rawNodeId || '').trim();
+  const requestedNodeId = String(rawNodeId || '');
   if (!requestedNodeId) return '';
   const exactNode = findExactNodeByIdInForest(forest, requestedNodeId);
-  return exactNode ? String(exactNode.id || requestedNodeId).trim() : '';
+  return exactNode ? String(exactNode.id || requestedNodeId) : '';
 };
 
 const getSharedAuthoredLineageIdentity = (
@@ -7180,7 +7177,7 @@ const getSharedAuthoredLineageIdentity = (
     const lineageIds = new Set<string>();
     const visit = (node?: SyntaxNode | null) => {
       if (!node) return;
-      const lineageId = String(node.lineageId || '').trim();
+      const lineageId = String(node.lineageId || '');
       if (lineageId) lineageIds.add(lineageId);
       (Array.isArray(node.children) ? node.children : []).forEach(visit);
     };
@@ -7224,7 +7221,7 @@ export const buildAuthoredRelationLinksForFrames = (
       const relationLabel = String(relation.relation || '').trim();
       const resolvedAnchors = getResolvedReplayRelationAnchors(relation)
         .filter((anchor) => (
-          Boolean(findExactNodeByIdInForest(forest, String(anchor.nodeId || '').trim()))
+          Boolean(findExactNodeByIdInForest(forest, String(anchor.nodeId || '')))
         ));
       if (resolvedAnchors.length === 0) return;
       const [firstAnchor, secondAnchor] = resolvedAnchors;
@@ -7255,7 +7252,7 @@ export const buildAuthoredRelationLinksForFrames = (
       if (!sourceAnchor || (relation.recoveredMovement && !targetAnchor)) return;
       const identityKey = getSharedAuthoredLineageIdentity(
         forest,
-        resolvedAnchors.map((anchor) => String(anchor.nodeId || '').trim())
+        resolvedAnchors.map((anchor) => String(anchor.nodeId || ''))
       );
       const link: ReplayAuthoredRelationLink = {
         relationIndex: String(links.length + 1),
@@ -7328,7 +7325,7 @@ const formatRelationAnchorValue = (
   const values = Array.isArray(value) ? value : [value];
   return values
     .map((item) => {
-      const nodeId = String(item || '').trim();
+      const nodeId = String(item || '');
       if (!nodeId) return '';
       return formatRelationParticipantValue(
         { role, nodeId, value: nodeId } as ResolvedRelationAnchor,
@@ -7382,7 +7379,7 @@ const getReplayNodeAuthoredWitnessYieldFromCanvas = (
   root: SyntaxNode | null | undefined,
   nodeId?: string
 ): string => {
-  const node = findNodeByIdInForest([root].filter(Boolean) as SyntaxNode[], String(nodeId || '').trim());
+  const node = findNodeByIdInForest([root].filter(Boolean) as SyntaxNode[], String(nodeId || ''));
   if (!node) return '';
   const surfaces: string[] = [];
   const collect = (candidate: SyntaxNode) => {
@@ -7402,7 +7399,7 @@ const formatRelationParticipantValue = (
   anchor: ResolvedRelationAnchor,
   replayCanvasData?: SyntaxNode | null
 ): string => {
-  const nodeId = String(anchor?.nodeId || '').trim();
+  const nodeId = String(anchor?.nodeId || '');
   if (nodeId) {
     const role = String(anchor?.role || '').trim();
     if (STRUCTURAL_RELATION_ANCHOR_ROLES.has(role)) {
@@ -7619,8 +7616,8 @@ const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string)
   }
   if (isHeadLikePlaybackStep(step)) {
     const sourceFromCanvas = (Array.isArray(step.sourceNodeIds) ? step.sourceNodeIds : [])
-      .map((nodeId) => String(nodeId || '').trim())
-      .filter((nodeId) => nodeId && nodeId !== String(step.targetNodeId || '').trim())
+      .map((nodeId) => String(nodeId || ''))
+      .filter((nodeId) => nodeId && nodeId !== String(step.targetNodeId || ''))
       .map((nodeId) => getReplayNodeDisplayFromCanvas(step.replayCanvasData, nodeId))
       .find(Boolean);
     if (sourceFromCanvas) return sourceFromCanvas;
@@ -7632,7 +7629,7 @@ const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string)
     return '';
   }
   const structuralSources = (Array.isArray(step.sourceNodeIds) ? step.sourceNodeIds : [])
-    .filter((nodeId) => String(nodeId || '').trim() && String(nodeId || '').trim() !== String(step.targetNodeId || '').trim())
+    .filter((nodeId) => String(nodeId || '') && String(nodeId || '') !== String(step.targetNodeId || ''))
     .map((nodeId) => describeReplayNodePosition(step.replayCanvasData, nodeId))
     .filter(Boolean);
   const normalizedLanding = normalizeReplayTargetLabel(landingValue);
@@ -7794,9 +7791,9 @@ export const buildMovementProtectedNodeIds = (
 ): Set<string> => {
   const protectedIds = new Set<string>();
   (resolvedRelationLinks || []).forEach((link) => {
-    const sourceId = String(link.sourceNodeId || '').trim();
-    const movedId = String(link.targetNodeId || '').trim();
-    const traceId = String(link.witnessNodeId || '').trim();
+    const sourceId = String(link.sourceNodeId || '');
+    const movedId = String(link.targetNodeId || '');
+    const traceId = String(link.witnessNodeId || '');
     if (sourceId) protectedIds.add(sourceId);
     if (movedId) protectedIds.add(movedId);
     if (traceId) protectedIds.add(traceId);

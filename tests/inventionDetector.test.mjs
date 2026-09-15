@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import {
   __TEST_ONLY__,
   adaptDerivationStagesForReplay,
@@ -76,7 +76,7 @@ test('permanent invention detector accepts every provider-free fixture projectio
       && step.resolvedAnchors.length > 0
     )).length;
     assert.equal(renderedRelationLinks.length, renderableRelationCount);
-    const replaySnapshot = buildReplaySnapshotProjection(bundle);
+    const replaySnapshot = buildReplayPlayback(bundle);
     assert.doesNotThrow(() => assertNoDeterministicLinguisticInvention({
       authoredDerivationStages: fixture.payload.derivationStages,
       analysis,
@@ -348,7 +348,7 @@ test('render plan keeps bare relation endpoints authored without null or trace s
     renderedRelationLinks[0].endpointOrderProvenance,
     'authored-anchor-order'
   );
-  const replaySnapshot = buildReplaySnapshotProjection(bundle);
+  const replaySnapshot = buildReplayPlayback(bundle);
   const serialized = JSON.stringify(replaySnapshot);
   assert.equal(serialized.includes('::__null'), false);
   assert.equal(serialized.includes('__shell'), false);
@@ -385,4 +385,20 @@ test('detector rejects suppression of renderable authored relation evidence', ()
     kinds.has('authored-renderable-relation-not-displayed'),
     true
   );
+});
+
+
+test('detector uses exact authored IDs and display provenance instead of suffix spelling', () => {
+  const authoredDerivationStages = buildSingleStagePayload([{
+    id: ' root ', label: 'VP', children: [
+      { id: ' a ', label: 'V', word: 'read', children: [] },
+      { id: ' a ::__leaf', label: 'N', word: 'books', children: [] }
+    ]
+  }]).derivationStages;
+  const replaySnapshot = buildReplayPlayback({ sentence: 'read books', analyses: [{ derivationStages: authoredDerivationStages }] });
+  const input = { authoredDerivationStages, replaySnapshot };
+  assert.doesNotThrow(() => assertNoDeterministicLinguisticInvention(input));
+  const step = replaySnapshot.steps.at(-1);
+  step.replayVisibleNodeIds.push(' a ::__lex_forged');
+  assert(detectDeterministicLinguisticInvention(input).some(issue => issue.kind === 'replay-node-id-not-authored-or-declared-preterminal' && issue.nodeId === ' a ::__lex_forged'));
 });

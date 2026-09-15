@@ -54,14 +54,14 @@ export const applyVizIds = (root: d3.HierarchyNode<SyntaxNode>) => {
   const reserved = new Set<string>();
   root.eachBefore(node => {
     [node.data.id, ...(node.data.aliasIds || [])].forEach(id => {
-      if (typeof id === 'string' && id.trim()) reserved.add(id.trim());
+      if (typeof id === 'string' && id.trim()) reserved.add(id);
     });
   });
   let generated = 1;
   root.eachBefore((node) => {
-    const raw = typeof node.data.id === 'string' ? node.data.id.trim() : '';
+    const raw = typeof node.data.id === 'string' ? node.data.id : '';
     let id = raw;
-    if (!id || used.has(id)) {
+    if (!id.trim() || used.has(id)) {
       while (used.has(`n${generated}`) || reserved.has(`n${generated}`)) generated += 1;
       id = `n${generated}`;
       generated += 1;

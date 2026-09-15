@@ -2165,10 +2165,10 @@ export const bindRelationPlanFrame = (
         item.set.roles.flatMap((roleGroup) =>
           roleGroup.anchors
             .filter((anchor) => !anchor.resolved)
-            .map((anchor) => String(anchor.nodeId || '').trim()))
+            .map((anchor) => String(anchor.nodeId || '')))
       );
       layout.failed.forEach((failure) => {
-        const channel = unresolvedAtAuthoring.has(String(failure.nodeId || '').trim())
+        const channel = unresolvedAtAuthoring.has(String(failure.nodeId || ''))
           ? policyFailed
           : failed;
         channel.push({ itemIndex, nodeId: failure.nodeId, reason: failure.reason });

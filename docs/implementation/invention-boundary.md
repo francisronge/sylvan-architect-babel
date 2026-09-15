@@ -16,9 +16,10 @@ It must reject malformed or incomplete authored evidence instead of:
 - inventing derivation operations such as `Checkpoint`, `StateChange`, or `SpellOut`.
 
 Replay is a declared presentation transform. It may expand an authored
-`{ label, word }` terminal into a stable render-only `::__leaf` / `::__lex_…`
-preterminal and use the
-generic presentation operations listed by
+`{ label, word }` terminal into a stable display node. Exact authored IDs are
+reserved before generated IDs are allocated; `replayOrigin` identifies each
+display node's authored owner. ID spelling never establishes that ownership.
+The generic operations and display-origin kinds are listed by
 `DECLARED_PRESENTATION_TRANSFORMS` in
 `server/babelParser/inventionDetector.js`. It may not create linguistic nulls,
 traces, shells, dependency labels, or movement operations.
@@ -33,7 +34,8 @@ construction name.
 
 `tests/inventionDetector.test.mjs` is the permanent provider-free enforcement
 surface. It checks compiled trees, expanded stages, resolved relations, replay
-plans, and replay snapshots against the authored node and relation inventory.
+plans, and full Replay playback against the authored node and relation inventory.
+Full playback supplies display provenance that compact snapshots omit.
 
 Committed replay-snapshot parity currently covers projected step order,
 operations, node ids, and visibility, but its projection does not serialize

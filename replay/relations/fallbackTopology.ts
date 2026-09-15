@@ -82,8 +82,8 @@ const roleGroups = (block: FallbackAnchorBlock): RoleGroup[] =>
     .map((value) => ({
       isArray: Array.isArray(value),
       witnesses: (Array.isArray(value) ? value : [value])
-        .map((entry) => String(entry || '').trim())
-        .filter(Boolean)
+        .map((entry) => String(entry || ''))
+        .filter((id) => Boolean(id.trim()))
     }))
     .filter((group) => group.witnesses.length > 0);
 

@@ -332,7 +332,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       (Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : []).forEach((link) => {
         if (isHeadLikeResolvedRelation(link)) return;
         if (!isFrontingLikeOperationLabel(link?.operation || link?.relation)) return;
-        const sourceNodeId = String(link?.sourceNodeId || '').trim();
+        const sourceNodeId = String(link?.sourceNodeId || '');
         if (sourceNodeId) sourceNodeIds.add(sourceNodeId);
       });
     });
@@ -473,7 +473,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!usesDerivationFrames) return null;
     const nodeIds = activeDerivationReplayStep?.replayVisibleNodeIds;
     if (!Array.isArray(nodeIds) || nodeIds.length === 0) return null;
-    return new Set(nodeIds.map((id) => String(id || '').trim()).filter(Boolean));
+    return new Set(nodeIds.map((id) => String(id || '')).filter(Boolean));
   }, [activeDerivationReplayStep, usesDerivationFrames]);
   const acceptedCompositionIsTreeFirst = (relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []).some((item) =>
     item.familyId === 'copy.multiple-pronunciation'
@@ -654,7 +654,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       : new Map<string, string>();
     const layoutVisibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(canvasData)
       .filter((nodeId) => !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(nodeId));
-    const layoutFirstVisibleOvertLeafId = String(layoutVisibleOvertLeafIds[0] || '').trim();
+    const layoutFirstVisibleOvertLeafId = String(layoutVisibleOvertLeafIds[0] || '');
     const maybeCapitalizeLayoutSentenceInitialLeaf = (node: HierNode, value: string): string => {
       const trimmed = String(value || '').trim();
       if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
@@ -668,7 +668,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         currentAncestor = currentAncestor.parent;
       }
       const surfacedByFrontingMovement = activeDerivationArrowLinks.some((link) => {
-        const targetNodeId = String(link?.targetNodeId || '').trim();
+        const targetNodeId = String(link?.targetNodeId || '');
         return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
       });
       const awaitsPhraseFronting = Array.from(nodeAncestorIds).some((nodeId) => (
@@ -956,7 +956,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return /operator\s*[-\s]?variable\s*[-\s]?binding/i.test(relation)
             && stepIndex <= traceDisplayFrameIndex;
         })
-        .map((link) => String(link?.witnessNodeId || '').trim())
+        .map((link) => String(link?.witnessNodeId || ''))
         .filter(Boolean)
     );
     const derivationRawTraceAliasByIndex = traceDisplayFrame
@@ -1045,7 +1045,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         }
         return false;
       }) || ''
-    ).trim();
+    );
 
     movementArrows.forEach((arrow) => {
       const sourceId = getNodeId(arrow.source);
@@ -1282,7 +1282,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const trimmed = String(value || '').trim();
       if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
       if (normalizeToken(trimmed) !== normalizeToken(firstSentenceReplayToken)) return trimmed;
-      const firstVisibleOvertLeafId = String(visibleOvertLeafIds[0] || '').trim();
+      const firstVisibleOvertLeafId = String(visibleOvertLeafIds[0] || '');
       if (!firstVisibleOvertLeafId || getNodeId(node) !== firstVisibleOvertLeafId) return trimmed;
       const nodeAncestorIds = new Set<string>();
       let currentAncestor: HierNode | null = node;
@@ -1292,7 +1292,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         currentAncestor = currentAncestor.parent;
       }
       const surfacedByFrontingMovement = activeDerivationArrowLinks.some((link) => {
-        const targetNodeId = String(link?.targetNodeId || '').trim();
+        const targetNodeId = String(link?.targetNodeId || '');
         return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
       });
       const awaitsPhraseFronting = Array.from(nodeAncestorIds).some((nodeId) => (
@@ -1319,7 +1319,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const currentPlaybackStep = currentStepIndex >= 0 ? playbackSteps[currentStepIndex] : null;
       if (
         currentPlaybackStep?.operation === 'LexicalSelect' &&
-        String(currentPlaybackStep.targetNodeId || '').trim() === getNodeId(node)
+        String(currentPlaybackStep.targetNodeId || '') === getNodeId(node)
       ) {
         const explicitLexicalSurface = String(currentPlaybackStep.sourceLabels?.[0] || '').trim();
         if (explicitLexicalSurface) {
@@ -1357,7 +1357,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       }
       const surfacedByPhraseMovement = activeDerivationArrowLinks.some((link) => {
         if (isHeadLikeResolvedRelation(link)) return false;
-        const targetNodeId = String(link?.targetNodeId || '').trim();
+        const targetNodeId = String(link?.targetNodeId || '');
         return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
       });
       const sentenceInitialSurface =
@@ -1837,12 +1837,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         (derivationFrameFitNodes ?? treeData.descendants()) as d3.HierarchyPointNode<SyntaxNode>[]
       );
       const framePositionFor: PlanPositionProvider = (nodeId, attachment = 'position') => {
-        const anchor = frameLayoutById.get(String(nodeId || '').trim());
+        const anchor = frameLayoutById.get(String(nodeId || ''));
         if (!anchor) return null;
         if (attachment === 'terminal') {
           // The exact same pure law as the step-visible provider, so the
           // two can never disagree about an endpoint.
-          const terminal = resolveMaterializedTerminal(anchor, String(nodeId || '').trim());
+          const terminal = resolveMaterializedTerminal(anchor, String(nodeId || ''));
           return terminal ? measuredTerminalBottom(terminal) : null;
         }
         if (attachment === 'parent') {
@@ -1850,10 +1850,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return parent ? { x: parent.x, y: parent.y } : null;
         }
         if (attachment === 'shell-top') {
-          return measuredShellTop(String(nodeId || '').trim(), anchor);
+          return measuredShellTop(String(nodeId || ''), anchor);
         }
         if (attachment === 'shell-bottom') {
-          return measuredShellBottom(String(nodeId || '').trim(), anchor);
+          return measuredShellBottom(String(nodeId || ''), anchor);
         }
         return { x: anchor.x, y: anchor.y };
       };
@@ -8670,7 +8670,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     : 0;
   const canStepBackward = animated && playbackSteps.length > 0 && activeStepIndex > 0;
   const canStepForward = animated && playbackSteps.length > 0 && activeStepIndex < playbackSteps.length - 1;
-  const activeDerivationStepLabel = String(activeStep?.stepId || '').trim();
+  const activeDerivationStepLabel = String(activeStep?.stepId || '');
   const activeReplayProgressLabel = String(activeStep?.replayProgressLabel || '').trim();
   const activeStageDisplayLabel = activeReplayProgressLabel
     || (activeDerivationStepLabel ? `Derivation Step ${activeDerivationStepLabel}` : '');

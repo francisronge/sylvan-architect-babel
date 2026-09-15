@@ -260,7 +260,7 @@ export const createDerivationCompilerHelpers = ({
             'an object containing only a nonblank refId'
           );
         }
-        const refId = rawNode.refId.trim();
+        const refId = rawNode.refId;
         const referencedNode = priorNodes.get(refId);
         if (!referencedNode) {
           throwMalformedWorkspace(
@@ -293,7 +293,7 @@ export const createDerivationCompilerHelpers = ({
         );
       }
 
-      const nodeId = rawNode.id.trim();
+      const nodeId = rawNode.id;
       if (stageNodeIds.has(nodeId)) {
         throwMalformedWorkspace(
           `Malformed workspaceForest at derivation stage ${stageIndex + 1}: duplicate active node id ${nodeId}.`,
@@ -394,9 +394,9 @@ export const createDerivationCompilerHelpers = ({
           const reference = authoredNode && Object.hasOwn(authoredNode, 'refId')
             ? { fieldPath: `${path}.refId`, refId: authoredNode.refId } : carriedFrom;
           const referencePath = reference?.fieldPath;
-          const occurrences = nodes.get(node.id.trim()) || [];
+          const occurrences = nodes.get(node.id) || [];
           occurrences.push({ node, fieldPath: referencePath || `${path}.id`, carried: Boolean(referencePath) });
-          nodes.set(node.id.trim(), occurrences);
+          nodes.set(node.id, occurrences);
           const hasTokenIndex = Number.isInteger(node.tokenIndex) && node.tokenIndex >= 0 && node.children.length === 0;
           // Silence covers the whole occurrence: a terminal under a silent
           // ancestor is unpronounced and cannot carry a token index.
@@ -577,7 +577,7 @@ export const createDerivationCompilerHelpers = ({
       nodeId, options.nodeFieldPaths?.get(node)
     ]));
     const alignmentError = (node, field, expectedForm) => {
-      const origin = fieldPathsById.get(node.id.trim());
+      const origin = fieldPathsById.get(node.id);
       const fieldPath = `${origin?.fieldPath || options.fieldPath || '$'}.${field}`;
       const message = `${fieldPath}: authored ${field} does not match final sentence alignment; expected ${expectedForm}.`;
       throw new ParseApiError('BAD_MODEL_RESPONSE', message, 502, withFailureDetails({}, {
@@ -601,7 +601,7 @@ export const createDerivationCompilerHelpers = ({
       );
       const overtTerminals = collectOvertTerminalNodes(candidate);
       const overtTerminalIds = new Set(
-        overtTerminals.map((node) => String(node.id || '').trim())
+        overtTerminals.map((node) => String(node.id || ''))
       );
       const overtSurfaces = overtTerminals
         .map((node) => authoredWord(node))

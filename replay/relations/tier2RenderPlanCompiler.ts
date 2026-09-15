@@ -43,7 +43,7 @@ const flatten = (value: readonly string[] | string | undefined): string[] => (
 const collectForest = (forest: readonly SyntaxNode[]): Map<string, SyntaxNode> => {
   const nodes = new Map<string, SyntaxNode>();
   const walk = (node: SyntaxNode) => {
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     if (id) nodes.set(id, node);
     (node.children || []).forEach(walk);
   };
@@ -55,7 +55,7 @@ const collectSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '').trim();
+    const id = String(current.id || '');
     if (id) ids.push(id);
     (current.children || []).forEach(walk);
   };
@@ -67,7 +67,7 @@ const collectSilentSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '').trim();
+    const id = String(current.id || '');
     if (id && current.silent === true) ids.push(id);
     (current.children || []).forEach(walk);
   };
@@ -136,7 +136,7 @@ const currentWitnessNodeIdsFromFacetIdentity = (
         if (!Array.isArray(witnesses)) return;
         witnesses.forEach((witness) => {
           if (!witness || typeof witness !== 'object') return;
-          const nodeId = String((witness as { id?: unknown }).id ?? '').trim();
+          const nodeId = String((witness as { id?: unknown }).id ?? '');
           if (nodeId) nodeIds.push(nodeId);
         });
       });
@@ -172,7 +172,7 @@ const identityAnchorBlock = (
       Array.isArray(witnesses)
         ? witnesses.flatMap((witness) => {
             if (!witness || typeof witness !== 'object') return [];
-            const nodeId = String((witness as { id?: unknown }).id ?? '').trim();
+            const nodeId = String((witness as { id?: unknown }).id ?? '');
             return nodeId ? [nodeId] : [];
           })
         : []

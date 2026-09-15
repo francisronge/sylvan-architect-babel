@@ -43,8 +43,8 @@ test('future authored collisions are reserved before the first lexical selection
 });
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
-for (const record of records) test(`${record.name}: display-like authored spellings preserve every Replay event and visible occurrence`, () => {
-  const ids = new Map(record.derivationStages.flatMap(stage => stage.workspaceForest.flatMap(nodes)).map(n => [n.id, `__babel_future_layout_1__${n.id}::__leaf`]));
+for (const record of records) for (const spelling of ['display-like', 'whitespace']) test(`${record.name}: ${spelling} authored IDs preserve every Replay event and visible occurrence`, () => {
+  const ids = new Map(record.derivationStages.flatMap(stage => stage.workspaceForest.flatMap(nodes)).map(n => [n.id, spelling === 'whitespace' ? ` ${n.id} ` : `__babel_future_layout_1__${n.id}::__leaf`]));
   const reverse = new Map([...ids].map(([a,b]) => [b,a]));
   const renamed = structuredClone(record);
   for (const stage of renamed.derivationStages) {

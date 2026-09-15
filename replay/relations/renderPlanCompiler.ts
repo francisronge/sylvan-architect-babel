@@ -552,13 +552,13 @@ const LAYER_ORDER: Record<RelationPlanItem['kind'], number> = {
 
 const flattenAnchorIds = (value: string | string[] | undefined): string[] =>
   (Array.isArray(value) ? value : [value])
-    .map((item) => String(item || '').trim())
-    .filter(Boolean);
+    .map((item) => String(item || ''))
+    .filter((id) => Boolean(id.trim()));
 
 const collectForest = (forest: SyntaxNode[] | undefined): Map<string, SyntaxNode> => {
   const nodes = new Map<string, SyntaxNode>();
   const walk = (node: SyntaxNode) => {
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     if (id) nodes.set(id, node);
     (Array.isArray(node.children) ? node.children : []).forEach(walk);
   };
@@ -575,7 +575,7 @@ const collectAuthoredSilentSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '').trim();
+    const id = String(current.id || '');
     if (id && current.silent === true) ids.push(id);
     (Array.isArray(current.children) ? current.children : []).forEach(walk);
   };
@@ -587,7 +587,7 @@ const collectSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '').trim();
+    const id = String(current.id || '');
     if (id) ids.push(id);
     (Array.isArray(current.children) ? current.children : []).forEach(walk);
   };
@@ -599,7 +599,7 @@ const collectLexicalTerminalIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
   const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '').trim();
+    const id = String(current.id || '');
     const children = current.children || [];
     const surface = String(current.word || (children.length === 0 ? current.label : '') || '').trim();
     if (id && children.length === 0 && surface) ids.push(id);
@@ -613,7 +613,7 @@ const collectSubtreeLeafIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const children = Array.isArray(node.children) ? node.children : [];
   if (children.length === 0) {
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     return id ? [id] : [];
   }
   return children.flatMap(collectSubtreeLeafIds);
@@ -628,7 +628,7 @@ const collectRemnantDepartureLeafIds = (
   const departureIds: string[] = [];
   const walk = (node: SyntaxNode) => {
     const children = Array.isArray(node.children) ? node.children : [];
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     if (
       children.length === 0
       && id
@@ -844,11 +844,11 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
    * their transfer domain only here).
    */
   (item.subtreeDerived || []).forEach((declaration) => {
-    const rootNodeId = String(declaration.rootNodeId || '').trim();
+    const rootNodeId = String(declaration.rootNodeId || '');
     if (rootNodeId) ids.add(rootNodeId);
   });
   (item.tier2WitnessNodeIds || []).forEach((nodeId) => {
-    const normalizedNodeId = String(nodeId || '').trim();
+    const normalizedNodeId = String(nodeId || '');
     if (normalizedNodeId) ids.add(normalizedNodeId);
   });
   const walk = (value: unknown, key: string) => {
@@ -895,7 +895,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
       .filter((roleGroup) => roleGroup.large)
       .forEach((roleGroup) => roleGroup.anchors.forEach((anchor) => {
         if (!anchor.resolved) return;
-        const nodeId = String(anchor.nodeId || '').trim();
+        const nodeId = String(anchor.nodeId || '');
         if (nodeId) ids.add(nodeId);
       }));
     return Array.from(ids);
@@ -976,7 +976,7 @@ export const compileRelationRenderPlan = (
       const anchorNode = nodes.get(id);
       if (anchorNode) {
         const walk = (current: SyntaxNode) => {
-          const lineageId = String(current.lineageId || '').trim();
+          const lineageId = String(current.lineageId || '');
           if (lineageId) lineages.add(lineageId);
           (Array.isArray(current.children) ? current.children : []).forEach(walk);
         };
@@ -3334,7 +3334,7 @@ export const compileRelationRenderPlan = (
         .filter((candidate) => candidate !== trajectory)
         .map((candidate) => nodes?.get(candidate.sourceNodeId))
         .filter((candidate): candidate is SyntaxNode => Boolean(
-          candidate?.id && sourceIds.has(String(candidate.id).trim())
+          candidate?.id && sourceIds.has(String(candidate.id))
         ));
       trajectory.orthogonalDepartureNodeIds = collectRemnantDepartureLeafIds(
         sourceRoot,

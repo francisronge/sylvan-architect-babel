@@ -7,7 +7,7 @@ const cloneJson = (value) => {
   return JSON.parse(JSON.stringify(value));
 };
 
-const nodeId = (node) => asText(node?.id || node?.refId);
+const nodeId = (node) => String(node?.id || node?.refId || '');
 
 const nodeLabel = (node) => asText(node?.label || node?.word);
 
@@ -16,12 +16,12 @@ const flattenAnchorNodeIds = (anchors = {}) => {
   Object.values(anchors || {}).forEach((value) => {
     if (Array.isArray(value)) {
       value.forEach((item) => {
-        const id = asText(item);
+        const id = String(item || '');
         if (id) ids.push(id);
       });
       return;
     }
-    const id = asText(value);
+    const id = String(value || '');
     if (id) ids.push(id);
   });
   return Array.from(new Set(ids));
@@ -31,7 +31,7 @@ const collectWorkspaceNodeIds = (workspaceForest = []) => {
   const ids = new Set();
   const visit = (node) => {
     if (!node || typeof node !== 'object') return;
-    const id = asText(node.id);
+    const id = String(node.id || '');
     if (id) ids.add(id);
     asArray(node.children).forEach(visit);
   };
@@ -50,7 +50,7 @@ export const classifyRelationAnchors = (anchors = {}, workspaceForest = []) => {
   Object.entries(anchors).forEach(([role, rawValue]) => {
     const values = Array.isArray(rawValue) ? rawValue : [rawValue];
     values.forEach((value, itemIndex) => {
-      const nodeId = asText(value);
+      const nodeId = String(value || '');
       const anchor = { role, nodeId, authoredAnchorIndex };
       authoredAnchorIndex += 1;
       if (nodeId && workspaceNodeIds.has(nodeId)) {

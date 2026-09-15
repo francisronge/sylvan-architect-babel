@@ -838,7 +838,7 @@ const buildTreeIndex = (forest: readonly SyntaxNode[] | undefined): TreeIndex =>
   };
 
   const visit = (node: SyntaxNode, parentId: string | null, workspaceId: string) => {
-    const id = String(node.id || '').trim();
+    const id = String(node.id || '');
     if (id) {
       const nodes = index.nodes.get(id) ?? [];
       nodes.push(node);
@@ -856,7 +856,7 @@ const buildTreeIndex = (forest: readonly SyntaxNode[] | undefined): TreeIndex =>
   };
 
   (Array.isArray(forest) ? forest : []).forEach((root, rootIndex) => {
-    const workspaceId = String(root.id || '').trim() || `workspace:${rootIndex}`;
+    const workspaceId = String(root.id || '') || `workspace:${rootIndex}`;
     visit(root, null, workspaceId);
   });
   return index;
@@ -1054,7 +1054,7 @@ const sharedRootLineage = (index: TreeIndex, ids: readonly string[]): string | u
 const descendantIds = (node: SyntaxNode): Set<string> => {
   const ids = new Set<string>();
   const visit = (currentNode: SyntaxNode) => {
-    const id = String(currentNode.id || '').trim();
+    const id = String(currentNode.id || '');
     if (id) ids.add(id);
     (Array.isArray(currentNode.children) ? currentNode.children : []).forEach(visit);
   };
@@ -1081,7 +1081,7 @@ const subtreeNodes = (node: SyntaxNode): SyntaxNode[] => {
 };
 
 const subtreeLineages = (node: SyntaxNode): Set<string> => new Set(
-  subtreeNodes(node).map((member) => String(member.lineageId || '').trim()).filter(Boolean)
+  subtreeNodes(node).map((member) => String(member.lineageId || '')).filter(Boolean)
 );
 
 const sharesLineage = (index: TreeIndex, roleIdGroups: readonly string[][]): boolean => {
@@ -1318,14 +1318,14 @@ const nodeShape = (node: SyntaxNode): string => {
 };
 
 const previousMatch = (node: SyntaxNode, priorIndex: TreeIndex): SyntaxNode | null => {
-  const id = String(node.id || '').trim();
+  const id = String(node.id || '');
   const idMatches = id ? priorIndex.nodes.get(id) ?? [] : [];
   if (idMatches.length === 1) return idMatches[0];
   if (idMatches.length > 1) return null;
-  const lineage = String(node.lineageId || '').trim();
+  const lineage = String(node.lineageId || '');
   if (!lineage) return null;
   const lineageMatches = [...priorIndex.nodes.values()].flat().filter((candidate) => (
-    String(candidate.lineageId || '').trim() === lineage
+    String(candidate.lineageId || '') === lineage
   ));
   return lineageMatches.length === 1 ? lineageMatches[0] : null;
 };
@@ -1341,7 +1341,7 @@ const sharedRoleLineages = (
 };
 
 const lineageOccurrenceCount = (index: TreeIndex, lineage: string): number =>
-  [...index.nodes.values()].flat().filter((node) => String(node.lineageId || '').trim() === lineage).length;
+  [...index.nodes.values()].flat().filter((node) => String(node.lineageId || '') === lineage).length;
 
 const sharedLineageOccurrenceIncreased = (
   currentIndex: TreeIndex,
@@ -1793,7 +1793,7 @@ const identityWitnesses = (
 }> => ids.map((id) => ({
   id,
   lineages: [...new Set((index.nodes.get(id) ?? [])
-    .map((node) => String(node.lineageId || '').trim())
+    .map((node) => String(node.lineageId || ''))
     .filter(Boolean))].sort(),
   workspaces: [...(index.workspaceIds.get(id) ?? [])].sort()
 }));

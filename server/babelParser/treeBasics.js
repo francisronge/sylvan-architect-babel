@@ -12,9 +12,9 @@ export const collectNodeReferencesById = (value) => {
       return;
     }
 
-    const id = typeof current.id === 'string' ? current.id.trim() : '';
+    const id = typeof current.id === 'string' ? current.id : '';
     const label = typeof current.label === 'string' ? current.label.trim() : '';
-    if (id && label && !references.has(id)) {
+    if (id.trim() && label && !references.has(id)) {
       references.set(id, current);
     }
 
