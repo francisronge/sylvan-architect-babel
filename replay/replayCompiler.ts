@@ -85,6 +85,8 @@ export interface PlaybackStep {
 export interface ReplaySupportLine {
   label: string;
   value: string;
+  /** Same-name, same-position authored value paired with a current participant. */
+  literal?: string;
 }
 
 export interface ReplayPanelContent {
@@ -227,6 +229,8 @@ interface ReplayAuthoredRelationLink extends ResolvedRelationLink {
   identityKey?: string;
   identityProvenance?: 'authored-shared-lineage';
   relationIndexProvenance: 'derived-presentation';
+  /** Proven preceding occurrence, retained for the panel's movement source. */
+  priorSourceNodeId?: string;
 }
 
 interface DerivationReplayPlanStage {
@@ -7276,6 +7280,9 @@ export const buildAuthoredRelationLinksForFrames = (
           : {}),
         authoredRelationIndex,
         authoredRelationKey: `${frameIndex}:${authoredRelationIndex}`,
+        ...(relation.recoveredMovement
+          ? { priorSourceNodeId: relation.recoveredMovement.priorSourceNodeId }
+          : {}),
         ...(targetAnchor
           ? {
               sourceNodeId: sourceAnchor.nodeId,
@@ -7492,13 +7499,21 @@ const buildAuthoredRelationAnchorLines = (
     });
   };
   const current = Object.entries(relation.anchors ?? {}).flatMap(([role, value]) => {
-    if (endpointIsCovered(role, value)) return [];
     const ids = Array.isArray(value) ? value : [value];
+    const authoredValue = relation.values?.[role];
+    const literals = typeof authoredValue === 'string' ? [authoredValue] : authoredValue;
+    // Pair only exact authored names and equal lengths. Prior entries remain separate.
+    const paired = ids.length > 0 && literals?.length === ids.length;
+    if (!paired && endpointIsCovered(role, value)) return [];
     if (!ids.length) return [{ label: role, value: '[]' }];
-    return ids.map(nodeId => {
+    return ids.map((nodeId, index) => {
       const anchor = links.flatMap(link => link.anchors ?? []).find(item =>
         (item.authoredRole || item.role) === role && item.nodeId === nodeId);
-      return { label: role, value: formatRelationParticipantValue(anchor ?? { role, nodeId, value: nodeId }, step.replayCanvasData) || nodeId };
+      return {
+        label: role,
+        value: formatRelationParticipantValue(anchor ?? { role, nodeId, value: nodeId }, step.replayCanvasData) || nodeId,
+        ...(paired ? { literal: literals![index] } : {})
+      };
     });
   });
   const prior = Object.entries(relation.priorAnchors ?? {}).flatMap(([role, value]) => {
@@ -7610,8 +7625,26 @@ const inferReplayLandingValue = (step: PlaybackStep | null): string => {
     : '';
 };
 
-const inferReplaySourceValue = (step: PlaybackStep | null, landingValue: string): string => {
+const inferReplaySourceValue = (
+  step: PlaybackStep | null,
+  landingValue: string,
+  priorForest: readonly SyntaxNode[]
+): string => {
   if (!step) return '';
+  const priorIds = [...new Set(getReplayContentRelationLinks(step)
+    .filter(isResolvedMovementLink)
+    .map(link => (link as ReplayAuthoredRelationLink).priorSourceNodeId)
+    .filter((id): id is string => Boolean(id)))];
+  if (priorIds.length) {
+    const priorNodes = priorForest.flatMap(collectReplayCanvasNodes);
+    return priorIds.flatMap(nodeId => {
+      if (priorNodes.filter(node => node.id === nodeId).length !== 1) return [];
+      const root = priorForest.find(root => findReplayNodePathById(root, nodeId));
+      const display = formatRelationParticipantValue({ role: '', nodeId }, root);
+      const position = describeReplayNodePosition(root, nodeId);
+      return [display && position && display !== position ? `${display} (${position})` : display || position];
+    }).filter(Boolean).join(' + ');
+  }
   const diagnostics = Array.isArray(step.movementDiagnostics)
     ? step.movementDiagnostics.filter(Boolean)
     : [];
@@ -7661,7 +7694,6 @@ export const buildReplaySupportLines = (
 
   const operation = String(step.operation || '').trim();
   const inputValue = formatReplayInputsValue(step.sourceLabels);
-  const workspaceValue = formatReplayInputsValue(step.workspaceAfter);
   const resultValue = formatReplaySupportValue(step.targetLabel);
   const literalValues = authoredRelation === undefined
     ? getReplayContentRelationLinks(step).find(link => link.values)?.values
@@ -7673,28 +7705,25 @@ export const buildReplaySupportLines = (
   }
 
   if (step.replayKind !== 'relation' && operation === 'LexicalSelect') {
-    return (workspaceValue || inputValue)
-      ? [{ label: 'Result', value: workspaceValue || inputValue }]
-      : [];
+    return [];
   }
 
-  if (step.replayKind !== 'relation' && operation === 'Project') {
-    const lines: ReplaySupportLine[] = [];
-    if (inputValue) lines.push({ label: 'Input', value: inputValue });
-    if (workspaceValue || resultValue) lines.push({ label: 'Result', value: workspaceValue || resultValue });
-    return lines;
+  if (step.replayKind !== 'relation' && (operation === 'Project' || operation === 'ExternalMerge')) {
+    return inputValue && resultValue ? [{ label: '', value: `${inputValue} → ${resultValue}` }]
+      : inputValue ? [{ label: 'Input', value: inputValue }]
+        : resultValue ? [{ label: 'Result', value: resultValue }] : [];
   }
 
-  if (step.replayKind !== 'relation' && operation === 'ExternalMerge') {
-    const lines: ReplaySupportLine[] = [];
-    if (inputValue) lines.push({ label: step.sourceLabels.length > 1 ? 'Inputs' : 'Input', value: inputValue });
-    if (resultValue) lines.push({ label: 'Result', value: resultValue });
-    return lines;
-  }
+  const relationLines = (movementLines?: ReplaySupportLine[]): ReplaySupportLine[] => {
+    const participants = authoredRelation === undefined ? movementLines ? [] : buildRelationParticipantSupportLines(step)
+      : authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, movementLines, priorForest) : [];
+    const pairedKeys = new Set(participants.filter(line => line.literal !== undefined).map(line => line.label));
+    return [...(movementLines ?? []), ...participants, ...valueLines.filter(line => !pairedKeys.has(line.label))];
+  };
 
   if (stepRepresentsMovement(step) && relationMomentUsesMovementSupport(step)) {
     const landingValue = inferReplayLandingValue(step);
-    const sourceValue = inferReplaySourceValue(step, landingValue);
+    const sourceValue = inferReplaySourceValue(step, landingValue, priorForest);
     const lines: ReplaySupportLine[] = [];
     const diagnostics = Array.isArray(step.movementDiagnostics)
       ? step.movementDiagnostics.filter(Boolean)
@@ -7705,13 +7734,11 @@ export const buildReplaySupportLines = (
     else if (mentionsMissingSource) lines.push({ label: 'Source', value: 'not serialized' });
     if (landingValue) lines.push({ label: 'Landing', value: landingValue });
     else if (mentionsMissingLanding) lines.push({ label: 'Landing', value: 'not serialized' });
-    return [...lines, ...(authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, lines, priorForest) : []), ...valueLines];
+    return relationLines(lines);
   }
 
   if (step.replayKind === 'relation') {
-    const participants = authoredRelation === undefined ? buildRelationParticipantSupportLines(step)
-      : authoredRelation ? buildAuthoredRelationAnchorLines(step, authoredRelation, [], priorForest) : [];
-    return [...participants, ...valueLines];
+    return relationLines();
   }
 
   const fallbackLines: ReplaySupportLine[] = [];

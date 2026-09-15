@@ -12,6 +12,7 @@ import {
   formatReplayBlockTitle
 } from '../replay/replayCompiler.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 
 const leaf = (id, word = id, extra = {}) => ({ id, label: 'D', word, ...extra });
 const node = (id, label, children) => ({ id, label, children });
@@ -36,6 +37,78 @@ const freeze = value => {
   return value;
 };
 const unkey = rows => rows.map(({ label, value }) => ({ label, value }));
+
+test('construction notation shows only affected objects and selection has no duplicate result', () => {
+  for (const [operation, sourceLabels, targetLabel, expected] of [
+    ['LexicalSelect', [], 'which', []],
+    ['Project', ['N′'], 'NP', [{ label: '', value: 'N′ → NP' }]],
+    ['ExternalMerge', ['V', 'DP'], 'V′', [{ label: '', value: 'V + DP → V′' }]],
+    ['ExternalMerge', ['X', 'X'], 'Z', [{ label: '', value: 'X + X → Z' }]]
+  ]) {
+    const current = freeze(step({ operation, sourceLabels, targetLabel, workspaceAfter: ['Unrelated', 'Which'] }));
+    assert.deepEqual(unkey(buildReplayPanelContent(current).supportLines), expected);
+  }
+});
+
+test('paired current participants retain every literal, repeated occurrence and separate prior entry', () => {
+  const record = { relation: 'Open relation', anchors: { items: ['context', 'context', 'context'], other: 'high' },
+    priorAnchors: { items: 'earlier' }, values: { items: ['one', '', 'one'], other: 'nominal', note: 'Keep this.' } };
+  const current = freeze(step({ replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 } }));
+  const stages = freeze([{ ...stage([]), workspaceForest: [leaf('earlier', 'before')] }, stage([record])]);
+  const content = buildReplayPanelContent(current, stages);
+  assert.deepEqual(content.supportLines.filter(row => row.literal !== undefined).map(({ label, value, literal }) =>
+    ({ label, value, literal })), [
+    { label: 'items', value: 'x_i', literal: 'one' },
+    { label: 'items', value: 'x_i', literal: '' },
+    { label: 'items', value: 'x_i', literal: 'one' },
+    { label: 'other', value: 'Which', literal: 'nominal' }
+  ]);
+  assert.equal(content.supportLines.filter(row => row.label === 'items').length, 3);
+  assert(content.supportLines.some(row => row.label === 'priorAnchors.items' && row.value === 'before'));
+  assert(content.supportLines.some(row => row.label === 'note' && row.value === 'Keep this.'));
+  assert.strictEqual(content.authoredRelation, record);
+});
+
+test('panel pairing cannot guess unequal lists, similarly named fields or previous-stage associations', () => {
+  for (const record of [
+    { anchors: { items: ['context', 'high'] }, values: { items: ['only one'] } },
+    { anchors: { item: 'context' }, values: { Item: 'Different authored key' } },
+    { anchors: { item: 'context' }, priorAnchors: { earlier: 'context' }, values: { earlier: 'Earlier value' } }
+  ]) {
+    const relation = freeze({ relation: 'Open relation', ...record });
+    const content = buildReplayPanelContent(step({ replayKind: 'relation', replayRelationIdentity: { stageIndex: 0, relationIndex: 0 } }), [stage([relation])]);
+    assert(content.supportLines.every(row => row.literal === undefined));
+    const literals = Object.values(record.values).flat();
+    assert(literals.every(value => content.supportLines.some(row => row.value === value)));
+  }
+});
+
+test('compiled movement Source uses its proven earlier occurrence even when the lower copy has another id', () => {
+  const before = node('clause', 'TP', [leaf('origin', 'did', { label: 'T', lineageId: 'tense' }), leaf('other', 'same')]);
+  const after = node('question', 'CP', [
+    node('complex', 'C', [leaf('landing', 'did', { label: 'T', lineageId: 'tense' }), { id: 'host', label: 'C', children: [] }]),
+    node('clause', 'TP', [leaf('lower', 'did', { label: 'T-trace', silent: true, lineageId: 'tense' }), leaf('other', 'same')])
+  ]);
+  const relation = { relation: 'Open dependency', anchors: { lowerCopy: 'lower', higherCopy: 'landing' }, priorAnchors: { source: 'origin' } };
+  const stages = freeze([{ ...stage([]), workspaceForest: [before] }, { ...stage([relation]), workspaceForest: [after] }]);
+  const steps = buildReplayPlayback({ sentence: 'did same', analyses: [{ derivationStages: stages }] }).steps;
+  const current = steps.find(step => step.replayKind === 'relation');
+  assert(current.replayRelationLinks.some(link => link.priorSourceNodeId === 'origin'));
+  const source = buildReplayPanelContent(current, stages).supportLines.find(row => row.label === 'Source');
+  assert(source.value.startsWith('did'), source.value);
+  assert(!source.value.includes('trace'), source.value);
+});
+
+test('proven source descriptions fail closed for absent or duplicate prior ids', () => {
+  const current = movementStep({ replayRelationIdentity: { stageIndex: 1, relationIndex: 0 },
+    replayRelationLinks: [movementLink({ authoredRelationKey: '1:0', priorSourceNodeId: 'origin' })] });
+  const record = { relation: 'Movement', anchors: { source: 'low', landing: 'high' } };
+  for (const workspaceForest of [[], [leaf('origin', 'first'), leaf('origin', 'second')]]) {
+    const content = buildReplayPanelContent(current, [{ ...stage([]), workspaceForest }, stage([record])]);
+    assert(!content.supportLines.some(row => row.label === 'Source'));
+    assert(content.supportLines.some(row => row.label === 'source'), 'the current authored participant stays available');
+  }
+});
 
 test('Replay panels exclude compiler diagnostics and preserve authored content and stored evidence', () => {
   const record = { relation: 'Wh licensing', anchors: { operator: 'high' }, values: { Audit: 'An authored qualification' } };

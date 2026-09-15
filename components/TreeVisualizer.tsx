@@ -8906,15 +8906,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             data-babel-replay-details="true"
             className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1 space-y-3"
           >
-            <div data-babel-replay-summary="true" className="text-[11px] text-white font-semibold">
-              {activePanelContent.heading}
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {activeStep?.replayKind && activeStep.replayKind !== 'macro' && (
+                <span className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90">
+                  {activeStep.replayKind === 'micro' ? 'Construction' : 'Relation'}
+                </span>
+              )}
+              <div data-babel-replay-summary="true" className="text-[11px] text-white font-semibold">
+                {activePanelContent.heading}
+              </div>
             </div>
             {activeReplaySupportLines.length > 0 && (
               <div className="space-y-1 text-[10px] tracking-[0.12em] text-emerald-300/90">
                 {activeReplaySupportLines.map((line) => (
-                  <div key={line.key} className="leading-relaxed">
-                    <span>{line.label}:</span>
-                    <span className="ml-2 text-[11px] tracking-normal text-white/92">{line.value}</span>
+                  <div key={line.key} className="leading-relaxed"
+                    aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
+                    {line.label && <span>{line.label}:</span>}
+                    <span className={`${line.label ? 'ml-2 ' : ''}text-[11px] tracking-normal text-white/92 whitespace-pre-wrap`}>
+                      {line.value}
+                      {line.literal !== undefined && line.literal !== line.value && (
+                        <> · {line.literal === '' ? '""' : line.literal}</>
+                      )}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -8923,9 +8936,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
                 {activeDisplayDetailBlocks.map((block, blockIndex) => (
                   <div key={`${block.title}-${blockIndex}`}>
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90 mb-2">
-                      {formatReplayBlockTitle(block.title)}
-                    </div>
+                    {!(activeStep?.replayKind === 'macro' && block.title === 'Stage Record') && (
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90 mb-2">
+                        {formatReplayBlockTitle(block.title)}
+                      </div>
+                    )}
                     <div className="space-y-1">
                       {block.lines.map((line, lineIndex) => (
                         <div key={`${block.title}-${lineIndex}`} className="text-[11px] text-white/90 leading-relaxed whitespace-pre-line">
