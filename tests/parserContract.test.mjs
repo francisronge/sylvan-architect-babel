@@ -114,6 +114,9 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
+    assert.match(instruction, /Replay derives its construction steps from workspace changes; do not add relations solely to narrate those steps\./);
+    assert.match(instruction, /Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching\./);
+    assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
