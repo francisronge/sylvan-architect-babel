@@ -68,6 +68,10 @@ const parseBundle = {
 };
 const request = rawBundleWrapper.request || {};
 const firstAnalysis = Array.isArray(parseBundle.analyses) ? parseBundle.analyses[0] : null;
+if (firstAnalysis?.derivationStages?.some(stage => stage.realizations?.length)
+  && !String(request.sentence || rawBundleWrapper.sentence || parseBundle.sentence || '').trim()) {
+  throw new Error('Capturing realization analyses requires their original input sentence.');
+}
 const sentence = String(
   request.sentence
   || rawBundleWrapper.sentence

@@ -14,13 +14,16 @@ interface Inspection {
     rawOutput: { sha256: string };
     repairDiagnostics: unknown[];
     payload: unknown;
+    input?: { sentence: string; tokens: string[] };
     analyses: Array<{
       analysisIndex: number;
+      realizationReplayDiagnostics?: string[];
       stages: Array<{
         stageIndex: number;
         authoredStage: unknown;
         workspaceForest: SyntaxNode[] | null;
         diagnostic?: unknown;
+        diagnostics?: unknown[];
         blockedByStageIndex?: number;
       }> | null;
     }>;
@@ -71,9 +74,12 @@ function WorkspaceInspection({ records }: { records: Inspection[] }) {
       <p>{typeof authored.stageRecord === 'string' ? authored.stageRecord : ''}</p>
       <details><summary>Original fields and diagnostics</summary><pre>{JSON.stringify({
         rawOutput: selected?.record.rawOutput,
+        input: selected?.record.input,
         repairDiagnostics: selected?.record.repairDiagnostics,
         authoredStage: stage?.authoredStage,
         diagnostic: stage?.diagnostic,
+        diagnostics: stage?.diagnostics,
+        realizationReplayDiagnostics: selected?.analysis.realizationReplayDiagnostics,
         blockedByStageIndex: stage?.blockedByStageIndex
       }, null, 2)}</pre></details>
     </footer>

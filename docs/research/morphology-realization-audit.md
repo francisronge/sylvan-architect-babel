@@ -1,12 +1,16 @@
 # Morphology and surface realization audit
 
-This is a separate capability audit requested by Francis, dated 14 September
-2026. It describes Babel at `08b5de4`, using Node `v24.16.0`. It does not adopt
-a new contract, change the prompt, repair an analysis, or approve a new drawing.
+The original capability audit requested by Francis, dated 14 September 2026,
+describes Babel at `08b5de4`, using Node `v24.16.0`. That investigation changed no
+contract, prompt, analysis or drawing. Its baseline findings remain below; the
+[follow-up](#contract-reuse-check-and-proposed-extension) records the optional
+`realizations` contract approved and implemented on 15 September. Offline
+integration and browser verification are complete; fresh model authoring remains
+unmeasured.
 [ROADMAP.md](../../ROADMAP.md#current-reconciliation-and-next-work) owns the work
 order. The model continues to author the linguistics.
 
-## Answer
+## Answer at the audited baseline
 
 Babel already accepts separate morphological pieces in earlier stages followed
 by one pronounced word in a later stage. For example, an abstract root and tense
@@ -14,7 +18,7 @@ head can become a terminal whose `word` is `walked`. The final terminal supplies
 the existing input alignment. No additional permanent mapping is necessary for
 that representation.
 
-Babel cannot currently accept a final tree in which two pronounced terminals,
+At that baseline, Babel cannot accept a final tree in which two pronounced terminals,
 `walk` and `-ed`, jointly realize the single input token `walked`. The limitation
 is shared by the prompt and final-surface checker. A realization plaque does not
 override it. Likewise, one terminal containing `has walked` does not match the
@@ -54,7 +58,7 @@ The tested system-instruction hashes are:
 | X-bar | `7c9383c0fabe4b7c879a706e97514a47060c68fb18b9365ed1fe026fb656609e` |
 | Minimalism | `a74bcc96e174fb054abd4bb6da0dc9971bcb325c80cc4b3d9c00247103560bb7` |
 
-This covers the current implementation's relevant paths and known design
+This covers the audited implementation's relevant paths and known design
 dimensions. It does not certify every morphological theory, language, open
 relation name, model response or visual composition.
 
@@ -77,7 +81,7 @@ for every Babel derivation. See *Distributed Morphology and the Pieces of
 Inflection*, pp. 111–117, in the
 [authors' paper](https://web.mit.edu/morrishalle/pubworks/papers/1993_Halle_Marantz_Hale_Keyser_Distributed_Morphology_Pieces_of_Inflection.pdf).
 
-## Current representation and processing
+## Audited representation and processing
 
 | Part | Established behavior | Consequence |
 | --- | --- | --- |
@@ -379,11 +383,12 @@ for evaluating a new representation, not claims that new support was tested here
 
 Keep the already supported early-pieces-to-final-word path. The neutral
 transition's residual-parent repair is complete as recorded above.
-Design retained final morphology separately, starting from explicit occurrence
+Implement retained final morphology separately, starting from explicit occurrence
 alignment rather than alias recognition or automatic concatenation. The user
-supports the optional association field and requires especially clear authoring
-instructions. The concrete proposal below defines the implementation direction;
-it does not claim that the field or its consumers already work.
+approved the optional association field and requires especially clear authoring
+instructions. The concrete rules below define the accepted contract;
+the implementation and its verification are recorded at the end of the follow-up.
+The earlier sections preserve the original audit baseline.
 
 The user approved the prompt change from `syntactic reason` to `reason within the
 analysis` on 15 September; it is implemented separately from realization groups.
@@ -395,10 +400,12 @@ instruction is already committed and is not reopened by this audit.
 
 ## Contract reuse check and proposed extension
 
-This follow-up examines `b4abef8` after the badge and emptied-parent repairs. It
-is a proposal, not an implemented capability. The reuse investigation changed
-no product, prompt or fixture files and made no provider call. The separately
-approved unchanged-workspace prompt clarification is recorded above.
+This follow-up examined `b4abef8` after the badge and emptied-parent repairs. That
+reuse investigation changed no product, prompt or fixture files and made no
+provider call. The user approved implementation of the optional association field
+on 15 September. Its rules below are now implemented and verified offline;
+fresh model compliance remains unmeasured. The separately approved
+unchanged-workspace prompt clarification is recorded above.
 
 The current-code check runs 52 concrete records in both frameworks, including
 the original 42 controls and ten additional field-reuse combinations. All 104
@@ -454,7 +461,7 @@ association, not a phonological derivation or a spelling algorithm. In particula
 linking a root and tense to a token does not certify that the linguistic claim is
 correct.
 
-Proposed rules:
+Approved rules:
 
 1. Omission retains today's final-alignment behavior. Ordinary whole-word
    analyses need no new field. Existing records are not migrated or reinterpreted.
@@ -533,7 +540,7 @@ which relation introduced a new realization. Current nonmovement transition
 checking also compares only forests, so an unchanged tree with changed groups
 needs explicit handling.
 
-Recommended first-version policy: use existing exact current/prior relation
+Approved first-version policy: use existing exact current/prior relation
 ownership when it identifies one owner. An intermediate completed stage can
 separate competing operations under the existing chronology rule. It does not
 supply a missing owner: a stage with no witnessing relation still establishes no
@@ -556,15 +563,18 @@ invented grammatical sentence, or treating input coverage as a grammaticality
 verdict. The hypothetical possibility of an analysis ending without a complete
 sentence tree is not grounds for relaxing this requirement.
 
-Model-facing instructions for the future field must define its placement and
-each list explicitly, distinguish ordinary direct token indices from collective
-association, and show both when to omit it and when to use it. Use worked examples
-with exact input tokens and matching node IDs, including separate pieces realizing
-one word and an irregular realization. Explain that groups record associations
-already established in that stage; they do not automatically pronounce, move,
-fuse or respell nodes. Preserve the model's choice of morphological analysis.
+The model-facing instructions define the optional field after `workspaceForest`
+and explain both lists, ordinary direct indices and collective association. Their
+examples cover omission for a whole-word `walked` terminal, separate `stem` and
+`ending` leaves carrying `walk` and `-ed` for input tokens `["walked"]`, and
+wordless `rootGo` and `past` nodes for `["went"]`. These illustrate permitted
+associations without requiring those syntactic analyses. Groups record
+associations already established in that stage; they do not automatically
+pronounce, move, fuse or respell nodes. Existing relations and stage records
+describe the operation and its timing. Fresh model compliance with these
+instructions remains unmeasured.
 
-Necessary now, if the capability is approved: the optional group field, shared
+Necessary now: the optional group field, shared
 coverage checking, state/consumer preservation and focused controls for many-to-one,
 one-to-many, repeated tokens, irregular forms, domains, overlapping sources,
 silence and omitted/conflicting associations. Include ordinary-record parity and
@@ -576,11 +586,37 @@ new relation vocabulary, storage architecture, tokenizer changes and a general
 layout or linearization rewrite. The association can identify separate target
 positions without constructing an independent PF-ordering system.
 
-The user supports this optional stage field and has specified the exact-input
+The user approved this optional stage field and has specified the exact-input
 and authoring requirements above. The recommended handling of ambiguous timing
 follows the existing intermediate-stage rule rather than adding another field.
-The proposed field and scoped integration remain unimplemented and must pass
-their focused checks before being treated as supported capability.
+The scoped implementation passes `npm run verify:all`: typecheck, 1,640 tests and
+parse-contract verification. The production build and release-asset check also
+pass. Focused controls cover regular and irregular collective realization,
+one-to-many and discontinuous targets, repeated tokens, shared sources, current
+subtree domains, inherited silence, redundant direct indices, malformed groups,
+exact IDs, omitted state and ambiguous or unavailable timing. A realization
+cannot activate at its relation moment until its complete current source domain
+is visible. Unresolved ownership remains inspection metadata.
+
+All six enabled model routes, in both frameworks, preserve the groups, original
+input, raw output and prompt hashes under mocked provider responses. Public
+response bundles now retain the supplied input in their existing `sentence`
+field. This allows saved Replay to use the original tokens instead of trying to
+reconstruct them from morphological pieces.
+
+The six archived Grok/Astra/Fable analyses retain byte-identical complete Replay
+output across 207 frames. The integrated production-renderer browser comparison
+also finds identical syntax labels, badge bounds and camera transforms at every
+archived frame, with manual zoom and Fit behavior preserved. Two explicitly
+labelled authoring controls add 13 inspected frames. The actual app worker,
+Tree Bank thumbnail, save and reopen preserve `walk` plus `-ed` for input
+`walked`. These controls test representation, not linguistic correctness.
+Temporary review images, recording, executable controls and results are under
+`/tmp/babel-realizations-review/`; they are not committed product fixtures.
+
+No provider calls were made. Fresh model compliance, cost and latency for the
+new instructions remain unmeasured. This feature adds no morphology-specific
+graphic, spelling algorithm, topology change or relaxed exact-input policy.
 
 Separate existing limitations:
 

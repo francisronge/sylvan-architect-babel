@@ -102,7 +102,8 @@ const normalizeStage = (stage, index) => {
     statement: asText(stage?.statement),
     stageRecord: asText(stage?.stageRecord),
     relations: normalizeRelations(stage?.relations),
-    workspaceForest: asArray(stage?.workspaceForest)
+    workspaceForest: asArray(stage?.workspaceForest),
+    ...(Array.isArray(stage?.realizations) ? { realizations: cloneJson(stage.realizations) } : {})
   };
 };
 
@@ -196,7 +197,8 @@ const buildMacroStep = (stage) => makeStep('macro', stage, {
   label: stage.statement || `Stage ${stage.stageNumber}`,
   stageRecord: stage.stageRecord,
   workspaceForest: cloneJson(stage.workspaceForest),
-  relations: cloneJson(stage.relations)
+  relations: cloneJson(stage.relations),
+  ...(Array.isArray(stage.realizations) ? { realizations: cloneJson(stage.realizations) } : {})
 });
 
 const addStageProgress = (stages) => {

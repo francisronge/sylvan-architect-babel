@@ -1,9 +1,10 @@
 import * as d3 from 'd3';
-import { createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
 import type { DerivationStageRelation } from '../types.ts';
-import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SyntaxNode } from '../types.ts';
+import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
+import { attachReplayRealizations, cloneRealizations } from './realizationReplay.ts';
 import {
   isFrontingMovementIdentity,
   isMovementIdentity,
@@ -75,6 +76,9 @@ export interface PlaybackStep {
   replayUsesFutureLayoutScaffold?: boolean;
   preserveReplayStep?: boolean;
   replaySuppressAutoRevealNodeIds?: string[];
+  replayRealizations?: SurfaceRealization[];
+  /** Inspection evidence only; never add these messages to the authored Replay panel. */
+  replayRealizationDiagnostics?: string[];
 }
 
 export interface ReplaySupportLine {
@@ -158,6 +162,7 @@ interface ReplayDerivationChange {
 interface ReplayDerivationAfterState {
   workspaceForest?: SyntaxNode[];
   reusePreviousWorkspace?: boolean;
+  realizations?: SurfaceRealization[];
 }
 
 export interface ReplayDerivationFrame {
@@ -230,6 +235,7 @@ interface DerivationReplayPlanStage {
   stageRecord?: string;
   relationSteps?: DerivationReplayPlanStep[];
   macroStep?: DerivationReplayPlanStep;
+  realizations?: SurfaceRealization[];
 }
 
 export interface DerivationReplayPlan {
@@ -237,7 +243,7 @@ export interface DerivationReplayPlan {
   steps?: DerivationReplayPlanStep[];
 }
 
-export const getNodeId = (node: HierNode): string => (node as any).__vizId as string;
+export { applyVizIds, getNodeId } from './displayIdentity.ts';
 
 /**
  * Index laid-out syntax by its current renderer id and by every preserved
@@ -270,28 +276,6 @@ export const indexHierarchyNodesByIdAndAliases = <T extends HierNode>(
 export const STEP_DELAY_MS = 1000;
 export const MOVEMENT_ARROW_COLOR = '#10b981';
 export const MOVEMENT_ARC_STROKE = 2.6;
-
-export const applyVizIds = (root: HierNode) => {
-  const used = new Set<string>();
-  const reserved = new Set<string>();
-  root.eachBefore(node => {
-    [node.data.id, ...(node.data.aliasIds || [])].forEach(id => {
-      if (typeof id === 'string' && id.trim()) reserved.add(id.trim());
-    });
-  });
-  let generated = 1;
-  root.eachBefore((node) => {
-    const raw = typeof node.data.id === 'string' ? node.data.id.trim() : '';
-    let id = raw;
-    if (!id || used.has(id)) {
-      while (used.has(`n${generated}`) || reserved.has(`n${generated}`)) generated += 1;
-      id = `n${generated}`;
-      generated += 1;
-    }
-    used.add(id);
-    (node as any).__vizId = id;
-  });
-};
 
 export const isSyntheticWorkspaceRootNode = (node: HierNode): boolean =>
   node.data?.replayOrigin?.kind === 'workspace';
@@ -354,7 +338,7 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
       ...(Array.isArray(current.aliasIds) ? current.aliasIds : []),
       String(current.id || '').trim()
     ].filter(Boolean)));
-    next.replayOrigin = { kind: 'lexical', ownerId: parentId, authoredId: ownId };
+    next.replayOrigin = { kind: 'lexical', ownerId: parentId, authoredId: typeof current.id === 'string' ? current.id : ownId };
     next.id = identity.allocate(`${parentId}::__lex_${stableKey}`, next.replayOrigin);
     return next;
   };
@@ -440,7 +424,8 @@ export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null
       statement: String(stage.statement || '').trim(),
       stageRecord: String(stage.stageRecord || '').trim(),
       relations,
-      after: { workspaceForest },
+      after: { workspaceForest,
+        ...(Array.isArray(stage.realizations) ? { realizations: cloneRealizations(stage.realizations) } : {}) },
       change,
       workspaceForest,
       recipe: String(change?.statement || '').trim() || undefined,
@@ -3828,7 +3813,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const landingMergeExpandedSteps = insertPreMovementLandingMergeSteps(zeroDeltaCollapsedSteps);
   const projectionSteps = deferPendingMovementProjections(landingMergeExpandedSteps, pendingProjectionReveals);
   const countedSteps = recountReplayProgress(projectionSteps, replayPlan);
-  return normalizeReplaySentenceInitialCasing(countedSteps, sentenceInitialSurface);
+  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(countedSteps, sentenceInitialSurface), frames);
 };
 
 const deferPendingMovementProjections = (

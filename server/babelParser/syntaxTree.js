@@ -17,7 +17,21 @@ export const sameTokenSequence = (leftTokens, rightTokens) => {
 // ancestors; see nodePronunciation.js.
 export const collectOvertTerminalNodes = (tree) => collectPronouncedLeaves(tree);
 
-export const deriveCanonicalSurfaceSpans = (tree) => {
+export const deriveCanonicalSurfaceSpans = (tree, realizedTokenIndices) => {
+  if (realizedTokenIndices) {
+    const visit = (node) => {
+      const indices = new Set(realizedTokenIndices.get(node.id) || []);
+      (node.children || []).forEach((child) => visit(child).forEach((index) => indices.add(index)));
+      const ordered = [...indices].sort((a, b) => a - b);
+      // A range cannot faithfully describe a discontinuous association.
+      if (ordered.length && ordered.at(-1) - ordered[0] + 1 === ordered.length) {
+        node.surfaceSpan = [ordered[0], ordered.at(-1)];
+      } else delete node.surfaceSpan;
+      return indices;
+    };
+    visit(tree);
+    return tree;
+  }
   const visit = (node, underSilentAncestor = false) => {
     if (!node || typeof node !== 'object') {
       throw new ParseApiError('BAD_MODEL_RESPONSE', 'Malformed tree node during surface-span normalization.', 502);

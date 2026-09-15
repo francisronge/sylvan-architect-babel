@@ -1,4 +1,5 @@
 import { withFailureDetails } from './validationErrors.js';
+import { resolveRealizations } from './realizations.js';
 
 export const createParseNormalizationHelpers = ({
   ParseApiError,
@@ -53,7 +54,7 @@ export const createParseNormalizationHelpers = ({
     const alignmentIssues = [];
     const derivationFrames = normalizeDerivationFrames(
       rawDerivationFrames,
-      { integrityFlags: payloadIntegrityFlags, nodeFieldPaths }
+      { integrityFlags: payloadIntegrityFlags, nodeFieldPaths, sentenceTokens }
     );
     const derivationPrimaryBundle = derivationFrames.length > 0
       ? buildCanonicalDerivationFromDerivationFrames(derivationFrames, sentenceTokens, {
@@ -71,6 +72,16 @@ export const createParseNormalizationHelpers = ({
       const finalForest = Array.isArray(finalFrame?.after?.workspaceForest)
         ? finalFrame.after.workspaceForest
         : [];
+      const collectiveCoverage = finalFrame?.after?.realizations?.length > 0
+        ? resolveRealizations(finalForest, finalFrame.after.realizations, sentenceTokens, {
+          complete: true, stageIndex: rawDerivationStageCount - 1,
+          fieldPath: `$.derivationStages[${rawDerivationStageCount - 1}]`
+        }) : null;
+      if (collectiveCoverage?.diagnostics.length) {
+        const failure = collectiveCoverage.diagnostics[0];
+        throw new ParseApiError('BAD_MODEL_RESPONSE', failure.message, 502,
+          withFailureDetails({}, { ...failure, failureClass: failure.class }));
+      }
       const observedRootSurfaceOrders = finalForest.map((root) => (
         collectOvertTerminalNodes(root)
           .map((node) => authoredWord(node))
@@ -83,7 +94,7 @@ export const createParseNormalizationHelpers = ({
       ));
       const incompleteWorkspaceCouldStillConverge = (
         finalForest.length > 1
-        && sameTokenSequence(flattenedSurfaceOrder, sentenceTokens)
+        && (collectiveCoverage || sameTokenSequence(flattenedSurfaceOrder, sentenceTokens))
       );
       if (
         observedRootSurfaceOrders.length > 0
@@ -136,7 +147,8 @@ export const createParseNormalizationHelpers = ({
         statement: frame?.change?.statement,
         stageRecord,
         relations,
-        workspaceForest: frame?.after?.workspaceForest || []
+        workspaceForest: frame?.after?.workspaceForest || [],
+        ...(Object.hasOwn(frame?.after || {}, 'realizations') ? { realizations: structuredClone(frame.after.realizations) } : {})
       };
     });
     const provenance = {
@@ -209,7 +221,7 @@ export const createParseNormalizationHelpers = ({
       }
     }
     // ParseBundle is an internal/product envelope. Each analysis inside it still
-    // has the same four-field authored derivation-stage contract.
+    // has the same authored derivation-stage contract.
     const analysesSource = Array.isArray(parsed?.analyses)
       ? parsed.analyses
       : parsed

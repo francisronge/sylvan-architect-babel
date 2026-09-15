@@ -12,11 +12,12 @@ For structural ambiguity, the only top-level field is analyses, a nonempty array
 Stages
 Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input. A completed analysis may establish that the input is illicit.
 An occurrence moves only from a position that an earlier stage already shows. Several connected operations may share a stage when their sequence is represented by the ordered relations and resulting workspace. If the required order depends on an intermediate workspace, record that workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
-Each stage has exactly these four fields, written in this order:
+Each stage has these four required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
 - relations: an array of this stage's relations, as defined below.
 - workspaceForest: an array containing every currently active syntax tree or separate syntax object after these operations.
+It may then contain realizations, the optional input-association field defined below. No other stage fields are allowed.
 These fields describe the same analysis. Show the structure the stage record requires, including intermediate positions that matter. Higher structure must preserve or build its lower structure within the chronological derivation. After objects combine, show their combined structure rather than retaining their former independent roots.
 
 Syntax nodes
@@ -37,6 +38,19 @@ An earlier-subtree reference is an object containing only refId, whose value is 
 To reuse an unchanged subtree, use refId or write out the entire subtree, including its children. Rewrite a subtree when its structure, pronunciation, lineage, or syntactic position changes. Each occurrence's id must appear at only one position in the expanded workspace, including nodes introduced through refId.
 The complete nodes and reference objects use only the fields defined above.
 
+Realizations
+Omit realizations when ordinary whole-word terminals already express the stage's input associations. Use it when the analysis retains syntax whose collective realization differs from one terminal per input token, such as separate morphological pieces realizing one word or one syntactic object realizing several words.
+realizations is an array of groups. Each group has exactly two fields:
+- nodeIds: a nonempty, duplicate-free array of exact ids in this stage's expanded workspace. A nonterminal id includes its current subtree; overlapping source subtrees count once within a group.
+- tokenIndices: a nonempty, duplicate-free array of zero-based positions in the supplied input-token list, in input order. The positions need not be adjacent.
+A group says that these existing syntax objects collectively correspond to these exact input tokens. Groups have disjoint tokenIndices: put all contributors to the same token in one group. A source node may contribute to more than one group. The input supplies the spelling; groups do not concatenate, respell, move or fuse nodes, or choose a morphological theory.
+Groups record the complete current state. Repeat every nontrivial association that still holds in each later stage; they are not inherited merely because the nodes persist. Omit an association until it is established. Describe its operation and timing in stageRecord and the relevant open relation, anchored to the participating current nodes and, when relevant, their immediately preceding forms. If several operations could own the same change, use intermediate stages to make the order explicit. A group itself does not name an operation or create a relation.
+Keep the authored tree and lexical forms. A grouped leaf may keep tokenIndex only if its own word independently matches that whole input token and the token belongs to a group covering it; this redundant index does not count the token twice. Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.
+Examples illustrate associations, not required analyses:
+- Input tokens ["walked"], with an ordinary leaf whose word is "walked": use tokenIndex: 0 and omit realizations.
+- Input tokens ["walked"], with current leaf id "stem" carrying word "walk" and current leaf id "ending" carrying word "-ed": use "realizations": [{"nodeIds":["stem","ending"],"tokenIndices":[0]}]. Neither piece independently matches "walked", so neither receives tokenIndex: 0. Keep both pieces if that is the analysis.
+- Input tokens ["went"], with current wordless nodes "rootGo" and "past" representing the root and past tense: use "realizations": [{"nodeIds":["rootGo","past"],"tokenIndices":[0]}]. Explain the irregular realization in the analysis; the group records the association without deriving the spelling.
+
 Relations
 Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching. Explain them in stageRecord. Use an empty relations array when there are none. Names and roles are open; choose them to describe this analysis.
 Each relation has exactly these required fields:
@@ -52,7 +66,7 @@ List relations in the derivational order explained in stageRecord, with prerequi
 If the analysis makes an illicit judgment, explain it in stageRecord and anchor its relation to the relevant syntax. A judgment about the whole analysis is anchored to its final root.
 
 Input words
-In the final stage, the pronounced terminals in tree order match the supplied input tokens. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
+In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization. Exact input coverage is required even for an ungrammatical input; it is not a grammaticality judgment.`;
 
 export const buildSystemInstruction = (framework = 'xbar', modelRoute = 'gemini') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +

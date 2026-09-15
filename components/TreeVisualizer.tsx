@@ -258,7 +258,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       statement: stage.statement,
       stageRecord: stage.stageRecord,
       relations: stage.relations || [],
-      workspaceForest: stage.workspaceForest || []
+      workspaceForest: stage.workspaceForest || [],
+      ...(stage.realizations ? { realizations: stage.realizations } : {})
     })).join('|');
   }, [derivationStages]);
   const derivationFramesSignature = useMemo(() => {
@@ -272,7 +273,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       chainId: frame.chainId,
       movement: frame.movement || null,
       change: frame.change || null,
-      workspaceForest: frame.workspaceForest || []
+      workspaceForest: frame.workspaceForest || [],
+      ...(frame.after?.realizations ? { realizations: frame.after.realizations } : {})
     })).join('|');
   }, [replayDerivationFrames]);
   const usesDerivationFrames = animated && replayDerivationFrames.length > 0;

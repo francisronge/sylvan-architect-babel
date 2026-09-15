@@ -130,7 +130,8 @@ test('the model-facing contract distinguishes a completed analysis from grammati
   assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
   assert.match(instruction, /A completed analysis may establish that the input is illicit/);
   assert.match(instruction, /A judgment about the whole analysis is anchored to its final root/);
-  assert.match(instruction, /In the final stage, the pronounced terminals in tree order match the supplied input tokens\./);
+  assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
+  assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
 });
 
 test('sentence requests preserve quoted, multiline and multilingual input as data', () => {
@@ -143,7 +144,7 @@ test('sentence requests preserve quoted, multiline and multilingual input as dat
   }
 });
 
-test('normalizes the current four-field derivation contract without provider calls', () => {
+test('normalizes ordinary derivations without adding optional realization groups', () => {
   const bundle = __test__.normalizeParseBundle(
     buildCurrentContractPayload(),
     'xbar',
@@ -206,7 +207,7 @@ test('normalizes the current four-field derivation contract without provider cal
   ]);
 });
 
-test('rejects derivation stages that add a fifth authored field', () => {
+test('rejects derivation stages that add an unsupported authored field', () => {
   const payload = buildCurrentContractPayload();
   payload.derivationStages = payload.derivationStages.map((stage, index) => ({
     ...stage,

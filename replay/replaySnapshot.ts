@@ -1,5 +1,6 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import type { ParseBundle } from '../types.ts';
+import type { ParseBundle, SurfaceRealization } from '../types.ts';
+import { cloneRealizations } from './realizationReplay.ts';
 import { collectPronouncedTerminalSequence } from './pronouncedTerminals.ts';
 import {
   adaptDerivationStagesForReplay,
@@ -15,6 +16,8 @@ export interface ReplayStepProjection {
   sourceNodeIds: string[];
   replayProgressLabel: string;
   replayVisibleNodeIds: string[];
+  replayRealizations?: SurfaceRealization[];
+  replayRealizationDiagnostics?: string[];
 }
 
 export interface ReplaySnapshotProjection {
@@ -37,7 +40,9 @@ const projectReplayStep = (step: PlaybackStep): ReplayStepProjection => ({
     .map((nodeId) => String(nodeId || '')),
   replayProgressLabel: String(step.replayProgressLabel || ''),
   replayVisibleNodeIds: (Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
-    .map((nodeId) => String(nodeId || ''))
+    .map((nodeId) => String(nodeId || '')),
+  ...(step.replayRealizations ? { replayRealizations: cloneRealizations(step.replayRealizations) } : {}),
+  ...(step.replayRealizationDiagnostics ? { replayRealizationDiagnostics: [...step.replayRealizationDiagnostics] } : {})
 });
 
 export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
@@ -46,7 +51,11 @@ export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
   const derivationStages = Array.isArray(analysis.derivationStages)
     ? analysis.derivationStages
     : [];
-  const sentence = String(bundle.sentence || '').trim()
+  const suppliedSentence = String(bundle.sentence || '').trim();
+  if (!suppliedSentence && derivationStages.some(stage => stage.realizations?.length)) {
+    throw new Error('Replay with realization groups requires the original input sentence.');
+  }
+  const sentence = suppliedSentence
     || collectPronouncedTerminalSequence(analysis.tree).join(' ');
   const frames = adaptDerivationStagesForReplay(derivationStages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan;

@@ -21,11 +21,18 @@ export interface ReplayDetailBlock {
   lines: string[];
 }
 
+/** Exact syntax occurrences collectively associated with supplied input tokens. */
+export interface SurfaceRealization {
+  nodeIds: string[];
+  tokenIndices: number[];
+}
+
 export interface DerivationStage {
   statement: string;
   stageRecord: string;
   relations: DerivationStageRelation[];
   workspaceForest: SyntaxNode[];
+  realizations?: SurfaceRealization[];
 }
 
 export interface DerivationStageRelation {

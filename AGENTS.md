@@ -62,7 +62,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 
 ## Derivation contract
 
-- `derivationStages` is the sole model-authored derivation source. Every stage has exactly `statement`, `stageRecord`, `relations`, and `workspaceForest`.
+- `derivationStages` is the sole model-authored derivation source. Every stage requires `statement`, `stageRecord`, `relations`, and `workspaceForest`; optional `realizations` groups associate current syntax occurrence IDs with exact input-token positions. No other stage fields are allowed.
 - Final trees, surface order, relation render plans, Replay steps, and stage explanations are derived from those stages. Do not reintroduce parallel authored ledgers, growth frames, commitment graphs, or compatibility aliases.
 - Derivation stages are completed syntactic states, not display frames.
 - `relations` uses an open ontology. Keep model-facing relation and anchor names open; finite classifications belong in derived renderer logic.

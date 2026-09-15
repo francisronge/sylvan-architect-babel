@@ -76,6 +76,8 @@ const compactReplayStep = (step, frameIndex, claimsByRelation) => {
     note: String(step.note || ''),
     detailBlocks: Array.isArray(step.detailBlocks) ? step.detailBlocks : [],
     movementDiagnostics: Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : [],
+    ...(step.replayRealizations ? { replayRealizations: step.replayRealizations } : {}),
+    ...(step.replayRealizationDiagnostics ? { replayRealizationDiagnostics: step.replayRealizationDiagnostics } : {}),
     introducedClaims
   };
 };

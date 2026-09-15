@@ -665,9 +665,13 @@ const App: React.FC = () => {
           ? savedRecord.request as Record<string, any>
           : {};
         const firstAnalysis = bundle.analyses[0];
-        const pronouncedTerminalSentence = collectPronouncedTerminalSequence(firstAnalysis?.tree).join(' ');
+        const hasRealizations = bundle.analyses.some(analysis =>
+          analysis.derivationStages?.some(stage => stage.realizations?.length));
+        const suppliedSentence = String(requestRecord.sentence || savedRecord.sentence || bundle.sentence || '').trim();
+        if (hasRealizations && !suppliedSentence) throw new Error('Saved realization analyses require their original input sentence.');
+        const pronouncedTerminalSentence = hasRealizations ? '' : collectPronouncedTerminalSequence(firstAnalysis?.tree).join(' ');
         const nextSentence =
-          String(requestRecord.sentence || savedRecord.sentence || bundle.sentence || '').trim()
+          suppliedSentence
           || pronouncedTerminalSentence
           || 'Sentence unavailable';
         const nextFramework = requestRecord.framework === 'minimalism'

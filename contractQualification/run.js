@@ -9,6 +9,7 @@ import {
 } from '../server/babelParser/validationErrors.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from './review.js';
+import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 
 export const QUALIFICATION_ITEM_SET_STATUSES = Object.freeze([
   'unselected',
@@ -236,10 +237,14 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
           authoredAnalysis: structuredClone(analysis),
           stages: parserTest.inspectDerivationWorkspaces(analysis?.derivationStages, {
             analysisIndex,
+            sentence: attempt.request.sentence,
             fieldPath: Array.isArray(parsedPayload?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
           })
         }))
     };
+    if (inspection.analyses.some(analysis => analysis.stages?.some(stage => Object.hasOwn(stage.authoredStage || {}, 'realizations')))) {
+      inspection.input = { sentence: attempt.request.sentence, tokens: tokenizeSentenceSurfaceOrder(attempt.request.sentence) };
+    }
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
     const normalized = stripVolatileProvenance(parserTest.normalizeParseBundle(
@@ -274,6 +279,13 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
     const analysisEvidence = analysisBundles.map((analysisBundle) =>
       buildQualificationAnalysisEvidence(analysisBundle)
     );
+    if (bundle.analyses.some(analysis => analysis.derivationStages?.some(stage => stage.realizations?.length))) {
+      const succeeded = analysisOutcomes.filter(outcome => outcome.status === 'succeeded');
+      replayProjections.forEach((projection, index) => {
+        const analysis = inspection.analyses[succeeded[index].analysisIndex];
+        analysis.realizationReplayDiagnostics = [...new Set(projection.steps.flatMap(step => step.replayRealizationDiagnostics || []))];
+      });
+    }
     const bundleBytes = Buffer.from(stableQualificationJson(bundle), 'utf8');
     const analysisArtifacts = analysisBundles.map((analysisBundle, index) => ({
       analysisIndex: index,

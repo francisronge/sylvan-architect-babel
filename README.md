@@ -202,12 +202,14 @@ The view also includes:
 
 ### 10) Output artifacts
 
-The authored model output is exactly `derivationStages`. Every stage has exactly four fields:
+The authored model output is exactly `derivationStages`. Every stage has four required fields:
 
 - `statement`
 - `stageRecord`
 - `relations`
 - `workspaceForest`
+
+An optional `realizations` field associates existing syntax nodes with input-token positions. For example, separate `walk` and `-ed` leaves may jointly correspond to the input token `walked`. The model supplies the association; Babel preserves the pieces and checks input coverage without deriving spelling or changing the tree. Ordinary whole-word analyses omit the field. See the [realization contract](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension).
 
 Babel validates those stages, replays them, and derives the committed tree, surface order, relation render plans, and replay steps. Relation names and anchor-role names remain open rather than being projected into a fixed ontology.
 

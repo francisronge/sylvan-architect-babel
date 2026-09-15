@@ -22,6 +22,9 @@ export interface ReplayPreparationInput {
 
 /** Shared by the app worker and standalone, synchronous review renderers. */
 export const prepareReplay = ({ derivationStages, sentence, includePlayback }: ReplayPreparationInput) => {
+  if (!String(sentence || '').trim() && derivationStages?.some(stage => stage.realizations?.length)) {
+    throw new Error('Replay with realization groups requires the original input sentence.');
+  }
   const replayDerivationFrames = adaptDerivationStagesForReplay(derivationStages);
   const hasStages = Array.isArray(derivationStages) && derivationStages.length > 0;
   const derivationReplayPlan = hasStages

@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-14
+Status date: 2026-09-15
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -9,7 +9,7 @@ and research notebooks are evidence or history, not competing roadmaps.
 
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
-| Authored contract | Implemented: each analysis is only four-field `derivationStages`; `relations` is open; `values` and immediate-prior `priorAnchors` are supported. Earlier morphology can become final whole-word terminals. | Final alignment still requires one pronounced terminal per input token. Retained final morphology needs a separate representation decision; see the morphology audit below. Qualify model-facing changes and preserve recovery policy pending agreement. |
+| Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. | Qualify fresh model authoring under the revised prompt. Preserve recovery policy pending agreement. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
 | Relation renderer | Accepted Orchard paint and composition are integrated. The original 137-frame corpus retained its geometry through Fit/worker repairs; the later six-analysis notation/timing comparison covers 208 before and 207 after frames. | Circled Tier-3 badges now retain their fitted appearance and grow with the tree. Extreme text scrolling and viewport checks are bounded. Review only reproduced movement defects; no participant-free drawing is justified. |
 | Replay preparation | The measured optimization remains unchanged. Extended controls through 192 stages/958 frames complete. Forty large view cycles release all 81 workers and retain about 18–19 MB of page heap; 15 mid-preparation cancellations also recover correctly. | Instrumented 160/192-stage controls take about 12/19 seconds, with sampled worker heaps up to 182 MB and frame jumps up to 274 ms. These bounds do not establish instant preparation, exact peak memory or slower-device behavior. No layout rewrite or persistent derivation cache is introduced. |
@@ -56,8 +56,9 @@ Binding rules:
 - Babel requests complete derivations. Output allowance is never inferred from
   sentence length.
 - `derivationStages` remains the sole model-authored structural source.
-- Every stage has exactly `statement`, `stageRecord`, `relations`, and
-  `workspaceForest`.
+- Every stage requires `statement`, `stageRecord`, `relations`, and
+  `workspaceForest`. Optional `realizations` groups associate current occurrence
+  IDs with exact input-token positions. No other stage fields are allowed.
 - Relation and anchor-role names remain open. Finite interpretation belongs in
   the renderer's derived Tier 1/Tier 2/Tier 3 pipeline.
 - One analysis produces one canonical immutable durable record.
@@ -459,17 +460,21 @@ discussion with Francis.
    survive. The 84 morphology controls change only the targeted leaf-anchored
    case in each framework. A result with no prior anchors still needs evidence
    analysis before implementation.
-3. **Final morphology representation: implementation direction accepted.** The
+3. **Final morphology representation: implemented and verified offline.** The
    [contract reuse check](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension)
    tests 52 records in both frameworks. Current fields cannot give retained
-   pieces a collective final realization with their existing meanings. Recommend
-   optional stage `realizations` groups containing current `nodeIds` and input
-   `tokenIndices`, while ordinary records retain the current path. Define source
-   coverage, disjoint target coverage, silence and exact Replay ownership before
-   implementation; use intermediate stages for ambiguous timing. Authoring
-   instructions must explain when to omit or use the field with concrete examples.
-   The field and its consumers are not implemented. Preserve exact-input coverage;
-   keep topology, tokenization and independent PF-ordering work separate.
+   pieces a collective final realization with their existing meanings. Optional
+   stage `realizations` now supplies groups containing current `nodeIds` and input
+   `tokenIndices`, while ordinary records retain the current path. The approved
+   rules define source coverage, disjoint target coverage, inherited silence and
+   exact Replay ownership; use intermediate stages for ambiguous timing. The
+   model-facing instructions now explain omission, regular pieces and irregular
+   abstract realizations. The 1,640-test gate, production build and release-asset
+   checks pass. All 207 archived frames preserve complete Replay data and browser
+   geometry; 13 new control frames, the actual worker and Tree Bank save/reopen
+   pass. All six enabled model routes preserve groups and exact input in both
+   frameworks under mocked responses. Fresh model authoring remains unmeasured.
+   Keep topology, tokenization and independent PF-ordering work separate.
 4. **Prompt clarification: implemented.** Keep the approved framework-sensitive
    label wording in `08b5de4`. The unchanged-workspace instruction now permits a
    sentence-specific `reason within the analysis`. The model still derives the
@@ -906,8 +911,9 @@ The current work order above owns these decisions:
 - General evidence recognition where roles, identity or multi-part associations
   remain ambiguous. Explicit list pairing and the approved smaller Tier-2
   drawings are already implemented.
-- A representation for retained final morphology and its input realization.
-  The separate audit establishes the current limits; no format is adopted.
+- Fresh model qualification of the optional `realizations` field for retained
+  final morphology. Integrated offline behavior is verified; model authoring,
+  cost and latency under the revised prompt remain unmeasured.
 - Automatic JSON repair and public handling of incomplete processing, token
   mismatches or extra final roots, following investigation of Fable's failure.
 - Purpose and spending caps for further provider checks, and deployed request

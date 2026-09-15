@@ -1,4 +1,6 @@
 import { createFailure, withFailureDetails } from './validationErrors.js';
+import { resolveRealizations, validateRealizations } from './realizations.js';
+import { tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
 
 // The complete node contract: required id/label/children, the optional
 // authored fields, and the server-derived surfaceSpan.
@@ -153,13 +155,13 @@ export const createDerivationCompilerHelpers = ({
 
         const authoredFields = Object.keys(stage);
         if (
-          authoredFields.length !== REQUIRED_STAGE_FIELDS.length
+          authoredFields.some((field) => !REQUIRED_STAGE_FIELDS.includes(field) && field !== 'realizations')
           || REQUIRED_STAGE_FIELDS.some((field) => !Object.hasOwn(stage, field))
         ) {
           integrityFlags.push(`derivation_stage_contract_fields_invalid:${stageId}`);
           invalidField('DERIVATION_STAGE_FIELDS_EXACT', stageIndex,
             `$.derivationStages[${stageIndex}]`, stage,
-            'exactly statement, stageRecord, relations, and workspaceForest', diagnostics);
+            'statement, stageRecord, relations, and workspaceForest, with only realizations optional', diagnostics);
         }
 
         if (typeof stage.statement !== 'string' || !stage.statement.trim()) {
@@ -175,6 +177,12 @@ export const createDerivationCompilerHelpers = ({
         }
 
         const relations = normalizeRelations(stage.relations, stageIndex, diagnostics);
+        if (Object.hasOwn(stage, 'realizations')) {
+          const issues = validateRealizations(stage.realizations, { stageIndex, fieldPath: `$.derivationStages[${stageIndex}]` });
+          if (diagnostics) diagnostics.push(...issues);
+          else if (issues.length) throw new ParseApiError('BAD_MODEL_RESPONSE', issues[0].message, 502,
+            withFailureDetails({}, { ...issues[0], failureClass: issues[0].class }));
+        }
 
         if (typeof stage.workspaceForest === 'undefined') {
           integrityFlags.push(`workspace_forest_missing_on_derivation_stage:${stageId}`);
@@ -186,7 +194,8 @@ export const createDerivationCompilerHelpers = ({
           frameId: stageId,
           stepId: stageId,
           after: {
-            workspaceForest: cloneJson(stage.workspaceForest)
+            workspaceForest: cloneJson(stage.workspaceForest),
+            ...(Object.hasOwn(stage, 'realizations') ? { realizations: cloneJson(stage.realizations) } : {})
           },
           change: {
             statement: stage.statement,
@@ -406,6 +415,13 @@ export const createDerivationCompilerHelpers = ({
           node.children.forEach((child, index) => visit(child, authoredNode?.children?.[index], `${path}.children[${index}]`, reference, silentHere));
         };
         workspaceForest.forEach((node, index) => visit(node, stage.workspaceForest[index], `$.derivationStages[${stageIndex}].workspaceForest[${index}]`));
+        if (stage.realizations?.length > 0 && workspaceDiagnostics.length === 0) {
+          const surface = resolveRealizations(workspaceForest, stage.realizations,
+            options.sentenceTokens ?? (typeof options.sentence === 'string' ? tokenizeSentenceSurfaceOrder(options.sentence) : undefined),
+            { stageIndex, fieldPath: `$.derivationStages[${stageIndex}]`, complete: stageIndex === stages.length - 1 });
+          // Shape diagnostics were already recorded before expansion.
+          diagnostics.push(...surface.diagnostics.filter((issue) => issue.ruleId !== 'DERIVATION_REALIZATION_SHAPE'));
+        }
         stageNodes[stageIndex] = nodes;
         if (workspaceDiagnostics.length === 0) {
           nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, cloneJson(node)));
@@ -523,6 +539,15 @@ export const createDerivationCompilerHelpers = ({
         undefined,
         options.nodeFieldPaths
       );
+      if (frame?.after?.realizations?.length > 0) {
+        const surface = resolveRealizations(workspaceForest, frame.after.realizations, options.sentenceTokens,
+          { stageIndex, fieldPath: `$.derivationStages[${stageIndex}]` });
+        if (surface.diagnostics.length) {
+          const failure = surface.diagnostics[0];
+          throw new ParseApiError('BAD_MODEL_RESPONSE', failure.message, 502,
+            withFailureDetails({}, { ...failure, failureClass: failure.class }));
+        }
+      }
       collectNodeReferencesById(workspaceForest).forEach((node, nodeId) => {
         // Expansion clones each use; retaining this version also retains its field origins.
         priorNodes.set(nodeId, node);
@@ -582,26 +607,39 @@ export const createDerivationCompilerHelpers = ({
         .map((node) => authoredWord(node))
         .map((token) => String(token || '').trim())
         .filter(Boolean);
-      if (!sameTokenSequence(overtSurfaces, sentenceTokens)) return null;
+      const hasRealizations = options.realizations?.length > 0;
+      if (!hasRealizations && !sameTokenSequence(overtSurfaces, sentenceTokens)) return null;
 
-      nodesById.forEach((node, nodeId) => {
-        if (
-          !overtTerminalIds.has(nodeId)
-          && Object.hasOwn(node, 'tokenIndex')
-        ) {
-          alignmentError(node, 'tokenIndex', 'no tokenIndex on a non-overt node');
+      let realizedTokenIndices;
+      if (hasRealizations) {
+        const exactNodes = new Map(Array.from(nodesById.values(), (node) => [node.id, node]));
+        // A final root must contain every declared source; groups in another
+        // workspace cannot be discarded merely because this root matches words.
+        if (options.realizations.some((group) => group.nodeIds.some((id) => !exactNodes.has(id)))) return null;
+        const fieldPath = `$.derivationStages[${options.stageIndex}]`;
+        const surface = resolveRealizations([candidate], options.realizations, sentenceTokens,
+          { stageIndex: options.stageIndex, fieldPath, complete: true });
+        if (surface.diagnostics.length) {
+          const failure = surface.diagnostics[0];
+          throw new ParseApiError('BAD_MODEL_RESPONSE', failure.message, 502,
+            withFailureDetails({}, { ...failure, failureClass: failure.class }));
         }
-      });
-      overtTerminals.forEach((node, tokenIndex) => {
-        if (
-          Object.hasOwn(node, 'tokenIndex')
-          && node.tokenIndex !== tokenIndex
-        ) {
-          alignmentError(node, 'tokenIndex', `the integer ${tokenIndex}`);
-        }
-        node.tokenIndex = tokenIndex;
-      });
-      deriveCanonicalSurfaceSpans(candidate);
+        surface.tokenAssignments.forEach((tokenIndex, id) => { exactNodes.get(id).tokenIndex = tokenIndex; });
+        realizedTokenIndices = surface.tokenIndicesByNodeId;
+      } else {
+        nodesById.forEach((node, nodeId) => {
+          if (!overtTerminalIds.has(nodeId) && Object.hasOwn(node, 'tokenIndex')) {
+            alignmentError(node, 'tokenIndex', 'no tokenIndex on a non-overt node');
+          }
+        });
+        overtTerminals.forEach((node, tokenIndex) => {
+          if (Object.hasOwn(node, 'tokenIndex') && node.tokenIndex !== tokenIndex) {
+            alignmentError(node, 'tokenIndex', `the integer ${tokenIndex}`);
+          }
+          node.tokenIndex = tokenIndex;
+        });
+      }
+      deriveCanonicalSurfaceSpans(candidate, realizedTokenIndices);
       collectNodeReferencesById(candidate).forEach((node, nodeId) => {
         const authored = authoredTechnicalFields.get(nodeId);
         if (!authored) return;
@@ -627,7 +665,8 @@ export const createDerivationCompilerHelpers = ({
       });
     } catch (error) {
       if (options.validationIssues) {
-        if (!(error instanceof ParseApiError) || error.failure?.processingStep !== 'token-alignment') throw error;
+        if (!(error instanceof ParseApiError)
+          || !['token-alignment', 'realization-alignment'].includes(error.failure?.processingStep)) throw error;
         options.validationIssues.push(error.failure);
       }
       return null;
@@ -636,7 +675,7 @@ export const createDerivationCompilerHelpers = ({
       .map((node) => authoredWord(node))
       .map((token) => String(token || '').trim())
       .filter(Boolean);
-    return sameTokenSequence(overtTerminals, sentenceTokens) ? candidate : null;
+    return options.realizations?.length > 0 || sameTokenSequence(overtTerminals, sentenceTokens) ? candidate : null;
   };
 
   const selectCommittedDerivationRoot = (workspaceForest, sentenceTokens = [], options = {}) => {
@@ -656,7 +695,7 @@ export const createDerivationCompilerHelpers = ({
     const root = selectCommittedDerivationRoot(
       getFrameWorkspaceForest(frame),
       sentenceTokens,
-      { ...options, stageIndex: frameIndex, fieldPath: `$.derivationStages[${frameIndex}].workspaceForest` }
+      { ...options, realizations: frame?.after?.realizations, stageIndex: frameIndex, fieldPath: `$.derivationStages[${frameIndex}].workspaceForest` }
     );
     return root ? { frame, frameIndex, root } : null;
   };
@@ -676,7 +715,7 @@ export const createDerivationCompilerHelpers = ({
       .map((node) => authoredWord(node))
       .map((token) => String(token || '').trim())
       .filter(Boolean);
-    if (!sameTokenSequence(pronouncedTerminals, sentenceTokens)) return null;
+    if (!committedFrame.frame?.after?.realizations?.length && !sameTokenSequence(pronouncedTerminals, sentenceTokens)) return null;
 
     return { tree: committedFrame.root };
   };

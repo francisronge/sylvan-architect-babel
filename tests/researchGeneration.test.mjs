@@ -125,6 +125,36 @@ for (const modelId of GENERATION_MODEL_IDS) {
   });
 }
 
+test('all active model routes preserve realization groups and exact input through the public parser and saved Replay', async (t) => {
+  isolate(t);
+  const groups = [{ nodeIds: ['stem', 'ending'], tokenIndices: [0] }];
+  const tree = { id: 'word', label: 'V', children: [
+    { id: 'stem', label: 'Root', word: 'walk', children: [] },
+    { id: 'ending', label: 'T', word: '-ed', children: [] }
+  ] };
+  const payload = { derivationStages: [{ statement: 'The past form is realized.',
+    stageRecord: 'The stem and tense jointly realize walked.', relations: [{
+      relation: 'Realization', anchors: { participants: ['stem', 'ending'] }, values: { form: 'walked' }
+    }], workspaceForest: [tree], realizations: groups }] };
+  const text = JSON.stringify(payload);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const model = getResearchModel(modelId);
+    t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(envelopeFor(model, text)), { status: 200 }));
+    for (const framework of ['xbar', 'minimalism']) {
+      const bundle = await parseFromBody({ sentence: 'walked', framework, modelId });
+      assert.deepEqual(bundle.analyses[0].derivationStages[0].realizations, groups);
+      assert.equal(decode(bundle.rawModelOutput), text);
+      assert.equal(bundle.generationRecord.promptContract.systemInstructionSha256, sha256Hex(buildSystemInstruction(framework)));
+      assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, []);
+      const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
+      const replay = buildReplaySnapshotProjection(restored);
+      assert.equal(replay.sentence, 'walked');
+      assert.deepEqual(replay.steps.at(-1).replayRealizations, groups);
+      assert.deepEqual(restored.analyses[0].tree.children.map(node => node.word), ['walk', '-ed']);
+    }
+  }
+});
+
 test('invalid model selections and settings are rejected before any provider call', async (t) => {
   const fetch = t.mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network call'); });
   for (const selection of [
