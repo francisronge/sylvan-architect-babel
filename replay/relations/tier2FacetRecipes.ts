@@ -199,6 +199,7 @@ export type Tier2StructuralCheck =
   | { kind: 'shared-lineage'; roles: readonly string[] }
   | { kind: 'shared-root-lineage'; roles: readonly string[] }
   | { kind: 'separate-occurrences'; roles: readonly [string, string] }
+  | { kind: 'movement-evidence' }
   | { kind: 'prior-source-consistency'; role: string }
   | { kind: 'paired-cardinality'; roles: readonly [string, string] }
   | { kind: 'multiple-parents'; role: string; minParents: number }
@@ -282,6 +283,7 @@ export const INDEPENDENT_TIER2_VALUE_ROLES: ReadonlySet<string> = new Set(['plaq
 export type Tier2FacetEvidence = {
   movement?: import('./movementEvidence.ts').RecoveredMovement;
   movementDiagnostics?: string[];
+  movementFailure?: string;
   currentAnchors: Readonly<Record<string, readonly string[]>>;
   priorAnchors?: Readonly<Record<string, readonly string[]>>;
   values: Readonly<Record<string, readonly string[]>>;
@@ -418,6 +420,8 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     values: [optionalValue('outcome', 1, 1), optionalValue('movement.route', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
     checks: [
+      { kind: 'movement-evidence' },
+      { kind: 'separate-occurrences', roles: ['movement.source', 'movement.landing'] },
       { kind: 'distinct', roles: ['movement.source', 'movement.landing'] },
       { kind: 'contains', containerRole: 'movement.source', memberRole: 'movement.witness' },
       { kind: 'shared-root-lineage', roles: ['movement.source', 'movement.landing'] }
@@ -440,6 +444,8 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     values: [optionalValue('outcome', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
     checks: [
+      { kind: 'movement-evidence' },
+      { kind: 'separate-occurrences', roles: ['movement.source', 'movement.landing'] },
       { kind: 'contains', containerRole: 'movement.source', memberRole: 'movement.witness' },
       { kind: 'shared-root-lineage', roles: ['movement.source', 'movement.landing'] },
       { kind: 'movement-carrier' }
@@ -1193,6 +1199,10 @@ const evaluateStructuralCheck = (
       return sharesLineage(currentIndex, check.roles.map(ids));
     case 'shared-root-lineage':
       return Boolean(sharedRootLineage(currentIndex, check.roles.flatMap(ids)));
+    case 'movement-evidence':
+      // A static drawing can be complete without a preceding stage. A rejected
+      // occurrence, context or contradictory source cannot earn that drawing.
+      return !evidence.movementFailure || evidence.movementFailure === 'MOVEMENT_PRIOR_SOURCE_UNPROVEN';
     case 'separate-occurrences': {
       const [source, target] = check.roles.map(ids);
       return [...source, ...target].every(id => currentIndex.nodes.get(id)?.length === 1)
@@ -1332,27 +1342,8 @@ const previousMatch = (node: SyntaxNode, priorIndex: TreeIndex): SyntaxNode | nu
   return lineageMatches.length === 1 ? lineageMatches[0] : null;
 };
 
-const sharedRoleLineages = (
-  currentIndex: TreeIndex,
-  leftIds: readonly string[],
-  rightIds: readonly string[]
-): Set<string> => {
-  const left = new Set(findNodes(currentIndex, leftIds).flatMap((node) => [...subtreeLineages(node)]));
-  const right = new Set(findNodes(currentIndex, rightIds).flatMap((node) => [...subtreeLineages(node)]));
-  return new Set([...left].filter((lineage) => right.has(lineage)));
-};
-
 const lineageOccurrenceCount = (index: TreeIndex, lineage: string): number =>
   [...index.nodes.values()].flat().filter((node) => String(node.lineageId || '') === lineage).length;
-
-const sharedLineageOccurrenceIncreased = (
-  currentIndex: TreeIndex,
-  priorIndex: TreeIndex,
-  leftIds: readonly string[],
-  rightIds: readonly string[]
-): boolean => [...sharedRoleLineages(currentIndex, leftIds, rightIds)].some((lineage) => (
-  lineageOccurrenceCount(currentIndex, lineage) > lineageOccurrenceCount(priorIndex, lineage)
-));
 
 const landingAlreadyOccupiedSamePosition = (
   evidence: Tier2FacetEvidence,
@@ -1365,42 +1356,6 @@ const landingAlreadyOccupiedSamePosition = (
   && [...(priorIndex.workspaceIds.get(id) ?? [])].sort().join('\u0000')
     === [...(currentIndex.workspaceIds.get(id) ?? [])].sort().join('\u0000')
 ));
-
-const sourceBecameLowerOccurrence = (
-  evidence: Tier2FacetEvidence,
-  currentIndex: TreeIndex,
-  priorIndex: TreeIndex,
-  sourceRole: string
-): boolean => findNodes(currentIndex, anchorIds(evidence, sourceRole)).some((node) => (
-  subtreeNodes(node).some((member) => {
-    const children = Array.isArray(member.children) ? member.children : [];
-    const surface = String(member.word || member.label || '').trim();
-    const isLowerTerminal = children.length === 0
-      && (member.silent === true || TRACE_SURFACE.test(surface));
-    if (!isLowerTerminal) return false;
-    const before = previousMatch(member, priorIndex);
-    if (!before) return false;
-    const beforeChildren = Array.isArray(before.children) ? before.children : [];
-    return beforeChildren.length === 0
-      && before.silent !== true
-      && Boolean(String(before.word || '').trim());
-  })
-));
-
-const overtMovementTransition = (
-  evidence: Tier2FacetEvidence,
-  currentIndex: TreeIndex,
-  priorIndex: TreeIndex
-): boolean => {
-  if (evidence.movement) return evidence.movement.transition;
-  if (!evidence.priorForest) return false;
-  const sourceIds = anchorIds(evidence, 'movement.source');
-  const landingIds = anchorIds(evidence, 'movement.landing');
-  if (!sharesLineage(currentIndex, [sourceIds, landingIds])) return false;
-  if (!sharedLineageOccurrenceIncreased(currentIndex, priorIndex, sourceIds, landingIds)) return false;
-  if (landingAlreadyOccupiedSamePosition(evidence, currentIndex, priorIndex, 'movement.landing')) return false;
-  return sourceBecameLowerOccurrence(evidence, currentIndex, priorIndex, 'movement.source');
-};
 
 const covertMovementTransition = (
   evidence: Tier2FacetEvidence,
@@ -1541,7 +1496,7 @@ const transitionEarned = (
 ): boolean => {
   switch (rule.evidence) {
     case 'overt-movement-stage-difference':
-      return overtMovementTransition(evidence, currentIndex, priorIndex);
+      return evidence.movement?.transition === true;
     case 'covert-movement-stage-difference':
       return covertMovementTransition(evidence, currentIndex, priorIndex);
     case 'pronunciation-stage-difference':
@@ -1688,7 +1643,9 @@ export const evaluateTier2FacetRecipe = (
             ? [
                 { field: 'anchors' as const, entries: evidence.authoredCurrentAnchors ?? [] },
                 /* Same-role prior anchors are replacement evidence for this claim. */
-                { field: 'priorAnchors' as const, entries: evidence.authoredPriorAnchors ?? [] }
+                { field: 'priorAnchors' as const, entries: ['movement.path', 'movement.carrier'].includes(recipeEntry.id)
+                    ? (evidence.authoredPriorAnchors ?? []).filter(entry => evidence.movement?.priorAnchorKeys?.includes(entry.key))
+                    : evidence.authoredPriorAnchors ?? [] }
               ]
             : requirement.source === 'prior'
               ? [{ field: 'priorAnchors' as const, entries: evidence.authoredPriorAnchors ?? [] }]

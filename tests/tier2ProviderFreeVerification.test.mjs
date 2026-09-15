@@ -142,6 +142,9 @@ const buildFacetFixture = (recipe, options = {}) => {
   recipe.checks.forEach((check) => {
     const current = (role) => (currentAnchors[role] ?? []).map((id) => currentNodes.get(id));
     switch (check.kind) {
+      case 'movement-evidence':
+        current('movement.landing').forEach(member => { member.label = 'DP'; });
+        break;
       case 'contains': {
         current(check.containerRole).forEach(container =>
           current(check.memberRole).forEach((member) => attach(container, member)));

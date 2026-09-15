@@ -366,7 +366,7 @@ export const buildTier2FacetEvidence = ({
       appendItems(values.concepts, 'pf.rows', entry.items);
     });
   }
-  const { movement, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
+  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
   if (movement) {
     currentAnchors.concepts['movement.source'] = [movement.sourceNodeId];
     currentAnchors.concepts['movement.witness'] = [movement.witnessNodeId];
@@ -378,6 +378,7 @@ export const buildTier2FacetEvidence = ({
   }
   return {
     movementDiagnostics,
+    ...(movementFailure ? { movementFailure } : {}),
     ...(movement ? { movement } : {}),
     currentAnchors: currentAnchors.concepts,
     authoredCurrentAnchors: currentAnchors.authored,

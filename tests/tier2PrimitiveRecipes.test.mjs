@@ -6,6 +6,7 @@ import { VISUAL_PRIMITIVE_SEARCH_SYNONYMS } from '../docs/design/visual-relation
 import { findRelationRegistryEntry } from '../replay/relationDispatch/relationRegistry.js';
 import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 import { OUTCOME_CONCEPTS } from '../replay/relations/outcomeResolver.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/tier2RelationDispatch.ts';
 import {
   TIER2_FACET_ACCEPTED_OUTCOME_CONCEPTS,
   TIER2_FACET_RECIPE_BY_ID,
@@ -431,21 +432,20 @@ test('transition ownership is explicit and judgment facets own no tree change', 
   ].forEach((id) => assert.deepEqual(facet(id).transitionRules, [], `${id} must not own a transition`));
 });
 
-test('movement needs three real anchors, containment, and shared lineage', () => {
+test('movement needs complete occurrence evidence and validated transition ownership', () => {
   const priorSource = node('source', 'DP', [leaf('word-before', 'book', { lineageId: 'word' })], { lineageId: 'chain' });
   const source = node('source', 'DP', [{ id: 'trace', label: 't1', silent: true, lineageId: 'word' }], { lineageId: 'chain' });
   const landing = node('landing', 'DP', [leaf('word-after', 'book', { lineageId: 'word' })], { lineageId: 'chain' });
   const currentForest = [node('cp', 'CP', [landing, node('vp', 'VP', [source])])];
   const priorForest = [node('vp-before', 'VP', [priorSource])];
-  const completeEvidence = evidence({
-    currentAnchors: {
-      'movement.source': ['source'],
-      'movement.witness': ['trace'],
-      'movement.landing': ['landing']
+  const completeEvidence = buildTier2FacetEvidence({
+    relation: {
+      relation: 'Open dependency',
+      anchors: { source: 'source', traceWitness: 'trace', landing: 'landing' },
+      values: { outcome: 'prevented' }
     },
     currentForest,
-    priorForest,
-    values: { outcome: ['prevented'] }
+    priorForest
   });
 
   const complete = evaluateTier2FacetRecipe(facet('movement.path'), completeEvidence);
@@ -466,7 +466,7 @@ test('movement needs three real anchors, containment, and shared lineage', () =>
   assert.deepEqual(incomplete.earnedTransitions, []);
 });
 
-test('movement timing pairs the same lower terminal across stages', () => {
+test('a static movement facet cannot independently infer a transition from lower-terminal changes', () => {
   const priorSource = node('source', 'DP', [
     { id: 'old-trace', label: 't1', silent: true, lineageId: 'old-gap', children: [] },
     leaf('word', 'book', { lineageId: 'word' })
