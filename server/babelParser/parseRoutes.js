@@ -396,7 +396,8 @@ export const createParseRoutes = ({
     if (existingEvidence || !generationStartedAt || !error?.providerRunId) {
       return existingEvidence;
     }
-    const rawText = String(error?.responseBody || '');
+    const partialResponse = error?.partialProviderResponse;
+    const rawText = partialResponse ? '' : String(error?.responseBody || '');
     const finishReason = String(error?.finishReason || 'PROVIDER_ERROR').toUpperCase();
     return {
       rawText,
@@ -408,7 +409,10 @@ export const createParseRoutes = ({
           sentRequest,
           generationStartedAt
         }),
-        ...(rawText ? { rawProviderResponse: createRawOutputArtifact(rawText) } : {}),
+        ...(partialResponse ? {
+          rawProviderResponse: partialResponse,
+          providerResponseComplete: false
+        } : rawText ? { rawProviderResponse: createRawOutputArtifact(rawText) } : {}),
         outcome: {
           sentMaxOutputTokens,
           finishReason,

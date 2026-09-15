@@ -80,6 +80,8 @@ export interface GenerationRecord {
   };
   returnedModel?: string;
   rawProviderResponse?: RawOutputArtifact;
+  /** False when transport stopped while reading the provider envelope. */
+  providerResponseComplete?: boolean;
   promptContract: GenerationPromptContract;
   sentGenerationConfig: SentGenerationConfig;
   timing: {

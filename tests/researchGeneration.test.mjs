@@ -11,6 +11,8 @@ import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from '../contractQualification/review.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { parseSentence, ParseServiceError } from '../services/parseService.ts';
+import { MAX_RAW_OUTPUT_BYTES } from '../server/babelParser/validationErrors.js';
+import { createHash } from 'node:crypto';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url), 'utf8'));
 const rawOutput = JSON.stringify(fixture.payload);
@@ -54,6 +56,40 @@ const envelopeFor = (model, text = rawOutput) => {
     usage: { input_tokens: 11, output_tokens: 22, total_tokens: 33 }
   };
 };
+
+test('interrupted provider bodies retain exact bounded bytes without becoming model output or retrying', async t => {
+  isolate(t);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    // End inside a UTF-8 character: text decoding must not alter the evidence.
+    const prefix = Buffer.concat([Buffer.from('{"text":"'), Buffer.from('λ').subarray(0, 1)]);
+    for (const bytes of [prefix, Buffer.concat([Buffer.alloc(MAX_RAW_OUTPUT_BYTES + 64, 97), prefix])]) {
+      let reads = 0;
+      const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(new ReadableStream({
+        pull(controller) {
+          if (reads++ === 0) controller.enqueue(bytes);
+          else controller.error(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }));
+        }
+      })));
+      await assert.rejects(parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+        const failure = formatApiError(error).body.error;
+        const record = failure.generationRecord;
+        assert.equal(record.providerResponseComplete, false);
+        assert.equal(record.outcome.finishStatus, 'TRANSPORT_FAILURE');
+        assert.equal(record.outcome.attempts.length, 1);
+        assert.equal(failure.rawOutput.byteLength, 0, 'an envelope fragment is not model-authored JSON');
+        assert.equal(record.processing, undefined, 'partial bytes must never reach JSON repair or normalization');
+        const artifact = record.rawProviderResponse;
+        assert.equal(artifact.byteLength, bytes.length);
+        assert.equal(artifact.truncated, bytes.length > MAX_RAW_OUTPUT_BYTES);
+        assert.equal(artifact.sha256, createHash('sha256').update(bytes).digest('hex'));
+        assert.deepEqual(Buffer.from(artifact.data, 'base64'), bytes.subarray(0, MAX_RAW_OUTPUT_BYTES));
+        return true;
+      });
+      assert.equal(fetch.mock.callCount(), 1);
+      fetch.mock.restore();
+    }
+  }
+});
 
 for (const modelId of GENERATION_MODEL_IDS) {
   test(`${modelId}: API dispatch, native settings, normalization, Replay, and saved evidence`, async (t) => {

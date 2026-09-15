@@ -506,9 +506,9 @@ test('received HTTP bodies and explicit HTTP errors keep their retry classificat
     for (const status of [200, 429]) {
       await t.test(`${generate.name} ${status}`, async (t) => {
         const error = failure('socket hang up', { code: 'ECONNRESET' });
-        const calls = stubFetch(t, [{
-          ok: status === 200, status, text: async () => { throw error; }
-        }]);
+        const calls = stubFetch(t, [new Response(new ReadableStream({
+          start(controller) { controller.error(error); }
+        }), { status })]);
         await assert.rejects(runWithTransportRetries({
           delay: noDelay, run: () => generate(options)
         }), (actual) => actual === error && actual.providerAttempts.length === 1);
@@ -521,7 +521,9 @@ test('received HTTP bodies and explicit HTTP errors keep their retry classificat
 
 test('a frozen response-read exception preserves the received-answer guard', async (t) => {
   const caught = Object.freeze(failure('socket hang up', { code: 'ECONNRESET' }));
-  const calls = stubFetch(t, [{ ok: true, status: 200, text: async () => { throw caught; } }]);
+  const calls = stubFetch(t, [new Response(new ReadableStream({
+    start(controller) { controller.error(caught); }
+  }))]);
   await assert.rejects(runWithTransportRetries({
     delay: noDelay, run: () => generateOpenAIStructuredContent(options)
   }), (error) => {

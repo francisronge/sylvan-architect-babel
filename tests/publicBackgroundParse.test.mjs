@@ -126,6 +126,11 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       assert.match(body.error.message, /timed out|timeout/i);
       assert.equal(body.analyses, undefined);
       assert.doesNotMatch(JSON.stringify(body), /test-only-provider-key/);
+      if (phase === 'waitInBody') {
+        assert.equal(body.error.generationRecord.providerResponseComplete, false);
+        assert.equal(decode(body.error.generationRecord.rawProviderResponse), '{');
+        assert.equal(body.error.rawOutput.byteLength, 0);
+      }
     }
     await providerAborted;
     await cancellationCalled;

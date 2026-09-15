@@ -15,11 +15,8 @@ after(() => {
   else process.env.NODE_ENV = originalNodeEnv;
 });
 
-const jsonResponse = (payload, { ok = true, status = 200 } = {}) => ({
-  ok,
-  status,
-  text: async () => JSON.stringify(payload)
-});
+const jsonResponse = (payload, { status = 200 } = {}) =>
+  new Response(JSON.stringify(payload), { status });
 
 const generateBackgroundResponse = ({ abortSignal } = {}) => generateOpenAIStructuredContent({
   apiKey: 'test-key',

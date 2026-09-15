@@ -88,7 +88,7 @@ const normalizeOffendingValue = (value) => {
 };
 
 export const createRawOutputArtifact = (rawOutput) => {
-  const bytes = Buffer.from(String(rawOutput ?? ''), 'utf8');
+  const bytes = Buffer.isBuffer(rawOutput) ? rawOutput : Buffer.from(String(rawOutput ?? ''), 'utf8');
   const retainedBytes = bytes.subarray(0, MAX_RAW_OUTPUT_BYTES);
   return {
     mediaType: 'text/plain',

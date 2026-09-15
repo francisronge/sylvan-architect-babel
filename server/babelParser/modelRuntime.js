@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { Agent } from 'undici';
 import { ParseApiError } from './error.js';
-import { withFailureDetails } from './validationErrors.js';
+import { createRawOutputArtifact, withFailureDetails } from './validationErrors.js';
 import {
   ANTHROPIC_EFFORT,
   ANTHROPIC_THINKING_CONFIG,
@@ -649,15 +649,27 @@ export const generateStructuredContent = async ({
   }));
 };
 
-const readResponseText = async (response) => {
+const readResponseText = async (response, abortSignal) => {
+  const chunks = [];
+  const preservePartialResponse = (error) => Object.assign(mutableProviderError(error), {
+    status: response.status,
+    responseReceived: response.ok,
+    partialProviderResponse: createRawOutputArtifact(Buffer.concat(chunks))
+  });
+  // The outer deadline can reject before the stream read settles. Attach its
+  // received bytes synchronously so the failure receipt retains them too.
+  const onAbort = () => preservePartialResponse(abortSignal.reason);
+  abortSignal?.addEventListener('abort', onAbort, { once: true });
   let text;
   try {
-    text = await response.text();
+    if (response.body) {
+      for await (const chunk of response.body) chunks.push(chunk);
+    }
+    text = new TextDecoder().decode(Buffer.concat(chunks));
   } catch (error) {
-    throw Object.assign(mutableProviderError(error), {
-      status: response.status,
-      responseReceived: response.ok
-    });
+    throw preservePartialResponse(error);
+  } finally {
+    abortSignal?.removeEventListener('abort', onAbort);
   }
   try {
     return { text, json: JSON.parse(text) };
@@ -692,7 +704,7 @@ const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
     },
     signal: abortSignal
   });
-  const payload = await readResponseText(response);
+  const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
     const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI response polling failed (${response.status})`));
     error.status = response.status;
@@ -819,7 +831,7 @@ export const generateOpenAIStructuredContent = async ({
     signal: abortSignal
   });
 
-  const payload = await readResponseText(response);
+  const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
     const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI request failed (${response.status})`));
     error.status = response.status;
@@ -930,7 +942,7 @@ export const generateAnthropicStructuredContent = async ({
     signal: abortSignal
   });
 
-  const payload = await readResponseText(response);
+  const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
     const error = new Error(String(payload.json?.error?.message || payload.text || `Anthropic request failed (${response.status})`));
     error.status = response.status;
@@ -991,7 +1003,7 @@ const requestProviderJson = async (url, apiKey, body, abortSignal, provider) => 
     body: JSON.stringify(body),
     signal: abortSignal
   });
-  const payload = await readResponseText(response);
+  const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
     const error = new Error(`${provider} request failed (${response.status}).`);
     error.status = response.status;
