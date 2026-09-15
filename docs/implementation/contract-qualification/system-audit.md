@@ -40,6 +40,86 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Sol admission pair, 15 September
+
+Francis authorized GPT 5.6 Sol at high effort for `Which book did John buy?`,
+once per framework. Both calls used the current prompt and production native
+fetch transport through Express `/api/parse` at clean commit `76c573b`. The
+128,000-token allowance, background mode and stored responses were unchanged.
+No replacement generation was made. Offline queued-completion and interrupted
+poll controls checked the recorder before either paid request.
+
+| Framework | Public request time | Input / output tokens | Reasoning tokens | Estimated USD | Stages / Replay frames | Tier 1 / 2 / 3 claims |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Minimalism | 184.648 s | 2,038 / 11,271 | 6,578 | 0.235607 | 9 / 35 | 0 / 2 / 12 |
+| X-bar | 172.643 s | 2,038 / 8,561 | 5,178 | 0.181407 | 5 / 43 | 1 / 4 / 10 |
+
+Both outputs are valid JSON, need zero repairs, normalize through the public
+route and end with the exact input surface. Independently processing the saved
+provider text reproduces the public stages and final trees. All 68 create/poll
+responses have matching saved byte lengths and SHA-256 hashes. The provider
+reports 2,035 cache-write tokens and zero cache-read tokens per request. The
+$0.417014 total uses the
+[published Sol rates](https://developers.openai.com/api/docs/models/gpt-5.6-sol):
+$4/M input, $20/M output and 1.25× cache-write rate; it is a token-based
+estimate, not an invoice. Times include polling and
+local processing and are not a controlled comparison against older runs.
+
+Evidence and clickable production Replay are in the local
+[Sol archive](../../../.artifacts/contract-qualification/sol-admission-2026-09-15/review/index.html).
+Its adjacent plan, source archive, outgoing bodies, HTTP exchanges, public
+responses, inspection records, browser captures and receipts preserve the
+conditions. Provider output and review captures remain uncommitted research
+artifacts. The generation server and verification browsers exited.
+
+The new observations are separate from generation success:
+
+- **Movement recognition:** Minimalism's John movement draws at frame 27; the
+  two wh movements at frames 23 and 33 and head movement at frame 31 remain
+  neutral. `movementEvidence.ts` compares category spellings without separating
+  feature annotations: `C[Q]` fails comparison with the complex head `C`, and
+  shallow `DP[wh]` fails the phrasal-label check. An in-memory diagnostic probe
+  removing only annotations recovers head movement; it does not modify the
+  saved analysis or approve that particular parser implementation. The first wh
+  claim is also blocked by the exact-name gate for unfamiliar role recovery,
+  and the final wh claim chooses the recognized base-copy field rather than the
+  immediately preceding intermediate occurrence. After the annotation-only
+  probe, the latter reports a prior-source conflict. These are shared evidence
+  binding limitations, not a request to add Sol-specific aliases.
+- **Transition ownership:** X-bar orders wh movement before chain licensing.
+  Frame 40 shows its explicit movement relation but retains the base phrase;
+  frame 41, the later licensing relation, introduces the landing and trace.
+  Only that later relation recovers the movement facet. This is a Babel
+  recognition/scheduling defect, not authored reversed chronology.
+- **Earlier pronunciation:** At Minimalism's first Stage Record, frame 14,
+  `Which` and `book` use muted silent ink although their current authored
+  terminals are pronounced. Browser-bound ancestors include the future
+  `whDP0` with `silent: true`; that parent is not yet current syntax. This
+  reproduces on a fresh page and after revisiting. Future layout scaffolding
+  must not supply current pronunciation. No source or rendering fix was made.
+- **Other neutral content:** X-bar's Case, wh-feature, PF support and judgment
+  claims remain available in neutral form. Their presence does not establish
+  that each needs its own specialized drawing. The final X-bar relation has an
+  explicit grammatical judgment; Minimalism's final convergence is prose.
+- **Model analysis:** Minimalism leaves object Case licensing unexplained and
+  uses primed labels despite its Bare Phrase Structure framing. Its phase-edge
+  step and lower-copy pronunciation are explicitly authored. X-bar states its
+  base-generated Spec-IP subject and theta/Case assumptions. It independently
+  authors an unfilled CP before movement, so its early CP is not an inferred
+  scheduling failure. Government, locality and convergence claims still need
+  linguistic adjudication; successful rendering does not certify them.
+
+The integrated desktop pass captured all 78 frames at 1600×1100. It found no
+browser errors, fitted tree-label clipping, Replay-panel coverage or camera
+transform changes within an authored stage. Zoom, Previous/Next and Fit passed.
+One immediate post-Fit capture had an unsettled curve; a targeted fresh-page
+check after settling returned identical path geometry and camera transform.
+That capture does not establish a persistent Fit defect. Every frame was also
+visually inspected; this is not approval of all neutral or mixed compositions.
+Neither output uses `realizations`, so retained-morphology model compliance,
+varied sentences, other live providers and hosted conditions remain unqualified.
+Fable's earlier missing JSON ending remains unexplained.
+
 ## Saved latency and request/Replay timing audit, 15 September
 
 Francis requested this audit before any more provider runs. The baseline is

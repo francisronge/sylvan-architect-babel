@@ -182,18 +182,25 @@ findings and Programs 0–8:
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
   typechecking, and the existing release asset/link check alongside build and
   dependency audits. No new test framework or product behavior changed.
-- With separately approved purpose and spending, qualify fresh output under the
-  current prompt, including retained morphology and varied derivations. Preserve
-  request/response evidence and inspect complete Replay. No calls are authorized
-  by this status review.
+- The separately authorized Sol pair is complete at `76c573b`: two successful
+  public-route requests, valid JSON with zero repairs, 78 inspected Replay frames,
+  and an estimated $0.417014 from reported usage. Exact requests, all 68
+  creation/poll responses and originals are retained. See the
+  [Sol findings](docs/implementation/contract-qualification/system-audit.md#sol-admission-pair-15-september).
+- Before further provider runs, repair the reproduced Sol cases with shared
+  rules: feature-bearing category labels and movement evidence binding, the
+  X-bar transition assigned to later licensing rather than its earlier movement
+  relation, and future-parent silence affecting earlier Minimalism terminals.
+  These are recorded findings; the generation approval did not implement fixes.
+  Retained morphology and varied inputs still need separately approved runs.
 - Keep Fable's unknown generation-side failure cause and automatic JSON repair /
   public incomplete-processing policy open. Existing evidence establishes what
   arrived, not why it was generated. Do not repeat unchanged offline probes as
   though they can supply missing provider evidence or establish prevention.
 - Preserve accepted rendering. The remaining extreme/slower-device/mobile checks
   are bounded follow-ups, and hosted verification belongs before deployment.
-  No further general renderer, camera or recognition rewrite is justified by
-  this reconciliation.
+  The Sol findings justify focused repairs, not a general renderer or camera
+  rewrite. Its apparent post-Fit curve change disappears after settling.
 - Programs 2–6 still contain the durable Tree Bank, shared public/research app,
   research workspace, operations and archive/corpus work. Benchmark Programs 7–8
   remain deferred and do not block shipping.
