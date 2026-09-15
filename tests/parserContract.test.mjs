@@ -113,6 +113,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(frameworkInstruction, /Explain the sentence-specific structural choices and derivational commitments/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
+    assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
@@ -129,6 +130,7 @@ test('the model-facing contract distinguishes a completed analysis from grammati
   assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
   assert.match(instruction, /A completed analysis may establish that the input is illicit/);
   assert.match(instruction, /A judgment about the whole analysis is anchored to its final root/);
+  assert.match(instruction, /In the final stage, the pronounced terminals in tree order match the supplied input tokens\./);
 });
 
 test('sentence requests preserve quoted, multiline and multilingual input as data', () => {
