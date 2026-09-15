@@ -251,6 +251,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     () => preparedReplay ?? prepareReplay({ derivationStages, sentence, includePlayback: animated }),
     [preparedReplay, derivationStages, sentence, animated]
   );
+  const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const hasDerivationFrames = replayDerivationFrames.length > 0;
   const derivationStagesSignature = useMemo(() => {
     const stages = Array.isArray(derivationStages) ? derivationStages : [];
@@ -8537,6 +8538,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // over a thin, temporarily unhittable path. Deferred relation geometry gets
     // the same treatment as soon as it is mounted on the following frame.
     installRelationHitTargets();
+    let openingAnimation: Animation | undefined;
+    if (animated && usesDerivationFrames && activeStepIndex === 0
+      && playbackSteps[0]?.operation === 'LexicalSelect') {
+      if (openingSelectionRef.current?.steps !== playbackSteps) {
+        openingSelectionRef.current = { steps: playbackSteps, startedAt: performance.now() };
+      }
+      // Font and viewport redraws continue the same reveal instead of
+      // restarting it. Only opacity changes; fitting keeps its normal bounds.
+      const elapsed = performance.now() - openingSelectionRef.current.startedAt;
+      if (elapsed < 260 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        openingAnimation = g.node()?.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 260, delay: -elapsed, easing: 'ease'
+        });
+      }
+    } else {
+      openingSelectionRef.current = null;
+    }
     const deferredRelationFrame = window.requestAnimationFrame(() => {
       deferredAcceptedRelationDraws.forEach((draw) => draw());
       installRelationHitTargets();
@@ -8544,6 +8562,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       svg.attr('data-babel-rendered-step', activeStepIndex);
     });
     return () => {
+      openingAnimation?.cancel();
       window.cancelAnimationFrame(deferredRelationFrame);
       if (forestLightFrame !== null) window.cancelAnimationFrame(forestLightFrame);
       forestLightCanvas?.remove();
