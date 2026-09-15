@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-15
+Status date: 2026-09-16
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -206,13 +206,19 @@ findings and Programs 0–8:
   eight saved analyses cover 283 frames: no empty structural steps or relation
   moments without any available current participant. The intentionally deferred
   unary landing parents remain visible in authored inspection, not early Replay.
-- A repeatable multi-source drawing limit remains: one feature source can address
-  several recipients, but two sources paired with two recipients fail the recipe's
-  single-source limit, even with correctly paired same-name literal values.
-  Evaluate a small extension of the existing pairing machinery to repeat complete
-  drawings for explicit pairs. Preserve the existing one-to-many behavior and
-  reject unequal or ambiguous lists. Sol's separately named subject/object Case
-  fields do not supply that list encoding; prefix guessing is not an approved fix.
+- The multi-source audit confirms a drawing limit, but corrects its earlier
+  classification as a safe pairing fix. One feature source can address several
+  recipients; multiple sources fail the recipe's single-source limit. Equal-length
+  source and recipient lists do not distinguish separate pairs from a collective
+  relation. Same-name literal/anchor pairing identifies each recipient's literal,
+  not its source. The prompt specifies matching order *when* entries pair; it does
+  not make every equal-length pair of entries pairwise. No recognition change is
+  justified without evidence of that association. Keep the existing fallback.
+  Independent relations can already express separate pairs, with separate Replay
+  moments; this does not solve simultaneous bundled pairs. Defer a new association
+  encoding until that need is demonstrated and its contract is agreed. Sol's
+  separately named subject/object Case fields do not establish pairing either;
+  prefix guessing remains excluded.
   Renaming occurrence IDs and reversing field order preserve recognition and
   Replay order across all eight saved analyses, covering 138 relation comparisons.
 - The two confirmed panel defects are repaired. Movement Source descriptions use
@@ -230,27 +236,43 @@ findings and Programs 0–8:
   Stage Record has one heading. Five focused regressions and the full offline gate
   pass. Matched browser checks cover all 76 Sol frames: SVG paths, group positions,
   labels and camera transforms are unchanged, with no invalid geometry or errors.
-- Reconcile authored construction claims with Replay's microsteps. The Sol
-  prompt already excludes relations fully expressed by ordinary branching, yet
-  the output mixes merge descriptions with selection, theta and feature claims.
-  Investigate the tension with the earlier instruction to express connected-operation
-  order through relations; it may encourage construction-only records, but the
-  cause of this model output is unproven. Preserve independent claims; do not
-  blacklist relation names or add named linguistic relations to the prompt.
-  The panel changes above clarify the existing step types without reclassifying
-  those claims or rewriting stage prose. No prompt change is approved by this audit.
+- The authorized construction/relation prompt clarification is implemented.
+  The old paragraph required connected-operation order to be represented through
+  ordered relations and the workspace. It now permits order recoverable from
+  workspace changes and independently required relations, and explicitly tells
+  the model not to add relations solely to narrate Replay construction. The
+  existing ordinary-branching exclusion, open names, framework guidance and
+  intermediate-stage requirement are unchanged. This removes an instruction
+  tension; it does not establish the cause of Sol's output or prove future model
+  compliance. Saved records and renderer behavior are unchanged. The existing
+  prompt contract test covers the boundary; `verify:all` passes 1,676 tests,
+  typecheck and both fixtures. No provider calls were made.
+  `server/babelParser/systemInstruction.js` SHA-256 changes from
+  `9ec816b0a0149bba9e0e52fe2c3e10c97609369ab063ae6fd62a27a451ccabc6` to
+  `d33c4b9cd75f03de2e96294bb81337da2fd27b2a7cdb7c94cf8e8a8299a72b2e`.
 - Revisit Tier 3's visual and linguistic clarity with user review. Sol Minimalism
   frame 33 adds the existing `Anchor rail` organizational companion to a Tier-3
   claim; its missing joining lines are restored from the existing Orchard notation.
   The broader Tier-3 presentation remains open for user review. Its principal
   problems are large neutral joining lines, repeated context beside recovered
   drawings, and weak correspondence between canvas locators and panel rows.
-  Prototype compact participant locators linked to explicitly grouped panel rows,
-  using the accepted fitted marker sizes and original relation/list numbering.
-  Compare a version without long neutral rails/connectors on the actual saved
-  cases before changing the accepted fallback contract. Preserve every participant,
-  group, repeated occurrence, prior witness and literal; a neutral marker asserts
-  no linguistic dependency. Keep specialized drawings intact during this review.
+  The 16 September literature review supports keeping the fallback capability and
+  evaluating participant references with complete authored panel content, without
+  generic joining lines. This is a proposed interface design, not an established
+  linguistic notation or an approved renderer change. In the reviewed sources,
+  underspecification has defined semantics: [FUDG, Figure 4](https://aclanthology.org/W13-2307.pdf#page=5)
+  asserts connected subgraphs; [quasi-trees, Figure 1](https://aclanthology.org/P92-1010.pdf#page=2)
+  use dotted links for dominance; [UD dep](https://universaldependencies.org/u/dep/dep.html)
+  still asserts a directed dependency. These do not license arbitrary neutral
+  edges. [Beck et al., Figure 1 and section 4](https://aclanthology.org/2020.law-1.6.pdf#page=2)
+  distinguish ambiguity, uncertainty and error; Babel lacking a drawing does not
+  make the model's claim uncertain or incorrect. [Mazziotta, Figure 4](https://aclanthology.org/2021.depling-1.8.pdf#page=5)
+  explains how diagram choices convey different information. No universal
+  unknown-relation symbol was found in this bounded review. Compare the proposed
+  references with current Tier 3 on saved cases before changing its contract.
+  Preserve every participant, group, repeated occurrence, prior witness and
+  literal, along with accepted numbering and known specialized drawings. No new
+  participant-free graphic or uncertainty field is justified by this research.
   Current X-bar frame 40 combines `Movement curve` and `Variable-binding path`
   for licensing after the owning movement frame, without moving the tree again.
   Both claims have separate supporting evidence. Endpoint coincidence alone does
@@ -1127,7 +1149,7 @@ an earlier renderer closeout or a passing fixture suite.
 | 36 | Integrated; bounded composition verified | Transfer/cyclic duplicates and repeated gap labels are repaired. Gap notation reuses its exact owned display terminal. Residual rails retain authored participant context with stage-scoped persistence. Saved-case mixed composition is browser-verified; arbitrary combinations remain unqualified. |
 | 37 | Implemented locally | Outcome data reaches existing path/candidate graphics. Allowed outcomes do not earn blocked-only marks; contradictory same-host claims stay neutral with a cause diagnostic. All-variant native qualification remains under 39. |
 | 38 | Implemented locally | Recovery checks the exact authored gap/copy, including category-typed silent occurrences and t variants. A containing VP is not that trace; ordinary silence does not imply deletion. |
-| 39 | Bounded integrated qualification | Current gate: 1,663 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. The later realizations pass also preserves all 207 archived frames and checks 14 new control frames plus worker/Tree Bank save/reopen. The subsequent recognition comparison covers all 207 frames and 24 controls, with the documented Grok wh drawing change. Arbitrary compositions and slower/deployed conditions remain bounded follow-ups; the no-prior control lacks authored ownership evidence and does not establish a scheduler defect. |
+| 39 | Bounded integrated qualification | Current gate: 1,676 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. The later realizations pass also preserves all 207 archived frames and checks 14 new control frames plus worker/Tree Bank save/reopen. The subsequent recognition comparison covers all 207 frames and 24 controls, with the documented Grok wh drawing change. Arbitrary compositions and slower/deployed conditions remain bounded follow-ups; the no-prior control lacks authored ownership evidence and does not establish a scheduler defect. |
 
 Proof reconciliation beyond the original numbered findings:
 
