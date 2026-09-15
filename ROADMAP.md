@@ -187,20 +187,17 @@ findings and Programs 0–8:
   and an estimated $0.417014 from reported usage. Exact requests, all 68
   creation/poll responses and originals are retained. See the
   [Sol findings](docs/implementation/contract-qualification/system-audit.md#sol-admission-pair-15-september).
-- Before further provider runs, repair the reproduced Sol cases with shared
-  rules: feature-bearing category labels and movement evidence binding, the
-  X-bar transition assigned to later licensing rather than its earlier movement
-  relation, the empty finite-T construction frame, and future-parent silence
-  affecting earlier Minimalism terminals. The
-  [deeper 78-frame audit](docs/implementation/contract-qualification/system-audit.md#deeper-sol-frame-audit-15-september)
-  also reproduces unrelated X-bar syntax moving within a stage despite a fixed
-  camera, explicit multi-claim Case binding gaps, tiny fitted labels in a short
-  desktop window, and difficult mixed composition. Address transition evidence
-  and ownership, then isolate future layout from current syntax and verify node
-  positions. Review opening selection/readable fitting and mixed composition
-  separately, preserving the accepted appearance. These are findings and
-  recommendations, not implemented fixes or approval for a general redesign.
-  Retained morphology and varied inputs still need separately approved runs.
+- Three small Replay defects are repaired: relation-owned construction no longer
+  emits an empty preceding step; hidden future parents cannot silence current
+  words; and the opening lexical selection fades in. All 77 resulting Sol frames
+  were checked in the app. Tree dimensions, plaque positions and camera bounds
+  remain unchanged at two desktop sizes; `verify:all` passes 1,665 tests.
+- Before further provider runs, address the remaining shared-rule findings:
+  feature-bearing category labels and movement evidence binding, X-bar movement
+  assigned to later licensing, within-stage syntax jumps, multi-claim Case
+  binding, readable fitting and mixed composition. Investigate each separately
+  and preserve the accepted appearance. Retained morphology and varied inputs
+  still need separately approved runs.
 - Keep Fable's unknown generation-side failure cause and automatic JSON repair /
   public incomplete-processing policy open. Existing evidence establishes what
   arrived, not why it was generated. Do not repeat unchanged offline probes as
