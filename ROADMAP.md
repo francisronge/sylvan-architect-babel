@@ -179,10 +179,9 @@ The production build passes. Verified fixes are committed and pushed through
 Immediate priorities after reviewing all 19 starting-point items, 39 audit
 findings and Programs 0–8:
 
-- Complete the small CI gap in Program 5: run the existing typecheck and release
-  asset/link checks automatically. CI currently runs tests, parse-contract checks,
-  build and dependency audits, but omits those two checks. No new test framework
-  or product change is needed.
+- The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
+  typechecking, and the existing release asset/link check alongside build and
+  dependency audits. No new test framework or product behavior changed.
 - With separately approved purpose and spending, qualify fresh output under the
   current prompt, including retained morphology and varied derivations. Preserve
   request/response evidence and inspect complete Replay. No calls are authorized
@@ -1276,11 +1275,10 @@ the next tranche or a hosted account.
 
 ## Program 5: Operations And Shipping
 
-1. **Partial:** CI already runs `npm ci`, `npm run verify:offline`, build and
-   dependency audits. Replace the offline command with `npm run verify:all` to
-   include typechecking, and add the existing `npm run release:verify-assets`
-   command for release files and links. These checks pass locally; automated
-   enforcement remains to be added.
+1. **Done:** CI runs `npm ci`, `npm run verify:all` for typechecking, tests and
+   parse-contract fixtures, production build, `npm run release:verify-assets`
+   for release files and links, and dependency audits. Required checks fail
+   the job; the complete low-severity dependency report remains informational.
 2. Node 24 is selected in the package and CI. Define supported browsers, hosted
    runtime conditions and upgrade cadence.
 3. Choose hosting, storage, and operations vendors after measuring the public

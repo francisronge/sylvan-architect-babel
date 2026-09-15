@@ -29,11 +29,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Verify provider-free contract
-        run: npm run verify:offline
+      - name: Typecheck and verify provider-free contract
+        run: npm run verify:all
 
       - name: Build production frontend
         run: npm run build
+
+      - name: Verify release assets and links
+        run: npm run release:verify-assets
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
