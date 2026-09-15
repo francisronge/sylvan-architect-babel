@@ -4,6 +4,7 @@ import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { getFrameRelations } from '../replay/replayCompiler.ts';
 
 const example = () => ({
   relation: { relation: 'Open dependency', anchors: { lowerCopy: 'lower', traceWitness: 'lower', higherCopy: 'upper' } },
@@ -21,6 +22,20 @@ const stage = (workspaceForest, relations = []) => ({ statement: 'State', stageR
 const plan = input => compileRelationRenderPlan([
   stage(input.priorForest), stage(input.currentForest, [input.relation])
 ]).frames.at(-1).items;
+
+test('movement context reads feature-bearing head and phrase categories without changing them', () => {
+  const input = example();
+  input.currentForest[0].children[0].children[1].label = 'Z[Q]';
+  const original = structuredClone(input);
+  assert.equal(recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement?.trajectoryKind, 'head');
+  input.currentForest[0].children[0].label = 'Z′[Q]';
+  assert.equal(recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement, undefined);
+  input.currentForest[0].children[0] = original.currentForest[0].children[0];
+  assert.deepEqual(input, original);
+  const phrase = relocatedPhrase('InternalMerge');
+  phrase.currentForest[0].children[0].label = 'DP[wh]';
+  assert.equal(recoverMovementEvidence(phrase.relation, phrase.currentForest, phrase.priorForest).movement?.trajectoryKind, 'phrasal');
+});
 
 test('movement refusals cannot be bypassed by another drawing or transition path', () => {
   for (const [code, change] of [
@@ -171,4 +186,58 @@ test('repeated scalar prior references preserve evidence while a repeated endpoi
   assert.equal(dispatchRelationClaims(input).primaryClaim.tier, 1);
   input.relation.priorAnchors.source = ['higher', 'higher'];
   assert.equal(dispatchRelationClaims(input).primaryClaim.tier, 3);
+});
+
+test('explicit prior direction binds arbitrary current roles without a recognized relation name', () => {
+  const input = relocatedPhrase('A previously unseen description');
+  input.relation.priorAnchors = { movementSource: 'higher' };
+  assert.equal(plan(input).find(item => item.kind === 'trajectory')?.sourceNodeId, 'lower');
+  for (const change of [
+    x => { x.relation.priorAnchors = { observation: 'higher' }; },
+    x => { x.relation.priorAnchors.movementSource = ['higher', 'higher']; },
+    x => { x.priorForest = structuredClone(x.currentForest); },
+    x => { x.currentForest[0].children[1].id = 'different-slot'; },
+    x => { x.currentForest[0].children.push({ id: 'rival', label: 'DP', lineageId: 'chain' }); x.relation.anchors.third = 'rival'; }
+  ]) {
+    const invalid = structuredClone(input);
+    change(invalid);
+    assert.ok(!plan(invalid).some(item => item.kind === 'trajectory'), JSON.stringify(invalid.relation));
+  }
+});
+
+test('a successive step uses its explicit prior source and preserves the earlier lower copy as evidence', () => {
+  const lower = { id: 'base', label: 'DP[wh]', lineageId: 'chain', silent: true };
+  const edge = { id: 'edge', label: 'DP[wh]', lineageId: 'chain', word: 'book' };
+  const priorForest = [{ id: 'domain', label: 'vP', children: [edge, lower] }];
+  const currentForest = [{ id: 'root', label: 'CP', children: [
+    { ...edge, id: 'upper' },
+    { ...priorForest[0], children: [{ ...edge, silent: true }, lower] }
+  ] }];
+  const relation = { relation: 'Next dependency', anchors: { higherOccurrence: 'upper', baseCopy: 'base', observation: 'edge' },
+    priorAnchors: { source: 'edge' } };
+  const input = { relation, priorForest, currentForest, stageIndex: 1, relationIndex: 0 };
+  const dispatch = dispatchRelationClaims(input);
+  assert.equal(dispatch.evidence.movement.sourceNodeId, 'edge');
+  assert.ok(dispatch.claims.some(claim => claim.tier === 3 && claim.consumedEvidence.some(ref => ref.key === 'baseCopy')));
+  const conflict = structuredClone(input);
+  conflict.currentForest[0].children[1].children[1].lineageId = 'other';
+  assert.ok(!plan(conflict).some(item => item.kind === 'trajectory'));
+});
+
+test('the first supported relation owns movement and its pending parent; later inspection does not repeat it', () => {
+  const input = relocatedPhrase('An open description');
+  input.priorForest = [{ id: 'landing-parent', label: 'CP', children: input.priorForest }];
+  input.relation.priorAnchors = { movementSource: 'higher' };
+  const relations = [input.relation, { relation: 'Later inspection', anchors: { lowerCopy: 'lower', higherCopy: 'higher' } }];
+  const stages = [stage(input.priorForest), stage(input.currentForest, relations)];
+  const recovered = getFrameRelations({ workspaceForest: input.currentForest,
+    change: { details: { derivationStageRelations: relations } } }, null, input.priorForest);
+  assert.deepEqual(recovered.map(r => r.recoveredMovement?.transition), [true, false]);
+  const { steps } = buildReplayPlayback({ sentence: 'book', analyses: [{ derivationStages: stages }] });
+  const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 0);
+  assert.ok(moment > 0);
+  assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes('landing-parent')));
+  assert.ok(steps[moment].replayVisibleNodeIds.includes('landing-parent'));
+  assert.deepEqual(steps[moment + 1].replayVisibleNodeIds, steps[moment].replayVisibleNodeIds);
+  assert.deepEqual(stages[0].workspaceForest, input.priorForest);
 });

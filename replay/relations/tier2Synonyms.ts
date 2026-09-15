@@ -225,6 +225,12 @@ export const relationRoleConcepts = (
   context: { anchors?: Record<string, unknown>; values?: Record<string, unknown> } = {}
 ): string[] => {
   const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key)]);
+  const spelling = normalizeTier2Synonym(key);
+  // A domain-qualified role retains the direction of its existing role word.
+  if (spelling.startsWith('movement ')) {
+    lookupTier2SynonymCandidates(index, 'role', spelling.slice('movement '.length))
+      .filter(concept => concept.startsWith('movement.')).forEach(concept => concepts.add(concept));
+  }
   // Searching and valuing are the more specific roles of a feature dependency.
   if (concepts.has('probe')) concepts.add('feature.source');
   if (concepts.has('goal')) concepts.add('feature.target');
@@ -233,7 +239,6 @@ export const relationRoleConcepts = (
   const hasLiteral = (concept: string) => Object.entries(context.values ?? {}).some(([key, value]) =>
     lookupTier2SynonymCandidates(index, 'value', key).includes(concept)
       && nonBlankLiteral(value));
-  const spelling = normalizeTier2Synonym(key);
   const thetaDomain = Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).some(concept => concept === 'predicate' || concept === 'theta.arguments'))
     || Object.entries(context.values ?? {}).some(([key, value]) => /^(theta|thematic|θ) /.test(normalizeTier2Synonym(key))

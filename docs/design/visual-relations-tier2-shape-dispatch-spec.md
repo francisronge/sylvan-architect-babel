@@ -143,13 +143,20 @@ subtype. Replay executes only a movement transition earned by the surviving
 claim, preserves the preceding source until that moment, and does not repeat an
 unchanged chain. This does not relax the exact Tier-1 signature safeguard.
 
-For an already established movement identity, unfamiliar role names may bind
+For an established movement identity or an explicit preceding source, unfamiliar role names may bind
 through a unique pair of exact anchored occurrences with matching root lineage,
 the preceding source parent/child slot, and a changed landing. Conflicting roles,
 ambiguous endpoints and repeated endpoint lists do not select a candidate. The
 same verified lower anchor can fill required source and witness slots before
 ordinary Tier-1 validation. Optional decoration slots are not populated merely
 because they exist. Unknown movement meaning cannot be inferred from geometry.
+
+Domain-qualified movement roles reuse their existing direction word. The explicit
+preceding source selects the current step when other anchored lower copies remain
+unchanged; those earlier copies remain independent evidence. Category comparisons
+read trailing feature annotations separately and preserve every authored label.
+Within a stage, the first supported relation owns each exact occurrence transition;
+later claims can draw or inspect it without executing the structural change again.
 
 Ordinary and carrier movement use the shared structural refusal and transition
 evidence. Current landing context is checked independently of history. A complete

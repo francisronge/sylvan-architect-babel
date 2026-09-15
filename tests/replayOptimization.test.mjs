@@ -34,6 +34,20 @@ test('visible token counts deduplicate overlapping subtrees and preserve unnamed
   assert.deepEqual([...counts(tree, ['p', 'ben'])], [['ben', 1], ['word', 1]]);
 });
 
+test('feature annotations do not disable position-sensitive casing or change authored labels', () => {
+  for (const label of ['D', 'D[+wh]', 'D [wh] [case:acc]']) {
+    const tree = { id: 'root', label: 'VP', children: [
+      { id: 'verb', label: 'V', children: [leaf('v', 'buy')] },
+      { id: 'det', label, children: [leaf('d', 'Which')] }
+    ] };
+    const input = freeze([{ operation: 'Select', targetNodeId: 'd', targetLabel: 'Which', replayCanvasData: tree }]);
+    const [result] = applyPreFrontingSentenceInitialCasing(input, 'Which book');
+    assert.equal(result.replayCanvasData.children[1].children[0].word, 'which');
+    assert.equal(result.replayCanvasData.children[1].label, label);
+    assert.equal(tree.children[1].children[0].word, 'Which');
+  }
+});
+
 test('visible token lookup preserves first-preorder ID and alias matches', () => {
   const tree = { id: 'root', children: [
     { ...leaf('first', 'Ada'), aliasIds: ['second'] }, leaf('second', 'Ben')

@@ -1,5 +1,6 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
-import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { categoryLabel as readCategoryLabel } from '../categoryLabel.ts';
+import { buildTier2SynonymIndex, relationRoleConcepts, normalizeTier2Synonym } from './tier2Synonyms.ts';
 import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
 
 export interface RecoveredMovement {
@@ -19,7 +20,7 @@ export interface RecoveredMovement {
 
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing';
 
-const categoryLabel = (node: SyntaxNode) => String(node.label || '').replace(/[′']/g, '').trim();
+const categoryLabel = (node: SyntaxNode) => readCategoryLabel(node.label);
 const onlyExponents = (node: SyntaxNode): boolean => !node.children?.length || node.children.every(child => !child.children?.length);
 const isHeadComplex = (parent: SyntaxNode, landingId: string): boolean => {
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
@@ -63,7 +64,7 @@ export interface MovementEvidenceResult {
 }
 
 const vocabulary = buildTier2SynonymIndex();
-const hasRole = (key: string, concept: string) => lookupTier2SynonymCandidates(vocabulary, 'role', key).includes(concept);
+const hasRole = (key: string, concept: string) => relationRoleConcepts(vocabulary, key).includes(concept);
 const genericRoles = new Set(['source', 'origin', 'from', 'target', 'to', 'destination', 'landing', 'landing site', 'filler', 'operator', 'head', 'variable', 'real gap']);
 
 // Recover occurrence identity from the anchored objects, never a shared descendant
@@ -109,12 +110,21 @@ export function recoverMovementEvidence(
   if (!sources.length) sources = witnesses;
   let targets = pick('movement.landing');
   let structurallyBound = false;
-  // An established movement claim may name its occurrences with unfamiliar
-  // roles. Exact anchors and the preceding source slot must prove one direction;
-  // neither the word spelling nor pronunciation selects an endpoint.
+  const anchored = [...new Set(entries.filter(e => e.ids.length === 1).flatMap(e => e.ids))];
+  // An explicit preceding source distinguishes this step from earlier copies
+  // in the same chain. Unchanged earlier copies remain separate evidence.
+  const priorSource = explicitPriorSources.length === 1 ? explicitPriorSources[0] : undefined;
+  if (priorSource && anchored.includes(priorSource) && samePriorSlot(priorSource, priorSource)
+    && sources.every(id => id === priorSource || (current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
+      && prior.nodes.has(id) && JSON.stringify(current.nodes.get(id)) === JSON.stringify(prior.nodes.get(id))))) {
+    sources = [priorSource];
+    structurallyBound = true;
+  }
+  // Unfamiliar wording still needs explicit movement direction or an established
+  // identity, plus exact anchored occurrences and a changed preceding source slot.
   if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
-    && witnesses.length <= 1 && explicitPriorSources.length <= 1 && isMovementIdentity(relation.relation)) {
-    const anchored = [...new Set(entries.filter(e => e.ids.length === 1).flatMap(e => e.ids))];
+    && witnesses.length <= 1 && explicitPriorSources.length <= 1
+    && (isMovementIdentity(relation.relation) || priorSource)) {
     const pairs: Array<{ source: string; target: string }> = [];
     for (const sourceId of sources.length ? sources : anchored) {
       const source = current.nodes.get(sourceId);

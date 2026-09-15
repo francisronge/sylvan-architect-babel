@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import { categoryLabel } from './categoryLabel.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
@@ -4908,10 +4909,8 @@ const filterResolvedRelationLinks = (
   return sourceLinks.filter((link) => !matchesSuppressedLink(link));
 };
 
-const PRIME_MARK_RE = /[’']/g;
-const PRIME_CATEGORY_LABEL_RE = /[’']$/;
-const normalizeStructuralLabel = (label?: string): string =>
-  String(label || '').trim().replace(PRIME_MARK_RE, '');
+const PRIME_CATEGORY_LABEL_RE = /[′’'](?:\s*\[[^\[\]]*\])*$/u;
+const normalizeStructuralLabel = categoryLabel;
 
 const HEAD_LIKE_LABEL_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
 
@@ -5726,11 +5725,7 @@ export const buildResolvedLinkRawTraceAliasMap = (
 };
 
 const normalizeReplayCategoryKeyForOrdering = (value?: string | null): string => {
-  const raw = String(value || '')
-    .trim()
-    .replace(/[’′']/g, '')
-    .replace(/[â€™â€²']/g, '')
-    .replace(/[^A-Za-z]/g, '');
+  const raw = categoryLabel(value);
   if (/^vP$/.test(raw)) return 'vP';
   if (/^v$/.test(raw)) return 'v';
   return raw.toUpperCase();
@@ -7017,6 +7012,7 @@ export const getFrameRelations = (
         `RELATION_ANCHOR_UNRESOLVED: Stage ${stageNumber}, relation ${relationNumber} (${authoredStep.relation}) ${anchor.fieldPath} names ${JSON.stringify(anchor.nodeId)}, which is not in this stage's expanded workspace. The anchor was not replaced; the relation is shown without it.`)
     };
   });
+  const ownedMovements = new Set<string>();
   const recovered = authored.map((authoredStep, relationIndex) => {
     const input = {
       relation: authoredStep as DerivationStageRelation,
@@ -7080,7 +7076,11 @@ export const getFrameRelations = (
         ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue =>
           `Tier 1 signature: ${JSON.stringify(issue)}`)
       ] : [];
-    const transition = facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition;
+    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+    const transition = !ownedMovements.has(movementKey)
+      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
+    // Later claims may inspect the same dependency; its structural change occurs once.
+    if (transition) ownedMovements.add(movementKey);
     return {
       ...step,
       ...((priorDiagnostics.length || drawingDiagnostics.length)
