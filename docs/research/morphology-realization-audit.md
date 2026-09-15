@@ -315,11 +315,10 @@ Alignment must not depend on earning Tier 1 or Tier 2.
 | Derive alignment from existing PF relations | Could reuse some already explicit claims | Current open roles, literal strings and repeated-word ambiguity do not supply a uniform occurrence mapping; making recognition mandatory recreates the alias problem |
 | Automatically join adjacent strings | Appears simple for regular concatenation | Reject as a general solution: it guesses linguistic grouping and spelling and can hide doubled content |
 
-The smallest complete extension has not yet been selected. First settle the
-required cardinalities and whether final syntax may differ in order from its
-surface realization. Then compare the explicit-association and domain-realization
-options against the scenarios below. A scalar-index relaxation alone should not
-be described as a general solution.
+These were the alternatives at the original audit checkpoint. The follow-up
+contract reuse check below recommends explicit stage-contained groups, including
+existing domains as possible sources. The field is not implemented. A
+scalar-index relaxation alone is insufficient for the required cardinalities.
 
 ### Requirements for that design
 
@@ -376,18 +375,225 @@ reduplication, overlapping groups, omitted tokens, extra terminals, invalid
 references and mixed successful/unsuccessful analyses. These are requirements
 for evaluating a new representation, not claims that new support was tested here.
 
-## Recommended next decision
+## Agreed direction and next implementation
 
 Keep the already supported early-pieces-to-final-word path. The neutral
-transition's residual-parent repair is complete as recorded above; the
-representation decisions remain open.
+transition's residual-parent repair is complete as recorded above.
 Design retained final morphology separately, starting from explicit occurrence
 alignment rather than alias recognition or automatic concatenation. The user
-wants this capability; the contract format and implementation remain undecided.
+supports the optional association field and requires especially clear authoring
+instructions. The concrete proposal below defines the implementation direction;
+it does not claim that the field or its consumers already work.
 
-The proposed prompt change from `syntactic reason` to `reason within the analysis`
-concerns a new PF or interpretation claim with an unchanged workspace. Changing
-a word or structure already changes the workspace. The clarification does not
-add or repair surface alignment. It remains a separate wording decision. The
-approved framework-sensitive label instruction is already committed and is not
-reopened by this audit.
+The user approved the prompt change from `syntactic reason` to `reason within the
+analysis` on 15 September; it is implemented separately from realization groups.
+It permits a PF or interpretation claim with an unchanged workspace. Changing a
+word or structure already changes the workspace. The exact-input requirement and
+surface alignment remain unchanged. The approved framework-sensitive label
+instruction is already committed and is not reopened by this audit.
+
+
+## Contract reuse check and proposed extension
+
+This follow-up examines `b4abef8` after the badge and emptied-parent repairs. It
+is a proposal, not an implemented capability. The reuse investigation changed
+no product, prompt or fixture files and made no provider call. The separately
+approved unchanged-workspace prompt clarification is recorded above.
+
+The current-code check runs 52 concrete records in both frameworks, including
+the original 42 controls and ten additional field-reuse combinations. All 104
+outcomes match the expected current behavior. The 54 normalized results also
+complete Replay preparation and snapshot/load round trips without changing the
+supplied records. Some normalized records deliberately retain diagnostics;
+normalization alone is not a claim of a fully valid analysis. Scripts and results
+are in `/tmp/babel-morphology-contract-review/`.
+
+### What reuse actually permits
+
+The existing contract can retain abstract root/feature structure before a whole
+word appears, keep a whole-word leaf alongside an abstract feature node, or end
+with several ordinary words. It can describe a collective realization in open
+relation anchors and literal values. However, those annotations do not change
+how Babel checks the final surface.
+
+Two final lexical forms `walk` and `-ed` cannot jointly count as the input token
+`walked`. A final `has walked` leaf cannot count as two input tokens. Shared
+`tokenIndex`, a list supplied in that scalar field, shared `lineageId`, a wide
+`surfaceSpan`, a parent's `word`, and explicit token/exponent strings in relation
+values all fail to supply the missing association under their existing meanings.
+
+An extra standalone `walked` workspace beside an abstract morphological tree
+normalizes with `DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS`. The selected final
+tree is the standalone word. This is not a satisfactory way to retain the
+morphological analysis as the final tree. Making an affix silent or abstract is
+appropriate only when that is what the model's analysis claims.
+
+### One recommended representation
+
+Add one optional field, `realizations`, to a completed derivation stage. Keep its
+four current required fields. Each group contains exactly the current syntax
+occurrence IDs and the input-token positions that the model associates with them:
+
+```json
+"realizations": [
+  { "nodeIds": ["root", "past"], "tokenIndices": [0] }
+]
+```
+
+For the one-token input `walked`, this says that the existing `root` and `past`
+objects jointly correspond to that occurrence of `walked`. It neither creates a
+new syntax node nor declares fusion. The original tree, labels and lexical forms
+remain authored as before. A source can instead name an existing subtree for a
+phrasal realization. Several target positions allow one or more syntax objects
+to correspond to several input tokens, including separated positions.
+
+The input already provides the target spelling; do not add a second `exponent`
+string to this field. Phonological forms, explanations and linguistic operations
+remain available in nodes and open relations. This field records exact input
+association, not a phonological derivation or a spelling algorithm. In particular,
+linking a root and tense to a token does not certify that the linguistic claim is
+correct.
+
+Proposed rules:
+
+1. Omission retains today's final-alignment behavior. Ordinary whole-word
+   analyses need no new field. Existing records are not migrated or reinterpreted.
+2. Groups describe associations established in the completed stage. They are
+   current state, not an implicit cumulative ledger or a command to alter syntax.
+   When using groups, record all nontrivial associations that still hold there.
+3. `nodeIds` is a nonempty set of exact current-stage occurrence IDs;
+   `tokenIndices` is a nonempty, duplicate-free list of in-range input positions
+   in surface order. A nonterminal source covers its current subtree. Source
+   coverage is deduplicated within a group; arbitrary spelling or lineage never
+   identifies a source.
+4. Target token sets are disjoint. Several pieces contributing to the same token
+   belong in one group. A source may participate in several groups, allowing one
+   feature or domain to contribute to more than one realized word.
+5. Group-covered lexical leaves obtain their collective association from the
+   group. A direct `tokenIndex` may remain as redundant metadata only when it
+   independently satisfies today's whole-word rule and names a token claimed by
+   a group covering that leaf. Count that token once. Thus `walked` may retain a
+   valid direct index when an abstract tense head joins its group; `walk` cannot
+   claim that direct index for input `walked`. Report conflicting assignments
+   rather than discarding them. For remaining ordinary leaves, remove the claimed
+   token positions and perform the existing ordered string comparison against
+   the remaining input. Preserve and check authored direct indices against the
+   original input positions.
+6. Wordless abstract sources may participate. Effective silence includes silence
+   inherited from an ancestor: directly naming a descendant never bypasses
+   whole-phrase silence. Silent occurrences remain excluded from overt lexical
+   coverage and cannot independently supply an overt realization. Existing
+   silence and wordless-node conventions remain available; no empty-token group
+   is necessary for this first extension.
+7. Validate references, field shapes, ownership conflicts and coverage. Do not
+   concatenate strings, correct spellings, replace authored words, infer silence,
+   require a recognized relation name, or pronounce extra material to pass a check.
+8. Input indices describe the claimed surface association. They never reorder
+   the authored children, move nodes or merge movement identities. Exact sets
+   remain available for discontinuous associations; a legacy `surfaceSpan` must
+   not be treated as their exact membership.
+
+This is preferable to extending the scalar `tokenIndex`: the scalar's current
+whole-word meaning can stay intact, while a group directly expresses a collective
+claim. Node-local lists repeat the same group on several nodes and require a rule
+for deciding whether repeated lists mean individual or joint realization. A
+parent-only `word` rule cannot name arbitrary contributing nodes and changes
+pronunciation semantics for existing nonterminals. Relation-name recognition
+would recreate the alias problem. The proposed groups are within the existing
+sole authored derivation source, not another final tree or a separate analysis
+ledger.
+
+The linguistic motivation is the distinction between syntactic pieces and their
+realization, rather than any particular morphological theory. Halle and Marantz
+explicitly distinguish syntax, realization and changes in correspondence, including
+merger that retains separate terminals and fusion that does not, on pp. 111–117
+of [their paper](https://web.mit.edu/morrishalle/pubworks/papers/1993_Halle_Marantz_Hale_Keyser_Distributed_Morphology_Pieces_of_Inflection.pdf).
+As a data-format comparison, [CoNLL-U](https://universaldependencies.org/format.html#words-tokens-and-empty-nodes)
+separately records surface tokens and syntactic words, including Spanish `al`
+corresponding to `a` and `el`. That supports making the distinction explicit;
+Babel need not adopt UD's syntactic units or morphological theory.
+
+### Required integration and the timing boundary
+
+This is a small data addition with coordinated implementation work, not a
+one-line validation relaxation.
+
+| Existing owner | Necessary change |
+| --- | --- |
+| `systemInstruction.js`, stage validation and `types.ts` | Permit the optional fifth stage field and define the groups. Qualify exact prompt hashes using the existing provenance mechanism. |
+| Normalization and workspace inspection | Share one pure coverage resolver for direct terminals and explicit groups. Preserve original input and field-level diagnostics. |
+| `syntaxTree.js` and surface consumers | Separate declared realized input coverage from concatenating displayed leaf forms. Do not manufacture shared scalar indices or false contiguous spans. |
+| Replay adapters, stage signatures and playback state | Preserve groups and recognize association changes even when the forest is unchanged. Keep them separate from syntax construction and layout. |
+| Rendering and casing | Preserve the authored morphology on the tree and keep the full input in the sentence heading. Make the exact association inspectable; reuse existing PF drawings where their own claims support them. A group alone does not require a new plaque or duplicate whole-word terminal. |
+| Tree Bank and snapshots | Existing snapshots deep-copy complete stages. Verify preservation and reconstruction; no new storage service or migration is indicated. |
+
+One genuine timing issue must not be hidden by this proposal. Two relations can
+have the same participants, so a list of node IDs alone cannot always establish
+which relation introduced a new realization. Current nonmovement transition
+checking also compares only forests, so an unchanged tree with changed groups
+needs explicit handling.
+
+Recommended first-version policy: use existing exact current/prior relation
+ownership when it identifies one owner. An intermediate completed stage can
+separate competing operations under the existing chronology rule. It does not
+supply a missing owner: a stage with no witnessing relation still establishes no
+relation moment for the association change. Preserve the completed state and
+report missing ownership in inspection without inventing a moment. Future
+authoring must supply the witnessing relation when claiming that operation.
+Never choose an owner from a title, an alias or proximity. Do not add
+`relationIndex`, event IDs or another timing system now. If the user later needs
+several ambiguous realization changes in a single stage, that is a separate,
+concrete extension request. The completed state and any unresolved timing evidence
+must remain inspectable under the existing processing policy.
+
+### Scope and decisions
+
+The user confirmed that Babel must derive the exact submitted input, including
+an ungrammatical input. The model can depict that input and explain why its
+structure is illicit. Realization groups change how authored syntax corresponds
+to those exact input tokens; they do not authorize substitution, omission, an
+invented grammatical sentence, or treating input coverage as a grammaticality
+verdict. The hypothetical possibility of an analysis ending without a complete
+sentence tree is not grounds for relaxing this requirement.
+
+Model-facing instructions for the future field must define its placement and
+each list explicitly, distinguish ordinary direct token indices from collective
+association, and show both when to omit it and when to use it. Use worked examples
+with exact input tokens and matching node IDs, including separate pieces realizing
+one word and an irregular realization. Explain that groups record associations
+already established in that stage; they do not automatically pronounce, move,
+fuse or respell nodes. Preserve the model's choice of morphological analysis.
+
+Necessary now, if the capability is approved: the optional group field, shared
+coverage checking, state/consumer preservation and focused controls for many-to-one,
+one-to-many, repeated tokens, irregular forms, domains, overlapping sources,
+silence and omitted/conflicting associations. Include ordinary-record parity and
+Replay timing checks before any visual change is presented for approval.
+
+Can wait: character/phoneme alignment inside tokens, a phonological transducer,
+a separate PF tree, new special-purpose morphology graphics, automatic spelling,
+new relation vocabulary, storage architecture, tokenizer changes and a general
+layout or linearization rewrite. The association can identify separate target
+positions without constructing an independent PF-ordering system.
+
+The user supports this optional stage field and has specified the exact-input
+and authoring requirements above. The recommended handling of ambiguous timing
+follows the existing intermediate-stage rule rather than adding another field.
+The proposed field and scoped integration remain unimplemented and must pass
+their focused checks before being treated as supported capability.
+
+Separate existing limitations:
+
+- Literal multidominance is unavailable: one node cannot occupy two parent
+  positions in the same expanded workspace. Distinct IDs with shared lineage
+  express related occurrences, not one shared node. This affects analyses that
+  require actual shared structure, but does not need repair for realization groups.
+- Outside explicit associations, current final tree order is also input order.
+  Independent abstract order and PF linearization require their own demonstrated
+  representation need. Do not quietly turn this morphology work into a new
+  linearization engine.
+- Input positions belong to Babel's supplied tokenization, which already makes
+  choices about possessives, hyphens and punctuation. They are addresses into that
+  input, not declarations of universally correct morphological or syntactic units.
+  Changing tokenization is separate from allowing several syntax objects to share
+  those addresses.

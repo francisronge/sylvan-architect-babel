@@ -244,9 +244,10 @@ framework, preserving the distinctions made in the analysis." This replaces the
 blanket instruction to name a projection rather than its head, following Francis's
 approval. Node fields and parser behavior are unchanged. The wording asks the model
 to retain its analysis's distinctions without imposing one labeling convention on
-both frameworks. Its effect on fresh model output remains unverified. The proposed
-change from "syntactic reason" to "reason within the analysis" remains for discussion;
-surface-token alignment is unchanged.
+both frameworks. Its effect on fresh model output remains unverified. The approved
+unchanged-workspace instruction now asks for a "reason within the analysis",
+allowing a pronunciation or interpretation claim without a tree change. The exact
+input requirement and surface-token alignment are unchanged.
 
 The separate [morphology and surface realization audit](docs/research/morphology-realization-audit.md)
 is complete at that source revision. Forty-two controls in both frameworks
@@ -458,17 +459,23 @@ discussion with Francis.
    survive. The 84 morphology controls change only the targeted leaf-anchored
    case in each framework. A result with no prior anchors still needs evidence
    analysis before implementation.
-3. **Final morphology representation.** Review the [separate audit](docs/research/morphology-realization-audit.md).
-   Early pieces becoming a final whole word already work. The desired extension
-   preserves separate final morphology and explicitly associates it with input
-   occurrences. Compare reuse of `tokenIndex`, a general occurrence association,
-   and domain realization against one-to-many, many-to-one and discontinuous
-   cases. No format is approved. Do not infer fusion from adjacency or make
-   alignment depend on relation aliases or drawing tiers.
-4. **Prompt follow-up.** Keep the approved framework-sensitive label wording in
-   `08b5de4`. Decide the proposed `syntactic reason` to `reason within the analysis`
-   clarification separately; it does not solve surface alignment. Fresh-output
-   quality/compliance under the revised prompt remains unmeasured.
+3. **Final morphology representation: implementation direction accepted.** The
+   [contract reuse check](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension)
+   tests 52 records in both frameworks. Current fields cannot give retained
+   pieces a collective final realization with their existing meanings. Recommend
+   optional stage `realizations` groups containing current `nodeIds` and input
+   `tokenIndices`, while ordinary records retain the current path. Define source
+   coverage, disjoint target coverage, silence and exact Replay ownership before
+   implementation; use intermediate stages for ambiguous timing. Authoring
+   instructions must explain when to omit or use the field with concrete examples.
+   The field and its consumers are not implemented. Preserve exact-input coverage;
+   keep topology, tokenization and independent PF-ordering work separate.
+4. **Prompt clarification: implemented.** Keep the approved framework-sensitive
+   label wording in `08b5de4`. The unchanged-workspace instruction now permits a
+   sentence-specific `reason within the analysis`. The model still derives the
+   exact submitted input, including an ungrammatical input, and explains its
+   judgment. This does not alter surface alignment. Fresh-output quality/compliance
+   under the revised prompt remains unmeasured.
 5. **General shared recognition.** Investigate evidence and identity across
    families, including Grok X-bar wh and I-to-C, negative/ambiguous controls,
    unsupported wh/government/PF meaning and title-only information. Preserve
@@ -901,8 +908,6 @@ The current work order above owns these decisions:
   drawings are already implemented.
 - A representation for retained final morphology and its input realization.
   The separate audit establishes the current limits; no format is adopted.
-- The proposed `reason within the analysis` prompt clarification. The approved
-  label wording is already committed.
 - Automatic JSON repair and public handling of incomplete processing, token
   mismatches or extra final roots, following investigation of Fable's failure.
 - Purpose and spending caps for further provider checks, and deployed request
@@ -1367,7 +1372,6 @@ review authority, and correction path.
 - Contract/recovery adoptions after empirical comparison.
 - The representation of retained final morphology and its association with
   input-token occurrences, following the separate capability audit.
-- The proposed unchanged-workspace wording, `reason within the analysis`.
 - Reviewer and methods authority for claim-bearing benchmark stages.
 - Final product names for the Generation Archive and Reviewed Derivational
   Corpus, including a possible mythological name for the latter.
