@@ -3211,6 +3211,12 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
           if (!stepTargetNodeId) return false;
           return relationPlacements.some((placement) => {
+            // Neutral transitions own their new structure just as recovered
+            // movements do; emitting it separately can leave an empty step.
+            if (!priorVisibleNodeIds.has(stepTargetNodeId)
+              && fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds.has(stepTargetNodeId)) {
+              return true;
+            }
             if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return false;
             const relationTargetNode = findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId);
             const relationTargetSubtreeIds = new Set(collectSyntaxSubtreeNodeIds(relationTargetNode));

@@ -302,3 +302,31 @@ test('two movements and intervening relations retain order before a higher merge
   assert.ok(visible(relations[3], 'b_hi'));
   assert.ok(steps.findIndex(s => s.targetNodeId === 'root') > steps.indexOf(relations[3]));
 });
+
+test('a relation-owned merge is not preceded by an empty structural step', () => {
+  const item = (id, label, children = [], extra = {}) => ({ id, label, children, ...extra });
+  const subject = (id, silent = false) => item(id, 'DP', [], { word: 'Ada', lineageId: 'subject', silent });
+  const head = item('head', 'T', [], { word: 'will' });
+  const domain = silent => item('domain', 'vP', [subject('lower', silent), item('verb', 'V', [], { word: 'read' })]);
+  const independent = item('independent', 'Adv', [], { word: 'today' });
+  const record = transitionRecord([head, domain(false), independent], [
+    item('top', 'TP', [subject('higher'), item('merged', "T′", [head, domain(true)])]), independent
+  ], [
+    { relation: 'Head attachment', anchors: { head: 'head', complement: 'domain', result: 'merged' },
+      priorAnchors: { head: 'head', complement: 'domain' } },
+    { relation: 'Internal Merge', anchors: { lowerCopy: 'lower', higherOccurrence: 'higher', result: 'top' },
+      priorAnchors: { source: 'lower' } }
+  ]);
+  const original = structuredClone(record);
+  const steps = play(record);
+  const [merge, movement] = moments(steps, 1);
+  const preceding = steps.slice(0, steps.indexOf(merge));
+  assert.ok(preceding.every(step => !visible(step, 'merged')));
+  assert.ok(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'merged'));
+  assert.ok(visible(merge, 'merged'));
+  assert.ok(!visible(merge, 'higher'));
+  assert.ok(visible(movement, 'higher'));
+  assert.ok(steps.every(step => step.replayKind !== 'micro' || visible(step, step.targetNodeId)));
+  for (const step of [merge, movement, steps.at(-1)]) assert.ok(visible(step, 'independent'));
+  assert.deepEqual(record, original);
+});
