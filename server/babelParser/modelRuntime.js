@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { Agent } from 'undici';
 import { ParseApiError } from './error.js';
 import { withFailureDetails } from './validationErrors.js';
 import {
@@ -19,6 +20,11 @@ import {
   OPENAI_BACKGROUND_RESPONSES,
   OPENAI_REASONING_EFFORT
 } from './routeConfig.js';
+
+// The request's AbortSignal owns the generation deadline. Native fetch's
+// five-minute headers/body timers would otherwise cut that budget short.
+const providerDispatcher = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
+const fetchProvider = (url, options) => fetch(url, { ...options, dispatcher: providerDispatcher });
 
 export const getErrorMeta = (error) => {
   const msg = String(error?.message || '');
@@ -679,7 +685,7 @@ const delayWithAbort = (ms, abortSignal) => new Promise((resolve, reject) => {
 const OPENAI_RESPONSE_PENDING_STATUSES = new Set(['queued', 'in_progress']);
 
 const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
-  const response = await fetch(`https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`, {
+  const response = await fetchProvider(`https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`
@@ -701,7 +707,7 @@ const cancelOpenAIBackgroundResponse = async ({ apiKey, responseId }) => {
   if (!normalizedResponseId) return false;
   try {
     return await withTimeout(async (abortSignal) => {
-      const response = await fetch(
+      const response = await fetchProvider(
         `https://api.openai.com/v1/responses/${encodeURIComponent(normalizedResponseId)}/cancel`,
         {
           method: 'POST',
@@ -796,7 +802,7 @@ export const generateOpenAIStructuredContent = async ({
   pollIntervalMs = OPENAI_BACKGROUND_POLL_INTERVAL_MS,
   abortSignal
 }) => {
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await fetchProvider('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -906,7 +912,7 @@ export const generateAnthropicStructuredContent = async ({
   thinking = ANTHROPIC_THINKING_CONFIG,
   abortSignal
 }) => {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchProvider('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
@@ -979,7 +985,7 @@ export const buildGrokRequestBody = ({ model, contents, systemInstruction, maxOu
 });
 
 const requestProviderJson = async (url, apiKey, body, abortSignal, provider) => {
-  const response = await fetch(url, {
+  const response = await fetchProvider(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
