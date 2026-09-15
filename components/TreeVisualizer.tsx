@@ -78,6 +78,7 @@ import {
   type RelationPlanItem
 } from '../replay/relations/renderPlanCompiler.ts';
 import {
+  anchorSetRailPaths,
   bindRelationPlanFrame,
   boundOverlayBounds,
   fitFallbackGeometry,
@@ -1907,7 +1908,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         }
       ));
       const fallbackConnectorPaths = new Map<BoundSegment, d3.Selection<SVGPathElement, unknown, null, undefined>>();
-      const fallbackRailLines = new Map<BoundAnchorSetRail, d3.Selection<SVGLineElement, unknown, null, undefined>>();
+      const fallbackRailGroups = new Map<BoundAnchorSetRail, d3.Selection<SVGGElement, unknown, null, undefined>>();
       fitFallbackOverlays = (fittedMarkerScale) => {
         fitFallbackGeometry(boundFrame, {
           markerScale, fittedMarkerScale, badgeGap, laneGap: 60,
@@ -1918,7 +1919,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               ?.attr('d', fitted.d)
               .attr('data-vr-lane', fitted.lane === null ? 'direct' : String(fitted.lane));
           } else if (original.type === 'anchor-set-rail' && fitted.type === 'anchor-set-rail') {
-            fallbackRailLines.get(original)?.attr('y1', fitted.y).attr('y2', fitted.y);
+            const paths = anchorSetRailPaths(fitted, fittedMarkerScale);
+            const group = fallbackRailGroups.get(original);
+            group?.select('.babel-anchor-set-rail').attr('d', paths.rail);
+            group?.select('.babel-anchor-set-stub').attr('d', paths.joins);
           }
         });
       };
@@ -6649,17 +6653,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return;
         }
         if (primitive.type === 'anchor-set-rail') {
-          const line = host.append('line')
-            .attr('class', 'vr-anchor-set-rail')
-            .attr('x1', primitive.x1)
-            .attr('x2', primitive.x2)
-            .attr('y1', primitive.y)
-            .attr('y2', primitive.y)
-            .attr('stroke', '#34d399')
-            .attr('stroke-opacity', 0.6)
-            .attr('stroke-width', 1.4)
-            .attr('vector-effect', 'non-scaling-stroke');
-          fallbackRailLines.set(primitive, line);
+          const paths = anchorSetRailPaths(primitive, markerScale);
+          const group = host.append('g').attr('class', 'vr-anchor-set').attr('fill', 'none');
+          group.append('path').attr('class', 'vr-anchor-set-rail babel-anchor-set-rail').attr('d', paths.rail);
+          group.append('path').attr('class', 'babel-anchor-set-stub').attr('d', paths.joins);
+          fallbackRailGroups.set(primitive, group);
         }
       });
 

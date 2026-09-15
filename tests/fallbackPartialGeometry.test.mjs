@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { anchorSetRailPaths, bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 const node = id => ({ id, label: id });
 const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: [node('a'), node('b'), node('c')] });
@@ -120,11 +120,15 @@ test('organizational rails remain below the deepest fitted connector lane', () =
   const bound = bindRelationPlanFrame(p, 0, id => points.get(id), options);
   const original = structuredClone(bound);
   const rail = bound.primitives.find(primitive => primitive.type === 'anchor-set-rail');
+  assert.deepEqual(rail.anchors.map(anchor => anchor.nodeId), ids);
+  assert.ok(rail.anchors.every(anchor => bound.primitives.includes(anchor)), 'joins belong to the existing marks, not substitute positions');
+  assert.equal(anchorSetRailPaths(rail, options.markerScale).joins.split('M ').length - 1, ids.length);
   assert.equal(rail.y, 290);
   const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 });
   assert.deepEqual([...fitted.values()].filter(primitive => primitive.type === 'segment').map(segment => segment.laneY),
     [200, 260, 320, 380]);
   assert.equal(fitted.get(rail).y, 470, 'the rail follows the last lane with the existing 90-unit clearance');
+  assert.equal(anchorSetRailPaths(fitted.get(rail), 3).joins.split(' V 470').length - 1, ids.length);
   const fresh = bindRelationPlanFrame(p, 0, id => points.get(id), { ...options, markerScale: 3 });
   assert.deepEqual([...fitted.values()], fresh.primitives.filter(primitive => primitive.type === 'segment')
     .concat(fresh.primitives.filter(primitive => primitive.type === 'anchor-set-rail')));
@@ -137,6 +141,19 @@ test('specialized two-occurrence coindex remains atomic', () => {
   const bound = bindRelationPlanFrame(specialized, 0, id => id === 'a' ? { x: 100, y: 100 } : null);
   assert.deepEqual(bound.primitives, []);
   assert.equal(bound.failed.length, 1);
+});
+
+test('two organizational roles sharing nodes join their own badges', () => {
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const p = compileRelationRenderPlan([{ ...stage([{ relation: 'Open list', anchors: { members: ids } }]), workspaceForest: ids.map(node) }]);
+  const item = p.frames[0].items.find(item => item.kind === 'anchor-set');
+  item.showBadges = true;
+  item.set.roles.push({ ...item.set.roles[0], role: 'other', anchors: [...item.set.roles[0].anchors].reverse() });
+  p.frames[0].items = [item];
+  const bound = bindRelationPlanFrame(p, 0, id => ({ x: ids.indexOf(id) * 100, y: 0 }));
+  const rails = bound.primitives.filter(primitive => primitive.type === 'anchor-set-rail');
+  assert.deepEqual(rails.map(rail => rail.anchors.map(anchor => anchor.nodeId)), [ids, [...ids].reverse()]);
+  assert.ok(rails[0].anchors.every(anchor => !rails[1].anchors.includes(anchor)), 'a shared node does not merge distinct role marks');
 });
 test('Astra wh licensing draws C at F32 and adds its future operator only at F33', () => {
   const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));

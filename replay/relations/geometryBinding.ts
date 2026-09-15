@@ -193,8 +193,18 @@ export type BoundAnchorSetRail = {
   lane: number;
   /** Final rail Y from the one vertical allocation law (set at finalize). */
   y: number;
+  /** Exact marks owned by this relation; joins never search nearby SVG labels. */
+  anchors: Array<BoundFallbackMark | BoundAnchorSetBadge>;
   itemIndex: number;
 };
+
+export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number) => ({
+  rail: `M ${rail.x1} ${rail.y} H ${rail.x2}`,
+  joins: rail.anchors.map(anchor => {
+    const radius = anchor.type === 'fallback-mark' ? 10 : anchor.badgeSize === 'compact' ? 7 : 9;
+    return `M ${anchor.x} ${anchor.y + radius * markerScale} V ${rail.y}`;
+  }).join(' ')
+});
 
 /**
  * A family-specific accepted shape: explicit path data plus its accepted
@@ -533,7 +543,14 @@ export const fitFallbackGeometry = (
   );
   const deepestConnectorLaneY = fitted.reduce((deepest, segment) =>
     Math.max(deepest, segment.laneY ?? 0), 0);
-  rails.forEach(rail => updates.set(rail, { ...rail, y: fallbackRailY(rail, deepestConnectorLaneY, options) }));
+  rails.forEach(rail => {
+    const anchors = rail.anchors.map(anchor => anchor.type === 'fallback-mark'
+      ? { ...anchor, x: anchor.x + anchor.stackIndex * badgeGap * (fittedMarkerScale - markerScale) }
+      : { ...anchor, y: anchor.y + (anchor.stackIndex + 1) * badgeGap * (fittedMarkerScale - markerScale) });
+    updates.set(rail, { ...rail, anchors,
+      x1: Math.min(...anchors.map(anchor => anchor.x)), x2: Math.max(...anchors.map(anchor => anchor.x)),
+      y: fallbackRailY(rail, deepestConnectorLaneY, options) });
+  });
   return updates;
 };
 
@@ -723,6 +740,7 @@ export const boundOverlayBounds = (
       case 'anchor-set-rail':
         point(primitive.x1, primitive.y, 10);
         point(primitive.x2, primitive.y, 10);
+        primitive.anchors.forEach(anchor => point(anchor.x, anchor.y, 10));
         return;
       case 'segment':
         pathPoints(primitive.d, 8);
@@ -2173,25 +2191,36 @@ export const bindRelationPlanFrame = (
           : failed;
         channel.push({ itemIndex, nodeId: failure.nodeId, reason: failure.reason });
       });
-      (item.showBadges ? layout.badges : []).forEach((badge) => {
-        primitives.push({
-          type: 'anchor-set-badge',
-          nodeId: badge.nodeId,
-          x: badge.x,
-          y: badge.y,
-          numeral: badge.arrayIndex + 1,
-          stackIndex: badge.stackIndex,
-          badgeSize: item.badgeSize,
-          itemIndex
-        });
-      });
+      const badges: BoundAnchorSetBadge[] = layout.badges.map((badge) => ({
+        type: 'anchor-set-badge',
+        nodeId: badge.nodeId,
+        x: badge.x,
+        y: badge.y,
+        numeral: badge.arrayIndex + 1,
+        stackIndex: badge.stackIndex,
+        badgeSize: item.badgeSize,
+        itemIndex
+      }));
+      if (item.showBadges) primitives.push(...badges);
       layout.rails.forEach((rail) => {
+        const anchors = layout.badges.flatMap((badge, index) => {
+          if (badge.role !== rail.role) return [];
+          if (item.showBadges) return [badges[index]];
+          const matches = primitives.filter((mark): mark is BoundFallbackMark | BoundAnchorSetBadge => {
+            if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId) return false;
+            const owner = frame.items[mark.itemIndex].relationRef;
+            return owner.stageIndex === item.relationRef.stageIndex && owner.relationIndex === item.relationRef.relationIndex;
+          });
+          return matches.length === 1 ? matches : [];
+        });
+        if (anchors.length < 2) return;
         primitives.push({
           type: 'anchor-set-rail',
-          x1: rail.x1,
-          x2: rail.x2,
+          x1: Math.min(...anchors.map(anchor => anchor.x)),
+          x2: Math.max(...anchors.map(anchor => anchor.x)),
           lane: rail.lane,
           y: 0,
+          anchors,
           itemIndex
         });
       });

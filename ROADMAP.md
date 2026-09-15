@@ -192,12 +192,47 @@ findings and Programs 0–8:
   words; and the opening lexical selection fades in. All 77 resulting Sol frames
   were checked in the app. Tree dimensions, plaque positions and camera bounds
   remain unchanged at two desktop sizes; `verify:all` passes 1,665 tests.
-- Before further provider runs, address the remaining shared-rule findings:
-  feature-bearing category labels and movement evidence binding, X-bar movement
-  assigned to later licensing, within-stage syntax jumps, multi-claim Case
+- Shared category reading now preserves feature annotations while applying the
+  existing casing and structural rules. Explicit prior-source direction and exact
+  occurrence changes recover the affected Sol movements without new relation-name
+  aliases. The existing pending-CP deferral now applies, and later licensing cannot
+  repeat the same movement transition. The two Sol Replays contain 76 frames.
+- Before further provider runs, investigate remaining within-stage syntax jumps, multi-claim Case
   binding, readable fitting and mixed composition. Investigate each separately
   and preserve the accepted appearance. Retained morphology and varied inputs
   still need separately approved runs.
+- Reconcile authored construction claims with Replay's microsteps. The Sol
+  prompt already excludes relations fully expressed by ordinary branching, yet
+  the output mixes merge descriptions with selection, theta and feature claims.
+  Investigate the tension with the earlier instruction to express connected-operation
+  order through relations; it may encourage construction-only records, but the
+  cause of this model output is unproven. Preserve independent claims; do not
+  blacklist relation names or add named linguistic relations to the prompt. Review
+  whether the panel clearly distinguishes construction, relations and Stage
+  Records, including repeated anchor/value rows. Audit initial selection order
+  separately from future layout: the first selected C reflects Babel's display
+  ordering, not a finer model-authored chronology.
+- Revisit Tier 3's visual and linguistic clarity with user review. Sol Minimalism
+  frame 33 adds the existing `Anchor rail` organizational companion to a Tier-3
+  claim; its missing joining lines are restored from the existing Orchard notation.
+  The broader Tier-3 presentation remains open for user review. The former X-bar frame 41
+  combines `Movement curve` and `Variable-binding path` for the licensing relation.
+  now follows the movement's owning frame without moving the tree again. Preserve
+  independently supported binding when reviewing composition. No semantic
+  dependency follows merely from a rail.
+- Keep model-analysis questions separate from rendering repairs: Sol Minimalism
+  leaves object Case unexplained, gives only a brief account of why the wh edge
+  does not intervene for subject raising, and mixes Bare Phrase Structure prose
+  with primed category notation. The explicit no-primes instruction was removed
+  in `e17fc88`; the user rejects restoring it, including a narrow replacement.
+  Keep framework guidance open to the model's analysis. Its final convergence claim does not settle
+  those questions. X-bar's government and locality assertions likewise require
+  qualified review, not automatic certification by Babel.
+- Keep future recognition repairs grounded in occurrence identity and structural
+  evidence. Do not substitute additional aliases, isolated CP exceptions, or
+  endpoint-only connector deletion. The latest shared repairs pass 1,671 offline
+  tests. All 76 Sol frames render without invalid geometry or browser errors;
+  matched desktop captures and zoom checks cover the affected drawings and timing.
 - Keep Fable's unknown generation-side failure cause and automatic JSON repair /
   public incomplete-processing policy open. Existing evidence establishes what
   arrived, not why it was generated. Do not repeat unchanged offline probes as
@@ -205,10 +240,10 @@ findings and Programs 0–8:
 - Preserve accepted rendering. The remaining extreme/slower-device/mobile checks
   are bounded follow-ups, and hosted verification belongs before deployment.
   The Sol findings justify focused repairs, not a general renderer or camera
-  rewrite. Its apparent post-Fit curve change disappears after settling. That
-  resolved capture issue does not dismiss the separately reproduced 40→41
-  within-stage tree movement; a fixed camera is insufficient evidence of stable
-  syntax positions.
+  rewrite. Its apparent post-Fit curve change disappears after settling. The old
+  X-bar 40→41 syntax jump is repaired with movement ownership: the corresponding
+  39→40 frames now retain both node positions and camera. Other timing findings
+  still require checks of syntax positions, not camera stability alone.
 - Programs 2–6 still contain the durable Tree Bank, shared public/research app,
   research workspace, operations and archive/corpus work. Benchmark Programs 7–8
   remain deferred and do not block shipping.
