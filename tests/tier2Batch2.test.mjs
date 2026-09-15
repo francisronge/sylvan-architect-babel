@@ -214,6 +214,55 @@ test('Transfer and cyclic feature claims do not repeat equivalent marks', () => 
   assert(!has(cycle, 'feature.dependency'));
 });
 
+test('cycle metadata does not supply missing agreement meaning or distinct endpoints', () => {
+  for (const anchors of [{ licensor: 'a', licensee: 'b' }, { searcher: 'a', target: 'b' }, { probe: 'a', goal: 'a' }]) {
+    for (const values of [{ cycle: '2' }, { iteration: '2', outcome: 'blocked' }]) {
+      const result = inspect(relation(anchors, values));
+      assert(!has(result, 'agreement.cycle'), JSON.stringify({ anchors, values }));
+      assert(!has(result, 'feature.dependency'));
+      assert.equal(result.items.some(item => item.pathStyle === 'agree-cyclic'), false);
+      const cycleKey = Object.hasOwn(values, 'cycle') ? 'cycle' : 'iteration';
+      assert.equal(result.dispatch.primaryRelation.values[cycleKey], '2');
+    }
+  }
+  const supported = inspect(relation({ licensor: 'a', licensee: 'b' }, { cycle: '2', features: ['number: plural'] }));
+  assert(has(supported, 'agreement.cycle'), 'authored feature evidence still establishes a feature dependency');
+  assert.deepEqual(supported.dispatch.primaryRelation.values, { features: ['number: plural'] },
+    'the cycle path must not consume feature content it does not display');
+});
+
+test('Tier-2 cycles preserve authored outcome labels with the same paths as Tier 1', () => {
+  const displayedPath = ({ fromNodeId, toNodeId, pathStyle, label, secondaryLabel }) =>
+    ({ fromNodeId, toNodeId, pathStyle, label, secondaryLabel });
+  for (const outcome of [undefined, 'blocked', 'not allowed', 'allowed']) {
+    const values = { cycle: 'C2', ...(outcome ? { outcome } : {}) };
+    const result = inspect(relation({ probe: 'a', goal: ['b', 'c'] }, values));
+    assert(has(result, 'agreement.cycle'));
+    assert(!has(result, 'feature.dependency'));
+    assert.deepEqual(result.items.filter(item => item.kind === 'directed-path').map(displayedPath),
+      ['b', 'c'].map(goal => inspect(relation({ probe: 'a', goal }, values, 'CyclicAgree'))
+        .items.find(item => item.kind === 'directed-path')).map(displayedPath));
+    if (outcome) assert(result.dispatch.claims.some(claim => claim.tier === 2
+      && claim.consumedEvidence.some(ref => ref.field === 'values' && ref.key === 'outcome')));
+  }
+});
+
+test('cyclic paths preserve neutral qualifiers and reject contradictory or global outcomes', () => {
+  for (const outcome of ['pending evaluation', ['blocked', 'pending evaluation'], '']) {
+    const result = inspect(relation({ probe: 'a', goal: 'b' }, { cycle: '2', outcome }));
+    assert(has(result, 'agreement.cycle'));
+    assert.equal(result.items.find(item => item.pathStyle === 'agree-cyclic').secondaryLabel,
+      Array.isArray(outcome) ? 'blocked' : undefined);
+    assert.deepEqual(result.dispatch.primaryRelation.values, { outcome: Array.isArray(outcome) ? ['pending evaluation'] : outcome });
+  }
+  for (const outcome of ['converged', ['allowed', 'blocked']]) {
+    const result = inspect(relation({ probe: 'a', goal: 'b' }, { cycle: '2', outcome }));
+    assert(!has(result, 'agreement.cycle'), JSON.stringify(outcome));
+    assert(!has(result, 'feature.dependency'));
+    assert.deepEqual(result.dispatch.primaryRelation.values, { cycle: '2', outcome });
+  }
+});
+
 test('exact Transfer accepts multiple edges only with its whole curated signature', () => {
   const good = inspect(relation({ phase: 'root', accessibleDPs: ['a', 'b'], complementDomain: 'vp' }, undefined, 'TransferDomain'));
   assert.equal(good.dispatch.primaryClaim.tier, 1);

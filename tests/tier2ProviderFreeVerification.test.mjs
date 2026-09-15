@@ -810,7 +810,7 @@ test('cross-family combinations preserve claims or expose a specific ambiguity w
   }
   // These are interpreter controls. In particular, the legacy sharing fixtures
   // do not establish admission under the public single-position ID contract.
-  assert.deepEqual(counts, { complete: 1078, competingRoles: 40, competingStages: 1, includedByLargerDrawing: 1 });
+  assert.deepEqual(counts, { complete: 1070, competingRoles: 37, competingStages: 1, includedByLargerDrawing: 1 });
 });
 
 test('legacy sharing topology controls are not valid public single-position trees', async () => {

@@ -5325,6 +5325,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .attr('y', (badgePoint.y + 12).toFixed(1))
                   .attr('text-anchor', 'middle')
                   .text(`C${cycle}`);
+                if (pathItem.secondaryLabel) badge.append('text')
+                  .attr('class', 'babel-agree-outcome')
+                  .attr('x', (badgePoint.x + 38).toFixed(1))
+                  .attr('y', (badgePoint.y + 6).toFixed(1))
+                  .style('font-size', '18px')
+                  .text(pathItem.secondaryLabel);
                 if (cycle !== '1' && previousCyclicPath?.parentNode === layer.node()) {
                   layer.node()?.insertBefore(directed.node(), previousCyclicPath);
                   layer.node()?.insertBefore(badge.node(), previousCyclicPath);

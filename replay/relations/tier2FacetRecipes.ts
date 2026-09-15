@@ -588,7 +588,9 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('agreement.cycle', {
     anchors: [current('probe', 1, 1), current('goal', 1)],
-    values: [value('cycle', 1, 1)],
+    values: [value('cycle', 1, 1), optionalValue('outcome', 1, 1)],
+    checks: [{ kind: 'distinct', roles: ['probe', 'goal'], allowRepeatedWithinRole: true }, { kind: 'feature-dependency' }],
+    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, 'blocked', 'failed', 'rejected', 'unlicensed', 'impossible', 'violation'],
     outputs: [output('Cycle badge')]
   }),
   recipe('feature.dependency', {

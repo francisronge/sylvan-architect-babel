@@ -588,7 +588,8 @@ export const compileTier2RelationOutputs = ({
             fromNodeId: one('probe'),
             toNodeId: goal,
             pathStyle: 'agree-cyclic',
-            label: singleValue(evidence, 'cycle')
+            label: singleValue(evidence, 'cycle'),
+            ...(singleValue(evidence, 'outcome') ? { secondaryLabel: singleValue(evidence, 'outcome') } : {})
           });
         });
         return;
