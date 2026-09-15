@@ -40,6 +40,191 @@ observations such as missing Select targets, duplicated I and early landing
 visibility have subsequent repair evidence; verify the merged result rather
 than treating the original observation as a current reproduction.
 
+## Saved latency and request/Replay timing audit, 15 September
+
+Francis requested this audit before any more provider runs. The baseline is
+`c3635d4`. The findings below describe that baseline. The subsequent approved
+repairs are recorded at the end of this section. No live provider request was
+made. Audit reproducers, compact receipts and control data are in
+`/tmp/babel-timing-audit-20260915/`.
+
+### How long the saved runs took
+
+All six runs used `Which book did John buy?`. These are individual recorded runs,
+not a controlled model-speed benchmark.
+
+| Model | Minimalism | X-bar | Reported reasoning tokens, Minimalism / X-bar |
+| --- | ---: | ---: | ---: |
+| Astra | 195.155 s | 150.628 s | 5,178 / 4,660 |
+| Fable | 84.147 s | 85.968 s | 3,061 / 2,708 |
+| Grok | 383.080 s | 364.035 s | 17,633 / 17,132 |
+
+Astra/Fable's original runner records wall time through adapter completion and
+local qualification. Grok records the adapter separately: its HTTP responses took
+383.078 s and 364.032 s, with headers arriving only at 383.069 s and 363.966 s.
+JSON parsing plus normalization took 4.912 ms and 4.390 ms respectively. Browser
+Replay preparation is outside those processing figures. The first interrupted
+Grok Minimalism attempt lasted 301.060 s and returned no usage receipt; it is
+excluded from the successful-run table and its charge remains unknown.
+
+Grok reported about 20,000 output tokens per run, about 86% marked reasoning.
+The large reasoning count is a plausible contributor to latency, not a direct
+measurement of time spent reasoning. The saved nonstreamed responses cannot
+separate queueing, prompt processing, reasoning and answer emission. Their final
+body transfer took milliseconds, so downloading JSON or compiling Replay does
+not explain the six-minute provider wait. No server-side tool use was reported.
+
+The runs differ in model, prompt revision, provider-native settings, output limit
+and response format. Astra used background polling and JSON-object mode; Fable
+and Grok used ordinary text. Astra/Fable had a 20,000-token cap and Grok 128,000.
+The larger cap is an allowance, not the number generated. Fable's malformed ending
+also prevents treating its lower latency as equivalent successful output quality.
+No evidence here justifies shortening analyses, reducing reasoning effort or
+changing the contract for speed.
+
+Sources are the four original
+[attempt generation records](../../../.artifacts/contract-qualification/astra-fable-admission-2026-09-05/attempts/),
+Grok's [Minimalism public response](../../../.artifacts/contract-qualification/grok-minimalism-retry-2026-09-14/grok-minimalism/public-response.json)
+and [X-bar public response](../../../.artifacts/contract-qualification/grok-xbar-admission-2026-09-14/grok-xbar/public-response.json),
+and the adjacent HTTP receipts. The temporary summary records each source hash.
+
+### Actual native request path
+
+Both Express and the function handler were exercised through real local HTTP,
+production routing, native Node 24.16.0 fetch/Undici 7.25.0, provider envelope
+reading and normalization. Only provider destinations were redirected to a local
+fixture server. Native transport and its default timers remained active; unknown
+outgoing URLs were refused and credentials were dummy values. The public
+client used Node HTTP so its own fetch timeout could not conceal Babel's timeout.
+
+All six enabled model configurations completed and preserved exact raw output
+through both entry points. Disconnecting during headers or body reading aborted
+each upstream connection in about 200 ms, the chosen client-disconnect time.
+OpenAI's queued → in-progress → completed path also passed through native transport,
+with one creation request and two polls. These checks used local provider fixtures;
+they do not establish that a live provider stops work or billing on cancellation.
+The existing scripted public disconnect/background suites also passed.
+
+The long-wait controls hold headers, or send one body byte and then stall, for
+310 seconds. Both entry points return 504 at about **300.52 seconds**, although
+Babel's request and model budgets are 900 seconds. The headers case reports
+`UND_ERR_HEADERS_TIMEOUT`; the body case receives headers after 2 ms and its
+connection closes after about 300.51 s. Babel's own deadline signal has not fired.
+Each failed request submits exactly once. The real transport has a shorter timer
+than the application budget; earlier mocked-fetch checks could not expose it.
+
+A second evidence gap occurs during body failure: the local provider sent `{`,
+but the public failure receipt retained zero bytes. `readResponseText` awaits
+`response.text()`, whose failure discards the accumulated prefix. Preserve bounded
+partial **provider-envelope** bytes and an explicit incomplete-transport status in
+inspection; do not label envelope fragments as model text or repair their JSON.
+
+Recommended repair: configure provider transport to respect the existing request
+deadline and cancellation, using one scoped transport configuration rather than
+competing implicit timers. Preserve no-retry behavior after uncertain submission.
+The partial-body evidence repair is a separate concern. Neither was applied during
+the audit; the approved implementation is recorded below.
+
+`vercel.json` also limits the function to 120 seconds. Running the handler locally
+does not exercise that host ceiling, live TLS/proxies, provider-side cancellation
+or billing. Deployment must support the intended wait or use separately approved
+asynchronous delivery. No deployment setting or public delivery design was changed.
+
+### Replay ownership and edge cases
+
+Fourteen controls were checked in both frameworks, with ordinary and consistently
+renamed exact IDs, for 56 runs. Normalization, deterministic Replay and source
+immutability were inspected. Retained extra roots and invalid prior references
+remain labelled diagnostic controls, not proof of contract validity. Separate
+existing timing/movement/realization and request regression suites were rerun.
+
+- Explicit whole-domain or component-leaf prior anchors correctly introduce the
+  result at its relation moment. Exhausted containers retire; independent material
+  and authored empty containers survive. The prior repair holds.
+- With no prior anchor, both a fresh result ID and a retained ID can acquire their
+  new form during structural construction before the relation. This reproduces
+  the open finding. An observation about the same current output has the same
+  structural delta, however; a unique changed object does not prove that the
+  relation caused the change. Do not assign causation from spelling or geometry.
+- Existing `priorAnchors` already express which earlier material a neutral change
+  transforms. Use that evidence when the model intends a transition. A missing
+  prior link alone does not justify a new field or a scheduler repair. Any prompt
+  clarification should distinguish transformative claims from ordinary current
+  annotations, rather than require prior anchors on every relation.
+- Partial input evidence preserves the unowned remainder until Stage Record.
+  A control naming only the stem leaves its past component and containing domain
+  visible temporarily. Expanding ownership to delete those would remove unclaimed
+  structure; this is incomplete authored transition evidence, not a reason to
+  broaden the emptied-parent repair.
+- A demonstrable chronology conflict has an inspection gap: an earlier neutral
+  claim anchors a result that a later neutral transformation introduces. The early
+  moment correctly keeps the output hidden and authored order intact, but emits
+  no `RELATION_TIMING_CONFLICT`. The producer map currently includes trajectories
+  and phrasal movement ownership, omitting general neutral transition ownership.
+  Reuse established ownership when diagnosing prerequisites; preserve the current
+  tree and order. No participant-free graphic or early reveal is warranted.
+- Overlapping claims keep separate moments in authored order. Unchanged claims
+  do not create another structural transformation. Invalid prior references remain
+  inspection diagnostics; they do not license invented history.
+
+The production browser confirmed the no-prior early construction, complete
+explicit-source transition, and the early claim whose later-owned participant is
+unavailable. This was a targeted desktop timing inspection, not a new universal
+visual or mobile approval. The recorded appearance was not changed.
+
+### Approved repairs and verification
+
+The approved follow-up implements three separate repairs. Evidence is in
+`/tmp/babel-timing-repairs/`; no paid call or prompt change was made.
+
+- Provider fetches share a scoped Undici agent with the implicit headers/body
+  timers disabled. Babel's existing request deadline, abort signal and retry
+  rules still apply. OpenAI retrieval and cancellation use that same transport;
+  cancellation retains its separate five-second limit. The scoped agent uses
+  Node's [documented fetch dispatcher option](https://nodejs.org/api/globals.html#custom-dispatcher)
+  without replacing the global dispatcher. The dependency is locked to Undici
+  7.29.1. Provider URLs and request payloads are unchanged.
+- The shared response reader retains received bytes on terminal body-read failure.
+  The existing raw-artifact limit bounds retained inspection data, and its byte
+  length/hash describe the received prefix. A split UTF-8 character stays exact.
+  `generationRecord.providerResponseComplete: false` identifies an incomplete
+  provider envelope; `rawModelOutput` remains empty and JSON repair/normalization
+  never run on the fragment. Deadline failure captures the prefix synchronously
+  before the outer abort race can serialize its receipt. Successful reads retain
+  normal UTF-8 text decoding. This does not establish why Fable omitted delimiters.
+- Replay reuses resolved neutral transition ownership in its producer map. An
+  earlier relation requiring a later-owned current output or descendant now gets
+  the existing `RELATION_TIMING_CONFLICT` inspection diagnostic. Author order and
+  visibility remain intact; no diagnostic enters the Replay bar. Missing prior
+  evidence still does not license inferred causation, early revelation or a new
+  drawing.
+
+Native HTTP checks through both Express and the function handler completed all
+four 310-second header/body waits in 310.018–310.022 seconds, with one submission
+and exact output preservation each. Additional native local checks passed for
+all six enabled model configurations: completion, header/body disconnect, partial
+body failure with retained prefix, and OpenAI queued/in-progress/completed polling.
+Every temporary server exited and reported closed connections. These local results
+still do not qualify live cancellation/billing, TLS/proxies or the deployed
+120-second function ceiling. Deployment settings remain unchanged.
+
+The focused regressions cover bounded byte retention, split UTF-8, deadline/read
+races, HTTP error retry guards, polling cancellation, neutral ownership, exact-ID
+renaming and correct-order negative controls. `npm run verify:all` passes all
+1,663 tests; the production build also passes. Complete Replay step data for all
+six archived analyses, 207 frames, is identical before and after. Of the fourteen
+additional audit controls, only the known conflicting sequence gains diagnostics
+and suppression metadata for its already-hidden output.
+
+The targeted desktop browser check used production Replay at
+`http://127.0.0.1:8439/timing-repaired.html`. Frame 8 kept the prior components and
+independent word; frame 9 introduced the complete result. Replay had no console
+errors or diagnostic text in its bar. The temporary page supplied Replay control
+data only; its non-Replay inspection panels were not qualified by this check.
+No visible motion or styling changed, so no before/after motion demonstration is
+needed for this diagnostic repair. Mobile and live/deployed verification remain
+outside this pass.
+
 ## Large Replay lifecycle checks, 14 September
 
 The authorized follow-up measured production-browser preparation memory and

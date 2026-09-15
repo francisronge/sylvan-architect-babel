@@ -459,8 +459,10 @@ discussion with Francis.
    the narrow repair remove exhausted prior containers at their owning relation
    moment. Unowned siblings, authored empty parents and independent workspaces
    survive. The 84 morphology controls change only the targeted leaf-anchored
-   case in each framework. A result with no prior anchors still needs evidence
-   analysis before implementation.
+   case in each framework. The no-prior audit now confirms that a structural difference alone does not
+   prove which relation transforms it; existing `priorAnchors` can supply that
+   evidence. Preserve current annotations and unowned structure. The missing
+   conflict diagnostic for later-owned neutral outputs is now repaired below.
 3. **Final morphology representation: implemented and verified offline.** The
    [contract reuse check](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension)
    tests 52 records in both frameworks. Current fields cannot give retained
@@ -504,13 +506,21 @@ discussion with Francis.
    its cause remains unknown. Delimiter repair and public treatment of malformed,
    mixed-success, unresolved, mismatching and extra-root records stay unchanged
    pending evidence and agreement. No helper or paid experiment is authorized.
-7. **Production qualification and later model checks.** Qualify native-fetch long
-   waits, actual provider cancellation, deployed worker loading and proxy limits
-   separately from completed scripted public-route checks. The function ceiling
-   is 120 seconds versus a default 900-second provider budget. Later capped model
-   checks need approved purpose/spending and exact prompt/configuration hashes,
-   raw replies, usage, latency and processing receipts. Do not reduce linguistic
-   content to make a check cheaper.
+7. **Request and Replay timing repairs: implemented and verified offline.** The
+   [15 September audit and repairs](docs/implementation/contract-qualification/system-audit.md#approved-repairs-and-verification)
+   align provider transport with Babel's existing deadline and cancellation.
+   Native header/body waits now complete after 310 seconds through both public
+   entry points; all six enabled routes preserve successful output, cancel local
+   connections, and retain bounded partial provider bytes on terminal read failure.
+   Partial envelopes are marked incomplete and never treated as model JSON.
+   Neutral transition ownership now participates in conflict diagnostics; authored
+   order, tree geometry and all 207 archived Replay frames remain unchanged.
+   The full offline gate passes 1,663 tests. No paid calls were made.
+   Live cancellation/billing, deployed worker loading and proxies remain unverified.
+   The function ceiling is still 120 seconds and needs deployment reconciliation
+   before long hosted requests. Fresh provider calls remain deferred. Later capped
+   checks need approved purpose/spending, exact prompt/config hashes, raw replies,
+   usage, latency and processing receipts.
 8. **Bounded visual/performance qualification.** Preserve accepted six-analysis
    desktop Replay, zoom and Fit. Mobile and extreme Fit readability are lower
    priority. Large controls through 958 frames complete; the largest takes about
@@ -1032,8 +1042,9 @@ Proof reconciliation beyond the original numbered findings:
 - [x] Confirm and repair the emptied-parent ownership control; preserve unrelated
   structure, authored empty parents and accepted layout. The no-prior-anchor
   variant remains separate evidence work.
-- [ ] Decide retained final morphology representation and qualify any approved
-  implementation across its full data path.
+- [x] Implement and verify the approved retained morphology representation
+  across normalization, Replay, worker and Tree Bank. Fresh model authoring remains
+  unmeasured, as recorded in the current work order.
 - [ ] Complete the specifically unverified live/deployed, slower-device and
   extreme readability checks in the current work order. Review changed fixtures
   and run the completion gate after approved broad implementation.
