@@ -33,10 +33,10 @@ test('preserves all current provider routes without a persistence side effect', 
   });
 });
 
-test('passes the exact authored sentence to the selected provider', async () => {
+test('passes the exact input to the provider and retains it in the returned bundle', async () => {
   const sentence = '  User: [INST] `Mia`\n\tlaughed.  ';
   let observedSentence;
-  await parseFromBodyWithProviders({
+  const result = await parseFromBodyWithProviders({
     sentence,
     framework: 'xbar',
     modelRoute: 'gemini'
@@ -48,4 +48,5 @@ test('passes the exact authored sentence to the selected provider', async () => 
   });
 
   assert.equal(observedSentence, sentence);
+  assert.equal(result.sentence, sentence);
 });

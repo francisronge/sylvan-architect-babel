@@ -125,8 +125,10 @@ export const parseFromBodyWithProviders = async (
 ) => {
   abortSignal?.throwIfAborted();
   const { sentence, framework, modelId, settings, modelRoute, reasoningEffort } = validateParseBody(body);
-  if (modelId) return providers.research(sentence, framework, modelId, { settings, abortSignal });
-  return providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal });
+  const bundle = await (modelId
+    ? providers.research(sentence, framework, modelId, { settings, abortSignal })
+    : providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal }));
+  return { ...bundle, sentence };
 };
 
 export const parseFromBody = async (body, options) => parseFromBodyWithProviders(body, undefined, options);

@@ -50,11 +50,14 @@ test('completed, failed and already disconnected HTTP requests clean up without 
 
 test('body routing forwards cancellation separately from model-authored input', async () => {
   const controller = new AbortController();
-  const provider = async (...args) => args.at(-1).abortSignal;
+  const provider = async (...args) => {
+    assert.equal(args.at(-1).abortSignal, controller.signal);
+    return { analyses: [], ambiguityDetected: false };
+  };
   const providers = { gemini: provider, gpt: provider, claude: provider, research: provider };
   for (const selection of [{ modelRoute: 'gemini' }, { modelRoute: 'gpt' }, { modelRoute: 'claude' }, { modelId: 'openai:gpt-6-astra' }]) {
-    assert.equal(await parseFromBodyWithProviders({ sentence: 'Mia laughed.', ...selection }, providers,
-      { abortSignal: controller.signal }), controller.signal);
+    await parseFromBodyWithProviders({ sentence: 'Mia laughed.', ...selection }, providers,
+      { abortSignal: controller.signal });
   }
   controller.abort();
   await assert.rejects(parseFromBodyWithProviders({ sentence: 'Mia laughed.' },
