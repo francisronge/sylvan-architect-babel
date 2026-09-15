@@ -172,15 +172,42 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,660 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,663 tests, typecheck and both parse-contract fixtures pass.
+The production build passes. Verified fixes are committed and pushed through
+`d5c7455`; this is local/offline evidence, not deployment qualification.
+
+Immediate priorities after reviewing all 19 starting-point items, 39 audit
+findings and Programs 0–8:
+
+- Complete the small CI gap in Program 5: run the existing typecheck and release
+  asset/link checks automatically. CI currently runs tests, parse-contract checks,
+  build and dependency audits, but omits those two checks. No new test framework
+  or product change is needed.
+- With separately approved purpose and spending, qualify fresh output under the
+  current prompt, including retained morphology and varied derivations. Preserve
+  request/response evidence and inspect complete Replay. No calls are authorized
+  by this status review.
+- Keep Fable's unknown generation-side failure cause and automatic JSON repair /
+  public incomplete-processing policy open. Existing evidence establishes what
+  arrived, not why it was generated. Do not repeat unchanged offline probes as
+  though they can supply missing provider evidence or establish prevention.
+- Preserve accepted rendering. The remaining extreme/slower-device/mobile checks
+  are bounded follow-ups, and hosted verification belongs before deployment.
+  No further general renderer, camera or recognition rewrite is justified by
+  this reconciliation.
+- Programs 2–6 still contain the durable Tree Bank, shared public/research app,
+  research workspace, operations and archive/corpus work. Benchmark Programs 7–8
+  remain deferred and do not block shipping.
+
 Compiler diagnostics remain in inspection evidence, never in the Replay bar.
 The inspection-only `Audit` rows were removed after Francis rejected that
 placement; retaining diagnostic evidence did not authorize adding it to Replay.
 The authorized Grok admission pair is complete. Both successful outputs contain
 valid JSON and needed no repair. Original response bytes, request provenance,
 usage and inspection records remain in the local qualification archive. The
-successful runs used a corrected verification transport; this does not qualify
-the production native-fetch path for the same long wait. The interrupted first
+successful runs used a corrected verification transport. The later native-fetch
+repair passes local 310-second header/body waits through both public entries;
+live provider and hosted conditions remain unverified. The interrupted first
 attempt has no usage receipt, so its charge remains unknown. No further provider
 calls were made for the repairs below.
 
@@ -254,17 +281,18 @@ The separate [morphology and surface realization audit](docs/research/morphology
 is complete at that source revision. Forty-two controls in both frameworks
 confirm that early abstract or separate pieces can become final whole words.
 All 48 accepted results complete Replay preparation and a Tree Bank snapshot/load
-round trip. Final separate pronounced pieces cannot currently realize one input
-token, and a PF plaque does not override that rule. Supporting retained final
-morphology needs an explicit representation decision; no mapping format, prompt
-change or linguistic repair was implemented. The audit also reproduced an emptied
+round trip. At that baseline, final separate pronounced pieces could not jointly
+realize one input token, and a PF plaque did not override that rule. The approved
+`realizations` field now closes that representation gap, with integrated offline
+proof recorded below. The audit also reproduced an emptied
 prior parent lingering until Stage Record in a neutral transition anchored only
 to its removed leaves. That defect is now visually confirmed and repaired: an
 absent prior container leaves when its last owned child leaves. A surviving child
 or a parent retained in the authored current forest prevents cleanup. Tests cover
 nested ancestors, changed roots, overlapping claims, ambiguous identity and
-independent workspaces; originals remain unchanged. The no-prior-anchor variant
-still needs an evidence-sufficiency decision first.
+independent workspaces; originals remain unchanged. The later no-prior audit found
+missing transition-ownership evidence, already expressible through `priorAnchors`.
+It does not justify a new field or assigning causation from a structural change.
 
 The completed notation/timing pass repairs four reproduced defects:
 
@@ -444,10 +472,10 @@ supersede the earlier browser-blocked status below.
 | 18: operational qualification | Both HTTP entry points now cancel pending transport and retry waits when a client disconnects; stalled headers/bodies time out without regeneration. All six enabled models pass scripted public-route disconnect checks. Native-fetch header/body waits complete after 310 seconds through both entries. Large Replay controls complete through 958 frames; sampled worker memory, 40 large view cycles and 15 cancellations pass their bounded checks. | Live cancellation, revised-prompt compliance/cost/latency, slower devices and deployed worker/proxy behavior remain unverified. The checked-in Vercel ceiling is now 960 seconds for the default 900-second provider budget; compatible hosting still needs qualification before deployment. Further speed work needs a measured bottleneck and exact-output preservation. |
 | 19: review and consolidation | The accepted prototype and Tree Bank fix are reviewed, committed and integrated into main. The combined offline gate and desktop Replay/Tree Bank checks pass; Fable was waived. | Keep the rejected attempt and remaining defects documented. Broader qualification remains open. |
 
-Next work, in order:
+Current closeout and remaining work:
 
 The requested large-derivation and stalled/disconnected-request pass is complete.
-The morphology audit is complete separately from implementation. The work below
+The morphology audit and approved implementation are complete. The work below
 records the remaining scope; unsettled designs and provider/hosting changes await
 discussion with Francis.
 
@@ -465,7 +493,7 @@ discussion with Francis.
    conflict diagnostic for later-owned neutral outputs is now repaired below.
 3. **Final morphology representation: implemented and verified offline.** The
    [contract reuse check](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension)
-   tests 52 records in both frameworks. Current fields cannot give retained
+   tests 52 records in both frameworks. The previous fields could not give retained
    pieces a collective final realization with their existing meanings. Optional
    stage `realizations` now supplies groups containing current `nodeIds` and input
    `tokenIndices`, while ordinary records retain the current path. The approved
@@ -543,7 +571,7 @@ checks, extreme plaque/camera fixes and renewed saved-response investigation.
 The preceding follow-up gate passed 1,626 tests, typecheck and both parse-contract
 fixtures; the production build and release-asset check passed. All 137 saved desktop frames
 retained their accepted geometry, and five app preview cases passed. The current
-1,660-test checkpoint above supersedes its gate count. Earlier counts and timings
+1,663-test checkpoint above supersedes its gate count. Earlier counts and timings
 below are historical checkpoints, not the current gate.
 
 The integrated drawing restoration passes the 1,616-test offline gate, both
@@ -945,8 +973,10 @@ The current work order above owns these decisions:
   limits. Mobile and extreme Fit readability remain bounded qualification work.
 
 Circled Tier-3 scaling and the emptied-parent transition defect are repaired
-without reopening general layout. The no-prior-anchor transition remains a
-separate evidence question. Separate relation moments,
+without reopening general layout. A neutral transformation without prior anchors
+does not establish which earlier material it owns; the existing field can express
+that evidence. No additional scheduler repair is justified by that control.
+Separate relation moments,
 judgment handling, ordinary plaques, generated coindices, integrated Tree Bank
 previews and the decision not to require full-row static exports are settled.
 
@@ -1010,7 +1040,7 @@ an earlier renderer closeout or a passing fixture suite.
 | 36 | Integrated; bounded composition verified | Transfer/cyclic duplicates and repeated gap labels are repaired. Gap notation reuses its exact owned display terminal. Residual rails retain authored participant context with stage-scoped persistence. Saved-case mixed composition is browser-verified; arbitrary combinations remain unqualified. |
 | 37 | Implemented locally | Outcome data reaches existing path/candidate graphics. Allowed outcomes do not earn blocked-only marks; contradictory same-host claims stay neutral with a cause diagnostic. All-variant native qualification remains under 39. |
 | 38 | Implemented locally | Recovery checks the exact authored gap/copy, including category-typed silent occurrences and t variants. A containing VP is not that trace; ordinary silence does not imply deletion. |
-| 39 | Bounded integrated qualification | Current gate: 1,660 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. The later realizations pass also preserves all 207 archived frames and checks 14 new control frames plus worker/Tree Bank save/reopen. Earlier notation/timing evidence remains historical qualification. Arbitrary compositions, slower/deployed conditions and the no-prior-anchor transition remain distinct follow-ups. |
+| 39 | Bounded integrated qualification | Current gate: 1,663 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. The later realizations pass also preserves all 207 archived frames and checks 14 new control frames plus worker/Tree Bank save/reopen. The subsequent recognition comparison covers all 207 frames and 24 controls, with the documented Grok wh drawing change. Arbitrary compositions and slower/deployed conditions remain bounded follow-ups; the no-prior control lacks authored ownership evidence and does not establish a scheduler defect. |
 
 Proof reconciliation beyond the original numbered findings:
 
@@ -1043,7 +1073,7 @@ Proof reconciliation beyond the original numbered findings:
 - [x] Fix circled Tier-3 scaling with focused visual evidence.
 - [x] Confirm and repair the emptied-parent ownership control; preserve unrelated
   structure, authored empty parents and accepted layout. The no-prior-anchor
-  variant remains separate evidence work.
+  follow-up establishes the existing evidence boundary rather than a new repair.
 - [x] Implement and verify the approved retained morphology representation
   across normalization, Replay, worker and Tree Bank. Fresh model authoring remains
   unmeasured, as recorded in the current work order.
@@ -1246,9 +1276,13 @@ the next tranche or a hosted account.
 
 ## Program 5: Operations And Shipping
 
-1. Add CI for `npm ci`, `npm run verify:all`, build, fixture/link checks, and
-   scoped dependency auditing.
-2. Define supported Node/browser/runtime versions and upgrade cadence.
+1. **Partial:** CI already runs `npm ci`, `npm run verify:offline`, build and
+   dependency audits. Replace the offline command with `npm run verify:all` to
+   include typechecking, and add the existing `npm run release:verify-assets`
+   command for release files and links. These checks pass locally; automated
+   enforcement remains to be added.
+2. Node 24 is selected in the package and CI. Define supported browsers, hosted
+   runtime conditions and upgrade cadence.
 3. Choose hosting, storage, and operations vendors after measuring the public
    model's cost, expected traffic, archive volume, privacy requirements, and
    recovery needs. Do not lock Babel to a vendor before those facts exist.
@@ -1404,8 +1438,6 @@ review authority, and correction path.
 - Whether labeled bracketing and Miles Shang output remain supported exports.
 - Every provider/model launch, cost ceiling, and model manifest.
 - Contract/recovery adoptions after empirical comparison.
-- The representation of retained final morphology and its association with
-  input-token occurrences, following the separate capability audit.
 - Reviewer and methods authority for claim-bearing benchmark stages.
 - Final product names for the Generation Archive and Reviewed Derivational
   Corpus, including a possible mythological name for the latter.

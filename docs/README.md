@@ -19,7 +19,7 @@ This file answers one question: which document should be trusted for what?
 ## Supporting Implementation Records
 
 - [`docs/implementation/contract-qualification/system-audit.md`](implementation/contract-qualification/system-audit.md):
-  September live-output audit covering 27 findings, all 36 relations, linguistic
+  September live-output audit covering 39 findings, all 36 original relations, linguistic
   issues, Fable failures, costs, and review limitations. Program 1 in `ROADMAP.md`
   owns the active checklist and status. Linked raw and generated evidence is
   local-only under the ignored `.artifacts/` run directory.
