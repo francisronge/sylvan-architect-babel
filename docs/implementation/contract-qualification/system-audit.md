@@ -700,6 +700,138 @@ styles into production. Measure long-derivation responsiveness; qualify applicat
 exports/casing and extreme plaque content separately. Missing wh/government meanings,
 judgments and incomplete-processing policy remain open. No scrolling was implemented.
 
+## Recognition evidence follow-up, 15 September
+
+This audit examines production at `fb5741b`, after surface realizations and the
+preterminal-label repair. It changes no recognizer, renderer, prompt or saved
+analysis. The proposals below remain separate from implementation; the active
+work order is in [ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+
+### Scope and evidence
+
+The audit traces shared role binding, exact node references, movement recovery,
+Tier-1 signature validation, Tier-2 recipe selection, claim ownership and render
+plan compilation. Existing provider-free coverage includes every canonical Atlas
+entry and all 52 Tier-2 recipes, including companion recipes. The two legacy
+sharing controls exercise recipe logic; they are not valid public single-parent
+derivations.
+
+Six perturbations across those 52 controls give 312 comparisons: consistent ID
+renaming with surrounding spaces, opaque IDs containing `::__leaf`, numeric IDs,
+prototype-like strings, field reordering and independent unknown context. All
+260 non-space comparisons preserve the expected claims. All 52 space-renaming
+comparisons expose the same indexing problem. A separate valid public Binding
+record reproduces it through normalization and inspection. Additional controls
+exercise cycle/outcome handling and movement contradictions, ambiguity, unchanged
+positions, pronounced lower copies and complete current-only drawings. The 94
+focused binding, participant, provider-free and movement tests pass; passing
+existing tests does not invalidate these new counterexamples.
+
+### Proposed repairs
+
+1. **Preserve exact node identity.** `tier2FacetRecipes.ts` trims node IDs when
+   building its tree index, while authored references retain their original
+   strings. Inspection has the same inconsistency in `derivationCompiler.js`.
+   A node named `" a "` and a reference to `" a "` incorrectly fail recognition;
+   a reference to `"a"` incorrectly finds that node instead. Normalization retains
+   the original node ID. Use exact strings consistently in existing node/reference
+   indexes, including reference expansion. Keep spelling normalization confined to
+   interpretation of relation and role names. This requires no new contract field.
+
+2. **Require the underlying claim before selecting its specialized drawing.**
+   An open relation with `licensor` and `licensee` correctly remains neutral, but
+   adding `cycle: "1"` makes it an Agree cycle. The cycle recipe bypasses the
+   feature-dependency meaning guard used by ordinary agreement. Reuse that guard:
+   repetition metadata cannot establish the meaning being repeated. Separately,
+   a supported probe/goal cycle with `outcome: "blocked"` loses the outcome label
+   when its generic feature drawing is superseded; the exact CyclicAgree
+   render plan carries it. Carry prepared outcome content into the existing cyclic
+   primitive. The original literal remains in neutral metadata today; it is the
+   specialized label that is omitted, not raw data.
+
+3. **Make movement drawing and transition decisions consistent.** Shared movement
+   recovery rejects nested endpoints, a contradictory explicit prior source, and
+   unsupported head-landing context. A parallel Tier-2 path still emits a trajectory
+   in each control. The contradictory source can also earn a transition and a
+   backward cue pointing to an unrelated prior node. Reuse the existing
+   separate-occurrences check for ordinary/carrier movement and make validated
+   historical evidence authoritative for transitions and continuity. Preserve
+   supported static drawings with complete current evidence but no prior stage:
+   absent history is not contradictory history. Keep independent gap and sibling
+   claims. The audit found no basis for applying movement identity requirements
+   to every other relation family.
+
+4. **Bind movement roles from uniquely established structural evidence.** Grok
+   X-bar's wh record explicitly anchors `whichDP` and `whTrace`, both with root
+   lineage `WH`. Previous `whichDP` occupies `Vbar` child 1; current `whTrace`
+   occupies that exact slot and current `whichDP` occupies `CP` child 0. Their
+   role names are not recognized, although the authored structure establishes
+   direction. For an already established movement claim, allow exact anchored
+   participants, matching root lineage, the preceding source slot and the changed
+   landing to supply a unique role binding. The lower occurrence can satisfy both
+   source and witness, as the existing movement contract already permits. Run all
+   unchanged Tier-1 required groups against that evidence; do not drop the witness
+   requirement or send a failed exact signature through Tier 2. Reject multiple
+   valid landings, conflicting references, unchanged positions and unestablished
+   movement meaning. Preserve unrelated context as neutral content. No silence,
+   new node or linguistic analysis needs inferring in the saved wh case.
+
+### Boundaries
+
+Grok's I-to-C case is different: `didI` has lineage `DID`, while `emptyC`, now
+bearing `did`, lacks that identity and is a bare leaf rather than the supported
+complex-head landing. Word equality and the title do not supply these facts.
+Keep it neutral; do not manufacture a complex head or repair its saved analysis.
+Generic wh licensing, government, PF context and title-only literals remain
+subject to their existing evidence requirements. This audit supports no universal
+synonym table, new semantic ontology, new contract field or new drawing.
+
+Reproducers and results are temporary material in
+`/tmp/babel-recognition-audit-20260915/`, `/tmp/babel-recognition-audit/` and
+`/tmp/babel-recognition-semantics/`. The primary agent reran the cycle, movement
+and structural-pair controls. No paid call, browser or server was started.
+Implementation must add focused behavioral regressions, review affected saved
+claims and visuals, and pass the full offline gate before integration.
+
+### Implementation and verification
+
+Francis subsequently authorized all four repairs, review, commits and pushing.
+Exact identity now survives every parser, Replay, rendering and inspection lookup.
+The inspection-only invention detector also uses existing display provenance
+instead of guessing ownership from suffixes. No snapshot or authored schema changed.
+
+The shared movement result now supplies a machine-readable refusal and verified
+prior-field ownership. Review caught and repaired two omitted casing lookups,
+current context hidden by absent history, unrelated prior witnesses earning
+backward cues, and duplicate scalar prior references preventing unique binding.
+Missing history still permits a supported static path. Required Tier-1 slots can
+use proven lower-occurrence evidence; optional decoration slots stay unchanged.
+Tests formerly using that now-supported two-endpoint case as a negative control
+instead exercise contradictory outcomes, preserving their neutral-timing checks.
+
+Cyclic agreement reuses the base dependency guard and preserves supported outcome
+content. Browser inspection found the native renderer also skipped that label,
+including through Tier 1. The small rendering repair places it beside the cycle
+badge in the same group, using the existing font and emphasis. No checkmark or
+inferred judgment is added. The recipe fixture builder now supplies a supported
+phrasal landing for the shared movement-context check. Adding optional cycle
+outcomes excludes 11 matrix pairs with overlapping outcome fields; the remaining
+1,109 pairs comprise 1,070 complete combinations, 37 competing role cases, one
+competing stage case and one absorbed edge. These are classified controls, not
+universal coverage.
+
+Registry version 14 records the changed interpretation. Verification passes the
+1,660-test offline gate, typecheck, both parse-contract fixtures, production build
+and release-asset checks. The integrated browser comparison checks all 207 saved
+frames from six analyses plus 24 labelled control frames, before and after.
+Archived frame counts remain unchanged. Only Grok X-bar frames 37–40 change
+archived geometry as the wh rail becomes a trajectory; the other five analyses
+retain their cameras, labels and marks. All nine cases pass zoom, Next/Previous
+and Fit; four narrow cases also render. The targeted cyclic-label follow-up checks
+actual text, identical Tier-1/Tier-2 pixels, spacing through zoom/redraw and Fit.
+No browser errors or provider calls occurred. Browsers were closed after checking.
+The local review and recording are in `/tmp/babel-recognition-implementation/`.
+
 ## Production drawing-style audit, 13 September
 
 Francis reported an off-center Cyclic Agree badge and requested a complete check.

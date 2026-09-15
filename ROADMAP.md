@@ -172,7 +172,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,621 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,660 tests, typecheck and both parse-contract fixtures pass.
 Compiler diagnostics remain in inspection evidence, never in the Replay bar.
 The inspection-only `Audit` rows were removed after Francis rejected that
 placement; retaining diagnostic evidence did not authorize adding it to Replay.
@@ -302,10 +302,11 @@ clearance. All 207 saved frames keep the same syntax positions and camera settin
 The browser comparison also covers 2×/4× zoom, backward/forward redraw, Fit and
 eight narrow checks. This is a badge repair, without a tree-layout change.
 
-Shared evidence-based participant recognition is explicitly deferred. No aliases,
+Shared evidence-based participant recognition was deferred in that pass. No aliases,
 new role interpretation, movement acceptance rule, prompt change or provider call
 was added in this pass. Grok X-bar's wh signature and I-to-C identity/shape limits
-remain part of that broader investigation; display timing does not certify them.
+are assessed in the [15 September recognition audit](docs/implementation/contract-qualification/system-audit.md#recognition-evidence-follow-up-15-september);
+display timing does not certify them. Its four bounded shared-rule repairs are now implemented and verified.
 
 Previous checkpoint: the 1,588-test cleanup removed 71 source-spelling, import-list, quantity-only and
 redundant checks. Behavioral, data-preservation and declarative paint checks
@@ -435,7 +436,7 @@ supersede the earlier browser-blocked status below.
 | 1–4, 17: badges, plaques, generated indices and mixed drawings | Saved-case composition passes in the integrated app. Generated dependency coindices use letters; movement-copy indices retain numbers, and circled Tier-3 numbers keep their approved locator meaning. Extreme plaques through 200 rows retain their text and save/reopen correctly. Static previews need not include every row; no all-rows print design is required. | Circled Tier-3 zoom is repaired with its fitted appearance and numbering preserved. Mobile readability remains open; extreme Fit readability is not universally approved. |
 | 17: Replay stability | The restored stage-size repair fixes F29→30; bounded continuity fixes Astra X-bar F35→36. Active-gesture redraw and Fit ownership defects are repaired. Manual zoom survives Canopy/Replay preparation. Five remaining within-stage shifts in earlier captures accompany structural movement; current Replay already reserves future positions. | Preserve accepted sizing and spacing. Assess a movement shift only if it is a reproducible visual defect; newly introduced structure may legitimately require movement. The theta-grid containment control, ordinary plaque geometry and all 114 name-variation Replay checks retain their prior qualifications. |
 | 6, 16–17: empty relation moments | Available neutral participants survive independently. All 36 relation moments in the original Astra/Fable corpus have at least one available participant. A controlled future-only claim produces an authored timing conflict. | Do not design a participant-free graphic until a legitimate case is established. Preserve conflict diagnostics, authored order and unavailable-syntax hiding. Publication-notation research is conditional on a real need. |
-| 5–8: interpretation and neutral content | The original four Astra/Fable records contain 22 relations with neutral content. The later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes; shared value/identity handoff, optional slot equivalence and claim-scoped checks are repaired. Its 42 remaining mixed controls are classified as 40 role ambiguities, one competing PF-input pair, and one absorbed phase-edge claim. | The separately deferred general recognition investigation includes Grok's remaining movement signatures, identity limits and unsupported meanings. This matrix alone justifies no further semantic promotion. Preserve negative controls, exact field ownership and missing-literal boundaries. The model authors the linguistics. See the [cross-family audit](docs/implementation/contract-qualification/system-audit.md#cross-family-recognition-audit-13-september). |
+| 5–8: interpretation and neutral content | The original four Astra/Fable records contain 22 relations with neutral content. The later cross-family audit covers all 59 registered entries and all 52 Tier-2 recipes; shared value/identity handoff, optional slot equivalence and claim-scoped checks are repaired. The current 1,109-pair matrix has 1,070 complete combinations, 37 competing role cases, one competing PF-input pair and one absorbed phase-edge claim; the earlier 42 mixed controls remain historical evidence. | The [15 September follow-up](docs/implementation/contract-qualification/system-audit.md#recognition-evidence-follow-up-15-september) records four shared-rule repairs, now implemented and verified. Grok wh has usable structural evidence; I-to-C remains limited by missing identity and unsupported landing shape. Preserve negative controls, exact field ownership and missing-literal boundaries. The model authors the linguistics. |
 | 9: generated identity | Generated words, lexical display IDs, workspace roots and layout placeholders carry explicit ownership. Compilation reserves authored IDs from every stage; scheduling and label attachment do not parse suffixes. Collision and renamed-archive regressions pass. | Preserve opaque authored IDs when adding future display objects. |
 | 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. Saved HTTP/text hashes reconfirm Fable's omission before Babel processing; its generation-side cause is unknown. | Investigate before changing delimiter repair or public handling of malformed JSON, mixed analysis outcomes, unresolved structure, surface mismatches and extra roots. Distinguish facts, hypotheses and prevention evidence. No helper or paid experiment is authorized. |
 | 13–14: simultaneity and judgments | Separate authored relation moments remain the accepted default. | No contract change for simultaneity. Consider it only if an extremely simple unchanged-contract solution is worthwhile. Existing local licensing checks require explicit outcome and participant evidence. Request completion and convergence prose do not produce a check mark; regression tests protect this distinction. No new verdict design is planned. |
@@ -484,11 +485,20 @@ discussion with Francis.
    exact submitted input, including an ungrammatical input, and explains its
    judgment. This does not alter surface alignment. Fresh-output quality/compliance
    under the revised prompt remains unmeasured.
-5. **General shared recognition.** Investigate evidence and identity across
-   families, including Grok X-bar wh and I-to-C, negative/ambiguous controls,
-   unsupported wh/government/PF meaning and title-only information. Preserve
-   neutral remainders. Missing model evidence must not become an alias patch or
-   a promised specialized drawing.
+5. **General shared recognition: implemented and verified.** The
+   [recognition evidence follow-up](docs/implementation/contract-qualification/system-audit.md#recognition-evidence-follow-up-15-september)
+   led to exact-ID lookup throughout parsing/Replay/rendering, guarded cyclic
+   agreement with visible authored outcomes, one movement validation path, and
+   structural binding of uniquely proved anchored movement participants. Tier 1
+   retains every required group; the verified lower occurrence may itself supply
+   its witness. No new aliases, contract fields, inferred silence or syntax.
+   Registry version 14 records the interpretation change. The 1,660-test gate,
+   build and release assets pass. All 207 archived frames and 24 control frames
+   were checked before/after in production Replay; only Grok X-bar frames 37–40
+   change archived geometry for the recovered wh drawing. Zoom, Next/Previous,
+   Fit and four narrow cases pass. A focused follow-up verifies cyclic outcome
+   labels in both tiers and their shared zoom group. Grok I-to-C still lacks
+   occurrence identity and supported landing structure; keep it neutral.
 6. **JSON and incomplete processing.** Preserve malformed originals and historical
    chronology diagnostics. Fable's missing ending is confirmed before Babel;
    its cause remains unknown. Delimiter repair and public treatment of malformed,
@@ -521,7 +531,7 @@ checks, extreme plaque/camera fixes and renewed saved-response investigation.
 The preceding follow-up gate passed 1,626 tests, typecheck and both parse-contract
 fixtures; the production build and release-asset check passed. All 137 saved desktop frames
 retained their accepted geometry, and five app preview cases passed. The current
-1,621-test checkpoint above supersedes its gate count. Earlier counts and timings
+1,660-test checkpoint above supersedes its gate count. Earlier counts and timings
 below are historical checkpoints, not the current gate.
 
 The integrated drawing restoration passes the 1,616-test offline gate, both
@@ -988,7 +998,7 @@ an earlier renderer closeout or a passing fixture suite.
 | 36 | Integrated; bounded composition verified | Transfer/cyclic duplicates and repeated gap labels are repaired. Gap notation reuses its exact owned display terminal. Residual rails retain authored participant context with stage-scoped persistence. Saved-case mixed composition is browser-verified; arbitrary combinations remain unqualified. |
 | 37 | Implemented locally | Outcome data reaches existing path/candidate graphics. Allowed outcomes do not earn blocked-only marks; contradictory same-host claims stay neutral with a cause diagnostic. All-variant native qualification remains under 39. |
 | 38 | Implemented locally | Recovery checks the exact authored gap/copy, including category-typed silent occurrences and t variants. A containing VP is not that trace; ordinary silence does not imply deletion. |
-| 39 | Bounded integrated qualification | Current gate: 1,621 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. Earlier notation/timing and Tree Bank evidence remains historical qualification. Arbitrary compositions, slower/deployed conditions and the no-prior-anchor transition remain distinct follow-ups. |
+| 39 | Bounded integrated qualification | Current gate: 1,660 tests, typecheck and both fixtures. The badge/transition pass compares all 207 saved frames plus 20 labelled control frames before and after, with unchanged saved syntax/cameras, no fitted label clipping or panel coverage, 2×/4× zoom, Next/Prev/Fit and eight narrow checks. The later realizations pass also preserves all 207 archived frames and checks 14 new control frames plus worker/Tree Bank save/reopen. Earlier notation/timing evidence remains historical qualification. Arbitrary compositions, slower/deployed conditions and the no-prior-anchor transition remain distinct follow-ups. |
 
 Proof reconciliation beyond the original numbered findings:
 
@@ -1002,9 +1012,11 @@ Proof reconciliation beyond the original numbered findings:
   do not replace the saved originals or regenerate them just to inspect them.
 - [x] Review all 36 original relation entries and classify the remaining neutral
   content. The later cross-family matrix also has explicit dispositions.
-- [ ] Complete the separately deferred shared recognition investigation,
-  including Grok's remaining signatures and identity limitations. Do not force
-  a drawing where authored evidence is missing.
+- [x] Complete the bounded shared recognition investigation, including Grok's
+  remaining signatures, exact identity, cross-family and negative controls.
+- [x] Implement and review the four shared-rule repairs. Verify the offline gate
+  and integrated Replay comparisons. Current-only movement drawings and every
+  Tier-1 requirement remain protected; missing evidence stays neutral.
 - [x] Check all 137 prototype Replay frames on desktop/mobile, plus backward
   revisits and the fixed Astra Minimalism F29→30 transition at fit/settled zoom.
 - [x] Retain available Tier-3 participants without changing existing sizing or spacing
