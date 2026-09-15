@@ -125,10 +125,11 @@ competing implicit timers. Preserve no-retry behavior after uncertain submission
 The partial-body evidence repair is a separate concern. Neither was applied during
 the audit; the approved implementation is recorded below.
 
-`vercel.json` also limits the function to 120 seconds. Running the handler locally
-does not exercise that host ceiling, live TLS/proxies, provider-side cancellation
+At the audit baseline, `vercel.json` also limited the function to 120 seconds.
+Running the handler locally does not exercise that host ceiling, live TLS/proxies, provider-side cancellation
 or billing. Deployment must support the intended wait or use separately approved
-asynchronous delivery. No deployment setting or public delivery design was changed.
+asynchronous delivery. The audit changed neither; the later configuration repair
+is recorded below.
 
 ### Replay ownership and edge cases
 
@@ -205,8 +206,9 @@ and exact output preservation each. Additional native local checks passed for
 all six enabled model configurations: completion, header/body disconnect, partial
 body failure with retained prefix, and OpenAI queued/in-progress/completed polling.
 Every temporary server exited and reported closed connections. These local results
-still do not qualify live cancellation/billing, TLS/proxies or the deployed
-120-second function ceiling. Deployment settings remain unchanged.
+still do not qualify live cancellation/billing, TLS/proxies or a hosted function
+deadline. The 120-second limit was verified in repository configuration, not in
+a live deployment; its later repair is recorded below.
 
 The focused regressions cover bounded byte retention, split UTF-8, deadline/read
 races, HTTP error retry guards, polling cancellation, neutral ownership, exact-ID
@@ -224,6 +226,26 @@ data only; its non-Replay inspection panels were not qualified by this check.
 No visible motion or styling changed, so no before/after motion demonstration is
 needed for this diagnostic repair. Mobile and live/deployed verification remain
 outside this pass.
+
+### Vercel configuration follow-up
+
+The checked-in `api/parse.js` maximum duration is now 960 seconds, allowing the
+existing 900-second external-provider budget plus 60 seconds for startup,
+normalization and delivery. `package.json` selects Node 24, matching development
+and CI. Babel's deadlines, model settings, provider payloads and delivery format
+are unchanged. Environment budget overrides must retain this host margin.
+
+Vercel's [current duration rules](https://vercel.com/docs/functions/configuring-functions/duration)
+permit this per-function setting on Pro/Enterprise with a supported runtime.
+Durations above 800 seconds remain an extended-duration beta and exclude Secure
+Compute and Static IPs. Hobby's 300-second ceiling cannot support this request
+budget. These are hosting requirements, not a reason to shorten generation.
+
+The duration/budget margin and package/lockfile consistency were checked locally;
+all 1,663 offline tests, typecheck, fixture verification and production build pass.
+No deployment or paid provider request was made. Before hosting resumes, verify
+the project's eligibility and the complete browser-to-provider path; local tests
+cannot establish that a proxy keeps an idle connection open.
 
 ## Large Replay lifecycle checks, 14 September
 
@@ -308,9 +330,9 @@ The function entry is exercised under a local HTTP server, not a deployed host.
 An abort stops Babel's transport wait; it cannot prove that a remote provider has
 stopped computation or billing. OpenAI cancellation remains best effort. No
 request endpoint, generation payload, model setting or timeout budget changed.
-The checked-in function ceiling is 120 seconds while the external-provider budget
-defaults to 900 seconds; reconciling those deployment settings remains part of the
-later hosting work, not a reason to shorten model generation in this patch.
+At that checkpoint, the checked-in function ceiling was 120 seconds while the
+external-provider budget defaulted to 900 seconds. The later Vercel configuration
+follow-up above resolves that mismatch without shortening model generation.
 
 The full offline gate passes 1,659 tests, typecheck and both normalized fixtures;
 production build and release-asset checks pass. No renderer or fixture changes.

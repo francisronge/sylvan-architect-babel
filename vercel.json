@@ -18,7 +18,7 @@
   ],
   "functions": {
     "api/parse.js": {
-      "maxDuration": 120
+      "maxDuration": 960
     }
   }
 }

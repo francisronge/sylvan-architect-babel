@@ -441,7 +441,7 @@ supersede the earlier browser-blocked status below.
 | 10–12: repair and incomplete processing | Inspection preserves originals, usable evidence and diagnostics. Saved HTTP/text hashes reconfirm Fable's omission before Babel processing; its generation-side cause is unknown. | Investigate before changing delimiter repair or public handling of malformed JSON, mixed analysis outcomes, unresolved structure, surface mismatches and extra roots. Distinguish facts, hypotheses and prevention evidence. No helper or paid experiment is authorized. |
 | 13–14: simultaneity and judgments | Separate authored relation moments remain the accepted default. | No contract change for simultaneity. Consider it only if an extremely simple unchanged-contract solution is worthwhile. Existing local licensing checks require explicit outcome and participant evidence. Request completion and convergence prose do not produce a check mark; regression tests protect this distinction. No new verdict design is planned. |
 | 15–16: linguistic review and old chronology | Original conflicts remain inspectable, including Astra X-bar F32 wh licensing before its landing. | Review these claims for benchmark scoring or gold-corpus use; an individual model linguistic mistake is not a product shipping blocker. Investigate a demonstrated prompt-induced degradation separately. Do not silently rewrite the originals. |
-| 18: operational qualification | Both HTTP entry points now cancel pending transport and retry waits when a client disconnects; stalled headers/bodies time out without regeneration. All six enabled models pass scripted public-route disconnect checks. Large Replay controls complete through 958 frames; sampled worker memory, 40 large view cycles and 15 cancellations pass their bounded checks. | Qualify the production native-fetch long wait separately from the successful Grok verification transport. Live cancellation, revised-prompt compliance/cost/latency, slower devices and deployed worker/proxy behavior remain unverified. The checked-in function ceiling is 120 seconds versus a default 900-second provider budget. Further speed work needs a measured bottleneck and exact-output preservation. |
+| 18: operational qualification | Both HTTP entry points now cancel pending transport and retry waits when a client disconnects; stalled headers/bodies time out without regeneration. All six enabled models pass scripted public-route disconnect checks. Native-fetch header/body waits complete after 310 seconds through both entries. Large Replay controls complete through 958 frames; sampled worker memory, 40 large view cycles and 15 cancellations pass their bounded checks. | Live cancellation, revised-prompt compliance/cost/latency, slower devices and deployed worker/proxy behavior remain unverified. The checked-in Vercel ceiling is now 960 seconds for the default 900-second provider budget; compatible hosting still needs qualification before deployment. Further speed work needs a measured bottleneck and exact-output preservation. |
 | 19: review and consolidation | The accepted prototype and Tree Bank fix are reviewed, committed and integrated into main. The combined offline gate and desktop Replay/Tree Bank checks pass; Fable was waived. | Keep the rejected attempt and remaining defects documented. Broader qualification remains open. |
 
 Next work, in order:
@@ -517,9 +517,11 @@ discussion with Francis.
    order, tree geometry and all 207 archived Replay frames remain unchanged.
    The full offline gate passes 1,663 tests. No paid calls were made.
    Live cancellation/billing, deployed worker loading and proxies remain unverified.
-   The function ceiling is still 120 seconds and needs deployment reconciliation
-   before long hosted requests. Fresh provider calls remain deferred. Later capped
-   checks need approved purpose/spending, exact prompt/config hashes, raw replies,
+   The Vercel configuration now allows 960 seconds for the existing 900-second
+   provider budget and uses Node 24. It requires compatible Pro/Enterprise extended
+   duration; no deployment or hosted verification was performed. Fresh provider
+   calls remain deferred. Later capped checks need approved purpose/spending,
+   exact prompt/config hashes, raw replies,
    usage, latency and processing receipts.
 8. **Bounded visual/performance qualification.** Preserve accepted six-analysis
    desktop Replay, zoom and Fit. Mobile and extreme Fit readability are lower
