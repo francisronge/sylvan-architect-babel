@@ -90,6 +90,34 @@ const transitionRecord = (previous, current, relations) => ({ derivationStages: 
   { statement: 'Changed structure', stageRecord: '', workspaceForest: current, relations }
 ] });
 
+test('earlier neutral claims diagnose later-owned outputs without changing their visibility or order', () => {
+  for (const renamed of [false, true]) for (const early of [true, false]) {
+    const id = value => renamed ? ` ${value}::__leaf ` : value;
+    const output = abstractItem(id('output'), [realizedItem(id('word'))]);
+    const input = abstractItem(id('input'));
+    const independent = abstractItem(id('independent'));
+    const annotation = { relation: 'Observation', anchors: { participant: id('word'), context: id('independent') } };
+    const change = transformation(id('output'), id('input'));
+    const root = children => [{ id: id('root'), label: 'XP', children }];
+    const record = transitionRecord(root([input, independent]), root([output, independent]),
+      early ? [annotation, change] : [change, annotation]);
+    const original = structuredClone(record);
+    const relationSteps = moments(play(record), 1);
+    assert.deepEqual(relationSteps.map(s => s.replayRelationIdentity.relationIndex), [0, 1]);
+    const observed = relationSteps[early ? 0 : 1];
+    assert.equal(visible(observed, id('word')), !early);
+    assert.ok(visible(observed, id('independent')));
+    if (early) {
+      assert.ok(visible(observed, id('input')));
+      assert.match(observed.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1.*before relation 2/);
+    } else assert.equal(observed.movementDiagnostics?.length || 0, 0);
+    const changed = relationSteps[early ? 1 : 0];
+    assert.ok(visible(changed, id('word')));
+    assert.ok(!visible(changed, id('input')));
+    assert.deepEqual(record, original);
+  }
+});
+
 test('owned removal or relocation retires exhausted prior containers at the relation moment', () => {
   const inputs = [abstractItem('stem'), abstractItem('tense')];
   const output = realizedItem('output');

@@ -2470,17 +2470,14 @@ export const buildPlaybackStepsFromDerivationFrames = (
         ))
         .filter((relationIndex) => relationIndex >= 0)
     );
-    const fallbackTreeTransitionRelationIndexes = new Set(
-      frameRelationSteps
-        .map((relation, relationIndex) => (
-          !relation.recoveredMovement?.transition && resolveFallbackTreeTransitionOwnership(
-            relation,
-            previousFrameWorkspaceRoots,
-            workspaceRoots
-          ) ? relationIndex : -1
-        ))
-        .filter((relationIndex) => relationIndex >= 0)
-    );
+    const fallbackTransitionOwnership = new Map<number, FallbackTreeTransitionOwnership>();
+    frameRelationSteps.forEach((relation, relationIndex) => {
+      if (relation.recoveredMovement?.transition) return;
+      const ownership = resolveFallbackTreeTransitionOwnership(
+        relation, previousFrameWorkspaceRoots, workspaceRoots
+      );
+      if (ownership) fallbackTransitionOwnership.set(relationIndex, ownership);
+    });
     const frameHasNonMovementTreeTransition =
       index > 0
       && nonMovementTreeTransitionRelationIndexes.size > 0
@@ -2975,13 +2972,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
         ) => {
           const activeFallbackTransitionRelations = frameRelationSteps.filter((_relation, relationIndex) =>
             activeRelationIndexes.has(relationIndex)
-            && fallbackTreeTransitionRelationIndexes.has(relationIndex));
+            && fallbackTransitionOwnership.has(relationIndex));
           const activeMovementRelations = frameRelationSteps.filter((relation, relationIndex) =>
             activeRelationIndexes.has(relationIndex) && relation.recoveredMovement?.transition);
           const registeredNonMovementTreeTransitionIsActive = Array.from(activeRelationIndexes)
             .some((relationIndex) => (
               nonMovementTreeTransitionRelationIndexes.has(relationIndex)
-              && !fallbackTreeTransitionRelationIndexes.has(relationIndex)
+              && !fallbackTransitionOwnership.has(relationIndex)
             ));
           const activeTreeTransitionTargetNodeIds = new Set(
             relationPlacements
@@ -3414,12 +3411,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
         const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
         const relationProducers = new Map<string, number>();
         relationPlacements.forEach((placement) => {
-          if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return;
-          const ownedIds = [
-            ...collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId))
-              .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
-            ...getMovementCreatedLandingHostNodeIds(placement)
-          ];
+          const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+            ? [
+                ...collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId))
+                  .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
+                ...getMovementCreatedLandingHostNodeIds(placement)
+              ]
+            : [...(fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds || [])];
           ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
             if (!relationProducers.has(nodeId)) relationProducers.set(nodeId, placement.relationIndex);
           });
@@ -3548,7 +3546,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           )
         });
         const completedStageReplayStep = stagePlaybackSteps[stagePlaybackSteps.length - 1];
-        const fallbackStageCompletionSnapshot = fallbackTreeTransitionRelationIndexes.size > 0
+        const fallbackStageCompletionSnapshot = fallbackTransitionOwnership.size > 0
           ? frameReplaySnapshot
           : null;
         return [
