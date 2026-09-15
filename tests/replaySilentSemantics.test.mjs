@@ -13,6 +13,20 @@ import {
 
 const { materializeReplayPreterminals } = __TEST_ONLY__;
 
+test('preterminal expansion preserves category notation instead of treating it as word punctuation', () => {
+  for (const [label, word] of [['√WALK', 'walk'], ['[PAST]', 'past'], ['V′', 'v']]) {
+    const authored = { id: 'head', label, word, children: [] };
+    const rendered = materializeReplayPreterminals(authored);
+    assert.equal(rendered.label, label);
+    assert.equal(rendered.children[0].word, word);
+    assert.equal(rendered.children[0].replayOrigin.ownerId, 'head');
+    assert.deepEqual(authored, { id: 'head', label, word, children: [] });
+  }
+  const duplicate = materializeReplayPreterminals({ id: 'word', label: 'Walk', word: 'walk', children: [] });
+  assert.equal(duplicate.children, undefined);
+  assert.equal(duplicate.word, 'walk');
+});
+
 test('silent syntax preserves authored labels, lineage, and complete subtrees', () => {
   const silentPro = {
     id: 'pro_dp',

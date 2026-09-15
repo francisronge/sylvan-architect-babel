@@ -469,12 +469,15 @@ discussion with Francis.
    rules define source coverage, disjoint target coverage, inherited silence and
    exact Replay ownership; use intermediate stages for ambiguous timing. The
    model-facing instructions now explain omission, regular pieces and irregular
-   abstract realizations. The 1,640-test gate, production build and release-asset
+   abstract realizations. The 1,641-test gate, production build and release-asset
    checks pass. All 207 archived frames preserve complete Replay data and browser
-   geometry; 13 new control frames, the actual worker and Tree Bank save/reopen
+   geometry; 14 new control frames, the actual worker and Tree Bank save/reopen
    pass. All six enabled model routes preserve groups and exact input in both
    frameworks under mocked responses. Fresh model authoring remains unmeasured.
-   Keep topology, tokenization and independent PF-ordering work separate.
+   An existing preterminal comparison incorrectly equated `√WALK` with `walk`
+   after stripping symbols. It now preserves notation in distinct category labels;
+   the authored preterminal and its word both remain visible. Keep topology,
+   tokenization and independent PF-ordering work separate.
 4. **Prompt clarification: implemented.** Keep the approved framework-sensitive
    label wording in `08b5de4`. The unchanged-workspace instruction now permits a
    sentence-specific `reason within the analysis`. The model still derives the

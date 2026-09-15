@@ -589,7 +589,7 @@ positions without constructing an independent PF-ordering system.
 The user approved this optional stage field and has specified the exact-input
 and authoring requirements above. The recommended handling of ambiguous timing
 follows the existing intermediate-stage rule rather than adding another field.
-The scoped implementation passes `npm run verify:all`: typecheck, 1,640 tests and
+The scoped implementation passes `npm run verify:all`: typecheck, 1,641 tests and
 parse-contract verification. The production build and release-asset check also
 pass. Focused controls cover regular and irregular collective realization,
 one-to-many and discontinuous targets, repeated tokens, shared sources, current
@@ -608,9 +608,13 @@ The six archived Grok/Astra/Fable analyses retain byte-identical complete Replay
 output across 207 frames. The integrated production-renderer browser comparison
 also finds identical syntax labels, badge bounds and camera transforms at every
 archived frame, with manual zoom and Fit behavior preserved. Two explicitly
-labelled authoring controls add 13 inspected frames. The actual app worker,
+labelled authoring controls add 14 inspected frames. The actual app worker,
 Tree Bank thumbnail, save and reopen preserve `walk` plus `-ed` for input
 `walked`. These controls test representation, not linguistic correctness.
+The preterminal display comparison now preserves category notation such as `√`
+instead of applying punctuation-insensitive word matching. Thus an authored
+`√WALK` label remains above `walk`; case-only repetitions still avoid a duplicate
+label. A focused regression covers roots, bracketed labels and prime notation.
 Temporary review images, recording, executable controls and results are under
 `/tmp/babel-realizations-review/`; they are not committed product fixtures.
 

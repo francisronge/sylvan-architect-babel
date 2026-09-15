@@ -7848,7 +7848,8 @@ export const shouldExpandPreterminalLeaf = (node: SyntaxNode): boolean => {
   const word = typeof node.word === 'string' ? node.word.trim() : '';
   if (!label || !word) return false;
   if (isTraceLike(label)) return false;
-  if (normalizeToken(label) === normalizeToken(word)) return false;
+  // Surface-token matching strips notation such as √; category labels must retain it.
+  if (label.toLowerCase() === word.toLowerCase()) return false;
   return true;
 };
 
