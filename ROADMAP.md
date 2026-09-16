@@ -182,6 +182,36 @@ extends those checks. This is local/offline evidence, not deployment qualificati
 Immediate priorities after reviewing all 19 starting-point items, 39 audit
 findings and Programs 0–8:
 
+- The authorized Opus 5 passive pair is complete on source `91848d0`: one
+  high-effort request per framework for `The children were given two books.`,
+  through the actual public route. Both returned strict valid JSON with zero
+  repairs, in 133.711 / 136.808 seconds, at an estimated $0.562445 combined from
+  reported usage. There were no retries. Exact requests, provider bytes, raw
+  text, receipts, source snapshot and all 94 Replay captures are retained in the
+  local ignored `opus-passive-2026-09-16` qualification archive. Independent
+  saved-byte processing reproduces the public stages and final trees.
+  **Do not mark these visuals passed:** X-bar frame 38 announces NP-movement,
+  but frame 39's later A-chain owns the actual move. The earlier empty landing
+  disappears in frame 38; the trace appears in frame 39. Babel compares the
+  trace's lineage with the containing IP rather than the moving DP. Resolve
+  occurrence versus landing-host evidence and transition ownership generally,
+  without alias patches or reordering authored relations. Then recheck layout:
+  this transition also shifts unrelated nodes by up to 184 px at the measured
+  fit while the camera stays fixed. Minimalism moves at its correct moment but
+  lacks a specialized movement drawing; theta/Case wording exposes further
+  recovery gaps. Keep genuinely unpaired feature arrays and unsupported claims
+  neutral. Generated theta indices also repeat `i` on separate arguments before
+  the later authored subject-chain index; review their scope without treating
+  them as authored identity. At 1280×720, fitting makes the trees small and the
+  final X-bar role labels crowded. All 94 frames have valid geometry with no
+  measured role-text/syntax-box collisions or browser errors; zoom, pan,
+  Next/Previous and Fit pass. These checks do not settle readability. The model
+  analyses explain both DPs' Case but overstate some evidence: both DPs are
+  plural, and the Minimalist theme is below the recipient, not an intervener
+  between it and T. Linguistic adjudication remains separate. Neither response
+  uses nontrivial `realizations`, so fresh model morphology authoring remains
+  unqualified. No product behavior or prompt changed during this run; it does
+  not explain or establish prevention of Fable's historical JSON failure.
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
   typechecking, and the existing release asset/link check alongside build and
   dependency audits. No new test framework or product behavior changed.
