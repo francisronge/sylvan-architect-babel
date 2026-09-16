@@ -26,7 +26,8 @@
     "preview": "vite preview",
     "start": "node server/index.js",
     "local:provider-effort": "node .artifacts/provider_effort_local_test.cjs",
-    "audit": "npm audit"
+    "audit": "npm audit",
+    "orchard:build": "node scripts/buildRelationOrchard.mjs"
   },
   "dependencies": {
     "@fontsource/crimson-pro": "^5.2.8",

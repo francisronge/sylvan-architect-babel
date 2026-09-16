@@ -1226,7 +1226,7 @@ test('a failed item consumes no stacking, ordinal, or lane state used by the nex
  * Fallback connector geometry: complete bound routes, lanes included.
  * ------------------------------------------------------------------ */
 
-test('a row-2 link connector starts and ends at its rendered mark centers, on its allocated lane', () => {
+test('a row-2 link connector starts below its witness extents, on its allocated lane', () => {
   const positions = new Map([['a_fr', { x: 100, y: 100 }], ['b_fr', { x: 400, y: 140 }]]);
   const bound = bindRelationPlanFrame(
     compileRelationRenderPlan(
@@ -1240,14 +1240,10 @@ test('a row-2 link connector starts and ends at its rendered mark centers, on it
   const link = bound.primitives.find((p) => p.type === 'segment');
   assert.equal(link.route, 'counter-lane');
   assert.equal(typeof link.lane, 'number');
-  const markCenter = (nodeId) => {
-    const mark = marks.find((m) => m.nodeId === nodeId);
-    return { x: mark.x, y: mark.y };
-  };
-  assert.deepEqual(link.from, markCenter('a_fr'),
-    'the connector endpoint is the rendered mark center, label and stack offsets included');
-  assert.deepEqual(link.to, markCenter('b_fr'));
-  assert.match(link.d, new RegExp(`^M ${link.from.x.toFixed(1)} `), 'the path starts at the mark');
+  assert.deepEqual(link.from, { x: 100, y: 114 });
+  assert.deepEqual(link.to, { x: 400, y: 154 });
+  assert.notEqual(link.from.x, marks[0].x, 'subtree-bottom links do not descend from side badges');
+  assert.match(link.d, /^M 100.0 120.0/, 'the stem clears the witness bottom');
   assert.ok(link.d.includes('Q'), 'the counter-lane path carries its lane turns');
 });
 
@@ -1428,10 +1424,11 @@ test('overlay bounds include only pre-fit organizational primitives', async () =
     primitives: [...bound.primitives, genericPlaque]
   }, { markerScale: 1 });
   assert.ok(bounds);
-  assert.ok(bounds.minX < 100, 'left glyph extent reaches past the leftmost node position');
+  assert.equal(boundOverlayBounds({ ...bound, primitives: bound.primitives.filter(p => p.type === 'fallback-mark' || p.type === 'segment') }), null,
+    'Orchard fallback annotations do not shrink the fitted tree');
   assert.ok(bounds.maxX >= genericPlaque.x + genericPlaque.width,
     'right side includes a non-post-fit plaque width');
-  assert.ok(bounds.maxY >= 400, 'bottom includes the connector lane');
+  assert.ok(bounds.maxY >= genericPlaque.y + genericPlaque.height, 'pre-fit plaque bounds remain complete');
   assert.equal(
     boundOverlayBounds({
       ...bound,

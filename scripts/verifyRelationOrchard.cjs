@@ -45,9 +45,7 @@ const OVERLAY_SELECTORS = {
   fallback: [
     '.vr-fallback-frame',
     '.vr-anchor-set-badge',
-    '.vr-anchor-set-rail',
-    '.babel-fbproto-layer',
-    '.babel-fbproto-mark-frame'
+    '.vr-anchor-set-rail'
   ].join(', '),
   idiomChunk: '.babel-idiom-chunk-relation-layer, .babel-idiom-domain-bracket',
   binding: '.babel-binding-relation-layer, .babel-binding-domain',
@@ -91,6 +89,7 @@ const collectCards = (selectors) => Array.from(
     contractNotes: Array.from(card.querySelectorAll('.babel-contract-report li'))
       .map((item) => item.textContent?.trim())
       .filter(Boolean),
+    substitutePaint: card.querySelectorAll('.babel-fbproto-layer').length,
     svgCount: card.querySelectorAll('.babel-render-mount svg').length,
     nodeLabelCount: card.querySelectorAll('.babel-render-mount text').length,
     overlays
@@ -186,6 +185,7 @@ const main = async () => {
     };
     report('STRANDED mid-replay', stranded);
     report('EMPTY canvas', empty);
+    report('SUBSTITUTE painter instead of production', cards.filter(card => card.substitutePaint > 0));
     report('NO overlay drawn — known app-side gap', noOverlay.filter((card) => KNOWN_UNDRAWN.has(card.title)));
     report('NO overlay drawn — UNEXPECTED', unexpectedlyDark);
     report('now drawing (was a known gap)', nowDrawing);
@@ -200,6 +200,7 @@ const main = async () => {
   }
 
   const failed = stranded.length > 0
+    || cards.some(card => card.substitutePaint > 0)
     || empty.length > 0
     || unexpectedlyDark.length > 0
     || consoleErrors.length > 0;

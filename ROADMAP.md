@@ -11,7 +11,7 @@ and research notebooks are evidence or history, not competing roadmaps.
 | --- | --- | --- |
 | Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. | Qualify fresh model authoring under the revised prompt. Preserve recovery policy pending agreement. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
-| Relation renderer | Accepted Orchard paint and composition are integrated. The original 137-frame corpus retained its geometry through Fit/worker repairs; the later six-analysis notation/timing comparison covers 208 before and 207 after frames. | Circled Tier-3 badges now retain their fitted appearance and grow with the tree. Extreme text scrolling and viewport checks are bounded. Review only reproduced movement defects; no participant-free drawing is justified. |
+| Relation renderer | The September 16 fidelity repair restores Orchard Tier-3 placement and paint. Orchard cards now use production drawing code for every tier. Earlier integration checks missed the separate Tier-3 painter; their broad fidelity claim was incorrect. | The approved literal-role annotation redesign is backlogged until this restoration is reviewed. Extreme text and viewport checks remain bounded; no participant-free drawing is justified. |
 | Replay preparation | The measured optimization remains unchanged. Extended controls through 192 stages/958 frames complete. Forty large view cycles release all 81 workers and retain about 18–19 MB of page heap; 15 mid-preparation cancellations also recover correctly. | Instrumented 160/192-stage controls take about 12/19 seconds, with sampled worker heaps up to 182 MB and frame jumps up to 274 ms. These bounds do not establish instant preparation, exact peak memory or slower-device behavior. No layout rewrite or persistent derivation cache is introduced. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
 | Tree Bank | The merged app captures the styled tree for its browser-local preview. Eight desktop save/preview/reopen cases pass across all four archived bundles in Canopy and Replay. Previews need not show every plaque row; reopening provides the full record. | Existing icon thumbnails require a fresh save. The later durable-record migration remains separate product work. |
@@ -126,7 +126,9 @@ another subsystem.
    and passed `npm ci`, `npm run verify:all`, `npm run build`, and the
    link/static-asset check without ignored local files. The clean clone also
    passed the 69/69 Tier-2 raster comparison and the 61-card Orchard browser
-   audit.
+   audit. The September 16 audit established that the raster check compares
+   isolated specimens, not production trees, and the card check accepted a
+   separate Tier-3 painter. Those checks did not prove complete production fidelity.
 
 Done when a new checkout contains the correctly licensed source, r96 Orchard,
 compact fixtures, required notices, and all provider-free gates without relying
@@ -250,7 +252,28 @@ findings and Programs 0–8:
   `server/babelParser/systemInstruction.js` SHA-256 changes from
   `9ec816b0a0149bba9e0e52fe2c3e10c97609369ab063ae6fd62a27a451ccabc6` to
   `d33c4b9cd75f03de2e96294bb81337da2fd27b2a7cdb7c94cf8e8a8299a72b2e`.
-- Revisit Tier 3's visual and linguistic clarity with user review. Sol Minimalism
+- **Current priority: restore Orchard fidelity before redesign.** The production
+  Tier-3 painter used oversized marks below labels and scalar links through the
+  tree; the Orchard used small measured side marks and links below participant
+  subtrees. The repair transfers that allocation and paint into production and
+  removes the separate Orchard painter. All six fallback cards now exercise the
+  app's renderer. The 55 specialized cards preserve their geometry and styles
+  through this repair; the additional reproduced Fission text overflow uses the
+  existing literal-preserving wrapper. Browser checks cover all 61 cards and
+  badge clearance/valid geometry across 283 saved Astra, Fable, Grok and Sol Replay
+  frames. Fable's previously documented inspection copies remain distinct from
+  the original records. Numbering, authored participants, recognition and Replay
+  order are unchanged. `npm run orchard:build` rebuilds both published copies
+  together; the release check rejects differing bundles. Focused regressions,
+  all 1,675 offline tests, typecheck, both normalized fixtures and the release
+  asset check pass. Manual zoom and the Sol relation reveal sequence preserve
+  complete badge groups and existing mark positions; a 390px viewport check
+  found no badge/label collision, without claiming general mobile readability.
+- **Backlog: the approved literal-role annotation proposal.** Francis approved
+  the later tree-annotation prototype, then explicitly deferred it until Orchard
+  fidelity is restored. Keep its implementation separate from this repair.
+  The following literature notes retain the earlier research and proposal history.
+  Sol Minimalism
   frame 33 adds the existing `Anchor rail` organizational companion to a Tier-3
   claim; its missing joining lines are restored from the existing Orchard notation.
   The broader Tier-3 presentation remains open for user review. Its principal

@@ -1235,3 +1235,27 @@ svg .vr-relation-active .babel-argument-sharing-domain {
 svg .babel-strong-npi-path {
   stroke-width: 1.55px;
 }
+
+/* Tier 3 uses the Orchard's measured side marks and subtree-bottom links.
+ * Shared relation emphasis owns hover/glow; the geometry stays in one tree group. */
+.babel-fbproto-lane { margin-top: 18px; }
+.vr-fallback-frame {
+  fill: rgba(2, 18, 13, 0.86);
+  stroke: rgba(94, 234, 157, 0.72);
+  stroke-width: 1.5px;
+}
+.vr-fallback-instance, .vr-fallback-position {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+}
+.vr-fallback-instance { fill: #ecfdf5; }
+.vr-fallback-position {
+  fill: #6ee7b7;
+  paint-order: stroke;
+  stroke: rgba(1, 8, 5, 0.9);
+  stroke-width: 2.4px;
+}
+.vr-backward-cue { fill: rgba(167, 243, 208, 0.95); }
+.vr-fallback-segment, .vr-fallback-shadow { fill: none; stroke-linecap: round; }
+.vr-fallback-segment { stroke: var(--babel-relation-ink); }
+.vr-fallback-shadow { stroke: rgba(2, 12, 8, 0.85); pointer-events: none; }

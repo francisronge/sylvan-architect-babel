@@ -135,6 +135,9 @@ export type BoundGhostSet = {
 
 export type BoundFallbackMark = {
   type: 'fallback-mark';
+  /** Measured witness label; immutable across a stage's reveal steps. */
+  labelRect: Rect;
+  allocationOrder: number;
   nodeId: string;
   x: number;
   y: number;
@@ -153,10 +156,10 @@ export type BoundFallbackMark = {
  * renderer cannot collapse them:
  * - `counter-lane` (row 2, two scalar witnesses): a quiet undirected
  *   connector running along its allocated lane below the terminal row, with
- *   short stems into the two visible instance marks;
+ *   short stems below the participating subtrees;
  * - `direct` (row 3 fan spokes): a thin straight line from the hub's
  *   visible mark to the spoke's visible mark.
- * `d` is the ready-to-draw path anchored at the rendered mark centers; the
+ * `d` is the ready-to-draw path; the
  * renderer draws exactly this path and adds nothing.
  */
 export type BoundSegment = {
@@ -198,11 +201,11 @@ export type BoundAnchorSetRail = {
   itemIndex: number;
 };
 
-export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number) => ({
+export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number, fallbackScale = markerScale) => ({
   rail: `M ${rail.x1} ${rail.y} H ${rail.x2}`,
   joins: rail.anchors.map(anchor => {
-    const radius = anchor.type === 'fallback-mark' ? 10 : anchor.badgeSize === 'compact' ? 7 : 9;
-    return `M ${anchor.x} ${anchor.y + radius * markerScale} V ${rail.y}`;
+    const radius = anchor.type === 'fallback-mark' ? 9 : anchor.badgeSize === 'compact' ? 7 : 9;
+    return `M ${anchor.x} ${anchor.y + radius * (anchor.type === 'fallback-mark' ? fallbackScale : markerScale)} V ${rail.y}`;
   }).join(' ')
 });
 
@@ -475,7 +478,7 @@ const routeFallbackSegments = (
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
-      const trim = 10 * markerScale;
+      const trim = 11 * markerScale;
       const length = Math.hypot(segment.to.x - segment.from.x, segment.to.y - segment.from.y) || 1;
       const unit = { x: (segment.to.x - segment.from.x) / length, y: (segment.to.y - segment.from.y) / length };
       const start = { x: segment.from.x + unit.x * trim, y: segment.from.y + unit.y * trim };
@@ -491,10 +494,10 @@ const routeFallbackSegments = (
     const corner = 9 * markerScale;
     const d = [
       `M ${from.x.toFixed(1)} ${(from.y + stem).toFixed(1)}`,
-      `L ${from.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
+      `L ${from.x.toFixed(1)} ${(laneY - 8 * markerScale).toFixed(1)}`,
       `Q ${from.x.toFixed(1)} ${laneY.toFixed(1)} ${(from.x + corner).toFixed(1)} ${laneY.toFixed(1)}`,
       `L ${(to.x - corner).toFixed(1)} ${laneY.toFixed(1)}`,
-      `Q ${to.x.toFixed(1)} ${laneY.toFixed(1)} ${to.x.toFixed(1)} ${(laneY - corner).toFixed(1)}`,
+      `Q ${to.x.toFixed(1)} ${laneY.toFixed(1)} ${to.x.toFixed(1)} ${(laneY - 8 * markerScale).toFixed(1)}`,
       `L ${to.x.toFixed(1)} ${(to.y + stem).toFixed(1)}`
     ].join(' ');
     return { ...segment, from, to, lane, laneY, d };
@@ -510,46 +513,92 @@ const fallbackRailY = (
   deepestConnectorLaneY > 0 ? deepestConnectorLaneY + 90 : 0
 ) + rail.lane * (options.railLaneGap ?? 60);
 
-/** Refit neutral connectors and dependent rails to their marks' Fit scale, preserving exact SVG ownership. */
+/** Orchard sizing is selected at automatic Fit, then the whole annotation zooms with the tree. */
+export const fallbackMarkerScale = (fitZoom: number, labelHeights: number[]): number => {
+  const heights = labelHeights.filter(height => height > 0).sort((a, b) => a - b);
+  const median = heights[Math.floor(heights.length / 2)] ?? 42;
+  return Math.min(13, Math.max(9, median * fitZoom * 1.15)) / (18 * fitZoom);
+};
+
+export type FallbackMeasurements = {
+  labels: Rect[];
+  labelFor: (nodeId: string) => Rect | null;
+  subtreeFor: (nodeId: string) => Rect | null;
+  bottom: number;
+};
+
+/** Accepted Orchard side placement, reserving all marks before any relation is revealed. */
+const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'backward' | 'numeral'>,
+  scale: number, occupied: Rect[]): Point => {
+  const rect = mark.labelRect;
+  const radius = 9 * scale;
+  const gap = (15 + (mark.backward ? 7 : 0)) * scale;
+  const leftExtent = radius + (mark.backward ? 7 * scale : 0);
+  const rightExtent = radius + (mark.numeral !== null ? 7 * scale : 0);
+  const boxFor = (point: Point): Rect => ({ x: point.x - leftExtent, y: point.y - radius,
+    width: leftExtent + rightExtent, height: radius * 2 });
+  const candidates = [
+    { x: rect.x + rect.width + gap, y: rect.y + rect.height / 2 },
+    { x: rect.x - gap, y: rect.y + rect.height / 2 },
+    { x: rect.x + rect.width / 2, y: rect.y - gap },
+    { x: rect.x + rect.width + gap, y: rect.y - gap },
+    { x: rect.x - gap, y: rect.y - gap }
+  ];
+  const free = (point: Point) => {
+    const box = boxFor(point);
+    return !occupied.some(other => box.x < other.x + other.width - 0.5
+      && box.x + box.width > other.x + 0.5 && box.y < other.y + other.height - 0.5
+      && box.y + box.height > other.y + 0.5);
+  };
+  // More than five relations can share a node. Continue outward only after the
+  // Orchard's preferred positions are occupied; never place two marks together.
+  let chosen = candidates.find(free);
+  for (let offset = 1; !chosen; offset++) {
+    chosen = candidates.map(point => ({ ...point, x: point.x + (rightExtent + leftExtent + 4 * scale) * offset })).find(free);
+  }
+  occupied.push(boxFor(chosen));
+  return chosen;
+};
+
+/** Refit the same measured allocation, preserving claim ownership and stage-wide reservation. */
 export const fitFallbackGeometry = (
   frame: BoundFrame,
-  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap'>
-    & { fittedMarkerScale: number }
-): Map<BoundSegment | BoundAnchorSetRail, BoundSegment | BoundAnchorSetRail> => {
-  const segments = frame.primitives.filter((primitive): primitive is BoundSegment => primitive.type === 'segment');
-  const rails = frame.primitives.filter((primitive): primitive is BoundAnchorSetRail => primitive.type === 'anchor-set-rail');
-  const markerScale = Math.max(0.1, options.markerScale ?? 1);
-  const fittedMarkerScale = Math.max(0.1, options.fittedMarkerScale);
-  if (markerScale === fittedMarkerScale) return new Map([...segments, ...rails].map(primitive => [primitive, primitive]));
-  const badgeGap = options.badgeGap ?? 22;
+  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements'>
+    & { fittedMarkerScale: number; fittedAnchorScale?: number }
+): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
+  const scale = options.fittedMarkerScale;
+  const anchorScale = options.fittedAnchorScale ?? scale;
+  const occupied = [...(options.fallbackMeasurements?.labels ?? [])];
+  const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
   const centers = new Map<number, Map<string, Point>>();
-  frame.primitives.forEach(primitive => {
-    if (primitive.type !== 'fallback-mark') return;
-    const itemCenters = centers.get(primitive.itemIndex) ?? new Map<string, Point>();
-    itemCenters.set(primitive.nodeId, {
-      x: primitive.x + primitive.stackIndex * badgeGap * (fittedMarkerScale - markerScale),
-      y: primitive.y
-    });
-    centers.set(primitive.itemIndex, itemCenters);
+  frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
+    .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
+    const point = placeFallbackMark(mark, scale, occupied);
+    updates.set(mark, { ...mark, ...point });
+    const owned = centers.get(mark.itemIndex) ?? new Map<string, Point>();
+    owned.set(mark.nodeId, point);
+    centers.set(mark.itemIndex, owned);
   });
-  const fitted = routeFallbackSegments(segments.map(segment => {
-    const itemCenters = centers.get(segment.itemIndex);
-    return { ...segment,
-      from: itemCenters?.get(segment.witnessNodeIds[0]) ?? segment.from,
-      to: itemCenters?.get(segment.witnessNodeIds[1]) ?? segment.to };
-  }), { ...options, markerScale: fittedMarkerScale });
-  const updates = new Map<BoundSegment | BoundAnchorSetRail, BoundSegment | BoundAnchorSetRail>(
-    segments.map((segment, index) => [segment, fitted[index]])
-  );
-  const deepestConnectorLaneY = fitted.reduce((deepest, segment) =>
-    Math.max(deepest, segment.laneY ?? 0), 0);
-  rails.forEach(rail => {
+  const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
+  const fitted = routeFallbackSegments(segments.map(segment => ({ ...segment,
+    ...(segment.route === 'direct' ? {
+      from: centers.get(segment.itemIndex)?.get(segment.witnessNodeIds[0]) ?? segment.from,
+      to: centers.get(segment.itemIndex)?.get(segment.witnessNodeIds[1]) ?? segment.to
+    } : {})
+  })), { ...options, markerScale: scale,
+    connectorBaselineY: options.fallbackMeasurements
+      ? options.fallbackMeasurements.bottom + 34 * scale : options.connectorBaselineY });
+  segments.forEach((segment, index) => updates.set(segment, fitted[index]));
+  const deepest = Math.max(0, ...fitted.map(segment => segment.laneY ?? 0));
+  frame.primitives.forEach(rail => {
+    if (rail.type !== 'anchor-set-rail') return;
     const anchors = rail.anchors.map(anchor => anchor.type === 'fallback-mark'
-      ? { ...anchor, x: anchor.x + anchor.stackIndex * badgeGap * (fittedMarkerScale - markerScale) }
-      : { ...anchor, y: anchor.y + (anchor.stackIndex + 1) * badgeGap * (fittedMarkerScale - markerScale) });
+      ? updates.get(anchor) as BoundFallbackMark
+      : { ...anchor, y: anchor.y + (anchor.stackIndex + 1) * (options.badgeGap ?? 22)
+        * (anchorScale - (options.markerScale ?? 1)) });
     updates.set(rail, { ...rail, anchors,
       x1: Math.min(...anchors.map(anchor => anchor.x)), x2: Math.max(...anchors.map(anchor => anchor.x)),
-      y: fallbackRailY(rail, deepestConnectorLaneY, options) });
+      y: fallbackRailY(rail, deepest, options) });
   });
   return updates;
 };
@@ -721,18 +770,7 @@ export const boundOverlayBounds = (
         // The square and terminal-to-terminal links annotate the fitted tree.
         return;
       case 'fallback-mark':
-        // Frame glyph (r=10/18-box) with the centered instance numeral,
-        // the start-anchored external position at local x=12, and the
-        // start-anchored backward cue at local x=-16 — each with its
-        // renderer anchor and font.
-        point(primitive.x, primitive.y, 14 * k);
-        anchoredText(primitive.x, primitive.y, primitive.instance, 11, 'middle');
-        if (primitive.numeral !== null) {
-          anchoredText(primitive.x, primitive.y, primitive.numeral, 9, 'start', 12);
-        }
-        if (primitive.backward) {
-          anchoredText(primitive.x, primitive.y, '\u25c2', 10, 'start', -16);
-        }
+        // Orchard marks annotate the fitted tree without shrinking it.
         return;
       case 'anchor-set-badge':
         point(primitive.x, primitive.y, Math.max(16, textHalfWidth(primitive.numeral, 10) + 8) * k);
@@ -743,7 +781,6 @@ export const boundOverlayBounds = (
         primitive.anchors.forEach(anchor => point(anchor.x, anchor.y, 10));
         return;
       case 'segment':
-        pathPoints(primitive.d, 8);
         return;
       case 'native-branch-overlay':
         // Native branch geometry is sampled from the fitted D3 tree.
@@ -884,6 +921,7 @@ export type BindGeometryOptions = {
   markerScale?: number;
   /** Actual SVG font measurement and available width, in marker-local units. */
   plaqueTextLayout?: PlaqueTextLayoutOptions;
+  fallbackMeasurements?: FallbackMeasurements;
   /** Rendering supplies exact occurrence-text matching, including its existing subscript formatting. */
   hasExistingGapNotation?: (nodeId: string, text: string) => boolean;
   /**
@@ -1036,6 +1074,8 @@ export const bindRelationPlanFrame = (
   );
 
   const pendingSegments: UnroutedFallbackSegment[] = [];
+  let fallbackAllocationOrder = 0;
+  const fallbackOccupied = [...(options.fallbackMeasurements?.labels ?? [])];
 
   const bindPlanItem = (item: RelationPlanItem, itemIndex: number) => {
     if (item.kind === 'trajectory') {
@@ -2094,34 +2134,18 @@ export const bindRelationPlanFrame = (
     }
 
     if (item.kind === 'fallback') {
-      const markPoints = new Map<string, Point>();
       const markCenters = new Map<string, Point>();
       item.drawing.marks.forEach((mark) => {
         const point = requirePoint(itemIndex, mark.witness);
         if (!point) return;
-        markPoints.set(mark.witness, point);
-        const stackIndex = nextStackIndex(mark.witness);
-        markCenters.set(mark.witness, {
-          x: point.x + stackIndex * badgeGap * markerScale,
-          y: point.y + labelHeight
-        });
-        primitives.push({
-          type: 'fallback-mark',
-          nodeId: mark.witness,
-          x: point.x + stackIndex * badgeGap * markerScale,
-          y: point.y + labelHeight,
-          frame: mark.frame,
-          numeral: mark.position,
-          instance: mark.instance,
-          backward: mark.backward,
-          stackIndex,
-          itemIndex
-        });
+        const labelRect = options.fallbackMeasurements?.labelFor(mark.witness) ?? rectFor(mark.witness)!;
+        const shape = { labelRect, backward: mark.backward, numeral: mark.position };
+        const center = placeFallbackMark(shape, markerScale, fallbackOccupied);
+        markCenters.set(mark.witness, center);
+        primitives.push({ type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,
+          frame: mark.frame, instance: mark.instance, allocationOrder: fallbackAllocationOrder++, stackIndex: nextStackIndex(mark.witness), itemIndex });
       });
-      /*
-       * Connector endpoints are the RENDERED mark centers — label offset and
-       * same-node stack offset included — never raw node positions.
-       */
+      // Fans join their own marks. Two-witness links start below their subtrees.
       const markCenterOf = (witnessId: string): Point | null => {
         const center = markCenters.get(witnessId);
         if (center) return center;
@@ -2132,8 +2156,13 @@ export const bindRelationPlanFrame = (
         return requirePoint(itemIndex, witnessId);
       };
       if (item.drawing.link) {
-        const first = markCenterOf(item.drawing.link.endpoints[0]);
-        const second = markCenterOf(item.drawing.link.endpoints[1]);
+        const subtreeBottom = (id: string): Point | null => {
+          if (!markCenters.has(id)) return null;
+          const rect = options.fallbackMeasurements?.subtreeFor(id) ?? rectFor(id);
+          return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height } : null;
+        };
+        const first = subtreeBottom(item.drawing.link.endpoints[0]);
+        const second = subtreeBottom(item.drawing.link.endpoints[1]);
         if (first && second) {
           const left = first.x <= second.x ? first : second;
           const right = left === first ? second : first;
@@ -2401,13 +2430,13 @@ export const bindRelationPlanFrame = (
   /*
    * Deterministic lanes for counter-lane fallback connectors, in item
    * order, rendered as COMPLETE geometry: the allocated lane picks the
-   * connector's own below-row Y, and the path descends from each rendered
-   * mark, turns into the lane, and rises into the other mark. Colliding
+   * connector's own below-row Y, and the path connects the two subtree bottoms. Colliding
    * spans therefore occupy visibly distinct lanes; the renderer draws `d`
    * verbatim and cannot discard the routing.
    */
   primitives.push(...routeFallbackSegments(pendingSegments, {
-    markerScale, laneGap, connectorBaselineY: options.connectorBaselineY
+    markerScale, laneGap, connectorBaselineY: options.fallbackMeasurements
+      ? options.fallbackMeasurements.bottom + 34 * markerScale : options.connectorBaselineY
   }));
   /*
    * The one vertical allocation law: rails sit a safe gap below the deepest

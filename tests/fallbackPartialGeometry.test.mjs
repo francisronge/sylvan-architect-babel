@@ -47,92 +47,60 @@ test('partial neutral marks reserve their slots without poisoning the next indep
   assert.equal(bound.primitives.filter(p => p.type === 'segment').length, 1);
 });
 
-test('fitted scalar connectors and fan spokes stay attached to their exact stacked marks', () => {
-  const mixed = compileRelationRenderPlan([stage([
-    { relation: 'First open claim', anchors: { first: 'a', second: 'b' } },
-    { relation: 'Open fan', anchors: { hub: 'b', spokes: ['a', 'c'] } },
-    { relation: 'Second open claim', anchors: { first: 'a', second: 'c' } }
+test('Orchard marks clear measured labels; scalar links start below subtrees, fans at their own marks', () => {
+  const p = compileRelationRenderPlan([stage([
+    { relation: 'Pair', anchors: { first: 'a', second: 'b' } },
+    { relation: 'Fan', anchors: { hub: 'a', spokes: ['b', 'c'] } }
   ])]);
-  const points = { a: { x: 50, y: 20 }, b: { x: 270, y: 80 }, c: { x: 500, y: 140 } };
-  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 60, connectorBaselineY: 400 };
-  const bound = bindRelationPlanFrame(mixed, 0, id => points[id], options);
+  const labels = { a: { x: 0, y: 0, width: 30, height: 20 },
+    b: { x: 200, y: 40, width: 30, height: 20 }, c: { x: 400, y: 0, width: 30, height: 20 } };
+  const subtrees = Object.fromEntries(Object.entries(labels).map(([id, rect]) => [id, { ...rect, height: 250 }]));
+  const fallbackMeasurements = { labels: Object.values(labels), labelFor: id => labels[id],
+    subtreeFor: id => subtrees[id], bottom: 290 };
+  const options = { markerScale: 1, fallbackMeasurements };
+  const bound = bindRelationPlanFrame(p, 0, id => ({ x: labels[id].x + 15, y: labels[id].y + 10 }), options);
   const original = structuredClone(bound);
-  const segments = bound.primitives.filter(primitive => primitive.type === 'segment');
-  for (const fittedMarkerScale of [options.markerScale, 3]) {
-    const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale });
-    assert.deepEqual([...fitted.keys()], segments, 'each update retains its exact original primitive');
-    const fresh = bindRelationPlanFrame(mixed, 0, id => points[id], { ...options, markerScale: fittedMarkerScale });
-    assert.deepEqual([...fitted.values()], fresh.primitives.filter(primitive => primitive.type === 'segment'));
-    const marks = fresh.primitives.filter(primitive => primitive.type === 'fallback-mark');
-    for (const segment of fitted.values()) {
-      const centers = segment.witnessNodeIds.map(nodeId => marks.find(mark =>
-        mark.itemIndex === segment.itemIndex && mark.nodeId === nodeId));
-      if (segment.route === 'counter-lane') {
-        assert.deepEqual([segment.from.x, segment.to.x], centers.map(mark => mark.x).sort((a, b) => a - b));
-        assert.equal(segment.laneY, options.connectorBaselineY + segment.lane * options.laneGap);
-      } else {
-        assert.deepEqual(segment.from, { x: centers[0].x, y: centers[0].y });
-        assert.deepEqual(segment.to, { x: centers[1].x, y: centers[1].y });
-        const [x1, y1, x2, y2] = segment.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
-        assert.ok(Math.abs(Math.hypot(x1 - segment.from.x, y1 - segment.from.y) - 10 * fittedMarkerScale) < 0.1);
-        assert.ok(Math.abs(Math.hypot(x2 - segment.to.x, y2 - segment.to.y) - 10 * fittedMarkerScale) < 0.1);
-      }
+  const sameScale = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 1 });
+  for (const mark of bound.primitives.filter(p => p.type === 'fallback-mark')) {
+    assert.equal(sameScale.get(mark).x, mark.x);
+    assert.equal(sameScale.get(mark).y, mark.y);
+  }
+  for (const scale of [0.5, 1, 3]) {
+    const updates = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: scale });
+    const marks = [...updates.values()].filter(p => p.type === 'fallback-mark');
+    for (const mark of marks) {
+      assert.ok(!Object.values(labels).some(rect => mark.x + 9 * scale > rect.x && mark.x - 9 * scale < rect.x + rect.width
+        && mark.y + 9 * scale > rect.y && mark.y - 9 * scale < rect.y + rect.height));
+    }
+    const pair = [...updates.values()].find(p => p.type === 'segment' && p.route === 'counter-lane');
+    assert.deepEqual(pair.from, { x: 15, y: 250 });
+    assert.deepEqual(pair.to, { x: 215, y: 290 });
+    assert.equal(pair.laneY, 290 + 34 * scale);
+    for (const fan of [...updates.values()].filter(p => p.type === 'segment' && p.route === 'direct')) {
+      const exact = fan.witnessNodeIds.map(id => marks.find(m => m.nodeId === id && m.itemIndex === fan.itemIndex));
+      assert.deepEqual(fan.from, { x: exact[0].x, y: exact[0].y });
+      assert.deepEqual(fan.to, { x: exact[1].x, y: exact[1].y });
+      const [x, y] = fan.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+      assert.ok(Math.abs(Math.hypot(x - fan.from.x, y - fan.from.y) - 11 * scale) < 0.1);
     }
   }
-  assert.deepEqual(bound, original, 'Fit does not mutate the bound frame or its source geometry');
-});
-
-test('fitted stack offsets can reverse endpoints and require a different collision lane', () => {
-  const claimStage = stage([
-    { relation: 'Earlier context', anchors: { participant: 'a' } },
-    { relation: 'First open claim', anchors: { first: 'a', second: 'b' } },
-    { relation: 'Second open claim', anchors: { first: 'c', second: 'd' } }
-  ]);
-  claimStage.workspaceForest.push(node('d'));
-  const p = compileRelationRenderPlan([claimStage]);
-  const points = { a: { x: 0, y: 0 }, b: { x: 60, y: 0 }, c: { x: 80, y: 0 }, d: { x: 100, y: 0 } };
-  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 5, connectorBaselineY: 200 };
-  const bound = bindRelationPlanFrame(p, 0, id => points[id], options);
-  const original = structuredClone(bound);
-  const before = bound.primitives.filter(primitive => primitive.type === 'segment');
-  assert.deepEqual(before.map(segment => segment.lane), [0, 0]);
-  const fitted = [...fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 }).values()];
-  assert.deepEqual([before[0].from.x, before[0].to.x], [23, 60]);
-  assert.deepEqual([fitted[0].from.x, fitted[0].to.x], [60, 138]);
-  assert.deepEqual(fitted.map(segment => segment.lane), [0, 1]);
-  assert.deepEqual(fitted.map(segment => segment.laneY), [200, 205]);
-  assert.deepEqual(fitted[0].witnessNodeIds, ['a', 'b'], 'geometry never changes authored participant identity');
   assert.deepEqual(bound, original);
 });
 
-test('organizational rails remain below the deepest fitted connector lane', () => {
-  const ids = Array.from({ length: 4 }, (_, i) => [`a${i}`, `b${i}`]).flat();
-  const points = new Map(ids.map(id => [id, { x: Number(id[1]) * 300 + (id[0] === 'b' ? 250 : 0), y: 0 }]));
-  const relations = [];
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 10; j++) relations.push({ relation: `Context ${i} ${j}`,
-      anchors: { participant: `a${i}` }, values: { information: String(j) } });
-    relations.push({ relation: `Pair ${i}`, anchors: { first: `a${i}`, second: `b${i}` } });
-  }
+test('dense shared witnesses reserve distinct marks and organizational rails follow the fitted ownership', () => {
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const relations = Array.from({ length: 8 }, (_, i) => ({ relation: `Context ${i}`, anchors: { participant: 'a' } }));
   relations.push({ relation: 'Large set', anchors: { members: ids } });
   const p = compileRelationRenderPlan([{ ...stage(relations), workspaceForest: ids.map(node) }]);
-  const options = { markerScale: 0.5, badgeGap: 46, laneGap: 60, connectorBaselineY: 200, railBaseY: 240 };
-  const bound = bindRelationPlanFrame(p, 0, id => points.get(id), options);
-  const original = structuredClone(bound);
-  const rail = bound.primitives.find(primitive => primitive.type === 'anchor-set-rail');
-  assert.deepEqual(rail.anchors.map(anchor => anchor.nodeId), ids);
-  assert.ok(rail.anchors.every(anchor => bound.primitives.includes(anchor)), 'joins belong to the existing marks, not substitute positions');
-  assert.equal(anchorSetRailPaths(rail, options.markerScale).joins.split('M ').length - 1, ids.length);
-  assert.equal(rail.y, 290);
-  const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 });
-  assert.deepEqual([...fitted.values()].filter(primitive => primitive.type === 'segment').map(segment => segment.laneY),
-    [200, 260, 320, 380]);
-  assert.equal(fitted.get(rail).y, 470, 'the rail follows the last lane with the existing 90-unit clearance');
-  assert.equal(anchorSetRailPaths(fitted.get(rail), 3).joins.split(' V 470').length - 1, ids.length);
-  const fresh = bindRelationPlanFrame(p, 0, id => points.get(id), { ...options, markerScale: 3 });
-  assert.deepEqual([...fitted.values()], fresh.primitives.filter(primitive => primitive.type === 'segment')
-    .concat(fresh.primitives.filter(primitive => primitive.type === 'anchor-set-rail')));
-  assert.deepEqual(bound, original);
+  const bound = bindRelationPlanFrame(p, 0, id => ({ x: ids.indexOf(id) * 300, y: 0 }));
+  const updates = fitFallbackGeometry(bound, { fittedMarkerScale: 2 });
+  const atA = [...updates.values()].filter(p => p.type === 'fallback-mark' && p.nodeId === 'a');
+  assert.equal(new Set(atA.map(mark => `${mark.x}:${mark.y}`)).size, atA.length);
+  const rail = bound.primitives.find(p => p.type === 'anchor-set-rail');
+  const fittedRail = updates.get(rail);
+  assert.deepEqual(fittedRail.anchors.map(a => a.nodeId), ids);
+  for (const [i, mark] of rail.anchors.entries()) assert.deepEqual(fittedRail.anchors[i], updates.get(mark));
+  assert.equal(anchorSetRailPaths(fittedRail, 2).joins.split('M ').length - 1, ids.length);
 });
 
 test('specialized two-occurrence coindex remains atomic', () => {

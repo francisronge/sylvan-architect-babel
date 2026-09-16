@@ -62,8 +62,8 @@ test('saved Astra X-bar wh badges stay fixed when the next stage includes future
   assert.equal(whIndex(1), -1, 'stage-0 fallback marks do not persist into stage 1');
   // Hold node positions constant to isolate badge allocation, not D3 layout.
   const provider = (id) => positions[id] ?? { x: 0, y: 0 };
-  const reference = bindRelationPlanFrame(plan, 0, provider, { ...options, markerScale: 1 });
   for (const markerScale of [1, 3]) {
+    const reference = bindRelationPlanFrame(plan, 0, provider, { ...options, markerScale });
     const before = bindRelationPlanFrame(plan, 0, provider, { ...options, markerScale });
     const after = bindRelationPlanFrame(plan, 1, provider, { ...options, markerScale });
     assert.deepEqual(before.failed, []);
@@ -131,7 +131,7 @@ for (const markerScale of [1, 3]) {
     assert.deepEqual(entry.primitives.filter((p) => p.type !== 'segment').map((p) => p.itemIndex), [0, 1, 2, 2],
       'authored slot allocation must not change paint-layer order');
     const link = entry.primitives.find((p) => p.type === 'segment');
-    assert.deepEqual(link.to, { x: positions.objectNP.x, y: markFor(entry, 'fallback-mark', 2).y });
+    assert.deepEqual(link.to, { x: positions.objectNP.x, y: positions.objectNP.y + options.labelHeight / 2 });
   });
 }
 

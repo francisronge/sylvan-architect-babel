@@ -72,6 +72,13 @@ const collectReferences = (contents, extension) => {
 };
 
 const missing = [];
+const orchardBundles = await Promise.all([
+  'docs/design/visual-relations-current-lab.production-only-audit.r96.bundle.js',
+  'docs/research/relation-orchard/relation-orchard.bundle.js'
+].map(relativePath => readFile(path.join(repoRoot, relativePath))));
+if (!orchardBundles[0].equals(orchardBundles[1])) {
+  missing.push('Orchard bundles differ; rebuild both with npm run orchard:build');
+}
 for (const relativePath of requiredPaths) {
   try {
     await access(path.join(repoRoot, relativePath));

@@ -551,44 +551,16 @@ test('empty arrays are dropped exactly as the adapter drops them', () => {
   assert.deepEqual(witnesses(drawing), ['n1']);
 });
 
-test('the overlay prints no names, roles, or node IDs, and adds no arrowheads', async () => {
-  const sectionSource = await readSource('../docs/design/visual-relations-fallback-prototypes.tsx');
-  // Nothing may be written onto the canvas except the instance number and its
-  // authored array position.
-  const textContentAssignments = sectionSource.match(/\.textContent = ([^;]+);/g) || [];
-  assert.deepEqual(textContentAssignments.sort(), [
-    '.textContent = String(mark.instance);',
-    '.textContent = String(mark.position);'
-  ].sort());
-  assert.equal(sectionSource.includes('relation.relation'), false);
-  assert.equal(sectionSource.includes('marker-end'), false);
-  assert.equal(sectionSource.includes('<marker'), false);
-  // No separate legend panel, and no impersonation of accepted conventions.
-  assert.equal(sectionSource.includes('babel-fbproto-svg-panel'), false);
-  assert.equal(sectionSource.includes('babel-fbproto-panel'), false);
-  assert.equal(sectionSource.includes('babel-trajectory'), false);
-  assert.equal(sectionSource.includes('movement-arrow'), false);
-  // Babel's own card chrome and palette.
-  assert.match(sectionSource, /className="babel-render-card"/);
-  assert.match(sectionSource, /className="babel-render-grid babel-fbproto-lane"/);
-  assert.doesNotMatch(sectionSource, /rgba\(245, 158, 11|rgba\(253, 230, 138/);
-  assert.doesNotMatch(sectionSource, /babel-inactive-note|babel-render-code|authoredSnippet/);
-  assert.doesNotMatch(sectionSource, /<p[ >]/);
-  assert.match(sectionSource, /#34d399/);
-  assert.match(sectionSource, /rgba\(94, 234, 157/);
-  assert.match(sectionSource, /medianLabelHeight/);
-  assert.match(sectionSource, /Math\.min\(13, Math\.max\(9, medianLabelHeight \* 1\.15\)\)/);
-  assert.match(
-    sectionSource,
-    /babel-fbproto-connector-hit\.babel-fbproto-instance[\s\S]*?pointer-events: stroke[\s\S]*?28 \* k/u,
-    'prototype connector hover uses a forgiving invisible path without thickening the visible connector'
-  );
-});
-
-test('the timing rule is enforced in the renderer, not just in prose', async () => {
-  const sectionSource = await readSource('../docs/design/visual-relations-fallback-prototypes.tsx');
-  assert.match(sectionSource, /stageIndex < card\.relationStageIndex\) return;/);
-  assert.match(sectionSource, /advanceToPinnedFrame/);
+test('Orchard fallback cards use production drawing and timing, with no substitute SVG painter', async () => {
+  const source = await readSource('../docs/design/visual-relations-fallback-prototypes.tsx');
+  assert.match(source, /<TreeVisualizer/);
+  assert.doesNotMatch(source, /disableRelationOverlay|createElementNS|drawFallbackMarks|babel-fbproto-mark/);
+  const renderer = await readSource('../components/TreeVisualizer.tsx');
+  const start = renderer.indexOf("if (primitive.type === 'fallback-mark') {", renderer.indexOf('const appendMarker'));
+  const paint = renderer.slice(start, renderer.indexOf("if (primitive.type === 'anchor-set-badge')", start));
+  assert.match(paint, /String\(primitive.instance\)/);
+  assert.match(paint, /String\(primitive.numeral\)/);
+  assert.doesNotMatch(paint, /marker-end|\.text\(.*(?:relation|nodeId|role)/);
 });
 
 test('prototypes stay outside the accepted set and coverage matrix while remaining visible in the Orchard', async () => {

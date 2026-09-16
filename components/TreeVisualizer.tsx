@@ -82,6 +82,7 @@ import {
   bindRelationPlanFrame,
   boundOverlayBounds,
   fitFallbackGeometry,
+  fallbackMarkerScale,
   resolveUniqueDisplayTerminal,
   ghostLensPresentation,
   type BoundPrimitive,
@@ -1600,7 +1601,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // Complete frame-stable overlay bounds, fed into viewport fitting so no
     // generated geometry on any side of the tree is clipped.
     let overlayFitBounds: OverlayBounds | null = null;
-    let fitFallbackOverlays: ((scale: number) => void) | undefined;
+    let fitFallbackOverlays: ((fitZoom: number) => void) | undefined;
     const deferredAcceptedRelationDraws: Array<() => void> = [];
     const identityForestLightFamilies: Array<{
       occurrencePools: string[][];
@@ -1855,6 +1856,62 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         }
         return { x: anchor.x, y: anchor.y };
       };
+      const hasFallback = relationRenderPlan.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'fallback');
+      // Measure the complete stage, including unrevealed labels, in tree coordinates.
+      // These invisible measurement texts never enter the syntax or camera bounds.
+      const fallbackLabelRects = new Map<string, { x: number; y: number; width: number; height: number }>();
+      const fallbackMeasure = g.append('g').attr('visibility', 'hidden').attr('aria-hidden', 'true');
+      const fallbackTextMetrics = new Map<string, DOMRect>();
+      const categorySample = g.select<SVGTextElement>('.category-label').node();
+      const terminalSample = g.select<SVGTextElement>('.terminal-label').node();
+      if (hasFallback) new Set(frameLayoutById.values()).forEach(node => {
+        if (isSyntheticWorkspaceRootNode(node) || isUnderTriangulation(node)) return;
+        const category = Boolean(node.children?.length) || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data);
+        const label = category ? node.data.label : getReplayRenderedTerminalText(node as unknown as HierNode);
+        const metricKey = JSON.stringify([category, label]);
+        let rect = fallbackTextMetrics.get(metricKey);
+        if (!rect) {
+          const sample = category ? categorySample : terminalSample;
+          const text = sample?.cloneNode(false) as SVGTextElement | undefined
+            ?? document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.removeAttribute('class');
+          text.removeAttribute('id');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('y', category ? '-10' : '115');
+          text.setAttribute('font-size', category ? '42' : '56');
+          text.setAttribute('font-weight', '900');
+          text.style.fontFamily = 'Quicksand, sans-serif';
+          text.style.fontStyle = category ? 'normal' : 'italic';
+          text.textContent = label;
+          fallbackMeasure.node()?.appendChild(text);
+          rect = text.getBBox();
+          fallbackTextMetrics.set(metricKey, rect);
+          text.remove();
+        }
+        if (rect.width || rect.height) fallbackLabelRects.set(getNodeId(node as unknown as HierNode), {
+          x: node.x + rect.x, y: node.y + rect.y, width: rect.width, height: rect.height
+        });
+      });
+      fallbackMeasure.remove();
+      const fallbackRectFor = (nodeId: string, subtree = false) => {
+        const anchor = frameLayoutById.get(nodeId);
+        if (!anchor) return null;
+        const rects = (subtree ? anchor.descendants() : [anchor]).flatMap(node => {
+          const rect = fallbackLabelRects.get(getNodeId(node as unknown as HierNode));
+          return rect ? [rect] : [];
+        });
+        if (!rects.length) return null;
+        const x = Math.min(...rects.map(rect => rect.x));
+        const y = Math.min(...rects.map(rect => rect.y));
+        return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
+          height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
+      };
+      const fallbackMeasurements = {
+        labels: [...fallbackLabelRects.values()],
+        labelFor: (id: string) => fallbackRectFor(id),
+        subtreeFor: (id: string) => fallbackRectFor(id, true),
+        bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
+      };
       const frameItems = (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
         resolveDisplayedTrajectoryAttachments(item, (nodeId) => overlayNodeById.get(nodeId)?.data));
       const displayedRelationPlan = {
@@ -1898,6 +1955,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           markerScale,
           hasExistingGapNotation,
           plaqueTextLayout: { measureText: measurePlaqueText },
+          fallbackMeasurements,
           trajectoryCeilingY: measuredTreeTextTopY() - 90,
           trajectoryFloorY: frameMaxNodeY + 180,
           // Frame-stable measured baselines: connector lanes just below the
@@ -1907,19 +1965,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           railBaseY: frameMaxNodeY + 240
         }
       ));
-      const fallbackConnectorPaths = new Map<BoundSegment, d3.Selection<SVGPathElement, unknown, null, undefined>>();
+      const fallbackConnectorPaths = new Map<BoundSegment, d3.Selection<SVGGElement, unknown, null, undefined>>();
+      const fallbackMarkGroups = new Map<BoundPrimitive, d3.Selection<SVGGElement, unknown, null, undefined>>();
       const fallbackRailGroups = new Map<BoundAnchorSetRail, d3.Selection<SVGGElement, unknown, null, undefined>>();
-      fitFallbackOverlays = (fittedMarkerScale) => {
+      fitFallbackOverlays = (fitZoom) => {
+        const scale = fallbackMarkerScale(fitZoom, fallbackMeasurements.labels.map(rect => rect.height));
+        const anchorScale = Math.min(1 / fitZoom, 3);
         fitFallbackGeometry(boundFrame, {
-          markerScale, fittedMarkerScale, badgeGap, laneGap: 60,
-          connectorBaselineY: frameMaxNodeY + 130, railBaseY: frameMaxNodeY + 240
+          markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: 60, fallbackMeasurements,
+          railBaseY: frameMaxNodeY + 240
         }).forEach((fitted, original) => {
-          if (original.type === 'segment' && fitted.type === 'segment') {
-            fallbackConnectorPaths.get(original)
-              ?.attr('d', fitted.d)
-              .attr('data-vr-lane', fitted.lane === null ? 'direct' : String(fitted.lane));
+          if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {
+            fallbackMarkGroups.get(original)?.attr('transform', `translate(${fitted.x},${fitted.y}) scale(${scale})`);
+          } else if (original.type === 'segment' && fitted.type === 'segment') {
+            const group = fallbackConnectorPaths.get(original);
+            group?.selectAll('path').attr('d', fitted.d);
+            group?.select('.vr-fallback-segment').attr('stroke-width', (original.route === 'direct' ? 1.5 : 1.9) * scale);
+            group?.select('.vr-fallback-shadow').attr('stroke-width', (original.route === 'direct' ? 3.6 : 4.4) * scale);
           } else if (original.type === 'anchor-set-rail' && fitted.type === 'anchor-set-rail') {
-            const paths = anchorSetRailPaths(fitted, fittedMarkerScale);
+            const paths = anchorSetRailPaths(fitted, anchorScale, scale);
             const group = fallbackRailGroups.get(original);
             group?.select('.babel-anchor-set-rail').attr('d', paths.rail);
             group?.select('.babel-anchor-set-stub').attr('d', paths.joins);
@@ -6460,22 +6524,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return;
         }
         if (primitive.type === 'segment') {
-          // The binder emits COMPLETE connector geometry: the row-2
-          // counter-lane path (allocated lane, stems into the rendered mark
-          // centers) or the row-3 direct mark-to-mark spoke. Draw exactly
-          // that path — the routing decision is not this component's to
-          // discard. Quiet, undirected, arrowless.
-          const path = host.append('path')
+          const group = host.append('g').attr('class', 'vr-fallback-connector');
+          group.append('path').attr('class', 'vr-fallback-shadow').attr('d', primitive.d);
+          group.append('path')
             .attr('class', `vr-fallback-segment vr-fallback-segment-${primitive.route}`)
             .attr('data-vr-lane', primitive.lane === null ? 'direct' : String(primitive.lane))
-            .attr('d', primitive.d)
-            .attr('fill', 'none')
-            .attr('stroke', '#34d399')
-            .attr('stroke-opacity', 0.55)
-            .attr('stroke-width', 1.6)
-            .attr('stroke-linecap', 'round')
-            .attr('vector-effect', 'non-scaling-stroke');
-          fallbackConnectorPaths.set(primitive, path);
+            .attr('d', primitive.d);
+          fallbackConnectorPaths.set(primitive, group);
           return;
         }
         if (primitive.type === 'domain-ellipse') {
@@ -6589,54 +6644,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return;
         }
         if (primitive.type === 'fallback-mark') {
-          const marker = appendMarker(primitive.x, primitive.y, true, primitive.stackIndex);
-          if (primitive.frame === 'box') {
-            marker.append('rect')
-              .attr('class', 'vr-fallback-frame')
-              .attr('x', -9).attr('y', -9)
-              .attr('width', 18).attr('height', 18)
-              .attr('fill', 'rgba(2,24,15,0.92)')
-              .attr('stroke', '#34d399')
-              .attr('stroke-width', 1.2);
-          } else {
-            marker.append('circle')
-              .attr('class', 'vr-fallback-frame')
-              .attr('r', 10)
-              .attr('fill', 'rgba(2,24,15,0.92)')
-              .attr('stroke', '#34d399')
-              .attr('stroke-width', 1.2);
-          }
-          // Accepted numbering contract: the relation INSTANCE number is
-          // always centered inside every fallback frame; the authored array
-          // POSITION, when present, is a second smaller numeral outside it.
-          marker.append('text')
-            .attr('class', 'vr-fallback-instance')
-            .attr('text-anchor', 'middle')
-            .attr('y', 4)
-            .attr('font-size', '11px')
-            .attr('fill', '#a7f3d0')
-            .attr('font-family', "'IBM Plex Mono', monospace")
-            .text(String(primitive.instance));
-          if (primitive.numeral !== null) {
-            marker.append('text')
-              .attr('class', 'vr-fallback-position')
-              .attr('text-anchor', 'start')
-              .attr('x', 12)
-              .attr('y', 8)
-              .attr('font-size', '9px')
-              .attr('fill', '#6ee7b7')
-              .attr('font-family', "'IBM Plex Mono', monospace")
-              .text(String(primitive.numeral));
-          }
-          if (primitive.backward) {
-            marker.append('text')
-              .attr('class', 'vr-backward-cue')
-              .attr('x', -16)
-              .attr('y', 4)
-              .attr('font-size', '10px')
-              .attr('fill', '#6ee7b7')
-              .text('◂');
-          }
+          const marker = host.append('g').attr('class', 'vr-fallback-mark')
+            .attr('data-vr-witness', primitive.nodeId)
+            .attr('transform', `translate(${primitive.x},${primitive.y}) scale(${markerScale})`);
+          fallbackMarkGroups.set(primitive, marker);
+          if (primitive.backward) marker.append('path').attr('class', 'vr-backward-cue')
+            .attr('d', 'M -14 0 L -9.5 -4.6 L -9.5 4.6 Z');
+          if (primitive.frame === 'box') marker.append('rect')
+            .attr('class', 'vr-fallback-frame').attr('x', -9).attr('y', -9)
+            .attr('width', 18).attr('height', 18).attr('rx', 2.5);
+          else marker.append('circle').attr('class', 'vr-fallback-frame').attr('r', 9);
+          marker.append('text').attr('class', 'vr-fallback-instance')
+            .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+            .attr('font-size', 11).text(String(primitive.instance));
+          if (primitive.numeral !== null) marker.append('text').attr('class', 'vr-fallback-position')
+            .attr('text-anchor', 'start').attr('x', 10.5).attr('y', 6.75)
+            .attr('font-size', 9).text(String(primitive.numeral));
           return;
         }
         if (primitive.type === 'anchor-set-badge') {
@@ -7030,7 +7053,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * fittedMarkerScale;
         return `translate(${x},${this.dataset.vrY}) scale(${fittedMarkerScale})`;
       });
-      fitFallbackOverlays?.(fittedMarkerScale);
+      fitFallbackOverlays?.(fitted.k);
       const manual = manualCameraRef.current;
       if (manual?.data === data && manual.signature === derivationStagesSignature) {
         const transform = d3.zoomIdentity.translate(

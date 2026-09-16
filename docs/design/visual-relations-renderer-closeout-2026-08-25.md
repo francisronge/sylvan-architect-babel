@@ -2,7 +2,7 @@
 
 Date: 2026-08-25
 
-Status: verified and closed.
+Status: historical closeout, corrected by the September 16 fidelity audit below.
 
 ## Scope
 
@@ -23,6 +23,8 @@ Status: verified and closed.
 
 The production Orchard loads
 `visual-relations-current-lab.production-only-audit.r96.bundle.js`.
+`npm run orchard:build` builds it from the production renderer and copies the
+identical artifact to the research site's `relation-orchard.bundle.js`.
 
 Drawing paint is shared in
 [`relation-visuals.css`](../research/relation-orchard/relation-visuals.css). The app
@@ -31,6 +33,28 @@ Keep page layout and lens visibility outside that stylesheet. Hover uses the
 shared ink/halo class without replacing relation-moment opacity. See the
 [production restoration and verification](../implementation/contract-qualification/system-audit.md#repairs-and-verification)
 for the September integration corrections; the original review below is retained.
+
+## September 16 fidelity correction
+
+The previous complete-integration claim was wrong for Tier 3. Its Orchard cards
+disabled the production overlay and painted a separate implementation. Production
+put larger circles below labels and ran scalar stems through syntax. The card
+verification accepted the substitute painter. The 69-piece raster comparison
+also compares isolated specimens, so it is not production-tree parity evidence.
+
+Production now uses the accepted measured side placement, small rounded boxes and
+circles, centered numbers, backward triangles, trimmed fan spokes and links below
+the participating subtrees. Allocation reserves every mark before the stage's
+relation moments reveal them. The complete groups retain their automatic Fit size
+and enlarge with manual zoom. Hover and emphasis still use shared production ink.
+The duplicate Orchard painter is removed; its cards supply records only.
+
+The 55 specialized cards retain their geometry and styles through this change.
+One additional reproduced defect, Fission text outside its bundle, is repaired
+with the existing measured text wrapper. Literal values are preserved. All 61
+cards render; 283 saved Replay frames pass badge-to-label clearance and finite
+geometry checks. These checks do not establish universal layout correctness.
+The user-approved literal-role annotation redesign remains separate backlog work.
 
 ## Extreme text overflow
 
@@ -60,7 +84,8 @@ Generic gap labels, coindices and complete Tier-3 fallback badges retain their
 accepted size at automatic Fit, then share the tree's scale during manual zoom.
 Their size and stacked offsets use that same Fit reference when redrawn under a
 retained manual camera. Each circle or box, locator, array position and backward
-cue stays in one coordinate group. Owned connectors follow the fitted marks;
+cue stays in one coordinate group. Fan connectors follow the fitted marks;
+two-scalar connectors start below their participating subtrees, as in the Orchard;
 dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.
 
