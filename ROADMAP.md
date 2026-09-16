@@ -340,8 +340,18 @@ findings and Programs 0–8:
   endpoint-only connector deletion. The latest shared repairs pass 1,671 offline
   tests. All 76 Sol frames render without invalid geometry or browser errors;
   matched desktop captures and zoom checks cover the affected drawings and timing.
-- Keep Fable's unknown generation-side failure cause and automatic JSON repair /
-  public incomplete-processing policy open. Existing evidence establishes what
+- **Agreed public/research failure boundary:** Public Babel should normally
+  deliver a complete usable analysis. Structured-output recovery is acceptable
+  in principle, but must not change the model's linguistic analysis. If no
+  trustworthy result can be processed, show a brief, clear failure diagnostic;
+  unfinished stages are not the normal public result. Research and benchmarks
+  preserve the original output and processing failures, with usable partial
+  stages available for inspection. Recovery must not turn a failed original
+  into a successful benchmark record. The exact permitted JSON transformations
+  and automatic-use rules remain undecided; this agreement does not change the
+  current decoder or authorize a new repair helper, retries or provider calls.
+- Keep Fable's unknown generation-side failure cause and the permitted automatic
+  JSON repair transformations open. Existing evidence establishes what
   arrived, not why it was generated. Do not repeat unchanged offline probes as
   though they can supply missing provider evidence or establish prevention. The
   successful Grok and Sol requests needed no JSON repair; they reduce concern
@@ -1126,8 +1136,9 @@ The current work order above owns these decisions:
 - Fresh model qualification of the optional `realizations` field for retained
   final morphology. Integrated offline behavior is verified; model authoring,
   cost and latency under the revised prompt remain unmeasured.
-- Automatic JSON repair and public handling of incomplete processing, token
-  mismatches or extra final roots, following investigation of Fable's failure.
+- Exact structured-output repair transformations and recovery rules, plus
+  presentation of token mismatches or extra final roots. The public/research
+  failure boundary is agreed above; Fable's generation-side cause remains unknown.
 - Purpose and spending caps for further provider checks, and deployed request
   limits. Mobile and extreme Fit readability remain bounded qualification work.
 
@@ -1590,7 +1601,8 @@ review authority, and correction path.
   proprietary or open-weight model is operated. Arbitrary model identifiers are
   excluded from the launch boundary unless Francis later approves them.
 - The official hosted `/research` access method and credential policy.
-- Public failure and retry behavior. Babel must never silently switch providers.
+- Detailed public failure presentation and retry behavior within the agreed
+  public/research boundary. Babel must never silently switch providers.
 - Whether contract-review artifacts live primarily inside `/research`, as
   generated click-through files, or both.
 - Whether labeled bracketing and Miles Shang output remain supported exports.
