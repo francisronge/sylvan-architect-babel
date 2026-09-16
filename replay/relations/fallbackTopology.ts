@@ -15,8 +15,9 @@
  * Rows 2 and 3 are the only rows that license a connector, because they are
  * the only shapes in which the authored data says which endpoints belong
  * together. Connectors are undirected and carry zero arrowheads. `values`
- * affect no fallback geometry. The canvas never prints relation names,
- * anchor-role names, backend node IDs, or values.
+ * affect no fallback geometry. The canvas prints authored role names and array
+ * positions; relation names, backend node IDs and values remain in the record
+ * and Replay panel.
  */
 
 export type FallbackAnchorBlock = Record<string, string | string[]> | undefined;
@@ -34,6 +35,7 @@ export interface FallbackInstanceMark {
   /** Authoring order of the relation instance in its stage, 1-based. */
   instance: number;
   witness: string;
+  role: string;
   /** Authored array position, 1-based, or null for a scalar role. */
   position: number | null;
   /** 0 for the first authored role group, 1 for the second, and so on. */
@@ -72,14 +74,15 @@ export interface FallbackDrawing {
 }
 
 interface RoleGroup {
+  role: string;
   witnesses: string[];
   isArray: boolean;
 }
 
 /** Authored role order preserved; blank entries dropped. */
 const roleGroups = (block: FallbackAnchorBlock): RoleGroup[] =>
-  Object.values(block || {})
-    .map((value) => ({
+  Object.entries(block || {})
+    .map(([role, value]) => ({ role,
       isArray: Array.isArray(value),
       witnesses: (Array.isArray(value) ? value : [value])
         .map((entry) => String(entry || ''))
@@ -116,6 +119,7 @@ export const fallbackDrawing = (
     return group.witnesses.map((witness, position) => ({
       instance,
       witness,
+      role: group.role,
       position: group.isArray ? position + 1 : null,
       group: groupIndex,
       frame,

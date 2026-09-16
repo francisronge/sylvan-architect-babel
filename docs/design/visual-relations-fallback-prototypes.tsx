@@ -9,8 +9,8 @@
  * inside the current Lab, using Babel's own card chrome, palette, typography,
  * and Replay presentation. Everything on the tree is a renderer overlay:
  * `workspaceForest` is never touched, no ghost node is added, and no relation
- * name, role name, or node ID is printed on the canvas — Replay already
- * carries the words.
+ * name or node ID is printed on the canvas. Current witnesses carry their
+ * authored role labels; Replay retains every authored value and prior witness.
  *
  * The production renderer owns placement, paint, zoom and stage-scoped timing.
  * These cards supply authored records only; no alternate canvas painter is used.

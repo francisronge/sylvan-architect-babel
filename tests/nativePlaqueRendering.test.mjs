@@ -12,7 +12,7 @@ import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceR
 import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { appendPlaqueContent } from '../components/plaqueViewport.ts';
 import { caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
-import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame, FALLBACK_ROLE_STYLE } from '../replay/relations/geometryBinding.ts';
 import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
 
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
@@ -585,21 +585,22 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
     'stacked labels must retain their spacing after redraw at a different camera scale');
 });
 
-test('fallback frame, number, position and backward cue share one tree coordinate group', () => {
+test('fallback role and authored array position share one tree coordinate group', () => {
   const branch = findNode(node => ts.isIfStatement(node)
     && node.expression.getText(parsed) === "primitive.type === 'fallback-mark'");
   for (const frame of ['circle', 'box']) {
     const root = new Element('g');
     const primitive = { type: 'fallback-mark', nodeId: 'owned', x: 100, y: 200,
-      stackIndex: 1, frame, instance: 2, numeral: 3, backward: true };
+      stackIndex: 1, frame, instance: 2, numeral: 3, backward: true, role: 'members', text: 'members[3]' };
     const groups = new Map();
-    new Function('primitive', 'host', 'markerScale', 'fallbackMarkGroups', ts.transpile(branch.getText(parsed),
-      { target: ts.ScriptTarget.ES2023 }))(primitive, select(root), 2, groups);
+    new Function('primitive', 'host', 'markerScale', 'fallbackMarkGroups', 'FALLBACK_ROLE_STYLE', ts.transpile(branch.getText(parsed),
+      { target: ts.ScriptTarget.ES2023 }))(primitive, select(root), 2, groups, FALLBACK_ROLE_STYLE);
     const marker = root.children[0];
     assert.equal(marker.attrs.class, 'vr-fallback-mark');
     assert.equal(marker.attrs.transform, 'translate(100,200) scale(2)');
     assert.deepEqual(marker.children.map(child => [child.tag, child.text]),
-      [['path', ''], [frame === 'circle' ? 'circle' : 'rect', ''], ['text', '2'], ['text', '3']]);
+      [['text', 'members[3]']]);
+    assert.equal(marker.attrs['data-authored-role'], 'members');
     assert.ok(marker.children.every(child => child.attrs.transform === undefined));
     assert.ok(groups.has(primitive), 'Fit targets this exact owned group');
   }
@@ -636,7 +637,7 @@ test('a genuinely different authored gap annotation stays available; no automati
 const laterFallback = () => ({
   ...badgeOwner(1), kind: 'fallback', drawing: {
     row: 1, instance: 1,
-    marks: [{ witness: 'lower', frame: 'circle', position: null, instance: 1, backward: false }]
+    marks: [{ witness: 'lower', role: 'participant', frame: 'circle', position: null, instance: 1, backward: false }]
   }
 });
 

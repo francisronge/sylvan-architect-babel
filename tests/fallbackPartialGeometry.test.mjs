@@ -81,7 +81,8 @@ test('Orchard marks clear measured labels; scalar links start below subtrees, fa
       assert.deepEqual(fan.from, { x: exact[0].x, y: exact[0].y });
       assert.deepEqual(fan.to, { x: exact[1].x, y: exact[1].y });
       const [x, y] = fan.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
-      assert.ok(Math.abs(Math.hypot(x - fan.from.x, y - fan.from.y) - 11 * scale) < 0.1);
+      assert.ok(Math.abs(x - fan.from.x) >= (exact[0].textWidth / 2 + 4) * scale - 0.1
+        || Math.abs(y - fan.from.y) >= 12 * scale - 0.1, 'the line starts outside its role text');
     }
   }
   assert.deepEqual(bound, original);
@@ -160,4 +161,34 @@ test('the production reveal filter keeps neutral badges independent of hidden pe
   assert.equal(reveal({ type: 'index-badge', itemIndex: 1, nodeId: 'a' }), false, 'specialized coindex stays atomic');
   visible.add('b');
   assert.equal(reveal({ type: 'segment', itemIndex: 0, witnessNodeIds: ['a', 'b'] }), true);
+});
+
+test('fan labels keep authored roles and repeated witnesses have exact connector ownership', () => {
+  const relation = { relation: 'Open fan', anchors: { exactHub: 'a', exactItems: ['b', 'b', 'a'] } };
+  const stages = [stage([relation])];
+  const plan = compileRelationRenderPlan(stages);
+  const bound = bindRelationPlanFrame(plan, 0, id => ({ x: id === 'a' ? 0 : 400, y: 0 }));
+  const marks = bound.primitives.filter(p => p.type === 'fallback-mark');
+  assert.deepEqual(marks.map(m => [m.role, m.text]), [
+    ['exactHub', 'exact Hub'], ['exactItems', 'exact Items[1]'], ['exactItems', 'exact Items[2]'], ['exactItems', 'exact Items[3]']
+  ]);
+  const fitted = fitFallbackGeometry(bound, { fittedMarkerScale: 2 });
+  const fan = [...fitted.values()].filter(p => p.type === 'segment');
+  assert.equal(new Set(fan.map(p => p.toMark)).size, 3);
+  fan.forEach((line, i) => {
+    const target = fitted.get(marks[i + 1]);
+    assert.deepEqual(line.to, { x: target.x, y: target.y });
+  });
+  assert.deepEqual(stages[0].relations, [relation]);
+});
+
+test('straight connectors leave gaps around all crossed labels, including non-endpoints', async () => {
+  const { clearLabelPath } = await import('../replay/relations/geometryBinding.ts');
+  const box = { x: 40, y: 40, width: 20, height: 20 };
+  assert.equal(clearLabelPath({ x: 0, y: 0 }, { x: 100, y: 100 }, [box]),
+    'M 0.0 0.0 L 40.0 40.0 M 60.0 60.0 L 100.0 100.0');
+  assert.equal(clearLabelPath({ x: 50, y: 0 }, { x: 50, y: 100 }, [box]),
+    'M 50.0 0.0 L 50.0 40.0 M 50.0 60.0 L 50.0 100.0');
+  assert.equal(clearLabelPath({ x: 0, y: 10 }, { x: 100, y: 10 }, [box]),
+    'M 0.0 10.0 L 100.0 10.0');
 });

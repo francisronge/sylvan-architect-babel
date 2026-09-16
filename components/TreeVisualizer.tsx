@@ -82,6 +82,7 @@ import {
   bindRelationPlanFrame,
   boundOverlayBounds,
   fitFallbackGeometry,
+  FALLBACK_ROLE_STYLE,
   fallbackMarkerScale,
   resolveUniqueDisplayTerminal,
   ghostLensPresentation,
@@ -6648,18 +6649,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('data-vr-witness', primitive.nodeId)
             .attr('transform', `translate(${primitive.x},${primitive.y}) scale(${markerScale})`);
           fallbackMarkGroups.set(primitive, marker);
-          if (primitive.backward) marker.append('path').attr('class', 'vr-backward-cue')
-            .attr('d', 'M -14 0 L -9.5 -4.6 L -9.5 4.6 Z');
-          if (primitive.frame === 'box') marker.append('rect')
-            .attr('class', 'vr-fallback-frame').attr('x', -9).attr('y', -9)
-            .attr('width', 18).attr('height', 18).attr('rx', 2.5);
-          else marker.append('circle').attr('class', 'vr-fallback-frame').attr('r', 9);
-          marker.append('text').attr('class', 'vr-fallback-instance')
+          marker.attr('data-authored-role', primitive.role);
+          marker.append('text').attr('class', 'vr-fallback-role')
             .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
-            .attr('font-size', 11).text(String(primitive.instance));
-          if (primitive.numeral !== null) marker.append('text').attr('class', 'vr-fallback-position')
-            .attr('text-anchor', 'start').attr('x', 10.5).attr('y', 6.75)
-            .attr('font-size', 9).text(String(primitive.numeral));
+            .attr('font-size', FALLBACK_ROLE_STYLE.fontSize).text(primitive.text);
           return;
         }
         if (primitive.type === 'anchor-set-badge') {

@@ -5,13 +5,14 @@
  * The renderer (TreeVisualizer) owns layout and supplies `positionFor`; this
  * module never reads a DOM and never guesses a position. A plan item whose
  * node has no measured position fails closed into `failed` with a reason —
- * nothing is drawn at an invented location. The fallback canvas prints no
- * relation names, no role names, no node ids, and no values: its marks are
- * numerals and neutral frames only.
+ * nothing is drawn at an invented location. Fallback labels reproduce authored
+ * roles and array positions; they do not
+ * interpret a relation or introduce a linguistic claim.
  */
 import type { Point, Rect } from './overlayGeometry.ts';
-import { preparePlaqueTextLayout } from './plaqueTextLayout.ts';
-import type { PlaqueTextLayout, PlaqueTextLayoutOptions } from './plaqueTextLayout.ts';
+import { spaceAuthoredName } from '../displayText.ts';
+import { preparePlaqueTextLayout, fallbackPlaqueTextMeasure } from './plaqueTextLayout.ts';
+import type { PlaqueTextLayout, PlaqueTextLayoutOptions, PlaqueTextStyle } from './plaqueTextLayout.ts';
 import {
   allocateSpanLanes,
   placeRectBelowCollisions,
@@ -135,6 +136,9 @@ export type BoundGhostSet = {
 
 export type BoundFallbackMark = {
   type: 'fallback-mark';
+  role: string;
+  text: string;
+  textWidth: number;
   /** Measured witness label; immutable across a stage's reveal steps. */
   labelRect: Rect;
   allocationOrder: number;
@@ -176,6 +180,9 @@ export type BoundSegment = {
   laneY?: number;
   directed: false;
   itemIndex: number;
+  /** Exact owned marks, including repeated occurrences under different roles. */
+  fromMark?: number;
+  toMark?: number;
 };
 
 export type BoundAnchorSetBadge = {
@@ -204,8 +211,8 @@ export type BoundAnchorSetRail = {
 export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number, fallbackScale = markerScale) => ({
   rail: `M ${rail.x1} ${rail.y} H ${rail.x2}`,
   joins: rail.anchors.map(anchor => {
-    const radius = anchor.type === 'fallback-mark' ? 9 : anchor.badgeSize === 'compact' ? 7 : 9;
-    return `M ${anchor.x} ${anchor.y + radius * (anchor.type === 'fallback-mark' ? fallbackScale : markerScale)} V ${rail.y}`;
+    const clearance = anchor.type === 'fallback-mark' ? 12 : anchor.badgeSize === 'compact' ? 7 : 9;
+    return `M ${anchor.x} ${anchor.y + clearance * (anchor.type === 'fallback-mark' ? fallbackScale : markerScale)} V ${rail.y}`;
   }).join(' ')
 });
 
@@ -458,7 +465,43 @@ export type BoundFrame = {
 };
 
 type UnroutedFallbackSegment = Omit<BoundSegment, 'd' | 'lane' | 'laneY'>;
-type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY'>;
+type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY'>
+  & { labelClearances?: Rect[] };
+
+export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
+  fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 18, fontWeight: 600, letterSpacing: 0
+};
+
+const fallbackLabelRect = (mark: Pick<BoundFallbackMark, 'x' | 'y' | 'textWidth'>, scale: number): Rect => ({
+  x: mark.x - (mark.textWidth / 2 + 4) * scale, y: mark.y - 12 * scale,
+  width: (mark.textWidth + 8) * scale, height: 24 * scale
+});
+
+// Keep straight connectors intact outside the measured label rectangles.
+export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = []): string {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  let visible: Array<[number, number]> = [[0, 1]];
+  for (const box of boxes) {
+    let enter = 0, leave = 1;
+    for (const [origin, delta, min, max] of [
+      [from.x, dx, box.x, box.x + box.width],
+      [from.y, dy, box.y, box.y + box.height]
+    ]) {
+      if (Math.abs(delta) < 1e-9) {
+        if (origin < min || origin > max) { enter = 1; leave = 0; break; }
+      } else {
+        const a = (min - origin) / delta, b = (max - origin) / delta;
+        enter = Math.max(enter, Math.min(a, b));
+        leave = Math.min(leave, Math.max(a, b));
+      }
+    }
+    if (enter >= leave) continue;
+    visible = visible.flatMap<[number, number]>(([a, b]) => leave <= a || enter >= b ? [[a, b]]
+      : [...(a < enter ? [[a, enter] as [number, number]] : []), ...(leave < b ? [[leave, b] as [number, number]] : [])]);
+  }
+  const point = (t: number) => `${(from.x + dx * t).toFixed(1)} ${(from.y + dy * t).toFixed(1)}`;
+  return visible.map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
+}
 
 const routeFallbackSegments = (
   segments: UnroutedFallbackSegment[],
@@ -478,13 +521,8 @@ const routeFallbackSegments = (
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
-      const trim = 11 * markerScale;
-      const length = Math.hypot(segment.to.x - segment.from.x, segment.to.y - segment.from.y) || 1;
-      const unit = { x: (segment.to.x - segment.from.x) / length, y: (segment.to.y - segment.from.y) / length };
-      const start = { x: segment.from.x + unit.x * trim, y: segment.from.y + unit.y * trim };
-      const end = { x: segment.to.x - unit.x * trim, y: segment.to.y - unit.y * trim };
       return { ...segment, lane: null,
-        d: `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}` };
+        d: clearLabelPath(segment.from, segment.to, options.labelClearances) };
     }
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
@@ -528,15 +566,13 @@ export type FallbackMeasurements = {
 };
 
 /** Accepted Orchard side placement, reserving all marks before any relation is revealed. */
-const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'backward' | 'numeral'>,
+const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth'>,
   scale: number, occupied: Rect[]): Point => {
   const rect = mark.labelRect;
-  const radius = 9 * scale;
-  const gap = (15 + (mark.backward ? 7 : 0)) * scale;
-  const leftExtent = radius + (mark.backward ? 7 * scale : 0);
-  const rightExtent = radius + (mark.numeral !== null ? 7 * scale : 0);
-  const boxFor = (point: Point): Rect => ({ x: point.x - leftExtent, y: point.y - radius,
-    width: leftExtent + rightExtent, height: radius * 2 });
+  const leftExtent = (mark.textWidth / 2 + 4) * scale;
+  const rightExtent = leftExtent;
+  const gap = (mark.textWidth / 2 + 7) * scale;
+  const boxFor = (point: Point): Rect => fallbackLabelRect({ ...mark, ...point }, scale);
   const candidates = [
     { x: rect.x + rect.width + gap, y: rect.y + rect.height / 2 },
     { x: rect.x - gap, y: rect.y + rect.height / 2 },
@@ -570,22 +606,27 @@ export const fitFallbackGeometry = (
   const anchorScale = options.fittedAnchorScale ?? scale;
   const occupied = [...(options.fallbackMeasurements?.labels ?? [])];
   const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
-  const centers = new Map<number, Map<string, Point>>();
+  const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
     .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
     const point = placeFallbackMark(mark, scale, occupied);
     updates.set(mark, { ...mark, ...point });
-    const owned = centers.get(mark.itemIndex) ?? new Map<string, Point>();
-    owned.set(mark.nodeId, point);
-    centers.set(mark.itemIndex, owned);
+    centers.set(mark.allocationOrder, point);
   });
   const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
   const fitted = routeFallbackSegments(segments.map(segment => ({ ...segment,
     ...(segment.route === 'direct' ? {
-      from: centers.get(segment.itemIndex)?.get(segment.witnessNodeIds[0]) ?? segment.from,
-      to: centers.get(segment.itemIndex)?.get(segment.witnessNodeIds[1]) ?? segment.to
+      from: centers.get(segment.fromMark!) ?? segment.from,
+      to: centers.get(segment.toMark!) ?? segment.to
     } : {})
   })), { ...options, markerScale: scale,
+    labelClearances: [
+      ...(options.fallbackMeasurements?.labels ?? []).map(rect => ({
+        x: rect.x - 3 * scale, y: rect.y - 3 * scale,
+        width: rect.width + 6 * scale, height: rect.height + 6 * scale })),
+      ...[...updates.values()].filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
+        .map(mark => fallbackLabelRect(mark, scale))
+    ],
     connectorBaselineY: options.fallbackMeasurements
       ? options.fallbackMeasurements.bottom + 34 * scale : options.connectorBaselineY });
   segments.forEach((segment, index) => updates.set(segment, fitted[index]));
@@ -2135,26 +2176,23 @@ export const bindRelationPlanFrame = (
 
     if (item.kind === 'fallback') {
       const markCenters = new Map<string, Point>();
+      const ownedMarks: BoundFallbackMark[] = [];
       item.drawing.marks.forEach((mark) => {
         const point = requirePoint(itemIndex, mark.witness);
         if (!point) return;
         const labelRect = options.fallbackMeasurements?.labelFor(mark.witness) ?? rectFor(mark.witness)!;
-        const shape = { labelRect, backward: mark.backward, numeral: mark.position };
+        const text = spaceAuthoredName(mark.role) + (mark.position === null ? '' : `[${mark.position}]`);
+        const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
+        const textWidth = measure(text, FALLBACK_ROLE_STYLE).width;
+        const shape = { labelRect, backward: mark.backward, numeral: mark.position, role: mark.role, text, textWidth };
         const center = placeFallbackMark(shape, markerScale, fallbackOccupied);
         markCenters.set(mark.witness, center);
-        primitives.push({ type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,
-          frame: mark.frame, instance: mark.instance, allocationOrder: fallbackAllocationOrder++, stackIndex: nextStackIndex(mark.witness), itemIndex });
+        const bound: BoundFallbackMark = { type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,
+          frame: mark.frame, instance: mark.instance, allocationOrder: fallbackAllocationOrder++, stackIndex: nextStackIndex(mark.witness), itemIndex };
+        ownedMarks.push(bound);
+        primitives.push(bound);
       });
       // Fans join their own marks. Two-witness links start below their subtrees.
-      const markCenterOf = (witnessId: string): Point | null => {
-        const center = markCenters.get(witnessId);
-        if (center) return center;
-        // A witness that was among the drawing's marks already recorded its
-        // missing position in the mark loop; re-requiring it here would
-        // duplicate the diagnostic.
-        if (item.drawing.marks.some((mark) => mark.witness === witnessId)) return null;
-        return requirePoint(itemIndex, witnessId);
-      };
       if (item.drawing.link) {
         const subtreeBottom = (id: string): Point | null => {
           if (!markCenters.has(id)) return null;
@@ -2178,22 +2216,15 @@ export const bindRelationPlanFrame = (
         }
       }
       if (item.drawing.fan) {
-        const hub = markCenterOf(item.drawing.fan.hub);
-        item.drawing.fan.spokes.forEach((spoke) => {
-          const target = markCenterOf(spoke);
-          if (!hub || !target) return;
-          // Direct thin spoke between the visible marks, trimmed clear of
-          // both mark glyphs — never rerouted through a counter lane.
+        const hub = ownedMarks.find(mark => mark.numeral === null);
+        for (const target of ownedMarks.filter(mark => mark.numeral !== null)) {
+          if (!hub) continue;
           primitives.push(...routeFallbackSegments([{
-            type: 'segment',
-            route: 'direct',
-            witnessNodeIds: [item.drawing.fan!.hub, spoke],
-            from: hub,
-            to: target,
-            directed: false,
-            itemIndex
-          }], { markerScale }));
-        });
+            type: 'segment', route: 'direct', witnessNodeIds: [hub.nodeId, target.nodeId],
+            from: { x: hub.x, y: hub.y }, to: { x: target.x, y: target.y },
+            fromMark: hub.allocationOrder, toMark: target.allocationOrder, directed: false, itemIndex
+          }], { markerScale, labelClearances: ownedMarks.map(mark => fallbackLabelRect(mark, markerScale)) }));
+        }
       }
       return;
     }

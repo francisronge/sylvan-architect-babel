@@ -123,6 +123,7 @@ test('P1A — one current witness draws the mark and nothing else', () => {
   assert.deepEqual(drawing.marks, [{
     instance: 1,
     witness: 'dp_expl_it',
+    role: 'expletive',
     position: null,
     group: 0,
     frame: 'circle',
@@ -558,9 +559,9 @@ test('Orchard fallback cards use production drawing and timing, with no substitu
   const renderer = await readSource('../components/TreeVisualizer.tsx');
   const start = renderer.indexOf("if (primitive.type === 'fallback-mark') {", renderer.indexOf('const appendMarker'));
   const paint = renderer.slice(start, renderer.indexOf("if (primitive.type === 'anchor-set-badge')", start));
-  assert.match(paint, /String\(primitive.instance\)/);
-  assert.match(paint, /String\(primitive.numeral\)/);
-  assert.doesNotMatch(paint, /marker-end|\.text\(.*(?:relation|nodeId|role)/);
+  assert.match(paint, /\.text\(primitive.text\)/);
+  assert.match(paint, /data-authored-role/);
+  assert.doesNotMatch(paint, /marker-end|vr-backward-cue|vr-fallback-frame/);
 });
 
 test('prototypes stay outside the accepted set and coverage matrix while remaining visible in the Orchard', async () => {

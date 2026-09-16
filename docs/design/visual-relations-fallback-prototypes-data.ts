@@ -10,7 +10,7 @@
  * Corrected unknown-relation fallback: authored fixtures plus the pure,
  * topology-only dispatcher for the prototype drawings P1A–P1F.
  *
- * The dispatcher never reads the relation name, the role names, the node IDs,
+ * Topology dispatch never interprets the relation name, the role names, the node IDs,
  * or any gloss. It reads only structural facts of the authored instance —
  * how many scalar roles have a witness, how many array roles there are and how
  * long each is, the authored order inside each array, and whether the instance
@@ -306,156 +306,9 @@ export const SPURIOUS_SE_RELATION: LabRelation = {
  * Topology-only dispatch
  * ------------------------------------------------------------------ */
 
-export type FallbackFrameShape = 'circle' | 'box';
-
-export interface FallbackInstanceMark {
-  /** Authoring order of the relation instance in its stage, 1-based. */
-  instance: number;
-  witness: string;
-  /** Authored array position, 1-based, or null for a scalar role. */
-  position: number | null;
-  /** 0 for the first authored role group, 1 for the second, and so on. */
-  group: number;
-  /** Only the first two role groups take a distinguishing frame shape. */
-  frame: FallbackFrameShape;
-  /** True when the instance also authors previous-stage witnesses. */
-  backward: boolean;
-}
-
-export interface FallbackFanMark {
-  hub: string;
-  spokes: string[];
-  directed: false;
-  arrowheads: 0;
-}
-
-export interface FallbackLinkMark {
-  endpoints: [string, string];
-  directed: false;
-  arrowheads: 0;
-}
-
-/** Which structural row of the corrected dispatch table an instance took. */
-export type FallbackTopologyRow = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
-export interface FallbackDrawing {
-  instance: number;
-  row: FallbackTopologyRow;
-  marks: FallbackInstanceMark[];
-  fan: FallbackFanMark | null;
-  link: FallbackLinkMark | null;
-  /** Previous-stage witnesses; revealed by interaction, never drawn by default. */
-  priorWitnesses: string[];
-  backward: boolean;
-}
-
-type AnchorBlock = Record<string, string | string[]> | undefined;
-
-interface RoleGroup {
-  witnesses: string[];
-  isArray: boolean;
-}
-
-/** Authored role order preserved; blank entries dropped exactly as the adapter drops them. */
-const roleGroups = (block: AnchorBlock): RoleGroup[] =>
-  Object.values(block || {})
-    .map((value) => ({
-      isArray: Array.isArray(value),
-      witnesses: (Array.isArray(value) ? value : [value])
-        .map((entry) => String(entry || '').trim())
-        .filter(Boolean)
-    }))
-    .filter((group) => group.witnesses.length > 0);
-
-/**
- * The corrected dispatch table, structural facts only.
- *
- * Row 0 prior-only · row 1 single witness · row 2 two scalars · row 3 one
- * scalar plus one array · row 4 one array · row 5 two equal arrays · row 6
- * closure. Rows 2 and 3 are the only rows that license a connector, because
- * they are the only shapes in which the authored data says which endpoints
- * belong together.
- */
-export const fallbackDrawing = (
-  relation: LabRelation,
-  instance = 1
-): FallbackDrawing => {
-  const current = roleGroups(relation.anchors);
-  const prior = roleGroups(relation.priorAnchors);
-  const priorWitnesses = prior.flatMap((group) => group.witnesses);
-  const backward = priorWitnesses.length > 0;
-
-  const scalars = current.filter((group) => !group.isArray);
-  const arrays = current.filter((group) => group.isArray);
-  const witnessCount = current.reduce((total, group) => total + group.witnesses.length, 0);
-
-  /*
-   * The frame shape distinguishes role groups only where the authored data
-   * needs it: with two or more arrays, position numerals repeat across groups,
-   * so the second array takes the box frame. Scalars, and a lone array, always
-   * take the circle — inventing a shape contrast there would imply a grouping
-   * distinction the drawing does not otherwise make.
-   */
-  const groupFramesNeeded = arrays.length >= 2;
-  let arrayOrdinal = -1;
-  const marks: FallbackInstanceMark[] = current.flatMap((group, groupIndex) => {
-    if (group.isArray) arrayOrdinal += 1;
-    const frame: FallbackFrameShape =
-      groupFramesNeeded && group.isArray && arrayOrdinal === 1 ? 'box' : 'circle';
-    return group.witnesses.map((witness, position) => ({
-      instance,
-      witness,
-      position: group.isArray ? position + 1 : null,
-      group: groupIndex,
-      frame,
-      backward
-    }));
-  });
-
-  const base = { instance, marks, fan: null, link: null, priorWitnesses, backward } as const;
-
-  if (witnessCount === 0) return { ...base, row: 0 };
-  if (witnessCount === 1) return { ...base, row: 1 };
-
-  if (scalars.length === 2 && arrays.length === 0) {
-    return {
-      ...base,
-      row: 2,
-      link: {
-        endpoints: [scalars[0].witnesses[0], scalars[1].witnesses[0]],
-        directed: false,
-        arrowheads: 0
-      }
-    };
-  }
-
-  if (scalars.length === 1 && arrays.length === 1) {
-    return {
-      ...base,
-      row: 3,
-      fan: {
-        hub: scalars[0].witnesses[0],
-        spokes: [...arrays[0].witnesses],
-        directed: false,
-        arrowheads: 0
-      }
-    };
-  }
-
-  if (scalars.length === 0 && arrays.length === 1) return { ...base, row: 4 };
-
-  if (
-    scalars.length === 0
-    && arrays.length === 2
-    && arrays[0].witnesses.length === arrays[1].witnesses.length
-  ) {
-    return { ...base, row: 5 };
-  }
-
-  // Closure: nothing in the authored data pairs these endpoints, so the
-  // drawing marks participation and stops. No connector is invented.
-  return { ...base, row: 6 };
-};
+export { fallbackDrawing } from '../../replay/relations/fallbackTopology.ts';
+export type { FallbackFrameShape, FallbackInstanceMark, FallbackFanMark, FallbackLinkMark,
+  FallbackTopologyRow, FallbackDrawing } from '../../replay/relations/fallbackTopology.ts';
 
 /* ------------------------------------------------------------------ *
  * Prototype cards
@@ -482,7 +335,7 @@ export const FALLBACK_PROTOTYPE_CARDS: FallbackPrototypeCard[] = [
   {
     id: 'p1a',
     title: 'P1A · ONE CURRENT WITNESS',
-    status: `One authored witness, so the drawing is the instance mark and nothing else. Weather predicates take a non-thematic subject. ${PROTOTYPE_STATUS}`,
+    status: `One authored witness, so the drawing is its authored role label and nothing else. Weather predicates take a non-thematic subject. ${PROTOTYPE_STATUS}`,
     sentence: 'It rained',
     data: EXPLETIVE_TREE,
     derivationStages: [
@@ -505,7 +358,7 @@ export const FALLBACK_PROTOTYPE_CARDS: FallbackPrototypeCard[] = [
   {
     id: 'p1b',
     title: 'P1B + P3 · TWO CURRENT WITNESSES',
-    status: `Two scalar roles license one quiet undirected connector in the lane below the terminals, plus the instance mark on both witnesses. Principle B excludes the local subject as an antecedent for the pronoun. Authored values stay in Replay and change no geometry. ${PROTOTYPE_STATUS}`,
+    status: `Two scalar roles license one quiet undirected connector in the lane below the terminals, plus authored role labels on both witnesses. Principle B excludes the local subject as an antecedent for the pronoun. Authored values stay in Replay and change no geometry. ${PROTOTYPE_STATUS}`,
     sentence: 'John saw him',
     data: DISJOINT_TREE,
     derivationStages: [
@@ -528,7 +381,7 @@ export const FALLBACK_PROTOTYPE_CARDS: FallbackPrototypeCard[] = [
   {
     id: 'p1c',
     title: 'P1C + P2 · SCALAR PLUS AUTHORED ARRAY',
-    status: `One scalar role and one array role license the association fan: thin plain lines from the single witness to each array witness, in authored order, with position numerals. Dative is assigned once and realized on three nominal exponents. ${PROTOTYPE_STATUS}`,
+    status: `One scalar role and one array role license the association fan: thin plain lines from the single witness to each array witness, in authored order, with each authored role and bracketed list position. Dative is assigned once and realized on three nominal exponents. ${PROTOTYPE_STATUS}`,
     sentence: 'Ich helfe diesem alten Mann',
     data: CONCORD_TREE,
     derivationStages: [
@@ -551,7 +404,7 @@ export const FALLBACK_PROTOTYPE_CARDS: FallbackPrototypeCard[] = [
   {
     id: 'p1d',
     title: 'P1D · TWO EQUAL AUTHORED ARRAYS',
-    status: `Two equal-length arrays pair by authored position: matching numerals do the work, and the first and second role groups take the circle and box frames. No connector, because lines here would cross the coordination branches. ${PROTOTYPE_STATUS}`,
+    status: `Two equal-length arrays pair by authored position: matching bracketed positions do the work, with the authored role names distinguishing the two lists. No connector, because lines here would cross the coordination branches. ${PROTOTYPE_STATUS}`,
     sentence: 'John and Mary bought a book and a record respectively',
     data: RESPECTIVE_TREE,
     derivationStages: [
@@ -596,8 +449,8 @@ export const FALLBACK_PROTOTYPE_CARDS: FallbackPrototypeCard[] = [
   },
   {
     id: 'p1f-after',
-    title: 'P1F · RELATION STAGE, WITH BACKWARD CUE',
-    status: `The relation stage earns the mark. Both current witnesses take the instance mark with a small backward cue meaning only that this instance also has an authored witness one frame back; the two-scalar connector is not vetoed by priorAnchors. Hovering a mark reveals the instance; no ghost node is added to the tree. ${PROTOTYPE_STATUS}`,
+    title: 'P1F · RELATION STAGE, WITH PREVIOUS-STAGE REFERENCE',
+    status: `The relation stage earns the mark. Both current witnesses take their authored role labels; the previous witness is named in its existing Replay row with “previous stage”. The two-scalar connector remains, with no triangle or ghost node added to the tree. ${PROTOTYPE_STATUS}`,
     sentence: 'Se lo di',
     data: SPURIOUS_SE_TREE_AFTER,
     derivationStages: [

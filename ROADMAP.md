@@ -238,6 +238,18 @@ findings and Programs 0–8:
   Stage Record has one heading. Five focused regressions and the full offline gate
   pass. Matched browser checks cover all 76 Sol frames: SVG paths, group positions,
   labels and camera transforms are unchanged, with no invalid geometry or errors.
+- Replay panel wording and role labels now follow the approved presentation.
+  Plain camelCase names receive conservative display spacing; previous references
+  read `role (previous stage): participant` in their existing rows. Missing or
+  ambiguous participants, empty lists and empty literal strings remain distinct.
+  Authored records are unchanged. Source/Landing retains specifier/complement
+  descriptions for matching X-bar projections, including reversed branch order;
+  it no longer calls an arbitrary first-child T head Spec,TP. All 1,680 offline
+  tests, typecheck, both contract fixtures and the release asset check pass.
+  Desktop browser checks cover 283 saved frames and all six fallback topologies:
+  syntax positions and camera fits match the baseline, with no role/label
+  collisions or invalid geometry. Zoom, Fit and the main app Replay route pass.
+  This does not claim exhaustive layout correctness or mobile readability.
 - The authorized construction/relation prompt clarification is implemented.
   The old paragraph required connected-operation order to be represented through
   ordered relations and the workspace. It now permits order recoverable from
@@ -252,7 +264,7 @@ findings and Programs 0–8:
   `server/babelParser/systemInstruction.js` SHA-256 changes from
   `9ec816b0a0149bba9e0e52fe2c3e10c97609369ab063ae6fd62a27a451ccabc6` to
   `d33c4b9cd75f03de2e96294bb81337da2fd27b2a7cdb7c94cf8e8a8299a72b2e`.
-- **Current priority: restore Orchard fidelity before redesign.** The production
+- **Completed: Orchard fidelity restoration.** The production
   Tier-3 painter used oversized marks below labels and scalar links through the
   tree; the Orchard used small measured side marks and links below participant
   subtrees. The repair transfers that allocation and paint into production and
@@ -269,10 +281,13 @@ findings and Programs 0–8:
   asset check pass. Manual zoom and the Sol relation reveal sequence preserve
   complete badge groups and existing mark positions; a 390px viewport check
   found no badge/label collision, without claiming general mobile readability.
-- **Backlog: the approved literal-role annotation proposal.** Francis approved
-  the later tree-annotation prototype, then explicitly deferred it until Orchard
-  fidelity is restored. Keep its implementation separate from this repair.
-  The following literature notes retain the earlier research and proposal history.
+- **Accepted follow-up: authored Tier-3 role labels.** After restoration, Francis
+  approved replacing locators with role text, including the fan. The implementation
+  keeps the approved connectors, list positions and timing, clears fan lines around
+  labels, and removes backward triangles. Previous-stage participants remain in
+  existing panel rows. The checks above cover this follow-up. The following literature notes
+  retain the earlier research and proposal history; their references-only design
+  is not the current accepted presentation.
   Sol Minimalism
   frame 33 adds the existing `Anchor rail` organizational companion to a Tier-3
   claim; its missing joining lines are restored from the existing Orchard notation.

@@ -32,7 +32,7 @@ const fallback = (stageIndex, relationIndex = 0) => ({
     row: 2,
     instance: 1,
     marks: ['whichD', 'objectNP'].map((witness) => ({
-      witness, frame: 'circle', position: null, instance: 1, backward: false
+      witness, role: 'participant', frame: 'circle', position: null, instance: 1, backward: false
     })),
     link: { endpoints: ['whichD', 'objectNP'] }
   }

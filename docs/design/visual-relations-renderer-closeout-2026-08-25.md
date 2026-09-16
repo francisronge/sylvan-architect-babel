@@ -56,6 +56,32 @@ cards render; 283 saved Replay frames pass badge-to-label clearance and finite
 geometry checks. These checks do not establish universal layout correctness.
 The user-approved literal-role annotation redesign remains separate backlog work.
 
+## Accepted Tier-3 role labels
+
+The subsequent user-approved text trial supersedes the circle/box locators and
+backward triangles described in the preceding restoration history. Current
+witnesses carry their authored role names. List positions appear as `[1]`, `[2]`,
+and so on; equal positions across paired lists retain their correspondence.
+Topology remains unchanged: two scalar witnesses have the accepted connector
+below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
+have no invented links. Fan paths leave measured gaps around syntax and role
+labels. Repeated witnesses retain separate owned endpoints.
+
+The existing Replay rows identify previous-stage references with
+`role (previous stage): participant`. No triangle or extra panel section is
+needed. Plain camelCase names receive conservative display spacing; punctuation,
+notation and authored record strings remain unchanged. Unavailable references
+and empty collections have distinct readable descriptions.
+
+Source/Landing descriptions use “specifier” and “complement” only when matching
+authored X-bar levels establish them, independent of left/right branch order.
+Other positions use node/parent descriptions without repeated identical labels.
+The renderer does not infer a position from child order alone.
+
+Complete role labels share the tree scale during manual zoom, preserving their
+fitted size and stage-wide placement. The production painter and topology are
+shared with every Orchard fallback card.
+
 ## Extreme text overflow
 
 Ordinary text plaques retain their accepted geometry and placement. Only content
@@ -80,11 +106,10 @@ another claim's mark because the two claims share a node.
 Gap notation reuses an existing category or terminal belonging to the exact
 authored occurrence. Generated terminal ownership is explicit metadata; an ID's
 spelling never proves ownership. A distinct authored annotation remains visible.
-Generic gap labels, coindices and complete Tier-3 fallback badges retain their
+Generic gap labels, coindices and complete Tier-3 role labels retain their
 accepted size at automatic Fit, then share the tree's scale during manual zoom.
 Their size and stacked offsets use that same Fit reference when redrawn under a
-retained manual camera. Each circle or box, locator, array position and backward
-cue stays in one coordinate group. Fan connectors follow the fitted marks;
+retained manual camera. Each role label and its array position stay in one coordinate group. Fan connectors follow the fitted marks;
 two-scalar connectors start below their participating subtrees, as in the Orchard;
 dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.
