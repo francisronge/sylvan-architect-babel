@@ -607,11 +607,13 @@ test('fallback role and authored array position share one tree coordinate group'
   const data = {};
   const manualCameraRef = { current: null };
   const fitScales = [];
+  const fitViewports = [];
   let camera;
   const fit = productionFunction('applyFittedCamera', {
     g: select(new Element('g')), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
-    d3, fitFallbackOverlays: scale => fitScales.push(scale),
+    fitLeft: 40, fitRight: 1560, fitTop: 100, fitBottom: 700,
+    d3, fitFallbackOverlays: (scale, viewport) => { fitScales.push(scale); fitViewports.push(viewport); },
     applyCameraTransform: transform => { camera = transform; }
   });
   fit(d3.zoomIdentity.scale(0.5));
@@ -620,6 +622,8 @@ test('fallback role and authored array position share one tree coordinate group'
   fit(d3.zoomIdentity.scale(0.5));
   assert.equal(camera.k, 2);
   assert.deepEqual(fitScales, [0.5, 0.5], 'the allocation uses automatic Fit even under a retained manual camera');
+  assert.deepEqual(fitViewports, Array(2).fill({ x: 80, y: 200, width: 3040, height: 1200 }),
+    'placement limits stay in fitted tree coordinates, independent of manual zoom');
 });
 
 test('a changed terminal cannot absorb its old label just because data-default-label still contains it', () => {

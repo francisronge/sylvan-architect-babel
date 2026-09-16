@@ -11,7 +11,7 @@ and research notebooks are evidence or history, not competing roadmaps.
 | --- | --- | --- |
 | Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. | Qualify fresh model authoring under the revised prompt. Preserve recovery policy pending agreement. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Automatic JSON repair and public incomplete-processing policy remain unresolved. |
-| Relation renderer | The September 16 fidelity repair restores Orchard Tier-3 placement and paint. Orchard cards now use production drawing code for every tier. Earlier integration checks missed the separate Tier-3 painter; their broad fidelity claim was incorrect. | The approved literal-role annotation redesign is backlogged until this restoration is reviewed. Extreme text and viewport checks remain bounded; no participant-free drawing is justified. |
+| Relation renderer | The September 16 fidelity repair restores Orchard placement and paint. The approved Tier-3 role labels retain its connectors and authored list positions. Orchard cards use production drawing code for every tier. Earlier checks missed a separate Tier-3 painter; their broad fidelity claim was incorrect. | Extreme text and viewport checks remain bounded. Labels wider than the available canvas still require panning; no participant-free drawing is justified. |
 | Replay preparation | The measured optimization remains unchanged. Extended controls through 192 stages/958 frames complete. Forty large view cycles release all 81 workers and retain about 18–19 MB of page heap; 15 mid-preparation cancellations also recover correctly. | Instrumented 160/192-stage controls take about 12/19 seconds, with sampled worker heaps up to 182 MB and frame jumps up to 274 ms. These bounds do not establish instant preparation, exact peak memory or slower-device behavior. No layout rewrite or persistent derivation cache is introduced. |
 | Current product | Working local React/Vite application with Canopy, Replay, Notes, provider routes, ambiguity selection, and a legacy Tree Bank. | Build one maintainable application with a simple public surface at `/` and an advanced research surface at `/research`; retire Notes as a duplicate top-level view. |
 | Tree Bank | The merged app captures the styled tree for its browser-local preview. Eight desktop save/preview/reopen cases pass across all four archived bundles in Canopy and Replay. Previews need not show every plaque row; reopening provides the full record. | Existing icon thumbnails require a fresh save. The later durable-record migration remains separate product work. |
@@ -174,10 +174,10 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,676 tests, typecheck and both parse-contract fixtures pass.
-The production build passes. The panel fixes below are locally verified; earlier
-shared renderer repairs are committed and pushed through `69dd505`. This is
-local/offline evidence, not deployment qualification.
+Current offline gate: 1,681 tests, typecheck and both parse-contract fixtures pass.
+The release asset check passes. Approved Replay wording and Tier-3 role labels
+are merged and pushed through `ff3ed71`; the bounded placement verification below
+extends those checks. This is local/offline evidence, not deployment qualification.
 
 Immediate priorities after reviewing all 19 starting-point items, 39 audit
 findings and Programs 0–8:
@@ -250,6 +250,18 @@ findings and Programs 0–8:
   syntax positions and camera fits match the baseline, with no role/label
   collisions or invalid geometry. Zoom, Fit and the main app Replay route pass.
   This does not claim exhaustive layout correctness or mobile readability.
+- The role-label stress pass covers 12 temporary controls: long names, repeated
+  participants, dense fans, multiple roles on one node, successive relation
+  moments, paired lists, Unicode and previous-stage references. It reproduced
+  one clipped long label despite available space above its node. Placement now
+  considers the existing fitted viewport and nearby vertical space before
+  accepting an offscreen position. Font size, tree layout and camera fitting are
+  unchanged. Only that label moves in the controls; all 283 saved frames and 133
+  Orchard control frames retain their syntax/cameras, with no measured text
+  collisions or invalid geometry. Dense fan paths clear role text; reveal,
+  reverse playback, zoom and Fit checks pass. Text that cannot fit remains intact
+  for panning; this is not an exhaustive packing or mobile-readability claim.
+  The regression, full 1,681-test gate and rebuilt Orchard asset check pass.
 - The authorized construction/relation prompt clarification is implemented.
   The old paragraph required connected-operation order to be represented through
   ordered relations and the workspace. It now permits order recoverable from

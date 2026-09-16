@@ -567,7 +567,7 @@ export type FallbackMeasurements = {
 
 /** Accepted Orchard side placement, reserving all marks before any relation is revealed. */
 const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth'>,
-  scale: number, occupied: Rect[]): Point => {
+  scale: number, occupied: Rect[], viewport?: Rect): Point => {
   const rect = mark.labelRect;
   const leftExtent = (mark.textWidth / 2 + 4) * scale;
   const rightExtent = leftExtent;
@@ -592,6 +592,24 @@ const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidt
   for (let offset = 1; !chosen; offset++) {
     chosen = candidates.map(point => ({ ...point, x: point.x + (rightExtent + leftExtent + 4 * scale) * offset })).find(free);
   }
+  if (viewport) {
+    const contained = (point: Point) => {
+      const box = boxFor(point);
+      return box.x >= viewport.x && box.y >= viewport.y
+        && box.x + box.width <= viewport.x + viewport.width
+        && box.y + box.height <= viewport.y + viewport.height;
+    };
+    if (!contained(chosen)) {
+      // A long role may fit above or below its node even when neither side fits.
+      // Keep normal placements intact; use text height for vertical clearance.
+      const x = Math.max(viewport.x + leftExtent,
+        Math.min(rect.x + rect.width / 2, viewport.x + viewport.width - rightExtent));
+      const alternatives = [...candidates,
+        { x, y: rect.y - 15 * scale },
+        { x, y: rect.y + rect.height + 15 * scale }];
+      chosen = alternatives.find(point => contained(point) && free(point)) ?? chosen;
+    }
+  }
   occupied.push(boxFor(chosen));
   return chosen;
 };
@@ -600,7 +618,7 @@ const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidt
 export const fitFallbackGeometry = (
   frame: BoundFrame,
   options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements'>
-    & { fittedMarkerScale: number; fittedAnchorScale?: number }
+    & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   const scale = options.fittedMarkerScale;
   const anchorScale = options.fittedAnchorScale ?? scale;
@@ -609,7 +627,7 @@ export const fitFallbackGeometry = (
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
     .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
-    const point = placeFallbackMark(mark, scale, occupied);
+    const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport);
     updates.set(mark, { ...mark, ...point });
     centers.set(mark.allocationOrder, point);
   });

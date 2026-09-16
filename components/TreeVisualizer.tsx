@@ -1602,7 +1602,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // Complete frame-stable overlay bounds, fed into viewport fitting so no
     // generated geometry on any side of the tree is clipped.
     let overlayFitBounds: OverlayBounds | null = null;
-    let fitFallbackOverlays: ((fitZoom: number) => void) | undefined;
+    let fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
     const deferredAcceptedRelationDraws: Array<() => void> = [];
     const identityForestLightFamilies: Array<{
       occurrencePools: string[][];
@@ -1969,12 +1969,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const fallbackConnectorPaths = new Map<BoundSegment, d3.Selection<SVGGElement, unknown, null, undefined>>();
       const fallbackMarkGroups = new Map<BoundPrimitive, d3.Selection<SVGGElement, unknown, null, undefined>>();
       const fallbackRailGroups = new Map<BoundAnchorSetRail, d3.Selection<SVGGElement, unknown, null, undefined>>();
-      fitFallbackOverlays = (fitZoom) => {
+      fitFallbackOverlays = (fitZoom, fittedViewport) => {
         const scale = fallbackMarkerScale(fitZoom, fallbackMeasurements.labels.map(rect => rect.height));
         const anchorScale = Math.min(1 / fitZoom, 3);
         fitFallbackGeometry(boundFrame, {
           markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: 60, fallbackMeasurements,
-          railBaseY: frameMaxNodeY + 240
+          railBaseY: frameMaxNodeY + 240, fittedViewport
         }).forEach((fitted, original) => {
           if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {
             fallbackMarkGroups.get(original)?.attr('transform', `translate(${fitted.x},${fitted.y}) scale(${scale})`);
@@ -7046,7 +7046,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * fittedMarkerScale;
         return `translate(${x},${this.dataset.vrY}) scale(${fittedMarkerScale})`;
       });
-      fitFallbackOverlays?.(fitted.k);
+      fitFallbackOverlays?.(fitted.k, {
+        x: (fitLeft - fitted.x) / fitted.k, y: (fitTop - fitted.y) / fitted.k,
+        width: (fitRight - fitLeft) / fitted.k, height: (fitBottom - fitTop) / fitted.k
+      });
       const manual = manualCameraRef.current;
       if (manual?.data === data && manual.signature === derivationStagesSignature) {
         const transform = d3.zoomIdentity.translate(

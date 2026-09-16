@@ -104,6 +104,32 @@ test('dense shared witnesses reserve distinct marks and organizational rails fol
   assert.equal(anchorSetRailPaths(fittedRail, 2).joins.split('M ').length - 1, ids.length);
 });
 
+test('a long neutral role uses nearby vertical space when both sides leave the fitted viewport', () => {
+  const p = compileRelationRenderPlan([stage([{ relation: 'Context', anchors: { witness: 'a' } }])]);
+  const label = { x: 490, y: 100, width: 20, height: 30 };
+  const fallbackMeasurements = { labels: [label], labelFor: () => label, subtreeFor: () => label, bottom: 130 };
+  const bound = bindRelationPlanFrame(p, 0, () => ({ x: 500, y: 115 }), { fallbackMeasurements });
+  const mark = bound.primitives.find(p => p.type === 'fallback-mark');
+  mark.textWidth = 600;
+  const options = { fittedMarkerScale: 1, fallbackMeasurements };
+  const original = structuredClone(bound);
+  const withoutBounds = fitFallbackGeometry(bound, options).get(mark);
+  assert.ok(withoutBounds.x + 304 > 1000, 'reproduce the offscreen side placement');
+  const fittedViewport = { x: 0, y: 0, width: 1000, height: 300 };
+  const fitted = fitFallbackGeometry(bound, { ...options, fittedViewport }).get(mark);
+  assert.equal(fitted.x, 500);
+  assert.ok(fitted.y + 12 < label.y, 'the complete role clears its syntax label');
+  assert.ok(fitted.x - 304 >= 0 && fitted.x + 304 <= 1000 && fitted.y - 12 >= 0);
+  assert.deepEqual(bound, original, 'fitting leaves the authored allocation untouched');
+
+  mark.textWidth = 60;
+  assert.deepEqual(fitFallbackGeometry(bound, { ...options, fittedViewport }).get(mark),
+    fitFallbackGeometry(bound, options).get(mark), 'ordinary accepted positions do not change');
+  mark.textWidth = 2000;
+  assert.deepEqual(fitFallbackGeometry(bound, { ...options, fittedViewport }).get(mark),
+    fitFallbackGeometry(bound, options).get(mark), 'impossible containment preserves readable text for panning without looping');
+});
+
 test('specialized two-occurrence coindex remains atomic', () => {
   const specialized = structuredClone(plan);
   specialized.frames[0].items = [{ kind: 'coindex', nodeIds: ['a', 'b'], index: 'i', relationRef: plan.frames[0].items[0].relationRef }];
