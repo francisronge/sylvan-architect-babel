@@ -1909,6 +1909,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       };
       const fallbackMeasurements = {
         labels: [...fallbackLabelRects.values()],
+        obstacles: [...replayPlaqueLayout.values()],
         labelFor: (id: string) => fallbackRectFor(id),
         subtreeFor: (id: string) => fallbackRectFor(id, true),
         bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))

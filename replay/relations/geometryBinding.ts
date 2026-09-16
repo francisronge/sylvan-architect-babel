@@ -560,6 +560,8 @@ export const fallbackMarkerScale = (fitZoom: number, labelHeights: number[]): nu
 
 export type FallbackMeasurements = {
   labels: Rect[];
+  /** Reserved annotation bounds, including plaques not yet revealed in this stage. */
+  obstacles?: Rect[];
   labelFor: (nodeId: string) => Rect | null;
   subtreeFor: (nodeId: string) => Rect | null;
   bottom: number;
@@ -622,7 +624,7 @@ export const fitFallbackGeometry = (
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   const scale = options.fittedMarkerScale;
   const anchorScale = options.fittedAnchorScale ?? scale;
-  const occupied = [...(options.fallbackMeasurements?.labels ?? [])];
+  const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
   const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
@@ -1134,7 +1136,7 @@ export const bindRelationPlanFrame = (
 
   const pendingSegments: UnroutedFallbackSegment[] = [];
   let fallbackAllocationOrder = 0;
-  const fallbackOccupied = [...(options.fallbackMeasurements?.labels ?? [])];
+  const fallbackOccupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
 
   const bindPlanItem = (item: RelationPlanItem, itemIndex: number) => {
     if (item.kind === 'trajectory') {

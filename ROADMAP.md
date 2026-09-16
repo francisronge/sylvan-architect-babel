@@ -174,7 +174,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,681 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,682 tests, typecheck and both parse-contract fixtures pass.
 The release asset check passes. Approved Replay wording and Tier-3 role labels
 are merged and pushed through `ff3ed71`; the bounded placement verification below
 extends those checks. This is local/offline evidence, not deployment qualification.
@@ -212,6 +212,16 @@ findings and Programs 0–8:
   uses nontrivial `realizations`, so fresh model morphology authoring remains
   unqualified. No product behavior or prompt changed during this run; it does
   not explain or establish prevention of Fable's historical JSON failure.
+- Two Opus annotation defects are repaired. Theta indices no longer transfer
+  relation dimming to the original syntax word. Tier-3 role placement reserves
+  the existing stage-wide plaque bounds before reveal and again at Fit; plaque
+  positions, tree layout and annotation persistence are unchanged. Both regressions
+  were reproduced before the fixes. The full offline gate passes, and browser
+  checks cover all 240 current Replay frames across the saved Opus, Grok and Sol
+  pairs with no measured role-label/plaque collisions or dimmed indexed words.
+  All 94 Opus frames retain their original syntax coordinates, camera, panel text
+  and role text. Manual zoom, Next/Previous and Fit pass. This closes the two
+  reported defects, not the remaining movement, recognition or crowding findings.
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
   typechecking, and the existing release asset/link check alongside build and
   dependency audits. No new test framework or product behavior changed.

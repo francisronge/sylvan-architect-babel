@@ -104,6 +104,29 @@ test('dense shared witnesses reserve distinct marks and organizational rails fol
   assert.equal(anchorSetRailPaths(fittedRail, 2).joins.split('M ').length - 1, ids.length);
 });
 
+test('neutral roles reserve plaque space before reveal and retain that clearance at Fit', () => {
+  const p = compileRelationRenderPlan([stage([{ relation: 'Context', anchors: { witness: 'a' } }])]);
+  const label = { x: 0, y: 0, width: 30, height: 20 };
+  const plaque = { x: 31, y: -30, width: 200, height: 100 };
+  const measurements = { labels: [label], labelFor: () => label, subtreeFor: () => label, bottom: 20 };
+  const overlaps = (mark, scale) => mark.x + (mark.textWidth / 2 + 4) * scale > plaque.x
+    && mark.x - (mark.textWidth / 2 + 4) * scale < plaque.x + plaque.width
+    && mark.y + 12 * scale > plaque.y && mark.y - 12 * scale < plaque.y + plaque.height;
+  const bind = fallbackMeasurements => bindRelationPlanFrame(p, 0, () => ({ x: 15, y: 10 }), { fallbackMeasurements });
+  const unreserved = bind(measurements);
+  assert(overlaps(unreserved.primitives.find(p => p.type === 'fallback-mark'), 1), 'reproduce the missing plaque clearance');
+  const fallbackMeasurements = { ...measurements, obstacles: [plaque] };
+  const bound = bind(fallbackMeasurements);
+  const mark = bound.primitives.find(p => p.type === 'fallback-mark');
+  assert(!overlaps(mark, 1));
+  for (const scale of [0.5, 1, 3]) {
+    const fitted = fitFallbackGeometry(bound, { fallbackMeasurements, fittedMarkerScale: scale }).get(mark);
+    assert(!overlaps(fitted, scale), `Fit preserves plaque clearance at scale ${scale}`);
+  }
+  assert.deepEqual(bind({ ...measurements, obstacles: [{ ...plaque, x: 10000 }] }), unreserved,
+    'a distant plaque leaves accepted geometry unchanged');
+});
+
 test('a long neutral role uses nearby vertical space when both sides leave the fitted viewport', () => {
   const p = compileRelationRenderPlan([stage([{ relation: 'Context', anchors: { witness: 'a' } }])]);
   const label = { x: 490, y: 100, width: 20, height: 30 };
