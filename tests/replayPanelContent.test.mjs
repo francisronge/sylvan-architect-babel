@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { spaceAuthoredName } from '../replay/displayText.ts';
 import {
   adaptDerivationStagesForReplay,
   buildPlaybackStepsFromDerivationFrames,
@@ -64,7 +65,7 @@ test('paired current participants retain every literal, repeated occurrence and 
     { label: 'other', value: 'Which', literal: 'nominal' }
   ]);
   assert.equal(content.supportLines.filter(row => row.label === 'items').length, 3);
-  assert(content.supportLines.some(row => row.label === 'priorAnchors.items' && row.value === 'before'));
+  assert(content.supportLines.some(row => row.label === 'items (previous stage)' && row.value === 'before'));
   assert(content.supportLines.some(row => row.label === 'note' && row.value === 'Keep this.'));
   assert.strictEqual(content.authoredRelation, record);
 });
@@ -136,10 +137,10 @@ test('prior participants use the preceding authored occurrence, not the current 
   const content = buildReplayPanelContent(current, stages);
   assert.deepEqual(unkey(content.supportLines), [
     { label: 'participant', value: 'after' },
-    { label: 'priorAnchors.source', value: 'before' },
-    { label: 'priorAnchors.source', value: 'before' },
-    { label: 'priorAnchors.missing', value: 'unknown_x_i' },
-    { label: 'priorAnchors.ambiguous', value: 'duplicate' }
+    { label: 'source (previous stage)', value: 'before' },
+    { label: 'source (previous stage)', value: 'before' },
+    { label: 'missing (previous stage)', value: 'participant unavailable' },
+    { label: 'ambiguous (previous stage)', value: 'participant ambiguous' }
   ]);
   assert.strictEqual(content.authoredRelation, record);
 });
@@ -163,7 +164,7 @@ test('authored relation names preserve punctuation, casing, scripts, and whitesp
     const record = { relation: name, anchors: { target: 'context' }, values: {} };
     const current = step({ replayKind: 'relation', operation: 'IncompleteDisplayName', replayRelationIdentity: { stageIndex: 0, relationIndex: 0 } });
     const content = buildReplayPanelContent(current, [stage([record])]);
-    assert.equal(content.heading, name);
+    assert.equal(content.heading, name === 'HeadMove' ? 'Head Move' : name);
     assert.strictEqual(content.authoredRelation, record);
     assert.equal(formatPlaybackOperationTitle({ ...current, operation: name }), name);
   }
@@ -211,9 +212,9 @@ test('authored names matching structural operations retain their original relati
     const record = { relation, anchors: { authorRole: 'context' }, values: { notation: ['x_i', 'x_i'] } };
     const current = step({ operation: relation, replayKind: 'relation', replayRelationIdentity: { stageIndex: 0, relationIndex: 0 } });
     const content = buildReplayPanelContent(current, [stage([record])]);
-    assert.equal(content.heading, relation);
+    assert.equal(content.heading, spaceAuthoredName(relation));
     assert.deepEqual(unkey(content.supportLines), [
-      { label: 'authorRole', value: 'x_i' },
+      { label: 'author Role', value: 'x_i' },
       { label: 'notation', value: 'x_i' },
       { label: 'notation', value: 'x_i' }
     ]);
@@ -230,15 +231,15 @@ test('movement keeps Source/Landing, uncovered anchors, prior anchors, and every
   const content = buildReplayPanelContent(current, stages);
   assert.deepEqual(content.supportLines.slice(0, 2).map(row => row.label), ['Source', 'Landing']);
   assert(!content.supportLines.some(row => row.label === 'source' || row.label === 'landing'));
-  assert.deepEqual(content.supportLines.filter(row => row.label === 'extra').map(row => row.value), ['x_i', 'x_i', 'unknown_x_i']);
-  assert(content.supportLines.some(row => row.label === 'traceWitness'));
-  assert(content.supportLines.some(row => row.label === 'coLocatedContext'));
-  assert.deepEqual(content.supportLines.filter(row => row.label === 'priorAnchors.origin').map(row => row.value), ['previous_x_i', 'previous_x_i']);
+  assert.deepEqual(content.supportLines.filter(row => row.label === 'extra').map(row => row.value), ['x_i', 'x_i', 'participant unavailable']);
+  assert(content.supportLines.some(row => row.label === 'trace Witness'));
+  assert(content.supportLines.some(row => row.label === 'co Located Context'));
+  assert.deepEqual(content.supportLines.filter(row => row.label === 'origin (previous stage)').map(row => row.value), ['participant unavailable', 'participant unavailable']);
   assert.deepEqual(unkey(content.supportLines.slice(-7)), [
-    ...record.values.notation.map(value => ({ label: 'notation', value })),
+    ...record.values.notation.map(value => ({ label: 'notation', value: value === '' ? '""' : value })),
     { label: 'qualification', value: record.values.qualification },
     { label: 'Source', value: 'literal source' },
-    { label: 'empty', value: '[]' }
+    { label: 'empty', value: 'empty list' }
   ]);
   assert.equal(new Set(content.supportLines.map(row => row.key)).size, content.supportLines.length);
   assert.deepEqual(content, buildReplayPanelContent(current, stages));
@@ -258,9 +259,9 @@ test('the original record remains complete even when no rendering link exists', 
   const content = buildReplayPanelContent(current, [stage([record])]);
   assert.strictEqual(content.authoredRelation, record);
   assert.deepEqual(unkey(content.supportLines), [
-    { label: 'missingRole', value: 'missing_x_i' }, { label: 'missingRole', value: 'missing_x_i' },
-    { label: 'priorAnchors.earlier', value: 'prior_x_i' }, { label: 'literal_key', value: record.values.literal_key },
-    ...record.values.slots.map(value => ({ label: 'slots', value }))
+    { label: 'missing Role', value: 'participant unavailable' }, { label: 'missing Role', value: 'participant unavailable' },
+    { label: 'earlier (previous stage)', value: 'participant unavailable' }, { label: 'literal_key', value: record.values.literal_key },
+    ...record.values.slots.map(value => ({ label: 'slots', value: value === '' ? '""' : value }))
   ]);
 });
 
@@ -312,9 +313,9 @@ for (const record of saved) {
       const original = stages[identity.stageIndex].relations[identity.relationIndex];
       const content = buildReplayPanelContent(current, stages);
       assert.strictEqual(content.authoredRelation, original);
-      assert.equal(content.heading, original.relation);
-      const expected = Object.entries(original.values ?? {}).flatMap(([label, value]) => Array.isArray(value)
-        ? value.length ? value.map(item => ({ label, value: item })) : [{ label, value: '[]' }] : [{ label, value }]);
+      assert.equal(content.heading, spaceAuthoredName(original.relation));
+      const expected = Object.entries(original.values ?? {}).flatMap(([key, value]) => { const label = spaceAuthoredName(key); return Array.isArray(value)
+        ? value.length ? value.map(item => ({ label, value: item })) : [{ label, value: 'empty list' }] : [{ label, value }]; });
       if (expected.length) assert.deepEqual(unkey(content.supportLines.slice(-expected.length)), expected);
       assert.equal(new Set(content.supportLines.map(row => row.key)).size, content.supportLines.length);
     }
@@ -341,3 +342,25 @@ for (const record of saved) {
     assert.equal(JSON.stringify(steps), before);
   });
 }
+
+test('name spacing preserves notation, original letters and ambiguous short parts', () => {
+  for (const [input, expected] of [
+    ['InternalMerge', 'Internal Merge'], ['PFRealization', 'PF Realization'],
+    ['higherOccurrence', 'higher Occurrence'], ['CaseAssigner', 'Case Assigner'],
+    ...['DP', 'vP', 'A′', 'x_i', 'θRole', '  InternalMerge ', 'AbarMove / WH', 'case-marked'].map(x => [x, x])
+  ]) assert.equal(spaceAuthoredName(input), expected);
+});
+
+test('previous-stage scope is explicit metadata, not guessed from an authored field name', () => {
+  const relation = { relation: 'OpenRelation', anchors: { 'priorAnchors.source': 'context' },
+    priorAnchors: { source: 'context', empty: [] }, values: { empty: [], notation: '[]', blank: '' } };
+  const stages = freeze([stage([]), stage([relation])]);
+  const current = step({ replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 } });
+  assert.deepEqual(unkey(buildReplayPanelContent(current, stages).supportLines), [
+    { label: 'priorAnchors.source', value: 'x_i' },
+    { label: 'source (previous stage)', value: 'x_i' },
+    { label: 'empty (previous stage)', value: 'empty list' },
+    { label: 'empty', value: 'empty list' }, { label: 'notation', value: '[]' }, { label: 'blank', value: '""' }
+  ]);
+  assert.strictEqual(buildReplayPanelContent(current, stages).authoredRelation, relation);
+});

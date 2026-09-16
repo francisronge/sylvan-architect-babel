@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { categoryLabel } from './categoryLabel.ts';
+import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
@@ -85,6 +86,9 @@ export interface PlaybackStep {
 export interface ReplaySupportLine {
   label: string;
   value: string;
+  scope?: 'previous';
+  emptyList?: true;
+  referenceStatus?: 'unavailable' | 'ambiguous';
   /** Same-name, same-position authored value paired with a current participant. */
   literal?: string;
 }
@@ -7475,7 +7479,7 @@ const buildLiteralRelationValueLines = (
   values: DerivationStageRelation['values']
 ): ReplaySupportLine[] => Object.entries(values ?? {}).flatMap(([label, value]) => (
   Array.isArray(value)
-    ? (value.length ? value.map(item => ({ label, value: item })) : [{ label, value: '[]' }])
+    ? (value.length ? value.map(item => ({ label, value: item })) : [{ label, value: '[]', emptyList: true as const }])
     : [{ label, value }]
 ));
 
@@ -7505,24 +7509,28 @@ const buildAuthoredRelationAnchorLines = (
     // Pair only exact authored names and equal lengths. Prior entries remain separate.
     const paired = ids.length > 0 && literals?.length === ids.length;
     if (!paired && endpointIsCovered(role, value)) return [];
-    if (!ids.length) return [{ label: role, value: '[]' }];
+    if (!ids.length) return [{ label: role, value: '[]', emptyList: true as const }];
     return ids.map((nodeId, index) => {
       const anchor = links.flatMap(link => link.anchors ?? []).find(item =>
         (item.authoredRole || item.role) === role && item.nodeId === nodeId);
+      const display = formatRelationParticipantValue(anchor ?? { role, nodeId, value: nodeId }, step.replayCanvasData);
       return {
         label: role,
-        value: formatRelationParticipantValue(anchor ?? { role, nodeId, value: nodeId }, step.replayCanvasData) || nodeId,
+        value: display || nodeId,
+        ...(!display ? { referenceStatus: 'unavailable' as const } : {}),
         ...(paired ? { literal: literals![index] } : {})
       };
     });
   });
   const prior = Object.entries(relation.priorAnchors ?? {}).flatMap(([role, value]) => {
     const ids = Array.isArray(value) ? value : [value];
-    return (ids.length ? ids : ['[]']).map(nodeId => {
+    if (!ids.length) return [{ label: role, value: '[]', scope: 'previous' as const, emptyList: true as const }];
+    return ids.map(nodeId => {
       const matches = priorForest.flatMap(collectReplayCanvasNodes).filter(node => node.id === nodeId);
       const display = matches.length === 1
         ? formatRelationParticipantValue({ role, nodeId, value: nodeId }, matches[0]) : '';
-      return { label: `priorAnchors.${role}`, value: display || nodeId };
+      return { label: role, value: display || nodeId, scope: 'previous' as const,
+        ...(!display ? { referenceStatus: matches.length > 1 ? 'ambiguous' as const : 'unavailable' as const } : {}) };
     });
   });
   return [...current, ...prior];
@@ -7731,9 +7739,9 @@ export const buildReplaySupportLines = (
     const mentionsMissingSource = diagnostics.some((message) => /source omitted/i.test(String(message || '')));
     const mentionsMissingLanding = diagnostics.some((message) => /landing omitted/i.test(String(message || '')));
     if (sourceValue) lines.push({ label: 'Source', value: sourceValue });
-    else if (mentionsMissingSource) lines.push({ label: 'Source', value: 'not serialized' });
+    else if (mentionsMissingSource) lines.push({ label: 'Source', value: '', referenceStatus: 'unavailable' });
     if (landingValue) lines.push({ label: 'Landing', value: landingValue });
-    else if (mentionsMissingLanding) lines.push({ label: 'Landing', value: 'not serialized' });
+    else if (mentionsMissingLanding) lines.push({ label: 'Landing', value: '', referenceStatus: 'unavailable' });
     return relationLines(lines);
   }
 
@@ -7768,8 +7776,12 @@ export const buildReplayPanelContent = (
     supportLines.unshift({ label: 'Statement', value: statement });
   }
   return {
-    heading: authoredRelation?.relation ?? formatPlaybackOperationTitle(step),
-    supportLines: supportLines.map((line, index) => ({ ...line, key: `${prefix}:${index}` })),
+    heading: authoredRelation ? spaceAuthoredName(authoredRelation.relation) : formatPlaybackOperationTitle(step),
+    supportLines: supportLines.map((line, index) => ({ ...line,
+      label: `${spaceAuthoredName(line.label)}${line.scope === 'previous' ? ' (previous stage)' : ''}`,
+      value: line.referenceStatus ? `participant ${line.referenceStatus}`
+        : line.emptyList ? 'empty list' : line.value === '' ? '""' : line.value,
+      key: `${prefix}:${index}` })),
     authoredRelation
   };
 };
