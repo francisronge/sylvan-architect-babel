@@ -17,6 +17,7 @@ import { availableTreeViewport, linearizationViewport } from '../components/tree
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -144,6 +145,8 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
       { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
     relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
     dependentCaseStatePlaques,
+    wrapPlaqueText,
+    withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(text => ({ width: [...text].length * 4.2 })),
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
     measureGraphicsElementsInTreeSpace: elements => elements.length ? ({ x: 0, y: 0, width: 260, height: 280 }) : null,
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),

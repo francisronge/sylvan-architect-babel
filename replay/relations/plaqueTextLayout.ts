@@ -91,7 +91,7 @@ const validMetric = (value: number | undefined, fallback: number): number =>
   Number.isFinite(value) && value! >= 0 ? value! : fallback;
 
 /** Wrap without dropping whitespace, splitting graphemes, or limiting the number of lines. */
-const wrapText = (text: string, width: number, measure: (text: string) => Required<PlaqueTextMetrics>): string[] =>
+export const wrapPlaqueText = (text: string, width: number, measure: (text: string) => Pick<PlaqueTextMetrics, 'width'>): string[] =>
   text.split(/\r\n|\r|\n/u).flatMap((paragraph) => {
     if (measure(paragraph).width <= width) return [paragraph];
     const units = graphemes(paragraph);
@@ -155,7 +155,7 @@ const prepareTextBlock = (
   box: { x: number; top: number; width: number; baseline: number; lineHeight: number; inkPadding?: number },
   measure: ReturnType<typeof createTextMeasure>
 ): { block: PlaqueTextBlock; bottom: number; right: number } => {
-  const measured = wrapText(text, box.width, (line) => measure(line, style))
+  const measured = wrapPlaqueText(text, box.width, (line) => measure(line, style))
     .map((line) => ({ text: line, ...measure(line, style) }));
   const ascent = measured.reduce((maximum, line) => Math.max(maximum, line.ascent), 0);
   const descent = measured.reduce((maximum, line) => Math.max(maximum, line.descent), 0);

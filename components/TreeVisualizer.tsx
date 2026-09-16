@@ -9,7 +9,7 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
-import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
+import { preparePfPlaqueTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
@@ -3037,7 +3037,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 return;
               }
               const widthPx = 300;
-              const bundleRows = Math.max(content.inputFeatures.length, ...content.outputFeatures.map((rows) => rows.length));
+              const bundles = withPlaqueTextMeasure(svg, measure =>
+                [content.inputFeatures, ...content.outputFeatures].map(rows => rows.flatMap(row =>
+                  wrapPlaqueText(row, 70, text => measure(text, {
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: 7, fontWeight: 800, letterSpacing: 0
+                  })))));
+              const bundleRows = Math.max(...bundles.map(rows => rows.length));
               const heightPx = Math.max(112, 64 + (bundleRows - 1) * 10.5);
               const width = localPx(widthPx);
               const height = localPx(heightPx);
@@ -3116,7 +3121,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   );
                 });
               };
-              drawBundle(10, 'PRIOR TERMINAL', content.inputFeatures, 82);
+              drawBundle(10, 'PRIOR TERMINAL', bundles[0], 82);
               setScreenFont(
                 appendText(layer, 'babel-fission-arrow', origin.x + localPx(98), origin.y + localPx(72), '→'),
                 14
@@ -3124,13 +3129,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               drawBundle(
                 112,
                 displayLabelForAnchor(item.anchorNodeIds[0]),
-                content.outputFeatures[0],
+                bundles[1],
                 82
               );
               drawBundle(
                 208,
                 displayLabelForAnchor(item.anchorNodeIds[1]),
-                content.outputFeatures[1],
+                bundles[2],
                 82
               );
               return;

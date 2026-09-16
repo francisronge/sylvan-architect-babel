@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   fallbackPlaqueTextMeasure,
+  wrapPlaqueText,
   preparePlaqueTextLayout
 } from '../replay/relations/plaqueTextLayout.ts';
 import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
@@ -296,4 +297,15 @@ test('only extreme plaques use a bounded viewport, while every authored row rema
     assert.equal(reserved.overflow.contentHeight, partlyRevealed.height);
     assert.equal(reserved.rows, partlyRevealed.rows);
   }
+});
+
+test('native bundle wrapping fits the Orchard column without interpreting comma-separated literals', () => {
+  const text = 'Case: α, βparticipant, −author';
+  const style = { fontFamily: 'monospace', fontSize: 7, fontWeight: 800, letterSpacing: 0 };
+  const measure = text => measureText(text, style);
+  const rows = wrapPlaqueText(text, 70, measure);
+  assert.equal(rows.join(''), text, 'all literal punctuation and whitespace survive');
+  assert.ok(rows.length > 1);
+  assert.ok(rows.every(row => measure(row).width <= 70));
+  assert.deepEqual(wrapPlaqueText('−author', 70, measure), ['−author']);
 });
