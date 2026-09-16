@@ -364,3 +364,24 @@ test('previous-stage scope is explicit metadata, not guessed from an authored fi
   ]);
   assert.strictEqual(buildReplayPanelContent(current, stages).authoredRelation, relation);
 });
+
+test('position descriptions use matching X-bar projections, never child order alone', () => {
+  const dp = () => node('origin', 'DP', [leaf('word', 'John')]);
+  const tbar = () => node('intermediate', 'T′', [leaf('tense', 'did', { label: 'T' }), node('vp', 'VP', [])]);
+  for (const [before, expected] of [
+    [node('tp', 'TP', [leaf('origin', 'did', { label: 'T' }), node('vp', 'vP', [])]), 'did (T in TP)'],
+    [node('tp', 'TP', [dp(), tbar()]), 'John (Spec,TP)'],
+    [node('tp', 'TP', [tbar(), dp()]), 'John (Spec,TP)'],
+    [node('vbar', 'V′', [leaf('v', 'buy', { label: 'V' }), dp()]), 'John (complement of V)'],
+    [node('vbar', 'V′', [dp(), leaf('v', 'buy', { label: 'V' })]), 'John (complement of V)'],
+    [node('tp', 'TP', [dp(), node('wrong', 'V′', [])]), 'John (DP in TP)'],
+    [node('tp', 'TP', [dp(), node('inner', 'TP', [])]), 'John (DP in TP)'],
+    [node('vbar', 'V′', [node('inner', 'V′', []), dp()]), 'John (DP in V′)'],
+    [node('tp', 'TP', [node('wrapper', 'T', [leaf('origin', 'did', { label: 'T' })]), node('vp', 'VP', [])]), 'did (T in TP)']
+  ]) {
+    const stages = freeze([{ ...stage([]), workspaceForest: [before] }, stage([{ relation: 'Move', anchors: { source: 'low', landing: 'high' } }])]);
+    const current = movementStep({ replayRelationIdentity: { stageIndex: 1, relationIndex: 0 },
+      replayRelationLinks: [movementLink({ authoredRelationKey: '1:0', priorSourceNodeId: 'origin' })] });
+    assert.equal(buildReplayPanelContent(current, stages).supportLines.find(line => line.label === 'Source')?.value, expected);
+  }
+});

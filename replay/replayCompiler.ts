@@ -6787,46 +6787,37 @@ const describeReplayNodePosition = (
   const path = findReplayNodePathById(root, normalizedNodeId);
   if (!path || path.length === 0) return '';
 
-  let node = path[path.length - 1];
-  let parent = path[path.length - 2];
-  const grandparent = path[path.length - 3];
-  const parentLabelRaw = String(parent?.label || '').trim();
-  const nodeLabelRaw = String(node?.label || '').trim();
-  if (
-    parent
-    && grandparent
-    && parentLabelRaw
-    && nodeLabelRaw
-    && normalizeReplayTargetLabel(parentLabelRaw) === normalizeReplayTargetLabel(nodeLabelRaw)
-  ) {
-    node = parent;
-    parent = grandparent;
-  }
-  const nodeLabel = formatReplaySupportValue(node?.label);
+  // Skip a unary display/preterminal wrapper with the same label, not an
+  // independently branching syntax object. This avoids descriptions like T in T.
+  let index = path.length - 1;
+  while (index > 0 && path[index - 1].children?.length === 1
+    && path[index - 1].label === path[index].label) index--;
+  const node = path[index];
+  const parent = path[index - 1];
+  const nodeLabel = formatReplaySupportValue(node.label);
   if (!parent) return nodeLabel;
+  const parentLabel = formatReplaySupportValue(parent.label);
+  const children = parent.children ?? [];
 
-  const parentLabel = formatReplaySupportValue(parent?.label);
-  const parentChildren = Array.isArray(parent?.children) ? parent.children : [];
-  const childIndex = parentChildren.findIndex((child) => String(child?.id || '') === normalizedNodeId);
-  const sibling = childIndex >= 0
-    ? parentChildren.find((_, index) => index !== childIndex)
-    : null;
-  const siblingLabel = formatReplaySupportValue(sibling?.label);
-  const { core: parentCore, suffix: parentSuffix } = splitReplayPrimeSuffix(parentLabel);
-  const parentHasPrime = Boolean(parentSuffix);
-  const parentIsMaxProjection = /P$/i.test(parentCore);
-  const siblingLooksLikeProjection = Boolean(siblingLabel) && (/[P]$/i.test(splitReplayPrimeSuffix(siblingLabel).core) || /['′]+$/.test(siblingLabel));
-
-  if (childIndex === 0 && parentIsMaxProjection && siblingLooksLikeProjection) {
-    return `Spec,${parentLabel}`;
+  // Read explicit X-bar levels. Bare repeated XP labels do not distinguish
+  // specifiers from adjuncts, and an arbitrary first child need not be either.
+  const projection = (label: string) => {
+    const plain = label.replace(/(?:\s*\[[^\[\]]*\])+$/u, '').trim();
+    const primes = plain.match(/['′’]+$/u)?.[0].length ?? 0;
+    const category = categoryLabel(plain);
+    return primes ? { head: category, level: primes }
+      : category.endsWith('P') ? { head: category.slice(0, -1), level: 2 }
+        : { head: category, level: 0 };
+  };
+  const parentProjection = projection(parentLabel);
+  const nodeProjection = projection(nodeLabel);
+  const sibling = children.length === 2 ? children.find(child => child !== node) : undefined;
+  const siblingProjection = sibling ? projection(sibling.label) : undefined;
+  if (nodeProjection.level === 2 && siblingProjection?.head === parentProjection.head) {
+    if (parentProjection.level === 2 && siblingProjection.level === 1) return `Spec,${parentLabel}`;
+    if (parentProjection.level === 1 && siblingProjection.level === 0) return `complement of ${parentProjection.head}`;
   }
-  if (childIndex === 1 && parentHasPrime) {
-    return `complement of ${parentCore}`;
-  }
-  if (childIndex === 0 && parentHasPrime) {
-    return nodeLabel || `head of ${parentCore}`;
-  }
-  return parentLabel ? `${nodeLabel || 'node'} in ${parentLabel}` : nodeLabel;
+  return parentLabel && parentLabel !== nodeLabel ? `${nodeLabel || 'node'} in ${parentLabel}` : nodeLabel;
 };
 
 const formatReplayInputsValue = (labels?: string[]): string =>
