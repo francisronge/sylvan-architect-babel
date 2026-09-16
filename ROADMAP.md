@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-16
+Status date: 2026-09-17
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -174,7 +174,7 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,682 tests, typecheck and both parse-contract fixtures pass.
+Current offline gate: 1,687 tests, typecheck and both parse-contract fixtures pass.
 The release asset check passes. Approved Replay wording and Tier-3 role labels
 are merged and pushed through `ff3ed71`; the bounded placement verification below
 extends those checks. This is local/offline evidence, not deployment qualification.
@@ -222,6 +222,19 @@ findings and Programs 0–8:
   All 94 Opus frames retain their original syntax coordinates, camera, panel text
   and role text. Manual zoom, Next/Previous and Fit pass. This closes the two
   reported defects, not the remaining movement, recognition or crowding findings.
+- **Grid clearance verified and visually accepted on September 17.**
+  The Goal/Recipient grid placement was accepted. The connector detour around
+  the Theme grid was rejected because it bent awkwardly and crossed `given`.
+  That routing code has been removed. Plaques now reserve the straight neutral
+  connector stems as well as syntax and movement paths; small plaques search
+  measured nearby gaps, including Case plaques, before using below-tree space.
+  Clear carried placements retain their offsets. Role text yields to straight
+  connector routes. All 240 current saved Opus, Grok and Sol Replay frames pass
+  desktop checks for connector/plaque, connector/word and role/plaque collisions.
+  The final X-bar stage retains one camera. The offline gate passes 1,687 tests.
+  Matched close-ups are in the temporary `grid-clearance/straight.html` review.
+  This does not close movement timing, recognition or Tier-3 crowding; mobile
+  visual approval and universal collision freedom are not claimed.
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
   typechecking, and the existing release asset/link check alongside build and
   dependency audits. No new test framework or product behavior changed.

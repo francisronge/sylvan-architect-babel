@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
-import { stageTreeLayoutSize, buildStagePlaqueLayout, buildStageCameraBounds } from '../replay/stageCamera.ts';
+import { placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { stageTreeLayoutSize, buildStagePlaqueLayout, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
@@ -51,6 +51,54 @@ test('space reserved for a future word prevents an earlier plaque occupying its 
   assert(!plaquesOverlap(result, reserved));
 });
 
+test('small plaques use measured gaps before falling below the whole subtree', () => {
+  const nodes = tree().descendants();
+  const item = { ...plaque(['left', 'right']), plaqueStyle: 'theta-grid' };
+  const anchor = nodes.find(node => node.data.id === 'left');
+  // Leave a narrow vertical pocket between two wide reservations. None of the
+  // fixed candidate heights fit, but the complete measured box does.
+  const floor = anchor.y + 140;
+  const obstacles = [
+    { x: anchor.x - 1000, y: floor - 1000, width: 2000, height: 925 },
+    { x: anchor.x - 1000, y: floor + 115, width: 2000, height: 1000 }
+  ];
+  const box = placeStagePlaques([item], nodes, obstacles).get(0);
+  assert.equal(box.location, 'local');
+  assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)));
+  assert(box.y >= floor - 51 && box.y + box.height <= floor + 91);
+});
+
+test('plaques yield to neutral connector stems without displacing clear placements', () => {
+  const nodes = tree().descendants();
+  const item = plaque(['left']);
+  const initial = placeStagePlaques([item], nodes).get(0);
+  const witness = nodes.find(node => node.data.id === 'right');
+  witness.x = initial.x + initial.width / 2;
+  witness.y = initial.y - 10;
+  const fallback = { kind: 'fallback', drawing: { marks: [], link: { endpoints: ['right', 'left'] } } };
+  const stems = plaqueConnectorObstacles([fallback], nodes);
+  assert(stems.some(stem => plaquesOverlap(initial, stem)), 'the original pocket obstructs a straight stem');
+  const obstacles = [...plaqueTreeObstacles(nodes), ...stems];
+  const previous = new Map([[plaqueIdentity(item), initial]]);
+  const result = placeStagePlaques([item], nodes, obstacles, previous).get(0);
+  assert(stems.every(stem => !plaquesOverlap(result, stem)), 'move the plaque out of the connector corridor');
+  assert.equal(result.location, 'local');
+  assert.deepEqual(plaqueConnectorObstacles([{ ...fallback, drawing: { marks: [] } }], nodes), [],
+    'one participant or a fan does not reserve a lower connector');
+});
+
+test('new stage syntax can displace a carried plaque without changing its claim or nodes', () => {
+  const nodes = tree().descendants(), item = plaque(['left']);
+  const original = placeStagePlaques([item], nodes).get(0);
+  const obstacle = { x: original.x, y: original.y, width: original.width, height: original.height };
+  const previous = new Map([[plaqueIdentity(item), original]]);
+  const next = placeStagePlaques([item], nodes, [...plaqueTreeObstacles(nodes), obstacle], previous).get(0);
+  assert(!plaquesOverlap(next, obstacle));
+  assert.equal(previous.get(plaqueIdentity(item)), original);
+  assert.deepEqual(placeStagePlaques([item], nodes, plaqueTreeObstacles(nodes), previous).get(0), original,
+    'an unobstructed carried placement remains exact');
+});
+
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 
 test('carried plaques follow their claim, not an item index or a newly free pocket', () => {
@@ -65,23 +113,32 @@ test('carried plaques follow their claim, not an item index or a newly free pock
 });
 
 for (const record of records) {
-  test(`${record.name}: unchanged plaques keep their attachment and offset across authored stages`, () => {
+  test(`${record.name}: carried plaques move only when new stage geometry occupies their pocket`, () => {
     const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
     const plan = compileRelationRenderPlan(record.derivationStages);
     let previous = new Map();
     let carried = 0;
     for (const [stageIndex, stage] of record.derivationStages.entries()) {
-      const layout = buildStagePlaqueLayout({ steps, stageIndex, plan, width: 1596, height: 1016,
-        completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) });
+      const input = { steps, stageIndex, plan, width: 1596, height: 1016,
+        completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) };
+      const layout = buildStagePlaqueLayout(input);
+      const { nodes, obstacles } = measureStagePlaqueSpace(input);
       const current = new Map([...layout].map(([index, box]) => [plaqueIdentity(plan.frames[stageIndex].items[index]), box]));
       for (const [key, box] of current) {
         const prior = previous.get(key);
         if (!prior) continue;
+        carried++;
+        const anchor = nodes.find(node => (node.__vizId ?? node.data.id) === prior.attachmentNodeId);
+        const carriedBox = { ...prior, x: prior.x + anchor.x - prior.attachmentX,
+          y: prior.y + anchor.y - prior.attachmentY };
+        if (obstacles.some(obstacle => plaquesOverlap(carriedBox, obstacle))) {
+          assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)), 'relocation must clear the newly reserved geometry');
+          continue;
+        }
         assert.equal(box.attachmentNodeId, prior.attachmentNodeId);
         assert.equal(box.location, prior.location);
         assert(Math.abs((box.x - box.attachmentX) - (prior.x - prior.attachmentX)) < 1e-8);
         assert(Math.abs((box.y - box.attachmentY) - (prior.y - prior.attachmentY)) < 1e-8);
-        carried++;
       }
       previous = current;
     }
@@ -126,6 +183,9 @@ for (const record of records) {
         const input = { steps, stageIndex, plan, width, height,
           completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) };
         const layout = buildStagePlaqueLayout(input);
+        const reserved = measureStagePlaqueSpace(input).obstacles;
+        assert([...layout.values()].every(box => reserved
+          .every(obstacle => !plaquesOverlap(box, obstacle, 0))), 'stage plaques clear syntax and movement trajectories');
         assert.deepEqual(layout, buildStagePlaqueLayout({ ...input, steps: [...steps].reverse() }));
         const bounds = buildStageCameraBounds({ ...input, plaqueLayout: layout });
         const boxes = [...layout.values()];

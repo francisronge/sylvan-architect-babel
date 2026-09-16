@@ -466,7 +466,7 @@ export type BoundFrame = {
 
 type UnroutedFallbackSegment = Omit<BoundSegment, 'd' | 'lane' | 'laneY'>;
 type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY'>
-  & { labelClearances?: Rect[] };
+  & { labelClearances?: Rect[]; obstacles?: Rect[] };
 
 export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
   fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 18, fontWeight: 600, letterSpacing: 0
@@ -514,15 +514,23 @@ const routeFallbackSegments = (
     start: Math.min(segment.from.x, segment.to.x),
     end: Math.max(segment.from.x, segment.to.x)
   })), laneGap);
-  const measuredBaseline = options.connectorBaselineY
+  let measuredBaseline = options.connectorBaselineY
     ?? (counterSegments.length > 0
       ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) + 46 * markerScale
       : 0);
+  // Move the common floor, not individual lanes, so distinct links stay distinct.
+  const clearance = 12 * markerScale;
+  for (const box of [...(options.obstacles ?? [])].sort((a, b) => a.y - b.y)) {
+    if (box.y - clearance <= measuredBaseline + Math.max(0, ...lanes) * laneGap
+      && counterSegments.some(segment => box.x - clearance < Math.max(segment.from.x, segment.to.x)
+        && box.x + box.width + clearance > Math.min(segment.from.x, segment.to.x)))
+      measuredBaseline = Math.max(measuredBaseline, box.y + box.height + clearance);
+  }
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
       return { ...segment, lane: null,
-        d: clearLabelPath(segment.from, segment.to, options.labelClearances) };
+        d: clearLabelPath(segment.from, segment.to, [...(options.labelClearances ?? []), ...(options.obstacles ?? [])]) };
     }
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
@@ -625,6 +633,22 @@ export const fitFallbackGeometry = (
   const scale = options.fittedMarkerScale;
   const anchorScale = options.fittedAnchorScale ?? scale;
   const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
+  const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
+  const connectorBaselineY = options.fallbackMeasurements
+    ? options.fallbackMeasurements.bottom + 34 * scale : options.connectorBaselineY;
+  const routed = routeFallbackSegments(segments.filter(segment => segment.route === 'counter-lane'), {
+    ...options, markerScale: scale, obstacles: options.fallbackMeasurements?.obstacles, connectorBaselineY
+  });
+  // Place text around the complete reserved routes, rather than bending a link
+  // around long text or allowing later role labels to cover its stems.
+  for (const segment of routed) {
+    const points = [segment.from, { x: segment.from.x, y: segment.laneY! },
+      { x: segment.to.x, y: segment.laneY! }, segment.to], pad = 12 * scale;
+    points.slice(1).forEach((point, i) => occupied.push({
+      x: Math.min(point.x, points[i].x) - pad, y: Math.min(point.y, points[i].y) - pad,
+      width: Math.abs(point.x - points[i].x) + pad * 2, height: Math.abs(point.y - points[i].y) + pad * 2
+    }));
+  }
   const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
@@ -633,13 +657,13 @@ export const fitFallbackGeometry = (
     updates.set(mark, { ...mark, ...point });
     centers.set(mark.allocationOrder, point);
   });
-  const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
   const fitted = routeFallbackSegments(segments.map(segment => ({ ...segment,
     ...(segment.route === 'direct' ? {
       from: centers.get(segment.fromMark!) ?? segment.from,
       to: centers.get(segment.toMark!) ?? segment.to
     } : {})
   })), { ...options, markerScale: scale,
+    obstacles: options.fallbackMeasurements?.obstacles,
     labelClearances: [
       ...(options.fallbackMeasurements?.labels ?? []).map(rect => ({
         x: rect.x - 3 * scale, y: rect.y - 3 * scale,
@@ -647,8 +671,7 @@ export const fitFallbackGeometry = (
       ...[...updates.values()].filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
         .map(mark => fallbackLabelRect(mark, scale))
     ],
-    connectorBaselineY: options.fallbackMeasurements
-      ? options.fallbackMeasurements.bottom + 34 * scale : options.connectorBaselineY });
+    connectorBaselineY });
   segments.forEach((segment, index) => updates.set(segment, fitted[index]));
   const deepest = Math.max(0, ...fitted.map(segment => segment.laneY ?? 0));
   frame.primitives.forEach(rail => {
@@ -2243,7 +2266,8 @@ export const bindRelationPlanFrame = (
             type: 'segment', route: 'direct', witnessNodeIds: [hub.nodeId, target.nodeId],
             from: { x: hub.x, y: hub.y }, to: { x: target.x, y: target.y },
             fromMark: hub.allocationOrder, toMark: target.allocationOrder, directed: false, itemIndex
-          }], { markerScale, labelClearances: ownedMarks.map(mark => fallbackLabelRect(mark, markerScale)) }));
+          }], { markerScale, obstacles: options.fallbackMeasurements?.obstacles,
+            labelClearances: ownedMarks.map(mark => fallbackLabelRect(mark, markerScale)) }));
         }
       }
       return;
@@ -2486,7 +2510,7 @@ export const bindRelationPlanFrame = (
    * verbatim and cannot discard the routing.
    */
   primitives.push(...routeFallbackSegments(pendingSegments, {
-    markerScale, laneGap, connectorBaselineY: options.fallbackMeasurements
+    markerScale, laneGap, obstacles: options.fallbackMeasurements?.obstacles, connectorBaselineY: options.fallbackMeasurements
       ? options.fallbackMeasurements.bottom + 34 * markerScale : options.connectorBaselineY
   }));
   /*

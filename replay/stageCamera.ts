@@ -7,8 +7,9 @@ import {
 } from './replayCompiler.ts';
 import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal,
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
-import type { RelationRenderPlan } from './relations/renderPlanCompiler.ts';
-import { placeStagePlaques, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
+import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
+import { placeStagePlaques, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
 
 type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
@@ -16,6 +17,21 @@ type StageLayoutInput = {
   abstractionMode?: boolean; protectedNodeIds?: Set<string>;
   layoutGroups?: readonly (readonly number[])[];
 };
+
+/** Shared geometric endpoint estimates for reservation and camera bounds. */
+function stagePositionProvider(byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlanPositionProvider {
+  return (id, attachment = 'position') => {
+    const node = byId.get(id);
+    if (!node) return null;
+    if (attachment === 'parent') return node.parent ? { x: node.parent.x, y: node.parent.y } : null;
+    if (attachment === 'terminal') {
+      const { terminal } = resolveUniqueDisplayTerminal(node, n => n.children || [],
+        n => !n.children?.length && isDisplayTerminalSurface(resolveLeafSurface(n)));
+      return terminal ? { x: terminal.x, y: terminal.y + 140 } : null;
+    }
+    return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? 6 : attachment === 'shell-top' ? -8 : 0) };
+  };
+}
 
 /** Share dimensions only across unchanged authored syntax with compatible ordinary layouts. */
 export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspaceForest: SyntaxNode[] }[]) {
@@ -112,6 +128,12 @@ export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, Pla
 }
 
 function allocateStagePlaques(input: StageLayoutInput, previous: Map<string, PlaquePlacement>) {
+  const { nodes, obstacles } = measureStagePlaqueSpace(input);
+  return placeStagePlaques(input.plan?.frames[input.stageIndex]?.items ?? [], nodes, obstacles, previous);
+}
+
+/** Shared reservation for placement and verification, including unrevealed stage trajectories. */
+export function measureStagePlaqueSpace(input: StageLayoutInput) {
   const { scenes, completedTree } = stageLayouts(input);
   const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
     !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
@@ -124,7 +146,37 @@ function allocateStagePlaques(input: StageLayoutInput, previous: Map<string, Pla
   const nodes = reference ? visibleNodes(reference.currentTree, reference.visibleIds) : visibleNodes(completedTree);
   const obstacles = scenes.length ? scenes.flatMap(scene => plaqueTreeObstacles(visibleNodes(scene.currentTree, scene.visibleIds)))
     : plaqueTreeObstacles(nodes);
-  return placeStagePlaques(input.plan?.frames[input.stageIndex]?.items ?? [], nodes, obstacles, previous);
+  const items = input.plan?.frames[input.stageIndex]?.items ?? [];
+  obstacles.push(...plaqueConnectorObstacles(items, nodes));
+  // Plaques yield to authored movement trajectories. Reserve all paths in the
+  // stage before reveal, using the same binder that supplies their drawing.
+  for (const scene of scenes) {
+    if (!input.plan) break;
+    const byId = indexHierarchyNodesByIdAndAliases(visibleNodes(scene.currentTree, scene.visibleIds));
+    const frame = input.plan.frames[input.stageIndex];
+    const items = (frame?.items ?? []).filter(item => item.kind === 'trajectory')
+      .map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id)?.data));
+    if (!items.length) continue;
+    const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
+      index === input.stageIndex ? { ...frame, items } : frame) };
+    const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
+      trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - 160,
+      trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + 180
+    });
+    for (const path of bound.primitives) {
+      if (path.type !== 'trajectory-path') continue;
+      const points = path.route === 'cubic' && path.control2
+        ? sampleCubic(path.start, path.control, path.control2, path.end, 32)
+        : path.route === 'orthogonal' ? [path.start, { x: path.start.x, y: path.control.y },
+          { x: path.end.x, y: path.control.y }, path.end]
+          : sampleQuadratic(path.start, path.control, path.end, 32);
+      points.slice(1).forEach((point, i) => obstacles.push({
+        x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
+        width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10
+      }));
+    }
+  }
+  return { nodes, obstacles };
 }
 
 export function treeLayoutSize(nodeCount: number, depth: number, width: number, height: number) {
@@ -212,17 +264,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       }));
     }
     if (!includeOverlays || !plan) continue;
-    const positionFor: PlanPositionProvider = (id, attachment = 'position') => {
-      const node = byId.get(id);
-      if (!node) return null;
-      if (attachment === 'parent') return node.parent ? { x: node.parent.x, y: node.parent.y } : null;
-      if (attachment === 'terminal') {
-        const { terminal } = resolveUniqueDisplayTerminal(node, n => n.children || [],
-          n => !n.children?.length && isDisplayTerminalSurface(resolveLeafSurface(n)));
-        return terminal ? { x: terminal.x, y: terminal.y + 140 } : null;
-      }
-      return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? 6 : attachment === 'shell-top' ? -8 : 0) };
-    };
+    const positionFor = stagePositionProvider(byId);
     const maxY = d3.max(fitNodes, node => node.y) ?? 0;
     // Bounds reserve all stage marks at nominal scale, never reading the live DOM or camera.
     const bound = bindRelationPlanFrame(plan, stageIndex, positionFor, {

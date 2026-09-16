@@ -127,6 +127,78 @@ test('neutral roles reserve plaque space before reveal and retain that clearance
     'a distant plaque leaves accepted geometry unchanged');
 });
 
+const sampleConnector = d => {
+  const tokens = d.match(/[MLQ]|-?\d+(?:\.\d+)?/g), points = [];
+  let i = 0, current;
+  const point = () => ({ x: Number(tokens[i++]), y: Number(tokens[i++]) });
+  while (i < tokens.length) {
+    const command = tokens[i++];
+    if (command === 'M') { current = point(); points.push(current); continue; }
+    const control = command === 'Q' ? point() : null, end = point();
+    for (let j = 1; j <= 100; j++) {
+      const t = j / 100, u = 1 - t;
+      points.push(control ? { x: u * u * current.x + 2 * u * t * control.x + t * t * end.x,
+        y: u * u * current.y + 2 * u * t * control.y + t * t * end.y }
+        : { x: current.x * u + end.x * t, y: current.y * u + end.y * t });
+    }
+    current = end;
+  }
+  return points;
+};
+
+test('neutral connectors keep straight stems while lower lanes clear plaques', () => {
+  const labels = { a: { x: 0, y: 100, width: 20, height: 20 }, b: { x: 300, y: 0, width: 20, height: 20 } };
+  const plaques = [{ x: 100, y: 420, width: 80, height: 80 }];
+  const measurements = { labels: Object.values(labels), labelFor: id => labels[id], subtreeFor: id => labels[id], bottom: 400 };
+  const bind = fallbackMeasurements => bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 10, y: labels[id].y + 10 }), { fallbackMeasurements });
+  const crosses = (path, box) => sampleConnector(path).some(p => p.x > box.x && p.x < box.x + box.width
+    && p.y > box.y && p.y < box.y + box.height);
+  const before = bind(measurements);
+  const beforePath = before.primitives.find(p => p.type === 'segment');
+  assert(plaques.every(box => crosses(beforePath.d, box)), 'reproduce the lower-lane collision');
+  const fallbackMeasurements = { ...measurements, obstacles: plaques };
+  const after = bind(fallbackMeasurements), segment = after.primitives.find(p => p.type === 'segment');
+  for (const fitted of [segment, ...[0.5, 1, 3, 12].map(fittedMarkerScale =>
+    fitFallbackGeometry(after, { fallbackMeasurements, fittedMarkerScale }).get(segment))]) {
+    assert(plaques.every(box => !crosses(fitted.d, box)), 'the full rounded connector clears every plaque');
+    assert.deepEqual(fitted.witnessNodeIds, beforePath.witnessNodeIds);
+    assert.deepEqual(fitted.from, beforePath.from);
+    assert.deepEqual(fitted.to, beforePath.to);
+    assert.equal((fitted.d.match(/Q/g) ?? []).length, 2, 'only the two accepted bottom corners');
+    assert.equal((fitted.d.match(/L/g) ?? []).length, 3, 'no additional doglegs');
+  }
+  assert.deepEqual(bind({ ...measurements, obstacles: [{ x: 10000, y: 0, width: 100, height: 100 }] }), before,
+    'clear connectors and labels keep their exact existing geometry');
+  const shared = structuredClone(plan);
+  shared.frames[0].items.push(...structuredClone(shared.frames[0].items));
+  const links = bindRelationPlanFrame(shared, 0, id => ({ x: labels[id].x + 10, y: labels[id].y + 10 }),
+    { fallbackMeasurements }).primitives.filter(p => p.type === 'segment');
+  assert.equal(new Set(links.map(link => link.laneY)).size, links.length,
+    'clearing a wide plaque cannot collapse separate lower lanes');
+});
+
+test('role text yields to reserved connector stems instead of creating long detours', () => {
+  const p = compileRelationRenderPlan([stage([
+    { relation: 'Open claim', anchors: { first: 'a', second: 'b' } },
+    { relation: 'Context', anchors: { longNamedWitness: 'c' } }
+  ])]);
+  const labels = { a: { x: 0, y: 0, width: 20, height: 20 }, b: { x: 300, y: 0, width: 20, height: 20 },
+    c: { x: -100, y: 200, width: 20, height: 20 } };
+  const fallbackMeasurements = { labels: Object.values(labels), labelFor: id => labels[id],
+    subtreeFor: id => labels[id], bottom: 300 };
+  const bound = bindRelationPlanFrame(p, 0, id => ({ x: labels[id].x + 10, y: labels[id].y + 10 }), { fallbackMeasurements });
+  const mark = bound.primitives.find(p => p.type === 'fallback-mark' && p.nodeId === 'c');
+  assert(mark.x - mark.textWidth / 2 < 10 && mark.x + mark.textWidth / 2 > 10,
+    'the former side position overlaps the existing vertical stem');
+  const fitted = fitFallbackGeometry(bound, { fallbackMeasurements, fittedMarkerScale: 1 });
+  const text = fitted.get(mark);
+  const paths = [...fitted.values()].filter(p => p.type === 'segment');
+  assert(paths.every(path => !sampleConnector(path.d).some(point => Math.abs(point.x - text.x) < text.textWidth / 2
+    && Math.abs(point.y - text.y) < 12)), 'fitted role text clears the entire connector');
+  assert(paths.every(path => path.d === bound.primitives.find(p => p.type === 'segment').d),
+    'the accepted connector stays straight');
+});
+
 test('a long neutral role uses nearby vertical space when both sides leave the fitted viewport', () => {
   const p = compileRelationRenderPlan([stage([{ relation: 'Context', anchors: { witness: 'a' } }])]);
   const label = { x: 490, y: 100, width: 20, height: 30 };

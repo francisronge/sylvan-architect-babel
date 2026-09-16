@@ -82,6 +82,15 @@ Complete role labels share the tree scale during manual zoom, preserving their
 fitted size and stage-wide placement. The production painter and topology are
 shared with every Orchard fallback card.
 
+Plaque placement reserves syntax, movement trajectories and the straight stems
+of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
+large plaques retain their below-subtree placement. A carried plaque keeps its
+offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
+yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
+yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
+does not move existing syntax or annotations. The straight-connector revision was visually accepted on September 17; its
+bounded verification and remaining work are recorded in the roadmap.
+
 ## Extreme text overflow
 
 Ordinary text plaques retain their accepted geometry and placement. Only content

@@ -73,6 +73,25 @@ export function plaqueTreeObstacles(nodes: Node[]): PlaqueRect[] {
   return rectangles;
 }
 
+/** Reserve the straight stems below neutral-link witnesses before placing plaques. */
+export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[]): PlaqueRect[] {
+  const byId = new Map(nodes.map(node => [idOf(node), node]));
+  const included = new Set(nodes);
+  const bottom = Math.max(0, ...nodes.map(node => node.y + 175));
+  const ids = new Set(items.flatMap(item => item.kind === 'fallback'
+    ? item.drawing.link?.endpoints ?? [] : []));
+  return [...ids].flatMap(id => {
+    const anchor = byId.get(id);
+    if (!anchor) return [];
+    const subtree = anchor.descendants().filter(node => included.has(node));
+    const bounds = union(plaqueTreeObstacles(subtree));
+    // Allow a label-height of clearance for the estimated text centre. The
+    // browser attaches to measured ink; neither attachment nor path is moved.
+    const x = bounds.x + bounds.width / 2, y = Math.max(...subtree.map(node => node.y)) - 42;
+    return [{ x: x - 42, y, width: 84, height: bottom - y }];
+  });
+}
+
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
   previous = new Map<string, PlaquePlacement>()) {
@@ -115,13 +134,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         height: 76 + (bundle?.rows.length ?? 1 + collections.length) * 62 });
     }
   });
-  // Persistent boxes keep their pocket. Reserve them before placing newly introduced claims.
+  // Keep a carried pocket unless new stage syntax has occupied it.
   for (const request of requests) {
     const prior = previous.get(plaqueIdentity(items[request.index]));
     const attachment = prior && byId.get(prior.attachmentNodeId);
     if (!prior || !attachment || prior.width !== request.width || prior.height !== request.height) continue;
     const placement = { ...prior, x: prior.x + attachment.x - prior.attachmentX,
       y: prior.y + attachment.y - prior.attachmentY, attachmentX: attachment.x, attachmentY: attachment.y };
+    if (occupied.some(obstacle => plaquesOverlap(placement, obstacle))) continue;
     result.set(request.index, placement);
     occupied.push(placement);
   }
@@ -151,6 +171,36 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
         - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
     let placement = candidates.find(candidate => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle)));
+    if (!placement && local) {
+      // Search obstacle edges inside one plaque-sized neighbourhood. For each
+      // column, merged blocked intervals give the nearest clear vertical gap.
+      const gap = 24 + 1e-6, reach = Math.max(width, height) + height / 2;
+      const xs = [...new Set([...candidates.map(box => box.x), ...occupied.flatMap(box =>
+        [box.x - width - gap, box.x + box.width + gap])])]
+        .filter(x => Math.abs(x + width / 2 - anchor.x) <= reach)
+        .sort((a, b) => Math.abs(a + width / 2 - anchor.x) - Math.abs(b + width / 2 - anchor.x));
+      let bestDistance = Infinity;
+      for (const x of xs) {
+        const dx = x + width / 2 - anchor.x;
+        if (dx * dx >= bestDistance) break;
+        const intervals = occupied.filter(box => x < box.x + box.width + gap && x + width + gap > box.x)
+          .map(box => [box.y - height - gap, box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
+        const merged: number[][] = [];
+        for (const interval of intervals) {
+          const last = merged[merged.length - 1];
+          if (last && interval[0] < last[1]) last[1] = Math.max(last[1], interval[1]);
+          else merged.push(interval);
+        }
+        const idealY = anchorY - height / 2;
+        const blocked = merged.find(([start, end]) => start < idealY && end > idealY);
+        for (const y of blocked ?? [idealY]) {
+          const dy = y + height / 2 - anchorY, distance = dx * dx + dy * dy;
+          if (Math.abs(dy) <= reach && distance < bestDistance) {
+            placement = { x, y, width, height }; bestDistance = distance;
+          }
+        }
+      }
+    }
     const location = placement ? 'local' : 'below';
     if (!placement) {
       // Stay horizontally under this subtree; only grow downward when another box or branch occupies it.
