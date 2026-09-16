@@ -355,6 +355,10 @@ test('native theta uses prepared literal roles and associations, never the raw a
   const svg = drawNative('scheduleAcceptedThetaGrid', plan.frames[0].items);
   assert.deepEqual(svg('babel-theta-grid-role').map((node) => node.textContent), ['Theme_i: literal']);
   assert.equal(svg('babel-theta-terminal-index').length, 1);
+  const word = svg('babel-theta-indexed-label')[0];
+  assert.equal(word.textContent, 'Mia', 'the syntax word remains on its original text element');
+  assert.deepEqual(word.children.map(node => node.attrs.class), ['babel-theta-terminal-index babel-relation-index'],
+    'only the added index enters relation ownership and emphasis');
 });
 
 test('Astra X-bar frames 35 and 36: native theta paints the persistent reserved positions', () => {

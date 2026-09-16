@@ -4156,11 +4156,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               indexedLabel.each(function appendThetaIndex() {
                 const label = d3.select(this);
                 const baseLabel = label.attr('data-default-label') || this.textContent || '';
-                label.text('')
+                label.text(baseLabel)
                   .classed('babel-theta-indexed-label', true)
-                  .attr('data-theta-base-label', baseLabel)
-                  .append('tspan')
-                  .text(baseLabel);
+                  .attr('data-theta-base-label', baseLabel);
                 label.append('tspan')
                   .attr('class', 'babel-theta-terminal-index babel-relation-index')
                   .attr('dx', 5)
