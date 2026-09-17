@@ -137,6 +137,44 @@ the existing bounded-copy format, with byte counts, a hash, and an explicit
 truncation flag. Tree Bank retains this evidence; failed requests offer a
 downloadable failure record.
 
+#### Subscription-funded development checks
+
+`npm run qualification:codex` sends Babel's exact prompts directly to the Codex
+Responses endpoint using a ChatGPT subscription login. It does not launch an
+agent or load Codex instructions, history, tools, skills, project files or profile
+configuration. It reads only the login credential file, in memory, without
+copying or changing it. It never uses API keys or retries a request.
+
+From a checkout with committed contract sources:
+
+```sh
+npm run qualification:codex -- --sentence 'Mia laughed.' --framework xbar \
+  --model openai:gpt-5.6-sol --effort high --out /tmp/babel-sol-check --run
+npm run qualification:review -- --run /tmp/babel-sol-check
+```
+
+Omit `--run` to save and inspect the request without authentication or network
+access. Each invocation requires a new output directory. Astra uses
+`--model openai:gpt-6-astra`. An explicit `--auth-file` can select a separate Codex
+login; the default is `$CODEX_HOME/auth.json` or `~/.codex/auth.json`. An expired
+token requires a fresh `codex login`; the runner does not manage the account.
+Keep credentials out of artifacts, repositories and public CI.
+
+Artifacts include the exact request, source fingerprint, received SSE bytes,
+terminal provider response and usage, extracted output, and the usual Babel
+inspection, normalization, repairs and Replay evidence. Only a provider-confirmed
+complete response enters Babel processing. Partial output remains available in
+`output.txt` and `response.sse`. Cancellation saves what has arrived. There is no
+client-imposed generation time limit.
+
+The subscription endpoint requires streaming and `store: false`; background
+polling and the API output-token limit are omitted and recorded as transport
+differences. These are subscription development checks, not verification of the
+public API request route or proof that the backend behaves identically to the
+paid API. No application provider route is changed. The runner works from a
+local or private remote checkout with Node 24 and `npm ci`; it does not provision
+a remote machine or copy a login there.
+
 ### 3) Constituent Glyphing toggle
 
 Babel includes a `Constituent Glyphing` abstraction toggle.

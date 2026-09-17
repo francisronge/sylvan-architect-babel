@@ -35,6 +35,7 @@ const explicitSections = {
   ],
   qualificationTools: [
     'scripts/buildContractQualificationDryRun.mjs',
+    'scripts/runCodexQualification.mjs',
     'scripts/buildContractQualificationReview.mjs',
     'scripts/captureReplayArtifact.mjs'
   ],

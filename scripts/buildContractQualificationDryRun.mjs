@@ -3,10 +3,10 @@ import path from 'node:path';
 
 import {
   hashQualificationBytes,
-  runQualificationAttempt,
   stableQualificationJson,
   validateQualificationPlan
 } from '../contractQualification/index.js';
+import { writeQualificationAttempt } from '../contractQualification/artifacts.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -82,79 +82,9 @@ fs.mkdirSync(attemptsRoot, { recursive: true });
 const attemptReceipts = [];
 const reviewEntries = [];
 for (const attempt of plan.attempts) {
-  const attemptRoot = path.join(attemptsRoot, attempt.id);
-  fs.mkdirSync(attemptRoot, { recursive: true });
-  const rawBytes = rawBytesForAttempt(attempt);
-  const result = runQualificationAttempt({ attempt, rawOutputBytes: rawBytes });
-  fs.writeFileSync(path.join(attemptRoot, 'raw-output.txt'), rawBytes);
-
-  const receipt = {
-    ...result.receipt,
-    rawOutput: {
-      ...result.receipt.rawOutput,
-      artifact: `attempts/${attempt.id}/raw-output.txt`
-    }
-  };
-  fs.writeFileSync(
-    path.join(attemptRoot, 'attempt-receipt.json'),
-    stableQualificationJson(receipt),
-    'utf8'
-  );
-
-  const reviewEntry = {
-    attemptId: attempt.id,
-    sentence: attempt.request.sentence,
-    framework: attempt.request.framework,
-    model: attempt.model,
-    outcome: receipt.outcome,
-    rawOutput: receipt.rawOutput.artifact,
-    receipt: `attempts/${attempt.id}/attempt-receipt.json`,
-    analyses: []
-  };
-
-  if (result.inspection) {
-    reviewEntry.inspection = `attempts/${attempt.id}/inspection.json`;
-    fs.writeFileSync(path.join(outputPath, reviewEntry.inspection),
-      stableQualificationJson(result.inspection), 'utf8');
-  }
-
-  if (result.bundle) {
-    const bundleWrapper = {
-      request: {
-        sentence: attempt.request.sentence,
-        framework: attempt.request.framework,
-        modelRoute: attempt.model.providerRoute,
-        reasoningEffort: Object.values(attempt.model.nativeSettings)[0] || ''
-      },
-      response: result.bundle
-    };
-    fs.writeFileSync(
-      path.join(attemptRoot, 'bundle.json'),
-      stableQualificationJson(bundleWrapper),
-      'utf8'
-    );
-    result.replayProjections.forEach((projection, analysisIndex) => {
-      const replayArtifact = `attempts/${attempt.id}/replay-analysis-${analysisIndex + 1}.json`;
-      const evidenceArtifact = `attempts/${attempt.id}/evidence-analysis-${analysisIndex + 1}.json`;
-      fs.writeFileSync(
-        path.join(outputPath, replayArtifact),
-        stableQualificationJson(projection),
-        'utf8'
-      );
-      fs.writeFileSync(
-        path.join(outputPath, evidenceArtifact),
-        stableQualificationJson(result.analysisEvidence[analysisIndex]),
-        'utf8'
-      );
-      reviewEntry.analyses.push({
-        analysisIndex,
-        replay: replayArtifact,
-        evidence: evidenceArtifact,
-        output: `review/${attempt.id}/analysis-${analysisIndex + 1}`
-      });
-    });
-    reviewEntry.bundle = `attempts/${attempt.id}/bundle.json`;
-  }
+  const { receipt, reviewEntry } = writeQualificationAttempt({
+    outputPath, attempt, rawBytes: rawBytesForAttempt(attempt)
+  });
 
   reviewEntries.push(reviewEntry);
   attemptReceipts.push(receipt);

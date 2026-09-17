@@ -7,6 +7,11 @@ and research notebooks are evidence or history, not competing roadmaps.
 
 ## Current Baseline
 
+Subscription testing: a Babel-only Codex OAuth runner is being verified. It uses
+the existing prompts, normalization and Replay with no agent instructions or
+tools, no API-key fallback and no automatic retries. Live subscription transport
+verification is separate from the paid API/public-route qualification below.
+
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
 | Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. | Qualify fresh model authoring under the revised prompt when a run is agreed. |
