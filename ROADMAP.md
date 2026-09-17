@@ -54,18 +54,46 @@ problematic frames at full size. No browser console errors were recorded. The
 recognition patch leaves all 811 compared Replay steps unchanged across twenty
 saved analyses; its only changed claim classification is the earlier Astra Case
 example. This is bounded desktop checking, not universal visual approval.
+The initial review missed Sol Minimalism movement frames 42→43: the movement frame
+introduces the moved head and its local C host, but the C′ joining that host to
+TP appears in a later ExternalMerge micro-step. The landing-host walk stops at
+the previously selected free C head rather than reaching the source-containing
+clause. This is now repaired: the necessary new path joins the source workspace
+in the movement moment; unrelated higher projections keep their own steps. The
+example now has 53 frames instead of 54. Frame capture alone had not established
+correct transition timing.
 
-The batch exposes an unresolved composition defect: repeated Tier-2 claims can
-accumulate identical plaques and overlapping binding-domain shading. The current
-identity rule deliberately includes authored stage and workspace, so restating a
-claim after its tree grows does not coalesce with its persisted mark. Review a
-general distinction between claim occurrence and persistent drawing identity;
-retain every Replay moment and distinguish changed participants, values, prior
-evidence and outcomes. Do not suppress marks merely because they share geometry.
+The batch exposed repeated Tier-2 claims accumulating identical plaques and
+overlapping binding-domain shading. The repair separates full occurrence identity
+from persistent output identity. Current-state claims without transition rules
+or prior references coalesce across stage/workspace growth; exact occurrence IDs,
+lineages, values, outcomes and output pieces remain identity evidence. Every
+Replay moment and contributing reference survives. Different supersession times
+remain separate, and Case composition uses all preserved authored stages. A
+later feature bundle is not revealed early through a carried Case mark.
+The reported movement frame contains five copies of its Theme grid and four of
+its Agent grid; the final embedding frame overlays six copies of one binding
+domain. These now paint as one Theme grid, one Agent grid and one domain.
+Separately, Case plaque placement can choose a box above its assigner; the
+connector's aligned-x case became a straight upward arrow. It now has a short
+curve within the vertical gap, with its arrowhead directed into the plaque.
+Other routes, tree placement and shared camera logic are unchanged.
+
+Verification: 1,712 tests, typechecking and both parse-contract fixtures pass.
+Twenty saved analyses preserve recognition, every relation moment/order and all
+drawing references. Nineteen retain identical Replay steps; only the reported
+Sol transition changes. The production browser pass covers all eight new final
+views, the affected movement, earlier Case examples, zoom, stepping/Fit and a
+narrow Case view, with no console errors. Fable independently reviewed the
+initial patch; its composition and arrow-direction findings have focused
+regressions. Before/after captures, stepped recording and review remain outside
+the worktree under `/tmp/babel-sept17-review/renderer-repairs`. This is bounded
+verification, not a claim that all rendering or linguistic issues are resolved.
 Other recognition gaps include unfamiliar role names, compound role/value groups
 and relation restatements without enough movement evidence. More aliases alone
-cannot resolve arbitrary language. A separately evaluated interpretation step
-against existing drawing requirements is a proposal, not implemented architecture.
+cannot resolve arbitrary language. Francis does not want a separate model
+interpretation pass; do not pursue that proposal. Continue investigating shared
+deterministic evidence rules and retain neutral claims when evidence is missing.
 
 Sol's X-bar morphology response uses `realizations` to associate retained `walk`
 and `-ed` occurrences with the input token `walked`; raw authoring, normalization
@@ -1329,10 +1357,8 @@ The current work order above owns these decisions:
   drawings are already implemented. The eight-parse subscription batch confirms
   that vocabulary consolidation alone is insufficient. Evaluate unfamiliar
   wording against existing drawing requirements without changing the authored
-  analysis; no new interpretation architecture is yet approved or implemented.
-- Persistent drawing identity for repeated claims: the batch reproduces stacked
-  Goal plaques and binding-domain shading. Separate restatement from changed
-  meaning before changing the stage/workspace identity rule.
+  analysis. A separate model interpretation pass is not wanted and is not part
+  of the implementation plan.
 - Broader model qualification of optional `realizations` for retained final
   morphology. One fresh Sol X-bar `walk` + `-ed` association works; other
   realizations and languages remain unmeasured.
