@@ -241,3 +241,57 @@ test('the first supported relation owns movement and its pending parent; later i
   assert.deepEqual(steps[moment + 1].replayVisibleNodeIds, steps[moment].replayVisibleNodeIds);
   assert.deepEqual(stages[0].workspaceForest, input.priorForest);
 });
+
+test('a landing site describes the parent, not the moved occurrence, across unfamiliar scalar roles', () => {
+  for (const keepLowerId of [false, true]) {
+    const input = relocatedPhrase('Unfamiliar claim');
+    if (keepLowerId) input.priorForest[0].children[0].id = 'lower';
+    input.relation = { relation: 'Unfamiliar claim', anchors: {
+      observedObject: 'higher', landingSite: 'landing-parent', ...(keepLowerId ? {} : { trace: 'lower' })
+    }, priorAnchors: { source: keepLowerId ? 'lower' : 'higher' } };
+    const original = structuredClone(input);
+    const movement = recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement;
+    assert.equal(movement?.sourceNodeId, 'lower');
+    assert.equal(movement?.targetNodeId, 'higher');
+    assert.deepEqual(movement?.context, [{ key: 'landingSite', nodeId: 'landing-parent', kind: 'site' }]);
+    assert.ok(plan(input).some(item => item.kind === 'trajectory' && item.targetNodeId === 'higher'));
+    assert.deepEqual(input, original);
+    for (const change of [
+      x => { x.relation.anchors.observedObject = ['higher', 'higher']; },
+      x => { x.currentForest[0].children[0].lineageId = 'unrelated'; },
+      x => { x.relation.anchors.landingSite = ['landing-parent', 'landing-parent']; },
+      x => { x.currentForest = [{ id: 'outer', label: 'XP', children: x.currentForest }]; x.relation.anchors.landingSite = 'outer'; },
+      x => { x.currentForest[0].children.push({ id: 'rival', label: 'DP', lineageId: 'chain' }); x.relation.anchors.anotherObject = 'rival'; }
+    ]) {
+      const conflicting = structuredClone(input);
+      change(conflicting);
+      assert.ok(!plan(conflicting).some(item => item.kind === 'trajectory'), JSON.stringify(conflicting.relation));
+    }
+  }
+});
+
+test('movement into a parent-owned empty position occurs at its first relation, keeping unrelated structure', () => {
+  const input = relocatedPhrase('Unfamiliar claim');
+  const unrelated = { id: 'unrelated', label: 'AP', children: [{ id: 'adj', label: 'A', word: 'new' }] };
+  input.priorForest = [{ id: 'landing-parent', label: 'CP', children: [
+    { id: 'empty', label: 'DP', silent: true }, input.priorForest[0], unrelated
+  ] }];
+  input.currentForest[0].children.push(unrelated);
+  input.relation = { relation: 'Unfamiliar claim', anchors: {
+    observedObject: 'higher', landingSite: 'landing-parent', trace: 'lower'
+  }, priorAnchors: { source: 'higher', targetPosition: 'empty' } };
+  const stages = [stage(input.priorForest), stage(input.currentForest, [input.relation,
+    { relation: 'Later inspection', anchors: { higherCopy: 'higher', lowerCopy: 'lower' } }])];
+  const { steps } = buildReplayPlayback({ sentence: 'book new', analyses: [{ derivationStages: stages }] });
+  const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 0);
+  assert.ok(moment > 0);
+  assert.ok(steps[moment - 1].replayVisibleNodeIds.includes('empty'));
+  assert.ok(!steps[moment - 1].replayVisibleNodeIds.includes('lower'));
+  assert.ok(!steps[moment].replayVisibleNodeIds.includes('empty'));
+  assert.ok(steps[moment].replayVisibleNodeIds.includes('lower'));
+  for (const id of ['unrelated', 'adj', 'domain', 'landing-parent', 'higher']) {
+    assert.ok(steps[moment - 1].replayVisibleNodeIds.includes(id), id);
+    assert.ok(steps[moment].replayVisibleNodeIds.includes(id), id);
+  }
+  assert.deepEqual(steps[moment + 1].replayVisibleNodeIds, steps[moment].replayVisibleNodeIds);
+});

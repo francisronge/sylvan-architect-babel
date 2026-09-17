@@ -114,11 +114,30 @@ export function recoverMovementEvidence(
   // An explicit preceding source distinguishes this step from earlier copies
   // in the same chain. Unchanged earlier copies remain separate evidence.
   const priorSource = explicitPriorSources.length === 1 ? explicitPriorSources[0] : undefined;
+  // A preceding source can name the same current occurrence directly. Resolve
+  // it before distinguishing the landing occurrence from its containing site.
+  if (!sources.length && !entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
+    && priorSource && samePriorSlot(priorSource, priorSource)) sources = [priorSource];
   if (priorSource && anchored.includes(priorSource) && samePriorSlot(priorSource, priorSource)
     && sources.every(id => id === priorSource || (current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
       && prior.nodes.has(id) && JSON.stringify(current.nodes.get(id)) === JSON.stringify(prior.nodes.get(id))))) {
     sources = [priorSource];
     structurallyBound = true;
+  }
+  // An anchored landing site may name the immediate parent, while another
+  // scalar field names the moved occurrence. Root identity and containment
+  // distinguish them without interpreting that other field's spelling.
+  if (sources.length === 1 && targets.length && entries.filter(e => hasRole(e.key, 'movement.landing'))
+    .every(e => e.ids.length === 1)) {
+    const lineage = current.nodes.get(sources[0])?.lineageId;
+    const occurrences = anchored.filter(id => id !== sources[0] && lineage
+      && current.nodes.get(id)?.lineageId === lineage);
+    if (occurrences.length === 1 && targets.every(id => id === occurrences[0]
+      || (targets.includes(occurrences[0]) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrences[0]))
+      || movementContextFailure(forest, occurrences[0], id, 'site') === undefined)) {
+      structurallyBound ||= targets.length !== 1 || targets[0] !== occurrences[0];
+      targets = occurrences;
+    }
   }
   // Unfamiliar wording still needs explicit movement direction or an established
   // identity, plus exact anchored occurrences and a changed preceding source slot.
@@ -151,23 +170,10 @@ export function recoverMovementEvidence(
       structurallyBound = true;
     }
   }
-  // A prior source may supply the lower endpoint only when that exact
-  // occurrence still exists now. Never search for a substitute by lineage.
+  // A prior source that has not been structurally rebound must still name an
+  // exact current occurrence; the identity and context checks below apply.
   if (!sources.length && !entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
-    && explicitPriorSources.length === 1 && current.nodes.has(explicitPriorSources[0])) {
-    sources = explicitPriorSources;
-  }
-  // A separately anchored enclosing landing site is not another occurrence.
-  // Do not discard unrelated candidates or narrow an authored array this way.
-  if (sources.length === 1 && targets.length > 1) {
-    const lineage = current.nodes.get(sources[0])?.lineageId;
-    const occurrences = targets.filter(id => lineage && current.nodes.get(id)?.lineageId === lineage);
-    if (occurrences.length === 1 && targets.every(id => id === occurrences[0]
-      || (current.nodes.has(id) && contains(current.nodes.get(id)!, occurrences[0])))
-      && entries.filter(e => hasRole(e.key, 'movement.landing')).every(e => e.ids.length === 1)) {
-      targets = occurrences;
-    }
-  }
+    && priorSource && current.nodes.has(priorSource)) sources = [priorSource];
   // Generic roles such as head, source, or target also belong to nonmovement
   // relations. They alone are not evidence of a malformed movement claim.
   const occurrenceRoles = entries.some(e => !genericRoles.has(e.key)

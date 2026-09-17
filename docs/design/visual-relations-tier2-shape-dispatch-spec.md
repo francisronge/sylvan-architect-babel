@@ -121,7 +121,11 @@ An explicitly anchored head-movement host or complex is accepted only when the
 current tree proves its relationship to the landing. A phase head is not a
 synonym for its enclosing phase projection. Movement recovery also distinguishes
 an enclosing landing site from an occurrence using authored root lineage and
-containment; it does not discard unrelated candidates or narrow arrays.
+containment; it does not discard unrelated candidates or narrow arrays. If the
+site is the immediate parent of one separately anchored occurrence with the
+source's root lineage, that occurrence supplies the landing even when its role
+name is unfamiliar. An explicit prior source must be resolved before this
+distinction. The same evidence owns drawing and Replay transition timing.
 The generic role `head` additionally needs unique source/landing root-lineage
 evidence before Tier 1 can treat it as the moved occurrence rather than its host.
 
