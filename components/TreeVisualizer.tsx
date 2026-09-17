@@ -5,6 +5,7 @@ import { DerivationStage, SyntaxNode } from '../types';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
 import RootLogo from './RootLogo';
 import { appendPlaqueContent } from './plaqueViewport';
+import { identityLightSites } from './identityForestLight';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
@@ -8435,37 +8436,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const treeScale = Math.max(0.001, Math.hypot(treeMatrix.a, treeMatrix.b));
         if (baselineTreeScale === null) baselineTreeScale = treeScale;
         const visualScale = clamp(treeScale / baselineTreeScale, 0.82, 2.25);
-        const terminalLabels = Array.from(
-          svgElement.querySelectorAll('.terminal-label')
-        ) as SVGGraphicsElement[];
         identityForestLightFamilies.forEach(({ occurrencePools, emphasis }, familyIndex) => {
           const intensity = emphasis === 'quiet' ? 0.3 : 1;
           const source = {
             x: mountRect.width * (0.78 - familyIndex * 0.16),
             y: Math.max(24, mountRect.height * (0.12 + familyIndex * 0.08))
           };
-          occurrencePools.forEach((terminalIds, occurrenceIndex) => {
-            const wanted = new Set(terminalIds);
-            const centres = terminalLabels
-              .filter((label) => wanted.has(label.getAttribute('data-node-id') || ''))
-              .map((label) => {
-                const rect = label.getBoundingClientRect();
-                if (!rect.width && !rect.height) return null;
-                return {
-                  x: rect.left + rect.width / 2 - mountRect.left,
-                  y: rect.top + rect.height / 2 - mountRect.top
-                };
-              })
-              .filter((point): point is { x: number; y: number } => Boolean(point));
-            if (centres.length === 0) return;
-            const xs = centres.map((point) => point.x);
-            const ys = centres.map((point) => point.y);
-            const site = {
-              x: (Math.min(...xs) + Math.max(...xs)) / 2,
-              y: (Math.min(...ys) + Math.max(...ys)) / 2
-            };
-            drawBeam(site, source, occurrenceIndex, visualScale, intensity);
-            drawDapple(site, occurrenceIndex, visualScale, intensity);
+          identityLightSites(svgElement, mountRect, occurrencePools).forEach((sites, occurrenceIndex) => {
+            sites.forEach(site => {
+              drawBeam(site, source, occurrenceIndex, visualScale, intensity);
+              drawDapple(site, occurrenceIndex, visualScale, intensity);
+            });
           });
         });
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
