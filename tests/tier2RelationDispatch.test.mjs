@@ -48,6 +48,52 @@ const facetOutputKeys = (result, facetId) => result.facets
   .find(({ recipe }) => recipe.id === facetId)
   ?.outputIdentities.map(({ key }) => key) ?? [];
 
+test('licensing wording has one interpretation across typed domains and unknown relation names', () => {
+  const forest = [leaf('a', 'read'), leaf('b', 'books')];
+  for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
+    for (const target of ['licensee', 'licensedItem', 'licensing_target']) {
+      for (const [prefix, values, family] of [
+        ['', { case: 'accusative' }, 'feature.dependency'],
+        ['', { thetaRole: 'Theme' }, 'theta-grid'],
+        ['', { feature: 'strong NPI' }, 'strong-npi'],
+        ['case ', { case: 'accusative' }, 'feature.dependency'],
+        ['theta ', { thetaRole: 'Theme' }, 'theta-grid']
+      ]) {
+        const relation = { relation: 'Model-owned name', anchors: { [`${prefix}${source}`]: 'a', [`${prefix}${target}`]: 'b' }, values };
+        const original = structuredClone(relation);
+        assert.deepEqual(facetIds(dispatch(relation, forest)), [family], JSON.stringify(relation));
+        assert.deepEqual(facetIds(dispatch({ ...relation, relation: 'Another name',
+          anchors: Object.fromEntries(Object.entries(relation.anchors).reverse()) }, forest)), [family]);
+        assert.deepEqual(relation, original, 'interpretation must preserve authored wording');
+      }
+    }
+  }
+});
+
+test('licensing equivalents do not establish Agree or supply missing direction, literals or pairing', () => {
+  const forest = [leaf('a', 'read'), leaf('b', 'books'), leaf('c', 'Ada')];
+  for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
+    for (const target of ['licensee', 'licensedItem', 'licensing_target']) {
+      for (const values of [{}, { feature: '[+wh]' }, { cycle: '1' }, { case: ['nominative', 'accusative'] }]) {
+        assert.deepEqual(facetIds(dispatch({ relation: 'Agree and nominative Case',
+          anchors: { [source]: 'a', [target]: 'b' }, values }, forest)), []);
+      }
+      const mixed = dispatch({ relation: 'Unregistered mixed claim', anchors: { [source]: 'a', [target]: 'b' },
+        values: { case: 'accusative', thetaRole: 'Theme' } }, forest);
+      assert.deepEqual(facetIds(mixed), ['feature.dependency']);
+      assert.ok(mixed.evidenceCoverage.fields.some(field => field.field === 'values'
+        && field.key === 'thetaRole' && field.unrecoveredItemIndices.length === 1),
+      'the independently supported Case drawing cannot absorb the unresolved theta claim');
+    }
+  }
+  for (const anchors of [
+    { nonLicenser: 'a', recipient: 'b' }, { unlicensedHead: 'a', recipient: 'b' },
+    { licenser: 'a', recipient: 'missing' }, { licenser: ['a', 'c'], recipient: 'b' },
+    { licenser: 'a', licensor: 'c', recipient: 'b' }
+  ]) assert.deepEqual(facetIds(dispatch({ relation: 'Case licensing', anchors,
+    values: { case: 'nominative' } }, forest)), [], JSON.stringify(anchors));
+});
+
 test('shared tree indices are discarded between evaluations of changing forests', () => {
   const forest = movementForest();
   const relation = { relation: 'Unregistered movement', anchors: {

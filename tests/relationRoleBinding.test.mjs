@@ -23,6 +23,29 @@ const examples = [
   ['FocusMarking', { focus: 'a', background: 'b', domain: 'domain' }, { prominentBranch: 'a', backgroundSister: 'b', region: 'domain' }]
 ];
 
+test('licensing equivalents reach the same registered slots and preserve incomplete-signature refusal', () => {
+  for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
+    for (const target of ['licensee', 'licensedItem', 'licensing_target']) {
+      for (const [relation, canonical] of [
+        ['CaseAssignment', { assigner: 'a', bearer: 'b' }],
+        ['Agree', { probe: 'a', goal: 'b' }],
+        ['StrongNPILicensing', { licensor: 'a', npi: 'b' }]
+      ]) {
+        const authored = { relation, anchors: { [source]: 'a', [target]: 'b' } };
+        const original = structuredClone(authored);
+        const result = dispatch(authored);
+        assert.equal(result.primaryClaim.tier, 1, JSON.stringify(authored));
+        assert.deepEqual(result.boundPrimaryRelation.anchors, dispatch({ relation, anchors: canonical }).boundPrimaryRelation.anchors);
+        assert.deepEqual(authored, original);
+        assert.equal(dispatch({ relation, anchors: { [source]: 'a' } }).primaryClaim.tier, 3);
+      }
+    }
+  }
+  const conflict = dispatch({ relation: 'CaseAssignment', anchors: { licenser: 'a', licensor: 'c', bearer: 'b' } });
+  assert.equal(conflict.primaryClaim.tier, 3);
+  assert.ok(conflict.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'));
+});
+
 for (const [relation, anchors, equivalents] of examples) {
   test(`${relation}: equivalent roles keep the drawing and original record`, () => {
     const original = { relation, anchors: equivalents, values: { note: 'authored text' } };

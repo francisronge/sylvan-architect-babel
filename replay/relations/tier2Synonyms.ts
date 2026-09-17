@@ -35,6 +35,12 @@ export const normalizeTier2Synonym = (value: unknown): string => String(value ??
   .replace(/[\s_-]+/gu, ' ')
   .replace(/\s+/gu, ' ');
 
+// Equivalent licensing roles must have the same candidates in every recipe and
+// in qualified assignment roles. They supply direction, not proof of Agree or
+// Case: those meanings still require the owning recipe's evidence checks.
+const licensingSources = ['licensor', 'licenser', 'license source', 'licensing head'];
+const licensingTargets = ['licensee', 'licensed item', 'licensing target'];
+
 export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'movement.source', ['source', 'origin', 'from', 'lower copy', 'lower occurrence', 'intermediate occurrence', 'base copy', 'base position', 'departure', 'moved from', 'real gap', 'variable', 'foot']),
   group('role', 'movement.witness', ['trace witness', 'lower witness', 'source witness', 'gap witness', 'trace', 'lower trace', 'departure witness']),
@@ -79,10 +85,10 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
 
   group('role', 'plaque.anchor', ['plaque anchor', 'anchor', 'participant', 'terminal', 'word', 'predicate']),
   group('role', 'feature.bearers', ['feature bearers', 'bearers', 'participants', 'feature holders', 'sharing members']),
-  group('role', 'probe', ['probe', 'searcher', 'agree probe', 'feature source'], ['licensor']),
-  group('role', 'goal', ['goal', 'goals', 'agree goal', 'feature target'], ['target', 'licensee']),
-  group('role', 'feature.source', ['feature source', 'source', 'probe', 'assigner', 'licensor', 'collector']),
-  group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'recipient', 'licensee', 'valued node']),
+  group('role', 'probe', ['probe', 'searcher', 'agree probe', 'feature source'], licensingSources),
+  group('role', 'goal', ['goal', 'goals', 'agree goal', 'feature target'], ['target', ...licensingTargets]),
+  group('role', 'feature.source', ['feature source', 'source', 'probe', 'assigner', 'collector', ...licensingSources]),
+  group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'recipient', 'valued node', ...licensingTargets]),
   group('role', 'feature.hierarchy', ['feature hierarchy', 'hierarchy', 'feature tree', 'feature sequence', 'feature links']),
 
   group('role', 'phase', ['phase', 'phase domain', 'phase phrase']),
@@ -107,8 +113,8 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'background', ['background', 'background sister', 'nonfocus', 'weak branch']),
   group('role', 'accent.bearer', ['accent bearer', 'accented', 'pitch accent bearer', 'prosodic head']),
   group('role', 'projection.nodes', ['projection nodes', 'projections', 'focus projections', 'f marked nodes', 'inheritance path']),
-  group('role', 'licensor', ['licensor', 'license source', 'operator', 'exhaustifier', 'licensing head']),
-  group('role', 'licensee', ['licensee', 'licensed item', 'npi', 'goal', 'licensing target']),
+  group('role', 'licensor', [...licensingSources, 'operator', 'exhaustifier']),
+  group('role', 'licensee', [...licensingTargets, 'npi', 'goal']),
 
   group('role', 'scope', ['scope', 'scope anchor', 'sentence', 'clause', 'storage host']),
   group('role', 'scope.source', ['covert source', 'covert movement source'], ['scope source', 'pronounced qp', 'source', 'lower qp', 'surface quantifier']),
@@ -204,8 +210,8 @@ export const lookupTier2SynonymCandidates = (
 
 /** Interpret qualified assignment roles as a domain plus a direction, never from titles or prose. */
 const assignmentDirection = (role: string): 'source' | 'target' | undefined =>
-  ['assigner', 'source', 'licensor'].includes(role) ? 'source'
-    : ['target', 'recipient', 'assignee', 'bearer', 'marked'].includes(role) ? 'target' : undefined;
+  ['assigner', 'source', ...licensingSources].includes(role) ? 'source'
+    : ['target', 'recipient', 'assignee', 'bearer', 'marked', ...licensingTargets].includes(role) ? 'target' : undefined;
 
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
   const [domain, ...rest] = normalizeTier2Synonym(key).split(' ');

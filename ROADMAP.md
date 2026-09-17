@@ -23,15 +23,19 @@ reuses that layout for placement and painting, and wraps long literals without
 dropping content. Short grids retain their geometry. The original Sol grid's
 overlap is cleared with unchanged syntax and fitted camera; multi-column,
 wrapped-text, zoom and narrow-viewport controls are checked. The full offline
-gate passes 1,704 tests.
+gate passes 1,707 tests.
 
-The recognition miss remains open: Astra's `licenser` is not interpreted as
-`licensor`; changing only that word makes the existing typed-Case rule succeed.
-Untyped licensing, an unrelated witness, a generic governor and ambiguous Case
-pairing remain neutral in the audit controls. This is a shared vocabulary gap,
-not evidence that an unknown second participant can safely become an assigner.
-Any repair must preserve those negative cases and apply consistently across
-role binding and drawing tiers, without using titles to invent a dependency.
+The `licenser` miss is repaired through shared licensing source/recipient
+wording. The same equivalents now reach registered binding, contextual
+probe/goal candidates, typed Case/feature and theta assignment, and polarity
+licensing. Untyped licensing does not establish Agree; ambiguous sources,
+unpaired literals and unsupported meaning remain neutral. Fable 5.1's read-only
+review found no blocking issue. Its two coverage notes are pinned in regression
+checks: unqualified licensing direction with typed theta evidence, and preservation
+of unresolved theta content beside an independently supported Case drawing.
+This remains bounded exact interpretation, not arbitrary-language understanding.
+The original Astra Case relation changes from Tier 3 to the existing Tier-2 Case
+drawing. Its Replay steps, syntax and fitted camera are unchanged in the browser.
 The two short runs do not qualify the paid API route, movement, split morphology,
 other frameworks or performance across larger derivations. Their chosen older
 GB subject analysis is not a demonstrated missing-movement defect. Sol's 16→17

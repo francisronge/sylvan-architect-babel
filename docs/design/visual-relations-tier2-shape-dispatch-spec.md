@@ -36,6 +36,15 @@ In deliberately open blocks, an ambiguous synonym or one competing with an
 explicit slot remains an untouched open role. It cannot fill a missing required
 slot by guesswork. Conflicting explicit spellings of a declared slot still fail.
 
+Licensing source/recipient wording is declared once and reused by registered
+binding, contextual probe/goal candidates, feature dependencies, polarity
+licensing and qualified assignment roles. Thus `licenser`, `licensor`,
+`license source` and `licensing head` cannot acquire different candidate meanings
+in separate drawings. These are contextual probe aliases, not explicit proof of
+Agree. Typed values and the complete recipe still establish what can be drawn;
+unknown words, negated roles, competing endpoints and unpaired literals remain
+neutral. This bounded vocabulary does not interpret arbitrary natural language.
+
 The original relation and literal displays retain the authored record.
 `primaryRelation` contains only the primary claim's evidence after independent
 claims and residual anchors are separated.
