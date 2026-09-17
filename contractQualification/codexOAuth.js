@@ -65,6 +65,11 @@ export const requestCodexQualification = async ({
   let httpStatus = null;
   let terminalEvent = null;
   const parts = new Map();
+  const completedItems = new Map();
+  // Codex may leave response.output empty and deliver the complete messages in item events.
+  const completedText = () => responseText(response) || responseText({ output:
+    [...completedItems.entries()].sort(([a], [b]) => a - b).map(([, item]) => item)
+  });
   const partialText = () => [...parts.entries()]
     .sort(([a], [b]) => {
       const [ai, ac] = a.split(':').map(Number);
@@ -73,7 +78,7 @@ export const requestCodexQualification = async ({
     }).map(([, text]) => text).join('');
   const result = (status, error) => ({
     status, httpStatus, terminalEvent, response,
-    text: status === 'completed' ? responseText(response) : partialText(),
+    text: status === 'completed' ? completedText() : partialText(),
     ...(error ? { error } : {})
   });
   let reader;
@@ -109,6 +114,9 @@ export const requestCodexQualification = async ({
         const key = `${event.output_index ?? 0}:${event.content_index ?? 0}`;
         parts.set(key, (parts.get(key) || '') + (event.delta || ''));
       }
+      if (event.type === 'response.output_item.done' && event.item?.status === 'completed') {
+        completedItems.set(event.output_index ?? 0, event.item);
+      }
       if (['response.completed', 'response.done', 'response.incomplete', 'response.failed', 'error'].includes(event.type)) {
         terminalEvent = event.type;
         response = event.response || null;
@@ -133,8 +141,8 @@ export const requestCodexQualification = async ({
     if (!['response.completed', 'response.done'].includes(terminalEvent) || response?.status !== 'completed') {
       return result('failed', 'Provider did not complete the response; see terminal response.');
     }
-    if (!responseText(response)) return result('failed', 'Completed response contains no assistant text.');
-    if (partialText() && partialText() !== responseText(response)) {
+    if (!completedText()) return result('failed', 'Completed response contains no assistant text.');
+    if (partialText() && partialText() !== completedText()) {
       return result('failed', 'Streamed text differs from completed response text.');
     }
     return result('completed');

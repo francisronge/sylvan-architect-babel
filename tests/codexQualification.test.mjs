@@ -128,6 +128,20 @@ test('partial, failed and inconsistent streams retain evidence without retrying 
   }
 });
 
+test('Codex completion metadata can omit output when completed message events contain it', async () => {
+  const text = '{"statement":"model-authored text"}';
+  const terminal = completed(text);
+  const item = { ...terminal.response.output[0], status: 'completed' };
+  terminal.response.output = [];
+  const bytes = Buffer.from(event({ type: 'response.output_text.delta', delta: text })
+    + event({ type: 'response.output_item.done', output_index: 0, item }) + event(terminal));
+  const result = await requestCodexQualification({ body: request().body, credentials,
+    fetchImpl: async () => chunkedResponse(bytes) });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.text, text);
+  assert.deepEqual(result.response.output, []); // Preserve the actual terminal response.
+});
+
 test('completed subscription text uses the existing Babel normalization, Replay and review artifact pipeline', async t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-oauth-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
