@@ -3,6 +3,7 @@ import test from 'node:test';
 import * as d3 from 'd3';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
   adaptDerivationStagesForReplay,
   applyPreFrontingSentenceInitialCasing,
@@ -1716,4 +1717,38 @@ test('relation-owned PF and Fission outputs appear in their relation frames, nev
   assert.equal(findNode(fissionStageTwo[0].replayCanvasData, 'clitic_fission_transition_input'), null);
   assert.ok(findNode(fissionStageTwo[0].replayCanvasData, 'clitic_fission_transition_person'));
   assert.ok(findNode(fissionStageTwo[0].replayCanvasData, 'clitic_fission_transition_plural'));
+});
+
+test('head movement owns the new path back to its source workspace, not an unrelated higher projection', () => {
+  const base = node('tp', 'TP', [
+    leaf('tLow', 'T', 'did', { lineageId: 'tense' }),
+    node('vp', 'VP', [leaf('v', 'V', 'buy')])
+  ]);
+  const q = leaf('cQ', 'C[Q]', '', { silent: true });
+  const lower = clone(base);
+  lower.children[0].silent = true;
+  const landing = node('cComplex', 'C', [
+    leaf('tHigh', 'T', 'did', { lineageId: 'tense' }), q
+  ]);
+  const clause = node('cPrime', 'C′', [landing, lower]);
+  const stages = [
+    { statement: 'The clause and C are available.', stageRecord: 'C is separately selected.', relations: [], workspaceForest: [base, q] },
+    { statement: 'The head moves and higher structure is merged.', stageRecord: 'T moves to C, then a separate higher projection is formed.',
+      relations: [{ relation: 'T-to-C head chain', anchors: { lowerHeadOccurrence: 'tLow', higherHeadOccurrence: 'tHigh', attractingHead: 'cQ' }, priorAnchors: { source: 'tLow' } }],
+      workspaceForest: [node('higher', 'XP', [clause, leaf('particle', 'X', 'x')])] }
+  ];
+  const steps = prepareReplay({ derivationStages: stages, sentence: 'did buy x', includePlayback: true }).playbackSteps;
+  const movementIndex = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
+  assert(movementIndex > 0);
+  const before = steps[movementIndex - 1], movement = steps[movementIndex];
+  for (const id of ['cComplex', 'cPrime', 'tHigh']) {
+    assert(!before.replayVisibleNodeIds.includes(id), `${id} must wait for movement`);
+    assert(movement.replayVisibleNodeIds.includes(id), `${id} belongs in the movement moment`);
+  }
+  for (const id of ['tp', 'vp', 'v', 'tLow', 'cQ']) assert(movement.replayVisibleNodeIds.includes(id));
+  assert(!movement.replayVisibleNodeIds.includes('higher'), 'unrelated higher projection retains its own step');
+  assert(steps.slice(movementIndex + 1).some(step => step.replayKind === 'micro'
+    && step.targetNodeId === 'higher'), 'higher projection is still constructed normally');
+  assert(!steps.slice(movementIndex + 1).some(step => step.replayKind === 'micro'
+    && step.targetNodeId === 'cPrime'), 'no delayed attachment after movement');
 });

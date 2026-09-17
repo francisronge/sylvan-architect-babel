@@ -2778,17 +2778,25 @@ export const buildPlaybackStepsFromDerivationFrames = (
             placement.authoredTargetNodeId
           );
           if (!landingHostNodeId || findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)) return [];
+          const priorSourceIds = placement.relation.recoveredMovement
+            ? [placement.relation.recoveredMovement.priorSourceNodeId]
+            : placement.sourceNodeIds;
+          const sourceWorkspaceIds = new Set(previousFrameWorkspaceRoots
+            .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
+            .flatMap(root => collectSyntaxSubtreeNodeIds(root)));
           const hostIds: string[] = [];
           let branchNodeId = placement.authoredTargetNodeId;
           let parentNodeId = landingHostNodeId;
           // Include only the new ancestor path needed to join the landing to
-          // existing syntax. Higher projections retain their own micro-steps.
+          // the source workspace. An old, separately selected head in the
+          // landing complex does not yet attach it to that workspace.
+          // Higher projections retain their own micro-steps.
           while (parentNodeId && !findNodeByIdInForest(previousFrameWorkspaceRoots, parentNodeId)) {
             hostIds.push(parentNodeId);
             const parent = findNodeByIdInForest(workspaceRoots, parentNodeId);
             const attachesToExistingSyntax = (parent?.children || []).some(child =>
               child.id !== branchNodeId && collectSyntaxSubtreeNodeIds(child).some(nodeId =>
-                Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, nodeId))));
+                sourceWorkspaceIds.has(nodeId)));
             if (attachesToExistingSyntax) return hostIds;
             branchNodeId = parentNodeId;
             parentNodeId = findParentNodeIdInForest(workspaceRoots, parentNodeId);
