@@ -95,6 +95,54 @@ cannot resolve arbitrary language. Francis does not want a separate model
 interpretation pass; do not pursue that proposal. Continue investigating shared
 deterministic evidence rules and retain neutral claims when evidence is missing.
 
+The follow-up recognition audit covers all 166 relation occurrences in those
+eight analyses, comprising 94 distinct envelopes within their analyses. Two
+small shared repairs are retained. Native scalar value keys now share their
+concept catalog with Tier 2, so `role` no longer loses its literal outside a
+registered title. Also, a thematic participant alone no longer establishes
+predication. The existing explicit-role check keeps it neutral; registered
+Predication and explicit predicand roles retain their drawings.
+
+Across twenty saved analyses, five relation occurrences now earn a theta grid
+and four lose an unsupported predication connector. Every authored relation and
+its order survive. Nineteen retain identical playback steps. In the older Sol
+Minimalism record, removing that false classification lets the existing
+structural ownership rule put the VP merge in its authored relation moment;
+the redundant preceding merge step disappears, reducing 34 frames to 33.
+The eight newer analyses retain their frame counts and structural playback.
+No prompt, saved record, tree layout or camera rule changes.
+
+Remaining recognition findings are distinct:
+
+- Unfamiliar roles such as `nominal`, `introducer` and `governingCategory` do
+  not all establish their slots in the current shared vocabulary. A unique
+  leftover participant is not proof of its role. Do not infer Case assignment
+  from a nominal category or government alone.
+- Compound qualified groups, such as separate nominative/accusative sources
+  and recipients, need claim-scoped role/value association. A common prefix or
+  equally sized lists alone must not choose pairings. Repeated assigners in
+  Sol's passive theta record also conflict with its registered scalar-predicate
+  signature; Tier 2 must not silently repair that Tier-1 claim.
+- Sol's passive X-bar A-movement has shared root lineage and an explicit prior
+  source. Its immediately enclosing projections receive new IDs. An experiment
+  recovered the source slot from unchanged ordered sisters, but recognition then
+  caused Replay to replace an enclosing projection too early. The experiment
+  was removed and retained only in `/tmp/babel-rebuilt-source-investigation.diff`.
+  A coordinated source-position and transition-ownership repair remains needed;
+  this is not established missing evidence in the model's analysis.
+- Repeated chain statements without a new transition, clause-force claims,
+  government constraints, pronunciation and explanatory prose remain available
+  neutrally. Their presence does not establish an additional drawable dependency.
+
+Focused checks cover literal ownership and conflicts, explicit versus contextual
+predication, and preservation of the authored merge moment and unrelated syntax.
+The complete gate passes 1,715 tests, typechecking and both contract fixtures.
+Before/after production captures and the audit data remain outside the worktree
+under `/tmp/babel-sept17-review/recognition-audit` and
+`/tmp/babel-recognition-audit.json`. Independent review and browser checks cover the changed frames, eight final
+views, zoom, stepping/Fit and a narrow view, with no console errors. No new parses
+were run.
+
 Sol's X-bar morphology response uses `realizations` to associate retained `walk`
 and `-ed` occurrences with the input token `walked`; raw authoring, normalization
 and Replay preserve that association. Astra's whole-word analysis needs no such
