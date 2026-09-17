@@ -5,9 +5,9 @@ import ts from 'typescript';
 import * as d3 from 'd3';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { appendPlaqueContent } from '../components/plaqueViewport.ts';
@@ -167,6 +167,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   };
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
+    planItemsShareAuthoredStage,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -203,12 +204,12 @@ const svgSnapshot = node => ({ tag: node.tag, attrs: node.attrs, styles: node.st
 
 const caseBranch = findNode(node => ts.isIfStatement(node)
   && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-assignment'"));
-function drawCasePlaque(item, placement, assigner) {
+function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed = frameItems.map((_, i) => i)) {
   const root = new Element('g');
   const dependencies = {
-    planItem: item, emphasis: null, opacity: null, frameItems: [item],
+    planItem: item, emphasis: null, opacity: null, frameItems, planItemsShareAuthoredStage,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
-    relationLayerKey: () => 'case', renderedCaseCompositions: new Set(), revealedItemIndices: new Set([0]),
+    relationLayerKey: () => 'case', renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureFeatureRelationLayer() {}, ensureAgreementCaseRelationLayer: () => select(root),
     acceptedTerminalRect: () => assigner, acceptedAnchorRect: () => assigner,
     markPreterminalLensNode() {}, replayPlaqueLayout: new Map([[0, placement]]),
@@ -219,6 +220,28 @@ function drawCasePlaque(item, placement, assigner) {
     { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
   return root;
 }
+
+test('a coalesced Case path still composes with a later-stage feature plaque in layout and painting', () => {
+  const item = { kind: 'directed-path', pathStyle: 'case-assignment', fromNodeId: 'v', toNodeId: 'dp',
+    featureRow: { label: 'Case', value: 'accusative' }, relationRef: { stageIndex: 0, relationIndex: 0 },
+    coalescedRefs: [{ stageIndex: 1, relationIndex: 0 }] };
+  const bundle = { kind: 'node-plaque', plaqueStyle: 'feature', anchorNodeIds: ['dp'],
+    relationRef: { stageIndex: 1, relationIndex: 1 }, rows: [{ label: 'Case', value: 'accusative' }, { label: 'number', value: 'plural' }] };
+  const tree = d3.tree().size([1000, 1000])(d3.hierarchy({ id: 'vp', label: 'VP', children: [
+    { id: 'v', label: 'V', word: 'read' }, { id: 'dp', label: 'DP', word: 'books' }
+  ] }));
+  const layout = placeStagePlaques([item, bundle], tree.descendants(), []);
+  assert.equal(layout.size, 1, 'reserve one combined plaque');
+  assert.equal(layout.get(0).height, 200, 'reserve both authored rows');
+  const painted = drawCasePlaque(item, layout.get(0), { x: 0, y: 0, width: 100, height: 60 }, [item, bundle]);
+  assert(descendants(painted).some(node => node.text === '[number: plural]'), 'the later bundle contributes its row');
+  const beforeBundle = drawCasePlaque(item, layout.get(0), { x: 0, y: 0, width: 100, height: 60 }, [item, bundle], [0]);
+  assert(!descendants(beforeBundle).some(node => node.text.includes('plural')),
+    'a carried Case mark must not reveal the later bundle before its relation moment');
+  const unrelated = { ...bundle, relationRef: { stageIndex: 2, relationIndex: 0 } };
+  assert.equal(placeStagePlaques([item, unrelated], tree.descendants(), []).size, 2,
+    'claims with no shared authored stage stay separate');
+});
 
 test('native Case connector approaches the outside edge for plaques on every side of the assigner', () => {
   const item = { kind: 'directed-path', pathStyle: 'case-assignment', fromNodeId: 'v', toNodeId: 'dp',

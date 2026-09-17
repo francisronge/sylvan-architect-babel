@@ -73,6 +73,7 @@ import {
   planItemOwnsRelationMoment,
   isPlanItemRevealed,
   planItemRelationRefs,
+  planItemsShareAuthoredStage,
   planItemDependencyNodeIds,
   type DirectedPathPlanItem,
   type NodePlaquePlanItem,
@@ -5449,7 +5450,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .filter(({ candidate }) =>
                 candidate.kind === 'directed-path'
                 && candidate.pathStyle === 'case-assignment'
-                && candidate.relationRef.stageIndex === pathItem.relationRef.stageIndex
+                && planItemsShareAuthoredStage(candidate, pathItem)
                 && candidate.toNodeId === (pathItem.pathStyle === 'case-assignment'
                   ? pathItem.toNodeId
                   : pathItem.fromNodeId));
@@ -5486,16 +5487,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 candidate.kind === 'directed-path'
                 && candidate.pathStyle === 'case-agree'
                 && assignmentEntries.length === 1
-                && candidate.relationRef.stageIndex === assignment.relationRef.stageIndex
+                && planItemsShareAuthoredStage(candidate, assignment)
                 && candidate.fromNodeId === assignment.toNodeId);
             const bundleEntries = frameItems
               .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
               .filter(({ candidate }) =>
                 candidate.kind === 'node-plaque'
                 && candidate.plaqueStyle === 'feature'
-                && candidate.relationRef.stageIndex === assignment.relationRef.stageIndex
+                && planItemsShareAuthoredStage(candidate, assignment)
                 && candidate.anchorNodeIds[0] === assignment.toNodeId);
             const bundleEntry = bundleEntries.length === 1 && assignmentEntries.length === 1 ? bundleEntries[0] : undefined;
+            const bundleRevealed = bundleEntry && revealedItemIndices.has(bundleEntry.candidateIndex);
             const assignmentPair = assignment.featureRow || { label: '', value: assignment.label || '' };
             const collectionPairs = collectionEntries.map(({ candidate, candidateIndex }) => ({
               candidate,
@@ -5504,7 +5506,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 ? candidate.featureRow || { label: '', value: candidate.label || '' }
                 : { label: '', value: '' }
             }));
-            const authoredRows = bundleEntry?.candidate.kind === 'node-plaque'
+            const authoredRows = bundleRevealed && bundleEntry.candidate.kind === 'node-plaque'
               ? bundleEntry.candidate.rows
               : [assignmentPair, ...collectionPairs.map(({ pair }) => pair)];
             const rows = authoredRows.map((row) => {
@@ -5542,7 +5544,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   focusedRelationMoment.stageIndex,
                   focusedRelationMoment.relationIndex
                 ) ? null : opacity);
-            const plaqueOwner = bundleEntry?.candidate || assignment;
+            const plaqueOwner = bundleRevealed ? bundleEntry.candidate : assignment;
             const plaqueNode = plaque.node();
             if (plaqueNode) {
               decorateRelationElement(
@@ -6096,11 +6098,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const assignments = frameItems.filter((candidate) =>
               candidate.kind === 'directed-path'
               && candidate.pathStyle === 'case-assignment'
-              && candidate.relationRef.stageIndex === planItem.relationRef.stageIndex
+              && planItemsShareAuthoredStage(candidate, planItem)
               && candidate.toNodeId === anchorId);
             const bundles = frameItems.filter((candidate) => candidate.kind === 'node-plaque'
               && candidate.plaqueStyle === 'feature' && candidate.anchorNodeIds[0] === anchorId
-              && candidate.relationRef.stageIndex === planItem.relationRef.stageIndex);
+              && planItemsShareAuthoredStage(candidate, planItem));
             if (assignments.length === 1 && bundles.length === 1) return;
             const anchorRect = measuredTerminalSubtreeRectNow(anchorId)
               || measuredTreeLabelRectNow(anchorId, false);

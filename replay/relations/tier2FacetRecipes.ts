@@ -171,6 +171,7 @@ export type Tier2FacetReplacement =
 export type Tier2OutputPersistence = 'inherit-facet' | 'while-active';
 
 export type Tier2FacetOutputIdentityPolicy =
+  // Occurrence evidence keeps the moment; persistent output keys may omit it.
   | { kind: 'complete-facet-evidence'; includeAuthoredMoment: true }
   | { kind: 'inherit-parent' };
 
@@ -1744,17 +1745,18 @@ const canonicalizeIdentity = (value: unknown): unknown => {
 
 const identityWitnesses = (
   index: TreeIndex,
-  ids: readonly string[]
+  ids: readonly string[],
+  includeWorkspace = true
 ): Array<{
   id: string;
   lineages: string[];
-  workspaces: string[];
+  workspaces?: string[];
 }> => ids.map((id) => ({
   id,
   lineages: [...new Set((index.nodes.get(id) ?? [])
     .map((node) => String(node.lineageId || ''))
     .filter(Boolean))].sort(),
-  workspaces: [...(index.workspaceIds.get(id) ?? [])].sort()
+  ...(includeWorkspace ? { workspaces: [...(index.workspaceIds.get(id) ?? [])].sort() } : {})
 }));
 
 const appendIdentityItems = (
@@ -1769,12 +1771,13 @@ const identityRoleBlock = (
   recipeEntry: Tier2FacetRecipe,
   anchors: Readonly<Record<string, readonly string[]>> | undefined,
   authoredEntries: readonly Tier2AuthoredEvidenceEntry[] | undefined,
-  index: TreeIndex
+  index: TreeIndex,
+  includeWorkspace = true
 ): Record<string, ReturnType<typeof identityWitnesses>> => {
   if (!authoredEntries) {
     return Object.fromEntries(
       Object.entries(anchors ?? {})
-        .map(([role, ids]) => [role, identityWitnesses(index, [...ids])])
+        .map(([role, ids]) => [role, identityWitnesses(index, [...ids], includeWorkspace)])
         .filter(([, witnesses]) => witnesses.length > 0)
     );
   }
@@ -1790,7 +1793,7 @@ const identityRoleBlock = (
   });
   return Object.fromEntries(
     Object.entries(normalized)
-      .map(([role, ids]) => [role, identityWitnesses(index, ids)])
+      .map(([role, ids]) => [role, identityWitnesses(index, ids, includeWorkspace)])
       .filter(([, witnesses]) => witnesses.length > 0)
   );
 };
@@ -1819,14 +1822,14 @@ const identityValueBlock = (
   return normalized;
 };
 
-export const buildTier2FacetIdentity = ({
+const buildFacetIdentity = ({
   recipe: recipeEntry,
   evaluation,
   evidence,
   authoredStageIndex,
   parentFacetIdentities,
   indexes = indexTier2Forests(evidence)
-}: Tier2FacetOutputIdentityInput): string | null => {
+}: Tier2FacetOutputIdentityInput, persistent = false): string | null => {
   if (!evaluation.complete) return null;
   if (recipeEntry.outputIdentity.kind === 'inherit-parent') {
     const parents = [...new Set((parentFacetIdentities ?? [])
@@ -1859,12 +1862,13 @@ export const buildTier2FacetIdentity = ({
   const { currentIndex, priorIndex } = indexes;
   return JSON.stringify(canonicalizeIdentity({
     facet: recipeEntry.id,
-    authoredMoment: authoredStageIndex,
+    authoredMoment: persistent ? null : authoredStageIndex,
     currentAnchors: identityRoleBlock(
       recipeEntry,
       evidence.currentAnchors,
       evidence.authoredCurrentAnchors,
-      currentIndex
+      currentIndex,
+      !persistent
     ),
     priorAnchors: identityRoleBlock(
       recipeEntry,
@@ -1878,10 +1882,21 @@ export const buildTier2FacetIdentity = ({
   }));
 };
 
+export const buildTier2FacetIdentity = (input: Tier2FacetOutputIdentityInput): string | null =>
+  buildFacetIdentity(input);
+
 export const buildTier2FacetOutputIdentities = (
   input: Tier2FacetOutputIdentityInput
 ): Tier2FacetOutputIdentity[] => {
-  const facetIdentity = buildTier2FacetIdentity(input);
+  // A current-state claim follows its exact occurrences as the workspace grows.
+  // Operations and references to earlier states retain their authored moment.
+  // Full facet identity still owns dispatch, dependencies and replacement.
+  const persistent = input.recipe.kind === 'claim'
+    && input.recipe.persistence.kind !== 'while-active'
+    && input.recipe.transitionRules.length === 0
+    // Conservatively retain timing even for prior evidence owned by a sibling facet.
+    && !Object.values(input.evidence.priorAnchors ?? {}).some(ids => ids.length > 0);
+  const facetIdentity = buildFacetIdentity(input, persistent);
   if (!facetIdentity) return [];
   return input.evaluation.outputs.map((piece) => ({
     piece,

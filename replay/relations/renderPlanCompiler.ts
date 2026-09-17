@@ -166,6 +166,10 @@ export const planItemRelationRefs = (item: RelationPlanItem): PlanRelationRef[] 
   ...(item.coalescedRefs || [])
 ];
 
+/** Coalescing keeps every authored stage available to same-stage composition. */
+export const planItemsShareAuthoredStage = (left: RelationPlanItem, right: RelationPlanItem): boolean =>
+  planItemRelationRefs(left).some(a => planItemRelationRefs(right).some(b => a.stageIndex === b.stageIndex));
+
 /**
  * Endpoint attachment, explicit in the semantic plan: `terminal` endpoints
  * resolve to the visible materialized terminal inside the exact anchored
@@ -3416,8 +3420,7 @@ export const compileRelationRenderPlan = (
     'appearsAtStage',
     'subtreeDerived',
     'positionNodeIds',
-    'orthogonalDepartureNodeIds',
-    'supersededAt'
+    'orthogonalDepartureNodeIds'
   ]);
   const canonicalize = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(canonicalize);
@@ -3435,12 +3438,14 @@ export const compileRelationRenderPlan = (
     if (item.canonicalClaimIdentity) {
       return JSON.stringify(canonicalize({
         canonicalClaimIdentity: item.canonicalClaimIdentity,
+        supersededAt: item.supersededAt,
         renderPart: item.tier2RenderPart || 'main'
       }));
     }
     if ((item.tier2OutputIdentities || []).length > 0) {
       return JSON.stringify(canonicalize({
         tier2OutputIdentities: [...item.tier2OutputIdentities!].sort(),
+        supersededAt: item.supersededAt,
         renderPart: item.tier2RenderPart || 'main'
       }));
     }

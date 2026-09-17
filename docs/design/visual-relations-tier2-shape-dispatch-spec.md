@@ -607,7 +607,7 @@ Every authored relation instance remains independent through Tier dispatch,
 diagnostics, persistence, claim counting, and Replay ownership. Identical JSON
 entries never group before their complete facets exist.
 
-Each complete claim facet derives a visual identity from its normalized facet
+Each complete claim facet derives an occurrence identity from its normalized facet
 id, authored stage, every normalized current and prior anchor, anchor lineage
 and workspace witnesses, every authored value, accepted outcome, earned
 transition kinds, and output piece. Recognized aliases that satisfy the facet's
@@ -630,12 +630,22 @@ Production coalescing must consume these dispatch-attached identities. Direct
 identity-helper calls without authored-entry metadata are test utilities, not a
 second runtime identity path.
 
-The renderer paints two output pieces once only when these complete visual
-identities match. The shared piece retains every contributing relation
-reference, so either relation moment can reveal it. A difference in stage,
-anchors, lineage, workspace, values, outcome, transition evidence, facet, or
-piece keeps the outputs separate. Shared anchors or screen geometry alone never
-establish identity.
+Output identities distinguish an occurrence from its persistent drawing. For a
+persistent current-state claim with no transition rule or prior-state references,
+the output identity omits the authored stage and containing workspace. The same
+claim about the same occurrence IDs and lineages can therefore paint once as its
+tree grows. The complete occurrence identity still owns dispatch, dependencies
+and replacement. Operations, prior-state references and companions retain their
+stage and workspace evidence.
+
+The renderer paints two output pieces once only when these complete output
+identities match. The shared piece retains every contributing relation reference,
+so each authored relation moment can focus it. Changed anchors, lineage, values,
+outcomes, transition evidence, facets or output pieces stay distinct. Shared
+anchors or screen geometry alone never establish identity.
+Different supersession moments keep separate visibility lifetimes. Same-stage
+composition considers all retained authored references, and a carried drawing
+must not reveal a newly composed feature bundle before its own relation moment.
 
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The

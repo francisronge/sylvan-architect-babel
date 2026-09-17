@@ -5,7 +5,8 @@ import test from 'node:test';
 import { createRelationRegistry } from '../replay/relationDispatch/index.js';
 import {
   compileRelationRenderPlan,
-  planItemOwnsRelationMoment
+  planItemOwnsRelationMoment,
+  isPlanItemRevealed
 } from '../replay/relations/renderPlanCompiler.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
@@ -24,6 +25,64 @@ const stage = (relations, forest, overrides = {}) => ({
   relations: relations,
   workspaceForest: forest,
   ...overrides
+});
+
+test('restated current-state claims paint once as their workspace grows and retain every moment', () => {
+  const forest = [node('vp', 'VP', [leaf('v', 'V', 'praise'), leaf('dp', 'DP', 'himself'), leaf('subject', 'DP', 'Leo')])];
+  const relations = [
+    { relation: 'Theme-role assignment', anchors: { predicate: 'v', argument: 'dp' }, values: { thetaRole: 'Theme' } },
+    { relation: 'Local anaphor binding', anchors: { antecedent: 'subject', anaphor: 'dp', localDomain: 'vp' }, values: { condition: 'Condition A satisfied' } }
+  ];
+  const stages = Array.from({ length: 6 }, (_, i) => stage(structuredClone(relations),
+    i === 0 ? forest : [node(`root${i}`, 'CP', structuredClone(forest))]));
+  const original = structuredClone(stages);
+  const plan = compileRelationRenderPlan(stages);
+  assert.deepEqual(stages, original, 'drawing coalescing does not change the authored analysis');
+  for (const [i, frame] of plan.frames.entries()) {
+    for (const [relationIndex, kind] of ['node-plaque', 'binding-domain'].entries()) {
+      const items = frame.items.filter(item => item.kind === kind);
+      assert.equal(items.length, 1, `${kind} paints once at stage ${i}`);
+      const item = items[0];
+      assert.equal(item.coalescedRefs?.length ?? 0, i, 'future references never leak into earlier frames');
+      for (let previous = 0; previous <= i; previous++) {
+        assert(planItemOwnsRelationMoment(item, previous, relationIndex));
+      }
+      assert.equal(isPlanItemRevealed(item, i, new Set()), i > 0, 'a carried mark stays visible before its restatement');
+      assert(isPlanItemRevealed(item, i, new Set([relationIndex]), relationIndex));
+    }
+  }
+});
+
+test('persistent claim identity preserves changed participants, values, lineage and prior-state evidence', () => {
+  const relation = { relation: 'Theme-role assignment', anchors: { predicate: 'v', argument: 'dp' }, values: { thetaRole: 'Theme' } };
+  const forest = [node('vp', 'VP', [leaf('v', 'V', 'give'), leaf('dp', 'DP', 'book'), leaf('other', 'DP', 'Mia')])];
+  const cases = [
+    { relation: { ...relation, anchors: { predicate: 'v', argument: 'other' } }, forest },
+    { relation: { ...relation, values: { thetaRole: 'Goal' } }, forest },
+    { relation, forest: [node('vp', 'VP', [leaf('v', 'V', 'give'), leaf('dp', 'DP', 'book', { lineageId: 'new-object' }), leaf('other', 'DP', 'Mia')])] },
+    { relation: { ...relation, priorAnchors: { argument: 'dp' } }, forest }
+  ];
+  for (const changed of cases) {
+    const plan = compileRelationRenderPlan([stage([relation], forest), stage([changed.relation], changed.forest)]);
+    const items = plan.frames[1].items.filter(item => item.kind === 'node-plaque');
+    assert.equal(items.length, 2, 'a changed claim must not coalesce with its predecessor');
+  }
+  const historical = { ...relation, priorAnchors: { argument: 'dp' } };
+  const plan = compileRelationRenderPlan([stage([], forest), stage([historical], forest), stage([historical], forest)]);
+  assert.equal(plan.frames[2].items.filter(item => item.kind === 'node-plaque').length, 2,
+    'the same prior ID at different moments denotes different preceding states');
+});
+
+test('coalescing does not hide a fresh restatement when an earlier instance is superseded', () => {
+  const relation = { relation: 'Theme-role assignment', anchors: { predicate: 'v', argument: 'dp' }, values: { thetaRole: 'Theme' } };
+  const forest = [node('vp', 'VP', [leaf('v', 'V', 'give'), leaf('dp', 'DP', 'book')])];
+  const replacement = { ...relation, values: { thetaRole: 'Goal' }, priorAnchors: relation.anchors };
+  const plan = compileRelationRenderPlan([stage([relation], forest), stage([replacement, relation], forest)]);
+  const themeItems = plan.frames[1].items.filter(item => item.kind === 'node-plaque'
+    && item.relationRef.values?.thetaRole === 'Theme');
+  for (const [played, expected] of [[[], 1], [[0], 0], [[0, 1], 1]]) {
+    assert.equal(themeItems.filter(item => isPlanItemRevealed(item, 1, new Set(played))).length, expected);
+  }
 });
 
 test('committed question fixture compiles both authored movements without diagnostics', () => {

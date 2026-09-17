@@ -1,6 +1,6 @@
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import type { RelationPlanItem } from './renderPlanCompiler.ts';
+import { planItemsShareAuthoredStage, type RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques } from './markGeometry.ts';
 import { preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
@@ -109,9 +109,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       if (item.plaqueStyle === 'feature') {
         const assignments = items.filter(other => other.kind === 'directed-path'
           && other.pathStyle === 'case-assignment' && other.toNodeId === item.anchorNodeIds[0]
-          && other.relationRef.stageIndex === item.relationRef.stageIndex);
+          && planItemsShareAuthoredStage(other, item));
         const bundles = items.filter(other => other.kind === 'node-plaque' && other.plaqueStyle === 'feature'
-          && other.anchorNodeIds[0] === item.anchorNodeIds[0] && other.relationRef.stageIndex === item.relationRef.stageIndex);
+          && other.anchorNodeIds[0] === item.anchorNodeIds[0] && planItemsShareAuthoredStage(other, item));
         if (assignments.length === 1 && bundles.length === 1) return;
       }
       let size = preparePlaqueTextLayout(item, { variant: item.plaqueStyle === 'feature' ? 'feature' : 'generic' });
@@ -133,13 +133,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
       const assignments = items.filter(other => other.kind === 'directed-path'
         && other.pathStyle === 'case-assignment' && other.toNodeId === item.toNodeId
-        && other.relationRef.stageIndex === item.relationRef.stageIndex);
+        && planItemsShareAuthoredStage(other, item));
       const bundles = items.filter(other => other.kind === 'node-plaque' && other.plaqueStyle === 'feature'
-        && other.anchorNodeIds[0] === item.toNodeId && other.relationRef.stageIndex === item.relationRef.stageIndex);
+        && other.anchorNodeIds[0] === item.toNodeId && planItemsShareAuthoredStage(other, item));
       const bundle = assignments.length === 1 && bundles.length === 1 && bundles[0].kind === 'node-plaque' ? bundles[0] : null;
       const collections = assignments.length === 1 ? items.filter(other => other.kind === 'directed-path'
         && other.pathStyle === 'case-agree' && other.fromNodeId === item.toNodeId
-        && other.relationRef.stageIndex === item.relationRef.stageIndex) : [];
+        && planItemsShareAuthoredStage(other, item)) : [];
       requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: 310, caseAssignment: true,
         height: 76 + (bundle?.rows.length ?? 1 + collections.length) * 62 });
     }
