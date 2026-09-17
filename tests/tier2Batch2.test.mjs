@@ -23,7 +23,7 @@ test('single theta assignments preserve their exact literal and endpoint', () =>
     const result = inspect(relation({ predicate: 'v', argument: 'obj' }, { thetaRole: label }));
     assert(has(result, 'theta-grid'));
     const grid = result.items.find(item => item.plaqueStyle === 'theta-grid');
-    assert.deepEqual(grid.thetaRoles, [{ nodeId: 'obj', label }]);
+    assert.deepEqual(grid.thetaRoles, [{ nodeId: 'obj', label, index: 'i' }]);
     assert.deepEqual(grid.rows, [{ label, value: '' }]);
   }
 });
@@ -35,7 +35,7 @@ test('ordered theta occurrences preserve repeated labels and repeated endpoints'
   assert.deepEqual(evidence.currentAnchors['theta.arguments'], ['a', 'a', 'b']);
   assert.deepEqual(evidence.authoredValues.find(entry => entry.key === 'arguments').items, ['Theme', 'Theme', 'Agent']);
   assert.deepEqual(inspect(record).items.find(item => item.plaqueStyle === 'theta-grid').thetaRoles,
-    [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Agent' }]);
+    [{ nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'b', label: 'Agent', index: 'j' }]);
 });
 
 test('theta rejects missing literals and unequal associations in either direction', () => {
@@ -53,7 +53,7 @@ test('paired literals prefer the exact authored key regardless of property order
   ]) {
     const result = inspect(relation({ predicate: 'v', arguments: ['a', 'b'] }, Object.fromEntries(entries)));
     assert.deepEqual(result.items.find(item => item.plaqueStyle === 'theta-grid').thetaRoles,
-      [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Agent' }]);
+      [{ nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'b', label: 'Agent', index: 'j' }]);
     assert.deepEqual(result.dispatch.primaryRelation.values, { ARGUMENTS: ['Agent', 'Theme'] });
   }
 });
@@ -78,7 +78,7 @@ test('ambiguous normalized literal keys never choose the first association', () 
 test('one unambiguous normalized key still supplies the authored pairing', () => {
   const result = inspect(relation({ predicate: 'v', arguments: ['a', 'b'] }, { ARGUMENTS: ['Theme', 'Agent'] }));
   assert.deepEqual(result.items.find(item => item.plaqueStyle === 'theta-grid').thetaRoles,
-    [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Agent' }]);
+    [{ nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'b', label: 'Agent', index: 'j' }]);
 });
 
 test('Case assignment uses a solid assignment path with each paired Case literal', () => {
@@ -384,4 +384,52 @@ test('explicit head movement conflicting with structural phrasal evidence remain
   assert.equal(result.dispatch.primaryClaim.tier, 3);
   assert(result.dispatch.tier1Dispatch.signatureIssues.some(issue => issue.reason === 'MOVEMENT_KIND_CONFLICT'));
   assert(!result.items.some(item => item.kind === 'trajectory'));
+});
+
+test('theta indices distinguish arguments across grids and persist by exact argument identity', () => {
+  const theta = (id, name = 'UnregisteredAnalysis') => relation({ predicate: 'v', argument: id }, { thetaRole: 'Role' }, name);
+  const stage = (relations, workspaceForest = forest) => ({ statement: 'State', stageRecord: '', relations, workspaceForest });
+  const stages = [stage([theta('a'), theta('b', 'ThetaAssignment')]), stage([theta('b'), theta('a')])];
+  const original = structuredClone(stages);
+  const frames = compileRelationRenderPlan(stages).frames;
+  for (const frame of frames) {
+    const roles = frame.items.filter(i => i.plaqueStyle === 'theta-grid').flatMap(i => i.thetaRoles);
+    assert.equal(roles.find(r => r.nodeId === 'a').index, 'i');
+    assert.equal(roles.find(r => r.nodeId === 'b').index, 'j');
+  }
+  assert.deepEqual(stages, original);
+});
+
+test('theta indices respect later authored movement notation without giving it to unrelated arguments', () => {
+  const lower = { id: 'a', label: 'DP', word: 'one', lineageId: 'argument' };
+  const other = { id: 'b', label: 'DP', word: 'two', lineageId: 'different' };
+  const first = [node('vp', 'VP', [leaf('v'), lower, other])];
+  const final = [node('tp', 'TP', [{ ...lower, id: 'higher' }, node('vp', 'VP', [leaf('v'), { ...lower, silent: true }, other])])];
+  const stages = [
+    { statement: 'State', stageRecord: '', workspaceForest: first, relations: [
+      relation({ predicate: 'v', arguments: ['a', 'b'] }, { arguments: ['Agent', 'Theme'] })
+    ] },
+    { statement: 'State', stageRecord: '', workspaceForest: final, relations: [
+      relation({ lowerCopy: 'a', higherCopy: 'higher' }, { index: 'j' }),
+      relation({ predicate: 'v', argument: 'higher' }, { thetaRole: 'Agent' })
+    ] }
+  ];
+  const plan = compileRelationRenderPlan(stages);
+  const roles = plan.frames.flatMap(f => f.items.filter(i => i.plaqueStyle === 'theta-grid').flatMap(i => i.thetaRoles));
+  assert.ok(roles.filter(r => r.nodeId === 'a' || r.nodeId === 'higher').every(r => r.index === 'j'));
+  assert.ok(roles.filter(r => r.nodeId === 'b').every(r => r.index === 'i'));
+  // Conflicting authored indices remain authored; generated theta notation cannot select one.
+  stages[1].relations.push(relation({ lowerCopy: 'a', higherCopy: 'higher' }, { index: 'i' }));
+  const conflict = compileRelationRenderPlan(stages).frames[0].items.find(i => i.plaqueStyle === 'theta-grid');
+  assert.deepEqual(conflict.thetaRoles.map(r => r.index), ['k', 'l']);
+});
+
+test('theta allocation does not renumber other established dependency notation', () => {
+  const record = { statement: 'State', stageRecord: '', workspaceForest: forest, relations: [
+    relation({ first: 'a', second: 'b' }, { index: 'i' }, 'Coreference'),
+    relation({ predicate: 'v', argument: 'obj' }, { thetaRole: 'Theme' })
+  ] };
+  const items = compileRelationRenderPlan([record]).frames[0].items;
+  assert.equal(items.find(i => i.kind === 'coindex').index, 'i');
+  assert.equal(items.find(i => i.plaqueStyle === 'theta-grid').thetaRoles[0].index, 'j');
 });

@@ -71,7 +71,7 @@ test('same-name lists of equal length pair by position and are consumed together
   assert.ok(facet.evaluation.consumedEvidence.some((ref) => ref.field === 'values' && ref.key === 'arguments'));
   const plan = compileRelationRenderPlan([stage(thetaForest, [relation])]);
   assert.deepEqual(plan.frames[0].items.find((item) => item.plaqueStyle === 'theta-grid')?.thetaRoles,
-    [{ nodeId: 'a', label: 'Agent' }, { nodeId: 'b', label: 'Theme' }]);
+    [{ nodeId: 'a', label: 'Agent', index: 'i' }, { nodeId: 'b', label: 'Theme', index: 'j' }]);
 });
 
 test('differently named lists are not paired by position, and the reason names the rule', () => {

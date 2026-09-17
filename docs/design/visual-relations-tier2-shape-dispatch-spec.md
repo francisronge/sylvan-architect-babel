@@ -210,6 +210,13 @@ conflicts remain authored rather than receiving a generated resolution. Existing
 alphabetic trace formatting, other dependency letters and Tier-3 locators retain
 their separate conventions. Shared words or lineage alone do not prove movement.
 
+Theta-grid letters are allocated by the shared plan, not restarted in each grid.
+The exact argument ID, or its explicit root lineage, retains one letter across
+grids and stages. Authored index literals reserve their symbols; an unambiguous
+index on a proven movement identity may supply that argument's letter. Conflicting
+authored symbols remain unchanged and cannot select the generated notation.
+Neither similarly spelled words nor shared descendants establish identity.
+
 When an exact movement endpoint is a wordless category leaf, attach to that
 category's shell bottom. Do not request an absent lexical child, invent a null
 or trace, or search for another nearby endpoint. Lexical endpoints still require

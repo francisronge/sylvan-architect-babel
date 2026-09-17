@@ -959,7 +959,7 @@ test('named theta uses the same exact ordered role pairing as recovered theta', 
   const relation = { relation: 'ThetaAssignment', anchors: { predicate: 'v', arguments: ['a', 'b'] }, values: { arguments: ['Theme', 'Theme'] } };
   const plan = compileRelationRenderPlan([stage([relation], forest)]);
   assert.deepEqual(plan.frames[0].items.find((item) => item.kind === 'node-plaque')?.thetaRoles,
-    [{ nodeId: 'a', label: 'Theme' }, { nodeId: 'b', label: 'Theme' }]);
+    [{ nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'b', label: 'Theme', index: 'j' }]);
   // A differently named list of the same length is not a pairing.
   const unpaired = compileRelationRenderPlan([stage([{ ...relation, values: { roles: ['Theme', 'Theme'] } }], forest)]);
   assert.ok(unpaired.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));

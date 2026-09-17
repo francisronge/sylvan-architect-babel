@@ -4050,19 +4050,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             );
             if (!treeRect) return;
 
-            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, label }) => {
+            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, label, index }) => {
                 const anchor = resolveOverlayAnchor(nodeId);
                 const terminal = anchor?.leaves().at(-1);
                 return nodeId && terminal
                   ? [{
                       role: label,
+                      index,
                       nodeId,
                       terminalId: getNodeId(terminal as unknown as HierNode)
                     }]
                   : [];
               });
             if (roleEntries.length === 0) return;
-            const indexLabels = ['i', 'j', 'k', 'l', 'm', 'n', 'p'];
             const predicateTerminal = predicateAnchor.leaves().find((candidate) => (
               Boolean(String(candidate.data.word || '').trim())
             ));
@@ -4138,7 +4138,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('x', centre.toFixed(1))
                 .attr('y', (plateOrigin.y + 108).toFixed(1))
                 .attr('text-anchor', 'middle')
-                .text(indexLabels[index] || String(index + 1));
+                .text(role.index || '');
 
               const roleAnchor = resolveOverlayAnchor(role.nodeId);
               const roleLeaves = roleAnchor?.leaves() || [];
@@ -4167,7 +4167,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .attr('font-size', roleIsEntirelyTraces ? '22px' : '30px')
                   .attr('font-family', 'Crimson Pro, Georgia, serif')
                   .attr('font-style', 'italic')
-                  .text(indexLabels[index] || String(index + 1));
+                  .text(role.index || '');
               });
             });
           });

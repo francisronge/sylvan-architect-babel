@@ -356,7 +356,7 @@ export type NodePlaquePlanItem = PlanItemBase & {
   plaqueStyle: NodePlaqueStyle;
   title?: string;
   rows: Array<{ label: string; value: string }>;
-  thetaRoles?: Array<{ nodeId: string; label: string }>;
+  thetaRoles?: Array<{ nodeId: string; label: string; index?: string }>;
   nativeContent?: NativePlaqueContent;
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
@@ -3189,6 +3189,55 @@ export const compileRelationRenderPlan = (
     });
   });
 
+  // Allocate notation across the derivation, never separately in each painter.
+  // Reserve authored symbols before allocating, including later movement indices.
+  const usedIndices = new Set<string>();
+  const authoredIndicesByIdentity = new Map<string, Set<string>>();
+  stageDispatches.forEach((dispatches, stageIndex) => {
+    const nodes = collectForest(stageList[stageIndex].workspaceForest);
+    dispatches.forEach(({ evidence }) => {
+      const indices = evidence.values.index || [];
+      indices.forEach(index => usedIndices.add(index));
+      const movement = evidence.movement;
+      if (indices.length !== 1 || !movement) return;
+      const lineage = nodes.get(movement.targetNodeId)?.lineageId;
+      if (!lineage) return;
+      const key = `lineage:${lineage}`;
+      const authored = authoredIndicesByIdentity.get(key) || new Set<string>();
+      authored.add(indices[0]);
+      authoredIndicesByIdentity.set(key, authored);
+    });
+  });
+  items.forEach(item => { if ('index' in item) usedIndices.add(item.index); });
+  const argumentIndexByKey = new Map<string, string>();
+  let nextArgumentIndex = 0;
+  const stageNodeMaps = stageList.map(stage => collectForest(stage.workspaceForest));
+  // Theta notation identifies the exact argument, or its explicit root lineage.
+  // Shared descendants and similarly spelled labels cannot merge arguments.
+  const argumentIndex = (stageIndex: number, nodeId: string): string => {
+    const lineage = stageNodeMaps[stageIndex].get(nodeId)?.lineageId;
+    const key = lineage ? `lineage:${lineage}` : `theta:${nodeId}`;
+    if (!argumentIndexByKey.has(key)) {
+      const authored = authoredIndicesByIdentity.get(key);
+      let index = authored?.size === 1 ? [...authored][0] : '';
+      while (!index) {
+        const ordinal = nextArgumentIndex++;
+        const candidate = 'ijklmnopqrstuvwxyz'[ordinal] || `i${ordinal + 1}`;
+        if (!usedIndices.has(candidate)) index = candidate;
+      }
+      usedIndices.add(index);
+      argumentIndexByKey.set(key, index);
+    }
+    return argumentIndexByKey.get(key)!;
+  };
+  items.forEach(item => {
+    if (item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') {
+      item.thetaRoles = item.thetaRoles?.map(role => ({ ...role, index: argumentIndex(item.appearsAtStage, role.nodeId) }));
+    } else if (item.kind === 'node-badges' && item.badgeStyle === 'theta-role') {
+      item.badges = item.badges.map(badge => ({ ...badge, text: argumentIndex(item.appearsAtStage, badge.nodeId) }));
+    }
+  });
+
   /* Materialize into per-stage frames per persistence, before coalescing. */
   const stageCount = stageList.length;
   const frames = Array.from({ length: stageCount }, (_unused, stageIndex) => ({
@@ -3204,7 +3253,6 @@ export const compileRelationRenderPlan = (
    * structured diagnostic records the stage, relation, and missing anchors
    * for developers (the canvas itself shows nothing invented).
    */
-  const stageNodeMaps = stageList.map((stage) => collectForest(stage?.workspaceForest));
   const stageNodeIdSets = stageNodeMaps.map((nodesById) => new Set(nodesById.keys()));
   const vanishedAnchorIds = (item: RelationPlanItem, frameIndex: number): string[] => {
     if (frameIndex === item.appearsAtStage) return [];
