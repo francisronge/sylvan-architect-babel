@@ -5989,7 +5989,8 @@ export const buildStructuralDerivationPlaybackSteps = (
   const addReplayLayoutForNode = (
     layoutVisibleNodeIds: Set<string>,
     node: HierNode,
-    visibleNodeIdsForStep: Set<string>
+    visibleNodeIdsForStep: Set<string>,
+    expandedLayoutRoots: Set<HierNode>
   ) => {
     let topRenderableAncestor: HierNode = node;
     while (
@@ -6017,6 +6018,10 @@ export const buildStructuralDerivationPlaybackSteps = (
       return;
     }
 
+    // Every node in this workspace requests the same complete layout. Expand
+    // it once per step; the partial clause-projection case above stays separate.
+    if (expandedLayoutRoots.has(topRenderableAncestor)) return;
+    expandedLayoutRoots.add(topRenderableAncestor);
     topRenderableAncestor
       .descendants()
       .forEach((descendant) => {
@@ -6030,17 +6035,18 @@ export const buildStructuralDerivationPlaybackSteps = (
     cumulativeVisibleNodeIds.add(nodeId);
     const surface = resolveLeafSurface(node);
     const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
+    const expandedLayoutRoots = new Set<HierNode>();
     Array.from(cumulativeVisibleNodeIds).forEach((visibleNodeId) => {
       const visibleNode = visibleNodeById.get(visibleNodeId);
       if (!visibleNode) return;
-      addReplayLayoutForNode(layoutVisibleNodeIds, visibleNode, cumulativeVisibleNodeIds);
+      addReplayLayoutForNode(layoutVisibleNodeIds, visibleNode, cumulativeVisibleNodeIds, expandedLayoutRoots);
     });
     const currentRevealIndex = nodesToReveal.findIndex((candidate) => getNodeId(candidate) === nodeId);
     const pendingRevealNodes = currentRevealIndex >= 0
       ? nodesToReveal.slice(currentRevealIndex + 1)
       : [];
     pendingRevealNodes.forEach((pendingNode) => {
-      addReplayLayoutForNode(layoutVisibleNodeIds, pendingNode, cumulativeVisibleNodeIds);
+      addReplayLayoutForNode(layoutVisibleNodeIds, pendingNode, cumulativeVisibleNodeIds, expandedLayoutRoots);
     });
     const childNodes = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)));
     const operation: DerivationOperation = childNodes.length === 0
