@@ -423,6 +423,11 @@ dispatcher sends the relation name only to Tier 1 and sends authored role and
 value fields only to the Tier-2 synonym index, so that overlap cannot select a
 Tier-2 facet.
 
+Native scalar value names and Tier-2 candidates use the same concept catalog.
+For example, `role` supplies the same literal as `roleLabel`; changing an open
+relation's title must not make that literal disappear. Anchor meaning, pairing,
+cardinality and conflicting fields still determine whether a drawing is earned.
+
 ## Outcome Resolution
 
 Outcome value keys use the shared value-key catalog above. Outcome literals use

@@ -1,4 +1,4 @@
-import { TIER2_ROLE_SYNONYMS, TIER2_VALUE_SYNONYMS, normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
+import { NATIVE_VALUE_CONCEPTS, TIER2_ROLE_SYNONYMS, TIER2_VALUE_SYNONYMS, normalizeTier2Synonym } from '../relations/tier2Synonyms.ts';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 const movement = {
@@ -65,11 +65,6 @@ export const withProductionRoleVocabulary = (entryId, signature) => {
   return { ...signature, required: roles(signature.required), optional: roles(signature.optional) };
 };
 
-const valueConcepts = {
-  feature: 'feature.label', accent: 'accent.label', role: 'role.label', case: 'case.literal',
-  featureHierarchy: 'feature.hierarchy', delinkAfter: 'delink.position',
-  category: 'storage.category', qstore: 'storage.qstore', retrieved: 'storage.retrieved'
-};
 const nativeValueKeys = {
   'dependent-case': ['step'],
   impoverishment: ['featureHierarchy', 'delinkAfter'],
@@ -85,7 +80,7 @@ export const productionValueRules = entryId => {
   const keys = [...(PRODUCTION_SCALAR_VALUE_KEYS[family] || []), ...(nativeValueKeys[family] || [])]
     .filter(key => key !== 'outcome' && key !== 'judgment');
   return Object.fromEntries(keys.map(key => {
-    const concept = valueConcepts[key] || key;
+    const concept = NATIVE_VALUE_CONCEPTS[key] || key;
     return [key, { minItems: 0, maxItems: null, concept,
       aliases: [key, ...(valueGroups.get(concept)?.aliases || [])] }];
   }));

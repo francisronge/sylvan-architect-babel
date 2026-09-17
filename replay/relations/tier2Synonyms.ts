@@ -177,11 +177,20 @@ export type Tier2SynonymCandidate = {
 
 export type Tier2SynonymIndex = Map<string, Tier2SynonymCandidate[]>;
 
+// Native scalar slots and structural recovery share the same literal meanings.
+// A value name supplies a candidate, never the rest of a drawing's signature.
+export const NATIVE_VALUE_CONCEPTS: Readonly<Record<string, string>> = {
+  feature: 'feature.label', accent: 'accent.label', role: 'role.label', case: 'case.literal',
+  featureHierarchy: 'feature.hierarchy', delinkAfter: 'delink.position',
+  category: 'storage.category', qstore: 'storage.qstore', retrieved: 'storage.retrieved'
+};
+
 export const buildTier2SynonymIndex = (): Tier2SynonymIndex => {
   const index: Tier2SynonymIndex = new Map();
   const groups = [
     ...TIER2_ROLE_SYNONYMS,
-    ...TIER2_VALUE_SYNONYMS
+    ...TIER2_VALUE_SYNONYMS,
+    ...Object.entries(NATIVE_VALUE_CONCEPTS).map(([key, concept]) => group('value', concept, [key]))
   ];
 
   groups.forEach(({ scope, concept, aliases }) => {

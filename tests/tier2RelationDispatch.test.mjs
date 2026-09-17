@@ -48,6 +48,24 @@ const facetOutputKeys = (result, facetId) => result.facets
   .find(({ recipe }) => recipe.id === facetId)
   ?.outputIdentities.map(({ key }) => key) ?? [];
 
+test('native scalar role literals reach structural recovery without a registered relation title', () => {
+  const forest = [leaf('p', 'said'), node('a', 'CP', [leaf('c', 'left')])];
+  for (const key of ['role', 'ROLE', 'roleLabel', 'thetaRole']) {
+    const relation = { relation: 'Authored interpretation', anchors: { predicate: 'p', argument: 'a' },
+      values: { [key]: 'Propositional content' } };
+    const original = structuredClone(relation);
+    const result = dispatch(relation, forest);
+    assert.deepEqual(facetIds(result), ['theta-grid']);
+    assert.ok(result.claims[0].consumedEvidence.some(ref => ref.field === 'values' && ref.key === key));
+    assert.deepEqual(relation, original);
+  }
+  for (const relation of [
+    { relation: 'Theta assignment', anchors: { unrelated: 'p', participant: 'a' }, values: { role: 'Theme' } },
+    { relation: 'Authored interpretation', anchors: { predicate: 'p', argument: 'a' }, values: { role: ['Theme', 'Agent'] } },
+    { relation: 'Authored interpretation', anchors: { predicate: 'p', argument: 'a' }, values: { role: 'Theme', thetaRole: 'Agent' } }
+  ]) assert.deepEqual(facetIds(dispatch(relation, forest)), []);
+});
+
 test('licensing wording has one interpretation across typed domains and unknown relation names', () => {
   const forest = [leaf('a', 'read'), leaf('b', 'books')];
   for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
