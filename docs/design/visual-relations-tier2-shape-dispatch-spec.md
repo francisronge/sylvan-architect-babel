@@ -84,7 +84,10 @@ Exact-primary ownership and independent-claim checks remain unchanged.
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that
 domain; a generic `role` literal or the relation title cannot. Competing feature
-evidence does not select a theta reading. Literal pairing, cardinality and
+evidence does not select a theta reading. The same source/recipient direction
+rule applies to typed Case and feature assignment, including domain-qualified
+roles; neither an assignment title nor an untyped recipient establishes meaning.
+Literal pairing, cardinality and
 missing-reference checks still apply, including to lists with equal lengths.
 They do not independently repeat alias lookup. Empty authored arrays retain
 their field identity, so an empty optional field cannot be treated as absence.

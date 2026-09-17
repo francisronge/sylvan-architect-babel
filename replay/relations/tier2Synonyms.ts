@@ -205,7 +205,7 @@ export const lookupTier2SynonymCandidates = (
 /** Interpret qualified assignment roles as a domain plus a direction, never from titles or prose. */
 const assignmentDirection = (role: string): 'source' | 'target' | undefined =>
   ['assigner', 'source', 'licensor'].includes(role) ? 'source'
-    : ['target', 'recipient', 'bearer', 'marked'].includes(role) ? 'target' : undefined;
+    : ['target', 'recipient', 'assignee', 'bearer', 'marked'].includes(role) ? 'target' : undefined;
 
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
   const [domain, ...rest] = normalizeTier2Synonym(key).split(' ');
@@ -250,9 +250,11 @@ export const relationRoleConcepts = (
       || qualifiedAssignmentConcepts(role).includes('feature.source'));
   // Explicit domain evidence supplies meaning; generic roles supply direction.
   // A competing feature interpretation cannot silently become theta assignment.
-  if (thetaDomain && !featureDomain) {
-    const direction = assignmentDirection(spelling);
-    if (direction) concepts.add(direction === 'source' ? 'predicate' : 'theta.arguments');
+  const direction = assignmentDirection(spelling);
+  if (direction && thetaDomain !== featureDomain) {
+    concepts.add(thetaDomain
+      ? direction === 'source' ? 'predicate' : 'theta.arguments'
+      : direction === 'source' ? 'feature.source' : 'feature.target');
   }
   if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
     normalizeTier2Synonym(role).startsWith('case ') && qualifiedAssignmentConcepts(role).includes('feature.target'))) {

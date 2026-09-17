@@ -98,7 +98,8 @@ test('qualified roles share Tier-1 binding without completing a malformed regist
 test('explicit assignment domains interpret generic directions without relation-name aliases', () => {
   const forest = [leaf('a', 'read'), leaf('b', 'books'), leaf('c', 'Ada')];
   for (const anchors of [{ assigner: 'a', recipient: 'b' }, { source: 'a', target: 'b' },
-    { thetaAssigner: 'a', recipient: 'b' }, { source: 'a', thetaBearer: 'b' }]) {
+    { thetaAssigner: 'a', recipient: 'b' }, { source: 'a', thetaBearer: 'b' },
+    { assigner: 'a', assignee: 'b' }, { thematicAssigner: 'a', thetaAssignee: 'b' }]) {
     const relation = { relation: 'Open claim', anchors, values: { thetaRole: 'Authored role' } };
     const original = structuredClone(relation);
     assert.ok(facetIds(dispatch(relation, forest)).includes('theta-grid'));
@@ -109,7 +110,9 @@ test('explicit assignment domains interpret generic directions without relation-
   assert.ok(facetIds(dispatch({ relation: 'Open claim', anchors: { thetaAssigner: 'a', recipient: ['b', 'c'] },
     values: { recipient: ['Theme', 'Agent'] } }, forest)).includes('theta-grid'));
   for (const values of [{ case: 'Accusative' }, { features: ['Case: Accusative'] }]) {
-    assert.ok(facetIds(dispatch({ relation: 'Open claim', anchors: { assigner: 'a', recipient: 'b' }, values }, forest))
+    for (const anchors of [{ assigner: 'a', recipient: 'b' }, { assigner: 'a', assignee: 'b' },
+      { caseAssigner: 'a', caseAssignee: 'b' }, { source: 'a', marked: 'b' }])
+    assert.ok(facetIds(dispatch({ relation: 'Open claim', anchors, values }, forest))
       .includes('feature.dependency'));
   }
 });
@@ -133,6 +136,10 @@ test('assignment interpretation cannot fill missing literals or turn government 
   const forest = [leaf('source', 'read'), leaf('target', 'books')];
   for (const [anchors, values] of [
     [{ governor: 'source', trace: 'target' }, { licensing: 'ECP', Case: 'accusative' }],
+    [{ assigner: 'source', assignee: 'target' }, {}],
+    [{ assigner: 'source', assignee: 'target' }, { role: 'Theme' }],
+    [{ assigner: 'source', assignee: 'target' }, { thetaRole: 'Theme', case: 'Accusative' }],
+    [{ assigner: 'source', assignee: 'target', target: 'missing' }, { case: 'Accusative' }],
     [{ governor: 'source', caseMarked: 'target' }, {}],
     [{ caseGovernor: 'source', caseMarked: 'target' }, {}],
     [{ thetaAssigner: 'source', argument: 'target' }, {}],
