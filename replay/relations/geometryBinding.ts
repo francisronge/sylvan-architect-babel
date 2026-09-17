@@ -469,7 +469,7 @@ type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap
   & { labelClearances?: Rect[]; obstacles?: Rect[] };
 
 export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
-  fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 16, fontWeight: 600, letterSpacing: 0
+  fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 12, fontWeight: 600, letterSpacing: 0
 };
 
 const fallbackLabelRect = (mark: Pick<BoundFallbackMark, 'x' | 'y' | 'textWidth'>, scale: number): Rect => ({
