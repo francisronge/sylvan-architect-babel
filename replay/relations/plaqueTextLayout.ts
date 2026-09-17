@@ -221,6 +221,52 @@ export const preparePlaqueTextLayout = (
   return { width, ...plaqueViewport(rowTop + (feature ? 16 : 0), font.row.fontSize), ...(title ? { title: title.block } : {}), rows };
 };
 
+/** Native grid columns share one content-sized layout for reservation and drawing. */
+export const prepareThetaGridTextLayout = (
+  predicate: string,
+  roles: readonly { label: string; index?: string }[],
+  options: Pick<PlaqueTextLayoutOptions, 'measureText'> = {}
+) => {
+  const style: PlaqueTextStyle = {
+    fontFamily: "'JetBrains Mono', monospace", fontSize: 26, fontWeight: 850, letterSpacing: 0.26
+  };
+  const indexStyle = { ...style, fontSize: 25, letterSpacing: 0.25 };
+  const measure = createTextMeasure(options.measureText);
+  // Preserve the Orchard's 430×126 template; wrap long columns within its
+  // original 302-unit role area rather than making an unbounded horizontal grid.
+  const columnWidth = (texts: Array<[string, PlaqueTextStyle]>, minimum: number, padding: number) =>
+    Math.max(minimum, Math.ceil(Math.min(302, Math.max(0, ...texts.flatMap(([text, font]) =>
+      text.split(/\r\n|\r|\n/u).map(line => measure(line, font).width))) + padding * 2)));
+  const block = (text: string, font: PlaqueTextStyle, x: number, top: number,
+    width: number, baseline: number, lineHeight: number, centered = false) => {
+    const result = prepareTextBlock(text, font, { x, top, width, baseline, lineHeight }, measure);
+    if (centered) result.block.lines.forEach(line => { line.x = x + width / 2; });
+    return result;
+  };
+  const predicateWidth = columnWidth([[predicate, style]], 104, 16);
+  const predicateBlock = block(predicate, style, 16, 47, predicateWidth - 32, 31, 32);
+  let left = predicateWidth;
+  const roleColumns = roles.map(role => {
+    const width = columnWidth([[role.label, style], [role.index || '', indexStyle]],
+      Math.max(0, 430 - predicateWidth - 24) / Math.max(1, roles.length), 12);
+    const label = block(role.label, style, left + 12, 39, width - 24, 30, 40, true);
+    const column = { left, width, label: label.block, bottom: label.bottom };
+    left += width;
+    return column;
+  });
+  const roleBottom = Math.max(79, ...roleColumns.map(column => column.bottom));
+  const columns = roleColumns.map((column, i) => {
+    const index = block(roles[i].index || '', indexStyle, column.left + 12, roleBottom + 3,
+      column.width - 24, 26, 35, true);
+    return { ...column, index: index.block, bottom: index.bottom };
+  });
+  return {
+    width: Math.max(430, left + 24),
+    height: Math.max(126, predicateBlock.bottom + 13, ...columns.map(column => column.bottom + 9)),
+    predicate: predicateBlock.block, columns, predicateWidth
+  };
+};
+
 const pfTitleStyle: PlaqueTextStyle = {
   fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 900, letterSpacing: 3.84
 };

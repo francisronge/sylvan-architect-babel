@@ -2,7 +2,7 @@ import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques } from './markGeometry.ts';
-import { preparePlaqueTextLayout, preparePfPlaqueTextLayout } from './plaqueTextLayout.ts';
+import { preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean };
 type Node = HierarchyPointNode<SyntaxNode>;
@@ -20,6 +20,10 @@ export function plaqueIdentity(item: RelationPlanItem): string {
 }
 const idOf = (node: Node): string => String((node as Node & { __vizId?: string }).__vizId ?? node.data.id ?? '');
 const visible = (node: Node) => node.data.replayOrigin?.kind !== 'workspace';
+export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'leaves'>): string {
+  const terminal = anchor.leaves().find(node => Boolean(String(node.data.word || '').trim()));
+  return String(terminal?.data.word || terminal?.data.label || anchor.data.word || anchor.data.label || 'predicate');
+}
 const union = (rects: PlaqueRect[]): PlaqueRect => {
   const x = Math.min(...rects.map(rect => rect.x));
   const y = Math.min(...rects.map(rect => rect.y));
@@ -95,7 +99,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
 
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
-  previous = new Map<string, PlaquePlacement>()) {
+  previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure) {
   const result = new Map<number, PlaquePlacement>();
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const occupied: PlaqueRect[] = [...obstacles];
@@ -118,7 +122,12 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           isZeroRealization: rows.length === 1 && rows[0].kind === 'rewrite' && rows[0].value === '\u2205'
         }), rows: size.rows };
       }
-      if (item.plaqueStyle === 'theta-grid') size = { ...size, width: 430, height: 126 };
+      if (item.plaqueStyle === 'theta-grid') {
+        const predicate = byId.get(item.anchorNodeIds[0]);
+        if (!predicate) return;
+        const grid = prepareThetaGridTextLayout(thetaGridPredicateLabel(predicate), item.thetaRoles ?? [], { measureText });
+        size = { ...size, width: grid.width, height: grid.height };
+      }
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
         width: size.width, height: size.height, ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {

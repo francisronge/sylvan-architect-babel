@@ -10,12 +10,14 @@ import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { placeStagePlaques, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 
 type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
   plan: RelationRenderPlan | null; width: number; height: number;
   abstractionMode?: boolean; protectedNodeIds?: Set<string>;
   layoutGroups?: readonly (readonly number[])[];
+  measurePlaqueText?: PlaqueTextMeasure;
 };
 
 /** Shared geometric endpoint estimates for reservation and camera bounds. */
@@ -129,7 +131,7 @@ export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, Pla
 
 function allocateStagePlaques(input: StageLayoutInput, previous: Map<string, PlaquePlacement>) {
   const { nodes, obstacles } = measureStagePlaqueSpace(input);
-  return placeStagePlaques(input.plan?.frames[input.stageIndex]?.items ?? [], nodes, obstacles, previous);
+  return placeStagePlaques(input.plan?.frames[input.stageIndex]?.items ?? [], nodes, obstacles, previous, input.measurePlaqueText);
 }
 
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */

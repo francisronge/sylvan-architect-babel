@@ -17,7 +17,8 @@ import { availableTreeViewport, linearizationViewport } from '../components/tree
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
-import { wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
+import { wrapPlaqueText, prepareThetaGridTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -145,7 +146,8 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
       { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
     relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
     dependentCaseStatePlaques,
-    wrapPlaqueText,
+    wrapPlaqueText, prepareThetaGridTextLayout, thetaGridPredicateLabel,
+    drawPlaqueText: new Function(`${declaration('drawPlaqueText')} return draw;`)(),
     withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(text => ({ width: [...text].length * 4.2 })),
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
     measureGraphicsElementsInTreeSpace: elements => elements.length ? ({ x: 0, y: 0, width: 260, height: 280 }) : null,
@@ -353,12 +355,48 @@ test('native theta uses prepared literal roles and associations, never the raw a
   const grid = plan.frames[0].items.find((item) => item.kind === 'node-plaque');
   grid.thetaRoles = [{ nodeId: 'mid', label: 'Theme_i: literal' }];
   const svg = drawNative('scheduleAcceptedThetaGrid', plan.frames[0].items);
-  assert.deepEqual(svg('babel-theta-grid-role').map((node) => node.textContent), ['Theme_i: literal']);
+  assert.deepEqual(svg('babel-theta-grid-role').map((node) => node.children.map(line => line.textContent).join('')), ['Theme_i: literal']);
   assert.equal(svg('babel-theta-terminal-index').length, 1);
   const word = svg('babel-theta-indexed-label')[0];
   assert.equal(word.textContent, 'Mia', 'the syntax word remains on its original text element');
   assert.deepEqual(word.children.map(node => node.attrs.class), ['babel-theta-terminal-index babel-relation-index'],
     'only the added index enters relation ownership and emphasis');
+});
+
+test('native theta reserves and paints the same content-sized grid for both tiers', () => {
+  const measureText = (text, style) => ({ width: text.length * (style.fontSize * 0.6 + style.letterSpacing) });
+  const forest = [{ id: 'clause', label: 'IP', children: [
+    { id: 'subject', label: 'NP', word: 'Mia' },
+    { id: 'predicate', label: 'V', word: 'laughed' }
+  ] }];
+  for (const relation of [
+    { relation: 'ThetaAssignment', anchors: { predicate: 'predicate', 'Agent/Experiencer': 'subject' } },
+    { relation: 'Open thematic claim', anchors: { predicate: 'predicate', argument: 'subject' },
+      values: { thetaRole: 'Agent/Experiencer' } }
+  ]) {
+    const record = { sentence: 'Mia laughed.', derivationStages: [stage([relation], forest)] };
+    const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
+    const plan = compileRelationRenderPlan(record.derivationStages);
+    const layout = buildStagePlaqueLayout({ steps, stageIndex: 0, plan, width: 1596, height: 1016,
+      completedCanvas: buildRenderableDerivationCanvasData(forest), measurePlaqueText: measureText });
+    const items = plan.frames[0].items;
+    const gridIndex = items.findIndex(item => item.plaqueStyle === 'theta-grid');
+    assert(gridIndex >= 0);
+    const box = layout.get(gridIndex);
+    const svg = drawNative('scheduleAcceptedThetaGrid', items, forest, items, { replayPlaqueLayout: layout,
+      withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(measureText) });
+    const shell = svg('babel-theta-grid-shell')[0];
+    assert(Math.abs(Number(shell.attrs.width) - box.width) < 0.051);
+    assert.equal(Number(shell.attrs.height), box.height);
+    assert(box.width > 430 && box.width <= 480);
+    const predicate = svg('babel-theta-grid-predicate')[0].children[0];
+    const role = svg('babel-theta-grid-role')[0].children[0];
+    assert.equal(predicate.textContent, 'laughed');
+    assert.equal(role.textContent, 'Agent/Experiencer');
+    const predicateRight = Number(predicate.attrs.x) + predicate.textContent.length * 15.86;
+    const roleLeft = Number(role.attrs.x) - role.textContent.length * 15.86 / 2;
+    assert(predicateRight + 20 < roleLeft, 'the grid text must have a clear inter-column gap');
+  }
 });
 
 test('Astra X-bar frames 35 and 36: native theta paints the persistent reserved positions', () => {

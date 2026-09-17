@@ -16,9 +16,27 @@ already delivered in message events; no repeat generation was needed. The
 provider echoed the exact Babel instruction and an empty tools list. Astra then
 completed the same X-bar sentence in 37 seconds with valid JSON, no repairs and
 18 Replay frames, using the corrected runner end to end. Both are inspectable
-through the existing review UI. The full offline gate passes 1,701 tests. These
-two small checks verify subscription transport and basic processing, not the
-paid API route, linguistic quality or performance across larger derivations.
+through the existing review UI. Both examples are X-bar. Review of their 17
+relations and all 44 Replay frames found a theta-grid text collision and one
+Case-recognition miss. The grid now measures its predicate and role columns,
+reuses that layout for placement and painting, and wraps long literals without
+dropping content. Short grids retain their geometry. The original Sol grid's
+overlap is cleared with unchanged syntax and fitted camera; multi-column,
+wrapped-text, zoom and narrow-viewport controls are checked. The full offline
+gate passes 1,704 tests.
+
+The recognition miss remains open: Astra's `licenser` is not interpreted as
+`licensor`; changing only that word makes the existing typed-Case rule succeed.
+Untyped licensing, an unrelated witness, a generic governor and ambiguous Case
+pairing remain neutral in the audit controls. This is a shared vocabulary gap,
+not evidence that an unknown second participant can safely become an assigner.
+Any repair must preserve those negative cases and apply consistently across
+role binding and drawing tiers, without using titles to invent a dependency.
+The two short runs do not qualify the paid API route, movement, split morphology,
+other frameworks or performance across larger derivations. Their chosen older
+GB subject analysis is not a demonstrated missing-movement defect. Sol's 16→17
+camera refit accommodates the new IP parent; existing node coordinates remain
+unchanged, so no layout repair is warranted by that transition.
 
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |

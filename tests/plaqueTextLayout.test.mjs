@@ -4,7 +4,8 @@ import test from 'node:test';
 import {
   fallbackPlaqueTextMeasure,
   wrapPlaqueText,
-  preparePlaqueTextLayout
+  preparePlaqueTextLayout,
+  prepareThetaGridTextLayout
 } from '../replay/relations/plaqueTextLayout.ts';
 import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
@@ -19,6 +20,48 @@ const measureText = (text, style) => ({
 const content = (count = 12) => ({
   title: 'Authored feature details',
   rows: Array.from({ length: count }, (_, index) => ({ label: `row${index + 1}`, value: `literal${index + 1}` }))
+});
+
+test('theta grids retain short geometry and give longer predicates their own column', () => {
+  const short = prepareThetaGridTextLayout('buy', [{ label: 'Theme', index: 'i' }], { measureText });
+  assert.deepEqual([short.width, short.height, short.predicateWidth, short.columns[0].left, short.columns[0].width],
+    [430, 126, 104, 104, 302]);
+  const longer = prepareThetaGridTextLayout('laughed', [{ label: 'Agent/Experiencer', index: 'i' }], { measureText });
+  assert(longer.predicateWidth > short.predicateWidth);
+  assert(longer.width > short.width && longer.width <= 480, 'ordinary text still fits a local pocket');
+  assert.equal(longer.height, 126);
+  assert.equal(longer.columns[0].label.lines.length, 1);
+});
+
+test('theta grids wrap intact literals and keep all text inside its own column and below its header', () => {
+  for (const [predicate, roles] of [
+    ['laughed', [{ label: 'Agent/Experiencer', index: 'i' }]],
+    ['recontextualized', [{ label: 'Agent' }, { label: 'Instrument / Means' }, { label: 'Theme' }]],
+    ['A very long predicate expression that must wrap', [
+      { label: 'An intentionally long authored thematic role with more than one line', index: 'authored-index' },
+      { label: '受益者・経験者', index: 'j' }]]
+  ]) {
+    const layout = prepareThetaGridTextLayout(predicate, roles);
+    const check = (block, left, right, centered) => {
+      for (const line of block.lines) {
+        const x = centered ? line.x - line.width / 2 : line.x;
+        assert(x >= left && x + line.width <= right, line.text);
+        assert(line.y - line.ascent >= 39 && line.y + line.descent < layout.height, line.text);
+      }
+    };
+    check(layout.predicate, 16, layout.predicateWidth - 16, false);
+    assert.equal(layout.predicate.lines.map(line => line.text).join(''), predicate);
+    layout.columns.forEach((column, index) => {
+      check(column.label, column.left + 12, column.left + column.width - 12, true);
+      check(column.index, column.left + 12, column.left + column.width - 12, true);
+      assert.equal(column.label.lines.map(line => line.text).join(''), roles[index].label);
+      assert.equal(column.index.lines.map(line => line.text).join(''), roles[index].index || '');
+      const roleBottom = Math.max(...column.label.lines.map(line => line.y + line.descent));
+      assert(column.index.lines[0].y - column.index.lines[0].ascent > roleBottom);
+    });
+    assert.equal(new Set(layout.columns.map(column => column.index.lines[0].y)).size, 1,
+      'all columns share the grid index row even when one role wraps');
+  }
 });
 const planFor = (contents, plaqueStyle) => ({
   frames: [{ items: contents.map((value, index) => ({

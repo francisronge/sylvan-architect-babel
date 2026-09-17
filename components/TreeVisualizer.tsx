@@ -9,8 +9,8 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
-import { preparePfPlaqueTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
-import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
+import { projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
   MOVEMENT_ARC_STROKE,
@@ -174,6 +174,7 @@ const drawPlaqueText = (
     .style('white-space', 'pre').attr('xml:space', 'preserve');
   block.lines.forEach(line => text.append('tspan')
     .attr('x', origin.x + line.x).attr('y', origin.y + line.y).text(line.text));
+  return text;
 };
 
 const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boolean => {
@@ -508,14 +509,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
   const stagePlaqueLayout = useMemo(() => {
     if (!activeDerivationFrame || dimensions.width === 0 || disableRelationOverlay) return new Map();
-    return buildStagePlaqueLayout({
+    const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildStagePlaqueLayout({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      layoutGroups: stageLayoutGroups
+      layoutGroups: stageLayoutGroups, measurePlaqueText
     });
+    return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
   }, [activeDerivationFrame, activeDerivationFrameIndex, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups]);
+    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass]);
   const stageCameraBounds = useMemo(() => {
     if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
     return buildStageCameraBounds({
@@ -4041,12 +4043,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             );
             if (!treeRect) return;
 
-            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, label, index }) => {
+            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, index }, columnIndex) => {
                 const anchor = resolveOverlayAnchor(nodeId);
                 const terminal = anchor?.leaves().at(-1);
                 return nodeId && terminal
                   ? [{
-                      role: label,
+                      columnIndex,
                       index,
                       nodeId,
                       terminalId: getNodeId(terminal as unknown as HierNode)
@@ -4054,16 +4056,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   : [];
               });
             if (roleEntries.length === 0) return;
-            const predicateTerminal = predicateAnchor.leaves().find((candidate) => (
-              Boolean(String(candidate.data.word || '').trim())
-            ));
-            const predicateLabel = String(
-              predicateTerminal?.data.word
-              || predicateTerminal?.data.label
-              || predicateAnchor.data.word
-              || predicateAnchor.data.label
-              || 'predicate'
-            );
+            const gridLayout = withPlaqueTextMeasure(svg, measureText =>
+              prepareThetaGridTextLayout(thetaGridPredicateLabel(predicateAnchor), grid.thetaRoles, { measureText }));
             const layer = g.append('g')
               .attr('class', 'babel-theta-relation-layer')
               .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
@@ -4071,12 +4065,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (layerNode) {
               (layerNode as SVGGElement & { __babelProductionRelation?: true }).__babelProductionRelation = true;
             }
-            const plateWidth = 430;
-            const plateHeight = 126;
+            const { width: plateWidth, height: plateHeight, predicateWidth: leftColumnWidth } = gridLayout;
             const plateOrigin = replayPlaqueLayout.get(frameItems.indexOf(grid));
             if (!plateOrigin) return;
-            const leftColumnWidth = 104;
-            const roleColumnWidth = (plateWidth - leftColumnWidth - 24) / roleEntries.length;
             const plate = layer.append('g').attr('class', 'babel-theta-grid-plate');
             plate.append('rect')
               .attr('class', 'babel-theta-grid-shell')
@@ -4096,21 +4087,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('x2', (plateOrigin.x + plateWidth - 16).toFixed(1))
               .attr('y1', (plateOrigin.y + 39).toFixed(1))
               .attr('y2', (plateOrigin.y + 39).toFixed(1));
-            plate.append('text')
-              .attr('class', 'babel-theta-grid-predicate')
-              .attr('x', (plateOrigin.x + 16).toFixed(1))
-              .attr('y', (plateOrigin.y + 78).toFixed(1))
-              .text(predicateLabel);
+            drawPlaqueText(plate, gridLayout.predicate, 'babel-theta-grid-predicate', plateOrigin);
             plate.append('line')
               .attr('class', 'babel-theta-grid-rule')
               .attr('x1', (plateOrigin.x + leftColumnWidth).toFixed(1))
               .attr('x2', (plateOrigin.x + leftColumnWidth).toFixed(1))
               .attr('y1', (plateOrigin.y + 47).toFixed(1))
               .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
-            roleEntries.forEach((role, index) => {
-              const left = plateOrigin.x + leftColumnWidth + roleColumnWidth * index;
-              const centre = left + roleColumnWidth / 2;
-              if (index > 0) {
+            roleEntries.forEach((role) => {
+              const column = gridLayout.columns[role.columnIndex];
+              const left = plateOrigin.x + column.left;
+              if (role.columnIndex > 0) {
                 plate.append('line')
                   .attr('class', 'babel-theta-grid-rule')
                   .attr('x1', left.toFixed(1))
@@ -4118,18 +4105,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .attr('y1', (plateOrigin.y + 47).toFixed(1))
                   .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
               }
-              plate.append('text')
-                .attr('class', 'babel-theta-grid-role')
-                .attr('x', centre.toFixed(1))
-                .attr('y', (plateOrigin.y + 69).toFixed(1))
-                .attr('text-anchor', 'middle')
-                .text(role.role);
-              plate.append('text')
-                .attr('class', 'babel-theta-grid-index babel-relation-index')
-                .attr('x', centre.toFixed(1))
-                .attr('y', (plateOrigin.y + 108).toFixed(1))
-                .attr('text-anchor', 'middle')
-                .text(role.index || '');
+              drawPlaqueText(plate, column.label, 'babel-theta-grid-role', plateOrigin)
+                .attr('text-anchor', 'middle');
+              drawPlaqueText(plate, column.index, 'babel-theta-grid-index babel-relation-index', plateOrigin)
+                .attr('text-anchor', 'middle');
 
               const roleAnchor = resolveOverlayAnchor(role.nodeId);
               const roleLeaves = roleAnchor?.leaves() || [];
