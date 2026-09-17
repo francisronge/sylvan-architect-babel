@@ -4,7 +4,7 @@ import type { RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques } from './markGeometry.ts';
 import { preparePlaqueTextLayout, preparePfPlaqueTextLayout } from './plaqueTextLayout.ts';
 
-export type PlaqueRect = { x: number; y: number; width: number; height: number };
+export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean };
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
@@ -28,7 +28,8 @@ const union = (rects: PlaqueRect[]): PlaqueRect => {
 };
 export const plaquesOverlap = (a: PlaqueRect, b: PlaqueRect, gap = 24): boolean =>
   a.x < b.x + b.width + gap && a.x + a.width + gap > b.x
-  && a.y < b.y + b.height + gap && a.y + a.height + gap > b.y;
+  && (b.extendsDownward || a.y < b.y + b.height + gap)
+  && (a.extendsDownward || a.y + a.height + gap > b.y);
 
 /** Carry a reserved offset with its actual Replay node, without choosing another pocket. */
 export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positionFor: (id: string) => { x: number; y: number } | null) {
@@ -88,7 +89,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
     // Allow a label-height of clearance for the estimated text centre. The
     // browser attaches to measured ink; neither attachment nor path is moved.
     const x = bounds.x + bounds.width / 2, y = Math.max(...subtree.map(node => node.y)) - 42;
-    return [{ x: x - 42, y, width: 84, height: bottom - y }];
+    return [{ x: x - 42, y, width: 84, height: bottom - y, extendsDownward: true }];
   });
 }
 
@@ -184,7 +185,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         const dx = x + width / 2 - anchor.x;
         if (dx * dx >= bestDistance) break;
         const intervals = occupied.filter(box => x < box.x + box.width + gap && x + width + gap > box.x)
-          .map(box => [box.y - height - gap, box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
+          .map(box => [box.y - height - gap, box.extendsDownward ? Infinity : box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
         const merged: number[][] = [];
         for (const interval of intervals) {
           const last = merged[merged.length - 1];
@@ -203,8 +204,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     }
     const location = placement ? 'local' : 'below';
     if (!placement) {
-      // Stay horizontally under this subtree; only grow downward when another box or branch occupies it.
-      const x = domainBounds.x + domainBounds.width / 2 - width / 2;
+      // A connector's lower lane clears all plaques, so its stems extend past
+      // every below-tree plaque. Choose the nearest clear column before stacking.
+      const idealX = domainBounds.x + domainBounds.width / 2 - width / 2;
+      const stems = occupied.filter(box => box.extendsDownward);
+      const gap = 24 + 1e-6;
+      const x = [idealX, ...stems.flatMap(box => [box.x - width - gap, box.x + box.width + gap])]
+        .sort((a, b) => Math.abs(a - idealX) - Math.abs(b - idealX) || a - b)
+        .find(x => stems.every(box => x + width + 24 <= box.x || x >= box.x + box.width + 24))!;
       let y = domainBounds.y + domainBounds.height + 60;
       for (;;) {
         const collisions = occupied.filter(obstacle => plaquesOverlap({ x, y, width, height }, obstacle));

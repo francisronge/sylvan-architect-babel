@@ -235,6 +235,34 @@ findings and Programs 0–8:
   Matched close-ups are in the temporary `grid-clearance/straight.html` review.
   This does not close movement timing, recognition or Tier-3 crowding; mobile
   visual approval and universal collision freedom are not claimed.
+- **September 17 follow-up, implemented and verified offline and in Replay.**
+  Shared movement evidence now distinguishes a containing landing site from the
+  unique anchored moved occurrence. Opus X-bar's first movement relation owns
+  replacement of the empty position and the lower occurrence; the later chain
+  no longer repeats the transition. The Minimalist movement earns its trajectory.
+  Generic role wording does not override conflicting identities or endpoint lists.
+  Typed Case/feature assignments now use the same source/recipient composition
+  rule as theta assignments, recovering the three missed Opus Case claims.
+  Generic government, untyped `role` values, unsupported claims and unpaired
+  arrays remain neutral. No model prompt or authored record changed.
+  Theta letters are allocated across the plan by exact argument/root identity;
+  separate grids no longer independently restart at `i`. Authored indices are
+  reserved, with a proven movement identity reusing its unambiguous authored
+  letter. The six saved Opus/Grok/Sol bundles retain all 240 Replay frames.
+  Browser checks cover each frame for non-finite geometry and neutral
+  connector/role-label collisions with feature plaques and theta grids. The
+  newly recovered Minimalist movement exposed a long connector stem crossing
+  a tall plaque; below-tree placement now reserves the whole straight stem,
+  choosing the nearest clear column instead of sinking below its estimated end.
+  Focused movement, Case and index captures, zoom/Next/Fit checks and a narrow
+  clearance check passed. The full offline gate passes 1,693 tests and both
+  parse-contract fixtures. Review evidence remains outside the repository in
+  `/tmp/babel-sept17-review`; this does not establish universal collision freedom.
+  **Still open:** the X-bar movement also causes unrelated syntax to reflow.
+  Offline layout inspection confirms that this remains after correcting timing;
+  no camera/layout redesign was made.
+  Tier-3 crowding and persistence remain discussion-only. Fresh provider calls
+  remain unauthorized for this pass.
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
   typechecking, and the existing release asset/link check alongside build and
   dependency audits. No new test framework or product behavior changed.

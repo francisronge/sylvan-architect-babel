@@ -223,3 +223,19 @@ for (const record of records) {
     });
   }
 }
+
+test('below-tree plaques cannot escape a connector stem by moving below its tree reservation', () => {
+  const nodes = tree().descendants();
+  const item = plaque(['root'], true);
+  const fallback = { kind: 'fallback', drawing: { marks: [], link: { endpoints: ['root', 'right'] } } };
+  const stems = plaqueConnectorObstacles([fallback], nodes);
+  const original = placeStagePlaques([item], nodes).get(0);
+  const result = placeStagePlaques([item], nodes, [...plaqueTreeObstacles(nodes), ...stems],
+    new Map([[plaqueIdentity(item), original]])).get(0);
+  assert.equal(result.location, 'below');
+  assert.notEqual(result.x, original.x, 'the plaque must use a clear column, not sink beneath the old stem end');
+  assert(stems.every(stem => !plaquesOverlap(result, stem)));
+  assert(Object.values(result).filter(v => typeof v === 'number').every(Number.isFinite));
+  const extended = stems.map(stem => ({ ...stem, height: result.y + result.height + 500 }));
+  assert(extended.every(stem => !plaquesOverlap(result, stem)), 'longer lower lanes remain clear');
+});
