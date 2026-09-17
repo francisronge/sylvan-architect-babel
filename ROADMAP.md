@@ -1,11 +1,54 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-17
+Status date: 2026-09-18
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
 
 ## Current Baseline
+
+The latest varied subscription batch made eight Babel-only OAuth requests on
+`707af42`, covering coordination, relatives, negation and raising/control in both
+frameworks with Sol/Astra at high effort. Seven completed in 93–183 seconds:
+38 stages, 115 relation occurrences and 374 Replay frames. All seven outputs
+parse as strict JSON, require no repair and match their saved receipt hashes.
+Sol's relative X-bar stream ended before any analysis text or completion event;
+its cause is unproven. No retry or API-key fallback was made. The remaining
+three unstarted jobs then ran once. Exact requests, contract fingerprints,
+streams and receipts are in `/tmp/babel-varied-batch-20260917`.
+
+Review covered every Stage Record and relation, all 374 desktop Replay frames,
+and full-size problem transitions, final trees, Fit and zoom. One narrow repair
+is retained: an already established movement restated later must not hide its
+landing during intervening construction. Replay now checks existing transition
+ownership before withholding the landing. In the relative Minimalism example,
+Mia stays visible while C is selected. The regression fails before the fix.
+The retained code passes 1,721 tests, typecheck and both contract fixtures.
+Across 27 analyses / 1,183 frames, only that relative playback changes; all
+relation plans and authored moments/order remain identical. No arrow styling,
+shared layout or camera change is retained. Review and matched captures are in
+`/tmp/babel-sept17-review/varied-batch`.
+
+The deeper pass also found open defects. Relative frames 15–21 use future
+topology that detaches current sources before movement. A tested branch-preserving
+scaffold check repairs this but exposes neutral annotations still using completed
+stage coordinates in an older Sol morphology example. That experiment is **not
+merged**; transition topology and annotation coordinates need coordinated repair.
+Sol's raising X-bar empty matrix NP vanishes before movement; ownership needs
+investigation. Astra's raising example displays a lower `Mia` as `mia`; investigate
+proper-name casing separately from sentence-initial casing.
+
+Recognition remains bounded. Ordered multi-source/recipient arrays expose both
+plural/qualified-role coverage gaps and recipes restricted to one source. Next,
+investigate shared decomposition of unambiguous paired claims, with negative
+controls; prefix matching alone is unsafe for chain heads versus lower positions.
+Some attracting-head context on atomic nominal movement also stays neutral even
+when the movement path is recovered. No separate model interpreter is planned.
+Sol negation frame 32 and raising X-bar frame 62 reference higher occurrences
+introduced by the following movement; those are authored timing conflicts, and
+their diagnostics/order are preserved. This batch does not certify the linguistic
+analyses, the API route or deployed hosting. Earlier baseline counts below record
+their respective checks; the current retained-code gate is the one above.
 
 Subscription testing: `npm run qualification:codex` uses the existing Babel
 prompts, normalization and Replay with no agent instructions or tools, no
