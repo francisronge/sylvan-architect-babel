@@ -295,12 +295,46 @@ test('fan labels keep authored roles and repeated witnesses have exact connector
   ]);
   const fitted = fitFallbackGeometry(bound, { fittedMarkerScale: 2 });
   const fan = [...fitted.values()].filter(p => p.type === 'segment');
-  assert.equal(new Set(fan.map(p => p.toMark)).size, 3);
+  assert.equal(new Set(fan.map(p => p.toMark)).size, 2, 'a role sharing the hub node does not create a self-connection');
   fan.forEach((line, i) => {
     const target = fitted.get(marks[i + 1]);
     assert.deepEqual(line.to, { x: target.x, y: target.y });
   });
   assert.deepEqual(stages[0].relations, [relation]);
+});
+
+test('separate Replay moments cannot displace or clip one another, including owned rails', () => {
+  const fan = { relation: 'Open fan', anchors: { hub: 'a', members: ['a', 'b', 'c'] } };
+  const contexts = Array.from({ length: 8 }, (_, i) => ({ relation: `Context ${i}`, anchors: { role: 'a', peer: 'b' } }));
+  const options = { separateFallbackMoments: true };
+  const bind = relations => bindRelationPlanFrame(compileRelationRenderPlan([stage(relations)]), 0,
+    id => ({ x: ['a', 'b', 'c'].indexOf(id) * 300, y: 0 }), options);
+  const alone = bind([fan]);
+  const together = bind([...contexts, fan]);
+  const shape = (bound, scale) => [...fitFallbackGeometry(bound, { ...options, fittedMarkerScale: scale }).values()]
+    .filter(p => p.type === 'fallback-mark' ? p.role === 'hub' || p.role === 'members'
+      : p.type === 'segment' && p.route === 'direct')
+    .map(p => p.type === 'fallback-mark' ? [p.type, p.text, p.x, p.y] : [p.type, p.d]);
+  for (const scale of [1, 3, 6]) assert.deepEqual(shape(together, scale), shape(alone, scale));
+  const marks = [...fitFallbackGeometry(together, { ...options, fittedMarkerScale: 3 }).values()]
+    .filter(p => p.type === 'fallback-mark' && ['hub', 'members'].includes(p.role));
+  assert.equal(new Set(marks.map(m => `${m.x}:${m.y}`)).size, marks.length, 'roles visible together still reserve separate positions');
+  const large = compileRelationRenderPlan([{ ...stage([...contexts, { relation: 'Set', anchors: { members: ['a', 'b', 'c', 'd', 'e'] } }]),
+    workspaceForest: ['a', 'b', 'c', 'd', 'e'].map(node) }]);
+  const bound = bindRelationPlanFrame(large, 0, id => ({ x: id.charCodeAt(0) * 300, y: 0 }), options);
+  const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 });
+  const rail = bound.primitives.find(p => p.type === 'anchor-set-rail');
+  assert.deepEqual(fitted.get(rail).anchors, rail.anchors.map(mark => fitted.get(mark)));
+});
+
+test('a role placed above its node clears text height without drifting by its width', () => {
+  const p = compileRelationRenderPlan([stage([{ relation: 'Context', anchors: { aLongAuthoredParticipantRole: 'a' } }])]);
+  const label = { x: 500, y: 100, width: 20, height: 20 };
+  const measurements = { labels: [label], labelFor: () => label, subtreeFor: () => label, bottom: 120,
+    obstacles: [{ x: 0, y: 100, width: 500, height: 40 }, { x: 520, y: 100, width: 500, height: 40 }] };
+  const bound = bindRelationPlanFrame(p, 0, () => ({ x: 510, y: 110 }), { fallbackMeasurements: measurements });
+  const mark = bound.primitives.find(p => p.type === 'fallback-mark');
+  assert.deepEqual({ x: mark.x, y: mark.y }, { x: 510, y: 85 });
 });
 
 test('straight connectors leave gaps around all crossed labels, including non-endpoints', async () => {

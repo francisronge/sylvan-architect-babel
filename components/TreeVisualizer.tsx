@@ -1963,6 +1963,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           hasExistingGapNotation,
           plaqueTextLayout: { measureText: measurePlaqueText },
           fallbackMeasurements,
+          separateFallbackMoments: animated && usesDerivationFrames,
           trajectoryCeilingY: measuredTreeTextTopY() - 90,
           trajectoryFloorY: frameMaxNodeY + 180,
           // Frame-stable measured baselines: connector lanes just below the
@@ -1980,7 +1981,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const anchorScale = Math.min(1 / fitZoom, 3);
         fitFallbackGeometry(boundFrame, {
           markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: 60, fallbackMeasurements,
-          railBaseY: frameMaxNodeY + 240, fittedViewport
+          railBaseY: frameMaxNodeY + 240, fittedViewport,
+          separateFallbackMoments: animated && usesDerivationFrames
         }).forEach((fitted, original) => {
           if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {
             fallbackMarkGroups.get(original)?.attr('transform', `translate(${fitted.x},${fitted.y}) scale(${scale})`);

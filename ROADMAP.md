@@ -165,6 +165,20 @@ zoom, Next/Prev/Fit and a narrow view, with no console errors. Matched images
 and a stepped comparison remain in `/tmp/babel-sept17-review/passive-movement`.
 No new model calls were made.
 
+The subsequent passive-frame check found two painting defects: identity light
+averaged a phrase's terminal positions, and invisible Tier-3 moments occupied
+space that pushed current role labels away. Light now targets displayed leaves,
+including wordless witnesses. Neutral clearance is scoped to its relation moment;
+all authored roles remain, without a redundant spoke connecting a node to itself.
+Vertical label clearance now uses text height. The movement arrow was still
+present, but its subpixel fitted stroke became nearly invisible at the normal
+30% quiet opacity. Francis rejected a screen-sized stroke experiment; original
+movement styling and dimming are retained. No arrow-persistence repair is claimed.
+All twenty records retain identical plans and their 809 Replay frames. The final
+gate passes 1,720 tests, typechecking and both contract fixtures. Matched frame
+45–47 captures have identical cameras; review material is outside the repository
+in `/tmp/babel-sept17-review/passive-annotations`.
+
 Sol's X-bar morphology response uses `realizations` to associate retained `walk`
 and `-ed` occurrences with the input token `walked`; raw authoring, normalization
 and Replay preserve that association. Astra's whole-word analysis needs no such

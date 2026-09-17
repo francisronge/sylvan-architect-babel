@@ -62,10 +62,11 @@ The subsequent user-approved text trial supersedes the circle/box locators and
 backward triangles described in the preceding restoration history. Current
 witnesses carry their authored role names. List positions appear as `[1]`, `[2]`,
 and so on; equal positions across paired lists retain their correspondence.
-Topology remains unchanged: two scalar witnesses have the accepted connector
+Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
 have no invented links. Fan paths leave measured gaps around syntax and role
-labels. Repeated witnesses retain separate owned endpoints.
+labels. Repeated witnesses retain every authored role label; a fan does not draw
+a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with
 `role (previous stage): participant`. No triangle or extra panel section is
@@ -89,6 +90,18 @@ Stage Record. Complete-stage inspection retains all claims. The plan still
 reserves their geometry before reveal, so this visibility rule does not change
 syntax layout, plaque placement or camera fitting. Tier 1 and Tier 2 retain
 their existing persistence.
+
+Replay allocates neutral-label clearance within each owning relation moment.
+Labels and routes from other, mutually exclusive moments cannot displace the
+current labels or cut holes in its fan. Positions are still computed before
+reveal, and syntax and plaque obstacles remain reserved. Static inspection keeps
+the combined allocation because its claims can be displayed together. Vertical
+clearance uses label height rather than the width of the authored role name.
+
+Identity illumination targets each actual displayed leaf of an occurrence,
+including an authored wordless category witness. It never averages a phrase's
+terminal positions into a light target between words. Target measurements follow
+the displayed text through zoom and pan; illumination does not assign pronunciation.
 
 Plaque placement reserves syntax, movement trajectories and the straight stems
 of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;

@@ -582,13 +582,14 @@ const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidt
   const leftExtent = (mark.textWidth / 2 + 4) * scale;
   const rightExtent = leftExtent;
   const gap = (mark.textWidth / 2 + 7) * scale;
+  const above = rect.y - 15 * scale;
   const boxFor = (point: Point): Rect => fallbackLabelRect({ ...mark, ...point }, scale);
   const candidates = [
     { x: rect.x + rect.width + gap, y: rect.y + rect.height / 2 },
     { x: rect.x - gap, y: rect.y + rect.height / 2 },
-    { x: rect.x + rect.width / 2, y: rect.y - gap },
-    { x: rect.x + rect.width + gap, y: rect.y - gap },
-    { x: rect.x - gap, y: rect.y - gap }
+    { x: rect.x + rect.width / 2, y: above },
+    { x: rect.x + rect.width + gap, y: above },
+    { x: rect.x - gap, y: above }
   ];
   const free = (point: Point) => {
     const box = boxFor(point);
@@ -627,9 +628,26 @@ const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidt
 /** Refit the same measured allocation, preserving claim ownership and stage-wide reservation. */
 export const fitFallbackGeometry = (
   frame: BoundFrame,
-  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements'>
+  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments'>
     & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
+  if (options.separateFallbackMoments) {
+    // Replay shows one neutral relation at a time. Invisible relations must
+    // neither displace its labels nor cut holes in its connectors.
+    const groups = new Map<number, BoundPrimitive[]>();
+    frame.primitives.forEach(primitive => {
+      if (!['fallback-mark', 'segment', 'anchor-set-rail'].includes(primitive.type)) return;
+      const owner = primitive.type === 'anchor-set-rail'
+        ? primitive.anchors.find(anchor => anchor.type === 'fallback-mark')?.itemIndex ?? primitive.itemIndex
+        : primitive.itemIndex;
+      const group = groups.get(owner) ?? [];
+      group.push(primitive);
+      groups.set(owner, group);
+    });
+    return new Map([...groups.values()].flatMap(primitives => [...fitFallbackGeometry(
+      { ...frame, primitives }, { ...options, separateFallbackMoments: false }
+    )]));
+  }
   const scale = options.fittedMarkerScale;
   const anchorScale = options.fittedAnchorScale ?? scale;
   const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
@@ -1006,6 +1024,8 @@ export type BindGeometryOptions = {
   /** Actual SVG font measurement and available width, in marker-local units. */
   plaqueTextLayout?: PlaqueTextLayoutOptions;
   fallbackMeasurements?: FallbackMeasurements;
+  /** Replay reveals neutral relations separately; static comparison plates may show them together. */
+  separateFallbackMoments?: boolean;
   /** Rendering supplies exact occurrence-text matching, including its existing subscript formatting. */
   hasExistingGapNotation?: (nodeId: string, text: string) => boolean;
   /**
@@ -2218,6 +2238,9 @@ export const bindRelationPlanFrame = (
     }
 
     if (item.kind === 'fallback') {
+      const occupied = options.separateFallbackMoments
+        ? [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])]
+        : fallbackOccupied;
       const markCenters = new Map<string, Point>();
       const ownedMarks: BoundFallbackMark[] = [];
       item.drawing.marks.forEach((mark) => {
@@ -2228,7 +2251,7 @@ export const bindRelationPlanFrame = (
         const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
         const textWidth = measure(text, FALLBACK_ROLE_STYLE).width;
         const shape = { labelRect, backward: mark.backward, numeral: mark.position, role: mark.role, text, textWidth };
-        const center = placeFallbackMark(shape, markerScale, fallbackOccupied);
+        const center = placeFallbackMark(shape, markerScale, occupied);
         markCenters.set(mark.witness, center);
         const bound: BoundFallbackMark = { type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,
           frame: mark.frame, instance: mark.instance, allocationOrder: fallbackAllocationOrder++, stackIndex: nextStackIndex(mark.witness), itemIndex };
@@ -2261,7 +2284,7 @@ export const bindRelationPlanFrame = (
       if (item.drawing.fan) {
         const hub = ownedMarks.find(mark => mark.numeral === null);
         for (const target of ownedMarks.filter(mark => mark.numeral !== null)) {
-          if (!hub) continue;
+          if (!hub || hub.nodeId === target.nodeId) continue;
           primitives.push(...routeFallbackSegments([{
             type: 'segment', route: 'direct', witnessNodeIds: [hub.nodeId, target.nodeId],
             from: { x: hub.x, y: hub.y }, to: { x: target.x, y: target.y },
