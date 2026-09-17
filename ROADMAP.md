@@ -174,10 +174,10 @@ It is supporting evidence; this roadmap is the only active checklist.
 
 #### Current reconciliation and next work
 
-Current offline gate: 1,687 tests, typecheck and both parse-contract fixtures pass.
-The release asset check passes. Approved Replay wording and Tier-3 role labels
-are merged and pushed through `ff3ed71`; the bounded placement verification below
-extends those checks. This is local/offline evidence, not deployment qualification.
+Current offline gate: 1,693 tests, typecheck and both parse-contract fixtures pass.
+The release asset check passes. Approved Replay wording, Tier-3 role labels and
+the September 17 movement, recognition, index and clearance repairs are merged
+and pushed through `1b7ddc9`. This is local/offline evidence, not deployment qualification.
 
 Immediate priorities after reviewing all 19 starting-point items, 39 audit
 findings and Programs 0–8:
@@ -258,9 +258,13 @@ findings and Programs 0–8:
   clearance check passed. The full offline gate passes 1,693 tests and both
   parse-contract fixtures. Review evidence remains outside the repository in
   `/tmp/babel-sept17-review`; this does not establish universal collision freedom.
-  **Still open:** the X-bar movement also causes unrelated syntax to reflow.
-  Offline layout inspection confirms that this remains after correcting timing;
-  no camera/layout redesign was made.
+  **Reflow reviewed and accepted on September 17:** both sides of the X-bar
+  movement retain the model's three-way branching. Moving the full subject
+  subtree and leaving its compact lower occurrence redistributes layout space.
+  Francis accepts the resulting movement of `were`. A temporary prototype that
+  retained surrounding branch positions was rejected because it preserved wider,
+  stretched branches. It was not merged; preserve the current production layout.
+  This transition is not an outstanding renderer defect.
   Tier-3 crowding and persistence remain discussion-only. Fresh provider calls
   remain unauthorized for this pass.
 - The CI gap in Program 5 is closed: the workflow now runs `verify:all`, including
