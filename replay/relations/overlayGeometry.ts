@@ -21,8 +21,11 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
   const bendY = (target.y - source.y) / 2;
   const approachX = target.side === 'left' ? -Math.min(76, Math.abs(target.x - source.x) / 2)
     : target.side === 'right' ? Math.min(76, Math.abs(target.x - source.x) / 2) : 0;
-  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${source.x.toFixed(1)} ${(source.y + bendY).toFixed(1)},`
-    + ` ${(target.x + approachX).toFixed(1)} ${target.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
+  // Aligned boxes still get a short curve wholly within their vertical gap.
+  const bowX = target.side === 'vertical' ? Math.min(32, Math.abs(bendY)) : 0;
+  const approachY = target.side === 'vertical' ? source.y + bendY : target.y;
+  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${(source.x + bowX).toFixed(1)} ${(source.y + bendY).toFixed(1)},`
+    + ` ${(target.x + approachX).toFixed(1)} ${approachY.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
 export type AnalysisVerdictAnchor = {

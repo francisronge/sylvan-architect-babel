@@ -258,11 +258,19 @@ test('native Case connector approaches the outside edge for plaques on every sid
     assert(path.attrs['marker-end']);
     const points = path.attrs.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
     assert.equal(points.length, 8);
+    if (points[0] === points[6]) {
+      assert.notEqual(points[2], points[0], 'an aligned plaque still receives a curved connector');
+      assert(Math.abs(points[2] - points[0]) <= 32, 'the connector remains short');
+      assert.equal(points[4], points[6], 'the arrow approaches the plaque vertically');
+      assert.notEqual(points[5], points[7], 'the arrow has a nonzero final tangent');
+    }
     for (let i = 0; i <= 100; i++) {
       const t = i / 100, u = 1 - t;
       const px = u ** 3 * points[0] + 3 * u * u * t * points[2] + 3 * u * t * t * points[4] + t ** 3 * points[6];
       const py = u ** 3 * points[1] + 3 * u * u * t * points[3] + 3 * u * t * t * points[5] + t ** 3 * points[7];
       assert(!(px > x && px < x + box.width && py > y && py < y + box.height), 'Case connector entered the plaque');
+      assert(!(px > assigner.x && px < assigner.x + assigner.width
+        && py > assigner.y && py < assigner.y + assigner.height), 'Case connector entered the assigner label');
     }
     assert(all.some(node => node.text === '[Case: accusative]'));
     assert.deepEqual(svgSnapshot(drawCasePlaque(item, box, assigner)), svgSnapshot(painted));
