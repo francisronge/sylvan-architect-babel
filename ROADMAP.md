@@ -13,10 +13,12 @@ API-key fallback and no automatic retries. Sol's subscription smoke response
 completed in 126 seconds with valid JSON, no repairs and 26 Replay frames. Its
 stream was reprocessed offline after fixing completion events that omit output
 already delivered in message events; no repeat generation was needed. The
-provider echoed the exact Babel instruction and an empty tools list. The full
-offline gate passes 1,701 tests. This verifies subscription transport and basic
-processing, not the paid API route or linguistic quality. Astra live verification
-and broader derivations remain separate checks.
+provider echoed the exact Babel instruction and an empty tools list. Astra then
+completed the same X-bar sentence in 37 seconds with valid JSON, no repairs and
+18 Replay frames, using the corrected runner end to end. Both are inspectable
+through the existing review UI. The full offline gate passes 1,701 tests. These
+two small checks verify subscription transport and basic processing, not the
+paid API route, linguistic quality or performance across larger derivations.
 
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
