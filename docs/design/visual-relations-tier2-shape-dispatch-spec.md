@@ -188,12 +188,19 @@ one coordinate group during zoom and redraw.
 
 Derived movement evidence records the preceding occurrence separately from the
 current lower and landing IDs. The old ID may persist at either endpoint. A
-fresh lower ID requires the exact prior parent and child slot, matching root
-lineage, and either the retained landing ID or an explicit prior-source anchor.
+fresh lower ID requires the prior child slot, matching root lineage, and either
+the retained landing ID or an explicit prior-source anchor. A rebuilt parent
+with a new ID can prove that slot only when the old parent is absent, the new
+parent did not previously exist, and its label, arity and every ordered sister
+subtree are unchanged. A unary shell or an ambiguous sister cannot prove this.
 No search by word spelling or unanchored lineage substitutes a different ID.
-Replay restores the complete prior occurrence before movement, retains earlier
-lower copies in later movements, and reads later realization from that same
-prior occurrence. Supported landing-shape requirements still apply. Pronunciation
+Replay restores the complete prior occurrence before movement. When undoing that
+movement leaves an enclosing container identical to its preceding form except
+for its ID, Replay also retains that preceding container until the movement
+moment. It stops at independent changes and reveals the replacement source path
+with the movement. Earlier lower copies and unrelated syntax survive; later
+realization reads the same prior occurrence. Supported landing-shape requirements
+still apply. Pronunciation
 is independent: either occurrence may be pronounced or silent as authored. A
 new landing or a proven relocation earns the movement moment; a later change in
 pronunciation does not replay that movement.

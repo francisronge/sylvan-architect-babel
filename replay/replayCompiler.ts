@@ -1729,6 +1729,23 @@ const buildPreMovementStructuralForest = (
     }
     return null;
   };
+  const previousLocations = indexExactForestNodeLocations(previousForest);
+  const restorePrecedingContainers = (sourceId: string): void => {
+    // A rebuilt source path can differ only in its container IDs once the
+    // movement is undone. Keep those exact preceding containers until the
+    // relation owns their replacement. Stop at any independent tree change.
+    while (sourceId) {
+      const oldParent = previousLocations.get(sourceId)?.parent;
+      const parent = findParent(sourceId);
+      if (!oldParent || !parent) break;
+      if (parent.id !== oldParent.id) {
+        if (previousLocations.has(parent.id) || findNode(oldParent.id)
+          || JSON.stringify({ ...parent, id: oldParent.id }) !== JSON.stringify(oldParent)) break;
+        replaceStructuralNode(parent.id, cloneSyntaxTree(oldParent)!);
+      }
+      sourceId = oldParent.id;
+    }
+  };
   const findAnchor = (
     anchors: ReplayResolvedRelationAnchor[],
     roles: readonly string[]
@@ -1776,6 +1793,7 @@ const buildPreMovementStructuralForest = (
       if (parent) parent.children = parent.children?.filter(child => child !== landing);
       else structuralForest.splice(structuralForest.indexOf(landing), 1);
       replaceStructuralNode(movement.sourceNodeId, restored);
+      restorePrecedingContainers(restored.id);
       return;
     }
     const restoredFromPreviousStage = new Set<string>();
@@ -1827,6 +1845,7 @@ const buildPreMovementStructuralForest = (
     } else {
       structuralForest.splice(targetRootIndex, 1);
     }
+    sourceIds.forEach(restorePrecedingContainers);
   });
 
   return structuralForest;
@@ -2863,6 +2882,18 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const targetSyntheticLeafNodeIds = shouldReserveHeadLandingLeaf && placement.authoredTargetNodeId
             ? [identity.allocate(`${placement.authoredTargetNodeId}::__leaf`, { kind: 'word', ownerId: placement.authoredTargetNodeId })]
             : [];
+          // Restored preceding containers have their old IDs in the structural
+          // forest. Their current replacements belong to this movement moment.
+          const sourceContainerNodeIds: string[] = [];
+          placement.sourceNodeIds.forEach(sourceId => {
+            let parentId = findParentNodeIdInForest(workspaceRoots, sourceId);
+            while (parentId) {
+              if (!findNodeByIdInForest(structuralWorkspaceRoots, parentId)) {
+                sourceContainerNodeIds.push(parentId);
+              }
+              parentId = findParentNodeIdInForest(workspaceRoots, parentId);
+            }
+          });
           relationVisibleNodeIdsByIndex.set(
             placement.relationIndex,
             Array.from(new Set([
@@ -2871,6 +2902,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
               ...targetSubtreeNodeIds,
               ...targetSyntheticLeafNodeIds,
               ...sourceSubtreeNodeIds,
+              ...sourceContainerNodeIds,
               ...placement.sourceNodeIds
             ].filter(Boolean)))
           );

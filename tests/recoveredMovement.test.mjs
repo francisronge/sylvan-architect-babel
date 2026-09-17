@@ -200,6 +200,82 @@ test('a fresh lower occurrence needs exact prior identity and position, and neve
   }
 });
 
+test('unchanged ordered sisters identify a movement source slot across rebuilt projections', () => {
+  const c = retainedOccurrence('phrasal', true);
+  const sister = { id: 'verb', label: 'V', word: 'read' };
+  find(c.prior, 'site').children.unshift(sister);
+  const lowerParent = find(c.current, 'site');
+  lowerParent.id = 'rebuilt-site';
+  lowerParent.children.unshift(structuredClone(sister));
+  const original = structuredClone(c.record);
+  for (const relation of [c.relation, { relation: 'A-movement', anchors: { chainHead: 'original', trace: 'lower' },
+    priorAnchors: { source: 'original' } }]) {
+    const movement = recoverMovementEvidence(relation, c.current, c.prior).movement;
+    assert.equal(movement?.priorSourceNodeId, 'original');
+    assert.equal(movement?.sourceNodeId, 'lower');
+    assert.equal(movement?.targetNodeId, 'original');
+  }
+  const { steps } = buildReplayPlayback({ sentence: 'read book', analyses: [c.record] });
+  const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+  assert.ok(moment > 0);
+  assert.equal(find([steps[moment - 1].replayCanvasData], 'original')?.silent, undefined);
+  assert.equal(find([steps[moment].replayCanvasData], 'lower')?.silent, true);
+  assert.ok(steps[moment].replayRelationLinks.some(l => l.renderFamily === 'trajectory'
+    && l.sourceNodeId === 'lower' && l.targetNodeId === 'original'));
+  assert.ok(steps[moment].replayVisibleNodeIds.includes('verb'));
+  assert.deepEqual(c.record, original);
+  for (const damage of [
+    copy => { find(copy.current, 'rebuilt-site').children.reverse(); },
+    copy => { find(copy.current, 'verb').id = 'another-verb'; },
+    copy => { find(copy.current, 'verb').word = 'write'; },
+    copy => { find(copy.current, 'rebuilt-site').label = 'Other'; },
+    copy => { find(copy.current, 'rebuilt-site').children.shift(); find(copy.prior, 'site').children.shift(); },
+    copy => { copy.current.push({ id: 'site', label: 'VP' }); },
+    copy => { copy.prior.push({ id: 'rebuilt-site', label: 'VP' }); },
+    copy => { copy.current.push(structuredClone(find(copy.current, 'verb'))); }
+  ]) {
+    const copy = structuredClone(c);
+    damage(copy);
+    assert.equal(recoverMovementEvidence(copy.relation, copy.current, copy.prior).movement, undefined);
+  }
+});
+
+test('movement replaces rebuilt source containers atomically and preserves unrelated syntax', () => {
+  for (const retainLanding of [false, true]) {
+    const c = retainedOccurrence('phrasal', retainLanding);
+    const sister = { id: 'verb', label: 'V', word: 'read' };
+    find(c.prior, 'site').children.unshift(sister);
+    find(c.current, 'site').children.unshift(structuredClone(sister));
+    find(c.current, 'site').id = 'new-site';
+    c.current[0].id = 'new-root';
+    const separate = { id: 'separate', label: 'PP', children: [{ id: 'p', label: 'P', word: 'there' }] };
+    c.prior.push(separate);
+    c.current.push(structuredClone(separate));
+    c.record.derivationStages[1].relations.unshift({ relation: 'Earlier claim', anchors: { participant: 'verb' } });
+    const original = structuredClone(c.record);
+    const { steps } = buildReplayPlayback({ sentence: 'read book there', analyses: [c.record] });
+    const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1
+      && s.replayRelationIdentity.relationIndex === 1);
+    const before = steps[moment - 1];
+    const after = steps[moment];
+    for (const id of ['root', 'site', 'original', 'verb', 'separate', 'p']) {
+      assert.ok(before.replayVisibleNodeIds.includes(id), `preceding structure lost: ${id}`);
+    }
+    for (const id of ['new-root', 'new-site']) {
+      assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(id)), `early replacement: ${id}`);
+      assert.ok(after.replayVisibleNodeIds.includes(id), `missing replacement: ${id}`);
+      assert.ok(!steps.slice(moment + 1).some(s => s.replayKind === 'micro' && s.targetNodeId === id));
+    }
+    assert.equal(nodes(before.replayCanvasData).find(n => n.children?.some(c => c.id === 'original'))?.id, 'site');
+    assert.equal(nodes(after.replayCanvasData).find(n => n.children?.some(child => child.id === c.target))?.id, 'new-root');
+    assert.equal(find([after.replayCanvasData], c.source)?.silent, true);
+    assert.ok(after.replayRelationLinks.some(l => l.renderFamily === 'trajectory'
+      && l.sourceNodeId === c.source && l.targetNodeId === c.target));
+    assert.deepEqual(tree(find([before.replayCanvasData], 'separate')), tree(find([after.replayCanvasData], 'separate')));
+    assert.deepEqual(c.record, original);
+  }
+});
+
 test('a retained landing ID can move again while earlier lower occurrences remain intact', () => {
   const c = retainedOccurrence('phrasal', true);
   const last = structuredClone(c.record.derivationStages.at(-1));

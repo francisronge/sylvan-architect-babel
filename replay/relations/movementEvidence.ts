@@ -93,9 +93,20 @@ export function recoverMovementEvidence(
   const samePriorSlot = (sourceId: string, priorId: string): boolean => {
     const oldParent = prior.parents.get(priorId);
     const lowerParent = current.parents.get(sourceId);
-    return Boolean(oldParent && lowerParent && oldParent.id === lowerParent.id
-      && !prior.duplicates.has(oldParent.id) && !current.duplicates.has(lowerParent.id)
-      && oldParent.children?.findIndex(n => n.id === priorId) === lowerParent.children?.findIndex(n => n.id === sourceId));
+    if (!oldParent || !lowerParent || prior.duplicates.has(oldParent.id) || current.duplicates.has(lowerParent.id)) return false;
+    const slot = oldParent.children!.findIndex(n => n.id === priorId);
+    if (slot !== lowerParent.children!.findIndex(n => n.id === sourceId)) return false;
+    if (oldParent.id === lowerParent.id) return true;
+    // Rebuilt projections may have fresh IDs. The unchanged ordered sisters
+    // can still locate the source slot, without equating the parent identities.
+    // Unary shells, surviving competing parents and changed sisters prove less.
+    return !current.nodes.has(oldParent.id) && !prior.nodes.has(lowerParent.id)
+      && oldParent.label === lowerParent.label
+      && oldParent.children!.length > 1 && oldParent.children!.length === lowerParent.children!.length
+      && oldParent.children!.every((sibling, i) => i === slot || (
+        !prior.duplicates.has(sibling.id) && !current.duplicates.has(sibling.id)
+        && JSON.stringify(sibling) === JSON.stringify(lowerParent.children![i])
+      ));
   };
   const entries = Object.entries(relation.anchors || {}).map(([key, value]) => ({
     authoredKey: key, key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
