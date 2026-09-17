@@ -57,7 +57,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'domain', ['domain', 'region', 'scope', 'constituent domain', 'local domain']),
   group('role', 'binder', ['binder', 'antecedent', 'binding source'], ['operator']),
   group('role', 'dependent', ['dependent', 'bound', 'anaphor', 'pronoun', 'binding target'], ['variable']),
-  group('role', 'predicand', ['predicand', 'subject', 'predicate subject', 'theme']),
+  group('role', 'predicand', ['predicand', 'subject', 'predicate subject'], ['theme']),
   group('role', 'predicate', ['predicate', 'predicates', 'predicate phrase', 'secondary predicate']),
   group('role', 'primary.path', ['primary path', 'ordinary path', 'main path', 'circular path', 'real path']),
   group('role', 'secondary.path', ['secondary path', 'parasitic path', 'square path', 'dependent path']),

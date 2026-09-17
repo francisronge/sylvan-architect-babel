@@ -66,6 +66,22 @@ test('native scalar role literals reach structural recovery without a registered
   ]) assert.deepEqual(facetIds(dispatch(relation, forest)), []);
 });
 
+test('a thematic participant alone cannot earn a predication connector', () => {
+  const forest = [leaf('p', 'sent'), leaf('a', 'parcel')];
+  const relation = { relation: 'Passive properties', anchors: { predicate: 'p', theme: 'a' },
+    values: { structuralAccusative: 'unavailable to the theme' } };
+  const result = dispatch(relation, forest);
+  assert.deepEqual(facetIds(result), []);
+  assert.deepEqual(result.primaryRelation, relation);
+  assert.deepEqual(claimTiers(result), [3]);
+  for (const key of ['predicand', 'subject', 'predicateSubject']) {
+    assert.deepEqual(facetIds(dispatch({ relation: 'Authored predication', anchors: { predicate: 'p', [key]: 'a' } }, forest)),
+      ['predication.dependency']);
+  }
+  assert.equal(dispatch({ relation: 'Predication', anchors: { predicate: 'p', theme: 'a' } }, forest).primaryClaim.tier, 1,
+    'the registered claim supplies the meaning that an open title cannot');
+});
+
 test('licensing wording has one interpretation across typed domains and unknown relation names', () => {
   const forest = [leaf('a', 'read'), leaf('b', 'books')];
   for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {

@@ -16,6 +16,28 @@ import {
 
 const clone = (value) => structuredClone(value);
 
+test('a thematic description keeps its authored merge moment without inventing predication', () => {
+  const predicate = { id: 'verb', label: 'V', word: 'read' };
+  const theme = { id: 'object', label: 'DP', word: 'books' };
+  const other = { id: 'other', label: 'C', silent: true };
+  const relation = { relation: 'Authored combination', anchors: { predicate: 'verb', theme: 'object', result: 'vp' },
+    priorAnchors: { predicate: 'verb', theme: 'object' }, values: { selection: 'a DP theme' } };
+  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state', stageRecord: 'Authored account', workspaceForest, relations });
+  const stages = [stage([predicate, theme, other]), stage([
+    { id: 'vp', label: 'VP', children: [predicate, theme] }, other
+  ], [relation])];
+  const original = clone(stages);
+  const prepared = prepareReplay({ derivationStages: stages, sentence: 'read books', includePlayback: true });
+  const steps = prepared.playbackSteps;
+  const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+  assert.ok(moment > 0);
+  assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes('vp')));
+  assert.ok(steps[moment].replayVisibleNodeIds.includes('vp'));
+  for (const id of ['verb', 'object', 'other']) assert.ok(steps[moment].replayVisibleNodeIds.includes(id));
+  assert.ok(!prepared.relationRenderPlan.frames.flatMap(f => f.items).some(item => item.familyId === 'predication.paths'));
+  assert.deepEqual(stages, original);
+});
+
 // The contract requires a moved occurrence to be shown in place by an earlier
 // stage. This builds that base stage from the final tree: the landing is
 // absent and the listed lower occurrences are pronounced with their words.

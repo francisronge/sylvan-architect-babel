@@ -498,7 +498,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('predication.dependency', {
     anchors: [current('predicand', 1, 1), current('predicate', 1)],
     values: [],
-    checks: [{ kind: 'distinct', roles: ['predicand', 'predicate'] }],
+    checks: [{ kind: 'explicit-role', roles: ['predicand'] }, { kind: 'distinct', roles: ['predicand', 'predicate'] }],
     outputs: [output('Predication connector')]
   }),
   recipe('parasitic-gap.paths', {

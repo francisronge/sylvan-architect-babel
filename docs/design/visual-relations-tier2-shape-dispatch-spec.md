@@ -675,6 +675,11 @@ remain possible, `binding-or-operator-reading` preserves them neutrally rather
 than asserting both. Other independently complete claims survive. Separate
 authored relations still retain separate moments.
 
+Predication likewise needs an explicit predicand role. `theme` may fill that
+slot in a registered Predication claim, but naming a thematic participant in an
+open claim does not itself assert predication. Its evidence remains neutral
+unless another complete claim uses it.
+
 Outcome aliases use shared interpretation in signature checks and production
 lowering. A literal judgment glyph is not an outcome word. An independent claim
 using the same recognized outcome cannot deprive the primary of it.
