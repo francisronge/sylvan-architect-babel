@@ -36,15 +36,51 @@ of unresolved theta content beside an independently supported Case drawing.
 This remains bounded exact interpretation, not arbitrary-language understanding.
 The original Astra Case relation changes from Tier 3 to the existing Tier-2 Case
 drawing. Its Replay steps, syntax and fitted camera are unchanged in the browser.
-The two short runs do not qualify the paid API route, movement, split morphology,
-other frameworks or performance across larger derivations. Their chosen older
-GB subject analysis is not a demonstrated missing-movement defect. Sol's 16→17
+The two short runs alone do not qualify the paid API route or broader derivations.
+Their chosen older GB subject analysis is not a demonstrated missing-movement
+defect. Sol's 16→17
 camera refit accommodates the new IP parent; existing node coordinates remain
 unchanged, so no layout repair is warranted by that transition.
 
+The subsequent subscription batch contains eight analyses: four sentences
+covering wh-movement, passive, embedding/reflexive binding and past-tense
+morphology, each in Minimalism and X-bar, split between Sol and Astra at high
+effort. All eight completed in 77–283 seconds with valid raw JSON and no repair.
+Exact requests, contract fingerprints, response streams, outputs and receipts
+remain outside the worktree in `/tmp/babel-recognition-batch-20260917`; all raw
+output hashes match their receipts. The production review navigated and captured
+all 390 frames, inspected their contact sheets and checked representative and
+problematic frames at full size. No browser console errors were recorded. The
+recognition patch leaves all 811 compared Replay steps unchanged across twenty
+saved analyses; its only changed claim classification is the earlier Astra Case
+example. This is bounded desktop checking, not universal visual approval.
+
+The batch exposes an unresolved composition defect: repeated Tier-2 claims can
+accumulate identical plaques and overlapping binding-domain shading. The current
+identity rule deliberately includes authored stage and workspace, so restating a
+claim after its tree grows does not coalesce with its persisted mark. Review a
+general distinction between claim occurrence and persistent drawing identity;
+retain every Replay moment and distinguish changed participants, values, prior
+evidence and outcomes. Do not suppress marks merely because they share geometry.
+Other recognition gaps include unfamiliar role names, compound role/value groups
+and relation restatements without enough movement evidence. More aliases alone
+cannot resolve arbitrary language. A separately evaluated interpretation step
+against existing drawing requirements is a proposal, not implemented architecture.
+
+Sol's X-bar morphology response uses `realizations` to associate retained `walk`
+and `-ed` occurrences with the input token `walked`; raw authoring, normalization
+and Replay preserve that association. Astra's whole-word analysis needs no such
+group. This provides one fresh split-morphology example, not broad qualification.
+Fable independently reviewed the recognition patch and seven new analyses; the
+eighth was reviewed separately. Linguistic review remains advisory: some models
+leave object Case unexplained, Sol's passive X-bar PP prose and attachment differ,
+and some authored relation orders require structure introduced by a later
+movement. Preserve these records and diagnostics. Subscription testing does not
+qualify the paid API transport or hosted deployment.
+
 | Area | Current state | Remaining boundary |
 | --- | --- | --- |
-| Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. | Qualify fresh model authoring under the revised prompt when a run is agreed. |
+| Authored contract | Each analysis contains only `derivationStages`, with four required stage fields and open relations. Optional stage `realizations` associates existing syntax with exact input tokens. Coverage, Replay, public routes and browser-local saving are verified offline; ordinary archived Replay is unchanged. One fresh Sol split-morphology example preserves its authored association through normalization and Replay. | Broader fresh morphology, language and provider coverage remains unqualified. |
 | Deterministic engine | Local repairs preserve stages and originals and report exact field/reference failures. Saved chronology conflicts remain diagnosed. | Generated display identity now records ownership and reserves authored IDs. Recovery behavior stays unchanged; reopen its policy only if a new failure warrants it. |
 | Relation renderer | The September 16 fidelity repair restores Orchard placement and paint. The approved Tier-3 role labels retain its connectors and authored list positions. Orchard cards use production drawing code for every tier. Earlier checks missed a separate Tier-3 painter; their broad fidelity claim was incorrect. | Extreme text and viewport checks remain bounded. Labels wider than the available canvas still require panning; no participant-free drawing is justified. |
 | Replay preparation | Repeated complete-workspace layout traversals are eliminated. Extended controls through 192 stages/1,472 frames complete with unchanged compiled results. Earlier testing of forty large view cycles released all 81 workers and retained about 18–19 MB of page heap; 15 mid-preparation cancellations also recovered correctly. | The September 17 controls take 7.43 seconds for a balanced 1,472-frame derivation and 22.98 seconds for a deeply nested 959-frame derivation. Earlier controls sampled worker heaps up to 182 MB; memory was not re-profiled in the later pass. These bounds do not establish instant preparation, exact peak memory or slower-device behavior. No layout rewrite or persistent derivation cache is introduced. |
@@ -1290,10 +1326,16 @@ The current work order above owns these decisions:
 
 - General evidence recognition where roles, identity or multi-part associations
   remain ambiguous. Explicit list pairing and the approved smaller Tier-2
-  drawings are already implemented.
-- Fresh model qualification of the optional `realizations` field for retained
-  final morphology. Integrated offline behavior is verified; model authoring,
-  cost and latency under the revised prompt remain unmeasured.
+  drawings are already implemented. The eight-parse subscription batch confirms
+  that vocabulary consolidation alone is insufficient. Evaluate unfamiliar
+  wording against existing drawing requirements without changing the authored
+  analysis; no new interpretation architecture is yet approved or implemented.
+- Persistent drawing identity for repeated claims: the batch reproduces stacked
+  Goal plaques and binding-domain shading. Separate restatement from changed
+  meaning before changing the stage/workspace identity rule.
+- Broader model qualification of optional `realizations` for retained final
+  morphology. One fresh Sol X-bar `walk` + `-ed` association works; other
+  realizations and languages remain unmeasured.
 - Purpose and spending caps for further provider checks, and deployed request
   limits. Mobile and extreme Fit readability remain bounded qualification work.
 
