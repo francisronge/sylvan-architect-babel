@@ -2962,6 +2962,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
             .filter((relationIndex) => !activeRelationIndexes.has(relationIndex))
             .forEach((relationIndex) => {
               const placement = relationPlacements.find((candidate) => candidate.relationIndex === relationIndex);
+              // A carried chain can still draw a trajectory without owning a
+              // new tree transition. Its existing landing must stay visible.
+              if (!placement?.renderableTrajectory && !placement?.ownsPhrasalTreeTransition) return;
               if (
                 placement?.ownsPhrasalTreeTransition
                 && !activeTargetNodeIds.has(String(placement.authoredTargetNodeId || ''))

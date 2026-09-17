@@ -28,6 +28,29 @@ const tree = n => n && ({ ...n, children: (n.children || []).map(tree) });
 const playback = new Map(saved.map(c => [c.name, buildReplayPlayback({ sentence: c.sentence, analyses: [c] }).steps]));
 const plans = new Map(saved.map(c => [c.name, compileRelationRenderPlan(c.derivationStages)]));
 
+test('restating an established movement does not hide its landing during new construction', () => {
+  const source = { id: 'person', label: 'DP', word: 'Lee', lineageId: 'person-chain' };
+  const verb = { id: 'verb', label: 'V', word: 'left' };
+  const lower = { id: 'trace', label: 'DP', silent: true, lineageId: 'person-chain' };
+  const base = { id: 'vp', label: 'VP', children: [verb, source] };
+  const moved = { id: 'tp', label: 'TP', children: [source, { ...base, children: [verb, lower] }] };
+  const relation = { relation: 'Subject chain', anchors: { landing: 'person', origin: 'trace' } };
+  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state', stageRecord: 'Authored account', workspaceForest, relations });
+  const stages = [stage([base]), stage([moved], [relation]), stage([
+    { id: 'cp', label: 'CP', children: [{ id: 'c', label: 'C', silent: true }, moved] }
+  ], [relation])];
+  const original = structuredClone(stages);
+  const steps = buildReplayPlayback({ sentence: 'Lee left', analyses: [{ derivationStages: stages }] }).steps;
+  const later = steps.filter(s => s.sourceFrameIndex === 2);
+  assert.ok(later.some(s => s.replayKind === 'micro'), 'new structure still gets its construction steps');
+  assert.ok(later.some(s => s.replayKind === 'relation'), 'the restated claim keeps its own moment');
+  for (const step of later) {
+    assert.ok(step.replayVisibleNodeIds.includes('person'), `${step.operation} hid the established landing`);
+    assert.ok(step.replayVisibleNodeIds.includes('person::__leaf'), `${step.operation} hid the established word`);
+  }
+  assert.deepEqual(stages, original);
+});
+
 test('a new sibling built around existing syntax is ready before the movement attachment', () => {
   const c = structuredClone(saved.find(c => c.name === 'fable-minimalism'));
   c.derivationStages = c.derivationStages.slice(0, 4);
