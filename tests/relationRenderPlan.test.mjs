@@ -589,16 +589,16 @@ test('fallback anchors that do not resolve fail closed and demote the topology r
   assert.ok(plan.diagnostics.some((d) => d.kind === 'anchor-unresolved'));
 });
 
-test('an unregistered fallback marks its own stage only; the claim stays in the record', () => {
+test('an unregistered fallback reserves space only in its authoring stage; the claim stays in the record', () => {
   const stages = [
     stage([{ relation: 'OpenMark', anchors: { spot: 'dp_low' } }], [whTree]),
     stage([], [whTree])
   ];
   const plan = compileRelationRenderPlan(stages);
   assert.equal(plan.frames[0].items.length, 1);
-  assert.equal(plan.frames[0].items[0].persistence, 'stage-only');
+  assert.equal(plan.frames[0].items[0].persistence, 'relation-only');
   assert.equal(plan.frames[1].items.length, 0,
-    'neutral marks leave the canvas after their stage; replaying that stage shows them again');
+    'neutral marks do not reserve space in later stages');
   assert.equal(stages[0].relations.length, 1, 'the authored relation is untouched');
 });
 

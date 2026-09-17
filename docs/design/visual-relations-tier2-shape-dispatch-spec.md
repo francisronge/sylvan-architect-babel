@@ -698,8 +698,10 @@ additional claims are not consumed merely because a trajectory exists.
 
 Value-only and prior-only remainders do not gain current connectors. Context
 never imports a recognized earlier-stage witness or earns a backward cue. The
-existing Tier-3 topology, stage-only persistence and authored-position numbering
-remain unchanged. Current-anchor roles, arrays and repetitions are preserved;
+existing Tier-3 topology and authored-position numbering remain unchanged.
+The September 17 visibility decision restricts neutral annotations to their owning
+Replay relation moment while retaining complete-stage layout reservation and
+inspection. Current-anchor roles, arrays and repetitions are preserved;
 no subset is selected by guessing which participant an unfamiliar claim means.
 
 The plan emits one `claim-evidence` report per relation with a neutral claim,

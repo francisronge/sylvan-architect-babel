@@ -992,6 +992,54 @@ test('a relation appears only at its Replay relation moment, never during earlie
   assert.equal(visiblePlanFrameItems(plan, 0, null).length, 2);
 });
 
+test('neutral annotations follow only the current Replay relation while known drawings persist', () => {
+  const forest = [node('root', 'XP', [leaf('a', 'N', 'a'), leaf('b', 'N', 'b')])];
+  const stages = [stage([
+    { relation: 'Coreference', anchors: { antecedent: 'a', pronoun: 'b' } },
+    { relation: 'First open claim', anchors: { witness: 'a' } },
+    { relation: 'Second open claim', anchors: { witness: 'b' } }
+  ], forest), stage([], forest)];
+  const originals = structuredClone(stages);
+  const plan = compileRelationRenderPlan(stages);
+  const reserved = structuredClone(plan);
+  const frames = adaptDerivationStagesForReplay(stages);
+  const steps = buildPlaybackStepsFromDerivationFrames(frames, 'a b', buildDerivationReplayPlan({ derivationStages: stages }));
+
+  // Forward, backward and direct scrubbing must derive visibility from the
+  // current moment, never from the previous mounted frame.
+  const indices = [...steps.keys()];
+  for (const index of [...indices, ...indices.toReversed(), Math.floor(steps.length / 2)]) {
+    const step = steps[index];
+    const played = new Set(steps.slice(0, index + 1)
+      .filter(prior => prior.replayKind === 'relation' && prior.replayFrameIndex === step.replayFrameIndex)
+      .map(prior => prior.replayRelationIdentity.relationIndex));
+    const active = step.replayKind === 'relation' ? step.replayRelationIdentity.relationIndex : null;
+    const visible = visiblePlanFrameItems(plan, step.replayFrameIndex, played, active);
+    assert.deepEqual(visible.filter(item => item.kind === 'fallback').map(item => item.relationRef.relationIndex),
+      step.replayFrameIndex === 0 && active > 0 ? [active] : []);
+    assert.equal(visible.filter(item => item.kind === 'coindex').length,
+      step.replayFrameIndex > 0 || played.has(0) ? 1 : 0);
+  }
+  assert.equal(visiblePlanFrameItems(plan, 0, null).length, 3, 'non-Replay stage inspection retains all claims');
+  assert.deepEqual(plan, reserved, 'visibility must not remove stage layout reservations');
+  assert.deepEqual(stages, originals, 'the authored claims stay unchanged');
+});
+
+test('a mixed claim hides its neutral remainder after its moment without hiding the known drawing', () => {
+  const forest = [node('root', 'XP', [leaf('a', 'N', 'a'), leaf('b', 'N', 'b'), leaf('c', 'N', 'c')])];
+  const plan = compileRelationRenderPlan([stage([
+    { relation: 'Agree', anchors: { probe: 'a', goal: 'b', context: 'c' }, values: { feature: 'plural' } },
+    { relation: 'Other claim', anchors: { witness: 'c' } }
+  ], forest)]);
+  const current = visiblePlanFrameItems(plan, 0, new Set([0]), 0);
+  assert.ok(current.some(item => item.kind === 'fallback'));
+  const known = current.filter(item => item.kind !== 'fallback');
+  assert.ok(known.length > 0);
+  assert.deepEqual(visiblePlanFrameItems(plan, 0, new Set([0, 1])), known,
+    'Stage Record keeps the specialized drawing without accumulating neutral annotations');
+  assert.deepEqual(visiblePlanFrameItems(plan, 0, new Set([0, 1]), 1).filter(item => item.kind !== 'fallback'), known);
+});
+
 /* ------------------------------------------------------------------ *
  * Blocker 5: stable lineage identity for indices.
  * ------------------------------------------------------------------ */

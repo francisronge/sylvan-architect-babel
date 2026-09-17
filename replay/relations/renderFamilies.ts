@@ -14,10 +14,8 @@
  *   paths and structurally persistent results persist after introduction
  *   (`from-stage-onward`); declared replacement families
  *   (`replace-previous-instance`) replace their prior instance per frame.
- * - An UNREGISTERED fallback is stage-only (Francis, 12 September): its
- *   neutral marks show through the stage that authored the claim and leave
- *   the canvas afterwards. The claim remains in the record; nothing is
- *   discarded, it is simply not painted forever.
+ * - A neutral fallback is relation-only (Francis, 17 September): its marks
+ *   show at the owning Replay moment. The authored claim remains inspectable.
  * - Large-anchor badges/rails inherit their parent instance's compiled
  *   persistence; they never own an independent policy.
  */
@@ -27,6 +25,7 @@ import type { OutcomeConcept } from './outcomeResolver.ts';
 export type RenderPersistence =
   | 'from-stage-onward'
   | 'stage-only'
+  | 'relation-only'
   | 'replace-prior-stage'
   | 'replace-previous-instance';
 

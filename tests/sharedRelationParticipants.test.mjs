@@ -89,13 +89,13 @@ test('shared context does not relax an incomplete exact Tier-1 claim', () => {
   assert.ok(result.dispatch.claims.some(claim => claim.tier === 2));
 });
 
-test('restored context retains stage-only persistence and the authored badge number', () => {
+test('restored context retains relation-only persistence and the authored badge number', () => {
   const relation = { relation: 'Open binding', anchors: { binder: 'a', variable: 'b', unknownRole: 'extra' } };
   const plan = compileRelationRenderPlan([stage([{ relation: 'Other claim', anchors: { witness: 'root' } }, relation]), stage([])]);
   const fallback = plan.frames[0].items.find(item => item.kind === 'fallback' && item.relationRef.relationIndex === 1);
   assert.deepEqual(witnesses(fallback), ['a', 'b', 'extra']);
   assert.ok(fallback.drawing.marks.every(mark => mark.instance === 2));
-  assert.equal(fallback.persistence, 'stage-only');
+  assert.equal(fallback.persistence, 'relation-only');
   assert.ok(!plan.frames[1].items.some(item => item.kind === 'fallback'));
 });
 

@@ -82,6 +82,14 @@ Complete role labels share the tree scale during manual zoom, preserving their
 fitted size and stage-wide placement. The production painter and topology are
 shared with every Orchard fallback card.
 
+On September 17, Francis approved showing Tier-3 annotations only during their
+owning Replay relation moment. Earlier neutral claims remain available by
+returning to their frame; they do not accumulate on later relation frames or the
+Stage Record. Complete-stage inspection retains all claims. The plan still
+reserves their geometry before reveal, so this visibility rule does not change
+syntax layout, plaque placement or camera fitting. Tier 1 and Tier 2 retain
+their existing persistence.
+
 Plaque placement reserves syntax, movement trajectories and the straight stems
 of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
 large plaques retain their below-subtree placement. A carried plaque keeps its

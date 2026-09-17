@@ -12,8 +12,8 @@
  *
  * Appearance and persistence: an item first appears at its authored stage and
  * never leaks backward. Registered families carry exact per-design
- * persistence metadata. A neutral fallback is stage-scoped; its authored record
- * remains available after its marks leave the canvas. Large-anchor organization
+ * persistence metadata. A neutral fallback shows only at its Replay relation
+ * moment; its authored record remains available. Large-anchor organization
  * inherits its parent instance's persistence.
  *
  * Composition: every instance compiles (no first-instance sampling), ordering
@@ -1215,10 +1215,7 @@ export const compileRelationRenderPlan = (
           kind: 'fallback',
           relationRef: fallbackRelation,
           appearsAtStage: stageIndex,
-          // A neutral fallback marks a claim's moment. It shows through its
-          // own stage and leaves the canvas afterwards; the claim itself
-          // stays in the record and returns when that stage is replayed.
-          persistence: 'stage-only',
+          persistence: 'relation-only',
           backward: includePriorCue && primaryBackward,
           priorWitnessNodeIds: includePriorCue ? primaryPriorWitnessNodeIds : [],
           drawing,
@@ -3321,7 +3318,7 @@ export const compileRelationRenderPlan = (
   };
   items.forEach((item) => {
     if (item.appearsAtStage >= stageCount) return;
-    if (item.persistence === 'stage-only') {
+    if (item.persistence === 'stage-only' || item.persistence === 'relation-only') {
       frames[item.appearsAtStage].items.push({ ...item });
       return;
     }
@@ -3548,43 +3545,37 @@ export const compileRelationRenderPlan = (
 };
 
 /**
- * Replay-step timing: which of a frame's items are visible once
- * `introducedRelationCount` of the current stage's authored relations have
- * had their Replay relation moments. Items persisted from earlier stages are
- * always visible; a same-stage item appears only after its own relation's
- * moment — never merely because its anchors became visible during structural
- * microsteps. Pass `null` for the committed (non-replay) view, which shows
- * the complete frame.
- */
-/**
  * Replay-step reveal by EXACT played identity. Playback may place relation
  * moments around structural construction in an order that differs from the
  * authored relation-array order, so a count of played moments is not an
  * identity; callers pass the set of authored relation indices whose moments
  * have actually played in this frame (null = the committed, non-animated
- * view). A coalesced mark reveals when any of its contributing authored
- * instances has played.
+ * view). Neutral marks require the exact current relation moment, including
+ * any coalesced owner. All items remain in the plan for stable layout reservation.
  */
+export const isPlanItemRevealed = (
+  item: RelationPlanItem,
+  frameIndex: number,
+  playedRelationIndices: ReadonlySet<number> | null,
+  activeRelationIndex: number | null = null
+): boolean => {
+  if (playedRelationIndices === null) return !item.supersededAt;
+  if (item.supersededAt?.stageIndex === frameIndex
+    && playedRelationIndices.has(item.supersededAt.relationIndex)) return false;
+  if (item.persistence === 'relation-only') return activeRelationIndex !== null
+    && playedRelationIndices.has(activeRelationIndex)
+    && planItemOwnsRelationMoment(item, frameIndex, activeRelationIndex);
+  return item.appearsAtStage < frameIndex || planItemRelationRefs(item).some(ref =>
+    ref.stageIndex === frameIndex && playedRelationIndices.has(ref.relationIndex));
+};
+
 export const visiblePlanFrameItems = (
   plan: RelationRenderPlan,
   frameIndex: number,
-  playedRelationIndices: ReadonlySet<number> | null
-): RelationPlanItem[] => {
-  const frame = plan.frames[frameIndex];
-  if (!frame) return [];
-  if (playedRelationIndices === null) {
-    return frame.items.filter((item) => !item.supersededAt);
-  }
-  return frame.items.filter((item) => {
-    if (
-      item.supersededAt?.stageIndex === frameIndex
-      && playedRelationIndices.has(item.supersededAt.relationIndex)
-    ) return false;
-    return item.appearsAtStage < frameIndex
-      || planItemRelationRefs(item).some((ref) =>
-        ref.stageIndex === frameIndex && playedRelationIndices.has(ref.relationIndex));
-  });
-};
+  playedRelationIndices: ReadonlySet<number> | null,
+  activeRelationIndex: number | null = null
+): RelationPlanItem[] => (plan.frames[frameIndex]?.items ?? []).filter(item =>
+  isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex));
 
 /** Whether this visible item represents the authored relation moment in focus. */
 export const planItemOwnsRelationMoment = (

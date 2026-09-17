@@ -71,6 +71,7 @@ import {
 import {
   resolveDisplayedTrajectoryAttachments,
   planItemOwnsRelationMoment,
+  isPlanItemRevealed,
   planItemRelationRefs,
   planItemDependencyNodeIds,
   type DirectedPathPlanItem,
@@ -1994,18 +1995,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       };
       const revealedItemIndices = new Set<number>();
       frameItems.forEach((planItem, planItemIndex) => {
-        const superseded = playedRelationIndices === null
-          ? Boolean(planItem.supersededAt)
-          : Boolean(
-              planItem.supersededAt?.stageIndex === activeDerivationFrameIndex
-              && playedRelationIndices.has(planItem.supersededAt.relationIndex)
-            );
-        if (superseded) return;
-        const revealed = playedRelationIndices === null
-          || planItem.appearsAtStage < activeDerivationFrameIndex
-          || planItemRelationRefs(planItem).some((ref) =>
-            ref.stageIndex === activeDerivationFrameIndex
-            && playedRelationIndices.has(ref.relationIndex));
+        const revealed = isPlanItemRevealed(planItem, activeDerivationFrameIndex,
+          playedRelationIndices, activeRelationMoment?.relationIndex ?? null);
         if (revealed) revealedItemIndices.add(planItemIndex);
       });
       const witnessVisibilityCache = new Map<number, boolean>();
