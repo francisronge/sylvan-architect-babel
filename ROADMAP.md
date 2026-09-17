@@ -123,13 +123,15 @@ Remaining recognition findings are distinct:
   equally sized lists alone must not choose pairings. Repeated assigners in
   Sol's passive theta record also conflict with its registered scalar-predicate
   signature; Tier 2 must not silently repair that Tier-1 claim.
-- Sol's passive X-bar A-movement has shared root lineage and an explicit prior
-  source. Its immediately enclosing projections receive new IDs. An experiment
-  recovered the source slot from unchanged ordered sisters, but recognition then
-  caused Replay to replace an enclosing projection too early. The experiment
-  was removed and retained only in `/tmp/babel-rebuilt-source-investigation.diff`.
-  A coordinated source-position and transition-ownership repair remains needed;
-  this is not established missing evidence in the model's analysis.
+- The compound follow-up confirms six relevant envelopes in the batch. Same-name
+  values establish the recipient/literal correspondence, but do not independently
+  pair multiple assigners with those recipients. Later statements also distinguish
+  chain heads and lower positions, so grouping by a shared Case prefix would hide
+  a real distinction. No new grouping rule or alias was added. Existing separate
+  relations and scalar-predicate/list-argument records already express explicit
+  assignments; no contract expansion is required for those forms. General
+  recognition of the compound records remains an investigation, not a completed
+  repair or a reason to rewrite saved analyses.
 - Repeated chain statements without a new transition, clause-force claims,
   government constraints, pronunciation and explanatory prose remain available
   neutrally. Their presence does not establish an additional drawable dependency.
@@ -142,6 +144,26 @@ under `/tmp/babel-sept17-review/recognition-audit` and
 `/tmp/babel-recognition-audit.json`. Independent review and browser checks cover the changed frames, eight final
 views, zoom, stepping/Fit and a narrow view, with no console errors. No new parses
 were run.
+
+The passive X-bar movement repair is now coordinated with Replay. A rebuilt
+source parent can establish the old slot through unchanged ordered sisters,
+matching label/arity and unambiguous IDs. Replay restores enclosing containers
+that are exactly unchanged apart from their IDs after undoing movement, then
+introduces their replacements with the movement. Independent changes and
+unrelated syntax are preserved. This replaces the earlier discarded experiment
+in `/tmp/babel-rebuilt-source-investigation.diff`; no role aliases, prompt,
+contract, pronunciation, layout or camera changes were needed.
+
+The saved Sol A-movement now earns its existing Tier-1 trajectory. All twenty
+saved analyses retain their 809 frames and authored relation order; nineteen
+have identical playback. Only the affected movement and its persistent drawing
+change. Regressions cover both retained-ID conventions, prior-container timing,
+unrelated syntax and rejected ambiguous source slots. The complete offline gate
+passes 1,717 tests, typechecking and both contract fixtures. Production browser
+checks cover the preceding/movement/following frames, all eight final views,
+zoom, Next/Prev/Fit and a narrow view, with no console errors. Matched images
+and a stepped comparison remain in `/tmp/babel-sept17-review/passive-movement`.
+No new model calls were made.
 
 Sol's X-bar morphology response uses `realizations` to associate retained `walk`
 and `-ed` occurrences with the input token `walked`; raw authoring, normalization
