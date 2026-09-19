@@ -1468,6 +1468,7 @@ const App: React.FC = () => {
                       <form onSubmit={handleParse} className="flex gap-3 md:gap-4 items-end">
                         <div className="flex-1 relative">
                           <textarea
+                            aria-label="Sentence to analyze"
                             className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-900/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
                             placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
                             value={input}
@@ -1483,6 +1484,7 @@ const App: React.FC = () => {
                         </div>
                         <button
                           type="submit"
+                          aria-label={loading ? 'Analyzing sentence' : 'Analyze sentence'}
                           disabled={loading}
                           className="moss-gradient hover:brightness-110 disabled:opacity-40 text-white font-black w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
                         >
@@ -1495,10 +1497,10 @@ const App: React.FC = () => {
                       </form>
                     </div>
                     {!isInputExpanded && (
-                      <div className="px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
+                      <button type="button" aria-label="Expand sentence input" className="w-full px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
                         <span className="text-emerald-50/50 serif italic text-xs md:text-sm truncate max-w-[220px] md:max-w-[400px]">"{input}"</span>
                         <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
-                      </div>
+                      </button>
                     )}
                   </div>
                 </div>
