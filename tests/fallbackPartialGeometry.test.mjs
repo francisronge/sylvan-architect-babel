@@ -148,7 +148,7 @@ const sampleConnector = d => {
 
 test('neutral connectors keep straight stems while lower lanes clear plaques', () => {
   const labels = { a: { x: 0, y: 100, width: 20, height: 20 }, b: { x: 300, y: 0, width: 20, height: 20 } };
-  const plaques = [{ x: 100, y: 420, width: 80, height: 80 }];
+  const plaques = [{ x: 100, y: 140, width: 80, height: 80 }];
   const measurements = { labels: Object.values(labels), labelFor: id => labels[id], subtreeFor: id => labels[id], bottom: 400 };
   const bind = fallbackMeasurements => bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 10, y: labels[id].y + 10 }), { fallbackMeasurements });
   const crosses = (path, box) => sampleConnector(path).some(p => p.x > box.x && p.x < box.x + box.width
@@ -365,4 +365,27 @@ test('counter-lane stems clear intervening syntax while keeping their original e
     assert.equal(leftStem.length, 2);
     for (const [,y1,,y2] of leftStem) assert.ok(Math.max(y1,y2) <= 90 || Math.min(y1,y2) >= 120);
   }
+});
+
+test('a local scalar connector does not descend to unrelated deep syntax', () => {
+  const labels = { a: { x: 0, y: 0, width: 30, height: 20 }, b: { x: 60, y: 200, width: 30, height: 20 } };
+  const deep = { x: 600, y: 1800, width: 90, height: 30 };
+  const measurements = { labels: [...Object.values(labels), deep], labelFor: id => labels[id],
+    subtreeFor: id => labels[id], bottom: 1830 };
+  const options = { fallbackMeasurements: measurements, connectorBaselineY: 1900 };
+  const bound = bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 15, y: labels[id].y }), options);
+  assert.equal(bound.primitives.find(p => p.type === 'segment').laneY, 254);
+  for (const scale of [0.5, 1, 3]) {
+    const segment = [...fitFallbackGeometry(bound, { ...options, fittedMarkerScale: scale }).values()]
+      .find(p => p.type === 'segment');
+    assert.deepEqual(segment.from, { x: 15, y: 20 });
+    assert.deepEqual(segment.to, { x: 75, y: 220 });
+    assert.equal(segment.laneY, 220 + 34 * scale);
+  }
+  const obstacle = { x: 35, y: 235, width: 20, height: 50 };
+  const blocked = bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 15, y: labels[id].y }), {
+    ...options, fallbackMeasurements: { ...measurements, obstacles: [obstacle] }
+  });
+  assert.equal(blocked.primitives.find(p => p.type === 'segment').laneY, 297,
+    'a plaque in the local lane still requires clearance');
 });

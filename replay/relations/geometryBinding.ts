@@ -465,7 +465,7 @@ export type BoundFrame = {
 };
 
 type UnroutedFallbackSegment = Omit<BoundSegment, 'd' | 'lane' | 'laneY'>;
-type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY'>
+type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY' | 'fallbackMeasurements'>
   & { labelClearances?: Rect[]; obstacles?: Rect[] };
 
 export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
@@ -514,10 +514,13 @@ const routeFallbackSegments = (
     start: Math.min(segment.from.x, segment.to.x),
     end: Math.max(segment.from.x, segment.to.x)
   })), laneGap);
-  let measuredBaseline = options.connectorBaselineY
-    ?? (counterSegments.length > 0
-      ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) + 46 * markerScale
-      : 0);
+  const participantBottom = counterSegments.length > 0
+    ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) : 0;
+  // Measured endpoints already include their subtree bottoms. Unrelated
+  // deeper syntax must not turn a local connection into a tree-height detour.
+  let measuredBaseline = options.fallbackMeasurements
+    ? participantBottom + 34 * markerScale
+    : options.connectorBaselineY ?? participantBottom + 46 * markerScale;
   // Move the common floor, not individual lanes, so distinct links stay distinct.
   const clearance = 12 * markerScale;
   for (const box of [...(options.obstacles ?? [])].sort((a, b) => a.y - b.y)) {
@@ -655,10 +658,8 @@ export const fitFallbackGeometry = (
   const anchorScale = options.fittedAnchorScale ?? scale;
   const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
   const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
-  const connectorBaselineY = options.fallbackMeasurements
-    ? options.fallbackMeasurements.bottom + 34 * scale : options.connectorBaselineY;
   const routed = routeFallbackSegments(segments.filter(segment => segment.route === 'counter-lane'), {
-    ...options, markerScale: scale, obstacles: options.fallbackMeasurements?.obstacles, connectorBaselineY
+    ...options, markerScale: scale, obstacles: options.fallbackMeasurements?.obstacles
   });
   // Place text around the complete reserved routes, rather than bending a link
   // around long text or allowing later role labels to cover its stems.
@@ -691,8 +692,7 @@ export const fitFallbackGeometry = (
         width: rect.width + 6 * scale, height: rect.height + 6 * scale })),
       ...[...updates.values()].filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
         .map(mark => fallbackLabelRect(mark, scale))
-    ],
-    connectorBaselineY });
+    ] });
   segments.forEach((segment, index) => updates.set(segment, fitted[index]));
   const deepest = Math.max(0, ...fitted.map(segment => segment.laneY ?? 0));
   frame.primitives.forEach(rail => {
@@ -2536,8 +2536,8 @@ export const bindRelationPlanFrame = (
    * verbatim and cannot discard the routing.
    */
   primitives.push(...routeFallbackSegments(pendingSegments, {
-    markerScale, laneGap, obstacles: options.fallbackMeasurements?.obstacles, connectorBaselineY: options.fallbackMeasurements
-      ? options.fallbackMeasurements.bottom + 34 * markerScale : options.connectorBaselineY
+    markerScale, laneGap, obstacles: options.fallbackMeasurements?.obstacles,
+    fallbackMeasurements: options.fallbackMeasurements, connectorBaselineY: options.connectorBaselineY
   }));
   /*
    * The one vertical allocation law: rails sit a safe gap below the deepest

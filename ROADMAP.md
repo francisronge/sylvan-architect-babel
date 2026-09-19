@@ -32,13 +32,28 @@ collections no longer use sideways handles that produce an S-loop. Same-scale
 forward Replay steps retain the current camera when the new bounds already fit.
 Fit remains explicit and manual camera positions survive forward steps.
 
-Verification: 1,728 tests, typecheck and both contract fixtures pass. All 374 new
+The subsequent selection review found a remaining layout mismatch: a stage could
+adopt a large future scaffold only after movement, stretching its earlier, smaller
+canvases to that scaffold's dimensions. Construction stages now use future context
+only when it also preserves their pre-movement structure. The scalar Tier-3
+connector's turn now follows its own participant bottoms, not the whole tree's
+deepest label; local plaque clearance remains enforced. The short curved Case
+arrow is unchanged. Sol coordination frame 23's agreement/Case values are visible
+in the Replay panel, but remain unrecovered for specialized tree drawing.
+
+Verification: 1,729 tests, typecheck and both contract fixtures pass. All 374 new
 frames were checked in the browser for render completion, console errors and
 non-finite SVG geometry. The reported transitions, an older Sol morphology
 example, desktop/mobile layouts, manual zoom and Fit were visually inspected.
 Across 27 analyses / 1,183 frames, claim ownership and authored relation order
 remain unchanged. Matched screenshots, a camera recording and live Replay are
 in `/tmp/babel-sept17-review/varied-repairs`; evidence is not committed.
+The later layout/connector comparisons are in `/tmp/babel-sept17-review/layout-correction`.
+That follow-up also preserves the exact visible syntax, drawing plans and relation
+order across all 27 saved analyses. Focused desktop/mobile and zoom checks cover
+the reported selection sequence and connector, with the older inflection case
+checked after its layout changed. These are targeted checks, not a new linguistic
+qualification of the batch.
 
 Remaining boundaries: a Case plaque can still change pockets across authored
 stages when reserved syntax or trajectories occupy its old location. Proper-name

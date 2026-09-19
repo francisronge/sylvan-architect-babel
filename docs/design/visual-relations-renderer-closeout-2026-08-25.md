@@ -141,6 +141,7 @@ accepted size at automatic Fit, then share the tree's scale during manual zoom.
 Their size and stacked offsets use that same Fit reference when redrawn under a
 retained manual camera. Each role label and its array position stay in one coordinate group. Fan connectors follow the fitted marks;
 two-scalar connectors start below their participating subtrees, as in the Orchard;
+their lower turn clears those endpoints and local plaques, not unrelated deeper syntax;
 dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.
 
