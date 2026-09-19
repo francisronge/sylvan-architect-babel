@@ -64,19 +64,48 @@ mobile wrapping, forward movement, zoom/Fit and seven older saved analyses were
 checked in the browser. Review evidence remains outside the repository in
 `/tmp/babel-sept17-review/five-repairs`.
 
-These repairs do not claim universal recognition. Some attracting-head context
-and qualified Case/theta roles remain neutral or partially recovered. The older
-Sol raising/control record still references a future landing before movement;
-Replay preserves that order and reports the conflict. New runs remain paused.
+The subsequent recognition/input pass recovers 21 previously missed relation
+occurrences in these saved records: 15 thematic assignments and six Case
+dependencies. Registry version 16 interprets explicit thematic source/argument
+qualifications and licensed phrase recipients through the shared binder. An
+`introducer` needs thematic evidence without a competing feature interpretation.
+The drawings retain exact participants and authored literals. Multiple sources,
+unclear chain-to-role associations, unpaired values and unknown role meanings
+remain neutral. An attracting head in phrasal movement is contextual evidence,
+not a missing trajectory: the path is recovered and that head keeps its Tier-3
+annotation. The older Sol raising/control future-anchor conflict remains
+diagnosed without reordering its claims. New runs remain paused.
 
-Model/authoring findings remain separate. Sol Japanese X-bar introduces an
-under-motivated `M` head for `ん`, matching the supplied token split; tokenizer
-influence is plausible, not established. Other Japanese outputs use realizations
-without this structure. Token positions remain input addresses, not prescribed
-syntactic or morphological units. Native RTL presentation, locale-neutral case
-folding and the tokenizer's Latin possessive exception need separate review.
-Arabic glyph shaping works in this sample; sequential tree order remains left
-to right. No authored child order was reversed.
+Replay text comparison now preserves combining marks and normalizes canonical
+Unicode spellings, avoiding false matches such as `मैं` with `म` or `أحبّ` with
+`أحب`. Parser comparisons explicitly use Unicode default casing. Initial-letter
+case changes share one complete-code-point helper across Replay and rendering,
+so supplementary-plane letters are handled without splitting surrogate pairs.
+These changes do not identify a language or prescribe its casing conventions.
+
+The input audit found a token-address dependency that must precede tokenizer
+changes. The existing Latin apostrophe-s rule splits both possessives and
+contractions, and saved analyses do not carry an authoritative input-token
+vector. Removing the rule now would reinterpret their indices. Keep the current
+boundaries until original token lists can be preserved and older records can be
+handled explicitly. Native word segmentation matched Node and the browser in
+seven tested input cases; that is not a guarantee across future ICU versions.
+
+Sol Japanese X-bar explicitly calls `ん` a nasal-onbin component and represents
+it as `M` within a complex V, with every supplied token attached to a terminal.
+Astra, given the same split, explicitly keeps `読ん` as one stem associated with
+two token positions. The split may have influenced Sol, but these records cannot
+establish causation or justify rewriting its analysis. Token positions remain
+input addresses, not prescribed syntactic or morphological units. Native RTL
+presentation still needs discussion. Arabic glyph shaping works in this sample;
+sequential tree order remains left to right. No authored child order was reversed.
+
+This follow-up passes 1,751 tests, typecheck and both parse-contract fixtures.
+All 27 saved analyses retain 133 stages, 417 authored relations and 1,230 Replay
+frames. Targeted Arabic/Japanese before-and-after captures, forward Replay,
+zoom/Fit, a mobile view and the Turkish movement-context control passed with no
+browser errors. Evidence remains in `/tmp/babel-sept17-review/universal-followup`
+and `/tmp/babel-universal-followup`; no new provider request was made.
 
 Pause new generation while these defects are repaired. Reuse the saved records
 for regressions and show only one or two directly relevant comparisons for each

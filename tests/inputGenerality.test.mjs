@@ -3,10 +3,11 @@ import test from 'node:test';
 
 import { __test__ } from '../server/babelParser.js';
 import {
+  caseSurfaceInitial,
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder
 } from '../server/babelParser/surfaceTokens.js';
-import { tokenizeReplaySentenceSurface } from '../replay/replayCompiler.ts';
+import { maybeLowercaseSentenceInitialFunctionSurface, normalizeToken, tokenizeReplaySentenceSurface } from '../replay/replayCompiler.ts';
 
 const cases = [
   {
@@ -104,6 +105,32 @@ test('surface normalization retains symbol-only and private-use tokens', () => {
   assert.equal(normalizeSurfaceToken('\uE000\uE001'), '\uE000\uE001');
   assert.equal(normalizeSurfaceToken('Cafe\u0301'), 'café');
   assert.equal(normalizeSurfaceToken('...'), '');
+});
+
+test('Replay comparison preserves combining marks and canonical Unicode equivalence', () => {
+  for (const [left, right] of [['मैं', 'म'], ['مُ', 'م'], ['أحبّ', 'أحب'], ['İ', 'I']]) {
+    assert.notEqual(normalizeToken(left), normalizeToken(right), `${left} must not match ${right}`);
+    assert.equal(normalizeToken(left), normalizeSurfaceToken(left));
+  }
+  for (const [left, right] of [['Cafe\u0301', 'Café'], ['α\u0301', 'ά']]) {
+    assert.equal(normalizeToken(left), normalizeToken(right));
+    assert.equal(normalizeSurfaceToken(left), normalizeSurfaceToken(right));
+  }
+  assert.equal(normalizeToken('«मैं»'), 'मैं');
+  assert.equal(normalizeSurfaceToken('I'), 'i');
+  assert.equal(normalizeSurfaceToken('ı'), 'ı', 'do not guess Turkish casing without language evidence');
+});
+
+test('sentence casing handles supplementary-plane letters without altering the rest of a word', () => {
+  assert.equal(caseSurfaceInitial('𐐀𐐨', 'lower'), '𐐨𐐨');
+  assert.equal(caseSurfaceInitial('𐐨𐐨', 'upper'), '𐐀𐐨');
+  assert.equal(caseSurfaceInitial('İki', 'lower'), 'i\u0307ki');
+  assert.equal(caseSurfaceInitial('أنا', 'upper'), 'أنا');
+  assert.equal(caseSurfaceInitial('', 'lower'), '');
+  assert.equal(maybeLowercaseSentenceInitialFunctionSurface({
+    surface: '𐐀𐐨', sentenceInitialSurface: '𐐀𐐨', nodeId: 'later', parentLabel: 'D',
+    hasNominalComplement: true, visibleOvertLeafIds: ['first', 'later']
+  }), '𐐨𐐨');
 });
 
 test('fallback tokenization preserves word and symbol runs without Segmenter', () => {

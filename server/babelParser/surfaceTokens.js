@@ -24,7 +24,15 @@ export const stripEdgePunctuationAndSymbols = (value) => {
 };
 
 export const normalizeSurfaceToken = (value) =>
-  stripEdgePunctuationAndSymbols(value).toLocaleLowerCase('und');
+  stripEdgePunctuationAndSymbols(value).toLowerCase().normalize('NFC');
+
+/** Apply Unicode default casing to a complete code point, never half a surrogate pair. */
+export const caseSurfaceInitial = (value, casing) => {
+  const text = String(value || '');
+  const first = Array.from(text)[0];
+  if (!first) return text;
+  return (casing === 'upper' ? first.toUpperCase() : first.toLowerCase()) + text.slice(first.length);
+};
 
 const splitSyntacticSurfaceToken = (token) => {
   const cleaned = stripEdgePunctuationAndSymbols(token);

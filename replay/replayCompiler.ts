@@ -31,7 +31,7 @@ import {
   classifyRelationAnchors,
   resolveRelationAnchors
 } from '../derivationReplayPlan.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
+import { caseSurfaceInitial, tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import {
   authoredWord,
   isLeafNode,
@@ -2369,7 +2369,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
     ) {
       return trimmed;
     }
-    return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+    return caseSurfaceInitial(trimmed, 'lower');
   };
   const frameBackedSteps = frames.flatMap((frame, index) => {
     const plannedStage = getReplayPlanStage(replayPlan, index);
@@ -4551,8 +4551,8 @@ const normalizeReplaySentenceInitialCasing = (
   const initialKey = normalizeToken(sentenceInitialSurface);
   if (!initialKey) return steps;
 
-  const uppercaseInitial = sentenceInitialSurface.charAt(0).toUpperCase() + sentenceInitialSurface.slice(1);
-  const lowercaseInitial = sentenceInitialSurface.charAt(0).toLowerCase() + sentenceInitialSurface.slice(1);
+  const uppercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'upper');
+  const lowercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'lower');
   if (uppercaseInitial === lowercaseInitial) return steps;
 
   return steps.map((step) => {
@@ -5279,10 +5279,12 @@ export const isTraceLike = (label: string): boolean => {
 export const normalizeToken = (value: string): string => {
   return value
     .trim()
+    .normalize('NFC')
     .toLowerCase()
+    .normalize('NFC')
     .replace(/^<|>$/g, '')
     .replace(/^⟨|⟩$/g, '')
-    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+    .replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
 };
 
 export const tokenizeReplaySentenceSurface = (sentence: string): string[] =>
@@ -5525,7 +5527,7 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   const isSentenceInitialInVisibleReplay = normalizedNodeId && normalizedNodeId === firstVisibleOvertLeafId;
   if (isSentenceInitialInVisibleReplay) return trimmed;
 
-  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+  return caseSurfaceInitial(trimmed, 'lower');
 };
 
 export const isOvertLeafNode = (node: HierNode): boolean => isPronouncedHierLeaf(node);

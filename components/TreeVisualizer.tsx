@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
+import { caseSurfaceInitial } from '../server/babelParser/surfaceTokens.js';
 import RootLogo from './RootLogo';
 import { appendPlaqueContent } from './plaqueViewport';
 import { identityLightSites } from './identityForestLight';
@@ -333,7 +334,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   );
   const firstSentenceReplayDisplayToken = useMemo(
     () => firstSentenceReplayToken
-      ? firstSentenceReplayToken.charAt(0).toUpperCase() + firstSentenceReplayToken.slice(1)
+      ? caseSurfaceInitial(firstSentenceReplayToken, 'upper')
       : '',
     [firstSentenceReplayToken]
   );
@@ -690,7 +691,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ));
       if (getReplayTokenIndex(node) !== 0 && !surfacedByFrontingMovement) return trimmed;
       if (!surfacedByFrontingMovement && awaitsPhraseFronting) return trimmed;
-      return firstSentenceReplayDisplayToken || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+      return firstSentenceReplayDisplayToken || caseSurfaceInitial(trimmed, 'upper');
     };
 
     svg.selectAll<SVGPathElement, unknown>('.branch')
@@ -1111,7 +1112,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const preMovementSentenceInitialSurface =
             firstSentenceReplayToken
             && normalizeToken(sentenceInitialSurface) === normalizeToken(firstSentenceReplayToken)
-              ? firstSentenceReplayToken.charAt(0).toLowerCase() + firstSentenceReplayToken.slice(1)
+              ? caseSurfaceInitial(firstSentenceReplayToken, 'lower')
               : sentenceInitialSurface;
           const shouldCapitalizeSentenceInitialLeaf =
             sentenceInitialLeaf
@@ -1119,7 +1120,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           if (!usesDerivationFrames && sentenceInitialLeaf && shouldCapitalizeSentenceInitialLeaf) {
             terminalMorph.set(getNodeId(sentenceInitialLeaf), {
               preText: preMovementSentenceInitialSurface,
-              postText: firstSentenceReplayDisplayToken || (sentenceInitialSurface.charAt(0).toUpperCase() + sentenceInitialSurface.slice(1)),
+              postText: firstSentenceReplayDisplayToken || caseSurfaceInitial(sentenceInitialSurface, 'upper'),
               step: arrow.step,
               hideBefore: false
             });
@@ -1347,7 +1348,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ));
       if (getReplayTokenIndex(node) !== 0 && !surfacedByFrontingMovement) return trimmed;
       if (!surfacedByFrontingMovement && awaitsPhraseFronting) return trimmed;
-      return firstSentenceReplayDisplayToken || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+      return firstSentenceReplayDisplayToken || caseSurfaceInitial(trimmed, 'upper');
     };
     const getReplayTerminalSurface = (node: HierNode): string => {
       const fallback = resolveLeafSurface(node);
@@ -1418,7 +1419,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
       const sentenceInitialSurface =
         surfacedByPhraseMovement
-          ? (firstSentenceReplayDisplayToken || (fallback.charAt(0).toUpperCase() + fallback.slice(1)))
+          ? (firstSentenceReplayDisplayToken || caseSurfaceInitial(fallback, 'upper'))
           : '';
       return maybeLowercaseSentenceInitialFunctionSurface({
         surface: fallback,
