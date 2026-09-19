@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-19
+Status date: 2026-09-20
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -83,13 +83,14 @@ case changes share one complete-code-point helper across Replay and rendering,
 so supplementary-plane letters are handled without splitting surrogate pairs.
 These changes do not identify a language or prescribe its casing conventions.
 
-The input audit found a token-address dependency that must precede tokenizer
-changes. The existing Latin apostrophe-s rule splits both possessives and
-contractions, and saved analyses do not carry an authoritative input-token
-vector. Removing the rule now would reinterpret their indices. Keep the current
-boundaries until original token lists can be preserved and older records can be
-handled explicitly. Native word segmentation matched Node and the browser in
-seven tested input cases; that is not a guarantee across future ICU versions.
+Input-token preservation is implemented. New requests capture `inputTokens`
+once and carry the exact list through normalization, Replay preparation,
+qualification review and browser-local saving. The `unicode-word-v2` tokenizer
+removes the English-specific apostrophe-s split, including its mistaken split
+of contractions. The prompt-template fingerprint includes the tokenizer version.
+Older saved bundles without this metadata retain the legacy boundary rule and
+are not rewritten on load. Their original ICU segmentation cannot be recovered
+with certainty because those records never stored the token list.
 
 Sol Japanese X-bar explicitly calls `ん` a nasal-onbin component and represents
 it as `M` within a complex V, with every supplied token attached to a terminal.
@@ -106,6 +107,44 @@ frames. Targeted Arabic/Japanese before-and-after captures, forward Replay,
 zoom/Fit, a mobile view and the Turkish movement-context control passed with no
 browser errors. Evidence remains in `/tmp/babel-sept17-review/universal-followup`
 and `/tmp/babel-universal-followup`; no new provider request was made.
+
+The September 20 authorized follow-up also checked the current application using
+mocked saved responses: analysis switching, Canopy/Replay, keyboard stepping,
+save/reload/reopen, bracket-notation export and failed-request recovery. The
+submit button now has an accessible name and the collapsed input panel is a
+keyboard-operable button. This is existing-flow verification, not a Tree Bank
+upgrade or application redesign.
+
+Three long-label/dense-relation cases were checked at desktop and 390px widths.
+The inspected frames have no clipped labels or non-finite paths; whole-tree Fit
+still requires zoom for readable text on dense mobile trees. On this machine,
+64-stage synthetic preparation took 0.58–1.21 seconds. The saved Astra raising
+view became ready in 396ms with 4× browser CPU throttling; the longest observed
+50ms main-thread heartbeat gap was 91ms. These are local observations, not a
+cross-device performance guarantee. No layout or camera policy changed.
+
+Targeted linguistic research distinguishes under-justified analysis from
+renderer defects. [NINJAL's conjugation table, printed page 39](https://repository.ninjal.ac.jp/record/1862/files/kk_nkss_022.pdf)
+lists `yom-/yon-` as stem forms. [Youngberg, page 31](https://repository.essex.ac.uk/31336/1/glossa-5443-youngberg.pdf#page=31)
+discusses competing analyses of onbin stems; neither source establishes Sol's
+separate M head for `ん`. Preserve that authored choice rather than silently
+correcting it. [MIT's movement notes](https://ocw.mit.edu/courses/24-951-introduction-to-syntax-fall-2003/1e3a1d0873ad7a05f32451088daa9c6e_ln5a_movement.pdf)
+support distinguishing thematic from Case positions in chains. The saved X-bar
+English `thetaPosition` names a nominal recipient, while the Turkish one names
+a verbal source position. Chain membership and matching role strings therefore
+cannot alone determine assignment endpoints. Keep unresolved claims neutral;
+no new recognition rule or theoretical prescription was introduced.
+
+A temporary RTL Canopy comparison mirrors horizontal coordinates for the same
+saved Arabic analysis, preserving labels, authored child identities and every
+connection. This is a view proposal only; production direction is unchanged.
+The six-item review, sources and captures are in
+`/tmp/babel-sept17-review/next-checks`; scripts and verification evidence are in
+`/tmp/babel-authorized-six`. No provider calls were made. The offline gate passes
+1,756 tests, typecheck and both parse fixtures. All 27 saved analyses retain the
+same displayed syntax and ordering across 1,230 frames. Tree Bank upgrades,
+public/research redesign, migrations, hosting and corpus/benchmark work remain
+out of this pass.
 
 Pause new generation while these defects are repaired. Reuse the saved records
 for regressions and show only one or two directly relevant comparisons for each
@@ -1908,6 +1947,20 @@ evidence-backed additions or iteration while shipping the product.
 4. Both surfaces must use the same parser, renderer, durable records, Tree Bank,
    and current analysis state. A route changes the available controls, not the
    meaning or storage of an analysis.
+
+Preparation map, with no broad extraction started:
+
+- `App.tsx`: isolate current IndexedDB/entry helpers and snapshot capture from
+  view state; extract bracket-notation serialization separately. Preserve the
+  existing storage shape, preview tests and save/reopen/export behavior.
+- `TreeVisualizer.tsx`: extract the React Replay controls/panel first. A later
+  SVG painter extraction needs an explicit shared drawing context so anchors,
+  camera transforms, claim ownership and emphasis stay together. Require
+  unchanged Orchard pixels, hover, zoom/Fit and motion evidence.
+- `replayCompiler.ts`: begin with pure panel and trace-index formatting. Keep
+  movement ownership, pre-movement source state and structural scheduling in
+  one coherent compiler until their dependencies are explicit. Require identical
+  frame order, visible syntax and authored-relation ownership.
 
 ### 3B. Public Babel At `/`
 
