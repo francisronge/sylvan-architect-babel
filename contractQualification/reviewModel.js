@@ -28,7 +28,9 @@ export const reviewAnalyses = (attempt) => {
     return {
       analysisIndex, analysis, archive, inspection, copyAnalysis,
       sentence: bundle?.sentence ?? attempt.sentence ?? '',
+      inputTokens: bundle?.inputTokens,
       copySentence: copy?.sentence ?? attempt.sentence ?? '',
+      copyInputTokens: copy?.inputTokens,
       canInspectReplay: Boolean(copyAnalysis?.tree && copyAnalysis?.derivationStages?.length),
       canReplay: attempt.outcome?.status !== 'failed'
         && Boolean(archive?.replay && analysis?.tree && analysis?.derivationStages?.length)

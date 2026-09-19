@@ -1276,6 +1276,7 @@ const App: React.FC = () => {
               derivationStages={activeParse.derivationStages}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
+              inputTokens={analysisBundle?.inputTokens}
             />
           ) : activeParse && activeTab === 'notes' ? (
             <div

@@ -9,7 +9,7 @@ import {
 } from '../server/babelParser/validationErrors.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from './review.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
+import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 
 export const QUALIFICATION_ITEM_SET_STATUSES = Object.freeze([
   'unselected',
@@ -96,7 +96,8 @@ export const validateQualificationPlan = (input) => {
     if (seenIds.has(id)) throw new TypeError(`Duplicate attempt id: ${id}.`);
     seenIds.add(id);
 
-    requireExactFields(attempt.request, ['sentence', 'framework'], `${path}.request`);
+    requireExactFields(attempt.request, ['sentence', 'framework',
+      ...(Object.hasOwn(attempt.request || {}, 'inputTokens') ? ['inputTokens'] : [])], `${path}.request`);
     const sentence = requireExactSentence(attempt.request.sentence, `${path}.request.sentence`);
     if (!['xbar', 'minimalism'].includes(attempt.request.framework)) {
       throw new TypeError(`${path}.request.framework must be xbar or minimalism.`);
@@ -123,6 +124,8 @@ export const validateQualificationPlan = (input) => {
       id,
       request: {
         sentence,
+        ...(attempt.request.inputTokens !== undefined
+          ? { inputTokens: resolveSavedInputTokens(sentence, attempt.request.inputTokens) } : {}),
         framework: attempt.request.framework
       },
       model: selection,
@@ -238,12 +241,14 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
           stages: parserTest.inspectDerivationWorkspaces(analysis?.derivationStages, {
             analysisIndex,
             sentence: attempt.request.sentence,
+            sentenceTokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens),
             fieldPath: Array.isArray(parsedPayload?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
           })
         }))
     };
     if (inspection.analyses.some(analysis => analysis.stages?.some(stage => Object.hasOwn(stage.authoredStage || {}, 'realizations')))) {
-      inspection.input = { sentence: attempt.request.sentence, tokens: tokenizeSentenceSurfaceOrder(attempt.request.sentence) };
+      inspection.input = { sentence: attempt.request.sentence,
+        tokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens) };
     }
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
@@ -254,6 +259,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       attempt.model.providerRoute,
       true,
       {
+        inputTokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens),
         payloadIntegrityFlags: ingress.integrityFlags,
         payloadRepairDiagnostics: ingress.repairDiagnostics,
         analysisOutcomes

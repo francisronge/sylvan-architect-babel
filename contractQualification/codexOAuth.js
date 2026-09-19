@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
+import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
 
 // Subscription transport only; this module is not part of Babel's public provider routes.
@@ -12,13 +13,15 @@ export const buildCodexQualificationRequest = ({ sentence, framework, model, eff
   if (!['xbar', 'minimalism'].includes(framework)) throw new Error('Use xbar or minimalism.');
   const selection = resolveResearchModelSelection(model, effort ? { 'reasoning.effort': effort } : {});
   if (selection.provider !== 'openai') throw new Error('Codex OAuth requires an OpenAI model.');
+  const inputTokens = tokenizeSentenceSurfaceOrder(sentence);
   return {
     selection,
+    inputTokens,
     body: {
       model: selection.providerModel,
       instructions: buildSystemInstruction(framework, 'gpt'),
       input: [{ role: 'user', content: [{
-        type: 'input_text', text: buildParseContentsPrompt(sentence, framework, 'gpt')
+        type: 'input_text', text: buildParseContentsPrompt(sentence, framework, 'gpt', inputTokens)
       }] }],
       reasoning: { effort: selection.nativeSettings['reasoning.effort'] },
       store: false,

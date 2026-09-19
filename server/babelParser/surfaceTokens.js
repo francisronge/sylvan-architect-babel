@@ -1,4 +1,5 @@
 const EDGE_PUNCTUATION_OR_SYMBOL_RE = /[\p{P}\p{S}]/u;
+export const SURFACE_TOKENIZATION_VERSION = 'unicode-word-v2';
 const EDGE_PUNCTUATION_RE = /\p{P}/u;
 const WORDLIKE_CONTENT_RE = /[\p{L}\p{N}]/u;
 const SYMBOL_CONTENT_RE = /[\p{S}\p{Co}\p{Extended_Pictographic}\u20E3]/u;
@@ -34,11 +35,11 @@ export const caseSurfaceInitial = (value, casing) => {
   return (casing === 'upper' ? first.toUpperCase() : first.toLowerCase()) + text.slice(first.length);
 };
 
-const splitSyntacticSurfaceToken = (token) => {
+const splitSyntacticSurfaceToken = (token, legacyPossessives) => {
   const cleaned = stripEdgePunctuationAndSymbols(token);
   if (!cleaned || !WORDLIKE_CONTENT_RE.test(cleaned)) return [];
 
-  const possessiveMatch = cleaned.match(POSSESSIVE_SUFFIX_RE);
+  const possessiveMatch = legacyPossessives && cleaned.match(POSSESSIVE_SUFFIX_RE);
   if (possessiveMatch?.[1] && possessiveMatch?.[2]) {
     return [possessiveMatch[1], possessiveMatch[2].replace(/\u2019/g, "'")];
   }
@@ -46,7 +47,7 @@ const splitSyntacticSurfaceToken = (token) => {
   return [cleaned];
 };
 
-const tokenizeWithSegmenter = (input) => {
+const tokenizeWithSegmenter = (input, legacyPossessives) => {
   const wordSegmenter = new Intl.Segmenter('und', { granularity: 'word' });
   const graphemeSegmenter = new Intl.Segmenter('und', { granularity: 'grapheme' });
   const tokens = [];
@@ -60,7 +61,7 @@ const tokenizeWithSegmenter = (input) => {
   for (const part of wordSegmenter.segment(input)) {
     if (part.isWordLike || WORDLIKE_CONTENT_RE.test(part.segment)) {
       flushSymbolRun();
-      tokens.push(...splitSyntacticSurfaceToken(part.segment));
+      tokens.push(...splitSyntacticSurfaceToken(part.segment, legacyPossessives));
       continue;
     }
     for (const grapheme of graphemeSegmenter.segment(part.segment)) {
@@ -76,20 +77,31 @@ const tokenizeWithSegmenter = (input) => {
   return tokens;
 };
 
-export const tokenizeSentenceSurfaceOrder = (sentence) => {
+const tokenizeSurface = (sentence, legacyPossessives = false) => {
   const input = String(sentence || '').normalize('NFC');
   if (!input.trim()) return [];
 
   if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
-    return tokenizeWithSegmenter(input);
+    return tokenizeWithSegmenter(input, legacyPossessives);
   }
 
   return Array.from(input.matchAll(FALLBACK_TOKEN_RE))
     .flatMap((match) => {
       const token = String(match[0] || '').normalize('NFC');
       return WORDLIKE_CONTENT_RE.test(token)
-        ? splitSyntacticSurfaceToken(token)
+        ? splitSyntacticSurfaceToken(token, legacyPossessives)
         : [token];
     })
     .filter(Boolean);
+};
+
+export const tokenizeSentenceSurfaceOrder = (sentence) => tokenizeSurface(sentence);
+
+/** Old saved records predate inputTokens. Keep their original apostrophe-s addresses. */
+export const resolveSavedInputTokens = (sentence, inputTokens) => {
+  if (inputTokens === undefined) return tokenizeSurface(sentence, true);
+  if (!Array.isArray(inputTokens) || inputTokens.some(token => typeof token !== 'string' || !token.trim())) {
+    throw new TypeError('inputTokens must be an array of nonempty strings.');
+  }
+  return inputTokens.slice();
 };

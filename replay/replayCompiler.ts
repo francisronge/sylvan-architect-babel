@@ -31,7 +31,7 @@ import {
   classifyRelationAnchors,
   resolveRelationAnchors
 } from '../derivationReplayPlan.js';
-import { caseSurfaceInitial, tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
+import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import {
   authoredWord,
   isLeafNode,
@@ -2323,7 +2323,8 @@ const relationOwnsNonMovementTreeTransition = (
 export const buildPlaybackStepsFromDerivationFrames = (
   frames: ReplayDerivationFrame[],
   sentence?: string,
-  replayPlan?: DerivationReplayPlan | null
+  replayPlan?: DerivationReplayPlan | null,
+  inputTokens?: string[]
 ): PlaybackStep[] => {
   const identity = createReplayIdentityContext(frames.flatMap(frame => frame.workspaceForest || []));
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
@@ -2345,7 +2346,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
   }> = [];
   let previousVisibleNodeIds = new Set<string>();
   let previousWorkspaceRootIds = new Set<string>();
-  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
+  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence, inputTokens)[0] || '').trim();
   const firstFrontingStageIndex = (() => {
     const stages = Array.isArray(replayPlan?.stages) ? replayPlan.stages : [];
     for (const stage of stages) {
@@ -3694,7 +3695,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             frames,
             sentence,
             [],
-            structuralLayoutScaffold || undefined, identity
+            structuralLayoutScaffold || undefined, identity, inputTokens
           )
         : [];
     if (rootIntroductionMicrosteps.length > 1) {
@@ -3713,7 +3714,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           frames,
           sentence,
           [],
-          structuralLayoutScaffold || undefined, identity
+          structuralLayoutScaffold || undefined, identity, inputTokens
         )
       : [];
 
@@ -5287,8 +5288,8 @@ export const normalizeToken = (value: string): string => {
     .replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
 };
 
-export const tokenizeReplaySentenceSurface = (sentence: string): string[] =>
-  tokenizeSentenceSurfaceOrder(sentence);
+export const tokenizeReplaySentenceSurface = (sentence: string, inputTokens?: string[]): string[] =>
+  resolveSavedInputTokens(sentence, inputTokens);
 
 export const extractMovementIndex = (label: string): string | null => {
   const text = [...label.trim()].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
@@ -5964,9 +5965,10 @@ export const buildStructuralDerivationPlaybackSteps = (
   sentence?: string,
   suppressedRelationLinks?: ResolvedRelationLink[],
   layoutScaffoldForest?: SyntaxNode[],
-  identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest)
+  identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest),
+  inputTokens?: string[]
 ): PlaybackStep[] => {
-  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
+  const sentenceInitialSurface = String(tokenizeReplaySentenceSurface(sentence, inputTokens)[0] || '').trim();
   const effectiveRelationLinks = resolvedRelationLinks || [];
   const structuralRelationLinks = filterResolvedRelationLinks(effectiveRelationLinks, suppressedRelationLinks);
   const snapshotResolvedRelationLinks = Array.isArray(suppressedRelationLinks) && suppressedRelationLinks.length > 0
@@ -6330,9 +6332,10 @@ export const decoratePlaybackStepsWithTraceIndices = (
 
 export const applyPreFrontingSentenceInitialCasing = (
   steps: PlaybackStep[],
-  sentence: string
+  sentence: string,
+  inputTokens?: string[]
 ): PlaybackStep[] => {
-  const firstSentenceToken = String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim();
+  const firstSentenceToken = String(tokenizeReplaySentenceSurface(sentence, inputTokens)[0] || '').trim();
   return firstSentenceToken
     ? normalizeReplaySentenceInitialCasing(steps, firstSentenceToken)
     : steps;

@@ -32,7 +32,22 @@ Babel records the conditions of each model generation in one bundle-level `gener
 }
 ```
 
-`systemInstructionSha256` and `promptSha256` identify the exact strings sent for that request without storing their contents. `promptTemplateSha256` identifies the framework- and route-qualified prompt template using a fixed probe sentence, so it remains stable across benchmark sentences and changes when the selected contract dimension or template changes. `promptRoute` may differ from `provider`; the local route currently uses the Gemini prompt contract and records that fact.
+`systemInstructionSha256` and `promptSha256` identify the exact strings sent for that request without storing their contents. `promptTemplateSha256` identifies the framework, route, input-tokenization version and prompt template using a fixed probe sentence. It remains stable across sentences. The local route records its own prompt route.
+
+The product bundle also carries `inputTokens`, the exact ordered token list sent
+to the model. Normalization, Replay and saved snapshots preserve these addresses
+instead of segmenting the sentence again. This is request metadata, not a new
+model-authored stage field or a prescribed morphological analysis. The
+`unicode-word-v2` tokenizer removes the former Latin apostrophe-s split. Native
+Unicode word segmentation remains a source of input addresses, not syntactic
+constituents; realization groups may associate several tokens with one node or
+several nodes with one token.
+
+Older saved bundles without `inputTokens` use the legacy segmentation path,
+including its apostrophe-s split. They are not rewritten on load. Since those
+records never stored the original list, native segmentation differences across
+future ICU versions cannot be reconstructed with certainty. Saved-output
+qualification accepts an explicit original token list when it is available.
 
 `sentGenerationConfig` is derived from the same pure request-body builder used by the transport. It records resolved provider-shaped scalar settings, including the model and output limit. Gemini and local requests record temperature. GPT and Claude records intentionally omit temperature because their current request bodies do not send it. No API key, header, secret, environment-variable name, raw instruction, or raw prompt belongs in this object.
 

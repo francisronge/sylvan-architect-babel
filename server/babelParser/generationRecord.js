@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { SURFACE_TOKENIZATION_VERSION } from './surfaceTokens.js';
 
 export const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
 
@@ -24,7 +25,7 @@ export const buildPromptContract = ({
   const template = typeof buildTemplate === 'function'
     ? buildTemplate(PROMPT_TEMPLATE_PROBE_SENTENCE, framework, promptRoute)
     : '';
-  const qualifiedTemplate = JSON.stringify({ framework, promptRoute, template });
+  const qualifiedTemplate = JSON.stringify({ framework, promptRoute, inputTokenization: SURFACE_TOKENIZATION_VERSION, template });
   return {
     framework,
     promptRoute,

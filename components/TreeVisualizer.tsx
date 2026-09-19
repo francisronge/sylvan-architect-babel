@@ -193,6 +193,7 @@ export interface TreeVisualizerProps {
   derivationStages?: DerivationStage[];
   abstractionMode?: boolean;
   sentence?: string;
+  inputTokens?: string[];
   /**
    * Production draws the compiled visual-relations overlay by default. A
    * research surface that layers its own demonstration overlay (the Lab) may
@@ -213,6 +214,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   derivationStages,
   abstractionMode = false,
   sentence = '',
+  inputTokens,
   disableRelationOverlay = false,
   preparedReplay,
   manualCameraState
@@ -261,8 +263,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, []);
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps } = useMemo(
-    () => preparedReplay ?? prepareReplay({ derivationStages, sentence, includePlayback: animated }),
-    [preparedReplay, derivationStages, sentence, animated]
+    () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
+    [preparedReplay, derivationStages, sentence, inputTokens, animated]
   );
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const hasDerivationFrames = replayDerivationFrames.length > 0;
@@ -329,8 +331,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     [playbackSteps]
   );
   const firstSentenceReplayToken = useMemo(
-    () => String(tokenizeReplaySentenceSurface(sentence)[0] || '').trim(),
-    [sentence]
+    () => String(tokenizeReplaySentenceSurface(sentence, inputTokens)[0] || '').trim(),
+    [sentence, inputTokens]
   );
   const firstSentenceReplayDisplayToken = useMemo(
     () => firstSentenceReplayToken

@@ -21,7 +21,7 @@ const cases = [
     name: 'current interrogative fixture'
   },
   {
-    expected: ['Mia', "'s", 'book'],
+    expected: ['Mia’s', 'book'],
     input: 'Mia’s book.',
     name: 'Latin possessive'
   },
@@ -85,7 +85,7 @@ const cases = [
 test('parser and replay tokenizers preserve general input surfaces identically', () => {
   for (const fixture of cases) {
     const parserTokens = tokenizeSentenceSurfaceOrder(fixture.input);
-    const replayTokens = tokenizeReplaySentenceSurface(fixture.input);
+    const replayTokens = tokenizeReplaySentenceSurface(fixture.input, parserTokens);
     assert.deepEqual(parserTokens, fixture.expected, fixture.name);
     assert.deepEqual(replayTokens, fixture.expected, `${fixture.name} replay`);
     assert.deepEqual(replayTokens, parserTokens, `${fixture.name} parser/replay parity`);
@@ -139,7 +139,7 @@ test('fallback tokenization preserves word and symbol runs without Segmenter', (
   try {
     assert.deepEqual(
       tokenizeSentenceSurfaceOrder('Cafe\u0301 Mia’s 👩🏽‍💻 🙂🚀 \uE000\uE001'),
-      ['Café', 'Mia', "'s", '👩🏽‍💻', '🙂🚀', '\uE000\uE001']
+      ['Café', 'Mia’s', '👩🏽‍💻', '🙂🚀', '\uE000\uE001']
     );
   } finally {
     Intl.Segmenter = originalSegmenter;

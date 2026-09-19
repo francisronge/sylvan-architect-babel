@@ -141,6 +141,7 @@ for (const modelId of GENERATION_MODEL_IDS) {
       assert.equal(bundle.generationRecord.promptContract.promptSha256, sha256Hex(prompt));
       assert.equal(system, buildSystemInstruction(fixture.framework));
       assert.equal(prompt, buildParseContentsPrompt(fixture.sentence));
+      assert.deepEqual(bundle.inputTokens, JSON.parse(prompt.split('Input tokens, indexed from zero: ')[1]));
       assert.equal(bundle.generationRecord.sentGenerationConfig.textFormatType, 'text');
       assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, []);
       assert.ok(bundle.generationRecord.processing.json.durationMs >= 0);
@@ -154,6 +155,7 @@ for (const modelId of GENERATION_MODEL_IDS) {
       assert.deepEqual(buildQualificationAnalysisEvidence(bundle).renderer.tierCounts, { tier1: 2, tier2: 0, tier3: 0 });
       const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
       assert.deepEqual(restored.generationRecord, bundle.generationRecord);
+      assert.deepEqual(restored.inputTokens, bundle.inputTokens);
       assert.deepEqual(restored.rawModelOutput, bundle.rawModelOutput);
       assert.equal(restored.requestedModelId, modelId);
       assert.deepEqual(buildReplaySnapshotProjection(restored), replay);

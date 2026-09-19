@@ -201,6 +201,8 @@ export interface ParseBundle {
   ambiguityDetected: boolean;
   ambiguityNote?: string;
   sentence?: string;
+  /** Exact token addresses sent to the model; absent only on older saved bundles. */
+  inputTokens?: string[];
   requestedModelRoute?: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'grok';
   requestedModelId?: string;
   requestedReasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';

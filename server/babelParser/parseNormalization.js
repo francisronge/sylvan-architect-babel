@@ -1,5 +1,6 @@
 import { withFailureDetails } from './validationErrors.js';
 import { resolveRealizations } from './realizations.js';
+import { resolveSavedInputTokens } from './surfaceTokens.js';
 
 export const createParseNormalizationHelpers = ({
   ParseApiError,
@@ -40,7 +41,7 @@ export const createParseNormalizationHelpers = ({
     const payloadRepairDiagnostics = Array.isArray(options?.payloadRepairDiagnostics)
       ? structuredClone(options.payloadRepairDiagnostics)
       : [];
-    const sentenceTokens = tokenizeSentenceSurfaceOrder(sentence);
+    const sentenceTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
     const rawDerivationStages = parsed.derivationStages;
     const rawDerivationStageCount = Array.isArray(rawDerivationStages) ? rawDerivationStages.length : 0;
     const usesDerivationStages = rawDerivationStageCount > 0;
@@ -228,11 +229,12 @@ export const createParseNormalizationHelpers = ({
         ? [parsed]
         : [];
 
+    const inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
     let firstError;
     const analyses = analysesSource.map((analysis, analysisIndex) => {
       try {
         const normalized = normalizeParseResult(
-          analysis, framework, sentence, modelRoute, enforceDerivationRouteContract, options
+          analysis, framework, sentence, modelRoute, enforceDerivationRouteContract, { ...options, inputTokens }
         );
         options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
         return normalized;
@@ -278,6 +280,7 @@ export const createParseNormalizationHelpers = ({
 
     return {
       analyses,
+      inputTokens,
       ambiguityDetected,
       ambiguityNote: ambiguityDetected ? String(parsed?.ambiguityNote || '').trim() || undefined : undefined
     };

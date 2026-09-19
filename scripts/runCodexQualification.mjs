@@ -28,7 +28,7 @@ Requires committed contract sources. Build Replay review with:
   process.exit(0);
 }
 
-const { body, selection } = buildCodexQualificationRequest(values);
+const { body, selection, inputTokens } = buildCodexQualificationRequest(values);
 if (!values.out) throw new Error('--out must name a new artifact directory.');
 const outputPath = path.resolve(values.out);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -43,7 +43,7 @@ const contract = JSON.parse(fs.readFileSync(path.join(outputPath, 'contract.mani
 const receipt = {
   schemaVersion: 1,
   transport: 'codex-oauth', endpoint: CODEX_RESPONSES_URL,
-  request: { sentence: values.sentence, framework: values.framework, model: selection },
+  request: { sentence: values.sentence, framework: values.framework, inputTokens, model: selection },
   requestBody: { artifact: 'request.json', sha256: hashQualificationBytes(requestBytes) },
   contract,
   transportDifferencesFromApi: {
@@ -86,7 +86,7 @@ if (values.run) {
     });
     // Incomplete transport must never enter delimiter repair or masquerade as a complete analysis.
     if (result.status === 'completed') {
-      const attempt = { id: 'parse', request: { sentence: values.sentence, framework: values.framework },
+      const attempt = { id: 'parse', request: { sentence: values.sentence, framework: values.framework, inputTokens },
         model: selection, source: { kind: 'raw-text-file', path: 'output.txt' } };
       const artifacts = writeQualificationAttempt({ outputPath, attempt, rawBytes: Buffer.from(text, 'utf8') });
       receipt.attempts = [{ attemptId: attempt.id, outcome: artifacts.receipt.outcome }];

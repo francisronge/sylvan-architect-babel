@@ -62,7 +62,8 @@ export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
   const steps = buildPlaybackStepsFromDerivationFrames(
     frames,
     sentence,
-    replayPlan
+    replayPlan,
+    bundle.inputTokens
   );
 
   return { sentence, steps };

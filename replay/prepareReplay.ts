@@ -17,11 +17,12 @@ import { compileRelationRenderPlan } from './relations/renderPlanCompiler.ts';
 export interface ReplayPreparationInput {
   derivationStages?: DerivationStage[];
   sentence: string;
+  inputTokens?: string[];
   includePlayback: boolean;
 }
 
 /** Shared by the app worker and standalone, synchronous review renderers. */
-export const prepareReplay = ({ derivationStages, sentence, includePlayback }: ReplayPreparationInput) => {
+export const prepareReplay = ({ derivationStages, sentence, inputTokens, includePlayback }: ReplayPreparationInput) => {
   if (!String(sentence || '').trim() && derivationStages?.some(stage => stage.realizations?.length)) {
     throw new Error('Replay with realization groups requires the original input sentence.');
   }
@@ -43,10 +44,10 @@ export const prepareReplay = ({ derivationStages, sentence, includePlayback }: R
       finalFrame.workspaceForest || [], movementChainIndexCatalogue.links, Number.MAX_SAFE_INTEGER,
       movementChainIndexCatalogue
     );
-    const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan)
+    const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan, inputTokens)
       .map(hidePendingInflSpecifierWrappersInStep);
     playbackSteps = applyPreFrontingSentenceInitialCasing(
-      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence
+      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
     );
   }
   return { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,

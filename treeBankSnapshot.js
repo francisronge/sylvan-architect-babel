@@ -29,6 +29,7 @@ const CURRENT_BUNDLE_FIELDS = [
   'ambiguityDetected',
   'ambiguityNote',
   'sentence',
+  'inputTokens',
   'requestedModelRoute',
   'requestedModelId',
   'requestedReasoningEffort',

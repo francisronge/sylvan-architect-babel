@@ -9,8 +9,9 @@ const AsyncTreeVisualizer: React.FC<Omit<TreeVisualizerProps, 'preparedReplay' |
   const input = useMemo<ReplayPreparationInput>(() => ({
     derivationStages: props.derivationStages,
     sentence: props.sentence ?? '',
+    inputTokens: props.inputTokens,
     includePlayback: Boolean(props.animated)
-  }), [props.derivationStages, props.sentence, props.animated]);
+  }), [props.derivationStages, props.sentence, props.inputTokens, props.animated]);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
     input: ReplayPreparationInput; attempt: number; result?: PreparedReplay; error?: Error;
