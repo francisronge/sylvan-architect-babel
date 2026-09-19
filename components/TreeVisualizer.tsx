@@ -41,6 +41,7 @@ import {
   formatAuthoredWitnessSurface,
   formatTraceSurfaceForDisplayValue,
   getNodeId,
+  hasDeterminerNominalComplement,
   hasSilentOrGhostAncestor,
   indexHierarchyNodesByIdAndAliases,
   isDisplayTraceLabel,
@@ -107,17 +108,8 @@ const getReplayTokenIndex = (node: HierNode): number | undefined => {
 };
 
 const replayDeterminerHasNominalComplement = (node: HierNode): boolean => {
-  const functionNode = String(node.data?.label || '').trim().toUpperCase() === 'D'
-    ? node
-    : String(node.parent?.data?.label || '').trim().toUpperCase() === 'D'
-      ? node.parent
-      : null;
-  const nominalPhraseNode = functionNode?.parent;
-  return Boolean(
-    functionNode
-    && String(nominalPhraseNode?.data?.label || '').trim().toUpperCase() === 'DP'
-    && nominalPhraseNode?.children?.some((child) => child !== functionNode)
-  );
+  return hasDeterminerNominalComplement(node.data, node.parent?.data)
+    || hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data);
 };
 
 import {
@@ -1340,14 +1332,18 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             && firstFrontingStepIndex > 0
             && currentStepIndex < firstFrontingStepIndex;
           const preFrontingSurface = shouldForcePreFrontingLowercase
-            ? explicitLexicalSurface.charAt(0).toLowerCase() + explicitLexicalSurface.slice(1)
+            ? maybeLowercaseSentenceInitialFunctionSurface({
+                surface: explicitLexicalSurface,
+                sentenceInitialSurface: firstSentenceReplayToken,
+                parentLabel: node.parent?.data?.label,
+                hasNominalComplement: replayDeterminerHasNominalComplement(node)
+              })
             : explicitLexicalSurface;
           return maybeLowercaseSentenceInitialFunctionSurface({
             surface: preFrontingSurface,
             sentenceInitialSurface: firstSentenceReplayToken,
             nodeId: getNodeId(node),
             parentLabel: String(node.parent?.data?.label || '').trim(),
-            tokenIndex: getReplayTokenIndex(node),
             visibleOvertLeafIds,
             isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
             hasNominalComplement: replayDeterminerHasNominalComplement(node)
@@ -1364,7 +1360,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         && firstFrontingStepIndex > 0
         && currentStepIndex < firstFrontingStepIndex;
       if (preFrontingSentenceInitialFunction) {
-        return fallback.charAt(0).toLowerCase() + fallback.slice(1);
+        return maybeLowercaseSentenceInitialFunctionSurface({
+          surface: fallback,
+          sentenceInitialSurface: firstSentenceReplayToken,
+          parentLabel: node.parent?.data?.label || fallbackParentLabel || committedParentLabel,
+          hasNominalComplement: replayDeterminerHasNominalComplement(node)
+        });
       }
       const surfacedByPhraseMovement = activeDerivationArrowLinks.some((link) => {
         if (isHeadLikeResolvedRelation(link)) return false;
@@ -1380,7 +1381,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         sentenceInitialSurface,
         nodeId: getNodeId(node),
         parentLabel: String(node.parent?.data?.label || '').trim() || fallbackParentLabel || committedParentLabel,
-        tokenIndex: getReplayTokenIndex(node),
         visibleOvertLeafIds,
         isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
         hasNominalComplement: replayDeterminerHasNominalComplement(node)

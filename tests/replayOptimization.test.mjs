@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyPreFrontingSentenceInitialCasing, __TEST_ONLY__ } from '../replay/replayCompiler.ts';
+import {
+  applyPreFrontingSentenceInitialCasing,
+  hasDeterminerNominalComplement,
+  maybeLowercaseSentenceInitialFunctionSurface,
+  __TEST_ONLY__
+} from '../replay/replayCompiler.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 
 const counts = (tree, ids) => __TEST_ONLY__.collectVisibleReplayOvertTokenCounts({
@@ -14,17 +19,17 @@ const freeze = value => {
 
 test('casing preserves inherited silence, future layout hiding and exact target ownership', () => {
   const tree = { id: 'root', label: 'CP', children: [
-    { id: 'future-copy', label: 'D', replayLayoutOnly: true, children: [{ ...leaf('future-word', 'The'), replayLayoutOnly: true }] },
-    { id: 'future', label: 'D', replayOrigin: { kind: 'layout' }, children: [leaf('f', 'The')] },
-    { id: 'lower', label: 'D', silent: true, children: [leaf('l', 'The')] },
-    { id: 'higher', label: 'D', children: [leaf('h')] }
+    { id: 'future-copy', label: 'P', replayLayoutOnly: true, children: [{ ...leaf('future-word', 'To'), replayLayoutOnly: true }] },
+    { id: 'future', label: 'P', replayOrigin: { kind: 'layout' }, children: [leaf('f', 'To')] },
+    { id: 'lower', label: 'P', silent: true, children: [leaf('l', 'To')] },
+    { id: 'higher', label: 'P', children: [leaf('h', 'to')] }
   ] };
-  const input = freeze([{ operation: 'Select', targetNodeId: 'higher', targetLabel: 'the', replayCanvasData: tree }]);
-  const [result] = applyPreFrontingSentenceInitialCasing(input, 'The book');
-  assert.deepEqual(result.replayCanvasData.children.map(n => n.children[0].word), ['The', 'The', 'the', 'The']);
-  assert.equal(result.targetLabel, 'The');
-  assert.equal(tree.children[2].children[0].word, 'The');
-  assert.equal(tree.children[3].children[0].word, 'the');
+  const input = freeze([{ operation: 'Select', targetNodeId: 'higher', targetLabel: 'to', replayCanvasData: tree }]);
+  const [result] = applyPreFrontingSentenceInitialCasing(input, 'To town');
+  assert.deepEqual(result.replayCanvasData.children.map(n => n.children[0].word), ['To', 'To', 'to', 'To']);
+  assert.equal(result.targetLabel, 'To');
+  assert.equal(tree.children[2].children[0].word, 'To');
+  assert.equal(tree.children[3].children[0].word, 'to');
 });
 
 test('visible token counts deduplicate overlapping subtrees and preserve unnamed-leaf multiplicity', () => {
@@ -39,13 +44,54 @@ test('feature annotations do not disable position-sensitive casing or change aut
   for (const label of ['D', 'D[+wh]', 'D [wh] [case:acc]']) {
     const tree = { id: 'root', label: 'VP', children: [
       { id: 'verb', label: 'V', children: [leaf('v', 'buy')] },
-      { id: 'det', label, children: [leaf('d', 'Which')] }
+      { id: 'object', label: 'DP', children: [
+        { id: 'det', label, children: [leaf('d', 'Which')] },
+        { id: 'noun', label: 'N', children: [leaf('n', 'book')] }
+      ] }
     ] };
     const input = freeze([{ operation: 'Select', targetNodeId: 'd', targetLabel: 'Which', replayCanvasData: tree }]);
     const [result] = applyPreFrontingSentenceInitialCasing(input, 'Which book');
-    assert.equal(result.replayCanvasData.children[1].children[0].word, 'which');
-    assert.equal(result.replayCanvasData.children[1].label, label);
-    assert.equal(tree.children[1].children[0].word, 'Which');
+    assert.equal(result.replayCanvasData.children[1].children[0].children[0].word, 'which');
+    assert.equal(result.replayCanvasData.children[1].children[0].label, label);
+    assert.equal(tree.children[1].children[0].children[0].word, 'Which');
+  }
+});
+
+test('a standalone nominal preserves authored capitals before and after movement, even with tokenIndex zero', () => {
+  for (const word of ['Mia', 'I', 'Which']) {
+    for (const tokenIndex of [undefined, 0]) {
+      const nominal = { id: 'nominal', label: 'D[person:3]', children: [{ ...leaf('name', word), tokenIndex }] };
+      const verb = { id: 'verb', label: 'V', children: [leaf('v', 'seems')] };
+      const input = freeze([
+        { operation: 'Select', targetNodeId: 'name', targetLabel: word, sourceLabels: [word],
+          replayCanvasData: { id: 'root', label: 'VP', children: [verb, nominal] } },
+        { operation: 'Move', targetNodeId: 'name', targetLabel: word,
+          replayCanvasData: { id: 'root', label: 'TP', children: [nominal, verb] } }
+      ]);
+      const result = applyPreFrontingSentenceInitialCasing(input, `${word} seems ...`);
+      assert.equal(result[0].replayCanvasData.children[1].children[0].word, word);
+      assert.equal(result[0].targetLabel, word);
+      assert.deepEqual(result[0].sourceLabels, [word]);
+      assert.equal(result[1].replayCanvasData.children[0].children[0].word, word);
+      assert.equal(maybeLowercaseSentenceInitialFunctionSurface({
+        surface: word, sentenceInitialSurface: word, parentLabel: nominal.label,
+        visibleOvertLeafIds: ['v', 'name'], nodeId: 'name'
+      }), word, 'the renderer uses the same lexical-casing rule');
+    }
+  }
+});
+
+test('a determiner with a nominal complement still loses sentence casing before fronting in either notation', () => {
+  for (const label of ['D', 'DP', "D'"]) {
+    const determiner = { id: 'd', label: 'D[wh]', children: [leaf('w', 'Which')] };
+    const phrase = { id: 'p', label, children: [determiner, { id: 'n', label: 'NP', children: [leaf('book', 'book')] }] };
+    assert.equal(hasDeterminerNominalComplement(determiner, phrase), true);
+    const [before, after] = applyPreFrontingSentenceInitialCasing([
+      { replayCanvasData: { id: 'root', label: 'V', children: [leaf('buy', 'buy'), phrase] } },
+      { replayCanvasData: { id: 'root', label: 'CP', children: [phrase, leaf('buy', 'buy')] } }
+    ], 'Which book');
+    assert.equal(before.replayCanvasData.children[1].children[0].children[0].word, 'which');
+    assert.equal(after.replayCanvasData.children[0].children[0].children[0].word, 'Which');
   }
 });
 

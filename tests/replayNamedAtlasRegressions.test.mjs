@@ -431,7 +431,6 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
       sentenceInitialSurface: 'The',
       nodeId: 'determiner',
       parentLabel: 'D',
-      tokenIndex: 0,
       visibleOvertLeafIds: ['arrived', 'determiner'],
       isWorkspaceForest: true,
       hasNominalComplement: true
@@ -471,7 +470,6 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
       sentenceInitialSurface: 'The',
       nodeId: 'determiner',
       parentLabel: 'D',
-      tokenIndex: 0,
       visibleOvertLeafIds: ['arrived', 'determiner'],
       hasNominalComplement: true
     }),
@@ -484,7 +482,6 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
       sentenceInitialSurface: 'That',
       nodeId: 'complementizer',
       parentLabel: 'C',
-      tokenIndex: 0,
       visibleOvertLeafIds: ['matrix-subject', 'matrix-verb', 'complementizer']
     }),
     'that',
@@ -496,7 +493,6 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
       sentenceInitialSurface: 'Noa',
       nodeId: 'proper-name',
       parentLabel: 'N',
-      tokenIndex: 0,
       visibleOvertLeafIds: ['verb', 'proper-name']
     }),
     'Noa',
@@ -508,7 +504,6 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
       sentenceInitialSurface: 'Which',
       nodeId: 'lower-copy',
       parentLabel: 'D',
-      tokenIndex: 0,
       visibleOvertLeafIds: ['lower-copy'],
       isWorkspaceForest: true,
       hasNominalComplement: true

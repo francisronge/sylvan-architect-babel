@@ -4519,6 +4519,16 @@ const isSentenceInitialCaseAdjustableParent = (label?: string): boolean =>
     normalizeStructuralLabel(String(label || '')).toUpperCase()
   );
 
+// Atomic D also represents names and pronouns; a nominal complement supplies
+// the structural evidence for determiner-specific sentence casing.
+export const hasDeterminerNominalComplement = (
+  head: SyntaxNode | null | undefined,
+  projection: SyntaxNode | null | undefined
+): boolean => normalizeStructuralLabel(head?.label).toUpperCase() === 'D'
+  && ['D', 'DP'].includes(normalizeStructuralLabel(projection?.label).toUpperCase())
+  && Boolean(projection?.children?.some((child) => child !== head
+    && ['N', 'NP'].includes(normalizeStructuralLabel(child.label).toUpperCase())));
+
 const normalizeReplaySentenceInitialCasing = (
   steps: PlaybackStep[],
   sentenceInitialSurface: string
@@ -4573,7 +4583,16 @@ const normalizeReplaySentenceInitialCasing = (
       const leafId = String(leaf.id || '');
       const parent = exactNodes.get(leafId)?.parent;
       if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label)) return;
-      const nextSurface = leafId && leafId === firstPronouncedLeafId ? uppercaseInitial : lowercaseInitial;
+      const nextSurface = leafId && leafId === firstPronouncedLeafId
+        ? uppercaseInitial
+        : maybeLowercaseSentenceInitialFunctionSurface({
+            surface,
+            sentenceInitialSurface,
+            parentLabel: parent?.label || leaf.label,
+            hasNominalComplement: hasDeterminerNominalComplement(
+              parent, exactNodes.get(String(parent?.id || ''))?.parent
+            )
+          });
       casingByLeafId.set(leafId, nextSurface);
       if (leaf.word && leaf.word !== nextSurface) {
         leaf.word = nextSurface;
@@ -5452,7 +5471,6 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   sentenceInitialSurface,
   nodeId,
   parentLabel,
-  tokenIndex,
   visibleOvertLeafIds,
   isWorkspaceForest = false,
   hasNominalComplement = false
@@ -5461,7 +5479,6 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   sentenceInitialSurface?: string;
   nodeId?: string;
   parentLabel?: string;
-  tokenIndex?: number;
   visibleOvertLeafIds?: string[];
   isWorkspaceForest?: boolean;
   hasNominalComplement?: boolean;
@@ -5470,7 +5487,7 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
   if (!trimmed) return '';
 
   const normalizedNodeId = String(nodeId || '');
-  const normalizedParentLabel = String(parentLabel || '').trim().toUpperCase();
+  const normalizedParentLabel = normalizeStructuralLabel(parentLabel).toUpperCase();
   const normalizedSentenceInitialSurface = String(sentenceInitialSurface || '').trim();
   if (isWorkspaceForest) return trimmed;
   if (!isSentenceInitialCaseAdjustableParent(normalizedParentLabel)) return trimmed;
@@ -5482,10 +5499,9 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
     return trimmed;
   }
 
-  const hasAuthoredTokenIndex = Number.isFinite(tokenIndex);
-  // A bare D can also be a pronoun or proper name. Without authored surface
-  // position evidence, preserve its spelling instead of guessing from English.
-  if (!hasAuthoredTokenIndex && normalizedParentLabel === 'D' && !hasNominalComplement) return trimmed;
+  // A bare D can also be a pronoun or proper name. An input-token index gives
+  // position, not evidence that its capital belongs only to sentence casing.
+  if (normalizedParentLabel === 'D' && !hasNominalComplement) return trimmed;
 
   const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '')).filter(Boolean) : [];
   const firstVisibleOvertLeafId = visibleIds[0] || '';
@@ -6154,8 +6170,8 @@ export const buildStructuralDerivationPlaybackSteps = (
           sentenceInitialSurface,
           nodeId,
           parentLabel: String(node.parent?.data?.label || '').trim(),
-          tokenIndex: Number(node.data?.tokenIndex),
           visibleOvertLeafIds,
+          hasNominalComplement: hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data),
           isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
         })
       : rawTargetLabel;
@@ -6171,8 +6187,8 @@ export const buildStructuralDerivationPlaybackSteps = (
                 sentenceInitialSurface,
                 nodeId,
                 parentLabel: String(node.parent?.data?.label || '').trim(),
-                tokenIndex: Number(node.data?.tokenIndex),
                 visibleOvertLeafIds,
+                hasNominalComplement: hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data),
                 isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
               })
         ].filter(Boolean);
