@@ -1140,8 +1140,8 @@ const collectExactNodesByIdInForest = (forest: SyntaxNode[]): Map<string, Syntax
 
 /**
  * A layout scaffold may add hidden future parents and siblings, but it must
- * preserve every current node's exact authored material. This prevents a
- * future casing, silence, or token-order state from leaking into Replay.
+ * preserve current material and child attachments. Hidden future structure
+ * must not relocate an existing child before its movement moment.
  */
 const forestCanUseCurrentMaterialLayoutScaffold = (
   currentRoots: SyntaxNode[],
@@ -1157,7 +1157,10 @@ const forestCanUseCurrentMaterialLayoutScaffold = (
     return currentMatches.length === 1
       && scaffoldMatches.length === 1
       && replayLayoutMaterialSignature(currentMatches[0])
-        === replayLayoutMaterialSignature(scaffoldMatches[0]);
+        === replayLayoutMaterialSignature(scaffoldMatches[0])
+      && (currentMatches[0].children || []).every(child =>
+        scaffoldMatches[0].children?.some(candidate => candidate.id === child.id))
+      && preservesRelativeSiblingOrder(currentMatches[0].children || [], scaffoldMatches[0].children || []);
   });
 };
 
@@ -1730,6 +1733,18 @@ const buildPreMovementStructuralForest = (
     return null;
   };
   const previousLocations = indexExactForestNodeLocations(previousForest);
+  const precedingLandingSlot = (relation: DerivationReplayPlanStep, landing: SyntaxNode): SyntaxNode | null => {
+    const parent = findParent(landing.id);
+    const oldParent = parent && previousLocations.get(parent.id)?.node;
+    if (!parent || !oldParent || parent.children?.length !== oldParent.children?.length) return null;
+    const index = parent.children!.findIndex(child => child === landing);
+    const slot = oldParent.children?.[index];
+    // Restore only an explicitly referenced previous witness in the same
+    // unchanged slot. An unrelated deletion is not part of this movement.
+    if (!slot || findNode(slot.id) || !relationAnchorNodeIds(relation.priorAnchors).includes(slot.id)
+      || parent.children!.some((child, i) => i !== index && child.id !== oldParent.children?.[i].id)) return null;
+    return cloneSyntaxTree(slot);
+  };
   const restorePrecedingContainers = (sourceId: string): void => {
     // A rebuilt source path can differ only in its container IDs once the
     // movement is undone. Keep those exact preceding containers until the
@@ -1790,7 +1805,9 @@ const buildPreMovementStructuralForest = (
       // The retained ID may currently be at the landing. Remove that occurrence
       // before restoring the complete prior object at its proven lower slot.
       const parent = findParent(movement.targetNodeId);
-      if (parent) parent.children = parent.children?.filter(child => child !== landing);
+      const priorSlot = precedingLandingSlot(relation, landing);
+      if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
+      else if (parent) parent.children = parent.children?.filter(child => child !== landing);
       else structuralForest.splice(structuralForest.indexOf(landing), 1);
       replaceStructuralNode(movement.sourceNodeId, restored);
       restorePrecedingContainers(restored.id);
@@ -1829,6 +1846,7 @@ const buildPreMovementStructuralForest = (
     const targetParent = findParent(targetId);
     const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '') === targetId);
     if (!targetParent && targetRootIndex < 0) return;
+    const priorSlot = precedingLandingSlot(relation, target);
 
     if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
       const targetChildren = Array.isArray(target.children) ? target.children : [];
@@ -1839,6 +1857,8 @@ const buildPreMovementStructuralForest = (
         target.label = String(target.label || '').trim() || '∅';
         target.silent = true;
       }
+    } else if (priorSlot) {
+      replaceStructuralNode(targetId, priorSlot);
     } else if (targetParent) {
       targetParent.children = (Array.isArray(targetParent.children) ? targetParent.children : [])
         .filter((child) => String(child.id || '') !== targetId);
@@ -4530,7 +4550,7 @@ const normalizeReplaySentenceInitialCasing = (
     const currentLeaves = leafIds.map(leafId => {
         const info = exactNodes.get(leafId)!;
         const leaf = nodesByName.get(leafId);
-        return !info.layout && leaf ? { leaf, silent: info.silent } : null;
+        return !info.layout && leaf && !(leaf as any).replayLayoutOnly ? { leaf, silent: info.silent } : null;
       })
       .filter((entry): entry is { leaf: SyntaxNode; silent: boolean } => Boolean(entry));
     const firstPronouncedLeafId = String(

@@ -14,16 +14,17 @@ const freeze = value => {
 
 test('casing preserves inherited silence, future layout hiding and exact target ownership', () => {
   const tree = { id: 'root', label: 'CP', children: [
+    { id: 'future-copy', label: 'D', replayLayoutOnly: true, children: [{ ...leaf('future-word', 'The'), replayLayoutOnly: true }] },
     { id: 'future', label: 'D', replayOrigin: { kind: 'layout' }, children: [leaf('f', 'The')] },
     { id: 'lower', label: 'D', silent: true, children: [leaf('l', 'The')] },
     { id: 'higher', label: 'D', children: [leaf('h')] }
   ] };
   const input = freeze([{ operation: 'Select', targetNodeId: 'higher', targetLabel: 'the', replayCanvasData: tree }]);
   const [result] = applyPreFrontingSentenceInitialCasing(input, 'The book');
-  assert.deepEqual(result.replayCanvasData.children.map(n => n.children[0].word), ['The', 'the', 'The']);
+  assert.deepEqual(result.replayCanvasData.children.map(n => n.children[0].word), ['The', 'The', 'the', 'The']);
   assert.equal(result.targetLabel, 'The');
-  assert.equal(tree.children[1].children[0].word, 'The');
-  assert.equal(tree.children[2].children[0].word, 'the');
+  assert.equal(tree.children[2].children[0].word, 'The');
+  assert.equal(tree.children[3].children[0].word, 'the');
 });
 
 test('visible token counts deduplicate overlapping subtrees and preserve unnamed-leaf multiplicity', () => {

@@ -1830,16 +1830,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
        * items are matched against exactly those.
        */
       /*
-       * ONE STABLE ALLOCATION PER FRAME. Geometry is bound once from the
-       * COMPLETE derivation frame layout — every item, every lane, every
-       * stack, every rail — so nothing about an already-visible mark ever
-       * jumps as later structural nodes or relation moments appear.
-       * Reveal/focus below then draws only the marks whose exact relation
-       * moments have played and whose syntax witnesses are visible; hidden
-       * future marks RESERVE geometry but are never drawn.
+       * Allocate the stage's claims together, but bind them to the current
+       * tree. Future layout may reserve space; the completed stage cannot
+       * supply coordinates for syntax that has not moved there yet.
        */
       const frameLayoutById = indexHierarchyNodesByIdAndAliases(
-        (derivationFrameFitNodes ?? treeData.descendants()) as d3.HierarchyPointNode<SyntaxNode>[]
+        treeData.descendants()
       );
       const framePositionFor: PlanPositionProvider = (nodeId, attachment = 'position') => {
         const anchor = frameLayoutById.get(String(nodeId || ''));

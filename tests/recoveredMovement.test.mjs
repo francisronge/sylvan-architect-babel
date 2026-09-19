@@ -28,6 +28,63 @@ const tree = n => n && ({ ...n, children: (n.children || []).map(tree) });
 const playback = new Map(saved.map(c => [c.name, buildReplayPlayback({ sentence: c.sentence, analyses: [c] }).steps]));
 const plans = new Map(saved.map(c => [c.name, compileRelationRenderPlan(c.derivationStages)]));
 
+test('future layout keeps the source attached until a retained-ID movement occurs', () => {
+  const source = { id: 'person', label: 'DP', word: 'Lee', lineageId: 'person-chain' };
+  const verb = { id: 'verb', label: 'V', word: 'left' };
+  const lower = { id: 'trace', label: 'DP[trace]', silent: true, lineageId: 'person-chain' };
+  const base = { id: 'vp', label: 'VP', children: [verb, source] };
+  const moved = { id: 'tp', label: 'TP', children: [source, { id: 't-core', label: "T′", children: [
+    { id: 't', label: 'T', silent: true }, { ...base, children: [verb, lower] }
+  ] }] };
+  const clause = { id: 'cp', label: 'CP', children: [{ id: 'c', label: 'C', silent: true }, moved] };
+  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state', stageRecord: 'Authored account', workspaceForest, relations });
+  const stages = [stage([base]), stage([clause], [
+    { relation: 'Subject chain', anchors: { landing: 'person', origin: 'trace', attractor: 't' } }
+  ]), stage([{ id: 'outer', label: 'XP', children: [{ id: 'x', label: 'X' }, clause] }])];
+  const steps = buildReplayPlayback({ sentence: 'Lee left', analyses: [{ derivationStages: stages }] }).steps;
+  const transition = steps.filter(s => s.sourceFrameIndex === 1);
+  const moment = transition.findIndex(s => s.replayKind === 'relation');
+  assert.ok(moment > 0);
+  for (const step of transition.slice(0, moment)) {
+    assert.equal(nodes(step.replayCanvasData).find(n => n.children?.some(c => c.id === 'person'))?.id, 'vp');
+    assert.ok(step.replayVisibleNodeIds.includes('person'));
+    assert.ok(!step.replayVisibleNodeIds.includes('trace'));
+  }
+  assert.equal(nodes(transition[moment].replayCanvasData).find(n => n.children?.some(c => c.id === 'person'))?.id, 'tp');
+  assert.ok(transition[moment].replayVisibleNodeIds.includes('trace'));
+});
+
+test('movement replaces an authored prior landing witness at its own moment', () => {
+  const source = { id: 'source', label: 'NP', word: 'Lee', lineageId: 'person' };
+  const slot = { id: 'waiting', label: 'NP', word: 'e', silent: true };
+  const base = { id: 'vp', label: 'VP', children: [{ id: 'verb', label: 'V', word: 'left' }, source] };
+  const before = { id: 'ip', label: 'IP', children: [slot, base] };
+  const after = { ...before, children: [
+    { ...source, id: 'landing' }, { ...base, children: [base.children[0], { ...source, silent: true }] }
+  ] };
+  const stage = (tree, relations) => ({ statement: 'Authored state', stageRecord: 'Authored account', workspaceForest: [tree], relations });
+  for (const referencesSlot of [true, false]) {
+    const stages = [stage(before, []), stage(after, [
+      { relation: 'Context', anchors: { participant: 'verb' } },
+      { relation: 'A-movement', anchors: { lowerOccurrence: 'source', raisedOccurrence: 'landing' },
+        priorAnchors: { source: 'source', ...(referencesSlot ? { target: 'waiting' } : {}) } }
+    ])];
+    const original = structuredClone(stages);
+    const steps = buildReplayPlayback({ sentence: 'Lee left', analyses: [{ derivationStages: stages }] }).steps;
+    const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 1);
+    const preceding = steps.slice(0, moment).filter(s => s.sourceFrameIndex === 1);
+    assert.ok(preceding.length);
+    for (const step of preceding) {
+      assert.equal(step.replayVisibleNodeIds.includes('waiting'), referencesSlot,
+        'only a referenced previous witness belongs to the movement replacement');
+      assert.ok(!step.replayVisibleNodeIds.includes('landing'));
+    }
+    assert.ok(steps[moment].replayVisibleNodeIds.includes('landing'));
+    assert.ok(!steps[moment].replayVisibleNodeIds.includes('waiting'));
+    assert.deepEqual(stages, original);
+  }
+});
+
 test('restating an established movement does not hide its landing during new construction', () => {
   const source = { id: 'person', label: 'DP', word: 'Lee', lineageId: 'person-chain' };
   const verb = { id: 'verb', label: 'V', word: 'left' };
