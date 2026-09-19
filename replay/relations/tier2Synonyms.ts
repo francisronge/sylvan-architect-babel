@@ -39,7 +39,7 @@ export const normalizeTier2Synonym = (value: unknown): string => String(value ??
 // in qualified assignment roles. They supply direction, not proof of Agree or
 // Case: those meanings still require the owning recipe's evidence checks.
 const licensingSources = ['licensor', 'licenser', 'license source', 'licensing head'];
-const licensingTargets = ['licensee', 'licensed item', 'licensing target'];
+const licensingTargets = ['licensee', 'licensed item', 'licensed phrase', 'licensed constituent', 'licensed nominal', 'licensing target'];
 
 export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'movement.source', ['source', 'origin', 'from', 'lower copy', 'lower occurrence', 'intermediate occurrence', 'base copy', 'base position', 'departure', 'moved from', 'real gap', 'variable', 'foot']),
@@ -123,7 +123,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'operator', ['operator', 'quantifier', 'scope taker'], ['binder']),
   group('role', 'variable', ['variable', 'bound variable'], ['pronoun', 'trace', 'dependent']),
 
-  group('role', 'theta.arguments', ['theta arguments', 'arguments', 'argument', 'role bearers', 'thematic arguments']),
+  group('role', 'theta.arguments', ['theta arguments', 'arguments', 'argument', 'internal argument', 'external argument', 'role bearers', 'thematic arguments']),
   group('role', 'rewrite.input', ['rewrite input', 'input', 'prior terminal', 'source form', 'underlying form']),
   group('role', 'rewrite.output', ['rewrite output', 'output', 'current terminal', 'surface form', 'exponent', 'supported head', 'supported tense', 'tense host', 'realization host']),
   group('role', 'pf.host', ['supported tense', 'tense host', 'realization host']),
@@ -228,7 +228,8 @@ export const qualifiedAssignmentConcepts = (key: string): string[] => {
   const source = assignmentDirection(role) === 'source' || (domain === 'case' && role === 'governor');
   const target = assignmentDirection(role) === 'target';
   if (['theta', 'thematic', 'θ'].includes(domain)) {
-    return source ? ['predicate'] : target || role === 'argument' ? ['theta.arguments'] : [];
+    return source || ['head', 'predicate', 'introducer'].includes(role) ? ['predicate']
+      : target || role === 'argument' ? ['theta.arguments'] : [];
   }
   if (['case', 'feature'].includes(domain)) return source ? ['feature.source'] : target ? ['feature.target'] : [];
   return [];
@@ -276,6 +277,9 @@ export const relationRoleConcepts = (
       ? direction === 'source' ? 'predicate' : 'theta.arguments'
       : direction === 'source' ? 'feature.source' : 'feature.target');
   }
+  // An introducer supplies a thematic source only in a thematic claim. The
+  // same word alone can describe structural introduction or other relations.
+  if (spelling === 'introducer' && thetaDomain && !featureDomain) concepts.add('predicate');
   if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
       || isExplicitTier2Role('feature.target', role))) {

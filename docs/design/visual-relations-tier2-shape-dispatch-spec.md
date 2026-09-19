@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 15 binds recognized equivalent role wording before
+Production registry version 16 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -52,6 +52,16 @@ not merge different occurrences sharing lineage. Other signature cardinalities
 are unchanged. Open per-recipient fields read their same-name, same-length
 literal values before using a role key as a label. Invalid or competing literal
 pairs remain neutral; two different sources do not earn a one-predicate grid.
+
+Thematic head/predicate qualifications retain their source meaning; internal and
+external argument qualifications retain their recipient meaning. An `introducer`
+can supply the source only with thematic evidence and no competing Case/feature
+interpretation. Licensed phrases, constituents and nominals retain the licensing
+target role. Typed Case values and an independently supported source still have
+to establish a Case dependency. A Case exponent or head is not implicitly its
+assigner or recipient. Multiple sources, ambiguous chains and unpaired literals
+remain neutral. Phrasal movement's attracting head is context, not a second
+endpoint or proof of head movement; it retains its neutral annotation.
 
 The original relation and literal displays retain the authored record.
 `primaryRelation` contains only the primary claim's evidence after independent

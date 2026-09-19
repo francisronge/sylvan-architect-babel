@@ -70,7 +70,7 @@ const completeRelation = () => ({
 
 test('the production relation registry is versioned and populated with exact identities', () => {
   assert.equal(productionRelationRegistry.registryId, 'babel.semantic-visual-grammar');
-  assert.equal(productionRelationRegistry.version, '15');
+  assert.equal(productionRelationRegistry.version, '16');
   assert.ok(productionRelationRegistry.entries.length > 0);
   assert.ok(Object.isFrozen(productionRelationRegistry));
   // Every identity is exact or declared case/whitespace folding — nothing else.
