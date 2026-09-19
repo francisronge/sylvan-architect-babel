@@ -596,6 +596,21 @@ export const compileTier2RelationOutputs = ({
       }
       case 'feature.dependency': {
         const caseLabels = pairedLiterals(evidence, 'feature.target', 'case.literal') ?? [];
+        const featureValues = valueItems(evidence, 'feature.rows');
+        // Case and feature values cannot share the connector's single literal
+        // slot. The Case path keeps its recipient-specific literal; the existing
+        // feature plaque carries the other rows without consuming unseen values.
+        const mixedValues = caseLabels.length > 0 && featureValues.length > 0;
+        if (mixedValues) {
+          push({
+            ...base(facet, ['Feature connectors'], 'feature-bundle.plaque', 'values'),
+            kind: 'node-plaque',
+            anchorNodeIds: [one('feature.source')],
+            plaqueStyle: 'feature',
+            rows: rows.filter(row => evidence.authoredValues?.some(entry => entry.key === row.label
+              && entry.concepts.includes('feature.rows')))
+          });
+        }
         many('feature.target').forEach((target, index) => {
           push({
             ...base(facet, ['Feature connectors'], 'tier2.feature-dependency', `target:${index}`),
@@ -603,8 +618,8 @@ export const compileTier2RelationOutputs = ({
             fromNodeId: one('feature.source'),
             toNodeId: target,
             pathStyle: caseLabels.length ? 'case-assignment' : 'case-agree',
-            ...(caseLabels.length ? { label: caseLabels[index] } : valueItems(evidence, 'feature.rows').length > 0
-              ? { label: valueItems(evidence, 'feature.rows').join(', ') }
+            ...(caseLabels.length ? { label: caseLabels[index] } : featureValues.length > 0
+              ? { label: featureValues.join(', ') }
               : {}),
             ...(state === 'licensed' || state === 'blocked' ? { outcome: state } : {})
           });

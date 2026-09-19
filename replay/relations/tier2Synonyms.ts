@@ -141,12 +141,12 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'index', ['index', 'coindex', 'chain index', 'relation index', 'ordinal']),
   group('value', 'label', ['label', 'annotation', 'caption', 'literal label']),
   group('value', 'role.label', ['role label', 'roles', 'argument role', 'theta role', 'function label']),
-  group('value', 'case.literal', ['case', 'case value', 'case label']),
+  group('value', 'case.literal', ['case', 'case value', 'case label', 'valued case']),
   group('value', 'feature.label', ['feature label', 'feature', 'feature notation', 'feature mark']),
   group('value', 'accent.label', ['accent label', 'accent', 'pitch accent', 'tone mark']),
   group('value', 'cycle', ['cycle', 'round', 'pass', 'iteration', 'search cycle', 'derivational cycle']),
   group('value', 'step', ['step']),
-  group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values']),
+  group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values', 'agreement', 'agreement features', 'phi features']),
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
   group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'exponent']),
   group('value', 'fission.input', ['input features']),
@@ -272,7 +272,8 @@ export const relationRoleConcepts = (
       : direction === 'source' ? 'feature.source' : 'feature.target');
   }
   if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
-    normalizeTier2Synonym(role).startsWith('case ') && qualifiedAssignmentConcepts(role).includes('feature.target'))) {
+    qualifiedAssignmentConcepts(role).includes('feature.target')
+      || isExplicitTier2Role('feature.target', role))) {
     concepts.add('feature.source');
   }
   return [...concepts];

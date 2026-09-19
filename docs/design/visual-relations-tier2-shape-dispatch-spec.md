@@ -98,7 +98,13 @@ rule applies to typed Case and feature assignment, including domain-qualified
 roles; neither an assignment title nor an untyped recipient establishes meaning.
 Literal pairing, cardinality and
 missing-reference checks still apply, including to lists with equal lengths.
-They do not independently repeat alias lookup. Empty authored arrays retain
+`governor` supplies Case-source evidence only alongside an explicit Case literal
+and an independently recognized recipient role. `valuedCase` shares the Case
+literal vocabulary; explicit agreement and phi-feature values share feature-row
+handling. When both occur in one dependency, recipient-specific Case stays on
+its existing Case drawing and the other authored rows use the existing feature
+plaque at the source. Neither value set may be consumed without being displayed.
+Lowering and Replay do not independently repeat alias lookup. Empty authored arrays retain
 their field identity, so an empty optional field cannot be treated as absence.
 Different arrays under equivalent role/value keys cannot be concatenated to
 guess an idiom group or positional association. Unresolved references and failed

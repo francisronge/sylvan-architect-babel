@@ -39,6 +39,35 @@ const assertExclusiveTier2Plan = (plan) => {
   );
 };
 
+test('open feature dependencies preserve both Case and agreement literals in their existing drawings', () => {
+  const forest = [node('root', 'TP', [leaf('head', 'T'), leaf('nominal', 'D', 'Mia')])];
+  for (const [caseKey, featureKey] of [['case', 'features'], ['valuedCase', 'agreement'], ['Case value', 'phiFeatures']]) {
+    const relation = { relation: 'An authored dependency', anchors: { probe: 'head', goal: 'nominal' },
+      values: { [caseKey]: 'nominative', [featureKey]: ['third person', 'singular'] } };
+    const original = structuredClone(relation);
+    for (const values of [relation.values, Object.fromEntries(Object.entries(relation.values).reverse())]) {
+      const plan = compileRelationRenderPlan([stage([{ ...relation, values }], forest)]);
+      assertExclusiveTier2Plan(plan);
+      const path = plan.frames[0].items.find(item => item.pathStyle === 'case-assignment');
+      assert.equal(path.label, 'nominative');
+      assert.equal(path.fromNodeId, 'head');
+      assert.equal(path.toNodeId, 'nominal');
+      const plaque = plan.frames[0].items.find(item => item.kind === 'node-plaque');
+      assert.deepEqual(plaque.rows, [
+        { label: featureKey, value: 'third person' }, { label: featureKey, value: 'singular' }
+      ]);
+      assert.deepEqual(plaque.anchorNodeIds, ['head']);
+      assert.deepEqual(plaque.relationRef, path.relationRef);
+    }
+    assert.deepEqual(relation, original);
+  }
+  const ambiguous = { relation: 'An authored dependency', anchors: { probe: 'head', goal: 'nominal' },
+    values: { valuedCase: ['nominative', 'accusative'], agreement: 'third-person singular' } };
+  const fallback = compileRelationRenderPlan([stage([ambiguous], forest)]);
+  assert.equal(fallback.frames[0].items.some(item => item.tier2FacetId === 'feature.dependency'), false);
+  assert.deepEqual(fallback.frames[0].items.find(item => item.kind === 'fallback').relationRef.values, ambiguous.values);
+});
+
 test('Task 8 lowers ghosting, plaques, and judgments through production primitives', () => {
   const ghostForest = [node('ghost_root', 'TP', [
     node('ghost_site', 'VP', [

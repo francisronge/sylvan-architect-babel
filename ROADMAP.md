@@ -38,10 +38,20 @@ canvases to that scaffold's dimensions. Construction stages now use future conte
 only when it also preserves their pre-movement structure. The scalar Tier-3
 connector's turn now follows its own participant bottoms, not the whole tree's
 deepest label; local plaque clearance remains enforced. The short curved Case
-arrow is unchanged. Sol coordination frame 23's agreement/Case values are visible
-in the Replay panel, but remain unrecovered for specialized tree drawing.
+arrow is unchanged.
 
-Verification: 1,729 tests, typecheck and both contract fixtures pass. All 374 new
+The value/casing follow-up now recognizes explicit `agreement`, `phiFeatures`
+and `valuedCase` fields through the shared value vocabulary. A dependency with
+both Case and feature values retains its recipient-specific Case drawing and
+displays the other rows in the existing source feature plaque. Previously the
+lowerer could consume both value sets but only draw Case. `governor` also works
+with an independently recognized recipient and explicit Case; government alone
+does not establish that meaning. Atomic D names/pronouns retain authored capitals,
+including Mia with tokenIndex 0. A D with a nominal complement still permits
+sentence-position casing of determiners. A bare D/Which cannot be distinguished
+from D/Mia using the current evidence, so its authored spelling is preserved.
+
+Verification: 1,733 tests, typecheck and both contract fixtures pass. All 374 new
 frames were checked in the browser for render completion, console errors and
 non-finite SVG geometry. The reported transitions, an older Sol morphology
 example, desktop/mobile layouts, manual zoom and Fit were visually inspected.
@@ -55,19 +65,34 @@ the reported selection sequence and connector, with the older inflection case
 checked after its layout changed. These are targeted checks, not a new linguistic
 qualification of the batch.
 
-Remaining boundaries: a Case plaque can still change pockets across authored
-stages when reserved syntax or trajectories occupy its old location. Proper-name
-casing away from the sentence front remains distinct from the repaired hidden-
-copy bug. Active/quiet Case and movement paint was compared with the actual
-Orchard; this does not certify every possible arrangement. The old interrupted
+The value/casing comparison preserves syntax connections, every frame and authored
+relation order across all 27 analyses / 1,183 frames. Eight relation occurrences
+gain recognized values or Case drawing; the only word changes are mia to Mia in
+the two affected analyses. Review of compound groups found no general source-to-
+recipient pairing proof: equal-length arrays or similarly prefixed names alone
+are insufficient. Keep ambiguous groups neutral; the existing contract can
+express separate, explicitly paired claims without another interpretation model.
+The targeted desktop/mobile, movement and zoom comparisons are in
+`/tmp/babel-sept17-review/value-casing-review`, alongside the earlier evidence.
+
+Remaining boundaries: the Astra relative-clause Case plaque changes pockets at
+14→15 because its carried box would overlap the new v label and adjacent branches.
+Stage reservation triggers that change before the new syntax appears. Keeping
+the box fixed would create a collision; changing reservation timing is a separate
+design choice, not a verified allocator fix. Quiet movement uses the Orchard's
+single 0.3 opacity multiplier and 2.1-unit stroke, with no double fading. Small
+fitted trees can make that stroke subpixel. No rejected thickness restyle is
+retained. These checks do not certify every arrangement. The old interrupted
 Sol stream's exact cause cannot be recovered because its error handler discarded
 the exception. Future subscription failures record the operation and standard
 error codes without logging credentials or making an automatic retry.
+Its saved stream has complete metadata events but no analysis, error or completion
+receipt. The runner had no fixed generation timer; no new retry was made.
 
 Recognition remains bounded. Ordered multi-source/recipient arrays expose both
-plural/qualified-role coverage gaps and recipes restricted to one source. Next,
-investigate shared decomposition of unambiguous paired claims, with negative
-controls; prefix matching alone is unsafe for chain heads versus lower positions.
+plural/qualified-role coverage gaps and recipes restricted to one source. Reopen
+shared decomposition only with demonstrated association evidence and negative
+controls; prefix matching is unsafe for chain heads versus lower positions.
 Some attracting-head context on atomic nominal movement also stays neutral even
 when the movement path is recovered. No separate model interpreter is planned.
 Sol negation frame 32 and raising X-bar frame 62 reference higher occurrences

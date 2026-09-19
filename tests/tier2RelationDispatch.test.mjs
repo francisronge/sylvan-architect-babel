@@ -82,6 +82,21 @@ test('a thematic participant alone cannot earn a predication connector', () => {
     'the registered claim supplies the meaning that an open title cannot');
 });
 
+test('explicit Case and an independently directed recipient qualify government without a redundant prefix', () => {
+  const forest = [leaf('p', 'read'), leaf('a', 'book'), leaf('other', 'saw')];
+  for (const recipient of ['recipient', 'caseRecipient', 'bearer', 'featureTarget']) {
+    const relation = { relation: 'An authored licensing claim', anchors: { governor: 'p', [recipient]: 'a' },
+      values: { case: 'accusative' } };
+    assert.deepEqual(facetIds(dispatch(relation, forest)), ['feature.dependency']);
+  }
+  for (const relation of [
+    { anchors: { governor: 'p', recipient: 'a' }, values: {} },
+    { anchors: { governor: 'p', nominal: 'a' }, values: { case: 'accusative' } },
+    { anchors: { governor: 'p', recipient: 'a', assigner: 'other' }, values: { case: 'accusative' } },
+    { anchors: { governor: 'p', recipient: 'a' }, values: { case: ['accusative', 'nominative'] } }
+  ]) assert.deepEqual(facetIds(dispatch({ relation: 'Case assignment', ...relation }, forest)), []);
+});
+
 test('licensing wording has one interpretation across typed domains and unknown relation names', () => {
   const forest = [leaf('a', 'read'), leaf('b', 'books')];
   for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
