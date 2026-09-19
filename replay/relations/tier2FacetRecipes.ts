@@ -979,7 +979,7 @@ export const pairedLiterals = (
   return detail.status === 'paired' || detail.status === 'none' ? detail.literals : undefined;
 };
 
-const sameNameValueEntries = (
+export const sameNameValueEntries = (
   evidence: Tier2FacetEvidence,
   anchorEntry: Tier2AuthoredEvidenceEntry
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {

@@ -48,15 +48,19 @@ const validateRoleValue = ({ field, role, rule, value }) => {
       offendingValue: cloneAuthored(value)
     }];
   }
+  // A declared occurrence slot may count repeated exact IDs once. The authored
+  // array, literal values and distinct positions sharing lineage stay intact.
+  const count = field !== 'values' && rule.countDistinct
+    ? new Set(result.items).size : result.items.length;
   if (
-    result.items.length < rule.minItems
-    || (rule.maxItems !== null && result.items.length > rule.maxItems)
+    count < rule.minItems
+    || (rule.maxItems !== null && count > rule.maxItems)
   ) {
     return [{
       kind: 'invalid-arity',
       field,
       role,
-      observedItems: result.items.length,
+      observedItems: count,
       minItems: rule.minItems,
       maxItems: rule.maxItems
     }];

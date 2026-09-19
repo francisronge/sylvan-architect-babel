@@ -58,7 +58,7 @@ import {
 import { buildTier2FacetEvidence, dispatchRelationClaims, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
-import { literalThetaRoles, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export type PlanRelationRef = {
@@ -3028,11 +3028,28 @@ export const compileRelationRenderPlan = (
             pushNeutralFallback(primaryRelation.anchors, false);
             return;
           }
-          const roleBadges = explicitRoles
-            ? explicitRoles.map(({ nodeId, label }) => ({ nodeId, role: label }))
-            : roleEntries.flatMap(([role, value]) => flattenAnchorIds(value)
-            .filter((nodeId) => requireResolved(role, nodeId))
-            .map((nodeId) => ({ role: role.charAt(0).toUpperCase() + role.slice(1), nodeId })));
+          let invalidPairing = false;
+          const roleBadges = [
+            ...(explicitRoles || []).map(({ nodeId, label }) => ({ nodeId, role: label })),
+            ...roleEntries.flatMap(([role, value]) => {
+              const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === role);
+              if (entry?.concepts.includes('theta.arguments')) return [];
+              const ids = flattenAnchorIds(value);
+              const matches = sameNameValueEntries(evidence, { key: role, items: ids, concepts: [] });
+              if (matches.length > 1 || (matches.length === 1
+                && (matches[0].items.length !== ids.length || matches[0].items.some(label => !label.trim())))) {
+                invalidPairing = true;
+                return [];
+              }
+              return ids.map((nodeId, index) => ({ nodeId,
+                role: matches[0]?.items[index] ?? role.charAt(0).toUpperCase() + role.slice(1) }));
+            })
+          ];
+          if (invalidPairing) {
+            pushDiagnostic('illegal-configuration', 'Theta role literals require one unambiguous same-name value per argument');
+            pushNeutralFallback(primaryRelation.anchors, false);
+            return;
+          }
           if (!roleBadges.length) {
             pushDiagnostic('illegal-configuration', 'A theta grid requires at least one authored role association');
             pushNeutralFallback(primaryRelation.anchors, false);

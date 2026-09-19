@@ -23,6 +23,39 @@ const examples = [
   ['FocusMarking', { focus: 'a', background: 'b', domain: 'domain' }, { prominentBranch: 'a', backgroundSister: 'b', region: 'domain' }]
 ];
 
+test('registered theta assignment counts exact source occurrences without rewriting repeated entries', () => {
+  for (const key of ['predicate', 'assigner', 'ASSIGNER']) {
+    const relation = { relation: 'theta-role assignment',
+      anchors: { [key]: ['a', 'a'], assignments: ['b', 'c'] },
+      values: { assignments: ['Theme', 'Goal'] } };
+    const original = structuredClone(relation);
+    const result = dispatch(relation);
+    assert.equal(result.primaryClaim.tier, 1, JSON.stringify(result.tier1Dispatch.signatureIssues));
+    assert.deepEqual(result.boundPrimaryRelation.anchors.predicate, ['a', 'a']);
+    assert.deepEqual(result.primaryRelation, original);
+    assert.deepEqual(relation, original);
+    const plan = compileRelationRenderPlan([stage([relation])]);
+    const grid = plan.frames[0].items.find(item => item.plaqueStyle === 'theta-grid');
+    assert.deepEqual(grid?.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })),
+      [{ nodeId: 'b', label: 'Theme' }, { nodeId: 'c', label: 'Goal' }]);
+    assert.deepEqual(grid.relationRef.anchors, original.anchors);
+
+    const distinct = { ...relation, anchors: { ...relation.anchors, [key]: ['a', 'b'] } };
+    const sameLineageForest = structuredClone(forest);
+    sameLineageForest[0].children.forEach(node => { node.lineageId = 'one-chain'; });
+    const rejected = dispatchRelationClaims({ relation: distinct, currentForest: sameLineageForest,
+      stageIndex: 0, relationIndex: 0 });
+    assert.equal(rejected.primaryClaim.tier, 3);
+    assert.ok(rejected.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'invalid-arity'));
+    assert.equal(compileRelationRenderPlan([stage([distinct])]).frames[0].items
+      .some(item => item.plaqueStyle === 'theta-grid'), false);
+  }
+  const unknown = dispatch({ relation: 'OpenAssignment',
+    anchors: { assigner: ['a', 'a'], assignments: ['b', 'c'] }, values: { assignments: ['Theme', 'Goal'] } });
+  assert.equal(unknown.primaryClaim.tier, 3, 'a registered contextual alias cannot classify an open relation');
+  assert.equal(unknown.facets.some(facet => facet.recipe.id === 'theta-grid'), false);
+});
+
 test('licensing equivalents reach the same registered slots and preserve incomplete-signature refusal', () => {
   for (const source of ['licensor', 'licenser', 'licenseSource', 'licensing-head']) {
     for (const target of ['licensee', 'licensedItem', 'licensing_target']) {

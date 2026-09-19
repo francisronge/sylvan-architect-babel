@@ -92,7 +92,11 @@ const normalizeRoleRules = (value, path) => {
       throw new TypeError(`${path}.${role}.aliases must be an array of non-empty strings.`);
     }
     if (rule.concept !== undefined) requireNonemptyText(rule.concept, `${path}.${role}.concept`);
+    if (rule.countDistinct !== undefined && typeof rule.countDistinct !== 'boolean') {
+      throw new TypeError(`${path}.${role}.countDistinct must be a boolean.`);
+    }
     return [role, { minItems, maxItems,
+      ...(rule.countDistinct ? { countDistinct: true } : {}),
       ...(rule.aliases ? { aliases: [...new Set(rule.aliases)] } : {}),
       ...(rule.concept ? { concept: rule.concept } : {})
     }];
@@ -237,7 +241,8 @@ const normalizeSignatureBlock = (value, path) => {
   equivalentRoles.forEach(group => {
     const first = rules[group[0]];
     if (!first.concept || group.some(role => rules[role].concept !== first.concept
-      || rules[role].minItems !== first.minItems || rules[role].maxItems !== first.maxItems)) {
+      || rules[role].minItems !== first.minItems || rules[role].maxItems !== first.maxItems
+      || rules[role].countDistinct !== first.countDistinct)) {
       throw new TypeError(`${path}.equivalentRoles must share a concept and cardinality.`);
     }
   });

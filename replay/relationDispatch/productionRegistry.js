@@ -4,7 +4,7 @@ import { withProductionRoleVocabulary } from './productionRoleConcepts.js';
 
 /**
  * The versioned production registry: every relation identity used by an
- * active accepted Lab card, with its real accepted role schema (version 14;
+ * active accepted Lab card, with its real accepted role schema (version 15;
  * version 0 was born empty, version 1 carried the representative wiring).
  *
  * Identity matching is exact with declared case/whitespace folding only.
@@ -90,7 +90,7 @@ const trajectoryEntry = (id, identities, { requireWitness = true } = {}) => entr
 
 export const productionRelationRegistry = createRelationRegistry({
   registryId: 'babel.semantic-visual-grammar',
-  version: '14',
+  version: '15',
   entries: [
     /* ------------------------------------------------- trajectories */
     trajectoryEntry('trajectory.phrasal', [
@@ -372,7 +372,7 @@ export const productionRelationRegistry = createRelationRegistry({
       required: { accentBearer: scalar, projections: array }
     }),
     entry('theta.grid', ['ThetaAssignment'], {
-      required: { predicate: scalar },
+      required: { predicate: { ...scalar, aliases: ['assigner'], countDistinct: true } },
       allowAdditional: true
     }),
     entry('gapping.alignment', ['GappingAlignment'], {

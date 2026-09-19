@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 14 binds recognized equivalent role wording before
+Production registry version 15 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -44,6 +44,14 @@ in separate drawings. These are contextual probe aliases, not explicit proof of
 Agree. Typed values and the complete recipe still establish what can be drawn;
 unknown words, negated roles, competing endpoints and unpaired literals remain
 neutral. This bounded vocabulary does not interpret arbitrary natural language.
+
+For the registered theta-grid claim, an assigning head can fill the predicate
+slot. That single-occurrence slot counts distinct exact IDs, so repeating one
+ID does not create multiple sources. It preserves the authored array and does
+not merge different occurrences sharing lineage. Other signature cardinalities
+are unchanged. Open per-recipient fields read their same-name, same-length
+literal values before using a role key as a label. Invalid or competing literal
+pairs remain neutral; two different sources do not earn a one-predicate grid.
 
 The original relation and literal displays retain the authored record.
 `primaryRelation` contains only the primary claim's evidence after independent

@@ -60,7 +60,7 @@ export const withProductionRoleVocabulary = (entryId, signature) => {
   const meanings = contexts[entryId] || (entryId.startsWith('trajectory.') ? movement : {});
   const roles = block => Object.fromEntries(Object.entries(block || {}).map(([role, rule]) => {
     const concept = meanings[role] || literalConcepts.get(normalizeTier2Synonym(role));
-    return [role, { ...rule, aliases: [role, ...(groups.get(concept)?.aliases || [])], ...(concept ? { concept } : {}) }];
+    return [role, { ...rule, aliases: [role, ...(rule.aliases || []), ...(groups.get(concept)?.aliases || [])], ...(concept ? { concept } : {}) }];
   }));
   return { ...signature, required: roles(signature.required), optional: roles(signature.optional) };
 };

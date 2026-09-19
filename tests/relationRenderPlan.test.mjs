@@ -118,7 +118,7 @@ test('registered phrasal movement compiles with witness endpoints and authored p
     }], [whTree])
   ]);
 
-  assert.equal(plan.registryVersion, '14');
+  assert.equal(plan.registryVersion, '15');
   assert.equal(plan.frames.length, 1);
   const [item] = plan.frames[0].items;
   assert.equal(item.kind, 'trajectory');
@@ -1027,6 +1027,34 @@ test('named theta uses the same exact ordered role pairing as recovered theta', 
   assert.ok(mismatch.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
   assert.ok(mismatch.frames[0].items.some((item) => item.kind === 'fallback'));
   assert.equal(mismatch.frames[0].items.some((item) => item.plaqueStyle === 'theta-grid'), false);
+});
+
+test('registered theta retains literal labels under open paired field names', () => {
+  const forest = [node('root', 'VP', [leaf('v', 'V', 'gave'), leaf('a', 'D', 'she'), leaf('b', 'D', 'it')])];
+  const gridFor = relation => compileRelationRenderPlan([stage([relation], forest)]).frames[0].items
+    .find(item => item.plaqueStyle === 'theta-grid');
+  for (const key of ['assignments', 'semanticParticipants', 'θέσεις']) {
+    const relation = { relation: 'ThetaAssignment', anchors: { predicate: 'v', [key]: ['b', 'a', 'b'] },
+      values: { [key]: ['Goal', 'Agent', 'Theme'] } };
+    const original = structuredClone(relation);
+    assert.deepEqual(gridFor(relation)?.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })),
+      [{ nodeId: 'b', label: 'Goal' }, { nodeId: 'a', label: 'Agent' }, { nodeId: 'b', label: 'Theme' }]);
+    assert.deepEqual(relation, original);
+    for (const labels of [['Goal'], ['Goal', '', 'Theme']]) {
+      assert.equal(gridFor({ ...relation, values: { [key]: labels } }), undefined);
+    }
+  }
+  const mixed = { relation: 'ThetaAssignment', anchors: { predicate: 'v', arguments: 'a', Theme: 'b' },
+    values: { arguments: 'Agent' } };
+  assert.deepEqual(gridFor(mixed)?.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })),
+    [{ nodeId: 'a', label: 'Agent' }, { nodeId: 'b', label: 'Theme' }]);
+
+  const relation = { relation: 'ThetaAssignment', anchors: { predicate: 'v', roleBearersCustom: ['a', 'b'] } };
+  assert.equal(gridFor({ ...relation, values: { 'role bearers custom': ['Theme', 'Goal'],
+    role_bearers_custom: ['Agent', 'Theme'] } }), undefined, 'competing normalized names cannot choose labels');
+  assert.deepEqual(gridFor({ ...relation, values: { roleBearersCustom: ['Theme', 'Goal'],
+    role_bearers_custom: ['Agent', 'Theme'] } })?.thetaRoles.map(role => role.label), ['Theme', 'Goal'],
+  'an exact authored name retains precedence');
 });
 
 test('Transfer retains each exact accessible edge in its prepared plan', () => {
