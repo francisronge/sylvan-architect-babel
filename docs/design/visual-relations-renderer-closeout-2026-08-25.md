@@ -145,6 +145,12 @@ their lower turn clears those endpoints and local plaques, not unrelated deeper 
 dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.
 
+Long category labels wrap at measured display width without abbreviating or
+changing their characters. Combining sequences stay intact. Wrapped categories
+use the same multiline bounds for incoming branch clearance, plaque obstacles
+and stage Fit. Short labels preserve their existing bounds and native branches.
+Wrapping does not change child order, tree spacing or the authored notation.
+
 Manual zoom and pan persist across Replay frames. Fit clears that manual choice
 and restores automatic stage framing. Programmatic camera updates never become
 manual input, even while D3 still carries the source event of an unfinished wheel

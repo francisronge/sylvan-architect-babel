@@ -241,6 +241,11 @@ export const relationRoleConcepts = (
 ): string[] => {
   const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key)]);
   const spelling = normalizeTier2Synonym(key);
+  // Direction plus an occurrence type supplies a candidate role. The movement
+  // reader must still prove exact lineage, the preceding slot and the landing.
+  const occurrence = /^(?:movement )?(source|lower|base|intermediate|landing|target|higher|upper|raised|moved) (head|phrase|constituent|occurrence|copy|complex)$/.exec(spelling);
+  if (occurrence && ![...concepts].some(concept => concept.startsWith('movement.'))) concepts.add(['source', 'lower', 'base', 'intermediate'].includes(occurrence[1])
+    ? 'movement.source' : 'movement.landing');
   // A domain-qualified role retains the direction of its existing role word.
   if (spelling.startsWith('movement ')) {
     lookupTier2SynonymCandidates(index, 'role', spelling.slice('movement '.length))

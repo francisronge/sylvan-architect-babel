@@ -25,34 +25,61 @@ animation/hover qualification. Evidence remains in
 
 The existing realizations contract accommodates Japanese inflection, Turkish
 stem-plus-suffix realization and Arabic article-plus-noun realization. No new
-contract field is justified by this batch. Remaining work, in priority order:
+contract field is justified by this batch.
 
-- Distinguish a moved occurrence from its host and resulting complex using exact
-  identity and structure. Head-movement drawings are missed across all four
-  languages. Atomic PRO landings and attracting-head context expose related
-  structural recognition limits; qualified Case/theta roles also remain partial.
-- Narrow movement ownership. Sol English X-bar frame 33 withholds `has` needed
-  for selection until movement at 34. Astra Arabic Minimalism frame 25 similarly
-  withholds T needed for agreement until movement at 26. The records establish
-  those heads before movement; these diagnostics must not be treated as proof of
-  model ordering errors. Preserve unrelated construction and the moving source.
-- Measure displayed category labels for spacing and Fit. Astra Arabic Minimalism
-  frame 7 has overlapping V/D labels and a clipped subject label, reproduced
-  after Fit and on mobile. Sol English negation Minimalism frame 46 also clips
-  a label. Fix shared bounds, not one fixture or language.
-- Correct construction-stage casing consistency, reproduced by Astra English
-  negation's unchanged authored `No` at frames 11, 12 and 25. Separately review
-  locale-neutral case folding, the tokenizer's Latin possessive exception and
-  native RTL presentation. Arabic glyph shaping works in this sample; its tree
-  still places sequential words left to right. Do not equate that with full RTL
-  qualification or silently reverse authored child order.
+The five authorized follow-ups are now implemented or investigated:
+
+- Replay keeps an exact replacement witness in the structural change even when
+  drawing dispatch consumes its anchor. Astra Japanese X-bar's `verbTrace` now
+  appears with the movement at frame 29 and survives the following claims.
+  A later chain restatement cannot take ownership of the same transition.
+- Movement recovery distinguishes the moved occurrence, its host and the
+  resulting complex through lineage and tree structure. Direction plus an
+  occurrence type supplies a candidate role across heads, phrases and complexes;
+  it does not prove movement by itself. Conflicting endpoints still refuse a
+  trajectory. Atomic PRO landings can use their authored projection context.
+  Independent hosts remain available before movement: Sol English X-bar's `has`
+  now appears before auxiliary selection, and Astra Arabic Minimalism's T before
+  agreement. The moving source retains its preceding authored state.
+- Long category labels wrap without changing their characters or font size.
+  Measured multiline bounds inform branch attachment, plaque clearance and Fit.
+  Short labels retain their previous camera bounds and branch paths. This fixes
+  the reported Arabic clipping and overlap without stretching the tree.
+- Construction-stage casing uses the authored determiner context and resolved
+  phrasal movement, rather than the operation title. The reported `No`/`no`
+  flicker is gone; proper names keep their existing treatment.
+- Realization timing was investigated without changing the contract. Astra
+  Japanese X-bar has four anchor-based candidates for one new realization
+  association: two formation/mapping descriptions, a chain claim and a Case
+  preservation claim. References alone cannot select a unique owner. Replay
+  therefore keeps its existing Stage Record activation and ambiguity diagnostic.
+  A focused regression protects that choice and preserves the authored records.
+
+Verification covers 27 saved analyses, 133 stages and all 417 authored relations
+in order, with no mutation of their source records. The complete offline gate
+passes 1,744 tests plus typecheck and both parse fixtures. Desktop comparisons,
+mobile wrapping, forward movement, zoom/Fit and seven older saved analyses were
+checked in the browser. Review evidence remains outside the repository in
+`/tmp/babel-sept17-review/five-repairs`.
+
+These repairs do not claim universal recognition. Some attracting-head context
+and qualified Case/theta roles remain neutral or partially recovered. The older
+Sol raising/control record still references a future landing before movement;
+Replay preserves that order and reports the conflict. New runs remain paused.
 
 Model/authoring findings remain separate. Sol Japanese X-bar introduces an
 under-motivated `M` head for `ん`, matching the supplied token split; tokenizer
 influence is plausible, not established. Other Japanese outputs use realizations
-without this structure. Astra Japanese X-bar gives two relations that can own one
-realization change, leaving its Replay timing ambiguous. Token positions must
-remain input addresses rather than prescribed syntactic or morphological units.
+without this structure. Token positions remain input addresses, not prescribed
+syntactic or morphological units. Native RTL presentation, locale-neutral case
+folding and the tokenizer's Latin possessive exception need separate review.
+Arabic glyph shaping works in this sample; sequential tree order remains left
+to right. No authored child order was reversed.
+
+Pause new generation while these defects are repaired. Reuse the saved records
+for regressions and show only one or two directly relevant comparisons for each
+change. Subsequent generation should answer a specific unresolved question in a
+small batch; the user does not need to review all twenty analyses before repairs.
 
 ## Current Baseline
 

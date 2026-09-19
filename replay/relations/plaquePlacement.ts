@@ -1,3 +1,4 @@
+import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { planItemsShareAuthoredStage, type RelationPlanItem } from './renderPlanCompiler.ts';
@@ -50,12 +51,15 @@ export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positi
 }
 
 /** Reserve labels, words, and sampled native cubic branches, including future stage syntax. */
-export function plaqueTreeObstacles(nodes: Node[]): PlaqueRect[] {
+export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: CategoryTextMeasure): PlaqueRect[] {
   const rectangles: PlaqueRect[] = [];
   const included = new Set(nodes);
   for (const node of nodes.filter(visible)) {
+    const label = categoryTextLayout(node.data.label || '', measureCategoryText);
     const width = Math.max(150, String(node.data.label || '').length * 38);
-    rectangles.push({ x: node.x - width / 2, y: node.y - 42, width, height: 84 });
+    rectangles.push(label.lines.length > 1
+      ? { x: node.x + label.x - 8, y: node.y + label.y - 8, width: label.width + 16, height: label.height + 16 }
+      : { x: node.x - width / 2, y: node.y - 42, width, height: 84 });
     if (!node.children?.length && node.data.word) {
       const wordWidth = Math.max(150, String(node.data.word).length * 40);
       rectangles.push({ x: node.x - wordWidth / 2, y: node.y + 85, width: wordWidth, height: 90 });

@@ -1,3 +1,4 @@
+import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
@@ -42,11 +43,12 @@ import {
   formatTraceSurfaceForDisplayValue,
   getNodeId,
   hasDeterminerNominalComplement,
+  authoredDeterminerHasNominalComplement,
   hasSilentOrGhostAncestor,
   indexHierarchyNodesByIdAndAliases,
   isDisplayTraceLabel,
   isDisplayTerminalSurface,
-  isFrontingLikeOperationLabel,
+  isPhrasalReplayMovement,
   isHeadLikeResolvedRelation,
   isNullLike,
   isOvertLeafNode,
@@ -107,9 +109,9 @@ const getReplayTokenIndex = (node: HierNode): number | undefined => {
   return undefined;
 };
 
-const replayDeterminerHasNominalComplement = (node: HierNode): boolean => {
-  return hasDeterminerNominalComplement(node.data, node.parent?.data)
-    || hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data);
+const replayDeterminerHasNominalComplement = (node: HierNode, forest: readonly SyntaxNode[]): boolean => {
+  return authoredDeterminerHasNominalComplement(forest, node.data) ?? (hasDeterminerNominalComplement(node.data, node.parent?.data)
+    || hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data));
 };
 
 import {
@@ -229,6 +231,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
+  const measureCategoryText = useMemo(() => {
+    const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
+    if (context) context.font = CATEGORY_FONT;
+    const cache = new Map<string, number>();
+    return (text: string) => {
+      if (!cache.has(text)) cache.set(text, context?.measureText(text).width ?? [...text].length * 25);
+      return cache.get(text)!;
+    };
+  }, [fontLayoutPass]);
   const [fitRevision, setFitRevision] = useState(0);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -312,7 +323,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     );
   }, [data, committedDerivationVisualLinks, usesDerivationFrames]);
   const firstFrontingStepIndex = useMemo(
-    () => playbackSteps.findIndex((step) => isFrontingLikeOperationLabel(step?.operation)),
+    () => playbackSteps.findIndex((step) => step.replayRelationLinks?.some(isPhrasalReplayMovement)),
     [playbackSteps]
   );
   const firstSentenceReplayToken = useMemo(
@@ -332,8 +343,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const sourceNodeIds = new Set<string>();
     playbackSteps.slice(Math.max(0, currentStepIndex + 1)).forEach((step) => {
       (Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : []).forEach((link) => {
-        if (isHeadLikeResolvedRelation(link)) return;
-        if (!isFrontingLikeOperationLabel(link?.operation || link?.relation)) return;
+        if (!isPhrasalReplayMovement(link)) return;
         const sourceNodeId = String(link?.sourceNodeId || '');
         if (sourceNodeId) sourceNodeIds.add(sourceNodeId);
       });
@@ -508,7 +518,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      layoutGroups: stageLayoutGroups, measurePlaqueText
+      layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText
     });
     return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
   }, [activeDerivationFrame, activeDerivationFrameIndex, playbackSteps, relationRenderPlan,
@@ -520,22 +530,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
-      plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups
+      plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups, measureCategoryText
     });
   }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups]);
+    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups, measureCategoryText]);
   const stagePlaqueContainmentBounds = useMemo(() => {
     if (!stageCameraBounds || !activeDerivationFrame || disableRelationOverlay || !acceptedCompositionIsTreeFirst) return null;
     return buildStageCameraBounds({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      includeOverlays: false, includePlaques: true, plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups
+      includeOverlays: false, includePlaques: true, plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups, measureCategoryText
     });
   }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst,
     playbackSteps, activeDerivationFrameIndex, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, stagePlaqueLayout, stageLayoutGroups]);
+    movementProtectedNodeIds, stagePlaqueLayout, stageLayoutGroups, measureCategoryText]);
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -1163,7 +1173,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         return step <= effectiveRevealThreshold ? 0.6 : 0;
       })
       .style('transition', 'opacity 280ms ease')
-      .attr('d', d3.linkVertical().x((d: any) => d.x).y((d: any) => d.y) as any);
+      .attr('d', (link: any) => {
+        const label = categoryTextLayout(link.target.data.label || '', measureCategoryText);
+        const target = label.lines.length > 1 ? { x: link.target.x, y: link.target.y + label.y - 6 } : link.target;
+        return (d3.linkVertical().x((point: any) => point.x).y((point: any) => point.y) as any)({ source: link.source, target });
+      });
 
     /*
      * One movement authority. When the compiled render plan carries authored
@@ -1275,7 +1289,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       .style('paint-order', 'stroke')
       .style('stroke', '#020806')
       .style('stroke-width', '10px')
-      .text(d => d.data.label);
+      .attr('xml:space', 'preserve')
+      .each(function (d) {
+        const { lines } = categoryTextLayout(d.data.label, measureCategoryText);
+        d3.select(this).selectAll('tspan').data(lines).join('tspan')
+          .attr('x', 0).attr('y', (_line, index) => -10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT)
+          .text(line => line);
+      });
 
     // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
     const leafNodes = nodeGroups.filter(d => (!d.children || d.children.length === 0)
@@ -1336,7 +1356,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 surface: explicitLexicalSurface,
                 sentenceInitialSurface: firstSentenceReplayToken,
                 parentLabel: node.parent?.data?.label,
-                hasNominalComplement: replayDeterminerHasNominalComplement(node)
+                hasNominalComplement: replayDeterminerHasNominalComplement(node, activeDerivationFrame?.workspaceForest || [data])
               })
             : explicitLexicalSurface;
           return maybeLowercaseSentenceInitialFunctionSurface({
@@ -1346,7 +1366,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             parentLabel: String(node.parent?.data?.label || '').trim(),
             visibleOvertLeafIds,
             isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
-            hasNominalComplement: replayDeterminerHasNominalComplement(node)
+            hasNominalComplement: replayDeterminerHasNominalComplement(node, activeDerivationFrame?.workspaceForest || [data])
           });
         }
       }
@@ -1364,7 +1384,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           surface: fallback,
           sentenceInitialSurface: firstSentenceReplayToken,
           parentLabel: node.parent?.data?.label || fallbackParentLabel || committedParentLabel,
-          hasNominalComplement: replayDeterminerHasNominalComplement(node)
+          hasNominalComplement: replayDeterminerHasNominalComplement(node, activeDerivationFrame?.workspaceForest || [data])
         });
       }
       const surfacedByPhraseMovement = activeDerivationArrowLinks.some((link) => {
@@ -1383,7 +1403,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         parentLabel: String(node.parent?.data?.label || '').trim() || fallbackParentLabel || committedParentLabel,
         visibleOvertLeafIds,
         isWorkspaceForest: clonedCanvasData?.replayOrigin?.kind === 'workspace',
-        hasNominalComplement: replayDeterminerHasNominalComplement(node)
+        hasNominalComplement: replayDeterminerHasNominalComplement(node, activeDerivationFrame?.workspaceForest || [data])
       });
     };
     function isReplaySilentTerminalLeaf(node: HierNode): boolean {
@@ -1885,7 +1905,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           text.setAttribute('font-weight', '900');
           text.style.fontFamily = 'Quicksand, sans-serif';
           text.style.fontStyle = category ? 'normal' : 'italic';
-          text.textContent = label;
+          if (category) {
+            const { lines } = categoryTextLayout(label, measureCategoryText);
+            lines.forEach((line, index) => {
+              const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+              span.setAttribute('x', '0');
+              span.setAttribute('y', String(-10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT));
+              span.textContent = line;
+              text.appendChild(span);
+            });
+          } else text.textContent = label;
           fallbackMeasure.node()?.appendChild(text);
           rect = text.getBBox();
           fallbackTextMetrics.set(metricKey, rect);

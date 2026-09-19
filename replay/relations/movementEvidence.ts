@@ -31,7 +31,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string): boolean => {
 const landingKind = (target: SyntaxNode, parent?: SyntaxNode): 'head' | 'phrasal' | undefined => {
   if (parent && isHeadComplex(parent, target.id)) return 'head';
   const specifier = parent?.children?.some(n => n.id !== target.id
-    && categoryLabel(n) === categoryLabel(parent) && !onlyExponents(n));
+    && categoryLabel(n).replace(/P$/, '') === categoryLabel(parent).replace(/P$/, '') && !onlyExponents(n));
   if (!onlyExponents(target) || /P$/.test(categoryLabel(target)) || specifier) return 'phrasal';
 };
 
@@ -124,7 +124,13 @@ export function recoverMovementEvidence(
   const anchored = [...new Set(entries.filter(e => e.ids.length === 1).flatMap(e => e.ids))];
   // An explicit preceding source distinguishes this step from earlier copies
   // in the same chain. Unchanged earlier copies remain separate evidence.
-  const priorSource = explicitPriorSources.length === 1 ? explicitPriorSources[0] : undefined;
+  const structuralPriorSources = [...new Set(Object.values(relation.priorAnchors || {}).flat())].filter(id => {
+    const node = prior.nodes.get(id);
+    return node?.lineageId && !prior.duplicates.has(id) && anchored.some(currentId =>
+      current.nodes.get(currentId)?.lineageId === node.lineageId && samePriorSlot(currentId, id));
+  });
+  const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
+  const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
   // A preceding source can name the same current occurrence directly. Resolve
   // it before distinguishing the landing occurrence from its containing site.
   if (!sources.length && !entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
@@ -145,7 +151,8 @@ export function recoverMovementEvidence(
       && current.nodes.get(id)?.lineageId === lineage);
     if (occurrences.length === 1 && targets.every(id => id === occurrences[0]
       || (targets.includes(occurrences[0]) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrences[0]))
-      || movementContextFailure(forest, occurrences[0], id, 'site') === undefined)) {
+      || movementContextFailure(forest, occurrences[0], id, 'site') === undefined
+      || movementContextFailure(forest, occurrences[0], id, 'head-landing') === undefined)) {
       structurallyBound ||= targets.length !== 1 || targets[0] !== occurrences[0];
       targets = occurrences;
     }
@@ -154,7 +161,8 @@ export function recoverMovementEvidence(
   // identity, plus exact anchored occurrences and a changed preceding source slot.
   if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
     && witnesses.length <= 1 && explicitPriorSources.length <= 1
-    && (isMovementIdentity(relation.relation) || priorSource)) {
+    && (isMovementIdentity(relation.relation) || explicitPriorSources.length === 1
+      || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept))))) {
     const pairs: Array<{ source: string; target: string }> = [];
     for (const sourceId of sources.length ? sources : anchored) {
       const source = current.nodes.get(sourceId);
@@ -163,7 +171,7 @@ export function recoverMovementEvidence(
         const target = current.nodes.get(targetId);
         if (!target || targetId === sourceId || current.duplicates.has(targetId)
           || target.lineageId !== source.lineageId || contains(source, targetId) || contains(target, sourceId)) continue;
-        const priorId = prior.nodes.has(sourceId) ? sourceId : explicitPriorSources[0] || targetId;
+        const priorId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
         const before = prior.nodes.get(priorId);
         if (!before || before.lineageId !== source.lineageId || prior.duplicates.has(priorId)
           || explicitPriorSources.some(id => id !== priorId)) continue;
@@ -223,7 +231,7 @@ export function recoverMovementEvidence(
   const kind = landingKind(target, current.parents.get(targetId));
   if (!kind) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
-    : [...new Set(explicitPriorSources.length ? explicitPriorSources : [targetId])];
+    : [...new Set(priorSources.length ? priorSources : [targetId])];
   const priorSourceId = priorCandidates.length === 1 ? priorCandidates[0] : '';
   const before = prior.nodes.get(priorSourceId);
   if (!before || prior.duplicates.has(priorSourceId) || before.lineageId !== source.lineageId) {
@@ -248,14 +256,15 @@ export function recoverMovementEvidence(
     if (e.ids.length === 1 && e.ids[0] === witnessId && (structurallyBound || hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.witness');
     if (e.ids.length === 1 && e.ids[0] === targetId && (structurallyBound || hasRole(e.key, 'movement.landing'))) concepts.push('movement.landing');
     if (concepts.length) roles[e.key] = concepts;
-    const kind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
+    const contextKind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
       : hasRole(e.key, 'movement.host') ? ['landing head', 'receiving head'].includes(e.key) ? 'head-landing' : 'head-host'
-      : e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId)) ? 'site' : undefined;
-    if (!kind) return;
+      : e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId))
+        ? kind === 'head' && e.key !== 'landing site' ? 'head-landing' : 'site' : undefined;
+    if (!contextKind) return;
     const reason = e.ids.length !== 1 ? 'context-needs-one-exact-node'
-      : movementContextFailure(forest, targetId, e.ids[0], kind);
+      : movementContextFailure(forest, targetId, e.ids[0], contextKind);
     if (reason) diagnostics.push(`MOVEMENT_CONTEXT_UNPROVEN: anchors.${e.authoredKey} (${e.ids.join(', ')}) for landing ${targetId}: ${reason}. The authored field remains unresolved.`);
-    else context.push({ key: e.authoredKey, nodeId: e.ids[0], kind });
+    else context.push({ key: e.authoredKey, nodeId: e.ids[0], kind: contextKind });
   });
   const priorAnchorKeys = Object.entries(relation.priorAnchors || {}).flatMap(([key, value]) => {
     const ids = Array.isArray(value) ? value : [value];

@@ -178,3 +178,22 @@ test('realization records require the original input instead of guessing it from
   const ordinary = { analyses: [{ tree: { id: 'walked', label: 'V', word: 'walked' }, derivationStages: [] }] };
   assert.equal(buildReplayPlayback(ordinary).sentence, 'walked');
 });
+
+test('multiple descriptions of one stem do not fabricate a unique realization moment', () => {
+  const stemForest = [{ id: 'stem', label: 'V', word: '読ん' }];
+  const association = group(['stem'], [0, 1]);
+  const stages = [stage(undefined, [], stemForest), stage([association], [
+    { relation: 'Morphological realization', anchors: { stem: 'stem' }, values: { stemAllomorph: '読ん' } },
+    { relation: 'One stem across input pieces', anchors: { stem: 'stem' }, values: { inputPieces: ['読', 'ん'] } },
+    { relation: 'Chain licensing', anchors: { antecedentGovernor: 'stem' } },
+    { relation: 'Case preservation', anchors: { chain: ['stem'] } }
+  ], stemForest)];
+  const original = structuredClone(stages);
+  const steps = play(stages);
+  for (const moment of moments(steps, 1)) {
+    assert.deepEqual(moment.replayRealizations, []);
+    assert(moment.replayRealizationDiagnostics.some(d => d.includes('REALIZATION_AMBIGUOUS_OWNER')));
+  }
+  assert.deepEqual(completion(steps, 1).replayRealizations, [association]);
+  assert.deepEqual(stages, original);
+});

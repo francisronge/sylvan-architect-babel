@@ -1,3 +1,4 @@
+import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import {
@@ -18,6 +19,7 @@ type StageLayoutInput = {
   abstractionMode?: boolean; protectedNodeIds?: Set<string>;
   layoutGroups?: readonly (readonly number[])[];
   measurePlaqueText?: PlaqueTextMeasure;
+  measureCategoryText?: CategoryTextMeasure;
 };
 
 /** Shared geometric endpoint estimates for reservation and camera bounds. */
@@ -146,8 +148,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput) {
     b.currentTree.descendants().length - a.currentTree.descendants().length
     || JSON.stringify(a.currentTree.data).localeCompare(JSON.stringify(b.currentTree.data)))[0];
   const nodes = reference ? visibleNodes(reference.currentTree, reference.visibleIds) : visibleNodes(completedTree);
-  const obstacles = scenes.length ? scenes.flatMap(scene => plaqueTreeObstacles(visibleNodes(scene.currentTree, scene.visibleIds)))
-    : plaqueTreeObstacles(nodes);
+  const obstacles = scenes.length ? scenes.flatMap(scene => plaqueTreeObstacles(visibleNodes(scene.currentTree, scene.visibleIds), input.measureCategoryText))
+    : plaqueTreeObstacles(nodes, input.measureCategoryText);
   const items = input.plan?.frames[input.stageIndex]?.items ?? [];
   obstacles.push(...plaqueConnectorObstacles(items, nodes));
   // Plaques yield to authored movement trajectories. Reserve all paths in the
@@ -220,7 +222,7 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
 
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
-  includePlaques = includeOverlays, plaqueLayout }: StageCameraInput): OverlayBounds | null {
+  includePlaques = includeOverlays, plaqueLayout, measureCategoryText }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
     if (!next) return;
@@ -229,7 +231,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       maxX: Math.max(bounds.maxX, next.maxX), maxY: Math.max(bounds.maxY, next.maxY)
     } : { ...next };
   };
-  const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds, layoutGroups };
+  const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds, layoutGroups, measureCategoryText };
   const placements = includePlaques ? plaqueLayout ?? buildStagePlaqueLayout(input) : new Map();
   for (const { currentTree, visibleIds } of stageLayouts(input).scenes) {
     const positions = indexHierarchyNodesByIdAndAliases(currentTree.descendants());
@@ -242,8 +244,11 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
       && (!visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id ?? ''))));
     for (const node of fitNodes) {
+      const label = categoryTextLayout(node.data.label || '', measureCategoryText);
       include({ minX: node.x, maxX: node.x, minY: node.y,
         maxY: node.y + (node.children?.length ? 0 : 130) });
+      if (label.lines.length > 1) include({ minX: node.x + label.x, maxX: node.x - label.x,
+        minY: node.y + label.y, maxY: node.y });
     }
     const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
     if (includePlaques && plan) {

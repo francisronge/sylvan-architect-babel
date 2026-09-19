@@ -1910,6 +1910,8 @@ const resolveFallbackTreeTransitionOwnership = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): FallbackTreeTransitionOwnership | null => {
+  // A recovered chain restatement observes an already owned transition.
+  if (relation.recoveredMovement) return null;
   if (!relation.neutralTransitionEvidence && findRelationRegistryEntry(
     productionRelationRegistry,
     String(relation.relation || '').trim()
@@ -4529,6 +4531,19 @@ export const hasDeterminerNominalComplement = (
   && Boolean(projection?.children?.some((child) => child !== head
     && ['N', 'NP'].includes(normalizeStructuralLabel(child.label).toUpperCase())));
 
+/** Read lexical category context from the authored occurrence, not its unfinished projection. */
+export const authoredDeterminerHasNominalComplement = (forest: readonly SyntaxNode[], node: SyntaxNode): boolean | undefined => {
+  const origin = node.replayOrigin;
+  const id = origin?.kind === 'lexical' ? origin.authoredId : origin?.kind === 'word' ? origin.ownerId : node.id;
+  let result: boolean | undefined;
+  const visit = (candidate: SyntaxNode, parent?: SyntaxNode) => {
+    if (candidate.id === id) result = hasDeterminerNominalComplement(candidate, parent);
+    candidate.children?.forEach(child => visit(child, candidate));
+  };
+  forest.forEach(root => visit(root));
+  return result;
+};
+
 const normalizeReplaySentenceInitialCasing = (
   steps: PlaybackStep[],
   sentenceInitialSurface: string
@@ -5053,6 +5068,8 @@ export const normalizeTrajectoryKind = (kind?: ResolvedRelationLink['trajectoryK
  */
 const isHeadLikeOperationLabel = (operation?: string): boolean =>
   movementIdentityKind(operation) === 'head';
+
+export const isPhrasalReplayMovement = (link: ResolvedRelationLink): boolean => normalizeTrajectoryKind(link.trajectoryKind) === 'phrasal';
 
 export const isFrontingLikeOperationLabel = (operation?: string): boolean =>
   isFrontingMovementIdentity(operation);
@@ -7114,10 +7131,30 @@ export const getFrameRelations = (
     };
     const dispatch = dispatchRelationClaims(input);
     const evidence = dispatch.evidence;
+    const transitionAnchors = { ...dispatch.primaryRelation.anchors };
+    if (dispatch.primaryClaim?.tier === 3 && relationAnchorNodeIds(authoredStep.priorAnchors).length) {
+      const priorLocations = indexExactForestNodeLocations(previousForest);
+      const currentLocations = indexExactForestNodeLocations(currentForest);
+      const priorParticipants = relationAnchorNodeIds(authoredStep.priorAnchors)
+        .map(id => priorLocations.get(id)).filter(location => location != null);
+      // A drawing can consume an authored replacement witness. Keep that
+      // exact slot replacement in the transition, without absorbing independent
+      // sibling claims merely because they share this relation moment.
+      Object.entries(input.relation.anchors).forEach(([key, value]) => {
+        if (key in transitionAnchors) return;
+        const ids = (Array.isArray(value) ? value : [value]).filter(id => {
+          const current = currentLocations.get(id);
+          return current && priorParticipants.some(prior => prior.node.id !== id
+            && current.parentId === prior.parentId && current.childIndex === prior.childIndex
+            && current.rootIndex === prior.rootIndex);
+        });
+        if (ids.length) transitionAnchors[key] = Array.isArray(value) ? ids : ids[0];
+      });
+    }
     const interpretedStep = dispatch.primaryClaim?.tier === 3 ? {
       ...authoredStep,
       neutralTransitionEvidence: {
-        anchors: dispatch.primaryRelation.anchors,
+        anchors: transitionAnchors,
         priorAnchors: dispatch.primaryRelation.priorAnchors
       }
     } : authoredStep;

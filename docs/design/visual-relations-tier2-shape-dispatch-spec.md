@@ -134,10 +134,10 @@ including optional fields already present in those signatures.
 
 Previous-stage references are not automatically current-stage drawing roles. A
 movement's prior source can identify its current lower endpoint when that exact
-ID uniquely persists in both stages with matching root lineage. Missing,
-ambiguous or replaced IDs do not authorize a search for another occurrence.
-Production
-Tier-1 `priorAnchors` remains an open literal block. A Tier-2 facet keeps
+ID uniquely persists in both stages with matching root lineage. A replaced ID
+additionally needs a unique anchored lower occurrence in the exact preceding
+slot, with matching root lineage. Missing or ambiguous evidence does
+not authorize a search for another occurrence. Production Tier-1 `priorAnchors` remains an open literal block. A Tier-2 facet keeps
 same-role prior witnesses in its identity and validates them against the previous
 stage before emitting continuity cues. Missing witnesses are retained and
 diagnosed; they cannot prove replacement. A prior landing is allowed when a
@@ -147,11 +147,11 @@ An explicitly anchored head-movement host or complex is accepted only when the
 current tree proves its relationship to the landing. A phase head is not a
 synonym for its enclosing phase projection. Movement recovery also distinguishes
 an enclosing landing site from an occurrence using authored root lineage and
-containment; it does not discard unrelated candidates or narrow arrays. If the
-site is the immediate parent of one separately anchored occurrence with the
-source's root lineage, that occurrence supplies the landing even when its role
-name is unfamiliar. An explicit prior source must be resolved before this
-distinction. The same evidence owns drawing and Replay transition timing.
+containment; it does not discard unrelated candidates or narrow arrays. An
+immediate parent or a structurally verified head host can describe the landing
+context. A separately anchored occurrence with the source's root
+lineage supplies the landing even when its role name is unfamiliar. An explicit
+prior source must be resolved before this distinction. The same evidence owns drawing and Replay transition timing.
 The generic role `head` additionally needs unique source/landing root-lineage
 evidence before Tier 1 can treat it as the moved occurrence rather than its host.
 
@@ -181,12 +181,19 @@ same verified lower anchor can fill required source and witness slots before
 ordinary Tier-1 validation. Optional decoration slots are not populated merely
 because they exist. Unknown movement meaning cannot be inferred from geometry.
 
-Domain-qualified movement roles reuse their existing direction word. The explicit
-preceding source selects the current step when other anchored lower copies remain
+Domain-qualified movement roles reuse their existing direction word. An
+explicit direction combined with an occurrence type, such as source complex or
+higher phrase, supplies a candidate endpoint role. Existing specific context
+roles retain their meaning; a landing head does not become a second endpoint.
+Every candidate still passes the same lineage, position and ambiguity checks.
+The explicit preceding source selects the current step when other anchored lower copies remain
 unchanged; those earlier copies remain independent evidence. Category comparisons
 read trailing feature annotations separately and preserve every authored label.
 Within a stage, the first supported relation owns each exact occurrence transition;
 later claims can draw or inspect it without executing the structural change again.
+Drawing dispatch may consume a replacement witness as gap notation; neutral
+structural ownership still retains that exact prior-slot replacement. This does
+not absorb independent sibling claims or their unrelated structure.
 
 Ordinary and carrier movement use the shared structural refusal and transition
 evidence. Current landing context is checked independently of history. A complete
