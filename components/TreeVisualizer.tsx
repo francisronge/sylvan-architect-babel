@@ -1,5 +1,5 @@
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
 import { DerivationStage, SyntaxNode } from '../types';
@@ -231,6 +231,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
+  const categoryBranchMaskId = `category-branches-${useId().replace(/:/g, '')}`;
   const measureCategoryText = useMemo(() => {
     const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
     if (context) context.font = CATEGORY_FONT;
@@ -1173,11 +1174,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         return step <= effectiveRevealThreshold ? 0.6 : 0;
       })
       .style('transition', 'opacity 280ms ease')
-      .attr('d', (link: any) => {
-        const label = categoryTextLayout(link.target.data.label || '', measureCategoryText);
-        const target = label.lines.length > 1 ? { x: link.target.x, y: link.target.y + label.y - 6 } : link.target;
-        return (d3.linkVertical().x((point: any) => point.x).y((point: any) => point.y) as any)({ source: link.source, target });
-      });
+      .attr('d', d3.linkVertical().x((d: any) => d.x).y((d: any) => d.y) as any);
 
     /*
      * One movement authority. When the compiled render plan carries authored
@@ -1296,6 +1293,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           .attr('x', 0).attr('y', (_line, index) => -10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT)
           .text(line => line);
       });
+
+    // Labels occlude native branches without moving their endpoints or bends.
+    const categoryClearances = categories.data().flatMap(d => {
+      const label = categoryTextLayout(d.data.label, measureCategoryText);
+      if (getRevealStepForNodeId(getNodeId(d)) > effectiveRevealThreshold || label.lines.length < 2) return [];
+      let width = 0;
+      return label.lines.map((line, index) => {
+        // Follow the ink at the top of the block; once a branch enters the
+        // label, keep it hidden through the remaining lines and node point.
+        width = Math.max(width, measureCategoryText(line));
+        return { x: d.x - width / 2 - 8, y: d.y + label.y + index * CATEGORY_LINE_HEIGHT - 8,
+          width: width + 16, height: CATEGORY_LINE_HEIGHT + 24 };
+      });
+    });
+    if (categoryClearances.length && visibleLinks.length) {
+      const x = Math.min(...visibleNodes.map(d => d.x)) - 16;
+      const y = Math.min(...visibleNodes.map(d => d.y)) - 16;
+      const width = Math.max(...visibleNodes.map(d => d.x)) - x + 16;
+      const height = Math.max(...visibleNodes.map(d => d.y)) - y + 16;
+      const mask = g.append('defs').append('mask').attr('id', categoryBranchMaskId)
+        .attr('maskUnits', 'userSpaceOnUse').attr('x', x).attr('y', y).attr('width', width).attr('height', height);
+      mask.append('rect').attr('x', x).attr('y', y).attr('width', width).attr('height', height).attr('fill', 'white');
+      mask.selectAll('rect.category-clearance').data(categoryClearances).enter().append('rect')
+        .attr('class', 'category-clearance').attr('fill', 'black')
+        .attr('x', d => d.x).attr('y', d => d.y).attr('width', d => d.width).attr('height', d => d.height);
+      g.selectAll('.branch').attr('mask', `url(#${categoryBranchMaskId})`);
+    }
 
     // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
     const leafNodes = nodeGroups.filter(d => (!d.children || d.children.length === 0)

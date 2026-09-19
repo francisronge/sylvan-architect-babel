@@ -147,8 +147,10 @@ and the initial fitted appearance are unchanged.
 
 Long category labels wrap at measured display width without abbreviating or
 changing their characters. Combining sequences stay intact. Wrapped categories
-use the same multiline bounds for incoming branch clearance, plaque obstacles
-and stage Fit. Short labels preserve their existing bounds and native branches.
+use the same multiline bounds for plaque obstacles and stage Fit. Native branch
+geometry never depends on label height: visible wrapped labels mask branches
+behind their text in tree coordinates, without relocating endpoints. Short
+labels preserve their existing bounds and native branches.
 Wrapping does not change child order, tree spacing or the authored notation.
 
 Manual zoom and pan persist across Replay frames. Fit clears that manual choice

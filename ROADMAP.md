@@ -42,8 +42,10 @@ The five authorized follow-ups are now implemented or investigated:
   now appears before auxiliary selection, and Astra Arabic Minimalism's T before
   agreement. The moving source retains its preceding authored state.
 - Long category labels wrap without changing their characters or font size.
-  Measured multiline bounds inform branch attachment, plaque clearance and Fit.
-  Short labels retain their previous camera bounds and branch paths. This fixes
+  Measured multiline bounds inform plaque clearance and Fit. Wrapped labels
+  occlude native branches without changing their curve or endpoints. This
+  corrects the flattened I′ branch introduced by moving its endpoint above a
+  tall label. Short labels retain their previous camera bounds and branch paths. This fixes
   the reported Arabic clipping and overlap without stretching the tree.
 - Construction-stage casing uses the authored determiner context and resolved
   phrasal movement, rather than the operation title. The reported `No`/`no`
@@ -57,7 +59,7 @@ The five authorized follow-ups are now implemented or investigated:
 
 Verification covers 27 saved analyses, 133 stages and all 417 authored relations
 in order, with no mutation of their source records. The complete offline gate
-passes 1,744 tests plus typecheck and both parse fixtures. Desktop comparisons,
+passes 1,745 tests plus typecheck and both parse fixtures. Desktop comparisons,
 mobile wrapping, forward movement, zoom/Fit and seven older saved analyses were
 checked in the browser. Review evidence remains outside the repository in
 `/tmp/babel-sept17-review/five-repairs`.
