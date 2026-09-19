@@ -5,9 +5,58 @@ Status date: 2026-09-19
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
 
+Babel must accommodate all languages. Test languages expose general limitations;
+they do not define a supported-language allowlist or authorize language-specific
+syntactic rules.
+
+## Fresh multilingual qualification
+
+Twenty matched Babel-only subscription requests on `300d2eb` completed: English
+negation and raising/control, Japanese, Turkish and Arabic, each with Astra/Sol
+and both frameworks at high effort. All returned strict JSON without repair,
+with matching receipt hashes. The set contains 95 stages, 302 relations and 846
+Replay frames. Median request times were 113 seconds for Astra and 225 for Sol.
+No retry or paid API fallback was used. Records and all frame contact sheets were
+reviewed; selected failures received full-size checks, with an Arabic mobile
+check and Japanese zoom/Fit. This is not linguistic certification or exhaustive
+animation/hover qualification. Evidence remains in
+`/tmp/babel-multilingual-20260919` and the visual review in
+`/tmp/babel-sept17-review/universal-check`.
+
+The existing realizations contract accommodates Japanese inflection, Turkish
+stem-plus-suffix realization and Arabic article-plus-noun realization. No new
+contract field is justified by this batch. Remaining work, in priority order:
+
+- Distinguish a moved occurrence from its host and resulting complex using exact
+  identity and structure. Head-movement drawings are missed across all four
+  languages. Atomic PRO landings and attracting-head context expose related
+  structural recognition limits; qualified Case/theta roles also remain partial.
+- Narrow movement ownership. Sol English X-bar frame 33 withholds `has` needed
+  for selection until movement at 34. Astra Arabic Minimalism frame 25 similarly
+  withholds T needed for agreement until movement at 26. The records establish
+  those heads before movement; these diagnostics must not be treated as proof of
+  model ordering errors. Preserve unrelated construction and the moving source.
+- Measure displayed category labels for spacing and Fit. Astra Arabic Minimalism
+  frame 7 has overlapping V/D labels and a clipped subject label, reproduced
+  after Fit and on mobile. Sol English negation Minimalism frame 46 also clips
+  a label. Fix shared bounds, not one fixture or language.
+- Correct construction-stage casing consistency, reproduced by Astra English
+  negation's unchanged authored `No` at frames 11, 12 and 25. Separately review
+  locale-neutral case folding, the tokenizer's Latin possessive exception and
+  native RTL presentation. Arabic glyph shaping works in this sample; its tree
+  still places sequential words left to right. Do not equate that with full RTL
+  qualification or silently reverse authored child order.
+
+Model/authoring findings remain separate. Sol Japanese X-bar introduces an
+under-motivated `M` head for `ん`, matching the supplied token split; tokenizer
+influence is plausible, not established. Other Japanese outputs use realizations
+without this structure. Astra Japanese X-bar gives two relations that can own one
+realization change, leaving its Replay timing ambiguous. Token positions must
+remain input addresses rather than prescribed syntactic or morphological units.
+
 ## Current Baseline
 
-The latest varied subscription batch made eight Babel-only OAuth requests on
+The preceding varied subscription batch made eight Babel-only OAuth requests on
 `707af42`, covering coordination, relatives, negation and raising/control in both
 frameworks with Sol/Astra at high effort. Seven completed in 93–183 seconds:
 38 stages, 115 relation occurrences and 374 Replay frames. All seven outputs
@@ -130,7 +179,9 @@ occurrences established by that relation; do not substitute a different occurren
 introduced only by a later relation merely because it shares lineage. Saved
 records and diagnostics are preserved. Generation provenance already hashes the
 exact framework-specific system instruction; new runs receive the revised hash.
-No provider run was made to qualify its effect on authoring.
+The fresh matched batch above now exercises that clarification. Its remaining
+timing conflicts require Replay ownership investigation; they do not reproduce
+the earlier substitution of a later subject occurrence for a current one.
 The linguistic distinction is consistent with Richards's MIT notes on
 [Agree and movement](https://web.mit.edu/norvin/www/24.956/handout2.pdf) and
 [raising/control](https://web.mit.edu/norvin/www/24.902/control.html).
