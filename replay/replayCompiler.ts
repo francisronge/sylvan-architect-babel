@@ -2383,7 +2383,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
       preferredWorkspaceRootOrder
     );
     const workspaceRoots = reorderWorkspaceRootsForReplay(rawWorkspaceRoots, preferredWorkspaceRootOrder);
-    const futureLayoutScaffold = inferFutureLayoutScaffold(workspaceRoots, frames, index);
+    let futureLayoutScaffold = inferFutureLayoutScaffold(workspaceRoots, frames, index);
     const rootLabels = workspaceRoots
       .map((node) => String(node?.label || '').trim())
       .filter(Boolean);
@@ -2558,6 +2558,24 @@ export const buildPlaybackStepsFromDerivationFrames = (
       workspaceRoots,
       authoredCumulativeRelationRelationLinks, identity
     );
+    const structuralWorkspaceRoots = buildPreMovementStructuralForest(
+      workspaceRoots,
+      frameRelationSteps,
+      previousFrameWorkspaceRoots
+    );
+    const preauthorizedFramePlaceholderIds = new Set(
+      Array.from(collectExactNodesByIdInForest(futureLayoutScaffold || workspaceRoots).values()).flat()
+        .flatMap(node => node.replayOrigin?.kind === 'layout' && node.replayOrigin.authoredId ? [node.replayOrigin.authoredId] : [])
+    );
+    // Ordinary construction needs one layout context before and after movement.
+    // Switching to a distant future scaffold only after movement stretches the
+    // earlier canvas across dimensions reserved for nodes it does not contain.
+    if (futureLayoutScaffold && !frameHasMovementPayload && !isMoveLikeOperation(fallbackOperation)
+      && !buildCurrentMaterialLayoutScaffold(
+        structuralWorkspaceRoots, futureLayoutScaffold, preauthorizedFramePlaceholderIds
+      ) && !forestCanUseCurrentMaterialLayoutScaffold(structuralWorkspaceRoots, futureLayoutScaffold)) {
+      futureLayoutScaffold = null;
+    }
     const frameReplaySnapshot = buildDerivationReplaySnapshot(
       workspaceRoots,
       index,
@@ -2577,16 +2595,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
     const frameStageRecordBlocks = plannedStage
       ? buildStageRecordReplayBlocks(frame, plannedStage)
       : frameReplayBlocks;
-    const structuralWorkspaceRoots = buildPreMovementStructuralForest(
-      workspaceRoots,
-      frameRelationSteps,
-      previousFrameWorkspaceRoots
-    );
     const frameLayoutTopology = futureLayoutScaffold || workspaceRoots;
-    const preauthorizedFramePlaceholderIds = new Set(
-      Array.from(collectExactNodesByIdInForest(frameLayoutTopology).values()).flat()
-        .flatMap(node => node.replayOrigin?.kind === 'layout' && node.replayOrigin.authoredId ? [node.replayOrigin.authoredId] : [])
-    );
     const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[]): SyntaxNode[] | undefined => {
       const scaffold = buildCurrentMaterialLayoutScaffold(
         snapshotRoots,

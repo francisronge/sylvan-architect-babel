@@ -52,6 +52,10 @@ test('future layout keeps the source attached until a retained-ID movement occur
   }
   assert.equal(nodes(transition[moment].replayCanvasData).find(n => n.children?.some(c => c.id === 'person'))?.id, 'tp');
   assert.ok(transition[moment].replayVisibleNodeIds.includes('trace'));
+  for (const step of transition) {
+    assert.ok(!nodes(step.replayCanvasData).some(n => n.id === 'outer'),
+      'future context unusable before movement cannot enter midway through the stage and stretch its earlier frames');
+  }
 });
 
 test('movement replaces an authored prior landing witness at its own moment', () => {
