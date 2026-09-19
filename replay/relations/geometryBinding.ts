@@ -538,13 +538,16 @@ const routeFallbackSegments = (
     const laneY = measuredBaseline + lane * laneGap;
     const stem = 6 * markerScale;
     const corner = 9 * markerScale;
+    const clearances = [...(options.labelClearances ?? []), ...(options.obstacles ?? [])];
+    const leftTurn = { x: from.x, y: laneY - 8 * markerScale };
+    const rightTurn = { x: to.x, y: leftTurn.y };
     const d = [
-      `M ${from.x.toFixed(1)} ${(from.y + stem).toFixed(1)}`,
-      `L ${from.x.toFixed(1)} ${(laneY - 8 * markerScale).toFixed(1)}`,
+      clearLabelPath({ x: from.x, y: from.y + stem }, leftTurn, clearances),
+      `M ${leftTurn.x.toFixed(1)} ${leftTurn.y.toFixed(1)}`,
       `Q ${from.x.toFixed(1)} ${laneY.toFixed(1)} ${(from.x + corner).toFixed(1)} ${laneY.toFixed(1)}`,
       `L ${(to.x - corner).toFixed(1)} ${laneY.toFixed(1)}`,
       `Q ${to.x.toFixed(1)} ${laneY.toFixed(1)} ${to.x.toFixed(1)} ${(laneY - 8 * markerScale).toFixed(1)}`,
-      `L ${to.x.toFixed(1)} ${(to.y + stem).toFixed(1)}`
+      clearLabelPath(rightTurn, { x: to.x, y: to.y + stem }, clearances)
     ].join(' ');
     return { ...segment, from, to, lane, laneY, d };
   });

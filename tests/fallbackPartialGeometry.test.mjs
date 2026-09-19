@@ -347,3 +347,22 @@ test('straight connectors leave gaps around all crossed labels, including non-en
   assert.equal(clearLabelPath({ x: 0, y: 10 }, { x: 100, y: 10 }, [box]),
     'M 0.0 10.0 L 100.0 10.0');
 });
+
+test('counter-lane stems clear intervening syntax while keeping their original endpoints and lower lane', () => {
+  const labels = { a: { x: 0, y: 0, width: 30, height: 20 }, b: { x: 200, y: 200, width: 30, height: 20 } };
+  const intervening = { x: 0, y: 90, width: 30, height: 30 };
+  const measurements = { labels: [...Object.values(labels), intervening], labelFor: id => labels[id],
+    subtreeFor: id => labels[id], bottom: 220 };
+  const bound = bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 15, y: labels[id].y }), { fallbackMeasurements: measurements });
+  for (const scale of [0.5, 1, 3]) {
+    const segment = [...fitFallbackGeometry(bound, { fittedMarkerScale: scale, fallbackMeasurements: measurements }).values()]
+      .find(p => p.type === 'segment');
+    assert.deepEqual(segment.from, { x: 15, y: 20 });
+    assert.deepEqual(segment.to, { x: 215, y: 220 });
+    assert.equal(segment.laneY, 220 + 34 * scale);
+    const straightPieces = [...segment.d.matchAll(/M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)/g)].map(m => m.slice(1).map(Number));
+    const leftStem = straightPieces.filter(([x1,,x2]) => x1 === 15 && x2 === 15);
+    assert.equal(leftStem.length, 2);
+    for (const [,y1,,y2] of leftStem) assert.ok(Math.max(y1,y2) <= 90 || Math.min(y1,y2) >= 120);
+  }
+});

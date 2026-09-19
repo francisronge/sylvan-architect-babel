@@ -6,7 +6,7 @@ import {
   visiblePlanFrameItems
 } from '../replay/relations/renderPlanCompiler.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { splitAntecedenceLinkPath } from '../replay/relations/markGeometry.ts';
+import { dottedCollectionControls, splitAntecedenceLinkPath } from '../replay/relations/markGeometry.ts';
 import {
   analysisVerdictCompoundOrigin,
   analysisVerdictInitialLocalScale,
@@ -56,6 +56,18 @@ const bindSingle = (relation) => {
   assert.deepEqual(plan.unregistered, [], `${relation.relation} unexpectedly unregistered`);
   return bindRelationPlanFrame(plan, 0, provider);
 };
+
+test('dotted collection curves keep Orchard horizontal handles and cannot loop past nearby anchors', () => {
+  assert.deepEqual(dottedCollectionControls({ x: 0, y: 0 }, { x: 300, y: 100 }),
+    [{ x: 68, y: 0 }, { x: 232, y: 100 }]);
+  for (const [from, to] of [[{ x: 100, y: 0 }, { x: 115, y: 211 }],
+    [{ x: 115, y: 211 }, { x: 100, y: 0 }], [{ x: 50, y: 0 }, { x: 0, y: 0 }]]) {
+    for (const point of dottedCollectionControls(from, to, 2)) {
+      assert.ok(point.x >= Math.min(from.x, to.x) && point.x <= Math.max(from.x, to.x));
+      assert.ok(point.y >= Math.min(from.y, to.y) && point.y <= Math.max(from.y, to.y));
+    }
+  }
+});
 
 test('Split Antecedence curves leave separate square points and point from dependent to antecedent', () => {
   assert.equal(

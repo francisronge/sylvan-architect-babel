@@ -200,8 +200,8 @@ export const caseAssignmentPath = (source: Point, target: Point): string => {
 
 /**
  * The quieter dotted collection curve (Agree feeding Case): a laned cubic
- * between the plaque-side point and the goal, offset per path so parallel
- * collections never overlap.
+ * between the plaque-side point and the goal. Orient its handles along the
+ * main separation axis so nearby vertical anchors cannot produce an S-loop.
  */
 export const dottedCollectionControls = (
   from: Point,
@@ -209,10 +209,12 @@ export const dottedCollectionControls = (
   laneIndex = 0
 ): [Point, Point] => {
   const laneOffset = 68 + laneIndex * 24;
-  return [
-    { x: from.x + laneOffset, y: from.y },
-    { x: to.x - laneOffset, y: to.y }
-  ];
+  const vertical = Math.abs(to.y - from.y) > Math.abs(to.x - from.x);
+  const span = vertical ? to.y - from.y : to.x - from.x;
+  const offset = Math.sign(span) * Math.min(laneOffset, Math.abs(span) / 2);
+  return vertical
+    ? [{ x: from.x, y: from.y + offset }, { x: to.x, y: to.y - offset }]
+    : [{ x: from.x + offset, y: from.y }, { x: to.x - offset, y: to.y }];
 };
 
 export const dottedCollectionPath = (

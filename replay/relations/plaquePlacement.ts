@@ -20,6 +20,7 @@ export function plaqueIdentity(item: RelationPlanItem): string {
 }
 const idOf = (node: Node): string => String((node as Node & { __vizId?: string }).__vizId ?? node.data.id ?? '');
 const visible = (node: Node) => node.data.replayOrigin?.kind !== 'workspace';
+const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= 480;
 export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'leaves'>): string {
   const terminal = anchor.leaves().find(node => Boolean(String(node.data.word || '').trim()));
   return String(terminal?.data.word || terminal?.data.label || anchor.data.word || anchor.data.label || 'predicate');
@@ -156,7 +157,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     occupied.push(placement);
   }
   // Local boxes get the nearby pockets first. Large boxes do not consume those pockets.
-  requests.sort((a, b) => Number(a.height > 170 || a.width > 480) - Number(b.height > 170 || b.width > 480) || a.index - b.index);
+  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
   for (const request of requests) {
     if (result.has(request.index)) continue;
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));
@@ -168,7 +169,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const availableNodes = new Set(nodes);
     const domainBounds = union(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
     const { width, height } = request;
-    const local = height <= 170 && width <= 480;
+    const local = fitsLocalPocket(request);
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
     const anchorY = terminal.length === 1 ? terminal[0].y + 140
       : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);

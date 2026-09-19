@@ -23,6 +23,18 @@ test('a small plaque uses a clear nearby pocket with room for its entire rectang
   assert(plaqueTreeObstacles(nodes).every(obstacle => !plaquesOverlap(box, obstacle)));
 });
 
+test('an ordinary multiline feature plaque searches nearby pockets before using the tree bottom', () => {
+  const nodes = tree().descendants();
+  const item = { ...plaque(['left']), rows: [
+    { label: 'Case', value: 'nominative' }, { label: 'phiFeatures', value: 'third-person singular' }
+  ] };
+  const box = placeStagePlaques([item], nodes).get(0);
+  assert.ok(box.height > 170);
+  assert.equal(box.location, 'local');
+  assert.equal(box.attachmentNodeId, 'left');
+  assert(plaqueTreeObstacles(nodes).every(obstacle => !plaquesOverlap(box, obstacle)));
+});
+
 test('large plaques are centered beneath their enclosing subtree and stack without lost content', () => {
   const nodes = tree().descendants();
   const items = [plaque(['left', 'right'], true), plaque(['left', 'right'], true)];
@@ -152,27 +164,24 @@ function replayTree(step, steps, width, height) {
     .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
 }
 
-test('Astra first probe is under the actual Replay domain, not the smaller authored-tree coordinates', () => {
+test('a probe plaque is reserved against actual Replay coordinates', () => {
   const record = records.find(record => record.name === 'astra-minimalism');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
   const plan = compileRelationRenderPlan(record.derivationStages);
   const stageIndex = 2;
   const firstProbe = steps.find(step => step.replayRelationIdentity?.stageIndex === stageIndex);
   const root = replayTree(firstProbe, steps, 1596, 1016);
-  const visible = new Set(firstProbe.replayVisibleNodeIds);
-  const domain = root.descendants().find(node => node.data.id === 'coreVP');
-  const obstacles = plaqueTreeObstacles(domain.descendants().filter(node => visible.has(node.__vizId ?? node.data.id)));
-  const left = Math.min(...obstacles.map(rect => rect.x));
-  const right = Math.max(...obstacles.map(rect => rect.x + rect.width));
-  const bottom = Math.max(...obstacles.map(rect => rect.y + rect.height));
   const layout = buildStagePlaqueLayout({ steps, stageIndex, plan, width: 1596, height: 1016,
     completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages[stageIndex].workspaceForest) });
-  const plaque = [...layout.values()][0];
-  assert.equal(plaque.location, 'below');
-  assert(Math.abs(plaque.x + plaque.width / 2 - (left + right) / 2) < 1,
-    'the first probe must be centered under its displayed domain');
-  assert(plaque.y >= bottom, 'the first probe must start below its displayed domain');
+  const box = [...layout.values()][0];
+  const anchor = root.descendants().find(node => node.data.id === box.attachmentNodeId);
+  assert.equal(box.attachmentX, anchor.x);
+  assert.equal(box.attachmentY, anchor.y);
+  const visible = new Set(firstProbe.replayVisibleNodeIds);
+  const obstacles = plaqueTreeObstacles(root.descendants().filter(node => visible.has(node.__vizId ?? node.data.id)));
+  assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)));
 });
+
 for (const record of records) {
   for (const [width, height] of [[1596, 1016], [390, 844]]) {
     test(`${record.name} ${width}px: complete stage allocation, no plaque collisions, stable traversal and fit`, () => {
