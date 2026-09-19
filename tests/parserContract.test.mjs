@@ -125,6 +125,8 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /priorAnchors:.*immediately preceding stage's expanded workspace/);
     assert.match(instruction, /Anchor-role and value-entry names are not fixed fields or a prescribed vocabulary/);
     assert.match(instruction, /Use an anchor list for nodes with the same role in this relation\. Keep distinct groups in separate entries and name their roles distinctly\./);
+    assert.match(instruction, /Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation\./);
+    assert.match(instruction, /Do not substitute a different occurrence introduced only by a later relation merely because it shares lineage\./);
   }
 });
 

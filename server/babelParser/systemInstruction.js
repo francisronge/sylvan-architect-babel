@@ -63,6 +63,7 @@ Anchor-role and value-entry names are not fixed fields or a prescribed vocabular
 When a values entry lists one literal per item of an anchor entry, give both entries the same name and the same length. When two entries pair their items one by one, give them the same length and order.
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
 List relations in the derivational order explained in stageRecord, with prerequisites before dependent relations. This orders relations, not the display's selection, projection, and merge steps.
+Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation. Do not substitute a different occurrence introduced only by a later relation merely because it shares lineage.
 If the analysis makes an illicit judgment, explain it in stageRecord and anchor its relation to the relevant syntax. A judgment about the whole analysis is anchored to its final root.
 
 Input words

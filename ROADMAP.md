@@ -56,7 +56,7 @@ heading row. Empty and whitespace-only titles behave like absent titles; titled
 plaques retain their geometry. The actual agreement plaque, a titled T-probe,
 mobile size and zoom were checked in the production renderer.
 
-Verification: 1,734 tests, typecheck and both contract fixtures pass. All 374 new
+Verification: 1,736 tests, typecheck and both contract fixtures pass. All 374 new
 frames were checked in the browser for render completion, console errors and
 non-finite SVG geometry. The reported transitions, an older Sol morphology
 example, desktop/mobile layouts, manual zoom and Fit were visually inspected.
@@ -83,9 +83,18 @@ Sol's passive record repeats the identical assigning occurrence twice, which is
 not ambiguous. Its failure exposes contextual source binding, raw-array arity
 and native literal-reading gaps. A controlled scalar-source version also prints
 "Assignments" twice instead of the supplied Theme/Goal values unless the paired
-field is named `arguments`. Fixing these bounded handoffs is the next recognition
-task; preserve authored lists and never merge different occurrences by lineage.
-No recognition or prompt change was made during this review.
+field is named `arguments`. These handoffs are now repaired in registry version
+15 and the existing theta-grid reader. The registered predicate slot accepts an
+assigner and counts exact distinct IDs; authored arrays remain unchanged. Open
+same-name/same-length fields supply their literal labels, including repetitions.
+Different sources, different occurrences sharing lineage, mismatched label lists
+and competing normalized value keys retain their failure boundaries. The new
+controls also preserve role-key labels alongside explicit argument labels.
+Across 27 saved analyses and 1,183 frames, only two passive relation occurrences
+change classification, from Tier 3 to the native theta grid. Syntax, frame counts
+and authored relation order are unchanged. Desktop/mobile, zoom, the second
+occurrence and next-relation persistence were checked in production Replay.
+Evidence is in `/tmp/babel-sept17-review/theta-reader`, outside the worktree.
 The targeted desktop/mobile, movement and zoom comparisons are in
 `/tmp/babel-sept17-review/value-casing-review`, alongside the earlier evidence.
 
@@ -115,10 +124,13 @@ coherent: lower-subject agreement precedes raising, and the absence of an extern
 theta role for seem holds before raising. The exact occurrence anchors conflict
 with that order. The prompt requires completed-stage anchors and derivational
 ordering but does not explicitly distinguish availability at the relation moment.
-Recommended clarification, not yet implemented: anchor each relation to the exact
-occurrences involved when it is established, including occurrences established by
-that relation; do not substitute a different occurrence introduced only by a later
-relation merely because it shares lineage. Preserve saved records and diagnostics.
+The approved generic clarification is now in the shared prompt: anchor each
+relation to the exact occurrences involved when it is established, including
+occurrences established by that relation; do not substitute a different occurrence
+introduced only by a later relation merely because it shares lineage. Saved
+records and diagnostics are preserved. Generation provenance already hashes the
+exact framework-specific system instruction; new runs receive the revised hash.
+No provider run was made to qualify its effect on authoring.
 The linguistic distinction is consistent with Richards's MIT notes on
 [Agree and movement](https://web.mit.edu/norvin/www/24.956/handout2.pdf) and
 [raising/control](https://web.mit.edu/norvin/www/24.902/control.html).
@@ -243,7 +255,7 @@ Remaining recognition findings are distinct:
   Sol's repeated identical assigner from genuinely different sources: repeated
   list entries are permitted by the contract. Its raw-array arity rejection and
   loss of open paired literal labels are native-reader gaps, not proof of a
-  malformed linguistic claim. Repair the exact-claim reader itself, preserving
+  malformed linguistic claim. The exact-claim reader is now repaired, preserving
   the rule that Tier 2 must not rescue malformed Tier-1 claims.
 - The compound follow-up confirms six relevant envelopes in the batch. Same-name
   values establish the recipient/literal correspondence, but do not independently
