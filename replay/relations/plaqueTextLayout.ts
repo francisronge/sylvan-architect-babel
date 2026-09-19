@@ -180,7 +180,9 @@ export const preparePlaqueTextLayout = (
   const paddingX = feature ? 18 : 8;
   const measure = createTextMeasure(options.measureText);
   // Uppercase is the existing feature-title appearance; authored content remains on the plan item.
-  const titleText = feature ? content.title?.toUpperCase() : content.title;
+  const titleText = content.title?.trim()
+    ? feature ? content.title.toUpperCase() : content.title
+    : undefined;
   const rowTexts = content.rows.map(({ label, value }) => feature
     ? `[${label}: ${value}]`
     : value ? `${label}: ${value}` : label);
@@ -212,7 +214,9 @@ export const preparePlaqueTextLayout = (
   const title = titleText
     ? block(titleText, font.title, feature ? 5 : 3, feature ? 20 : 11, feature ? 26 : 15)
     : undefined;
-  let rowTop = Math.max(feature ? 46 : 20, title ? title.bottom + (feature ? 15 : 2) : 0);
+  let rowTop = title
+    ? Math.max(feature ? 46 : 20, title.bottom + (feature ? 15 : 2))
+    : paddingX;
   const rows = rowTexts.map((text, rowIndex) => {
     const row = block(text, font.row, rowTop, feature ? 25 : 8, feature ? 32 : 15, feature ? 1 : 0);
     rowTop = row.bottom + (feature ? 12 : 0);

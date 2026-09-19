@@ -51,7 +51,12 @@ including Mia with tokenIndex 0. A D with a nominal complement still permits
 sentence-position casing of determiners. A bare D/Which cannot be distinguished
 from D/Mia using the current evidence, so its authored spelling is preserved.
 
-Verification: 1,733 tests, typecheck and both contract fixtures pass. All 374 new
+Untitled plaques now use ordinary top padding instead of reserving a missing
+heading row. Empty and whitespace-only titles behave like absent titles; titled
+plaques retain their geometry. The actual agreement plaque, a titled T-probe,
+mobile size and zoom were checked in the production renderer.
+
+Verification: 1,734 tests, typecheck and both contract fixtures pass. All 374 new
 frames were checked in the browser for render completion, console errors and
 non-finite SVG geometry. The reported transitions, an older Sol morphology
 example, desktop/mobile layouts, manual zoom and Fit were visually inspected.
@@ -68,10 +73,19 @@ qualification of the batch.
 The value/casing comparison preserves syntax connections, every frame and authored
 relation order across all 27 analyses / 1,183 frames. Eight relation occurrences
 gain recognized values or Case drawing; the only word changes are mia to Mia in
-the two affected analyses. Review of compound groups found no general source-to-
-recipient pairing proof: equal-length arrays or similarly prefixed names alone
-are insufficient. Keep ambiguous groups neutral; the existing contract can
-express separate, explicitly paired claims without another interpretation model.
+the two affected analyses. The substantive compound review distinguishes coherent
+linguistic claims from incomplete machine-readable associations. Equal-length
+arrays or similarly prefixed names alone do not distinguish paired assignments
+from collective groups. Separate relations can express explicit pairs, but give
+them separate Replay moments; they do not preserve a simultaneous compound claim.
+Keep genuinely ambiguous groups neutral rather than splitting or rewriting them.
+Sol's passive record repeats the identical assigning occurrence twice, which is
+not ambiguous. Its failure exposes contextual source binding, raw-array arity
+and native literal-reading gaps. A controlled scalar-source version also prints
+"Assignments" twice instead of the supplied Theme/Goal values unless the paired
+field is named `arguments`. Fixing these bounded handoffs is the next recognition
+task; preserve authored lists and never merge different occurrences by lineage.
+No recognition or prompt change was made during this review.
 The targeted desktop/mobile, movement and zoom comparisons are in
 `/tmp/babel-sept17-review/value-casing-review`, alongside the earlier evidence.
 
@@ -96,8 +110,19 @@ controls; prefix matching is unsafe for chain heads versus lower positions.
 Some attracting-head context on atomic nominal movement also stays neutral even
 when the movement path is recovered. No separate model interpreter is planned.
 Sol negation frame 32 and raising X-bar frame 62 reference higher occurrences
-introduced by the following movement; those are authored timing conflicts, and
-their diagnostics/order are preserved. This batch does not certify the linguistic
+introduced by the following movement. Their prose and selected analyses are
+coherent: lower-subject agreement precedes raising, and the absence of an external
+theta role for seem holds before raising. The exact occurrence anchors conflict
+with that order. The prompt requires completed-stage anchors and derivational
+ordering but does not explicitly distinguish availability at the relation moment.
+Recommended clarification, not yet implemented: anchor each relation to the exact
+occurrences involved when it is established, including occurrences established by
+that relation; do not substitute a different occurrence introduced only by a later
+relation merely because it shares lineage. Preserve saved records and diagnostics.
+The linguistic distinction is consistent with Richards's MIT notes on
+[Agree and movement](https://web.mit.edu/norvin/www/24.956/handout2.pdf) and
+[raising/control](https://web.mit.edu/norvin/www/24.902/control.html).
+This batch does not certify the linguistic
 analyses, the API route or deployed hosting. Earlier baseline counts below record
 their respective checks; the current retained-code gate is the one above.
 
@@ -214,16 +239,20 @@ Remaining recognition findings are distinct:
   from a nominal category or government alone.
 - Compound qualified groups, such as separate nominative/accusative sources
   and recipients, need claim-scoped role/value association. A common prefix or
-  equally sized lists alone must not choose pairings. Repeated assigners in
-  Sol's passive theta record also conflict with its registered scalar-predicate
-  signature; Tier 2 must not silently repair that Tier-1 claim.
+  equally sized lists alone must not choose pairings. The later review separates
+  Sol's repeated identical assigner from genuinely different sources: repeated
+  list entries are permitted by the contract. Its raw-array arity rejection and
+  loss of open paired literal labels are native-reader gaps, not proof of a
+  malformed linguistic claim. Repair the exact-claim reader itself, preserving
+  the rule that Tier 2 must not rescue malformed Tier-1 claims.
 - The compound follow-up confirms six relevant envelopes in the batch. Same-name
   values establish the recipient/literal correspondence, but do not independently
   pair multiple assigners with those recipients. Later statements also distinguish
   chain heads and lower positions, so grouping by a shared Case prefix would hide
   a real distinction. No new grouping rule or alias was added. Existing separate
-  relations and scalar-predicate/list-argument records already express explicit
-  assignments; no contract expansion is required for those forms. General
+  relations and scalar-predicate/list-argument records express explicit
+  assignments, but separate relations change simultaneous groups into successive
+  moments. No contract expansion is required for the repeated-source repair. General
   recognition of the compound records remains an investigation, not a completed
   repair or a reason to rewrite saved analyses.
 - Repeated chain statements without a new transition, clause-force claims,

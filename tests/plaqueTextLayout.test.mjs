@@ -290,6 +290,25 @@ test('ordinary one-line plaques keep their existing baselines and feature width'
   assert.equal(generic.rows[0].lines[0].y, 28);
 });
 
+test('untitled plaques use ordinary padding without an empty heading band', () => {
+  const rows = [{ label: 'agreement', value: 'third-person singular' }];
+  for (const variant of ['feature', 'generic']) {
+    const options = { variant, measureText };
+    const untitled = preparePlaqueTextLayout({ rows }, options);
+    const titled = preparePlaqueTextLayout({ title: 'T bearer', rows }, options);
+    assert.equal(untitled.title, undefined);
+    assert(untitled.rows[0].lines[0].y - untitled.rows[0].lines[0].ascent <= 20,
+      'first-row ink begins inside normal padding rather than a reserved title row');
+    assert(untitled.height < titled.height);
+    assert.deepEqual(untitled.rows.map(row => row.lines.map(line => line.text)),
+      titled.rows.map(row => row.lines.map(line => line.text)), 'wrapping and literal content survive');
+    assertContained(untitled);
+    for (const title of ['', '  \n  ']) {
+      assert.deepEqual(preparePlaqueTextLayout({ title, rows }, options), untitled);
+    }
+  }
+});
+
 test('a feature plaque binds to its exact wordless category without requiring a terminal child', () => {
   const wordless = { id: 'wordless-v', label: 'v' };
   const plan = compileRelationRenderPlan([{
