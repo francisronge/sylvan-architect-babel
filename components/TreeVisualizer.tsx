@@ -7,7 +7,7 @@ import RootLogo from './RootLogo';
 import { appendPlaqueContent } from './plaqueViewport';
 import { identityLightSites } from './identityForestLight';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
-import { availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
+import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
@@ -231,6 +231,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const [uiBounds, setUiBounds] = useState({ top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity });
   const ownManualCameraRef = useRef<TreeCameraState | null>(null);
   const manualCameraRef = manualCameraState ?? ownManualCameraRef;
+  const autoCameraRef = useRef<(TreeCameraState & { stepIndex: number; fitRevision: number }) | null>(null);
   const relationPointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const relationHoverResolutionFrameRef = useRef<number | null>(null);
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
@@ -7008,6 +7009,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         const contained = containCamera(fitted, bounds, { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
         fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
       }
+      const previousFit = autoCameraRef.current;
+      if (animated && stageCameraBounds && previousFit?.data === data
+        && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
+        && previousFit.width === containerWidth && previousFit.height === containerHeight
+        && previousFit.stepIndex + 1 === activeStepIndex) {
+        const bounds = stagePlaqueContainmentBounds ? {
+          minX: Math.min(stageCameraBounds.minX, stagePlaqueContainmentBounds.minX),
+          maxX: Math.max(stageCameraBounds.maxX, stagePlaqueContainmentBounds.maxX),
+          minY: Math.min(stageCameraBounds.minY, stagePlaqueContainmentBounds.minY),
+          maxY: Math.max(stageCameraBounds.maxY, stagePlaqueContainmentBounds.maxY)
+        } : stageCameraBounds;
+        const advanced = advanceFittedCamera(previousFit.transform, fitted, bounds,
+          { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
+        fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
+      }
+      autoCameraRef.current = { data, signature: derivationStagesSignature, width: containerWidth,
+        height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted };
       // Labels and complete fallback badges keep their accepted automatic-Fit
       // size, then scale with the tree. Their connectors use the same reference
       // when redrawn under a retained manual camera.

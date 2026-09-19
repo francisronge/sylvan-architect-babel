@@ -1,5 +1,15 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
 
+/** A same-scale advance only pans when new content would otherwise overflow. */
+export function advanceFittedCamera(
+  previous: { x: number; y: number; k: number },
+  fitted: { x: number; y: number; k: number },
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  view: ViewportRect
+) {
+  return Math.abs(previous.k - fitted.k) < 1e-7 ? containCamera(previous, bounds, view) : fitted;
+}
+
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */
 export function containCamera(
   preferred: { x: number; y: number; k: number },

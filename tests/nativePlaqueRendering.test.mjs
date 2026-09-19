@@ -593,6 +593,7 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
   const data = {};
   let camera;
   const fit = productionFunction('applyFittedCamera', {
+    autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
     g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
     d3, fitFallbackOverlays: undefined, applyCameraTransform: transform => { camera = transform; }
@@ -641,6 +642,7 @@ test('fallback role and authored array position share one tree coordinate group'
   const fitViewports = [];
   let camera;
   const fit = productionFunction('applyFittedCamera', {
+    autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
     g: select(new Element('g')), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
     fitLeft: 40, fitRight: 1560, fitTop: 100, fitBottom: 700,

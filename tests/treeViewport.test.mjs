@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { availableTreeViewport, containCamera, linearizationViewport } from '../components/treeViewport.ts';
+import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from '../components/treeViewport.ts';
 
 test('plaque containment leaves an already fitting camera exactly unchanged', () => {
   const preferred = { x: 173.4, y: 93.1, k: 0.27 };
@@ -54,4 +54,20 @@ test('cyclic columns and tree use the same remaining viewport instead of project
     if (width === 390) assert.ok(layout.treeTop >= layout.top + 155 * layout.scale);
     else assert.ok(layout.treeRight < layout.left);
   }
+});
+
+
+test('a same-scale Replay advance retains framing and only pans for actual overflow', () => {
+  const previous = { x: 294, y: 72, k: 0.128 };
+  const recentered = { ...previous, x: 332 };
+  const bounds = { minX: 0, maxX: 5000, minY: 0, maxY: 2100 };
+  const view = { left: 16, right: 1264, top: 60, bottom: 430 };
+  assert.equal(advanceFittedCamera(previous, recentered, bounds, view), previous);
+  const wider = { ...bounds, maxX: 8000 };
+  const corrected = advanceFittedCamera(previous, recentered, wider, view);
+  assert.equal(corrected.k, previous.k);
+  assert.equal(corrected.y, previous.y);
+  assert.equal(corrected.x + wider.maxX * corrected.k, view.right);
+  const smaller = { ...recentered, k: 0.1 };
+  assert.equal(advanceFittedCamera(previous, smaller, bounds, view), smaller);
 });
