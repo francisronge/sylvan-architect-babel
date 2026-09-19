@@ -82,6 +82,7 @@ export const requestCodexQualification = async ({
     ...(error ? { error } : {})
   });
   let reader;
+  let phase = 'request';
   try {
     const http = await fetchImpl(CODEX_RESPONSES_URL, {
       method: 'POST', redirect: 'error', signal, dispatcher,
@@ -95,6 +96,7 @@ export const requestCodexQualification = async ({
       body: JSON.stringify(body)
     });
     httpStatus = http.status;
+    phase = 'archive-headers';
     // Deliberately exclude cookies and account-identifying headers from artifacts.
     onHeaders({ status: http.status, contentType: http.headers.get('content-type'),
       requestId: http.headers.get('x-request-id') });
@@ -123,10 +125,13 @@ export const requestCodexQualification = async ({
       }
     };
     while (true) {
+      phase = 'read-stream';
       const { done, value } = await reader.read();
       if (done) break;
+      phase = 'archive-bytes';
       onBytes(Buffer.from(value));
       if (!http.ok) continue;
+      phase = 'decode-stream';
       buffer += decoder.decode(value, { stream: true });
       let separator;
       while ((separator = /\r?\n\r?\n/u.exec(buffer))) {
@@ -146,9 +151,13 @@ export const requestCodexQualification = async ({
       return result('failed', 'Streamed text differs from completed response text.');
     }
     return result('completed');
-  } catch {
-    // Raw provider errors stay in the byte archive. Never serialize request headers or credentials.
-    return result('interrupted', signal?.aborted ? 'Request cancelled.' : 'Connection, stream decoding or artifact write failed.');
+  } catch (error) {
+    // Preserve the failing operation and standard error codes, never messages,
+    // stacks, request objects or headers that may contain credentials.
+    const codes = [error?.code, error?.cause?.code].filter(code =>
+      typeof code === 'string' && /^(?:ERR_|UND_ERR_|E)[A-Z0-9_]{1,64}$/u.test(code));
+    return { ...result('interrupted', signal?.aborted ? 'Request cancelled.' : 'Connection, stream decoding or artifact write failed.'),
+      failure: { phase, cancelled: Boolean(signal?.aborted), ...(codes.length ? { codes } : {}) } };
   } finally {
     await reader?.cancel().catch(() => {});
     reader?.releaseLock();

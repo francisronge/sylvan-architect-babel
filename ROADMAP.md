@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-18
+Status date: 2026-09-19
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -17,26 +17,37 @@ its cause is unproven. No retry or API-key fallback was made. The remaining
 three unstarted jobs then ran once. Exact requests, contract fingerprints,
 streams and receipts are in `/tmp/babel-varied-batch-20260917`.
 
-Review covered every Stage Record and relation, all 374 desktop Replay frames,
-and full-size problem transitions, final trees, Fit and zoom. One narrow repair
-is retained: an already established movement restated later must not hide its
-landing during intervening construction. Replay now checks existing transition
-ownership before withholding the landing. In the relative Minimalism example,
-Mia stays visible while C is selected. The regression fails before the fix.
-The retained code passes 1,721 tests, typecheck and both contract fixtures.
-Across 27 analyses / 1,183 frames, only that relative playback changes; all
-relation plans and authored moments/order remain identical. No arrow styling,
-shared layout or camera change is retained. Review and matched captures are in
-`/tmp/babel-sept17-review/varied-batch`.
+The first pass inspected the records and captured all 374 desktop frames, but
+its visual review missed defects later identified by Francis. The established-
+movement-restatement repair remains retained. The September 19 follow-up fixes
+future scaffolds detaching existing children, binds relation geometry to the
+currently displayed syntax, excludes hidden future leaves from sentence-initial
+casing, and retains an explicitly referenced prior landing witness until the
+movement replaces it. No authored tree, relation or pronunciation is rewritten.
 
-The deeper pass also found open defects. Relative frames 15–21 use future
-topology that detaches current sources before movement. A tested branch-preserving
-scaffold check repairs this but exposes neutral annotations still using completed
-stage coordinates in an older Sol morphology example. That experiment is **not
-merged**; transition topology and annotation coordinates need coordinated repair.
-Sol's raising X-bar empty matrix NP vanishes before movement; ownership needs
-investigation. Astra's raising example displays a lower `Mia` as `mia`; investigate
-proper-name casing separately from sentence-initial casing.
+Ordinary multiline plaques now search local pockets instead of being sent below
+the tree by a 170-unit height cutoff. Transparent hulls do not exclude plaques.
+Tier-3 counter-lane stems clear intervening labels; nearly vertical dotted Agree
+collections no longer use sideways handles that produce an S-loop. Same-scale
+forward Replay steps retain the current camera when the new bounds already fit.
+Fit remains explicit and manual camera positions survive forward steps.
+
+Verification: 1,728 tests, typecheck and both contract fixtures pass. All 374 new
+frames were checked in the browser for render completion, console errors and
+non-finite SVG geometry. The reported transitions, an older Sol morphology
+example, desktop/mobile layouts, manual zoom and Fit were visually inspected.
+Across 27 analyses / 1,183 frames, claim ownership and authored relation order
+remain unchanged. Matched screenshots, a camera recording and live Replay are
+in `/tmp/babel-sept17-review/varied-repairs`; evidence is not committed.
+
+Remaining boundaries: a Case plaque can still change pockets across authored
+stages when reserved syntax or trajectories occupy its old location. Proper-name
+casing away from the sentence front remains distinct from the repaired hidden-
+copy bug. Active/quiet Case and movement paint was compared with the actual
+Orchard; this does not certify every possible arrangement. The old interrupted
+Sol stream's exact cause cannot be recovered because its error handler discarded
+the exception. Future subscription failures record the operation and standard
+error codes without logging credentials or making an automatic retry.
 
 Recognition remains bounded. Ordered multi-source/recipient arrays expose both
 plural/qualified-role coverage gaps and recipes restricted to one source. Next,

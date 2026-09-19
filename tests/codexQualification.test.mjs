@@ -166,3 +166,31 @@ test('completed subscription text uses the existing Babel normalization, Replay 
       JSON.parse(JSON.stringify(expected.replayProjections[analysis.analysisIndex])));
   }
 });
+
+test('interrupted runs identify transport, decoding and archive failures without logging secrets or retrying', async () => {
+  const secret = credentials.token;
+  const scenarios = [
+    { phase: 'request', code: 'UND_ERR_CONNECT_TIMEOUT', fetchImpl: async () => {
+      throw new TypeError(secret, { cause: Object.assign(new Error(secret), { code: 'UND_ERR_CONNECT_TIMEOUT' }) });
+    } },
+    { phase: 'read-stream', code: 'ECONNRESET', fetchImpl: async () => new Response(new ReadableStream({
+      start(controller) { controller.error(Object.assign(new Error(secret), { code: 'ECONNRESET' })); }
+    })) },
+    { phase: 'archive-bytes', code: 'ENOSPC', onBytes: () => { throw Object.assign(new Error(secret), { code: 'ENOSPC' }); } },
+    { phase: 'decode-stream', code: 'ERR_ENCODING_INVALID_ENCODED_DATA', bytes: Buffer.from([0xff]) }
+  ];
+  for (const scenario of scenarios) {
+    let calls = 0;
+    const result = await requestCodexQualification({ body: request().body, credentials,
+      onBytes: scenario.onBytes, fetchImpl: async () => {
+        calls++;
+        return scenario.fetchImpl ? scenario.fetchImpl() : chunkedResponse(scenario.bytes ?? Buffer.from('data: {}\n\n'));
+      }
+    });
+    assert.equal(result.status, 'interrupted');
+    assert.equal(result.failure.phase, scenario.phase);
+    assert.deepEqual(result.failure.codes, [scenario.code]);
+    assert.equal(calls, 1);
+    assert.ok(!JSON.stringify(result).includes(secret));
+  }
+});
