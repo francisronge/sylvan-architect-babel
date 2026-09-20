@@ -9,6 +9,36 @@ Babel must accommodate all languages. Test languages expose general limitations;
 they do not define a supported-language allowlist or authorize language-specific
 syntactic rules.
 
+## Current app readiness
+
+The local workflow is checked with saved fixture replies through the real input,
+request handler, Canopy, Replay, analysis selection, Tree Bank, reload/reopen and
+bracket export. Desktop and 390px browser tests also cover failed-request recovery
+and real IndexedDB transactions aborted after request success. No provider call
+or user library was used in this pass.
+
+Tree Bank now waits for transaction commit before reporting save/delete success.
+A failed save stays absent, a failed delete stays present, and retry works.
+Save errors are visible in the workspace. Saved framework metadata belongs to
+the completed analysis, not the controls for the next request. The current
+IndexedDB schema and saved-bundle format are unchanged.
+
+Remaining work, in execution order:
+
+1. Verify compact-screen readability in the full app. The 390px workflow capture
+   leaves the early Replay tree extremely small when the header, input and Replay
+   panel are all open. Passing control interactions does not qualify this layout.
+2. Finish Program 1's outstanding live/deployed and slow-device evidence under
+   agreed provider conditions. Replayed fixture responses do not qualify live
+   provider transport or establish linguistic accuracy.
+3. Complete Program 2's durable records, backup/export and recovery work. The
+   transaction repair does not add imports, migrations, integrity checks or
+   saved Replay-position restoration.
+4. Build Program 3's shared public/research application boundary. The current
+   frontend still presents one workbench with model controls and Notes.
+5. Complete the launch decisions and operational checks in Program 5. A local
+   workflow pass does not establish deployment, cost limits or recovery readiness.
+
 ## Fresh multilingual qualification
 
 Twenty matched Babel-only subscription requests on `300d2eb` completed: English

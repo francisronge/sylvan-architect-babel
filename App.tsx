@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { parseSentence, ParseServiceError } from './services/parseService';
+import { readTreeBankEntries, saveTreeBankEntry, removeTreeBankEntry } from './services/treeBankStore';
 import {
   ParseBundle,
   GenerationRecord,
@@ -175,10 +176,6 @@ interface TreeBankEntry {
   treeSnapshotDataUrl?: string;
 }
 
-const TREE_BANK_DB_NAME = 'sylvan-architect-babel';
-const TREE_BANK_STORE_NAME = 'treeBank';
-const TREE_BANK_DB_VERSION = 1;
-
 const compareTreeBankEntries = (a: TreeBankEntry, b: TreeBankEntry): number =>
   new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 
@@ -334,79 +331,12 @@ const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
     : null;
 };
 
-const openTreeBankDb = (): Promise<IDBDatabase> =>
-  new Promise((resolve, reject) => {
-    if (typeof window === 'undefined' || !window.indexedDB) {
-      reject(new Error('IndexedDB not supported.'));
-      return;
-    }
+const listTreeBankEntries = async (): Promise<TreeBankEntry[]> =>
+  (await readTreeBankEntries())
+    .map(normalizeTreeBankEntry)
+    .filter((entry): entry is TreeBankEntry => Boolean(entry))
+    .sort(compareTreeBankEntries);
 
-    const request = window.indexedDB.open(TREE_BANK_DB_NAME, TREE_BANK_DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(TREE_BANK_STORE_NAME)) {
-        db.createObjectStore(TREE_BANK_STORE_NAME, { keyPath: 'id' });
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('Failed to open Tree Bank database.'));
-  });
-
-const listTreeBankEntries = async (): Promise<TreeBankEntry[]> => {
-  const db = await openTreeBankDb();
-
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(TREE_BANK_STORE_NAME, 'readonly');
-    const store = tx.objectStore(TREE_BANK_STORE_NAME);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      const entries = (Array.isArray(request.result) ? request.result : [])
-        .map((entry) => normalizeTreeBankEntry(entry))
-        .filter((entry): entry is TreeBankEntry => Boolean(entry))
-        .sort(compareTreeBankEntries);
-      resolve(entries);
-    };
-    request.onerror = () => reject(request.error || new Error('Failed to load Tree Bank entries.'));
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => db.close();
-    tx.onabort = () => db.close();
-  });
-};
-
-const saveTreeBankEntry = async (entry: TreeBankEntry): Promise<void> => {
-  const db = await openTreeBankDb();
-
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(TREE_BANK_STORE_NAME, 'readwrite');
-    const store = tx.objectStore(TREE_BANK_STORE_NAME);
-    const request = store.put(entry);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error || new Error('Failed to save tree.'));
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => db.close();
-    tx.onabort = () => db.close();
-  });
-};
-
-const removeTreeBankEntry = async (id: string): Promise<void> => {
-  const db = await openTreeBankDb();
-
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(TREE_BANK_STORE_NAME, 'readwrite');
-    const store = tx.objectStore(TREE_BANK_STORE_NAME);
-    const request = store.delete(id);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error || new Error('Failed to delete tree.'));
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => db.close();
-    tx.onabort = () => db.close();
-  });
-};
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
   "A'",
@@ -552,6 +482,7 @@ const App: React.FC = () => {
   const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
+  const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
@@ -602,6 +533,7 @@ const App: React.FC = () => {
         setInput(nextSentence);
       }
       if (options.framework) setFramework(options.framework);
+      setParsedFramework(options.framework || bundle.analyses[0]?.provenance?.framework || 'xbar');
       if (options.modelRoute) {
         const nextRoute = coerceModelRoute(options.modelRoute);
         setModelRoute(nextRoute);
@@ -687,6 +619,7 @@ const App: React.FC = () => {
         setParsedSentence(nextSentence);
         setInput(nextSentence);
         setFramework(nextFramework);
+        setParsedFramework(nextFramework);
         setModelRoute(coercedModelRoute);
         setReasoningEffort(coerceReasoningEffortForRoute(coercedModelRoute, nextReasoningEffort || reasoningEffort));
         setActiveParseIndex(0);
@@ -821,6 +754,7 @@ const App: React.FC = () => {
       setModelRoute(nextModelRoute);
       setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, data.requestedReasoningEffort || activeReasoningEffort));
       setParsedSentence(input.trim());
+      setParsedFramework(framework);
       setActiveParseIndex(0);
       setActiveTab('tree');
       setCopiedCodeKey(null);
@@ -846,7 +780,7 @@ const App: React.FC = () => {
     const entry: TreeBankEntry = {
       id: createTreeBankId(),
       sentence,
-      framework,
+      framework: parsedFramework,
       activeParseIndex,
       createdAt: now,
       updatedAt: now,
@@ -854,6 +788,8 @@ const App: React.FC = () => {
       treeSnapshotDataUrl
     };
 
+    setTreeBankSaveSuccess(false);
+    setTreeBankError(null);
     setTreeBankSaving(true);
     try {
       await saveTreeBankEntry(entry);
@@ -886,6 +822,7 @@ const App: React.FC = () => {
     setParsedSentence(entry.sentence);
     setInput(entry.sentence);
     setFramework(entry.framework);
+    setParsedFramework(entry.framework);
     const nextModelRoute = coerceModelRoute(entry.bundle.requestedModelId || inferModelRouteFromModel(entry.bundle.modelUsed));
     setModelRoute(nextModelRoute);
     setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, entry.bundle.requestedReasoningEffort || reasoningEffort));
@@ -1120,6 +1057,11 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {!isTreeBankView && treeBankError && (
+        <div role="alert" className="shrink-0 border-b border-rose-500/30 bg-[#261114] px-4 py-3 text-rose-200 text-sm">
+          {treeBankError}
+        </div>
+      )}
       <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
           <div className="absolute inset-0 z-20 overflow-y-auto px-4 py-6 md:px-12 md:py-12">
@@ -1243,6 +1185,7 @@ const App: React.FC = () => {
               {(analysisBundle?.analyses || []).map((_, parseIndex) => (
                 <button
                   key={`parse-choice-${parseIndex}`}
+                  aria-pressed={activeParseIndex === parseIndex}
                   onClick={() => setActiveParseIndex(parseIndex)}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     activeParseIndex === parseIndex
