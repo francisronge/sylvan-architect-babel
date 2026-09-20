@@ -34,6 +34,22 @@ shared ink/halo class without replacing relation-moment opacity. See the
 [production restoration and verification](../implementation/contract-qualification/system-audit.md#repairs-and-verification)
 for the September integration corrections; the original review below is retained.
 
+### Plaque lifetime placement
+
+Replay reserves a plaque's content size and anchor-relative position against all
+remaining visible tree layouts, trajectories, neutral connector stems and already
+allocated claims in its lifetime. The nearest clear pocket search has no arbitrary
+radius cutoff that sends an otherwise local plaque beneath the tree. Later spelling
+changes reserve the largest required box at first appearance. Each frame projects
+that reservation with its exact attachment node. The planner is memoized across
+Replay steps; it does not move branches, reveal future syntax, alter relation timing
+or change the shared camera-fitting algorithm. Transparent hulls are not obstacles.
+
+Stability can require a more distant initial pocket in a dense changing tree. It
+does not guarantee every connector remains short. Different overlapping claims
+(for example an earlier Theme grid and a later Agent-plus-Theme grid) are not exact
+duplicates; consolidating those inventories requires preserving ownership per row.
+
 ## September 16 fidelity correction
 
 The previous complete-integration claim was wrong for Tier 3. Its Orchard cards

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
-import { stageTreeLayoutSize, buildStagePlaqueLayout, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { stageTreeLayoutSize, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
@@ -124,29 +124,46 @@ test('carried plaques follow their claim, not an item index or a newly free pock
   assert(!plaquesOverlap(next.get(0), next.get(1)));
 });
 
+test('a predicate spelling change reserves the later grid width before the plaque appears', () => {
+  const first = tree().data, later = structuredClone(first);
+  later.children[0].word = 'A much longer authored predicate';
+  const item = { ...plaque(['left']), plaqueStyle: 'theta-grid', thetaRoles: [{ nodeId: 'right', label: 'Theme', index: 'i' }] };
+  const steps = [first, later].map((replayCanvasData, replayFrameIndex) => ({ replayCanvasData, replayFrameIndex, replayKind: 'macro' }));
+  const plan = { frames: [0, 1].map(() => ({ items: [item] })) };
+  const layouts = buildReplayPlaqueLayouts({ steps, stageIndex: 0, completedCanvas: later, plan, width: 1200, height: 900 });
+  const [before, after] = layouts.map(layout => layout.get(0));
+  assert(before.width > placeStagePlaques([item], tree().descendants()).get(0).width);
+  assert.equal(before.width, after.width);
+  assert.equal(before.x - before.attachmentX, after.x - after.attachmentX);
+  assert.equal(before.y - before.attachmentY, after.y - after.attachmentY);
+});
+
 for (const record of records) {
-  test(`${record.name}: carried plaques move only when new stage geometry occupies their pocket`, () => {
+  test(`${record.name}: carried plaques reserve future branches before their first appearance`, () => {
     const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
     const plan = compileRelationRenderPlan(record.derivationStages);
+    const layouts = buildReplayPlaqueLayouts({ steps, stageIndex: 0, plan, width: 1596, height: 1016,
+      completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) });
     let previous = new Map();
     let carried = 0;
     for (const [stageIndex, stage] of record.derivationStages.entries()) {
       const input = { steps, stageIndex, plan, width: 1596, height: 1016,
         completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) };
-      const layout = buildStagePlaqueLayout(input);
-      const { nodes, obstacles } = measureStagePlaqueSpace(input);
+      const layout = layouts[stageIndex];
+      const { scenes } = measureStagePlaqueSpace(input);
+      for (const scene of scenes) {
+        const positions = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
+        const boxes = [...projectPlaqueLayout(layout, id => positions.get(id)).values()];
+        boxes.forEach((box, i) => {
+          assert(scene.obstacles.every(obstacle => !plaquesOverlap(box, obstacle, 0)));
+          assert(boxes.slice(i + 1).every(other => !plaquesOverlap(box, other, 0)));
+        });
+      }
       const current = new Map([...layout].map(([index, box]) => [plaqueIdentity(plan.frames[stageIndex].items[index]), box]));
       for (const [key, box] of current) {
         const prior = previous.get(key);
         if (!prior) continue;
         carried++;
-        const anchor = nodes.find(node => (node.__vizId ?? node.data.id) === prior.attachmentNodeId);
-        const carriedBox = { ...prior, x: prior.x + anchor.x - prior.attachmentX,
-          y: prior.y + anchor.y - prior.attachmentY };
-        if (obstacles.some(obstacle => plaquesOverlap(carriedBox, obstacle))) {
-          assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)), 'relocation must clear the newly reserved geometry');
-          continue;
-        }
         assert.equal(box.attachmentNodeId, prior.attachmentNodeId);
         assert.equal(box.location, prior.location);
         assert(Math.abs((box.x - box.attachmentX) - (prior.x - prior.attachmentX)) < 1e-8);
@@ -192,9 +209,11 @@ for (const record of records) {
         const input = { steps, stageIndex, plan, width, height,
           completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) };
         const layout = buildStagePlaqueLayout(input);
-        const reserved = measureStagePlaqueSpace(input).obstacles;
-        assert([...layout.values()].every(box => reserved
-          .every(obstacle => !plaquesOverlap(box, obstacle, 0))), 'stage plaques clear syntax and movement trajectories');
+        for (const scene of measureStagePlaqueSpace(input).scenes) {
+          const byId = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
+          assert([...projectPlaqueLayout(layout, id => byId.get(id)).values()].every(box => scene.obstacles
+            .every(obstacle => !plaquesOverlap(box, obstacle, 0))), 'projected plaques clear syntax and movement trajectories');
+        }
         assert.deepEqual(layout, buildStagePlaqueLayout({ ...input, steps: [...steps].reverse() }));
         const bounds = buildStageCameraBounds({ ...input, plaqueLayout: layout });
         const boxes = [...layout.values()];

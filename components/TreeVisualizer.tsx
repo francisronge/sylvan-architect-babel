@@ -12,7 +12,7 @@ import { appendPlaqueContent } from './plaqueViewport';
 import { identityLightSites } from './identityForestLight';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
-import { buildStageCameraBounds, buildStageLayoutGroups, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
+import { buildStageCameraBounds, buildStageLayoutGroups, buildReplayPlaqueLayouts, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 import { projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
@@ -234,6 +234,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const autoCameraRef = useRef<(TreeCameraState & { stepIndex: number; fitRevision: number }) | null>(null);
   const relationPointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const relationHoverResolutionFrameRef = useRef<number | null>(null);
+  const applyRelationEmphasisRef = useRef<(() => void) | null>(null);
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
@@ -519,17 +520,18 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
-  const stagePlaqueLayout = useMemo(() => {
-    if (!activeDerivationFrame || dimensions.width === 0 || disableRelationOverlay) return new Map();
-    const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildStagePlaqueLayout({
-      steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
-      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
+  const replayPlaqueLayouts = useMemo(() => {
+    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay) return [];
+    const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildReplayPlaqueLayouts({
+      steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
       plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText
     });
     return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
-  }, [activeDerivationFrame, activeDerivationFrameIndex, playbackSteps, relationRenderPlan,
+  }, [committedDerivationCanvasData, playbackSteps, relationRenderPlan,
     dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection]);
+  const stagePlaqueLayout = useMemo(() => replayPlaqueLayouts[activeDerivationFrameIndex] ?? new Map(),
+    [replayPlaqueLayouts, activeDerivationFrameIndex]);
   const stageCameraBounds = useMemo(() => {
     if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
     return buildStageCameraBounds({
@@ -8607,6 +8609,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const deferredRelationFrame = window.requestAnimationFrame(() => {
       deferredAcceptedRelationDraws.forEach((draw) => draw());
       installRelationHitTargets();
+      // Font, viewport and layout redraws remount marks without changing the
+      // active relation. Apply the same current emphasis to the new elements.
+      applyRelationEmphasisRef.current?.();
       startIdentityForestLight();
       svg.attr('data-babel-rendered-step', activeStepIndex);
     });
@@ -8690,6 +8695,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         element.classList.toggle('vr-relation-hovered', isVisualRoot && ownsMoment(element, hoverKey));
       });
     };
+    applyRelationEmphasisRef.current = applyInteractiveEmphasis;
     applyInteractiveEmphasis();
     const deferredEmphasisFrame = window.requestAnimationFrame(applyInteractiveEmphasis);
     return () => window.cancelAnimationFrame(deferredEmphasisFrame);

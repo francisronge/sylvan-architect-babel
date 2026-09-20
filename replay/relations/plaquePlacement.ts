@@ -104,13 +104,12 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-/** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
-export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
-  previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure) {
-  const result = new Map<number, PlaquePlacement>();
+type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean };
+
+/** Measure content independently of allocation so its whole lifetime can reserve one size. */
+export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Node[], measureText?: PlaqueTextMeasure): PlaqueRequest[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
-  const occupied: PlaqueRect[] = [...obstacles];
-  const requests: Array<{ index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean }> = [];
+  const requests: PlaqueRequest[] = [];
   items.forEach((item, index) => {
     if (item.kind === 'node-plaque') {
       if (item.plaqueStyle === 'feature') {
@@ -151,16 +150,33 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         height: 76 + (bundle?.rows.length ?? 1 + collections.length) * 62 });
     }
   });
-  // Keep a carried pocket unless new stage syntax has occupied it.
+  return requests;
+}
+
+type PlaqueLifetime = {
+  sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height'>>;
+  obstaclesFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => PlaqueRect[];
+};
+
+/** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
+export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
+  previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure, lifetime?: PlaqueLifetime) {
+  const result = new Map<number, PlaquePlacement>();
+  const byId = new Map(nodes.map(node => [idOf(node), node]));
+  const placed: PlaqueRect[] = [];
+  const requests = prepareStagePlaqueRequests(items, nodes, measureText).map(request => ({ ...request,
+    ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }));
+  // Lifetime reservations already cover future syntax. Standalone one-stage
+  // callers must still reject an obsolete pocket supplied by their caller.
   for (const request of requests) {
     const prior = previous.get(plaqueIdentity(items[request.index]));
     const attachment = prior && byId.get(prior.attachmentNodeId);
     if (!prior || !attachment || prior.width !== request.width || prior.height !== request.height) continue;
     const placement = { ...prior, x: prior.x + attachment.x - prior.attachmentX,
       y: prior.y + attachment.y - prior.attachmentY, attachmentX: attachment.x, attachmentY: attachment.y };
-    if (occupied.some(obstacle => plaquesOverlap(placement, obstacle))) continue;
+    if (!lifetime && [...obstacles, ...placed].some(obstacle => plaquesOverlap(placement, obstacle))) continue;
     result.set(request.index, placement);
-    occupied.push(placement);
+    placed.push(placement);
   }
   // Local boxes get the nearby pockets first. Large boxes do not consume those pockets.
   requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
@@ -169,6 +185,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));
     if (!anchors.length) continue;
     const anchor = anchors[0];
+    const occupied = [...(lifetime?.obstaclesFor(request.index, anchor, result) ?? obstacles), ...placed];
     const ancestors = anchor.ancestors();
     let domain = ancestors.find(candidate => visible(candidate) && anchors.every(node => node.ancestors().includes(candidate))) || anchor;
     if (anchors.length === 1 && !domain.children?.length && domain.parent && visible(domain.parent)) domain = domain.parent;
@@ -189,12 +206,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
     let placement = candidates.find(candidate => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle)));
     if (!placement && local) {
-      // Search obstacle edges inside one plaque-sized neighbourhood. For each
-      // column, merged blocked intervals give the nearest clear vertical gap.
-      const gap = 24 + 1e-6, reach = Math.max(width, height) + height / 2;
+      // Search the nearest clear pocket, including one just beyond the initial
+      // candidates. A radius cutoff would send a local claim below its subtree.
+      const gap = 24 + 1e-6;
       const xs = [...new Set([...candidates.map(box => box.x), ...occupied.flatMap(box =>
         [box.x - width - gap, box.x + box.width + gap])])]
-        .filter(x => Math.abs(x + width / 2 - anchor.x) <= reach)
         .sort((a, b) => Math.abs(a + width / 2 - anchor.x) - Math.abs(b + width / 2 - anchor.x));
       let bestDistance = Infinity;
       for (const x of xs) {
@@ -212,7 +228,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         const blocked = merged.find(([start, end]) => start < idealY && end > idealY);
         for (const y of blocked ?? [idealY]) {
           const dy = y + height / 2 - anchorY, distance = dx * dx + dy * dy;
-          if (Math.abs(dy) <= reach && distance < bestDistance) {
+          if (distance < bestDistance) {
             placement = { x, y, width, height }; bestDistance = distance;
           }
         }
@@ -236,11 +252,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       placement = { x, y, width, height };
     }
-    const attachment = location === 'local' ? anchor : domain;
+    const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
       attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y });
-    occupied.push(placement);
+    placed.push(placement);
   }
   return result;
 }

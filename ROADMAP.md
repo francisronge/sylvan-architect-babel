@@ -187,6 +187,50 @@ fallback inventory are in `/tmp/babel-direction-evidence`. No new generation,
 provider, prompt or storage changes were made.
 The final offline gate passes 1,766 tests, typecheck and both parse fixtures.
 
+### Current recognition and Replay follow-through
+
+- Registry 18 reads structurally corroborated paired compound assignments through
+  the existing contract, including independent drawing ownership within one relation
+  moment. Case nominals and explicit agreement-controller/finite-head pairs use
+  shared evidence rules. Distinct scalar feature dimensions retain their values;
+  conflicting bundles remain unresolved. No new grouping field or prompt vocabulary
+  was added. Exact malformed primary claims still cannot be repaired as Tier 2.
+- The approved realization timing policy is protected: a unique established owner
+  activates the change; ambiguous ownership waits for the completed Stage Record.
+  Relation wording or array order cannot choose the winner.
+- Plaques reserve their largest content size and a clear anchor-relative pocket
+  across their visible lifetime before appearing. They retain that offset through
+  later branches and stage changes. The shared tree layout is unchanged. Dense
+  future geometry can require a more distant initial pocket; stability is not a
+  guarantee of short connectors.
+- Browser verification reproduced lost quiet/active styling after a renderer
+  redraw without a relation change. Newly mounted marks now receive the same
+  current emphasis after drawing. A focused browser regression checks resizing
+  and hover without path, stroke-width, opacity or bounding-box changes.
+- Prompt review found no instruction requiring Sol's separate Japanese nasal
+  component, unary projections or a particular assignment analysis. Sol explicitly
+  calls the component morphological, not an independent argument-taking head.
+  The existing realization groups permit Astra's alternative single-stem analysis.
+  The old input segmentation could influence the choice, but the saved comparison
+  does not prove causation. No prompt change or new generation was made.
+- One remaining visual composition issue is now explicit: an earlier partial role
+  grid and a later expanded role inventory can overlap in content without being
+  identical claims. Consolidating them needs row-level ownership, so earlier Replay
+  moments and hover cannot acquire roles introduced later. Do not erase the earlier
+  claim or merge its provenance into the entire expanded grid.
+
+Verification and direct comparisons are in `/tmp/babel-current-six-20260920` and
+`/tmp/babel-sept17-review/current-six`. The saved-record audit covers 27 analyses,
+133 stages and 417 relations; their 1,230 Replay frames retain the same displayed
+syntax and relation order. The placement pass covers desktop and 390px layouts;
+targeted browser checks cover actual movement, Case/role drawings, zoom, Fit and
+shared quiet/hover treatment. This is bounded evidence, not certification of every
+possible model analysis. All temporary research and review material remains outside
+the worktree.
+The offline gate passes 1,772 tests, typecheck and both parse-contract fixtures.
+The separate browser redraw/hover regression also passes; run it with
+`node --test tests/browser/relationEmphasis.test.mjs`.
+
 Pause new generation while these defects are repaired. Reuse the saved records
 for regressions and show only one or two directly relevant comparisons for each
 change. Subsequent generation should answer a specific unresolved question in a
