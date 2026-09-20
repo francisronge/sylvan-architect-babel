@@ -5,6 +5,8 @@
  * rectangles so the drawing rules can be tested adversarially.
  */
 
+import { dottedCollectionControls } from './markGeometry.ts';
+
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -34,19 +36,14 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
-/** Orchard D6's quiet collection curve, mirrored with horizontal approaches. */
+/** Attach the shared Orchard collection geometry to a plaque row and source label. */
 export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0) {
   const right = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2;
-  const direction = right ? 1 : -1;
   const source = { x: right ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
   const target = { x: right ? sourceRect.x : sourceRect.x + sourceRect.width,
     y: sourceRect.y + sourceRect.height / 2 };
-  const offset = Math.min(68 + lane * 24, Math.max(16, Math.abs(target.x - source.x) / 2));
-  return {
-    source, target,
-    control1: { x: source.x + direction * offset, y: source.y },
-    control2: { x: target.x - direction * offset, y: target.y }
-  };
+  const [control1, control2] = dottedCollectionControls(source, target, lane);
+  return { source, target, control1, control2 };
 }
 
 export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0): string {

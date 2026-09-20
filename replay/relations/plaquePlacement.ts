@@ -155,18 +155,52 @@ export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: P
   return caseRouteRects(anchor, box).every(segment => blockers.every(rect => !plaquesOverlap(segment, rect, 0)));
 }
 
-function collectionCurves(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[] = []) {
-  const byId = new Map(nodes.map(node => [idOf(node), node]));
-  return (box.collectionRows ?? []).flatMap(row => {
-    const node = byId.get(row.sourceNodeId);
-    if (!node) return [];
-    const labels = [...obstacles, ...plaqueTreeObstacles([node])];
-    const attachment = labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:category`)
-      ?? labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:terminal`);
-    if (!attachment) return [];
-    return [{ row, attachment,
-      ...featureCollectionPlaqueCurve(box, box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0) }];
+/** Measure source labels once per allocation space, not for every candidate pocket. */
+export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRect[] = []) {
+  const sources = new Map(nodes.map(node => {
+    const id = idOf(node);
+    const label = (labels: PlaqueRect[]) => labels.find(rect => rect.connectorAttachment === `${id}:category`)
+      ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
+    return [id, label(obstacles) ?? label(plaqueTreeObstacles([node]))] as const;
+  }));
+  const blockers = obstacles.filter(rect => rect.blocksConnectors);
+  const curves = (box: PlaqueRect) => (box.collectionRows ?? []).flatMap(row => {
+    const attachment = sources.get(row.sourceNodeId);
+    return attachment ? [{ row, attachment,
+      ...featureCollectionPlaqueCurve(box, box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0) }] : [];
   });
+  return {
+    clears: (box: PlaqueRect): boolean => curves(box).every(({ attachment, ...curve }) => {
+      const points = [curve.source, curve.control1, curve.control2, curve.target];
+      const left = Math.min(...points.map(point => point.x)) - 6;
+      const top = Math.min(...points.map(point => point.y)) - 6;
+      const bounds = { x: left, y: top, width: Math.max(...points.map(point => point.x)) + 6 - left,
+        height: Math.max(...points.map(point => point.y)) + 6 - top };
+      const ink = [box, ...blockers.filter(rect => rect.connectorAttachment !== attachment.connectorAttachment)
+        .map(rect => rect.connectorInk ?? rect)].filter(rect => plaquesOverlap(bounds, rect, 0));
+      return collectionRouteRects(curve).every(segment => ink.every(rect => !plaquesOverlap(segment, rect, 0)));
+    }),
+    candidateYs: (box: PlaqueRect): number[] => curves(box).flatMap(({ row, attachment, source, target, control1, control2 }) => {
+      const samples = Array.from({ length: 63 }, (_, i) => {
+        const t = (i + 1) / 64, u = 1 - t;
+        return { t, x: u ** 3 * source.x + 3 * u * u * t * control1.x
+          + 3 * u * t * t * control2.x + t ** 3 * target.x };
+      });
+      return blockers.filter(rect => rect.connectorAttachment !== attachment.connectorAttachment).flatMap(obstacle => {
+        const rect = obstacle.connectorInk ?? obstacle;
+        const crossing = samples.filter(({ x }) => x >= rect.x - 8 && x <= rect.x + rect.width + 8);
+        if (!crossing.length) return [];
+        // Only the entry and exit of the obstacle's horizontal span bound a
+        // useful lane. Interior samples produce redundant search candidates.
+        return [crossing[0], crossing[crossing.length - 1]].flatMap(({ t }) => {
+          const u = 1 - t, targetWeight = 3 * u * t * t + t ** 3;
+          return [rect.y - 8, rect.y + rect.height + 8].map(y =>
+            (y - target.y * targetWeight) / (1 - targetWeight) - row.y);
+        });
+      });
+    }),
+    routeRects: (box: PlaqueRect) => curves(box).flatMap(collectionRouteRects)
+  };
 }
 
 const collectionRouteRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>) => {
@@ -179,36 +213,18 @@ const collectionRouteRects = (curve: ReturnType<typeof featureCollectionPlaqueCu
 
 /** Fixed Orchard collection curves stay clear by placement, never by rerouting. */
 export function collectionPlaqueClears(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): boolean {
-  return collectionCurves(box, nodes, obstacles).every(({ attachment, row: _row, ...curve }) =>
-    collectionRouteRects(curve).every(segment => [box, ...obstacles.filter(rect => rect.blocksConnectors
-      && rect.connectorAttachment !== attachment.connectorAttachment)]
-      .every(obstacle => !plaquesOverlap(segment, obstacle.connectorInk ?? obstacle, 0))));
+  return prepareCollectionPlaqueSpace(nodes, obstacles).clears(box);
 }
 
-/** Candidate heights at which the fixed Orchard curve passes an opaque corner. */
+/** Candidate heights are search hints; every resulting curve is checked before placement. */
 export function collectionPlaqueCandidateYs(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): number[] {
-  return collectionCurves(box, nodes, obstacles).flatMap(({ row, attachment, source, target, control1, control2 }) => {
-    return obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment.connectorAttachment)
-      .flatMap(obstacle => {
-        const rect = obstacle.connectorInk ?? obstacle;
-        return Array.from({ length: 63 }, (_, i) => (i + 1) / 64).flatMap(t => {
-          const u = 1 - t;
-          const x = u ** 3 * source.x + 3 * u * u * t * control1.x
-            + 3 * u * t * t * control2.x + t ** 3 * target.x;
-          if (x < rect.x - 8 || x > rect.x + rect.width + 8) return [];
-          const targetWeight = 3 * u * t * t + t ** 3;
-          const sourceWeight = 1 - targetWeight;
-          return [rect.y - 8, rect.y + rect.height + 8].map(y =>
-            (y - target.y * targetWeight) / sourceWeight - row.y);
-        });
-      });
-  });
+  return prepareCollectionPlaqueSpace(nodes, obstacles).candidateYs(box);
 }
 
 /** Reserve collections before other plaques choose their lifetime pockets. */
 export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
-  return [...layout.values()].flatMap(box => collectionCurves(box, nodes)
-    .flatMap(({ row: _row, attachment: _attachment, ...curve }) => collectionRouteRects(curve)));
+  const space = prepareCollectionPlaqueSpace(nodes);
+  return [...layout.values()].flatMap(box => space.routeRects(box));
 }
 
 /** Reserve the same curved approach as the painter, including carried claims. */

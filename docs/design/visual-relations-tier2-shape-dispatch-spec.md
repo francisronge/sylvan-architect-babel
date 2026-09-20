@@ -193,10 +193,11 @@ connectors reveal and focus independently. Rows follow their first authored
 moment, so future values do not leave an empty heading area. Future rows reserve
 space but do not print placeholders. Layout reserves the combined content before
 reveal; plaques widen up to 480 units before long rows wrap. D6 retains its original
-short-row dimensions. Dotted collections use D6's shallow cubic: horizontal at
-both endpoints, mirrored when the source sits left of the plaque, with no added
+short-row dimensions. Dotted collections call the same geometry helper as Orchard:
+handles follow the main separation axis, with the same lane offsets and no added
 collision bow. Placement checks the fixed curve against opaque labels across
-future Replay frames; the painter neither reroutes nor cuts it. Collection plaques and their paths reserve space
+future Replay frames; the painter neither reroutes nor cuts it. Source measurements
+are reused within each allocation search. Collection plaques and their paths reserve space
 before other plaques, including grids introduced in earlier stages. Each plaque
 keeps its chosen offset throughout Replay. The curved Case approach is positioned
 by its own row; nearby clear pockets are ranked by actual arrow length, so adding

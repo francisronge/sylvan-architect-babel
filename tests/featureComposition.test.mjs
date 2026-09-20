@@ -3,6 +3,7 @@ import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows } from '../replay/relations/plaqueTextLayout.ts';
+import { dottedCollectionPath } from '../replay/relations/markGeometry.ts';
 import { featureCollectionPlaquePath } from '../replay/relations/overlayGeometry.ts';
 const tree = { id: 'root', label: 'PP', children: [{ id: 'p', label: 'P' }, { id: 'k', label: 'KP', children: [
   { id: 'num', label: 'Num', word: 'books' }, { id: 'n', label: 'N' }
@@ -90,16 +91,17 @@ test('collection geometry attaches to its row and feature source on either side 
   }
 });
 
-test('dotted collection geometry keeps the shallow Orchard D6 curve at every endpoint height', () => {
-  for (const y of [-500, 50, 500]) {
-    const path = featureCollectionPlaquePath({ x: 800, y: 0, width: 310, height: 262 }, 50,
-      { x: 0, y: y - 25, width: 60, height: 50 });
-    assert.match(path, /^M [-\d.]+ [-\d.]+ C [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+$/);
+test('plaque collections use the original Orchard geometry, including short and vertical spans', () => {
+  const plaque = { x: 0, y: 0, width: 310, height: 262 };
+  for (const target of [{ x: 1000, y: 70 }, { x: -500, y: 400 }, { x: 330, y: 55 },
+    { x: 322, y: 500 }, { x: -12, y: -500 }]) {
+    for (const lane of [0, 1, 2]) {
+      const rect = { ...target, width: 0, height: 0 };
+      const start = { x: target.x >= 155 ? 322 : -12, y: 50 };
+      assert.equal(featureCollectionPlaquePath(plaque, 50, rect, lane), dottedCollectionPath(start, target, lane),
+        'Tier 2 must use the same curve as the original drawing');
+    }
   }
-  const lane = featureCollectionPlaquePath({ x: 0, y: 0, width: 310, height: 262 }, 50,
-    { x: 1000, y: 75, width: 60, height: 50 }, 1).match(/-?\d+(?:\.\d+)?/g).map(Number);
-  assert.equal(lane[2] - lane[0], 92, 'D6 separates its second row with the original 92-unit control lane');
-  assert.equal(lane[6] - lane[4], 92);
 });
 
 test('Case and agreement for the same pair share a plaque without changing each row owner', () => {

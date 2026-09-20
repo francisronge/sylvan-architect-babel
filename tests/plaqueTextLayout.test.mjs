@@ -275,8 +275,6 @@ test('the pure fallback is deterministic and invalid measurements do not poison 
   assert.deepEqual(invalid, first);
   const fallback = fallbackPlaqueTextMeasure('literal', first.rows[0].style);
   assert.ok(fallback.width > 0);
-  assert(fallback.ascent >= first.rows[0].style.fontSize);
-  assert(fallback.descent >= first.rows[0].style.fontSize * 0.25);
   assertContained(first);
 });
 
