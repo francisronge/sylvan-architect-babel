@@ -190,7 +190,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       const composition = caseFeatureComposition(items, index)!;
       const size = prepareCasePlaqueRows(composition.rows);
       requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: size.width, caseAssignment: true,
-        height: size.height, caseRowY: size.rows[0].y });
+        height: size.height, caseRowY: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y });
     }
   });
   return requests;

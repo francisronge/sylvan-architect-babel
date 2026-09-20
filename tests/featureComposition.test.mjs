@@ -41,14 +41,13 @@ test('Case and Tier-2 collection compose without dropping Case or merging equal 
   assert.deepEqual(composition.rows.map(({ label, value }) => [label, value]),
     [['Case', 'DAT'], ['agreement', 'inclusive'], ['agreement', 'dual']]);
   assert.equal(composition.collections.length, 2);
-  assert.equal(featurePlaqueAssignment(items, composition.bundle.index), index);
+  assert.equal(featurePlaqueAssignment(items, composition.bundles[0].index), index);
   assert.deepEqual(composition.rows[0].ownerIndices, [index]);
   for (const row of composition.rows.slice(1)) assert(!row.ownerIndices.includes(index), 'Case must not reveal future agreement values');
 });
 
-test('separate complete claims and ambiguous incoming assignments keep their own plaques', () => {
+test('ambiguous incoming assignments keep feature claims in their own plaques', () => {
   const cases = [
-    [assignment, dependency({ agreement: 'dual' }), dependency({ agreement: 'polite' }, 'n')],
     [assignment, { ...assignment, anchors: { assigner: 'n', bearer: 'k' } }, dependency({ agreement: 'dual' })]
   ];
   for (const relations of cases) {
@@ -103,4 +102,55 @@ test('a collection bows around opaque labels instead of cutting a hole or crossi
     const y = u ** 3 * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t ** 3 * p[7];
     assert(!(x > obstacle.x && x < obstacle.x + obstacle.width && y > obstacle.y && y < obstacle.y + obstacle.height));
   }
+});
+
+
+test('Case and agreement for the same pair share a plaque without changing each row owner', () => {
+  const items = compile([
+    { relation: 'Finite specification', anchors: { finiteHead: 'p' }, values: { number: 'singular', person: 'third' } },
+    assignment,
+    { relation: 'Specifier-head agreement', anchors: { head: 'p', specifier: 'k' }, values: { agreement: 'third-person singular' } }
+  ]);
+  const index = items.findIndex(item => item.pathStyle === 'case-assignment');
+  const composition = caseFeatureComposition(items, index);
+  assert.equal(composition.bundles.length, 2);
+  assert.deepEqual(composition.rows.map(row => [row.label, row.value, row.ownerNodeId]), [
+    ['number', 'singular', 'p'], ['person', 'third', 'p'], ['Case', 'DAT', 'k'], ['agreement', 'third-person singular', 'p']
+  ]);
+  for (const bundle of composition.bundles) assert.equal(featurePlaqueAssignment(items, bundle.index), index);
+  const agreementRow = composition.rows.find(row => row.label === 'agreement');
+  assert.equal(agreementRow.sourceNodeId, 'k');
+  assert(agreementRow.ownerIndices.every(i => items[i].relationRef.relationIndex === 2));
+  assert.deepEqual(composition.rows.find(row => row.label === 'Case').ownerIndices, [index]);
+});
+
+test('collections at one bearer share a shell but identical values from different sources retain separate rows', () => {
+  const items = compile([assignment, dependency({ agreement: 'dual' }), dependency({ agreement: 'dual' }, 'n')]);
+  const composition = caseFeatureComposition(items, items.findIndex(item => item.pathStyle === 'case-assignment'));
+  const rows = composition.rows.filter(row => row.label === 'agreement');
+  assert.equal(composition.bundles.length, 2);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(row => row.sourceNodeId), ['num', 'n']);
+});
+
+test('an assigner with several recipients cannot donate its standalone specification to one arbitrary Case plaque', () => {
+  const items = compile([
+    { relation: 'Finite specification', anchors: { finiteHead: 'p' }, values: { number: 'singular' } },
+    assignment, { ...assignment, anchors: { assigner: 'p', bearer: 'n' } },
+    { relation: 'Specifier-head agreement', anchors: { head: 'p', specifier: 'k' }, values: { agreement: 'third-person singular' } }
+  ]);
+  const spec = items.findIndex(item => item.kind === 'node-plaque' && item.rows.some(row => row.label === 'number'));
+  assert.equal(featurePlaqueAssignment(items, spec), undefined);
+});
+
+
+test('a combined plaque uses a compact bounded width before wrapping long values', () => {
+  const layout = prepareCasePlaqueRows([
+    { label: 'number', value: 'singular' }, { label: 'person', value: 'third' },
+    { label: 'Case', value: 'nominative' }, { label: 'agreement', value: 'third-person singular' }
+  ]);
+  assert.equal(layout.width, 480);
+  assert(layout.height <= 480, 'the combined plaque remains eligible for a local pocket');
+  assert.equal(layout.rows[2].lines.length, 1, 'Case does not wrap unnecessarily');
+  assert(layout.rows[3].lines.length > 1, 'long content wraps instead of widening the tree');
 });

@@ -1,4 +1,4 @@
-import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
+import { caseFeatureComposition, collectionAssignment, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { useTreeDirection } from './useTreeDirection';
@@ -2419,6 +2419,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const isSharedRelationContainer = (element: SVGElement) => [
             'babel-feature-relation-layer',
             'babel-agreement-case-relation-layer',
+            'babel-case-feature-plaque',
             'babel-domain-locality-relation-layer'
           ].some((className) => element.classList.contains(className));
           after.forEach((element) => {
@@ -4700,6 +4701,77 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           ) ? 'active' : 'quiet')
         : null;
 
+      const drawCaseFeatureComposition = (assignmentIndex: number) => {
+        const composition = caseFeatureComposition(frameItems, assignmentIndex);
+        const placement = replayPlaqueLayout.get(assignmentIndex);
+        if (!composition || !placement || renderedCaseCompositions.has(String(assignmentIndex))) return;
+        const revealedOwners = [...new Set(composition.rows.flatMap(row => row.ownerIndices))]
+          .filter(index => revealedItemIndices.has(index));
+        if (!revealedOwners.length) return;
+        renderedCaseCompositions.add(String(assignmentIndex));
+        const { assignment } = composition;
+        const rowLayout = prepareCasePlaqueRows(composition.rows);
+        const box = { x: placement.x, y: placement.y, width: rowLayout.width, height: rowLayout.height };
+        const layer = ensureAgreementCaseRelationLayer();
+        const plaque = layer.append('g')
+          .attr('class', 'babel-feature-plaque babel-case-feature-plaque')
+          .attr('data-feature-placement', 'accepted');
+        // The shell shares the visible contributors; each row and line retains its own owners.
+        // Keeping the shell beside the rows avoids multiplying a quiet parent's opacity.
+        const decorateOwners = (element: SVGElement, indices: number[]) => {
+          const visible = indices.filter(index => revealedItemIndices.has(index));
+          const refs = [...new Map(visible.flatMap(index => planItemRelationRefs(frameItems[index]))
+            .map(ref => [`${ref.stageIndex}:${ref.relationIndex}`, ref])).values()];
+          const item = { ...frameItems[visible[0]], relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
+          decorateRelationElement(element, item, relationEmphasisForItem(item));
+        };
+        const shell = plaque.append('g').attr('class', 'babel-feature-plaque-frame');
+        decorateOwners(shell.node()!, revealedOwners);
+        shell.append('rect').attr('class', 'babel-feature-plaque-shell')
+          .attr('x', box.x.toFixed(1)).attr('y', box.y.toFixed(1))
+          .attr('width', box.width.toFixed(1)).attr('height', box.height.toFixed(1)).attr('rx', 12);
+        shell.append('text').attr('class', 'babel-feature-plaque-title')
+          .attr('x', (box.x + 20).toFixed(1)).attr('y', (box.y + 32).toFixed(1)).text('CASE / AGREEMENT');
+        const rowTargets = new Map<number, number>();
+        rowLayout.rows.forEach((row, rowIndex) => {
+          const claim = composition.rows[rowIndex];
+          claim.ownerIndices.forEach(index => rowTargets.set(index, box.y + row.y));
+          if (!claim.ownerIndices.some(index => revealedItemIndices.has(index))) return;
+          const group = plaque.append('g').attr('class', 'babel-feature-row')
+            .attr('data-feature-label', row.label).attr('data-feature-anchor', claim.ownerNodeId)
+            .attr('data-feature-source', claim.sourceNodeId ?? null);
+          decorateOwners(group.node()!, claim.ownerIndices);
+          const text = group.append('text').attr('class', 'babel-feature-text').attr('dominant-baseline', 'middle');
+          row.lines.forEach((line, lineIndex) => text.append('tspan')
+            .attr('x', (box.x + 22).toFixed(1))
+            .attr('y', (box.y + row.firstLineY + lineIndex * 38).toFixed(1)).text(line));
+        });
+        const anchorRect = (id: string) => measuredTreeLabelRectNow(id, false) || measuredTerminalSubtreeRectNow(id);
+        if (revealedItemIndices.has(assignmentIndex)) {
+          const assigner = overlayNodeById.get(assignment.fromNodeId);
+          const source = assigner ? caseAssignmentSource(assigner) : null;
+          const sourceId = source ? getNodeId(source) : assignment.fromNodeId;
+          const sourceRect = source && !source.children?.length && source.data.word
+            ? measuredTerminalSubtreeRectNow(sourceId) || anchorRect(sourceId) : anchorRect(sourceId);
+          if (sourceRect && anchorRect(assignment.toNodeId)) {
+            markPreterminalLensNode(assignment.fromNodeId, 'case-assigner');
+            const path = layer.append('path').attr('class', 'babel-case-assignment-path')
+              .attr('marker-end', `url(#babel-agree-arrow-${activeDerivationFrameIndex})`)
+              .attr('d', caseAssignmentPlaquePath(sourceRect, box, rowTargets.get(assignmentIndex)!));
+            decorateRelationElement(path.node()!, assignment, relationEmphasisForItem(assignment));
+          }
+        }
+        composition.collections.forEach(({ item, index }, lane) => {
+          if (!revealedItemIndices.has(index)) return;
+          const sourceRect = anchorRect(item.toNodeId);
+          if (!sourceRect || !anchorRect(item.fromNodeId)) return;
+          const path = layer.append('path').attr('class', 'babel-case-collection-path')
+            .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect, lane,
+              featureCollectionObstacles(item.toNodeId, assignmentIndex)));
+          decorateRelationElement(path.node()!, item, relationEmphasisForItem(item));
+        });
+      };
+
       orderedPrimitives.forEach((primitive) => {
         /*
          * The Replay relation lens, uniform across every primitive type:
@@ -5552,153 +5624,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           if (primitive.shapeStyle === 'case-assignment'
             || primitive.shapeStyle === 'case-agree') {
             queueAcceptedRelationDraw(planItem, emphasis, () => {
-              const pathItem = planItem.kind === 'directed-path' ? planItem : null;
-              if (!pathItem) return;
-              const assignmentEntries = frameItems
-              .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-              .filter(({ candidate }) =>
-                candidate.kind === 'directed-path'
-                && candidate.pathStyle === 'case-assignment'
-                && planItemsShareAuthoredStage(candidate, pathItem)
-                && candidate.toNodeId === (pathItem.pathStyle === 'case-assignment'
-                  ? pathItem.toNodeId
-                  : pathItem.fromNodeId));
-            const assignmentEntry = pathItem.pathStyle === 'case-assignment'
-              ? assignmentEntries.find(({ candidate }) => candidate === pathItem)
-              : assignmentEntries.length === 1 ? assignmentEntries[0] : undefined;
-            const attachedPlaque = pathItem.pathStyle === 'case-agree' ? collectionPlaque(frameItems, pathItem) : undefined;
-            if (attachedPlaque && featurePlaqueAssignment(frameItems, attachedPlaque.index) === undefined) return;
-            if (!assignmentEntry && pathItem.pathStyle === 'case-agree') {
+              if (planItem.kind !== 'directed-path') return;
+              const assignmentIndex = planItem.pathStyle === 'case-assignment'
+                ? primitive.itemIndex : collectionAssignment(frameItems, planItem);
+              if (assignmentIndex !== undefined) {
+                drawCaseFeatureComposition(assignmentIndex);
+                return;
+              }
+              if (collectionPlaque(frameItems, planItem)) return;
               const layer = ensureAgreementCaseRelationLayer();
               layer.append('path').attr('class', 'babel-case-collection-path').attr('d', primitive.d);
-              const target = acceptedAnchorRect(pathItem.toNodeId);
-              const row = pathItem.featureRow;
-              if (target && (row?.label || row?.value || pathItem.label)) {
+              const target = acceptedAnchorRect(planItem.toNodeId);
+              const row = planItem.featureRow;
+              if (target && (row?.label || row?.value || planItem.label)) {
                 layer.append('text').attr('class', 'babel-feature-text')
                   .attr('x', target.x).attr('y', target.y + target.height + 36)
-                  .text(row ? [row.label, row.value].filter(Boolean).join(': ') : pathItem.label || '');
+                  .text(row ? [row.label, row.value].filter(Boolean).join(': ') : planItem.label || '');
               }
-              return;
-            }
-            if (!assignmentEntry || assignmentEntry.candidate.kind !== 'directed-path') return;
-            const assignment = assignmentEntry.candidate;
-            const compositionKey = `${relationLayerKey(assignment)}:${assignment.fromNodeId}:${assignment.toNodeId}`;
-            if (renderedCaseCompositions.has(compositionKey)) return;
-            renderedCaseCompositions.add(compositionKey);
-            if (!revealedItemIndices.has(assignmentEntry.candidateIndex)) return;
-            ensureFeatureRelationLayer();
-            const layer = ensureAgreementCaseRelationLayer();
-            const assigner = overlayNodeById.get(assignment.fromNodeId);
-            const source = assigner ? caseAssignmentSource(assigner) : null;
-            const sourceId = source ? getNodeId(source) : assignment.fromNodeId;
-            const assignerRect = source && !source.children?.length && source.data.word
-              ? acceptedTerminalRect(sourceId) : acceptedAnchorRect(sourceId);
-            const bearerRect = acceptedAnchorRect(assignment.toNodeId);
-            if (!assignerRect || !bearerRect) return;
-            markPreterminalLensNode(assignment.fromNodeId, 'case-assigner');
-            const composition = caseFeatureComposition(frameItems, assignmentEntry.candidateIndex)!;
-            const bundleEntry = composition.bundle;
-            const bundleRevealed = bundleEntry && revealedItemIndices.has(bundleEntry.index);
-            const assignmentPair = pathFeatureRow(assignment);
-            const rowLayout = prepareCasePlaqueRows(composition.rows);
-            const { width: plaqueWidth, height: plaqueHeight } = rowLayout;
-            const placement = replayPlaqueLayout.get(assignmentEntry.candidateIndex);
-            if (!placement) return;
-            const plaqueX = placement.x;
-            const plaqueY = placement.y;
-            const plaque = layer.append('g')
-              .attr('class', 'babel-feature-plaque babel-case-feature-plaque')
-              .attr('data-feature-anchor', assignment.toNodeId)
-              .attr('data-feature-placement', 'accepted')
-              .attr('opacity', bundleEntry && focusedRelationMoment
-                && planItemOwnsRelationMoment(
-                  bundleEntry.item,
-                  focusedRelationMoment.stageIndex,
-                  focusedRelationMoment.relationIndex
-                ) ? null : opacity);
-            const plaqueOwner = bundleRevealed ? bundleEntry.item : assignment;
-            const plaqueNode = plaque.node();
-            if (plaqueNode) {
-              decorateRelationElement(
-                plaqueNode,
-                plaqueOwner,
-                relationEmphasisForItem(plaqueOwner)
-              );
-            }
-            plaque.append('rect')
-              .attr('class', 'babel-feature-plaque-shell')
-              .attr('x', plaqueX.toFixed(1))
-              .attr('y', plaqueY.toFixed(1))
-              .attr('width', plaqueWidth.toFixed(1))
-              .attr('height', plaqueHeight.toFixed(1))
-              .attr('rx', 12);
-            plaque.append('text')
-              .attr('class', 'babel-feature-plaque-title')
-              .attr('x', (plaqueX + 20).toFixed(1))
-              .attr('y', (plaqueY + 32).toFixed(1))
-              .text('CASE / AGREEMENT');
-            const rowTargets = new Map<string, number>();
-            rowLayout.rows.forEach((row, rowIndex) => {
-              const claim = composition.rows[rowIndex];
-              const revealed = claim.ownerIndices.some(index => revealedItemIndices.has(index));
-              const value = revealed ? row.value : '__';
-              const rowY = plaqueY + row.y;
-              const rowGroup = plaque.append('g')
-                .attr('class', 'babel-feature-row')
-                .attr('data-feature-label', row.label);
-              const text = rowGroup.append('text').attr('class', 'babel-feature-text')
-                .attr('dominant-baseline', 'middle');
-              const lines = revealed ? row.lines : [`[${row.label}: ${value}]`];
-              lines.forEach((line, lineIndex) => text.append('tspan')
-                .attr('x', (plaqueX + 22).toFixed(1))
-                .attr('y', (plaqueY + row.firstLineY + lineIndex * 38).toFixed(1)).text(line));
-              rowTargets.set(featureRowKey(row), rowY);
-            });
-            const caseTarget = rowTargets.get(featureRowKey(assignmentPair));
-            if (caseTarget !== undefined) {
-              const assignmentPath = layer.append('path')
-                .attr('class', 'babel-case-assignment-path')
-                .attr('opacity', focusedRelationMoment && planItemOwnsRelationMoment(
-                  assignment,
-                  focusedRelationMoment.stageIndex,
-                  focusedRelationMoment.relationIndex
-                ) ? null : opacity)
-                .attr('marker-end', `url(#babel-agree-arrow-${activeDerivationFrameIndex})`)
-                .attr('d', caseAssignmentPlaquePath(assignerRect,
-                  { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight }, caseTarget));
-              const assignmentPathNode = assignmentPath.node();
-              if (assignmentPathNode) {
-                decorateRelationElement(
-                  assignmentPathNode,
-                  assignment,
-                  relationEmphasisForItem(assignment)
-                );
-              }
-            }
-            composition.collections.forEach(({ item: candidate, index: candidateIndex }, pathIndex) => {
-              if (!revealedItemIndices.has(candidateIndex)) return;
-              const sourceRect = acceptedAnchorRect(candidate.toNodeId);
-              const rowY = rowTargets.get(featureRowKey(pathFeatureRow(candidate)));
-              if (!sourceRect || rowY === undefined) return;
-              const collectionPath = layer.append('path')
-                .attr('class', 'babel-case-collection-path')
-                .attr('opacity', focusedRelationMoment && planItemOwnsRelationMoment(
-                  candidate,
-                  focusedRelationMoment.stageIndex,
-                  focusedRelationMoment.relationIndex
-                ) ? null : opacity)
-                .attr('d', featureCollectionPlaquePath(
-                  { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect, pathIndex,
-                  featureCollectionObstacles(candidate.toNodeId, assignmentEntry.candidateIndex)));
-              const collectionPathNode = collectionPath.node();
-              if (collectionPathNode) {
-                decorateRelationElement(
-                  collectionPathNode,
-                  candidate,
-                  relationEmphasisForItem(candidate)
-                );
-              }
-            });
             });
             return;
           }
@@ -6160,7 +6102,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             queueAcceptedRelationDraw(planItem, emphasis, () => {
               const plaqueItem = planItem.kind === 'node-plaque' ? planItem : null;
               const anchorId = plaqueItem?.anchorNodeIds[0] || '';
-            if (featurePlaqueAssignment(frameItems, primitive.itemIndex) !== undefined) return;
+            const assignmentIndex = featurePlaqueAssignment(frameItems, primitive.itemIndex);
+            if (assignmentIndex !== undefined) {
+              drawCaseFeatureComposition(assignmentIndex);
+              return;
+            }
             const anchorRect = measuredTerminalSubtreeRectNow(anchorId)
               || measuredTreeLabelRectNow(anchorId, false);
             if (!anchorId || !anchorRect) return;

@@ -204,26 +204,21 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
 const svgSnapshot = node => ({ tag: node.tag, attrs: node.attrs, styles: node.styles,
   text: node.text, children: node.children.map(svgSnapshot) });
 
-const caseBranch = findNode(node => ts.isIfStatement(node)
-  && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-assignment'"));
 function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed = frameItems.map((_, i) => i)) {
   const root = new Element('g');
   const dependencies = {
-    planItem: item, emphasis: null, opacity: null, frameItems, planItemsShareAuthoredStage,
-    caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
+    frameItems, caseFeatureComposition, planItemRelationRefs,
     prepareCasePlaqueRows, featureCollectionPlaquePath, featureCollectionObstacles: () => [],
-    queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
-    relationLayerKey: () => 'case', renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
-    ensureFeatureRelationLayer() {}, ensureAgreementCaseRelationLayer: () => select(root),
-    acceptedTerminalRect: () => assigner, acceptedAnchorRect: () => assigner,
+    renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
+    ensureAgreementCaseRelationLayer: () => select(root),
+    measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
     markPreterminalLensNode() {}, replayPlaqueLayout: new Map([[0, placement]]),
-    focusedRelationMoment: null, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    decorateRelationElement() {}, relationEmphasisForItem: () => null,
     activeDerivationFrameIndex: 0, caseAssignmentPlaquePath, caseAssignmentSource,
     overlayNodeById: new Map([[item.fromNodeId, d3.hierarchy({ id: item.fromNodeId, label: 'V' })]]),
     getNodeId: node => node.data.id
   };
-  new Function(...Object.keys(dependencies), ts.transpile(caseBranch.thenStatement.getText(parsed),
-    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+  productionFunction('drawCaseFeatureComposition', dependencies)(0);
   return root;
 }
 

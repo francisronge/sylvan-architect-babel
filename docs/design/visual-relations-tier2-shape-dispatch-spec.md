@@ -179,12 +179,21 @@ feature target using the shared dotted collection curve. Case evidence is not
 required for the plaque; Case evidence independently earns a solid assignment
 arrow. No particular feature dimensions or languages are required.
 
-Case and collection can share a plaque when their exact current anchors meet at
-the same bearer in a shared authored stage. Rows match by both field name and
-value, with each contributing relation retaining its own reveal and focus.
-Multiple plausible incoming assignments or independent bundles stay separate.
-Layout reserves the combined content before reveal; long rows wrap. Collection
-curves use the Orchard style and bow around opaque ink without hiding segments.
+Case and collection share a plaque when their exact current anchors meet at the
+same bearer, or describe the same assigner–recipient pair, in a shared authored
+stage. A standalone feature specification on that assigner can join only when
+that explicit pair exists and the assigner has one Case recipient. A bundle
+already connected elsewhere cannot be borrowed. Ambiguous assignments stay
+separate.
+
+Each row retains its semantic owner, feature source and contributing relation
+moments. Equal text on different owners or different collection sources does not
+collapse into one row. The shell belongs to the visible contributors; rows and
+connectors reveal and focus independently. Rows follow their first authored
+moment, so future values do not leave an empty heading area. Future rows reserve space but do not print placeholders. Layout
+reserves the combined content before reveal; plaques widen up to 480 units before
+long rows wrap. D6 retains its original short-row dimensions. Collection curves
+use the Orchard style and bow around opaque ink without hiding segments.
 
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that

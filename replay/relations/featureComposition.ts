@@ -20,36 +20,74 @@ export function collectionPlaque(items: RelationPlanItem[], path: DirectedPathPl
   return owned.length === 1 ? owned[0] : bundles.length === 1 ? bundles[0] : undefined;
 }
 
-/** Case and collection meet at the same bearer, within an authored stage. */
+/** A collection can share Case's bearer, or describe the same assigner–recipient pair. */
+export function collectionAssignment(items: RelationPlanItem[], path: DirectedPathPlanItem): number | undefined {
+  const candidates = items.flatMap((item, index) => item.kind === 'directed-path'
+    && item.pathStyle === 'case-assignment' && planItemsShareAuthoredStage(item, path)
+    && (item.toNodeId === path.fromNodeId
+      || (item.fromNodeId === path.fromNodeId && item.toNodeId === path.toNodeId)) ? [index] : []);
+  if (candidates.length !== 1) return undefined;
+  const assignment = items[candidates[0]] as DirectedPathPlanItem;
+  const incoming = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+    && item.toNodeId === assignment.toNodeId && planItemsShareAuthoredStage(item, assignment));
+  return incoming.length === 1 ? candidates[0] : undefined;
+}
+
+/** Physical grouping never changes a row's semantic owner or its contributing relation moments. */
 export function caseFeatureComposition(items: RelationPlanItem[], assignmentIndex: number) {
   const assignment = items[assignmentIndex];
   if (assignment?.kind !== 'directed-path' || assignment.pathStyle !== 'case-assignment') return undefined;
-  const assignments = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+  const incoming = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
     && item.toNodeId === assignment.toNodeId && planItemsShareAuthoredStage(item, assignment));
-  const bundles = items.flatMap((item, index): Entry<NodePlaquePlanItem>[] =>
-    item.kind === 'node-plaque' && item.plaqueStyle === 'feature'
-      && item.anchorNodeIds[0] === assignment.toNodeId && planItemsShareAuthoredStage(item, assignment)
-      ? [{ item, index }] : []);
-  const bundle = assignments.length === 1 && bundles.length === 1 ? bundles[0] : undefined;
-  const collections = items.flatMap((item, index): Entry<DirectedPathPlanItem>[] =>
-    item.kind === 'directed-path' && item.pathStyle === 'case-agree' && assignments.length === 1
-      && item.fromNodeId === assignment.toNodeId && planItemsShareAuthoredStage(item, assignment)
-      && (!collectionPlaque(items, item) || collectionPlaque(items, item)?.index === bundle?.index)
-      ? [{ item, index }] : []);
-  const rows: Array<FeatureRow & { ownerIndices: number[] }> = [];
-  const add = (row: FeatureRow, index: number) => {
-    const existing = rows.find(candidate => featureRowKey(candidate) === featureRowKey(row));
+  const collections = incoming.length !== 1 ? [] : items.flatMap((item, index): Entry<DirectedPathPlanItem>[] =>
+    item.kind === 'directed-path' && item.pathStyle === 'case-agree'
+      && collectionAssignment(items, item) === assignmentIndex ? [{ item, index }] : []);
+  const paired = collections.some(({ item }) => item.fromNodeId === assignment.fromNodeId
+    && item.toNodeId === assignment.toNodeId);
+  const outgoing = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+    && item.fromNodeId === assignment.fromNodeId && planItemsShareAuthoredStage(item, assignment));
+  const bundles = incoming.length !== 1 ? [] : items.flatMap((item, index): Entry<NodePlaquePlanItem>[] => {
+    if (item.kind !== 'node-plaque' || item.plaqueStyle !== 'feature'
+      || !planItemsShareAuthoredStage(item, assignment)) return [];
+    const ownedCollections = items.filter(candidate => candidate.kind === 'directed-path'
+      && candidate.pathStyle === 'case-agree' && collectionPlaque(items, candidate)?.index === index);
+    // A bundle already connected elsewhere cannot be borrowed by a nearby Case plaque.
+    if (ownedCollections.length && !ownedCollections.every(candidate =>
+      collections.some(entry => entry.item === candidate))) return [];
+    const anchor = item.anchorNodeIds[0];
+    return ownedCollections.length > 0 || anchor === assignment.toNodeId
+      || (paired && outgoing.length === 1 && anchor === assignment.fromNodeId) ? [{ item, index }] : [];
+  });
+  const rows: Array<FeatureRow & { ownerNodeId: string; sourceNodeId?: string; ownerIndices: number[] }> = [];
+  const add = (row: FeatureRow, ownerNodeId: string, index: number, sourceNodeId?: string) => {
+    const candidates = rows.filter(candidate => candidate.ownerNodeId === ownerNodeId
+      && featureRowKey(candidate) === featureRowKey(row)
+      && (!sourceNodeId || !candidate.sourceNodeId || candidate.sourceNodeId === sourceNodeId));
+    const existing = candidates.length === 1 ? candidates[0] : undefined;
     if (existing) {
       if (!existing.ownerIndices.includes(index)) existing.ownerIndices.push(index);
-    } else rows.push({ ...row, ownerIndices: [index] });
+      if (sourceNodeId) existing.sourceNodeId = sourceNodeId;
+    } else rows.push({ ...row, ownerNodeId, sourceNodeId, ownerIndices: [index] });
   };
-  add(pathFeatureRow(assignment), assignmentIndex);
-  collections.forEach(({ item, index }) => add(pathFeatureRow(item), index));
-  bundle?.item.rows.forEach(row => add(row, bundle.index));
-  return { assignment, assignmentIndex, bundle, collections, rows };
+  const caseRow = pathFeatureRow(assignment);
+  add({ ...caseRow, label: caseRow.label || 'Case' }, assignment.toNodeId, assignmentIndex);
+  collections.forEach(({ item, index }) => add(pathFeatureRow(item), item.fromNodeId, index, item.toNodeId));
+  bundles.forEach(({ item, index }) => item.rows.forEach(row => {
+    const sources = collections.filter(entry => collectionPlaque(items, entry.item)?.index === index
+      && featureRowKey(pathFeatureRow(entry.item)) === featureRowKey(row));
+    add(row, item.anchorNodeIds[0], index, sources.length === 1 ? sources[0].item.toNodeId : undefined);
+  }));
+  const firstOwner = (row: typeof rows[number]) => row.ownerIndices.flatMap(index => planItemRelationRefs(items[index]))
+    .sort((a, b) => a.stageIndex - b.stageIndex || a.relationIndex - b.relationIndex)[0];
+  rows.sort((a, b) => {
+    const left = firstOwner(a), right = firstOwner(b);
+    return left.stageIndex - right.stageIndex || left.relationIndex - right.relationIndex;
+  });
+  return { assignment, assignmentIndex, bundles, collections, rows };
 }
 
 export function featurePlaqueAssignment(items: RelationPlanItem[], plaqueIndex: number): number | undefined {
-  const index = items.findIndex((_, i) => caseFeatureComposition(items, i)?.bundle?.index === plaqueIndex);
-  return index < 0 ? undefined : index;
+  const candidates = items.flatMap((_, i) => caseFeatureComposition(items, i)?.bundles
+    .some(bundle => bundle.index === plaqueIndex) ? [i] : []);
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
