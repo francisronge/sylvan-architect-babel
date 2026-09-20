@@ -11,7 +11,7 @@ import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
-import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, caseAssignmentClears, prepareCollectionPlaqueSpace, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 
 type StageLayoutInput = {
@@ -155,15 +155,18 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
             const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
             const obstacles = [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected),
               ...plaqueCollectionConnectorObstacles(scene.nodes, projected)];
-            return [{ anchor: futureAnchor, collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), playedRelations: scene.playedRelations, stageIndex: stageIndex + offset, dx, dy,
+            return [{ anchor: futureAnchor, caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), playedRelations: scene.playedRelations, stageIndex: stageIndex + offset, dx, dy,
               obstacles }];
           });
         });
         return {
           obstacles: futureScenes.flatMap(scene => scene.obstacles.map(box =>
             ({ ...box, x: box.x + scene.dx, y: box.y + scene.dy }))),
+          connectorCandidateXs: box => futureScenes.flatMap(scene =>
+            scene.collectionSpace.candidateXs({ ...box, x: box.x - scene.dx, y: box.y - scene.dy })
+              .map(x => x + scene.dx)),
           connectorCandidateYs: box => futureScenes.flatMap(scene =>
-            scene.collectionSpace.candidateYs({ ...box, x: box.x - scene.dx })
+            scene.collectionSpace.candidateYs({ ...box, x: box.x - scene.dx, y: box.y - scene.dy })
               .map(y => y + scene.dy)),
           acceptsConnector: box => futureScenes.every(scene => {
             const projected = { ...box, x: box.x - scene.dx, y: box.y - scene.dy,
@@ -172,7 +175,7 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
                   const [stage, relation] = key.split(':').map(Number);
                   return stage < scene.stageIndex || (stage === scene.stageIndex && scene.playedRelations!.has(relation));
                 })) };
-            return (box.caseRowY === undefined || caseAssignmentClears(scene.anchor, projected, scene.obstacles))
+            return (box.caseRowY === undefined || scene.caseClears(projected))
               && scene.collectionSpace.clears(projected);
           })
         };

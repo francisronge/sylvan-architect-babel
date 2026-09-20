@@ -44,6 +44,11 @@ changes reserve the largest required box at first appearance. Each frame project
 that reservation with its exact attachment node. The planner is memoized across
 Replay steps; it does not move branches, reveal future syntax, alter relation timing
 or change the shared camera-fitting algorithm. Transparent hulls are not obstacles.
+Collection clearance considers horizontal as well as vertical pockets. Candidate
+coordinates come from the existing curved path and opaque obstacles; each
+candidate is checked before acceptance. This does not reroute the Orchard
+connector. Source-label measurements and Case blockers are reused during the
+search rather than rebuilt for every candidate.
 
 Stability can require a more distant initial pocket in a dense changing tree. It
 does not guarantee every connector remains short. Different overlapping claims

@@ -1,0 +1,420 @@
+{
+  "sentence": "Ali kitabı okudu.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "objectNP",
+            "predicate": "vBase"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "objectNP",
+            "governor": "vBase"
+          },
+          "relation": "structural accusative licensing",
+          "values": {
+            "case": "accusative",
+            "exponent": "-ı"
+          }
+        }
+      ],
+      "stageRecord": "In the ordinary Turkish reading, the sentence means ‘Ali read the book.’ The verb selects an internal Theme argument, kitabı, whose final vowel marks accusative case. The nominal is represented as an NP, following an NP-based version of X-bar Theory; its inflected word is retained intact rather than decomposed into morphological terminals. Turkish head-final order places this object before V within V′. The proper name Ali forms a separate NP, available as the external argument. The verb is initially represented by the stem oku, before its combination with finite inflection. Although kitabı can have a possessive interpretation in other environments, that interpretation is not an alternative object analysis here: a third-person possessive definite object would require kitabını.",
+      "statement": "Construct the head-final verbal projection and the subject nominal.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectN",
+                  "label": "N",
+                  "tokenIndex": 0,
+                  "word": "Ali"
+                }
+              ],
+              "id": "subjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "subjectNP",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "objectN",
+                          "label": "N [accusative]",
+                          "tokenIndex": 1,
+                          "word": "kitabı"
+                        }
+                      ],
+                      "id": "objectNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "objectNP",
+                  "label": "NP [accusative]"
+                },
+                {
+                  "children": [],
+                  "id": "vBase",
+                  "label": "V",
+                  "lineageId": "readVerb",
+                  "word": "oku"
+                }
+              ],
+              "id": "vBar",
+              "label": "V′"
+            }
+          ],
+          "id": "vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "objectNP",
+            "predicate": "vBase"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "objectNP",
+            "governor": "vBase"
+          },
+          "relation": "structural accusative licensing",
+          "values": {
+            "case": "accusative",
+            "exponent": "-ı"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "subjectNP",
+            "predicate": "vp"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "inflection",
+            "subject": "subjectNP"
+          },
+          "relation": "finite subject licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "The VP combines with a following finite I head carrying past tense and third-person singular agreement, yielding head-final I′. Ali is introduced in Spec-IP. This analysis adopts the traditional GB placement of the external argument directly in Spec-IP, rather than a VP-internal subject hypothesis, so it does not posit subject movement or a subject trace. The verbal predicate assigns Ali its external Agent role, and finite I licenses nominative case on the subject. The object retains its Theme role and accusative licensing. The abstract inflection has not yet received its overt exponent; this workspace explicitly provides both the verb's source position and the higher inflectional head required for the next operation.",
+      "statement": "Build the finite IP and license the subject in Spec-IP.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ali"
+                    }
+                  ],
+                  "id": "subjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjectNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "objectN",
+                                  "label": "N [accusative]",
+                                  "tokenIndex": 1,
+                                  "word": "kitabı"
+                                }
+                              ],
+                              "id": "objectNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objectNP",
+                          "label": "NP [accusative]"
+                        },
+                        {
+                          "children": [],
+                          "id": "vBase",
+                          "label": "V",
+                          "lineageId": "readVerb",
+                          "word": "oku"
+                        }
+                      ],
+                      "id": "vBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "inflection",
+                  "label": "I [finite, past, third-person singular]"
+                }
+              ],
+              "id": "iBar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "vRaised",
+            "inflection"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "inflectionalHost": "inflection",
+            "landingHead": "complexI",
+            "raisedHead": "vRaised",
+            "sourceTrace": "vTrace"
+          },
+          "priorAnchors": {
+            "sourceHead": "vBase",
+            "targetHead": "inflection"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head-movement chain",
+            "operation": "head adjunction"
+          }
+        },
+        {
+          "anchors": {
+            "antecedent": "vRaised",
+            "trace": "vTrace"
+          },
+          "relation": "antecedent government",
+          "values": {
+            "locality": "the immediately higher inflectional head"
+          }
+        },
+        {
+          "anchors": {
+            "complexHead": "complexI",
+            "inflection": "inflection",
+            "stem": "vRaised"
+          },
+          "priorAnchors": {
+            "inflection": "inflection",
+            "stem": "vBase"
+          },
+          "relation": "finite morphological realization",
+          "values": {
+            "agreementExponent": "zero",
+            "pastExponent": "-du",
+            "surfaceWord": "okudu"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "objectNP",
+            "chainHead": "vRaised",
+            "thetaPosition": "vTrace"
+          },
+          "relation": "internal theta-role assignment through the verbal chain",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "objectNP",
+            "chainHead": "vRaised",
+            "governingPosition": "vTrace"
+          },
+          "relation": "structural accusative licensing through the verbal chain",
+          "values": {
+            "case": "accusative",
+            "exponent": "-ı"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "subjectNP",
+            "predicate": "vp"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "complexI",
+            "subject": "subjectNP"
+          },
+          "relation": "finite subject licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "ip"
+          },
+          "relation": "grammaticality judgment",
+          "values": {
+            "interpretation": "Ali read the book.",
+            "judgment": "grammatical"
+          }
+        }
+      ],
+      "stageRecord": "The verb raises from the previously established V position to the immediately higher I head, leaving a silent head trace. Head adjunction places the verb before inflection, preserving Turkish stem–suffix order. This is a V-to-I analysis of the finite form, not an analysis with lowering of I onto an unmoved verb; the surface string alone does not decide between those theoretical implementations. Following head movement, past inflection receives the suffixal exponent -du, selected by Turkish vowel harmony and the phonological environment of oku. Third-person singular has no additional overt agreement suffix here. The stem and inflection jointly realize the single input word okudu. The verbal chain preserves the object's theta and Case relations, and its trace is locally antecedent-governed by the raised head without an intervening head. Ali remains the nominative Agent in Spec-IP. The completed IP is grammatical: both overt NPs are Case-licensed, each argument has one theta role, and no scrambling, A-movement of an NP, or binding dependency is required. The pronounced order is subject, accusative object, finite verb.",
+      "statement": "Raise V to I and realize the grammatical finite clause Ali kitabı okudu.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ali"
+                    }
+                  ],
+                  "id": "subjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjectNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "objectN",
+                                  "label": "N [accusative]",
+                                  "tokenIndex": 1,
+                                  "word": "kitabı"
+                                }
+                              ],
+                              "id": "objectNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objectNP",
+                          "label": "NP [accusative]"
+                        },
+                        {
+                          "children": [],
+                          "id": "vTrace",
+                          "label": "V trace",
+                          "lineageId": "readVerb",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vRaised",
+                      "label": "V",
+                      "lineageId": "readVerb",
+                      "word": "oku"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflection",
+                      "label": "I [finite, past, third-person singular]",
+                      "word": "-du"
+                    }
+                  ],
+                  "id": "complexI",
+                  "label": "I [V-adjoined, finite]"
+                }
+              ],
+              "id": "iBar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

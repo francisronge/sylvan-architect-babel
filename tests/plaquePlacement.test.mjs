@@ -394,3 +394,40 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
     }
   });
 }
+
+for (const [width, height] of [[1600, 1016], [390, 844]]) {
+  test(`${width}px: collection clearance searches sideways before stretching the Case arrow below the tree`, () => {
+    const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/case-collection-growth.json', import.meta.url)));
+    const original = JSON.stringify(record);
+    const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
+    const plan = compileRelationRenderPlan(record.derivationStages);
+    const input = { steps, stageIndex: 1, plan, width, height,
+      completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages[1].workspaceForest) };
+    const layouts = buildReplayPlaqueLayouts(input);
+    const frame = plan.frames[1];
+    const index = frame.items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'inflection');
+    const box = layouts[1].get(index);
+    assert(box.collectionRows.length, 'the Case plaque retains its agreement collection');
+    assert(Math.hypot(box.x - box.attachmentX, box.y - box.attachmentY) < 1800,
+      `a clear side pocket exists; the search must not place this plaque far below the tree: ${JSON.stringify(box)}`);
+    const laterIndex = plan.frames[2].items.findIndex(item => plaqueIdentity(item) === plaqueIdentity(frame.items[index]));
+    const later = layouts[2].get(laterIndex);
+    assert(Math.abs(box.x - box.attachmentX - later.x + later.attachmentX) < 1e-8);
+    assert(Math.abs(box.y - box.attachmentY - later.y + later.attachmentY) < 1e-8,
+      'future inflection must not relocate an already visible plaque');
+    for (const stageIndex of [1, 2]) {
+      const space = measureStagePlaqueSpace({ ...input, stageIndex });
+      const placement = layouts[stageIndex].get(stageIndex === 1 ? index : laterIndex);
+      for (const scene of space.scenes) {
+        const anchor = scene.nodes.find(node => node.data.id === placement.attachmentNodeId);
+        if (!anchor) continue;
+        const projected = projectPlaqueLayout(new Map([[0, placement]]), () => anchor).get(0);
+        assert(scene.obstacles.every(obstacle => !plaquesOverlap(projected, obstacle)));
+        if (stageIndex > 1 || scene.playedRelations?.has(3)) {
+          assert(collectionPlaqueClears(projected, scene.nodes, scene.obstacles));
+        }
+      }
+    }
+    assert.equal(JSON.stringify(record), original);
+  });
+}

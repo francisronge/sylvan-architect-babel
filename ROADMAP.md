@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-20
+Status date: 2026-09-21
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -34,6 +34,20 @@ shared reader now accepts those participants with an authored Case value, keeps
 agreement rows, and gives an explicitly named recipient precedence. Three saved
 claims change; all 1,230 Replay steps and authored stages remain unchanged. This
 audit found no duplicate drawing groups under its exact-content comparison.
+
+Four subsequent Astra/high requests returned five normalized analyses: English
+passive/raising, German coordination, Japanese inflection and two Arabic analyses.
+They add 54 relations and 202 Replay steps. The new Japanese records expose the
+same Case-recipient gap for `argument`; the shared rule now covers that role too.
+No model-facing prompt, schema or provider request changed.
+
+Visual inspection exposed a separate allocation defect: a Case/agree plaque was
+sent far below the tree because connector clearance searched extra heights but
+not extra columns. The shared search now considers both coordinates and retains
+the reserved offset through later inflection. Dense allocation remains a
+performance concern. The Arabic thematic claims also name both an introducer and
+a different predicate; their assigning source remains ambiguous to the current
+reader. These remain active renderer/contract work, not app-readiness closeout.
 
 ## App workflow evidence
 
