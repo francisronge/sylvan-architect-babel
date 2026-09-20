@@ -168,11 +168,14 @@ arbitrary word from a branching VP.
 All 417 authored relations in 27 saved analyses were inventoried, including their
 remaining unconsumed fields. Residual prose, contextual anchors, clause typing,
 scope and morphological claims are not automatically renderer failures. Remaining
-assignment gaps include unpaired multiple sources/recipients and Case descriptions
-that do not establish a unique bearer. The concrete follow-up is an optional,
-neutral grouping of anchors and values within a relation, preserving simultaneity
-and open names. Discuss this contract proposal before changing the model-facing
-schema or prompt; do not zip arrays or rewrite a model's analysis.
+dispatch gaps include multiple sources/recipients and Case descriptions whose
+bearer the current reader does not establish. The existing prompt already tells
+models to give paired entries the same length and order. First assess which
+compound records that convention resolves; equal lengths alone do not identify
+every possible pairing. Optional grouping within a relation is only a possible
+follow-up if a concrete association cannot be expressed by the existing contract.
+This audit does not establish that a new field is needed. Discuss any proposed
+contract change before implementing it; do not rewrite a model's analysis.
 
 Input-token regressions cover possessives, contractions, Turkish suffixes, Arabic
 articles, Japanese multi-token stems and mixed scripts through normalization,

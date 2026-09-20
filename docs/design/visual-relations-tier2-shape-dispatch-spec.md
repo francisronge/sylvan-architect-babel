@@ -89,10 +89,13 @@ shared by drawing and continuity; open role labels retain their authored meaning
 The predicate label uses the anchored word, a unary display shell's word, or the
 anchored category. It never selects the first word in a branching subtree.
 
-Flat lists of several sources and recipients still do not encode their pairing.
-If neither the current record nor earlier complete claims establishes it, the
-renderer cannot assert a unique assignment. Optional neutral claim grouping is a
-contract proposal for discussion, not an implemented schema or prompt change.
+Equal list lengths alone do not establish which entries are paired. The current
+prompt already instructs models to give paired entries the same length and order;
+compound recovery should assess that convention before proposing a new field.
+If neither the current record nor earlier complete claims establishes a unique
+association, the renderer cannot assert one. Optional neutral claim grouping is
+only a possible contract proposal, not a demonstrated requirement or an implemented
+schema or prompt change.
 
 The original relation and literal displays retain the authored record.
 `primaryRelation` contains only the primary claim's evidence after independent
