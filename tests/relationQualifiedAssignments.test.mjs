@@ -166,3 +166,49 @@ test('governing heads and governed complements require an explicit Case value', 
     assert(!dispatch({ ...relation, values: undefined }).facets.some(f => f.recipe.id === 'feature.dependency'));
   }
 });
+
+test('Case licensing binds nominal roles consistently and preserves accompanying agreement', () => {
+  for (const source of ['licensor', 'licenser', 'licensingHead', 'governor', 'caseAssigner']) {
+    for (const recipient of ['nominal', 'subject', 'object']) {
+      const relation = { relation: 'Unregistered claim', anchors: {
+        [source]: 'source', [recipient]: 'argument', caseExponent: 'exponent'
+      }, values: { case: 'authored Case', agreement: 'authored agreement' } };
+      const before = structuredClone(relation);
+      const items = plan(relation);
+      const assignment = items.find(item => item.pathStyle === 'case-assignment');
+      assert(assignment, JSON.stringify(relation));
+      assert.equal(assignment.fromNodeId, 'source');
+      assert.equal(assignment.toNodeId, 'argument');
+      assert.equal(assignment.label, 'authored Case');
+      const collection = items.find(item => item.pathStyle === 'case-agree');
+      assert.equal(collection.fromNodeId, 'source');
+      assert.equal(collection.toNodeId, 'argument');
+      assert.deepEqual(collection.featureRow, { label: 'agreement', value: 'authored agreement' });
+      assert.deepEqual(dispatch(relation).evidenceCoverage.fields.find(f => f.key === 'caseExponent').unrecoveredItemIndices, [0]);
+      assert.deepEqual(relation, before);
+    }
+  }
+});
+
+test('an explicit Case recipient leaves other nominal participants as context', () => {
+  for (const contextRole of ['nominal', 'subject', 'object']) {
+    const relation = { relation: 'Unregistered claim', anchors: {
+      licensor: 'source', recipient: 'argument', [contextRole]: 'other'
+    }, values: { case: 'accusative' } };
+    const paths = plan(relation).filter(item => item.pathStyle === 'case-assignment');
+    assert.equal(paths.length, 1);
+    assert.equal(paths[0].toNodeId, 'argument');
+    assert.deepEqual(dispatch(relation).evidenceCoverage.fields.find(f => f.key === contextRole).unrecoveredItemIndices, [0]);
+  }
+});
+
+test('nominal roles alone cannot establish or disambiguate Case licensing', () => {
+  for (const relation of [
+    { anchors: { licensor: 'source', subject: 'argument' } },
+    { anchors: { head: 'source', subject: 'argument' }, values: { case: 'nominative' } },
+    { anchors: { licensor: 'source', subject: 'argument', object: 'other' }, values: { case: 'nominative' } },
+    { anchors: { licensor: ['source', 'other'], subject: 'argument' }, values: { case: 'nominative' } },
+    { anchors: { licensor: 'source', subject: 'argument' }, values: { case: ['nominative', 'accusative'] } },
+    { anchors: { licensor: 'source', subject: 'source' }, values: { case: 'nominative' } }
+  ]) assert(!dispatch({ relation: 'Case licensing in the title', ...relation }).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});

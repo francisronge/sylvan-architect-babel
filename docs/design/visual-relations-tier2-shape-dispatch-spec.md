@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 20 binds recognized equivalent role wording before
+Production registry version 21 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -114,9 +114,11 @@ linguistic locality: other valid analyses can remain neutral. The shared recipe
 still validates each scoped claim, including outcomes. Categories, scripts and
 left/right word order do not determine this grouping.
 
-Declared role nouns retain their meaning in plural lists. A named nominal can
-be a Case recipient when an explicit Case literal and distinct licenser/governor
-establish that dependency; its Case exponent remains separate context. A finite
+Declared role nouns retain their meaning in plural lists. A named nominal,
+subject or object can be a Case recipient when an explicit Case literal and
+distinct licenser/governor establish that dependency. An explicitly directed
+recipient takes precedence over those contextual roles. Competing nominal
+references do not select an endpoint; a Case exponent remains separate context. A finite
 head and explicitly named agreement controller can establish a feature
 dependency with authored feature values. Distinct scalar person/number/gender
 fields form one bundle. Competing values for the same dimension or competing

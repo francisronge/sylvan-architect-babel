@@ -155,7 +155,7 @@ test('registered phrasal movement compiles with witness endpoints and authored p
     }], [whTree])
   ]);
 
-  assert.equal(plan.registryVersion, '20');
+  assert.equal(plan.registryVersion, '21');
   assert.equal(plan.frames.length, 1);
   const [item] = plan.frames[0].items;
   assert.equal(item.kind, 'trajectory');

@@ -9,7 +9,33 @@ Babel must accommodate all languages. Test languages expose general limitations;
 they do not define a supported-language allowlist or authorize language-specific
 syntactic rules.
 
-## Current app readiness
+## Current priority: complete the derivation and rendering pipeline
+
+The renderer and derivation contract remain active work. Passing saved examples
+or the offline gate does not establish that unfamiliar records work correctly.
+Desktop is the primary experience; compact-screen work must not compromise it.
+
+Current execution order:
+
+1. Trace saved failures through authored records, normalization, claim reading,
+   Replay construction and drawing. Separate missing evidence from reader errors.
+2. Repair shared rules with positive and negative regressions. Check compound
+   assignments, shared plaques, movement attachment, realization timing and
+   neutral fallback, including each claim's exact values and occurrences.
+3. Test four new Astra analyses across languages and both frameworks, chosen to
+   challenge those rules. Preserve exact prompt and model provenance. Change the
+   authored contract only when a necessary distinction cannot be expressed.
+4. Review the affected frames in the application, with before/after evidence and
+   movement playback. Record actual remaining defects before choosing more work.
+
+The current saved-record audit covers 27 analyses and 417 relations. It exposed
+Case claims whose explicit licensor and subject/object were left neutral. The
+shared reader now accepts those participants with an authored Case value, keeps
+agreement rows, and gives an explicitly named recipient precedence. Three saved
+claims change; all 1,230 Replay steps and authored stages remain unchanged. This
+audit found no duplicate drawing groups under its exact-content comparison.
+
+## App workflow evidence
 
 The local workflow is checked with saved fixture replies through the real input,
 request handler, Canopy, Replay, analysis selection, Tree Bank, reload/reopen and
@@ -23,7 +49,7 @@ Save errors are visible in the workspace. Saved framework metadata belongs to
 the completed analysis, not the controls for the next request. The current
 IndexedDB schema and saved-bundle format are unchanged.
 
-Remaining work, in execution order:
+Later app work, after the pipeline work above:
 
 1. Verify compact-screen readability in the full app. The 390px workflow capture
    leaves the early Replay tree extremely small when the header, input and Replay

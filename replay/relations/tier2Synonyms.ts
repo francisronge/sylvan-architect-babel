@@ -303,16 +303,23 @@ export const relationRoleConcepts = (
   const pairedCase = Object.keys(context.anchors ?? {}).some(role =>
     /^case /.test(normalizeTier2Synonym(role)) && qualifiedAssignmentConcepts(role).includes('feature.target')
     && nonBlankLiteral(context.values?.[role]));
+  const nominalRoles = new Set(['nominal', 'subject', 'object']);
+  const explicitCaseRecipient = Object.keys(context.anchors ?? {}).some(role =>
+    qualifiedAssignmentConcepts(role).includes('feature.target')
+      || isExplicitTier2Role('feature.target', role)
+      || assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'target');
   if (spelling === 'governor' && (hasLiteral('case.literal') || pairedCase) && Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
       || isExplicitTier2Role('feature.target', role) || assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'target'
-      || normalizeTier2Synonym(role) === 'nominal')) {
+      || nominalRoles.has(normalizeTier2Synonym(role)))) {
     concepts.add('feature.source');
   }
-  // A named Case value and licenser establish the role of a named nominal;
-  // a Case exponent remains separate evidence, never an inferred endpoint.
-  if (spelling === 'nominal' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
+  // An explicitly directed recipient owns the slot. Otherwise a named nominal,
+  // subject or object may fill it with a Case literal and independent licenser.
+  // Competing nominal references still fail binding; exponents remain context.
+  if (nominalRoles.has(spelling) && !explicitCaseRecipient && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
     assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'source'
+      || qualifiedAssignmentConcepts(role).includes('feature.source')
       || singularRole(normalizeTier2Synonym(role)) === 'governor')) concepts.add('feature.target');
   const hasAgreementController = Object.keys(context.anchors ?? {}).some(role =>
     normalizeTier2Synonym(role) === 'agreement controller');
