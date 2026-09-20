@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentSource, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import { stageTreeLayoutSize, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
@@ -266,4 +266,44 @@ test('below-tree plaques cannot escape a connector stem by moving below its tree
   assert(Object.values(result).filter(v => typeof v === 'number').every(Number.isFinite));
   const extended = stems.map(stem => ({ ...stem, height: result.y + result.height + 500 }));
   assert(extended.every(stem => !plaquesOverlap(result, stem)), 'longer lower lanes remain clear');
+});
+
+test('a complex Case assigner anchors to its category, never the empty space between words', () => {
+  const complex = d3.hierarchy({ id: 'complex', label: 'V', children: [
+    { id: 'root', label: 'V', word: 'read' }, { id: 'suffix', label: 'M', word: 'n' }
+  ] });
+  assert.equal(caseAssignmentSource(complex), complex);
+  const single = d3.hierarchy({ id: 'head', label: 'V', children: [{ id: 'word', word: 'read' }] });
+  assert.equal(caseAssignmentSource(single).data.id, 'word');
+  const abstract = d3.hierarchy({ id: 'head', label: 'T', silent: true });
+  assert.equal(caseAssignmentSource(abstract), abstract);
+});
+
+test('Case placement avoids an existing plaque in its curved approach and reserves that approach for later plaques', () => {
+  const nodes = tree().descendants();
+  const item = { kind: 'directed-path', pathStyle: 'case-assignment', fromNodeId: 'left', toNodeId: 'right',
+    featureRow: { label: 'Case', value: 'accusative' }, relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const original = placeStagePlaques([item], nodes);
+  const path = plaqueCaseConnectorObstacles([item], nodes, original);
+  assert(path.length > 0);
+  const middle = path[Math.floor(path.length / 2)];
+  const blocker = { x: middle.x - 10, y: middle.y - 10, width: 30, height: 30, blocksConnectors: true };
+  const clear = placeStagePlaques([item], nodes, [...plaqueTreeObstacles(nodes), blocker]);
+  assert(plaqueCaseConnectorObstacles([item], nodes, clear).every(segment => !plaquesOverlap(segment, blocker, 0)));
+  assert(!plaquesOverlap(clear.get(0), blocker));
+  const second = { ...plaque(['left']), relationRef: { stageIndex: 0, relationIndex: 1 } };
+  const together = placeStagePlaques([item, second], nodes);
+  assert(plaqueCaseConnectorObstacles([item, second], nodes, together).every(segment => !plaquesOverlap(segment, together.get(1), 0)));
+});
+
+test('connector clearance reserves rendered words without an invisible duplicate category', () => {
+  const root = d3.hierarchy({ id: 'head', label: 'V', children: [
+    { id: 'word', label: 'read', word: 'read', replayOrigin: { kind: 'word', ownerId: 'head' } }
+  ] });
+  d3.tree().size([800, 500])(root);
+  const obstacles = plaqueTreeObstacles(root.descendants());
+  assert(obstacles.some(rect => rect.connectorAttachment === 'word:terminal'));
+  assert(!obstacles.some(rect => rect.connectorAttachment === 'word:category'),
+    'a display word has no category ink above its terminal');
+  assert(obstacles.some(rect => rect.connectorAttachment === 'head:category'));
 });

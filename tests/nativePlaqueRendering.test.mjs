@@ -7,7 +7,7 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { appendPlaqueContent } from '../components/plaqueViewport.ts';
@@ -214,7 +214,9 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
     acceptedTerminalRect: () => assigner, acceptedAnchorRect: () => assigner,
     markPreterminalLensNode() {}, replayPlaqueLayout: new Map([[0, placement]]),
     focusedRelationMoment: null, decorateRelationElement() {}, relationEmphasisForItem: () => null,
-    activeDerivationFrameIndex: 0, caseAssignmentPlaquePath
+    activeDerivationFrameIndex: 0, caseAssignmentPlaquePath, caseAssignmentSource,
+    overlayNodeById: new Map([[item.fromNodeId, d3.hierarchy({ id: item.fromNodeId, label: 'V' })]]),
+    getNodeId: node => node.data.id
   };
   new Function(...Object.keys(dependencies), ts.transpile(caseBranch.thenStatement.getText(parsed),
     { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));

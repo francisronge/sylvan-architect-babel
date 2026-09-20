@@ -11,7 +11,7 @@ import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
-import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, caseAssignmentClears, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 
 type StageLayoutInput = {
@@ -129,28 +129,34 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
   return frames.map((frame, stageIndex) => {
     const { nodes, obstacles } = spaces[stageIndex];
     const layout = placeStagePlaques(frame.items, nodes, obstacles, remembered, input.measurePlaqueText, { sizes,
-      obstaclesFor: (index, anchor, allocated) => {
+      spaceFor: (index, anchor, allocated) => {
         const key = plaqueIdentity(frame.items[index]);
         const known = new Map(remembered);
         allocated.forEach((placement, itemIndex) => known.set(plaqueIdentity(frame.items[itemIndex]), placement));
-        return spaces.slice(stageIndex).flatMap((space, offset) => {
+        const futureScenes = spaces.slice(stageIndex).flatMap((space, offset) => {
           const items = frames[stageIndex + offset].items;
           if (!items.some(item => plaqueIdentity(item) === key)) return [];
-          const liveKeys = new Set(items.map(plaqueIdentity));
           return space.scenes.flatMap(scene => {
             const byId = indexHierarchyNodesByIdAndAliases(scene.nodes);
             const futureAnchor = byId.get(String((anchor as any).__vizId ?? anchor.data.id));
             if (!futureAnchor) return [];
             const dx = anchor.x - futureAnchor.x, dy = anchor.y - futureAnchor.y;
-            const plaques = [...known].flatMap(([otherKey, placement]) => {
-              const position = byId.get(placement.attachmentNodeId);
-              if (otherKey === key || !liveKeys.has(otherKey) || !position) return [];
-              return [{ ...placement, x: placement.x + position.x - placement.attachmentX,
-                y: placement.y + position.y - placement.attachmentY }];
-            });
-            return [...scene.obstacles, ...plaques].map(box => ({ ...box, x: box.x + dx, y: box.y + dy }));
+            const otherPlacements = new Map(items.flatMap((item, index) => {
+              const otherKey = plaqueIdentity(item), placement = known.get(otherKey);
+              return otherKey !== key && placement ? [[index, placement] as const] : [];
+            }));
+            const projected = projectPlaqueLayout(otherPlacements, id => byId.get(id) ?? null);
+            const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
+            return [{ anchor: futureAnchor, dx, dy,
+              obstacles: [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected)] }];
           });
         });
+        return {
+          obstacles: futureScenes.flatMap(scene => scene.obstacles.map(box =>
+            ({ ...box, x: box.x + scene.dx, y: box.y + scene.dy }))),
+          acceptsConnector: box => futureScenes.every(scene => caseAssignmentClears(scene.anchor,
+            { ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.obstacles))
+        };
       } });
     layout.forEach((placement, index) => remembered.set(plaqueIdentity(frame.items[index]), placement));
     return layout;

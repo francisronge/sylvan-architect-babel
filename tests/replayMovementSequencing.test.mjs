@@ -1774,3 +1774,55 @@ test('head movement owns the new path back to its source workspace, not an unrel
   assert(!steps.slice(movementIndex + 1).some(step => step.replayKind === 'micro'
     && step.targetNodeId === 'cPrime'), 'no delayed attachment after movement');
 });
+
+test('a pending head complex preserves the existing host branch until movement', () => {
+  const head = leaf('v0', 'v[transitive]', '', { silent: true });
+  const verb = leaf('vLow', 'V', 'read', { lineageId: 'verb' });
+  const phrase = node('vp', 'VP', [verb, leaf('object', 'DP', 'books')]);
+  const previous = node('shell', 'vP', [head, phrase]);
+  const current = clone(previous);
+  current.children[0] = node('complex', 'v', [leaf('vHigh', 'V', 'read', { lineageId: 'verb' }), head]);
+  current.children[1].children[0].silent = true;
+  const stages = [
+    { statement: 'Base', stageRecord: 'Base', workspaceForest: [previous], relations: [] },
+    { statement: 'Head adjunction', stageRecord: 'Head adjunction', workspaceForest: [current], relations: [
+      { relation: 'Earlier observation', anchors: { witness: 'v0' } },
+      { relation: 'Head adjunction', anchors: { higherOccurrence: 'vHigh', lowerOccurrence: 'vLow', host: 'v0', resultingHead: 'complex' },
+        priorAnchors: { source: 'vLow', target: 'v0' } }
+    ] }
+  ];
+  const original = clone(stages);
+  const steps = prepareReplay({ derivationStages: stages, sentence: 'read books', includePlayback: true }).playbackSteps;
+  const before = steps.find(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 0);
+  assert.deepEqual(findNode(before.replayCanvasData, 'shell').children.map(n => n.id), ['v0', 'vp']);
+  assert(before.replayVisibleNodeIds.includes('v0'));
+  const movement = steps.find(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 1);
+  assert.deepEqual(findNode(movement.replayCanvasData, 'complex').children.map(n => n.id), ['vHigh', 'v0']);
+  assert.deepEqual(stages, original);
+});
+
+test('head adjunction attaches its receiving head before a later pronunciation change', () => {
+  const source = leaf('vBase', 'V', 'read', { lineageId: 'verb' });
+  const infl = leaf('infl', 'I[past]', '', { silent: true });
+  const previous = node('ibar', "I'", [node('vp', 'VP', [source]), infl]);
+  const current = node('ibar', "I'", [node('vp', 'VP', [leaf('trace', 'V trace', '', { silent: true, lineageId: 'verb' })]),
+    node('complex', 'I', [leaf('raised', 'V', 'read', { lineageId: 'verb' }), leaf('infl', 'I[past]', '-ed')])]);
+  const stages = [
+    { statement: 'Base', stageRecord: 'Base', workspaceForest: [previous], relations: [] },
+    { statement: 'Inflected head', stageRecord: 'Inflected head', workspaceForest: [current], relations: [
+      { relation: 'V-to-I head movement', anchors: { inflectionalHost: 'infl', landingHead: 'complex', raisedHead: 'raised', sourceTrace: 'trace' },
+        priorAnchors: { sourceHead: 'vBase', targetHead: 'infl' } },
+      { relation: 'Finite realization', anchors: { complexHead: 'complex', inflection: 'infl', stem: 'raised' },
+        priorAnchors: { inflection: 'infl', stem: 'vBase' }, values: { exponent: '-ed' } }
+    ] }
+  ];
+  const original = clone(stages);
+  const steps = prepareReplay({ derivationStages: stages, sentence: 'read', includePlayback: true }).playbackSteps;
+  const move = steps.find(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 0);
+  assert.deepEqual(findNode(move.replayCanvasData, 'ibar').children.map(n => n.id), ['vp', 'complex']);
+  assert.deepEqual(findNode(move.replayCanvasData, 'complex').children.map(n => n.id), ['raised', 'infl']);
+  assert.equal(findNode(move.replayCanvasData, 'infl').word || '', '');
+  const realize = steps.find(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 1);
+  assert.equal(findNode(realize.replayCanvasData, 'infl').word, '-ed');
+  assert.deepEqual(stages, original);
+});

@@ -28,6 +28,7 @@ const setup = () => {
     const behavior = createBehavior().extent([[0, 0], [1000, 800]]).touchable(false);
     return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', `
       let applyingCameraTransform = false;
+      let refreshTrajectoryClearance = null;
       const zoom = (() => { ${initializer('zoom')} })();
       const applyCameraTransform = (() => { ${initializer('applyCameraTransform')} })();
       return { zoom, applyCameraTransform };

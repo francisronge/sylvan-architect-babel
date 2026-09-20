@@ -9,7 +9,7 @@ export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
 /** Enter the plaque from the assigner's side; the curve stays outside its rectangle. */
-export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: number): string {
+export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: number) {
   const centerX = assigner.x + assigner.width / 2;
   const target = centerX < plaque.x
     ? { x: plaque.x - 12, y: rowY, side: 'left' }
@@ -24,8 +24,14 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
   // Aligned boxes still get a short curve wholly within their vertical gap.
   const bowX = target.side === 'vertical' ? Math.min(32, Math.abs(bendY)) : 0;
   const approachY = target.side === 'vertical' ? source.y + bendY : target.y;
-  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${(source.x + bowX).toFixed(1)} ${(source.y + bendY).toFixed(1)},`
-    + ` ${(target.x + approachX).toFixed(1)} ${approachY.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
+  return { source, target, control1: { x: source.x + bowX, y: source.y + bendY },
+    control2: { x: target.x + approachX, y: approachY } };
+}
+
+export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: number): string {
+  const { source, target, control1, control2 } = caseAssignmentPlaqueCurve(assigner, plaque, rowY);
+  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${control1.x.toFixed(1)} ${control1.y.toFixed(1)},`
+    + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
 export type AnalysisVerdictAnchor = {

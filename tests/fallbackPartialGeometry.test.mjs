@@ -389,3 +389,20 @@ test('a local scalar connector does not descend to unrelated deep syntax', () =>
   assert.equal(blocked.primitives.find(p => p.type === 'segment').laneY, 297,
     'a plaque in the local lane still requires clearance');
 });
+
+test('future labels and plaques reserve space without cutting holes in current connectors', () => {
+  const segment = { type: 'segment', itemIndex: 0, route: 'direct', lane: null,
+    from: { x: 0, y: 100 }, to: { x: 500, y: 100 }, witnessNodeIds: ['a', 'b'], d: '' };
+  const frame = { stageIndex: 0, primitives: [segment], failed: [] };
+  const label = { x: 100, y: 80, width: 80, height: 40 };
+  const plaque = { x: 300, y: 80, width: 80, height: 40 };
+  const measurements = { labels: [label], obstacles: [plaque], visibleLabels: [], visibleObstacles: [],
+    labelFor: () => null, subtreeFor: () => null, bottom: 120 };
+  const fit = fallbackMeasurements => fitFallbackGeometry(frame, { fittedMarkerScale: 1, fallbackMeasurements }).get(segment);
+  const hidden = fit(measurements);
+  assert.equal(hidden.d, 'M 0.0 100.0 L 500.0 100.0');
+  const shown = fit({ ...measurements, visibleLabels: [label], visibleObstacles: [plaque] });
+  assert.equal(shown.d.split('M ').length - 1, 3);
+  assert.deepEqual(hidden.from, shown.from);
+  assert.deepEqual(hidden.to, shown.to);
+});

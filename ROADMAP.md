@@ -243,6 +243,23 @@ for regressions and show only one or two directly relevant comparisons for each
 change. Subsequent generation should answer a specific unresolved question in a
 small batch; the user does not need to review all twenty analyses before repairs.
 
+The subsequent human frame review found further reproducible defects. Pending
+head adjunction now retains the old host branch, and movement attaches the host
+without advancing its later pronunciation. This repairs Astra Arabic frame 17
+and Turkish frame 25. Invisible reservations no longer cut neutral connectors.
+Complex Case assigners use their category rather than the gap between words;
+plaque placement also checks the curved approach throughout the claim's lifetime.
+Movement paths pass behind visible text, and unchanged chain restatements share
+their path after embedding. An explicitly authored unary IP remains visible but
+is not pulled sideways by its future landing.
+
+Verification retains all 27 source analyses, 133 stages, 417 relation moments and
+1,230 Replay frames. The desktop/mobile layout audit found no plaque collisions
+or changed attachment offsets; reported transitions, zoom, Fit and hover received
+browser checks. The offline gate passes 1,788 tests, typecheck and both fixtures;
+the two browser regressions pass. Before/after images and recordings are in the
+temporary review at `/tmp/babel-sept17-review/frame-repairs`.
+
 ## Current Baseline
 
 The preceding varied subscription batch made eight Babel-only OAuth requests on

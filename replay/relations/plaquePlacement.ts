@@ -1,11 +1,14 @@
-import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { categoryTextLayout, CATEGORY_LINE_HEIGHT, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf } from '../replayCompiler.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { planItemsShareAuthoredStage, type RelationPlanItem } from './renderPlanCompiler.ts';
-import { featureSharingPlaqueRect, dependentCaseStatePlaques } from './markGeometry.ts';
+import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from './markGeometry.ts';
+import { caseAssignmentPlaqueCurve } from './overlayGeometry.ts';
 import { preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
-export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean };
+export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
+  blocksConnectors?: boolean; connectorAttachment?: string };
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
@@ -61,12 +64,20 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
   for (const node of nodes.filter(visible)) {
     const label = categoryTextLayout(node.data.label || '', measureCategoryText);
     const width = Math.max(150, String(node.data.label || '').length * 38);
-    rectangles.push(label.lines.length > 1
+    const hasCategory = Boolean(node.children?.length) || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data);
+    if (hasCategory) rectangles.push({ ...(label.lines.length > 1
       ? { x: node.x + label.x - 8, y: node.y + label.y - 8, width: label.width + 16, height: label.height + 16 }
-      : { x: node.x - width / 2, y: node.y - 42, width, height: 84 });
+      : { x: node.x - width / 2, y: node.y - 42, width, height: 84 }),
+      blocksConnectors: label.lines.length === 1, connectorAttachment: `${idOf(node)}:category` });
+    if (hasCategory && label.lines.length > 1) label.lines.forEach((line, index) => {
+      const lineWidth = measureCategoryText?.(line) ?? [...line].length * 25;
+      rectangles.push({ x: node.x - lineWidth / 2 - 4, y: node.y + label.y + index * CATEGORY_LINE_HEIGHT - 4,
+        width: lineWidth + 8, height: 60, blocksConnectors: true, connectorAttachment: `${idOf(node)}:category` });
+    });
     if (!node.children?.length && node.data.word) {
       const wordWidth = Math.max(150, String(node.data.word).length * 40);
-      rectangles.push({ x: node.x - wordWidth / 2, y: node.y + 85, width: wordWidth, height: 90 });
+      rectangles.push({ x: node.x - wordWidth / 2, y: node.y + 65, width: wordWidth, height: 110,
+        blocksConnectors: true, connectorAttachment: `${idOf(node)}:terminal` });
       rectangles.push({ x: node.x - 6, y: node.y, width: 12, height: 130 });
     }
     const parent = node.parent;
@@ -107,6 +118,47 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
 }
 
 type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean };
+
+/** A single word can carry a head's mark; a complex head retains its own category anchor. */
+export function caseAssignmentSource(node: Node): Node {
+  const terminals = node.descendants().filter(child => !child.children?.length && Boolean(child.data.word));
+  return terminals.length === 1 ? terminals[0] : node;
+}
+
+const caseSourceRect = (anchor: Node): PlaqueRect => {
+  const source = caseAssignmentSource(anchor);
+  const word = !source.children?.length && source.data.word;
+  const label = categoryTextLayout(source.data.label || '');
+  return { x: source.x - (word ? 75 : label.width / 2), y: source.y + (word ? 65 : label.y),
+    width: word ? 150 : label.width, height: word ? 60 : label.height };
+};
+
+const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => {
+  const { source, control1, control2, target } = caseAssignmentPlaqueCurve(caseSourceRect(anchor), box, box.y + 93);
+  const points = sampleCubic(source, control1, control2, target, 32);
+  return points.slice(1).map((point, i) => ({
+    x: Math.min(points[i].x, point.x) - 8, y: Math.min(points[i].y, point.y) - 8,
+    width: Math.abs(points[i].x - point.x) + 16, height: Math.abs(points[i].y - point.y) + 16
+  }));
+};
+
+/** Test the drawn approach against opaque ink, leaving its own attachment available. */
+export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: PlaqueRect[]): boolean {
+  const source = caseAssignmentSource(anchor);
+  const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
+  const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
+  return caseRouteRects(anchor, box).every(segment => blockers.every(rect => !plaquesOverlap(segment, rect, 0)));
+}
+
+/** Reserve the same curved approach as the painter, including carried claims. */
+export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
+  const byId = new Map(nodes.map(node => [idOf(node), node]));
+  return [...layout].flatMap(([index, box]) => {
+    const item = items[index];
+    const anchor = item?.kind === 'directed-path' && item.pathStyle === 'case-assignment' && byId.get(item.fromNodeId);
+    return anchor ? caseRouteRects(anchor, box) : [];
+  });
+}
 
 /** Measure content independently of allocation so its whole lifetime can reserve one size. */
 export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Node[], measureText?: PlaqueTextMeasure): PlaqueRequest[] {
@@ -157,7 +209,10 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 
 type PlaqueLifetime = {
   sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height'>>;
-  obstaclesFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => PlaqueRect[];
+  spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
+    obstacles: PlaqueRect[];
+    acceptsConnector: (box: PlaqueRect) => boolean;
+  };
 };
 
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
@@ -178,7 +233,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       y: prior.y + attachment.y - prior.attachmentY, attachmentX: attachment.x, attachmentY: attachment.y };
     if (!lifetime && [...obstacles, ...placed].some(obstacle => plaquesOverlap(placement, obstacle))) continue;
     result.set(request.index, placement);
-    placed.push(placement);
+    placed.push({ ...placement, blocksConnectors: true },
+      ...(request.caseAssignment ? caseRouteRects(attachment, placement) : []));
   }
   // Local boxes get the nearby pockets first. Large boxes do not consume those pockets.
   requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
@@ -187,7 +243,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));
     if (!anchors.length) continue;
     const anchor = anchors[0];
-    const occupied = [...(lifetime?.obstaclesFor(request.index, anchor, result) ?? obstacles), ...placed];
+    const space = lifetime?.spaceFor(request.index, anchor, result);
+    const occupied = [...(space?.obstacles ?? obstacles), ...placed];
+    const clear = (candidate: PlaqueRect) => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle))
+      && (!request.caseAssignment || (space ? space.acceptsConnector(candidate)
+        : caseAssignmentClears(anchor, candidate, occupied)));
     const ancestors = anchor.ancestors();
     let domain = ancestors.find(candidate => visible(candidate) && anchors.every(node => node.ancestors().includes(candidate))) || anchor;
     if (anchors.length === 1 && !domain.children?.length && domain.parent && visible(domain.parent)) domain = domain.parent;
@@ -206,7 +266,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         .map(x => ({ x, y: anchorY + dy, width, height })))
       .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
         - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
-    let placement = candidates.find(candidate => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle)));
+    let placement = candidates.find(clear);
     if (!placement && local) {
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
@@ -227,10 +287,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           else merged.push(interval);
         }
         const idealY = anchorY - height / 2;
-        const blocked = merged.find(([start, end]) => start < idealY && end > idealY);
-        for (const y of blocked ?? [idealY]) {
+        // The nearest box-sized gap can still put the curved approach through
+        // another label. Consider the remaining gap edges before falling below.
+        const ys = [...new Set([idealY, ...merged.flat()])].filter(Number.isFinite)
+          .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
+        for (const y of ys) {
           const dy = y + height / 2 - anchorY, distance = dx * dx + dy * dy;
-          if (distance < bestDistance) {
+          if (distance >= bestDistance) break;
+          if (distance < bestDistance && clear({ x, y, width, height })) {
             placement = { x, y, width, height }; bestDistance = distance;
           }
         }
@@ -258,7 +322,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
       attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y });
-    placed.push(placement);
+    placed.push({ ...placement, blocksConnectors: true },
+      ...(request.caseAssignment ? caseRouteRects(anchor, placement) : []));
   }
   return result;
 }

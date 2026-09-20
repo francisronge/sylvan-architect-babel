@@ -1733,6 +1733,19 @@ const buildPreMovementStructuralForest = (
     return null;
   };
   const previousLocations = indexExactForestNodeLocations(previousForest);
+  const restoreHeadHost = (parent: SyntaxNode | null): void => {
+    if (!parent || previousLocations.has(parent.id) || parent.children?.length !== 1) return;
+    const host = parent.children[0];
+    const prior = previousLocations.get(host.id);
+    const grandparent = findParent(parent.id);
+    const siblings = grandparent?.children || structuralForest;
+    // Undo only the new shell around an existing head in its preceding slot.
+    // Keeping that shell hidden would sever the old parent's visible branch.
+    if (prior && prior.parentId === (grandparent?.id || '')
+      && (grandparent ? prior.childIndex : prior.rootIndex) === siblings.indexOf(parent)) {
+      replaceStructuralNode(parent.id, host);
+    }
+  };
   const precedingLandingSlot = (relation: DerivationReplayPlanStep, landing: SyntaxNode): SyntaxNode | null => {
     const parent = findParent(landing.id);
     const oldParent = parent && previousLocations.get(parent.id)?.node;
@@ -1809,6 +1822,7 @@ const buildPreMovementStructuralForest = (
       if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
       else if (parent) parent.children = parent.children?.filter(child => child !== landing);
       else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      if (movement.trajectoryKind === 'head') restoreHeadHost(parent);
       replaceStructuralNode(movement.sourceNodeId, restored);
       restorePrecedingContainers(restored.id);
       return;
@@ -1865,6 +1879,7 @@ const buildPreMovementStructuralForest = (
     } else {
       structuralForest.splice(targetRootIndex, 1);
     }
+    if (trajectoryDisplayKind === 'head' && relation.recoveredMovement) restoreHeadHost(targetParent);
     sourceIds.forEach(restorePrecedingContainers);
   });
 
@@ -2024,6 +2039,18 @@ const buildAnchoredTreeTransitionForest = (
   );
   const previousLocations = indexExactForestNodeLocations(previousForest);
   const currentLocations = indexExactForestNodeLocations(currentForest);
+  const attachmentNodeIds = new Set<string>();
+  activeRelations.forEach(relation => {
+    const movement = relation.recoveredMovement;
+    if (!movement?.transition || movement.trajectoryKind !== 'head') return;
+    const parent = currentLocations.get(movement.targetNodeId)?.parent;
+    if (!parent || previousLocations.has(parent.id)) return;
+    // The receiving head joins the new complex at movement. Its later
+    // pronunciation may belong to another relation and is left untouched here.
+    parent.children?.filter(child => child.id !== movement.targetNodeId
+      && previousLocations.get(child.id)).forEach(child => attachmentNodeIds.add(child.id));
+  });
+  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds]);
   let result = cloneSyntaxForest(previousForest);
 
   const exactLocation = (
@@ -2076,7 +2103,7 @@ const buildAnchoredTreeTransitionForest = (
   };
 
   const activeCurrentAncestorNodeIds = new Set<string>();
-  activeCurrentNodeIds.forEach((nodeId) => {
+  structuralNodeIds.forEach((nodeId) => {
     let parentId = exactLocation(currentLocations, nodeId)?.parentId || '';
     while (parentId) {
       activeCurrentAncestorNodeIds.add(parentId);
@@ -2131,7 +2158,7 @@ const buildAnchoredTreeTransitionForest = (
       const childId = String(child.id || '');
       if (!childId) continue;
       if (
-        !activeCurrentNodeIds.has(childId)
+        !structuralNodeIds.has(childId)
         && !activeCurrentAncestorNodeIds.has(childId)
       ) continue;
       const existingChild = exactLocation(indexExactForestNodeLocations(result), childId);
@@ -2153,7 +2180,7 @@ const buildAnchoredTreeTransitionForest = (
     Boolean(exactLocation(previousLocations, nodeId))
     && !exactLocation(currentLocations, nodeId));
   const movedNodeIds = Array.from(new Set([
-    ...activeCurrentNodeIds,
+    ...structuralNodeIds,
     ...activePriorNodeIds
   ])).filter((nodeId) => {
     const previous = exactLocation(previousLocations, nodeId);

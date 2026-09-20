@@ -3464,6 +3464,21 @@ export const compileRelationRenderPlan = (
     };
     return null;
   };
+  const unchangedMovementInk = (part: RelationPlanItem) => {
+    if (part.kind !== 'trajectory' || part.familyId !== 'tier2.movement-path') return null;
+    return Object.fromEntries(Object.entries(part).filter(([field]) =>
+      !COALESCE_EXCLUDED_FIELDS.has(field)
+      && !['canonicalClaimIdentity', 'replacementGroup', 'claimTier',
+        'tier2ClaimIdentity', 'tier2OutputIdentities', 'tier2OutputPieces'].includes(field)));
+  };
+  const retainsMovementOccurrences = (earlier: RelationPlanItem, later: RelationPlanItem) => {
+    if (earlier.kind !== 'trajectory' || later.kind !== 'trajectory') return false;
+    return [later.sourceNodeId, later.targetNodeId, later.witnessNodeId].filter(Boolean).every(id => {
+      const lineage = stageNodeMaps[earlier.appearsAtStage].get(id!)?.lineageId;
+      return Boolean(lineage) && stageNodeMaps.slice(earlier.appearsAtStage, later.appearsAtStage + 1)
+        .every(nodes => nodes.get(id!)?.lineageId === lineage);
+    });
+  };
   frames.forEach((frame) => {
     const movementRoutes = new Set(frame.items.flatMap((item) => (
       item.kind === 'trajectory'
@@ -3506,6 +3521,14 @@ export const compileRelationRenderPlan = (
       }
     };
     frame.items.forEach((item) => {
+      // Embedding an unchanged chain in a larger workspace does not create a
+      // second trajectory. Keep both authored moments on the one proven path.
+      const movementInk = unchangedMovementInk(item);
+      if (movementInk) {
+        const holder = coalescedItems.find(candidate => retainsMovementOccurrences(candidate, item)
+          && JSON.stringify(canonicalize(unchangedMovementInk(candidate))) === JSON.stringify(canonicalize(movementInk)));
+        if (holder) { mergeRelationRefs(holder, item); return; }
+      }
       // Continuity can prove an existing assignment independently of its tier.
       // Reuse its ink only when the complete drawing and lifetime also agree.
       if (item.restatesAssignment) {

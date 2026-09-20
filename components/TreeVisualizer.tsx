@@ -16,7 +16,7 @@ import { advanceFittedCamera, availableTreeViewport, containCamera, linearizatio
 import { buildStageCameraBounds, buildStageLayoutGroups, buildReplayPlaqueLayouts, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
-import { projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentSource, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
   MOVEMENT_ARC_STROKE,
@@ -240,6 +240,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
   const categoryBranchMaskId = `category-branches-${useId().replace(/:/g, '')}`;
+  const trajectoryLabelMaskId = `trajectory-labels-${useId().replace(/:/g, '')}`;
   const measureCategoryText = useMemo(() => {
     const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
     if (context) context.font = CATEGORY_FONT;
@@ -856,6 +857,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
     };
     let applyingCameraTransform = false;
+    let refreshTrajectoryClearance: (() => void) | null = null;
     const zoom = zoomBehavior
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
@@ -873,6 +875,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           return `translate(${x},${y}) scale(${Math.min(1 / (event.transform.k || 1), 3)})`;
         });
         updateScreenStableText(event.transform.k || 1);
+        refreshTrajectoryClearance?.();
       });
     svg.call(zoom as any);
 
@@ -1974,6 +1977,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const fallbackMeasurements = {
         labels: [...fallbackLabelRects.values()],
         obstacles: [...replayPlaqueLayout.values()],
+        visibleLabels: [...fallbackLabelRects].filter(([id]) =>
+          !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(id)).map(([, rect]) => rect),
+        visibleObstacles: [...replayPlaqueLayout].filter(([index]) => {
+          const item = relationRenderPlan.frames[activeDerivationFrameIndex]?.items[index];
+          return item && isPlanItemRevealed(item, activeDerivationFrameIndex, playedRelationIndices,
+            activeRelationMoment?.relationIndex ?? null)
+            && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id)));
+        }).map(([, rect]) => rect),
         labelFor: (id: string) => fallbackRectFor(id),
         subtreeFor: (id: string) => fallbackRectFor(id, true),
         bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
@@ -5547,7 +5558,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             if (!revealedItemIndices.has(assignmentEntry.candidateIndex)) return;
             ensureFeatureRelationLayer();
             const layer = ensureAgreementCaseRelationLayer();
-            const assignerRect = acceptedTerminalRect(assignment.fromNodeId);
+            const assigner = overlayNodeById.get(assignment.fromNodeId);
+            const source = assigner ? caseAssignmentSource(assigner) : null;
+            const sourceId = source ? getNodeId(source) : assignment.fromNodeId;
+            const assignerRect = source && !source.children?.length && source.data.word
+              ? acceptedTerminalRect(sourceId) : acceptedAnchorRect(sourceId);
             const bearerRect = acceptedAnchorRect(assignment.toNodeId);
             if (!assignerRect || !bearerRect) return;
             markPreterminalLensNode(assignment.fromNodeId, 'case-assigner');
@@ -8617,6 +8632,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     }
     const deferredRelationFrame = window.requestAnimationFrame(() => {
       deferredAcceptedRelationDraws.forEach((draw) => draw());
+      // Keep the accepted movement curves, with visible text in front of them.
+      // Future reservations never punch holes in a currently visible arrow.
+      refreshTrajectoryClearance = () => {
+        const paths = g.selectAll<SVGPathElement, unknown>('.babel-trajectory-path, .babel-trajectory-path-shadow');
+        if (paths.empty()) return;
+        const bounds = measureGraphicsElementsInTreeSpace(paths.nodes());
+        if (!bounds) return;
+        const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+          .filter(d => getRevealStepForNodeId(getNodeId(d)) <= effectiveRevealThreshold)
+          .nodes().flatMap(label => {
+            const rect = measureGraphicsElementsInTreeSpace([label]);
+            return rect ? [rect] : [];
+          });
+        let mask = g.select<SVGMaskElement>(`#${trajectoryLabelMaskId}`);
+        if (mask.empty()) mask = g.append('defs').append('mask').attr('id', trajectoryLabelMaskId)
+          .attr('maskUnits', 'userSpaceOnUse');
+        const area = { x: bounds.x - 40, y: bounds.y - 40, width: bounds.width + 80, height: bounds.height + 80 };
+        mask.attr('x', area.x).attr('y', area.y).attr('width', area.width).attr('height', area.height);
+        mask.selectAll('rect.trajectory-extent').data([area]).join('rect').attr('class', 'trajectory-extent')
+          .attr('fill', 'white').attr('x', d => d.x).attr('y', d => d.y)
+          .attr('width', d => d.width).attr('height', d => d.height);
+        mask.selectAll('rect.trajectory-label-clearance').data(labels).join('rect').attr('class', 'trajectory-label-clearance')
+          .attr('fill', 'black').attr('x', d => d.x - 4).attr('y', d => d.y - 4)
+          .attr('width', d => d.width + 8).attr('height', d => d.height + 8);
+        paths.attr('mask', `url(#${trajectoryLabelMaskId})`);
+      };
+      refreshTrajectoryClearance();
       installRelationHitTargets();
       // Font, viewport and layout redraws remount marks without changing the
       // active relation. Apply the same current emphasis to the new elements.

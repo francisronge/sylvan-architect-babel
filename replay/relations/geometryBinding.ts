@@ -466,7 +466,7 @@ export type BoundFrame = {
 
 type UnroutedFallbackSegment = Omit<BoundSegment, 'd' | 'lane' | 'laneY'>;
 type FallbackRoutingOptions = Pick<BindGeometryOptions, 'markerScale' | 'laneGap' | 'connectorBaselineY' | 'fallbackMeasurements'>
-  & { labelClearances?: Rect[]; obstacles?: Rect[] };
+  & { labelClearances?: Rect[]; obstacles?: Rect[]; occlusions?: Rect[] };
 
 export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
   fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 12, fontWeight: 600, letterSpacing: 0
@@ -533,7 +533,7 @@ const routeFallbackSegments = (
   return segments.map(segment => {
     if (segment.route === 'direct') {
       return { ...segment, lane: null,
-        d: clearLabelPath(segment.from, segment.to, [...(options.labelClearances ?? []), ...(options.obstacles ?? [])]) };
+        d: clearLabelPath(segment.from, segment.to, [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])]) };
     }
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
@@ -541,7 +541,7 @@ const routeFallbackSegments = (
     const laneY = measuredBaseline + lane * laneGap;
     const stem = 6 * markerScale;
     const corner = 9 * markerScale;
-    const clearances = [...(options.labelClearances ?? []), ...(options.obstacles ?? [])];
+    const clearances = [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])];
     const leftTurn = { x: from.x, y: laneY - 8 * markerScale };
     const rightTurn = { x: to.x, y: leftTurn.y };
     const d = [
@@ -576,6 +576,9 @@ export type FallbackMeasurements = {
   labels: Rect[];
   /** Reserved annotation bounds, including plaques not yet revealed in this stage. */
   obstacles?: Rect[];
+  /** Only displayed ink cuts connector gaps; future reservations affect allocation only. */
+  visibleLabels?: Rect[];
+  visibleObstacles?: Rect[];
   labelFor: (nodeId: string) => Rect | null;
   subtreeFor: (nodeId: string) => Rect | null;
   bottom: number;
@@ -686,8 +689,9 @@ export const fitFallbackGeometry = (
     } : {})
   })), { ...options, markerScale: scale,
     obstacles: options.fallbackMeasurements?.obstacles,
+    occlusions: options.fallbackMeasurements?.visibleObstacles,
     labelClearances: [
-      ...(options.fallbackMeasurements?.labels ?? []).map(rect => ({
+      ...(options.fallbackMeasurements?.visibleLabels ?? options.fallbackMeasurements?.labels ?? []).map(rect => ({
         x: rect.x - 3 * scale, y: rect.y - 3 * scale,
         width: rect.width + 6 * scale, height: rect.height + 6 * scale })),
       ...[...updates.values()].filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')

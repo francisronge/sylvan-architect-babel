@@ -677,3 +677,28 @@ test('Task 8 emits one operator hull/path item for each complete operator facet'
     1
   );
 });
+
+test('embedding an unchanged movement chain draws one path and retains both relation moments', () => {
+  const forest = [node('clause', 'TP', [
+    node('high', 'DP', [leaf('name', 'D', 'Mia', { lineageId: 'subject' })], { lineageId: 'subject' }),
+    node('predicate', 'VP', [leaf('v', 'V', 'left'),
+      node('low', 'DP', [leaf('lowTrace', 'D', 't1', { lineageId: 'subject', silent: true })], { lineageId: 'subject' })])
+  ])];
+  const claim = { relation: 'subject movement chain', anchors: { landing: 'high', source: 'low', traceWitness: 'lowTrace' } };
+  const stages = [stage([claim], forest), stage([], [node('larger', 'CP', forest)]),
+    stage([{ ...claim, relation: 'restated subject movement chain', values: { pronunciation: 'higher occurrence' } }],
+      [node('larger', 'CP', forest)])];
+  const original = structuredClone(stages);
+  const plan = compileRelationRenderPlan(stages);
+  assert.equal(plan.frames[0].items.filter(i => i.kind === 'trajectory').length, 1);
+  const paths = plan.frames[2].items.filter(i => i.kind === 'trajectory');
+  assert.equal(paths.length, 1);
+  assert.equal(paths[0].coalescedRefs[0].stageIndex, 2);
+  assert.equal(paths[0].coalescedRefs[0].relation, 'restated subject movement chain');
+  assert.deepEqual(stages, original);
+  const changed = JSON.parse(JSON.stringify(stages));
+  const rewrite = n => { if (n.lineageId === 'subject') n.lineageId = 'other-subject'; n.children?.forEach(rewrite); };
+  changed[2].workspaceForest.forEach(rewrite);
+  assert.equal(compileRelationRenderPlan(changed).frames[2].items.filter(i => i.kind === 'trajectory').length, 2,
+    'reusing an ID with different occurrence identity cannot erase an independent claim');
+});

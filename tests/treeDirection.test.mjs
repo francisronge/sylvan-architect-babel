@@ -45,3 +45,17 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) test(`RTL reservation,
   assert(bounds && Object.values(bounds).every(Number.isFinite));
   rtl.forEach(node => assert(node.x >= bounds.minX && node.x <= bounds.maxX));
 });
+
+for (const direction of ['ltr', 'rtl']) test(`a future landing cannot bend an authored unary branch in ${direction}`, () => {
+  const current = { id: 'ip', label: 'IP', children: [
+    { id: 'future', label: 'NP', replayLayoutOnly: true, word: 'Mia' },
+    { id: 'ibar', label: "I'", children: [{ id: 'head', label: 'I' }, { id: 'vp', label: 'VP' }] }
+  ] };
+  const before = structuredClone(current);
+  const tree = layoutSyntaxTree(d3.hierarchy(current), [900, 400], direction);
+  assert.equal(tree.x, tree.children[1].x);
+  assert.deepEqual(current, before);
+  const complete = structuredClone(current);delete complete.children[0].replayLayoutOnly;
+  const landed = layoutSyntaxTree(d3.hierarchy(complete), [900, 400], direction);
+  assert(Math.abs(landed.x - (landed.children[0].x + landed.children[1].x) / 2) < 1e-8);
+});
