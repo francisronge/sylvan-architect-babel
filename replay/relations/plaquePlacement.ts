@@ -2,14 +2,16 @@ import { categoryTextLayout, CATEGORY_LINE_HEIGHT, type CategoryTextMeasure } fr
 import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf } from '../replayCompiler.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import { type RelationPlanItem } from './renderPlanCompiler.ts';
+import { planItemRelationRefs, type RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from './markGeometry.ts';
-import { caseAssignmentPlaqueCurve } from './overlayGeometry.ts';
-import { caseFeatureComposition, featurePlaqueAssignment } from './featureComposition.ts';
+import { caseAssignmentPlaqueCurve, featureCollectionPlaqueSegment } from './overlayGeometry.ts';
+import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
-  caseRowY?: number; blocksConnectors?: boolean; connectorAttachment?: string };
+  caseRowY?: number; collectionRows?: CollectionRow[]; blocksConnectors?: boolean; connectorAttachment?: string;
+  connectorInk?: { x: number; y: number; width: number; height: number } };
+type CollectionRow = { sourceNodeId: string; y: number; ownerKeys?: string[] };
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
@@ -69,7 +71,9 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
     if (hasCategory) rectangles.push({ ...(label.lines.length > 1
       ? { x: node.x + label.x - 8, y: node.y + label.y - 8, width: label.width + 16, height: label.height + 16 }
       : { x: node.x - width / 2, y: node.y - 42, width, height: 84 }),
-      blocksConnectors: label.lines.length === 1, connectorAttachment: `${idOf(node)}:category` });
+      blocksConnectors: label.lines.length === 1, connectorAttachment: `${idOf(node)}:category`,
+      ...(label.lines.length === 1 ? { connectorInk: { x: node.x + label.x, y: node.y + label.y,
+        width: label.width, height: label.height } } : {}) });
     if (hasCategory && label.lines.length > 1) label.lines.forEach((line, index) => {
       const lineWidth = measureCategoryText?.(line) ?? [...line].length * 25;
       rectangles.push({ x: node.x - lineWidth / 2 - 4, y: node.y + label.y + index * CATEGORY_LINE_HEIGHT - 4,
@@ -118,7 +122,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number };
+type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[] };
 
 /** A single word can carry a head's mark; a complex head retains its own category anchor. */
 export function caseAssignmentSource(node: Node): Node {
@@ -149,6 +153,70 @@ export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: P
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
   const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
   return caseRouteRects(anchor, box).every(segment => blockers.every(rect => !plaquesOverlap(segment, rect, 0)));
+}
+
+function collectionSegments(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[] = []) {
+  const byId = new Map(nodes.map(node => [idOf(node), node]));
+  return (box.collectionRows ?? []).flatMap(row => {
+    const node = byId.get(row.sourceNodeId);
+    if (!node) return [];
+    const labels = [...obstacles, ...plaqueTreeObstacles([node])];
+    const attachment = labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:category`)
+      ?? labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:terminal`);
+    if (!attachment) return [];
+    return [{ row, attachment, ...featureCollectionPlaqueSegment(box, box.y + row.y, attachment.connectorInk ?? attachment) }];
+  });
+}
+
+/** Straight collections are kept clear by placement, never by bending or cutting the line. */
+export function collectionPlaqueClears(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): boolean {
+  return collectionSegments(box, nodes, obstacles).every(({ attachment, start, end }) => {
+    return [box, ...obstacles.filter(rect => rect.blocksConnectors
+      && rect.connectorAttachment !== attachment.connectorAttachment)].every(obstacle => {
+      const rect = obstacle.connectorInk ?? obstacle;
+      let from = 0, to = 1;
+      for (const axis of ['x', 'y'] as const) {
+        const delta = end[axis] - start[axis];
+        const low = rect[axis] - 6, high = rect[axis] + (axis === 'x' ? rect.width : rect.height) + 6;
+        if (Math.abs(delta) < 1e-9) {
+          if (start[axis] < low || start[axis] > high) return true;
+        } else {
+          const a = (low - start[axis]) / delta, b = (high - start[axis]) / delta;
+          from = Math.max(from, Math.min(a, b)); to = Math.min(to, Math.max(a, b));
+          if (from > to) return true;
+        }
+      }
+      return false;
+    });
+  });
+}
+
+/** Candidate heights at which a straight collection passes an opaque corner. */
+export function collectionPlaqueCandidateYs(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): number[] {
+  return collectionSegments(box, nodes, obstacles).flatMap(({ row, attachment, start, end }) => {
+    return obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment.connectorAttachment)
+      .flatMap(obstacle => {
+        const rect = obstacle.connectorInk ?? obstacle;
+        return [rect.x - 8, rect.x + rect.width + 8].flatMap(x => {
+          if ((x - end.x) * (start.x - x) <= 0) return [];
+          return [rect.y - 8, rect.y + rect.height + 8].map(y =>
+            end.y + (y - end.y) * (start.x - end.x) / (x - end.x) - row.y);
+        });
+      });
+  });
+}
+
+/** Reserve collections before other plaques choose their lifetime pockets. */
+export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
+  return [...layout.values()].flatMap(box => collectionSegments(box, nodes).flatMap(({ start, end }) => {
+    const count = Math.max(1, Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 24));
+    return Array.from({ length: count }, (_, i) => {
+      const x = start.x + (end.x - start.x) * i / count, y = start.y + (end.y - start.y) * i / count;
+      const dx = (end.x - start.x) / count, dy = (end.y - start.y) / count;
+      return { x: Math.min(x, x + dx) - 6, y: Math.min(y, y + dy) - 6,
+        width: Math.abs(dx) + 12, height: Math.abs(dy) + 12 };
+    });
+  }));
 }
 
 /** Reserve the same curved approach as the painter, including carried claims. */
@@ -184,13 +252,28 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
         const grid = prepareThetaGridTextLayout(thetaGridPredicateLabel(predicate), item.thetaRoles ?? [], { measureText });
         size = { ...size, width: grid.width, height: grid.height };
       }
+      const collectionRows = item.plaqueStyle === 'feature' ? items.flatMap(candidate => {
+        if (candidate.kind !== 'directed-path' || candidate.pathStyle !== 'case-agree'
+          || collectionPlaque(items, candidate)?.index !== index) return [];
+        const rowIndex = item.rows.findIndex(row => featureRowKey(row) === featureRowKey(pathFeatureRow(candidate)));
+        const row = size.rows.find(row => row.rowIndex === rowIndex);
+        if (!row?.lines.length) return [];
+        const first = row.lines[0], last = row.lines[row.lines.length - 1];
+        return [{ sourceNodeId: candidate.toNodeId, y: (first.y - first.ascent + last.y + last.descent) / 2,
+          ownerKeys: planItemRelationRefs(candidate).map(ref => `${ref.stageIndex}:${ref.relationIndex}`) }];
+      }) : [];
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
-        width: size.width, height: size.height, ...(size.overflow ? { scrollHeight: size.height } : {}) });
+        width: size.width, height: size.height, ...(collectionRows.length ? { collectionRows } : {}),
+        ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
       const composition = caseFeatureComposition(items, index)!;
       const size = prepareCasePlaqueRows(composition.rows);
+      const collectionRows = composition.collections.map(({ item, index }) => ({ sourceNodeId: item.toNodeId,
+        ownerKeys: planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`),
+        y: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y }));
       requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: size.width, caseAssignment: true,
-        height: size.height, caseRowY: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y });
+        height: size.height, caseRowY: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y,
+        ...(collectionRows.length ? { collectionRows } : {}) });
     }
   });
   return requests;
@@ -198,9 +281,11 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 
 type PlaqueLifetime = {
   sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height'>>;
+  collectionsOnly?: boolean;
   spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
     obstacles: PlaqueRect[];
     acceptsConnector: (box: PlaqueRect) => boolean;
+    connectorCandidateYs?: (box: PlaqueRect) => number[];
   };
 };
 
@@ -211,7 +296,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const placed: PlaqueRect[] = [];
   const requests = prepareStagePlaqueRequests(items, nodes, measureText).map(request => ({ ...request,
-    ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }));
+    ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }))
+    .filter(request => !lifetime?.collectionsOnly || request.collectionRows?.length);
   // Lifetime reservations already cover future syntax. Standalone one-stage
   // callers must still reject an obsolete pocket supplied by their caller.
   for (const request of requests) {
@@ -234,9 +320,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
-    const clear = (candidate: PlaqueRect) => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle))
-      && (!request.caseAssignment || (space ? space.acceptsConnector({ ...candidate, caseRowY: request.caseRowY })
-        : caseAssignmentClears(anchor, { ...candidate, caseRowY: request.caseRowY }, occupied)));
+    const clear = (candidate: PlaqueRect) => {
+      const box = { ...candidate, caseRowY: request.caseRowY, collectionRows: request.collectionRows };
+      return occupied.every(obstacle => !plaquesOverlap(candidate, obstacle))
+        && (space ? space.acceptsConnector(box)
+          : (!request.caseAssignment || caseAssignmentClears(anchor, box, occupied))
+            && collectionPlaqueClears(box, nodes, occupied));
+    };
     const ancestors = anchor.ancestors();
     let domain = ancestors.find(candidate => visible(candidate) && anchors.every(node => node.ancestors().includes(candidate))) || anchor;
     if (anchors.length === 1 && !domain.children?.length && domain.parent && visible(domain.parent)) domain = domain.parent;
@@ -249,7 +339,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
     const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
       [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
-        .map(x => ({ x, y: anchorY + dy, width, height })))
+        .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
       : local ? [-height - 60, -height / 2, 55, 115, 175, 235]
       .flatMap(dy => [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
         .map(x => ({ x, y: anchorY + dy, width, height })))
@@ -260,12 +350,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
       const gap = 24 + 1e-6;
+      const horizontalGap = (x: number) => request.caseAssignment
+        ? Math.max(x - anchor.x, anchor.x - x - width, 0) : Math.abs(x + width / 2 - anchor.x);
       const xs = [...new Set([...candidates.map(box => box.x), ...occupied.flatMap(box =>
         [box.x - width - gap, box.x + box.width + gap])])]
-        .sort((a, b) => Math.abs(a + width / 2 - anchor.x) - Math.abs(b + width / 2 - anchor.x));
+        .sort((a, b) => horizontalGap(a) - horizontalGap(b));
       let bestDistance = Infinity;
       for (const x of xs) {
-        const dx = x + width / 2 - anchor.x;
+        const dx = horizontalGap(x);
         if (dx * dx >= bestDistance) break;
         const intervals = occupied.filter(box => x < box.x + box.width + gap && x + width + gap > box.x)
           .map(box => [box.y - height - gap, box.extendsDownward ? Infinity : box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
@@ -275,14 +367,22 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           if (last && interval[0] < last[1]) last[1] = Math.max(last[1], interval[1]);
           else merged.push(interval);
         }
-        const idealY = anchorY - height / 2;
+        const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
         // The nearest box-sized gap can still put the curved approach through
         // another label. Consider the remaining gap edges before falling below.
-        const ys = [...new Set([idealY, ...merged.flat()])].filter(Number.isFinite)
+        const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
+        const connectorLanes = space?.connectorCandidateYs?.(candidate)
+          ?? collectionPlaqueCandidateYs(candidate, nodes, occupied);
+        const ys = [...new Set([idealY, ...connectorLanes, ...merged.flat()])].filter(Number.isFinite)
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
         for (const y of ys) {
-          const dy = y + height / 2 - anchorY, distance = dx * dx + dy * dy;
-          if (distance >= bestDistance) break;
+          const dy = y - idealY;
+          const route = request.caseAssignment ? caseAssignmentPlaqueCurve(caseSourceRect(anchor),
+            { x, y, width, height }, y + (request.caseRowY ?? 93)) : null;
+          const points = route && sampleCubic(route.source, route.control1, route.control2, route.target, 16);
+          const distance = points ? points.slice(1).reduce((length, point, i) =>
+            length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2 : dx * dx + dy * dy;
+          if (!request.caseAssignment && distance >= bestDistance) break;
           if (distance < bestDistance && clear({ x, y, width, height })) {
             placement = { x, y, width, height }; bestDistance = distance;
           }
@@ -307,7 +407,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       placement = { x, y, width, height };
     }
-    placement = { ...placement, ...(request.caseRowY ? { caseRowY: request.caseRowY } : {}) };
+    placement = { ...placement, ...(request.caseRowY ? { caseRowY: request.caseRowY } : {}),
+      ...(request.collectionRows ? { collectionRows: request.collectionRows } : {}) };
     const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),

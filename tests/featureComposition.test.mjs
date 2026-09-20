@@ -82,28 +82,19 @@ test('collection geometry attaches to its row and feature source on either side 
   for (const source of [{ x: 900, y: 60, width: 60, height: 50 }, { x: 0, y: 400, width: 60, height: 50 }]) {
     const points = featureCollectionPlaquePath(plaque, 255, source).match(/-?\d+(?:\.\d+)?/g).map(Number);
     assert.equal(points[1], 255);
-    assert.equal(points[7], source.y + source.height / 2);
+    assert.equal(points[3], source.y + source.height / 2);
     assert.equal(points[0], source.x > plaque.x ? 622 : 288);
-    assert.equal(points[6], source.x > plaque.x ? source.x : source.x + source.width);
+    assert.equal(points[2], source.x > plaque.x ? source.x : source.x + source.width);
   }
 });
 
-test('a collection bows around opaque labels instead of cutting a hole or crossing the label', () => {
-  const plaque = { x: 800, y: 240, width: 310, height: 160 }, source = { x: 0, y: 90, width: 60, height: 50 };
-  const obstacle = { x: 380, y: 180, width: 70, height: 70 };
-  const base = featureCollectionPlaquePath(plaque, 310, source);
-  const routed = featureCollectionPlaquePath(plaque, 310, source, 0, [obstacle]);
-  assert.notEqual(routed, base);
-  assert.equal((routed.match(/M/g) || []).length, 1, 'one continuous collection curve');
-  const p = routed.match(/-?\d+(?:\.\d+)?/g).map(Number);
-  for (let i = 1; i < 300; i++) {
-    const t = i / 300, u = 1 - t;
-    const x = u ** 3 * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t ** 3 * p[6];
-    const y = u ** 3 * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t ** 3 * p[7];
-    assert(!(x > obstacle.x && x < obstacle.x + obstacle.width && y > obstacle.y && y < obstacle.y + obstacle.height));
+test('dotted collection geometry is one straight segment at steep, shallow and equal-height endpoints', () => {
+  for (const y of [-500, 50, 500]) {
+    const path = featureCollectionPlaquePath({ x: 800, y: 0, width: 310, height: 262 }, 50,
+      { x: 0, y: y - 25, width: 60, height: 50 });
+    assert.match(path, /^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
   }
 });
-
 
 test('Case and agreement for the same pair share a plaque without changing each row owner', () => {
   const items = compile([

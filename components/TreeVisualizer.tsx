@@ -4636,12 +4636,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
       const renderedFeatureSharingItems = new Set<number>();
       const renderedCaseCompositions = new Set<string>();
-      const featureCollectionObstacles = (sourceId: string, plaqueIndex: number): Rect[] => {
-        const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
-          .nodes().filter(label => !labelBelongsToNode(label, sourceId))
-          .map(label => measureGraphicsElementsInTreeSpace([label])).filter((rect): rect is Rect => Boolean(rect));
-        return [...labels, ...[...replayPlaqueLayout].filter(([index]) => index !== plaqueIndex).map(([, box]) => box)];
-      };
 
       const renderedBoundaryCutItems = new Set<number>();
       const sampleNativeBranchOverlay = (targetNodeId: string) => {
@@ -4761,13 +4755,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             decorateRelationElement(path.node()!, assignment, relationEmphasisForItem(assignment));
           }
         }
-        composition.collections.forEach(({ item, index }, lane) => {
+        composition.collections.forEach(({ item, index }) => {
           if (!revealedItemIndices.has(index)) return;
           const sourceRect = anchorRect(item.toNodeId);
           if (!sourceRect || !anchorRect(item.fromNodeId)) return;
           const path = layer.append('path').attr('class', 'babel-case-collection-path')
-            .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect, lane,
-              featureCollectionObstacles(item.toNodeId, assignmentIndex)));
+            .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect));
           decorateRelationElement(path.node()!, item, relationEmphasisForItem(item));
         });
       };
@@ -6150,8 +6143,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const first = row.lines[0], last = row.lines[row.lines.length - 1];
               const rowY = origin.y + (first.y - first.ascent + last.y + last.descent) / 2;
               const path = layer.append('path').attr('class', 'babel-case-collection-path')
-                .attr('d', featureCollectionPlaquePath({ ...origin, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect, 0,
-                  featureCollectionObstacles(candidate.toNodeId, primitive.itemIndex)));
+                .attr('d', featureCollectionPlaquePath({ ...origin, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect));
               decorateRelationElement(path.node()!, candidate, relationEmphasisForItem(candidate));
             });
             });

@@ -175,7 +175,7 @@ feature blocks, prior-only anchors and prose alone do not earn this plaque.
 Exact-primary ownership and independent-claim checks remain unchanged.
 A recovered feature dependency with explicit values draws those authored values
 in a feature plaque at its source. Each value row connects to the corresponding
-feature target using the shared dotted collection curve. Case evidence is not
+feature target using the shared straight dotted connector. Case evidence is not
 required for the plaque; Case evidence independently earns a solid assignment
 arrow. No particular feature dimensions or languages are required.
 
@@ -190,10 +190,17 @@ Each row retains its semantic owner, feature source and contributing relation
 moments. Equal text on different owners or different collection sources does not
 collapse into one row. The shell belongs to the visible contributors; rows and
 connectors reveal and focus independently. Rows follow their first authored
-moment, so future values do not leave an empty heading area. Future rows reserve space but do not print placeholders. Layout
-reserves the combined content before reveal; plaques widen up to 480 units before
-long rows wrap. D6 retains its original short-row dimensions. Collection curves
-use the Orchard style and bow around opaque ink without hiding segments.
+moment, so future values do not leave an empty heading area. Future rows reserve
+space but do not print placeholders. Layout reserves the combined content before
+reveal; plaques widen up to 480 units before long rows wrap. D6 retains its original
+short-row dimensions. Dotted collections
+are straight segments, including diagonal ones. Placement checks those segments
+against opaque labels across future Replay frames; the painter neither bends
+nor cuts the line. Collection plaques and their straight paths reserve space
+before other plaques, including grids introduced in earlier stages. Each plaque
+keeps its chosen offset throughout Replay. The curved Case approach is positioned
+by its own row; nearby clear pockets are ranked by actual arrow length, so adding
+rows above Case does not automatically push its target downward.
 
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that

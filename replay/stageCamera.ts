@@ -11,7 +11,7 @@ import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
-import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, caseAssignmentClears, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, caseAssignmentClears, collectionPlaqueClears, collectionPlaqueCandidateYs, projectPlaqueLayout, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 
 type StageLayoutInput = {
@@ -91,21 +91,26 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
     return root;
   };
   const scenes: Array<{ currentTree: d3.HierarchyPointNode<SyntaxNode>;
-    isRecord: boolean; visibleIds: Set<string> | null }> = [];
+    isRecord: boolean; visibleIds: Set<string> | null; playedRelations: Set<number> }> = [];
   const seen = new Map<string, (typeof scenes)[number]>();
   for (const step of steps) {
     if (step.replayFrameIndex !== stageIndex || !step.replayCanvasData) continue;
+    const playedRelations = new Set((step.replayRelationLinks ?? []).flatMap(link => {
+      const [stage, relation] = String('authoredRelationKey' in link ? link.authoredRelationKey : '').split(':').map(Number);
+      return stage === stageIndex && Number.isInteger(relation) ? [relation] : [];
+    }));
     const key = JSON.stringify([step.replayCanvasData, Boolean(step.replayUsesFutureLayoutScaffold)]);
     const existing = seen.get(key);
     if (existing) {
       existing.isRecord ||= step.replayKind === 'macro';
+      playedRelations.forEach(index => existing.playedRelations.add(index));
       step.replayVisibleNodeIds?.forEach(id => existing.visibleIds?.add(id));
       continue;
     }
     const root = hierarchy(step.replayCanvasData);
     const currentTree = layoutSyntaxTree(root,
       stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction);
-    const scene = { currentTree,
+    const scene = { currentTree, playedRelations: new Set(playedRelations),
       isRecord: step.replayKind === 'macro', visibleIds: step.replayVisibleNodeIds ? new Set(step.replayVisibleNodeIds) : null };
     scenes.push(scene);
     seen.set(key, scene);
@@ -126,9 +131,10 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
     sizes.set(key, { width: Math.max(prior?.width ?? 0, request.width), height: Math.max(prior?.height ?? 0, request.height) });
   }));
   const remembered = new Map<string, PlaquePlacement>();
-  return frames.map((frame, stageIndex) => {
+  const allocate = (stageIndex: number, collectionsOnly = false) => {
+    const frame = frames[stageIndex];
     const { nodes, obstacles } = spaces[stageIndex];
-    const layout = placeStagePlaques(frame.items, nodes, obstacles, remembered, input.measurePlaqueText, { sizes,
+    const layout = placeStagePlaques(frame.items, nodes, obstacles, remembered, input.measurePlaqueText, { sizes, collectionsOnly,
       spaceFor: (index, anchor, allocated) => {
         const key = plaqueIdentity(frame.items[index]);
         const known = new Map(remembered);
@@ -147,20 +153,36 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
             }));
             const projected = projectPlaqueLayout(otherPlacements, id => byId.get(id) ?? null);
             const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
-            return [{ anchor: futureAnchor, dx, dy,
-              obstacles: [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected)] }];
+            return [{ anchor: futureAnchor, nodes: scene.nodes, playedRelations: scene.playedRelations, stageIndex: stageIndex + offset, dx, dy,
+              obstacles: [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected),
+                ...plaqueCollectionConnectorObstacles(scene.nodes, projected)] }];
           });
         });
         return {
           obstacles: futureScenes.flatMap(scene => scene.obstacles.map(box =>
             ({ ...box, x: box.x + scene.dx, y: box.y + scene.dy }))),
-          acceptsConnector: box => futureScenes.every(scene => caseAssignmentClears(scene.anchor,
-            { ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.obstacles))
+          connectorCandidateYs: box => futureScenes.flatMap(scene =>
+            collectionPlaqueCandidateYs({ ...box, x: box.x - scene.dx }, scene.nodes, scene.obstacles)
+              .map(y => y + scene.dy)),
+          acceptsConnector: box => futureScenes.every(scene => {
+            const projected = { ...box, x: box.x - scene.dx, y: box.y - scene.dy,
+              collectionRows: box.collectionRows?.filter(row => !scene.playedRelations || !row.ownerKeys
+                || row.ownerKeys.some(key => {
+                  const [stage, relation] = key.split(':').map(Number);
+                  return stage < scene.stageIndex || (stage === scene.stageIndex && scene.playedRelations!.has(relation));
+                })) };
+            return (box.caseRowY === undefined || caseAssignmentClears(scene.anchor, projected, scene.obstacles))
+              && collectionPlaqueClears(projected, scene.nodes, scene.obstacles);
+          })
         };
       } });
     layout.forEach((placement, index) => remembered.set(plaqueIdentity(frame.items[index]), placement));
     return layout;
-  });
+  };
+  // Straight collections have two fixed endpoints. Reserve them first so an
+  // earlier, freely placed grid cannot force a later connector into a detour.
+  frames.forEach((_, stageIndex) => allocate(stageIndex, true));
+  return frames.map((_, stageIndex) => allocate(stageIndex));
 }
 
 export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, PlaquePlacement> {
@@ -180,16 +202,16 @@ export function measureStagePlaqueSpace(input: StageLayoutInput) {
     || JSON.stringify(a.currentTree.data).localeCompare(JSON.stringify(b.currentTree.data)))[0];
   const nodes = reference ? visibleNodes(reference.currentTree, reference.visibleIds) : visibleNodes(completedTree);
   const items = input.plan?.frames[input.stageIndex]?.items ?? [];
-  const measured = (scenes.length ? scenes : [{ currentTree: completedTree, visibleIds: null }]).map(scene => {
+  const measured = (scenes.length ? scenes : [{ currentTree: completedTree, visibleIds: null, playedRelations: null }]).map(scene => {
     const currentNodes = visibleNodes(scene.currentTree, scene.visibleIds);
     const obstacles = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes)];
     // Use the trajectory binder's actual geometry in each frame's coordinates.
-    if (!input.plan) return { nodes: currentNodes, obstacles };
+    if (!input.plan) return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations };
     const byId = indexHierarchyNodesByIdAndAliases(visibleNodes(scene.currentTree, scene.visibleIds));
     const frame = input.plan.frames[input.stageIndex];
     const trajectories = (frame?.items ?? []).filter(item => item.kind === 'trajectory')
       .map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id)?.data));
-    if (!trajectories.length) return { nodes: currentNodes, obstacles };
+    if (!trajectories.length) return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations };
     const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
       index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
     const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
@@ -208,7 +230,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput) {
         width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10
       }));
     }
-    return { nodes: currentNodes, obstacles };
+    return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations };
   });
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
 }

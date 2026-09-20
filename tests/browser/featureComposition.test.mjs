@@ -86,6 +86,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         }
         assert.notEqual(state.paths[0].d, state.paths[1].d, 'two rows cannot collapse into one curve');
         for (const path of state.paths) {
+          assert.match(path.d, /^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/, 'the actual painted collection must be straight');
           assert.equal(path.owner, `0:${agreementIndex}`);
           assert.equal(path.marker, null, 'collection has no assignment arrowhead');
           assert(Math.abs(path.start.x - state.rect.x + 12) < 1 || Math.abs(path.start.x - state.rect.x - state.rect.width - 12) < 1);

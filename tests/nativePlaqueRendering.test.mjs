@@ -169,7 +169,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
     planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, featureCollectionObstacles: () => [], decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    featureCollectionPlaquePath, decorateRelationElement() {}, relationEmphasisForItem: () => null,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,7 +208,7 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath, featureCollectionObstacles: () => [],
+    prepareCasePlaqueRows, featureCollectionPlaquePath,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,

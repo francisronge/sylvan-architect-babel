@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { caseAssignmentSource, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentSource, collectionPlaqueClears, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
+import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { stageTreeLayoutSize, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
@@ -307,3 +309,80 @@ test('connector clearance reserves rendered words without an invisible duplicate
     'a display word has no category ink above its terminal');
   assert(obstacles.some(rect => rect.connectorAttachment === 'head:category'));
 });
+
+
+test('rows above Case do not lengthen its curved approach when the same pocket is clear', () => {
+  const nodes = tree().descendants();
+  const assignment = { relation: 'CaseAssignment', anchors: { assigner: 'left', bearer: 'right' }, values: { feature: 'Case', value: 'DAT' } };
+  const compile = relations => compileRelationRenderPlan([{ statement: 'Assign and agree.', stageRecord: 'Exact participants.',
+    workspaceForest: [nodes[0].data], relations }]).frames[0].items;
+  const plain = compile([assignment]);
+  const composed = compile([
+    { relation: 'Finite features', anchors: { finiteHead: 'left' }, values: { number: 'singular', person: 'third' } },
+    assignment, { relation: 'Agreement', anchors: { head: 'left', specifier: 'right' }, values: { agreement: 'third-person singular' } }
+  ]);
+  const plainIndex = plain.findIndex(item => item.pathStyle === 'case-assignment');
+  const composedIndex = composed.findIndex(item => item.pathStyle === 'case-assignment');
+  const before = placeStagePlaques(plain, nodes, []).get(plainIndex);
+  const after = placeStagePlaques(composed, nodes, []).get(composedIndex);
+  assert(after.caseRowY > before.caseRowY, 'the shared plaque has rows above Case');
+  assert.equal(after.y + after.caseRowY, before.y + before.caseRowY, 'the Case arrow reaches the same height');
+  const sourceX = nodes.find(node => node.data.id === 'left').x;
+  const edgeDistance = box => Math.min(Math.abs(box.x - sourceX), Math.abs(box.x + box.width - sourceX));
+  assert.equal(edgeDistance(after), edgeDistance(before), 'a mirrored pocket keeps the same short horizontal approach');
+});
+
+test('a straight collection clears opaque ink by choosing the plaque pocket before it appears', () => {
+  const nodes = tree().descendants();
+  const items = compileRelationRenderPlan([{ statement: 'Agree.', stageRecord: 'Exact participants.', workspaceForest: [nodes[0].data],
+    relations: [{ relation: 'Agreement', anchors: { head: 'left', specifier: 'right' }, values: { agreement: 'dual' } }] }]).frames[0].items;
+  const index = items.findIndex(item => item.kind === 'node-plaque');
+  const original = placeStagePlaques(items, nodes, []);
+  const box = original.get(index);
+  const source = plaqueTreeObstacles(nodes).find(rect => rect.connectorAttachment === 'right:category');
+  const start = { x: box.x + box.width + 12, y: box.y + box.collectionRows[0].y };
+  const blocker = { x: (start.x + source.x) / 2 - 12, y: (start.y + source.y + source.height / 2) / 2 - 12,
+    width: 24, height: 24, blocksConnectors: true };
+  assert.equal(collectionPlaqueClears(box, nodes, [blocker]), false);
+  const moved = placeStagePlaques(items, nodes, [blocker]).get(index);
+  assert(collectionPlaqueClears(moved, nodes, [blocker]), 'the new pocket permits a straight unobstructed connector');
+  assert(!plaquesOverlap(moved, blocker));
+});
+
+for (const [width, height] of [[1596, 1016], [390, 844]]) {
+  test(`${width}px: earlier grids leave room for the later shared plaque and its straight collection`, () => {
+    const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/shared-plaque.json', import.meta.url)));
+    const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
+    const plan = compileRelationRenderPlan(record.derivationStages);
+    const input = { steps, stageIndex: 2, plan, width, height,
+      completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages[2].workspaceForest) };
+    const layouts = buildReplayPlaqueLayouts(input);
+    assert.deepEqual(layouts, buildReplayPlaqueLayouts({ ...input, steps: [...steps].reverse() }),
+      'frame traversal order cannot change the reserved pockets');
+    const index = plan.frames[2].items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'iPast');
+    const box = layouts[2].get(index);
+    const nodes = measureStagePlaqueSpace(input).nodes;
+    const source = caseAssignmentSource(nodes.find(node => node.data.id === 'iPast'));
+    const curve = caseAssignmentPlaqueCurve({ x: source.x - 75, y: source.y + 65, width: 150, height: 60 }, box, box.y + box.caseRowY);
+    const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 32);
+    const length = points.slice(1).reduce((sum, point, i) => sum + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0);
+    assert(length < 250, `Case must keep a short approach; got ${length}`);
+    assert.equal(box.location, 'local');
+    for (let stageIndex = 1; stageIndex < layouts.length; stageIndex++) {
+      const items = plan.frames[stageIndex].items;
+      for (const [itemIndex, placement] of layouts[stageIndex]) {
+        const priorIndex = plan.frames[stageIndex - 1].items.findIndex(item => plaqueIdentity(item) === plaqueIdentity(items[itemIndex]));
+        const prior = layouts[stageIndex - 1].get(priorIndex);
+        if (!prior) continue;
+        assert(Math.abs(placement.x - placement.attachmentX - prior.x + prior.attachmentX) < 1e-8);
+        assert(Math.abs(placement.y - placement.attachmentY - prior.y + prior.attachmentY) < 1e-8);
+      }
+    }
+    const segments = plaqueCollectionConnectorObstacles(nodes, new Map([[index, box]]));
+    assert(segments.length > 0);
+    for (const [otherIndex, other] of layouts[2]) {
+      if (otherIndex !== index) assert(segments.every(segment => !plaquesOverlap(segment, other, 0)),
+        'the straight collection must clear every earlier grid and plaque');
+    }
+  });
+}

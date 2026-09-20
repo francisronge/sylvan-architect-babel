@@ -1,0 +1,485 @@
+{
+  "sentence": "Ali kitabı okudu.",
+  "derivationStages": [
+    {
+      "relations": [],
+      "stageRecord": "The proper name Ali and the inflected nominal kitabı are projected as NPs. The object token is treated as a whole-word nominal whose form contains the overt Turkish accusative exponent; its structural accusative licensing is established after it becomes the complement of the verb. The verbal stem oku and the past-tense suffix -du are represented as separate heads because their later combination realizes the single input token okudu. The finite I head also bears third-person singular agreement, which has no additional overt exponent in this sentence.",
+      "statement": "The lexical workspace contains two nominal projections, a transitive verbal head, and a finite past-tense head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "nAli",
+                  "label": "N⁰",
+                  "tokenIndex": 0,
+                  "word": "Ali"
+                }
+              ],
+              "id": "nBarAli",
+              "label": "N′"
+            }
+          ],
+          "id": "npAli",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "nBook",
+                  "label": "N⁰",
+                  "tokenIndex": 1,
+                  "word": "kitabı"
+                }
+              ],
+              "id": "nBarBook",
+              "label": "N′"
+            }
+          ],
+          "id": "npBook",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "vOkuBase",
+          "label": "V⁰",
+          "lineageId": "linOku",
+          "word": "oku"
+        },
+        {
+          "children": [],
+          "id": "iPast",
+          "label": "I⁰",
+          "word": "-du"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "npBook",
+            "assigner": "vOkuBase"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "governedComplement": "npBook",
+            "governor": "vOkuBase"
+          },
+          "relation": "government and structural Case assignment",
+          "values": {
+            "Case": "accusative",
+            "overtExponent": "-ı within kitabı"
+          }
+        }
+      ],
+      "stageRecord": "The transitive head oku selects the object NP and forms the head-final V′ [NP V⁰], which projects to VP. This complement position accounts for the canonical placement of kitabı immediately before the verbal domain without object scrambling. The verb assigns the object its Theme theta-role and, under government, structural accusative Case. The overt -ı contained in the whole-word terminal kitabı realizes that accusative Case.",
+      "statement": "The verb merges with kitabı as its head-final complement and licenses it as the Theme object.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "nAli",
+                  "label": "N⁰",
+                  "tokenIndex": 0,
+                  "word": "Ali"
+                }
+              ],
+              "id": "nBarAli",
+              "label": "N′"
+            }
+          ],
+          "id": "npAli",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nBook",
+                          "label": "N⁰",
+                          "tokenIndex": 1,
+                          "word": "kitabı"
+                        }
+                      ],
+                      "id": "nBarBook",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npBook",
+                  "label": "NP"
+                },
+                {
+                  "children": [],
+                  "id": "vOkuBase",
+                  "label": "V⁰",
+                  "lineageId": "linOku",
+                  "word": "oku"
+                }
+              ],
+              "id": "vBarOku",
+              "label": "V′"
+            }
+          ],
+          "id": "vpOku",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "iPast",
+          "label": "I⁰",
+          "word": "-du"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteHead": "iPast"
+          },
+          "relation": "finite feature specification",
+          "values": {
+            "agreementExponent": "zero",
+            "number": "singular",
+            "person": "third",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "npAli",
+            "lexicalHead": "vOkuBase",
+            "predicate": "vpOku"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "assigner": "iPast",
+            "recipient": "npAli"
+          },
+          "relation": "finite nominative Case assignment",
+          "values": {
+            "Case": "nominative",
+            "overtExponent": "zero"
+          }
+        },
+        {
+          "anchors": {
+            "head": "iPast",
+            "specifier": "npAli"
+          },
+          "relation": "specifier-head agreement",
+          "values": {
+            "agreement": "third-person singular"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "ipClause",
+            "subjectSpecifier": "npAli"
+          },
+          "relation": "Extended Projection Principle satisfaction",
+          "values": {
+            "status": "Spec-IP is overtly filled"
+          }
+        }
+      ],
+      "stageRecord": "The VP first merges as the complement of finite I, producing the head-final I′ order [VP I⁰]. Ali then merges in Spec-IP. In this traditional GB implementation, the external Agent role is assigned to the overt subject in Spec-IP by the verbal predicate. Finite I assigns zero-marked nominative Case to Ali through the specifier-head configuration, agrees with it as third-person singular, and satisfies the Extended Projection Principle. Turkish permits null subjects, but this sentence contains an overt subject, so no pro is projected.",
+      "statement": "Finite IP structure introduces Ali as the overt subject and places the head-final VP before finite I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "nAli",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Ali"
+                    }
+                  ],
+                  "id": "nBarAli",
+                  "label": "N′"
+                }
+              ],
+              "id": "npAli",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nBook",
+                                  "label": "N⁰",
+                                  "tokenIndex": 1,
+                                  "word": "kitabı"
+                                }
+                              ],
+                              "id": "nBarBook",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npBook",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "vOkuBase",
+                          "label": "V⁰",
+                          "lineageId": "linOku",
+                          "word": "oku"
+                        }
+                      ],
+                      "id": "vBarOku",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpOku",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "iPast",
+                  "label": "I⁰",
+                  "word": "-du"
+                }
+              ],
+              "id": "iBarClause",
+              "label": "I′"
+            }
+          ],
+          "id": "ipClause",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "vOkuRaised",
+            "iPast"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "lowerCopy": "vOkuBase",
+            "raisedOccurrence": "vOkuRaised",
+            "resultingComplexHead": "iComplex",
+            "targetHead": "iPast"
+          },
+          "priorAnchors": {
+            "sourceHead": "vOkuBase",
+            "targetHead": "iPast"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "constraint": "Head Movement Constraint satisfied because finite I is the next governing head"
+          }
+        },
+        {
+          "anchors": {
+            "complexHead": "iComplex",
+            "stemComponent": "vOkuRaised",
+            "tenseComponent": "iPast"
+          },
+          "priorAnchors": {
+            "uncombinedTense": "iPast",
+            "unraisedStem": "vOkuBase"
+          },
+          "relation": "finite-word morphological realization",
+          "values": {
+            "composition": "oku plus vowel-harmonic past -du with zero third-person singular agreement",
+            "surfaceForm": "okudu"
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "npAli",
+              "npBook"
+            ],
+            "clause": "ipClause",
+            "verbalChain": [
+              "vOkuBase",
+              "vOkuRaised"
+            ]
+          },
+          "relation": "Theta Criterion check",
+          "values": {
+            "status": "Agent is assigned only to Ali and Theme only to kitabı; all selected roles are discharged"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearingNominals": [
+              "npAli",
+              "npBook"
+            ],
+            "clause": "ipClause"
+          },
+          "relation": "Case Filter check",
+          "values": {
+            "status": "Ali has nominative Case and kitabı has accusative Case"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "ipClause",
+            "referentialNominals": [
+              "npAli",
+              "npBook"
+            ]
+          },
+          "relation": "Binding Theory check",
+          "values": {
+            "status": "No anaphoric dependency is required and neither referential nominal is A-bound"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "ipClause"
+          },
+          "relation": "final grammaticality judgment",
+          "values": {
+            "judgment": "grammatical",
+            "surfaceOrder": "subject-object-verb"
+          }
+        }
+      ],
+      "stageRecord": "The verbal head raises from its VP-internal position to the immediately governing I head. The lower occurrence is retained as a silent copy, while a new occurrence with the same lineage adjoins to I⁰ before the past suffix. This local V-to-I step satisfies the Head Movement Constraint and creates the complex [oku -du]. At spell-out, the raised stem and the past suffix jointly realize the one input token okudu; third-person singular agreement remains phonologically zero. The lower copy continues to identify the complement position in which the object received its Theme role and accusative Case. After suppression of that copy, the pronounced tree order is Ali, kitabı, and the finite verbal complex okudu, yielding canonical Turkish subject-object-verb order without scrambling. Both overt NPs satisfy the Case Filter, each argument bears exactly one theta-role, and neither nominal is A-bound, so the Theta Criterion and Binding Theory are respected.",
+      "statement": "V-to-I movement forms the finite word okudu and completes the grammatical SOV analysis.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "nAli",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Ali"
+                    }
+                  ],
+                  "id": "nBarAli",
+                  "label": "N′"
+                }
+              ],
+              "id": "npAli",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nBook",
+                                  "label": "N⁰",
+                                  "tokenIndex": 1,
+                                  "word": "kitabı"
+                                }
+                              ],
+                              "id": "nBarBook",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npBook",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "vOkuBase",
+                          "label": "V⁰",
+                          "lineageId": "linOku",
+                          "silent": true,
+                          "word": "oku"
+                        }
+                      ],
+                      "id": "vBarOku",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpOku",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vOkuRaised",
+                      "label": "V⁰",
+                      "lineageId": "linOku",
+                      "word": "oku"
+                    },
+                    {
+                      "children": [],
+                      "id": "iPast",
+                      "label": "I⁰",
+                      "word": "-du"
+                    }
+                  ],
+                  "id": "iComplex",
+                  "label": "I⁰"
+                }
+              ],
+              "id": "iBarClause",
+              "label": "I′"
+            }
+          ],
+          "id": "ipClause",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}
