@@ -303,7 +303,8 @@ export const relationRoleConcepts = (
   const pairedCase = Object.keys(context.anchors ?? {}).some(role =>
     /^case /.test(normalizeTier2Synonym(role)) && qualifiedAssignmentConcepts(role).includes('feature.target')
     && nonBlankLiteral(context.values?.[role]));
-  const nominalRoles = new Set(['nominal', 'subject', 'object']);
+  const nominalParticipant = (role: string) => ['nominal', 'subject', 'object'].includes(normalizeTier2Synonym(role))
+    || lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments');
   const explicitCaseRecipient = Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
       || isExplicitTier2Role('feature.target', role)
@@ -311,13 +312,13 @@ export const relationRoleConcepts = (
   if (spelling === 'governor' && (hasLiteral('case.literal') || pairedCase) && Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
       || isExplicitTier2Role('feature.target', role) || assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'target'
-      || nominalRoles.has(normalizeTier2Synonym(role)))) {
+      || nominalParticipant(role))) {
     concepts.add('feature.source');
   }
   // An explicitly directed recipient owns the slot. Otherwise a named nominal,
-  // subject or object may fill it with a Case literal and independent licenser.
+  // subject, object or argument may fill it with a Case literal and independent licenser.
   // Competing nominal references still fail binding; exponents remain context.
-  if (nominalRoles.has(spelling) && !explicitCaseRecipient && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
+  if (nominalParticipant(spelling) && !explicitCaseRecipient && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
     assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'source'
       || qualifiedAssignmentConcepts(role).includes('feature.source')
       || singularRole(normalizeTier2Synonym(role)) === 'governor')) concepts.add('feature.target');

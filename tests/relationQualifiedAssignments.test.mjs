@@ -169,7 +169,7 @@ test('governing heads and governed complements require an explicit Case value', 
 
 test('Case licensing binds nominal roles consistently and preserves accompanying agreement', () => {
   for (const source of ['licensor', 'licenser', 'licensingHead', 'governor', 'caseAssigner']) {
-    for (const recipient of ['nominal', 'subject', 'object']) {
+    for (const recipient of ['nominal', 'subject', 'object', 'argument', 'internalArgument', 'external_argument']) {
       const relation = { relation: 'Unregistered claim', anchors: {
         [source]: 'source', [recipient]: 'argument', caseExponent: 'exponent'
       }, values: { case: 'authored Case', agreement: 'authored agreement' } };
@@ -191,7 +191,7 @@ test('Case licensing binds nominal roles consistently and preserves accompanying
 });
 
 test('an explicit Case recipient leaves other nominal participants as context', () => {
-  for (const contextRole of ['nominal', 'subject', 'object']) {
+  for (const contextRole of ['nominal', 'subject', 'object', 'argument', 'internalArgument', 'external_argument']) {
     const relation = { relation: 'Unregistered claim', anchors: {
       licensor: 'source', recipient: 'argument', [contextRole]: 'other'
     }, values: { case: 'accusative' } };
