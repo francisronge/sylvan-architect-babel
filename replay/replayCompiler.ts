@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { categoryLabel } from './categoryLabel.ts';
 import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
-import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
+import { dispatchRelationClaims, dispatchStageRelations, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
 import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
@@ -2329,15 +2329,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const identity = createReplayIdentityContext(frames.flatMap(frame => frame.workspaceForest || []));
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
   const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
-  const resolvedRelationsByFrame = new Map<number, DerivationReplayPlanStep[]>();
-  // Authored stages stay fixed during this compilation. Reuse their interpreted
-  // relations when building cumulative links; each link still binds to its current forest.
-  const resolveFrameRelations = (index: number) => {
-    if (!resolvedRelationsByFrame.has(index)) resolvedRelationsByFrame.set(index, getFrameRelations(
-      frames[index], getReplayPlanStage(replayPlan, index), frames[index - 1]?.workspaceForest || []
-    ));
-    return resolvedRelationsByFrame.get(index)!;
-  };
+  const resolveFrameRelations = createFrameRelationResolver(frames, replayPlan);
   const pendingProjectionReveals: Array<{
     nodeId: string;
     firstStageIndex: number;
@@ -7108,10 +7100,24 @@ const getAuthoredFrameRelations = (
     .filter((relation): relation is DerivationReplayPlanStep => relation !== null);
 };
 
+const createFrameRelationResolver = (frames: ReplayDerivationFrame[], replayPlan?: DerivationReplayPlan | null) => {
+  const dispatches = dispatchStageRelations(frames.map((frame, i) => ({
+    workspaceForest: frame.workspaceForest || [],
+    relations: getAuthoredFrameRelations(frame, getReplayPlanStage(replayPlan, i)) as DerivationStageRelation[]
+  })));
+  const resolved = new Map<number, DerivationReplayPlanStep[]>();
+  return (index: number) => {
+    if (!resolved.has(index)) resolved.set(index, getFrameRelations(frames[index],
+      getReplayPlanStage(replayPlan, index), frames[index - 1]?.workspaceForest || [], dispatches[index]));
+    return resolved.get(index)!;
+  };
+};
+
 export const getFrameRelations = (
   frame?: ReplayDerivationFrame | null,
   plannedStage?: DerivationReplayPlanStage | null,
-  previousForest: SyntaxNode[] = []
+  previousForest: SyntaxNode[] = [],
+  claimDispatches?: RelationClaimDispatch[]
 ): DerivationReplayPlanStep[] => {
   const currentForest = frame?.workspaceForest || frame?.after?.workspaceForest || [];
   const authored = getAuthoredFrameRelations(frame, plannedStage).map((authoredStep, relationIndex) => {
@@ -7134,7 +7140,7 @@ export const getFrameRelations = (
       currentForest, priorForest: previousForest,
       stageIndex: plannedStage?.stageIndex ?? 0, relationIndex
     };
-    const dispatch = dispatchRelationClaims(input);
+    const dispatch = claimDispatches?.[relationIndex] ?? dispatchRelationClaims(input);
     const evidence = dispatch.evidence;
     const transitionAnchors = { ...dispatch.primaryRelation.anchors };
     if (dispatch.primaryClaim?.tier === 3 && relationAnchorNodeIds(authoredStep.priorAnchors).length) {
@@ -7344,10 +7350,10 @@ export const buildAuthoredRelationLinksForFrames = (
 ): ResolvedRelationLink[] => {
   if (!Array.isArray(frames) || activeFrameIndex < 0) return [];
   const links: ResolvedRelationLink[] = [];
+  const resolveRelations = frameRelations ?? createFrameRelationResolver(frames, replayPlan);
 
   for (let frameIndex = 0; frameIndex <= Math.min(activeFrameIndex, frames.length - 1); frameIndex += 1) {
-    const relations = frameRelations?.(frameIndex)
-      ?? getFrameRelations(frames[frameIndex], getReplayPlanStage(replayPlan, frameIndex), frames[frameIndex - 1]?.workspaceForest || []);
+    const relations = resolveRelations(frameIndex);
     const relationLimit = frameIndex === activeFrameIndex
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
@@ -7450,9 +7456,9 @@ export const buildMovementChainIndexCatalogueForFrames = (
   frames: ReplayDerivationFrame[],
   replayPlan: DerivationReplayPlan | null | undefined
 ): MovementChainIndexCatalogue => {
+  const resolveRelations = createFrameRelationResolver(frames, replayPlan);
   const links = frames.flatMap((frame, stageIndex) => {
-    const relations = getFrameRelations(frame, getReplayPlanStage(replayPlan, stageIndex),
-      frames[stageIndex - 1]?.workspaceForest || []);
+    const relations = resolveRelations(stageIndex);
     return buildAuthoredRelationLinksForFrames(frames, replayPlan, stageIndex, frame.workspaceForest || [],
       Number.POSITIVE_INFINITY, index => index === stageIndex ? relations : []);
   });

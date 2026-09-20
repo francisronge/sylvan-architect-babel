@@ -311,7 +311,7 @@ export type Tier2FacetEvaluation = {
   }>;
 };
 
-const POSITIVE_OUTCOMES = [
+export const POSITIVE_OUTCOMES = [
   'licensed', 'successful', 'allowed', 'accepted', 'valid'
 ] as const satisfies readonly OutcomeConcept[];
 
@@ -1024,6 +1024,24 @@ export const literalThetaRoles = (evidence: Tier2FacetEvidence): Array<{ nodeId:
   if (!arguments_.length || !labels || arguments_.length !== labels.length || labels.some(label => !label.trim())) return undefined;
   return arguments_.map((nodeId, index) => ({ nodeId, label: labels[index] }));
 };
+
+/** The exact ThetaAssignment contract also permits its open anchor names as role labels. */
+export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{ nodeId: string; label: string }>; error?: never } | { roles?: never; error: string } {
+  const explicitArguments = evidence.currentAnchors['theta.arguments'];
+  const explicitRoles = explicitArguments?.length ? literalThetaRoles(evidence) : undefined;
+  if (explicitArguments?.length && !explicitRoles) return { error: 'Theta arguments require exactly one authored role label per argument' };
+  const roles = [...(explicitRoles ?? [])];
+  for (const entry of evidence.authoredCurrentAnchors ?? []) {
+    if (entry.key.toLowerCase() === 'predicate' || entry.concepts.includes('theta.arguments')) continue;
+    const matches = sameNameValueEntries(evidence, entry);
+    if (matches.length > 1 || (matches.length === 1 && (matches[0].items.length !== entry.items.length || matches[0].items.some(label => !label.trim())))) {
+      return { error: 'Theta role literals require one unambiguous same-name value per argument' };
+    }
+    entry.items.forEach((nodeId, index) => roles.push({ nodeId,
+      label: matches[0]?.items[index] ?? entry.key.charAt(0).toUpperCase() + entry.key.slice(1) }));
+  }
+  return roles.length ? { roles } : { error: 'A theta grid requires at least one authored role association' };
+}
 
 // Native plates require named groups. Only bound, consumed concepts get these
 // internal field names; raw row labels remain available for literal display.

@@ -48,7 +48,7 @@ test('introducer requires thematic evidence and cannot select a source from comp
 
 test('licensed phrase identifies the Case recipient without consuming its distinct exponent', () => {
   for (const source of ['governor', 'licenser', 'licensor']) {
-    for (const recipient of ['licensedPhrase', 'licensed_constituent', 'licensed-nominal']) {
+    for (const recipient of ['licensedPhrase', 'licensed_constituent', 'licensed-nominal', 'licensedDP', 'licensed-XP']) {
       const relation = { relation: 'An unfamiliar name', anchors: {
         [source]: 'source', [recipient]: 'argument', caseExponent: 'exponent'
       }, values: { Case: 'accusative' } };

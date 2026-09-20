@@ -55,10 +55,10 @@ import {
   resolveOutcomeLiteral,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { buildTier2FacetEvidence, dispatchRelationClaims, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence, dispatchStageRelations, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
-import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, nativeThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export type PlanRelationRef = {
@@ -152,6 +152,10 @@ type PlanItemBase = {
   tier2OutputIdentities?: string[];
   tier2OutputPieces?: Tier2VisualPrimitiveName[];
   tier2FacetId?: string;
+  /** Groups inseparable pieces of one claim, including several claims in one relation. */
+  tier2ClaimIdentity?: string;
+  /** An unchanged assignment proven from this earlier authored claim. */
+  restatesAssignment?: { stageIndex: number; relationIndex: number };
   /** Deterministic renderer subdivision of one composite visual piece. */
   tier2RenderPart?: string;
   /** One recovered semantic claim has exactly one winning tier owner. */
@@ -915,13 +919,7 @@ export const compileRelationRenderPlan = (
   const registry = options.registry ?? productionRelationRegistry;
   const families = options.families ?? PRODUCTION_RENDER_FAMILIES;
   const stageList = Array.isArray(stages) ? stages : [];
-  const stageDispatches = stageList.map((stage, stageIndex) => (stage.relations || []).map((relation, relationIndex) =>
-    dispatchRelationClaims({
-      registry, relation, stageIndex, relationIndex,
-      currentForest: stage.workspaceForest || [],
-      ...(stageIndex > 0 ? { priorForest: stageList[stageIndex - 1].workspaceForest || [] } : {}),
-      ...(options.activeLens === undefined ? {} : { activeLens: options.activeLens })
-    })));
+  const stageDispatches = dispatchStageRelations(stageList, { registry, activeLens: options.activeLens });
   const companionAnchors = (stageIndex: number, relationIndex: number) => {
     const dispatch = stageDispatches[stageIndex][relationIndex];
     return dispatch.primaryClaim?.tier === 1 ? dispatch.boundPrimaryRelation.anchors : {};
@@ -3018,43 +3016,14 @@ export const compileRelationRenderPlan = (
           if (anchors.traceWitness && pushCompositeTrajectory('phrasal')) return;
           const predicate = flattenAnchorIds(anchors.predicate)[0];
           if (!requireResolved('predicate', predicate)) return;
-          const roleEntries = Object.entries(anchors)
-            .filter(([role]) => role.toLowerCase() !== 'predicate');
-          const evidence = buildTier2FacetEvidence({ relation: primaryRelation, currentForest: stage.workspaceForest || [] });
-          const explicitArguments = evidence.currentAnchors['theta.arguments'];
-          const explicitRoles = explicitArguments?.length ? literalThetaRoles(evidence) : undefined;
-          if (explicitArguments?.length && !explicitRoles) {
-            pushDiagnostic('illegal-configuration', 'Theta arguments require exactly one authored role label per argument');
+          const evidence = buildTier2FacetEvidence({ relation: claimDispatch.boundPrimaryRelation, currentForest: stage.workspaceForest || [] });
+          const { roles, error } = nativeThetaRoles(evidence);
+          if (!roles) {
+            pushDiagnostic('illegal-configuration', error);
             pushNeutralFallback(primaryRelation.anchors, false);
             return;
           }
-          let invalidPairing = false;
-          const roleBadges = [
-            ...(explicitRoles || []).map(({ nodeId, label }) => ({ nodeId, role: label })),
-            ...roleEntries.flatMap(([role, value]) => {
-              const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === role);
-              if (entry?.concepts.includes('theta.arguments')) return [];
-              const ids = flattenAnchorIds(value);
-              const matches = sameNameValueEntries(evidence, { key: role, items: ids, concepts: [] });
-              if (matches.length > 1 || (matches.length === 1
-                && (matches[0].items.length !== ids.length || matches[0].items.some(label => !label.trim())))) {
-                invalidPairing = true;
-                return [];
-              }
-              return ids.map((nodeId, index) => ({ nodeId,
-                role: matches[0]?.items[index] ?? role.charAt(0).toUpperCase() + role.slice(1) }));
-            })
-          ];
-          if (invalidPairing) {
-            pushDiagnostic('illegal-configuration', 'Theta role literals require one unambiguous same-name value per argument');
-            pushNeutralFallback(primaryRelation.anchors, false);
-            return;
-          }
-          if (!roleBadges.length) {
-            pushDiagnostic('illegal-configuration', 'A theta grid requires at least one authored role association');
-            pushNeutralFallback(primaryRelation.anchors, false);
-            return;
-          }
+          const roleBadges = roles.map(({ nodeId, label }) => ({ nodeId, role: label }));
           if (roleBadges.some(({ nodeId }) => !requireResolved('argument', nodeId))) return;
           items.push({
             ...base,
@@ -3495,6 +3464,19 @@ export const compileRelationRenderPlan = (
     };
     return JSON.stringify(canonicalize(content));
   };
+  const unchangedAssignmentInk = (part: RelationPlanItem) => {
+    if (part.kind === 'node-plaque' && part.plaqueStyle === 'theta-grid') return {
+      kind: part.kind, anchors: part.anchorNodeIds, roles: part.thetaRoles, rows: part.rows, supersededAt: part.supersededAt
+    };
+    if (part.kind === 'node-badges' && part.badgeStyle === 'theta-role') return {
+      kind: part.kind, badges: part.badges, supersededAt: part.supersededAt
+    };
+    if (part.kind === 'directed-path' && part.pathStyle === 'case-assignment') return {
+      kind: part.kind, from: part.fromNodeId, to: part.toNodeId, label: part.label,
+      secondaryLabel: part.secondaryLabel, featureRow: part.featureRow, outcome: part.outcome, supersededAt: part.supersededAt
+    };
+    return null;
+  };
   frames.forEach((frame) => {
     const movementRoutes = new Set(frame.items.flatMap((item) => (
       item.kind === 'trajectory'
@@ -3537,6 +3519,15 @@ export const compileRelationRenderPlan = (
       }
     };
     frame.items.forEach((item) => {
+      // Continuity can prove an existing assignment independently of its tier.
+      // Reuse its ink only when the complete drawing and lifetime also agree.
+      if (item.restatesAssignment) {
+        const content = unchangedAssignmentInk(item);
+        const holder = content && coalescedItems.find(candidate => planItemRelationRefs(candidate).some(ref =>
+          ref.stageIndex === item.restatesAssignment!.stageIndex && ref.relationIndex === item.restatesAssignment!.relationIndex)
+          && JSON.stringify(canonicalize(unchangedAssignmentInk(candidate))) === JSON.stringify(canonicalize(content)));
+        if (holder) { mergeRelationRefs(holder, item); return; }
+      }
       const key = coalesceKeyOf(item);
       const holderIndex = coalesceHolderIndices.get(key);
       if (holderIndex === undefined) {

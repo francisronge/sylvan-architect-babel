@@ -211,7 +211,6 @@ export const compileTier2RelationOutputs = ({
   priorForest,
   dependencyIndexFor = (key) => key
 }: CompileTier2Input): CompileTier2Result => {
-  const evidence = dispatch.evidence;
   const dependencyKey = (tag: string, ids: readonly string[]) => `${tag}:${[...ids].sort().join('|')}`;
   const nodes = collectForest(currentForest);
   const priorNodeIds = new Set(collectForest(priorForest || []).keys());
@@ -263,6 +262,8 @@ export const compileTier2RelationOutputs = ({
       priorWitnessNodeIds,
       tier2WitnessNodeIds,
       tier2FacetId: facet.recipe.id,
+      tier2ClaimIdentity: facet.facetIdentity,
+      ...(facet.restates ? { restatesAssignment: facet.restates } : {}),
       tier2OutputIdentities,
       tier2OutputPieces,
       tier2RenderPart: part,
@@ -272,13 +273,13 @@ export const compileTier2RelationOutputs = ({
 
   const push = (item: RelationPlanItem) => items.push(item);
   const valid = (ids: readonly string[]) => ids.filter((id) => nodes.has(id));
-  const one = (role: string) => valid(currentIds(evidence, role))[0] || '';
-  const many = (role: string) => valid(currentIds(evidence, role));
-
   dispatch.facets.forEach((facet) => {
+    const evidence = facet.evidence ?? dispatch.evidence;
+    const one = (role: string) => valid(currentIds(evidence, role))[0] || '';
+    const many = (role: string) => valid(currentIds(evidence, role));
     const state = outcomeState(facet);
     const facetId = facet.recipe.id;
-    const rows = authoredRows({ ...evidence, authoredValues: evidence.authoredValues?.flatMap(entry => {
+    const rows = facet.evidence ? authoredRows(evidence) : authoredRows({ ...evidence, authoredValues: evidence.authoredValues?.flatMap(entry => {
       const refs = facet.evaluation.consumedEvidence.filter(ref => ref.field === 'values' && ref.key === entry.key);
       if (!refs.length) return [];
       const indices = new Set(refs.flatMap(ref => ref.itemIndices ?? entry.items.map((_, index) => index)));

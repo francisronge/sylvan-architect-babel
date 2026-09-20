@@ -97,9 +97,9 @@ it as `M` within a complex V, with every supplied token attached to a terminal.
 Astra, given the same split, explicitly keeps `読ん` as one stem associated with
 two token positions. The split may have influenced Sol, but these records cannot
 establish causation or justify rewriting its analysis. Token positions remain
-input addresses, not prescribed syntactic or morphological units. Native RTL
-presentation still needs discussion. Arabic glyph shaping works in this sample;
-sequential tree order remains left to right. No authored child order was reversed.
+input addresses, not prescribed syntactic or morphological units. The later
+approved RTL implementation below changes presentation coordinates while keeping
+authored child order and token positions intact.
 
 This follow-up passes 1,751 tests, typecheck and both parse-contract fixtures.
 All 27 saved analyses retain 133 stages, 417 authored relations and 1,230 Replay
@@ -132,12 +132,11 @@ correcting it. [MIT's movement notes](https://ocw.mit.edu/courses/24-951-introdu
 support distinguishing thematic from Case positions in chains. The saved X-bar
 English `thetaPosition` names a nominal recipient, while the Turkish one names
 a verbal source position. Chain membership and matching role strings therefore
-cannot alone determine assignment endpoints. Keep unresolved claims neutral;
-no new recognition rule or theoretical prescription was introduced.
+cannot alone determine assignment endpoints. The subsequent continuity rule below
+also requires earlier established assignments and exact structural evidence.
 
-A temporary RTL Canopy comparison mirrors horizontal coordinates for the same
-saved Arabic analysis, preserving labels, authored child identities and every
-connection. This is a view proposal only; production direction is unchanged.
+A temporary RTL Canopy comparison established the subsequently approved direction
+rule, preserving labels, authored child identities and every connection.
 The six-item review, sources and captures are in
 `/tmp/babel-sept17-review/next-checks`; scripts and verification evidence are in
 `/tmp/babel-authorized-six`. No provider calls were made. The offline gate passes
@@ -145,6 +144,45 @@ The six-item review, sources and captures are in
 same displayed syntax and ordering across 1,230 frames. Tree Bank upgrades,
 public/research redesign, migrations, hosting and corpus/benchmark work remain
 out of this pass.
+
+### Approved direction and assignment follow-up
+
+Production Canopy, Replay and inspection views use the browser's Unicode
+first-strong direction for the input sentence. RTL reflects the shared horizontal
+tree coordinates before relations, plaque reservation and Fit are computed. It
+does not reverse stored children, token addresses, glyphs or syntactic dependencies.
+There is no language allowlist. Native Arabic, Hebrew, Japanese and mixed-script
+direction checks, desktop/mobile views and zoom/Fit cover this presentation change.
+
+Registry version 17 recovers 15 additional assignment claims across 12 of the
+saved relations by following earlier explicit assignments through proven movement
+and stable occurrence positions. One further Case claim uses the general
+`licensed <category>` recipient rule. The chain rule does not interpret
+`thetaPosition` as a fixed linguistic role: the English nominal recipient and the
+Turkish verbal source are established from their own earlier claims. Compound
+claims keep one simultaneous relation moment and separate exact drawing owners.
+An unchanged restatement reuses an earlier grid when its content and lifetime
+agree, including across tiers. A grid's predicate label no longer chooses an
+arbitrary word from a branching VP.
+
+All 417 authored relations in 27 saved analyses were inventoried, including their
+remaining unconsumed fields. Residual prose, contextual anchors, clause typing,
+scope and morphological claims are not automatically renderer failures. Remaining
+assignment gaps include unpaired multiple sources/recipients and Case descriptions
+that do not establish a unique bearer. The concrete follow-up is an optional,
+neutral grouping of anchors and values within a relation, preserving simultaneity
+and open names. Discuss this contract proposal before changing the model-facing
+schema or prompt; do not zip arrays or rewrite a model's analysis.
+
+Input-token regressions cover possessives, contractions, Turkish suffixes, Arabic
+articles, Japanese multi-token stems and mixed scripts through normalization,
+Replay and saved-record reopening. All 27 saved analyses retain identical displayed
+syntax and relation order across 1,230 frames. The direct before/after review and
+RTL movement recording remain outside the worktree at
+`/tmp/babel-sept17-review/direction-evidence`; verification scripts and the complete
+fallback inventory are in `/tmp/babel-direction-evidence`. No new generation,
+provider, prompt or storage changes were made.
+The final offline gate passes 1,766 tests, typecheck and both parse fixtures.
 
 Pause new generation while these defects are repaired. Reuse the saved records
 for regressions and show only one or two directly relevant comparisons for each

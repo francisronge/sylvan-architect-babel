@@ -1,3 +1,4 @@
+import { createAssignmentContext, recoverAssignmentContinuity, rememberAssignments, rememberAssignmentMovement, type AssignmentContext, type AssignmentScope } from './assignmentContinuity.ts';
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
  *
@@ -27,6 +28,7 @@ import {
   buildTier2FacetOutputIdentities,
   evaluateTier2FacetRecipe,
   indexTier2Forests,
+  nativeThetaRoles,
   type Tier2ForestIndexes,
   type Tier2AuthoredEvidenceEntry,
   type Tier2FacetEvidence,
@@ -51,9 +53,11 @@ export type Tier2ResolvedFacet = {
   facetIdentity: string;
   outputIdentities: Tier2FacetOutputIdentity[];
   parentFacetIds: string[];
+  evidence?: Tier2FacetEvidence;
+  restates?: AssignmentScope['restates'];
 };
 
-type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation'>;
+type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation' | 'evidence' | 'restates'> & { origins?: AssignmentScope['origins'] };
 
 export type Tier2CollisionDiagnostic = {
   kind: 'ambiguous-facets' | 'more-specific-facet' | 'contradictory-evidence' | 'unrecovered-evidence';
@@ -144,6 +148,7 @@ export type ExclusiveRelationDispatchInput = {
   currentForest: readonly SyntaxNode[];
   priorForest?: readonly SyntaxNode[];
   activeLens?: boolean;
+  assignmentContext?: AssignmentContext;
   registry?: typeof productionRelationRegistry;
   synonymIndex?: Tier2SynonymIndex;
 };
@@ -493,20 +498,21 @@ const attachFacetIdentities = (
 ): Tier2ResolvedFacet[] => {
   const parentFacetIds = parentFacets.map(({ recipe }) => recipe.id).sort();
   const parentFacetIdentities = parentFacets.map(({ facetIdentity }) => facetIdentity).sort();
-  return facets.flatMap(({ recipe, evaluation }) => {
+  return facets.flatMap(({ recipe, evaluation, evidence: scopedEvidence, origins, restates }) => {
+    const sourceEvidence = scopedEvidence ?? evidence;
     const consumedEntries = (field: RecoveredEvidenceReference['field'], entries: readonly Tier2AuthoredEvidenceEntry[] = []) =>
       entries.flatMap(entry => {
         // Verified enclosure context is accounted for by the movement, but is
         // not another trajectory endpoint or part of its replacement identity.
         if (field === 'anchors' && ['movement.path', 'movement.carrier'].includes(recipe.id)
-          && evidence.movement?.context?.some(context => context.key === entry.key)) return [];
+          && sourceEvidence.movement?.context?.some(context => context.key === entry.key)) return [];
         const refs = evaluation.consumedEvidence.filter(ref => ref.field === field && ref.key === entry.key);
         if (!refs.length) return [];
         if (refs.some(ref => ref.itemIndices === undefined)) return [entry];
         // Paired literal slots remain positional even when an optional blank
         // annotation is left in the residual rather than drawn. A same-name
         // values entry is such a slot list by the contract's pairing rule.
-        const pairsByName = (evidence.authoredCurrentAnchors ?? []).some(anchor =>
+        const pairsByName = (sourceEvidence.authoredCurrentAnchors ?? []).some(anchor =>
           normalizeTier2Synonym(anchor.key) === normalizeTier2Synonym(entry.key));
         if (field === 'values' && recipe.checks.some(check => check.kind === 'paired-values'
           && (entry.concepts.includes(check.value) || pairsByName))) return [entry];
@@ -514,10 +520,10 @@ const attachFacetIdentities = (
         return [{ ...entry, items: entry.items.filter((_, index) => indices.has(index)) }];
       });
     const facetEvidence: Tier2FacetEvidence = {
-      ...evidence,
-      authoredCurrentAnchors: consumedEntries('anchors', evidence.authoredCurrentAnchors),
-      authoredPriorAnchors: consumedEntries('priorAnchors', evidence.authoredPriorAnchors),
-      authoredValues: consumedEntries('values', evidence.authoredValues)
+      ...sourceEvidence,
+      authoredCurrentAnchors: consumedEntries('anchors', sourceEvidence.authoredCurrentAnchors),
+      authoredPriorAnchors: consumedEntries('priorAnchors', sourceEvidence.authoredPriorAnchors),
+      authoredValues: consumedEntries('values', sourceEvidence.authoredValues)
     };
     const identityInput = {
       recipe,
@@ -531,7 +537,12 @@ const attachFacetIdentities = (
     if (!facetIdentity) return [];
     return [{
       recipe,
-      evaluation,
+      evaluation: origins ? { ...evaluation, consumedEvidence: evaluation.consumedEvidence.map(ref => {
+        const indices = origins[ref.field === 'anchors' ? 'anchors' : 'values'][ref.key] ?? [];
+        return { ...ref, itemIndices: indices };
+      }) } : evaluation,
+      ...(scopedEvidence ? { evidence: scopedEvidence } : {}),
+      ...(restates ? { restates } : {}),
       facetIdentity,
       outputIdentities: buildTier2FacetOutputIdentities(identityInput),
       parentFacetIds: [...parentFacetIds]
@@ -612,7 +623,14 @@ export const dispatchRelationClaims = (
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
     kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
   });
-  const tier2ClaimFacets = attachFacetIdentities(selected, evidence, stageIndex, indexes);
+  const continued: Tier2EvaluatedFacet[] = !registryEntry && input.assignmentContext
+    ? recoverAssignmentContinuity(evidence, input.assignmentContext).flatMap(scope => {
+        if (completeClaims.some(facet => facet.recipe.id === scope.kind)) return [];
+        const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
+        const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
+        return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins, restates: scope.restates }] : [];
+      }) : [];
+  const tier2ClaimFacets = attachFacetIdentities([...selected, ...continued], evidence, stageIndex, indexes);
   const companions = attachFacetIdentities(
     evaluateCompanions(evidence, tier2ClaimFacets.length > 0, indexes),
     evidence,
@@ -825,3 +843,26 @@ export const dispatchRelationClaimBatch = (
     })
   }));
 };
+
+/** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
+export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[] }[],
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
+  const assignmentContext = createAssignmentContext();
+  return stages.map((stage, stageIndex) => stage.relations.map((relation, relationIndex) => {
+    const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext,
+      currentForest: stage.workspaceForest, priorForest: stages[stageIndex - 1]?.workspaceForest });
+    rememberAssignmentMovement(assignmentContext, dispatch.evidence.movement);
+    if (dispatch.primaryClaim?.tier === 1) {
+      const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
+      if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
+        const { roles } = nativeThetaRoles(primary);
+        if (roles) rememberAssignments(assignmentContext, 'theta-grid', primary, { stageIndex, relationIndex }, roles);
+      }
+      for (const facet of evaluateClaims(primary, indexTier2Forests(primary))) {
+        if (facet.evaluation.complete) rememberAssignments(assignmentContext, facet.recipe.id, primary, { stageIndex, relationIndex });
+      }
+    }
+    for (const facet of dispatch.facets) rememberAssignments(assignmentContext, facet.recipe.id, facet.evidence ?? dispatch.evidence, { stageIndex, relationIndex });
+    return dispatch;
+  }));
+}

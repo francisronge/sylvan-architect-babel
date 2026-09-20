@@ -80,6 +80,31 @@ test('malformed saved token lists fail explicitly instead of silently changing a
   assert.deepEqual(resolveSavedInputTokens('', []), []);
 });
 
+test('written token addresses permit separate morphemes across scripts without dictating syntax', () => {
+  const cases = [
+    ["Mia's book", ["Mia's", 'book'], ['Mia', "'s", 'book'], [[[0, 1], [0]], [[2], [1]]]],
+    ["It's blue", ["It's", 'blue'], ['It', 'is', 'blue'], [[[0, 1], [0]], [[2], [1]]]],
+    ['kitabı', ['kitabı'], ['kitap', '-ı'], [[[0, 1], [0]]]],
+    ['الكتاب', ['الكتاب'], ['ال', 'كتاب'], [[[0, 1], [0]]]],
+    ['読んだ', ['読', 'ん', 'だ'], ['読ん', 'だ'], [[[0], [0, 1]], [[1], [2]]]],
+    ['كتاب Mia 12', ['كتاب', 'Mia', '12'], ['كتاب', 'Mia', '12'], [[[0], [0]], [[1], [1]], [[2], [2]]]]
+  ];
+  for (const [sentence, inputTokens, words, groups] of cases) for (const framework of ['xbar', 'minimalism']) {
+    const tree = { id: 'root', label: 'X', children: words.map((word, i) => ({ id: `m${i}`, label: `M${i}`, word, children: [] })) };
+    const realizations = groups.map(([ids, tokenIndices]) => ({ nodeIds: ids.map(id => `m${id}`), tokenIndices }));
+    const stages = [{ statement: 'The authored association holds.', stageRecord: 'Written positions and syntax are distinct.',
+      workspaceForest: [tree], realizations, relations: [] }];
+    const original = structuredClone(stages);
+    const bundle = { ...parser.normalizeParseBundle({ derivationStages: stages }, framework, sentence, 'fixture', true, { inputTokens }), sentence };
+    const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
+    assert.deepEqual(restored.inputTokens, inputTokens);
+    assert.deepEqual(restored.analyses[0].derivationStages[0].realizations, realizations);
+    assert.deepEqual(restored.analyses[0].tree.children.map(n => n.word), words);
+    assert.deepEqual(buildReplaySnapshotProjection(restored), buildReplaySnapshotProjection(bundle));
+    assert.deepEqual(stages, original);
+  }
+});
+
 test('Gemini and local normalization use the exact token list from their sent prompt', async t => {
   const previous = process.env.GEMINI_API_KEY;
   process.env.GEMINI_API_KEY = 'offline-test-only';

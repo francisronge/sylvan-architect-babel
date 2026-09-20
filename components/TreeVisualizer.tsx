@@ -2358,7 +2358,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const parasiticGapIslandLayers = new Map<string, AcceptedRelationLayer>();
       const parasiticGapCoindexLayers = new Map<string, AcceptedRelationLayer>();
       const relationLayerKey = (item: RelationPlanItem) =>
-        `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`;
+        JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex, item.tier2ClaimIdentity ?? null]);
       // Companion pieces share a draw; independent families within one relation do not.
       const acceptedRelationDrawingKey = (item: RelationPlanItem) =>
         JSON.stringify([relationLayerKey(item), item.familyId]);

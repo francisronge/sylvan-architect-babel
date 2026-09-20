@@ -20,6 +20,20 @@ import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts
 import { wrapPlaqueText, prepareThetaGridTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 import { thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 
+test('theta grids label their exact predicate instead of choosing a word from a branching phrase', () => {
+  const word = { id: 'word', label: 'V', word: 'read', children: [] };
+  assert.equal(thetaGridPredicateLabel(hierarchy(word)), 'read');
+  assert.equal(thetaGridPredicateLabel(hierarchy({ label: 'V', children: [word] })), 'read');
+  const phrase = { label: 'VP', children: [
+    { label: 'NP', children: [{ label: 'N', word: 'book', children: [] }] },
+    { label: 'V trace', children: [] }
+  ] };
+  assert.equal(thetaGridPredicateLabel(hierarchy(phrase)), 'VP');
+  phrase.children.reverse();
+  assert.equal(thetaGridPredicateLabel(hierarchy(phrase)), 'VP');
+  assert.equal(thetaGridPredicateLabel(hierarchy({ label: 'V trace', children: [] })), 'V trace');
+});
+
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declaration = (name) => {

@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 16 binds recognized equivalent role wording before
+Production registry version 17 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -62,6 +62,37 @@ to establish a Case dependency. A Case exponent or head is not implicitly its
 assigner or recipient. Multiple sources, ambiguous chains and unpaired literals
 remain neutral. Phrasal movement's attracting head is context, not a second
 endpoint or proof of head movement; it retains its neutral annotation.
+
+### Established assignment continuity
+
+Ordered stage dispatch retains earlier complete theta and Case assignments.
+A later open relation can restate that assignment when it supplies the same
+literal and uniquely identifies the source and recipient through current
+occurrence identity, unchanged parent position, or a proven movement to the
+lower witness with matching explicit lineage. Pronunciation does not determine
+the choice. A lineage match alone, list order, relation title, prose, or evidence
+from a later relation cannot establish it. Failed or unknown assignments do not
+establish history. Exact malformed Tier-1 relations are never repaired this way.
+
+Each independently established source/recipient/value tuple is evaluated through
+the existing complete recipe. Several tuples in one relation stay simultaneous;
+they have separate claim identities and retain their original authored field and
+item indices. Drawing and Replay share this interpretation. Context and unresolved
+siblings remain available in the neutral fallback. One component cannot consume
+the other component's value or suppress its drawing.
+
+An unchanged restatement may reuse an earlier assignment's ink across tiers only
+when continuity names that earlier claim and the full drawing content and lifetime
+match. Both authored relation moments retain ownership of the shared mark. Changed
+endpoints, literals or outcomes do not collapse. Exact theta-grid role reading is
+shared by drawing and continuity; open role labels retain their authored meanings.
+The predicate label uses the anchored word, a unary display shell's word, or the
+anchored category. It never selects the first word in a branching subtree.
+
+Flat lists of several sources and recipients still do not encode their pairing.
+If neither the current record nor earlier complete claims establishes it, the
+renderer cannot assert a unique assignment. Optional neutral claim grouping is a
+contract proposal for discussion, not an implemented schema or prompt change.
 
 The original relation and literal displays retain the authored record.
 `primaryRelation` contains only the primary claim's evidence after independent

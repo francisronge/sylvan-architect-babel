@@ -220,7 +220,8 @@ export const lookupTier2SynonymCandidates = (
 /** Interpret qualified assignment roles as a domain plus a direction, never from titles or prose. */
 const assignmentDirection = (role: string): 'source' | 'target' | undefined =>
   ['assigner', 'source', ...licensingSources].includes(role) ? 'source'
-    : ['target', 'recipient', 'assignee', 'bearer', 'marked', ...licensingTargets].includes(role) ? 'target' : undefined;
+    : ['target', 'recipient', 'assignee', 'bearer', 'marked', ...licensingTargets].includes(role)
+      || /^licensed [\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u.test(role) ? 'target' : undefined;
 
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
   const [domain, ...rest] = normalizeTier2Synonym(key).split(' ');
@@ -282,7 +283,7 @@ export const relationRoleConcepts = (
   if (spelling === 'introducer' && thetaDomain && !featureDomain) concepts.add('predicate');
   if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
-      || isExplicitTier2Role('feature.target', role))) {
+      || isExplicitTier2Role('feature.target', role) || assignmentDirection(normalizeTier2Synonym(role)) === 'target')) {
     concepts.add('feature.source');
   }
   return [...concepts];
