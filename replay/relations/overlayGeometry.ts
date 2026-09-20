@@ -34,6 +34,42 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
+/** D6's collection curve, mirrored when the feature source is left of its plaque. */
+export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0, obstacles: Rect[] = []): string {
+  const right = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2;
+  const direction = right ? 1 : -1;
+  const target = { x: right ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
+  const source = { x: right ? sourceRect.x : sourceRect.x + sourceRect.width,
+    y: sourceRect.y + sourceRect.height / 2 };
+  const offset = Math.min(68 + lane * 24, Math.max(16, Math.abs(source.x - target.x) / 2));
+  const blockers = [plaque, ...obstacles];
+  const intersections = (bend: number) => {
+    let count = 0;
+    for (let i = 1; i < 128; i++) {
+      const t = i / 128, u = 1 - t;
+      const x = u ** 3 * target.x + 3 * u * u * t * (target.x + direction * offset)
+        + 3 * u * t * t * (source.x - direction * offset) + t ** 3 * source.x;
+      const y = u ** 3 * target.y + 3 * u * u * t * (target.y + bend)
+        + 3 * u * t * t * (source.y + bend) + t ** 3 * source.y;
+      if (blockers.some(rect => x > rect.x - 6 && x < rect.x + rect.width + 6
+        && y > rect.y - 6 && y < rect.y + rect.height + 6)) count++;
+    }
+    return count;
+  };
+  let bend = 0, collisions = intersections(0);
+  // Preserve the Orchard route when clear. Otherwise bow the same continuous
+  // curve around opaque ink; never cut gaps out of the collection path.
+  for (let distance = 40; collisions && distance <= 480; distance += 40) {
+    for (const candidate of [-distance, distance]) {
+      const next = intersections(candidate);
+      if (next < collisions) { bend = candidate; collisions = next; }
+      if (!collisions) break;
+    }
+  }
+  return `M ${target.x.toFixed(1)} ${target.y.toFixed(1)} C ${(target.x + direction * offset).toFixed(1)} ${(target.y + bend).toFixed(1)},`
+    + ` ${(source.x - direction * offset).toFixed(1)} ${(source.y + bend).toFixed(1)}, ${source.x.toFixed(1)} ${source.y.toFixed(1)}`;
+}
+
 export type AnalysisVerdictAnchor = {
   analysisNodeId: string;
   desiredY: number;

@@ -173,6 +173,19 @@ It prints the authored field names and literals without asserting a dependency,
 valuation or outcome. Multiple recipients still require explicit roles; ambiguous
 feature blocks, prior-only anchors and prose alone do not earn this plaque.
 Exact-primary ownership and independent-claim checks remain unchanged.
+A recovered feature dependency with explicit values draws those authored values
+in a feature plaque at its source. Each value row connects to the corresponding
+feature target using the shared dotted collection curve. Case evidence is not
+required for the plaque; Case evidence independently earns a solid assignment
+arrow. No particular feature dimensions or languages are required.
+
+Case and collection can share a plaque when their exact current anchors meet at
+the same bearer in a shared authored stage. Rows match by both field name and
+value, with each contributing relation retaining its own reveal and focus.
+Multiple plausible incoming assignments or independent bundles stay separate.
+Layout reserves the combined content before reveal; long rows wrap. Collection
+curves use the Orchard style and bow around opaque ink without hiding segments.
+
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that
 domain; a generic `role` literal or the relation title cannot. Competing feature

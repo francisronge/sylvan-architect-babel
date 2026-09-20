@@ -37,9 +37,12 @@ test('feature records do not guess recipients, rescue exact claims or duplicate 
     { relation: 'Open record', anchors: {}, priorAnchors: { head: 'a' }, values: { features: ['+Q'] } },
     { relation: 'Open record', anchors: { head: 'a' }, values: { features: ['+Q'], featureValues: ['-Q'] } },
     { relation: 'Open record', anchors: { head: 'a' }, values: { note: 'All features checked' } },
-    { relation: 'Agree', anchors: { probe: 'a' }, values: { features: ['+Q'] } },
-    { relation: 'Open dependency', anchors: { source: 'a', target: 'b' }, values: { features: ['+Q'] } }
+    { relation: 'Agree', anchors: { probe: 'a' }, values: { features: ['+Q'] } }
   ]) assert.ok(!plan(relation).frames[0].items.some(item => item.kind === 'node-plaque'), JSON.stringify(relation));
+  const items = plan({ relation: 'Open dependency', anchors: { source: 'a', target: 'b' }, values: { features: ['+Q'] } }).frames[0].items;
+  assert.equal(items.filter(item => item.kind === 'node-plaque').length, 1, 'one value plaque belongs to the recovered dependency');
+  assert.equal(items.filter(item => item.pathStyle === 'case-agree').length, 1, 'one collection connector');
+  assert(items.every(item => item.tier2FacetId === 'feature.dependency'), 'no independent record claim duplicates the dependency');
 });
 
 for (const [name, anchors, key, concept, value, output] of [

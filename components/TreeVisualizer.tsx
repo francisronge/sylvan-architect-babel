@@ -1,3 +1,4 @@
+import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { useTreeDirection } from './useTreeDirection';
@@ -15,7 +16,7 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { buildStageCameraBounds, buildStageLayoutGroups, buildReplayPlaqueLayouts, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
-import { preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
+import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 import { caseAssignmentSource, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
@@ -135,6 +136,7 @@ import {
   analysisVerdictCompoundOrigin,
   analysisVerdictInitialLocalScale,
   caseAssignmentPlaquePath,
+  featureCollectionPlaquePath,
   placeRectBelowCollisions,
   planAnalysisVerdictRows,
   planAnchorSetLayout,
@@ -4633,6 +4635,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
       const renderedFeatureSharingItems = new Set<number>();
       const renderedCaseCompositions = new Set<string>();
+      const featureCollectionObstacles = (sourceId: string, plaqueIndex: number): Rect[] => {
+        const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+          .nodes().filter(label => !labelBelongsToNode(label, sourceId))
+          .map(label => measureGraphicsElementsInTreeSpace([label])).filter((rect): rect is Rect => Boolean(rect));
+        return [...labels, ...[...replayPlaqueLayout].filter(([index]) => index !== plaqueIndex).map(([, box]) => box)];
+      };
+
       const renderedBoundaryCutItems = new Set<number>();
       const sampleNativeBranchOverlay = (targetNodeId: string) => {
         const nativeBranch = g.selectAll<SVGPathElement, unknown>('.branch')
@@ -5557,6 +5566,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const assignmentEntry = pathItem.pathStyle === 'case-assignment'
               ? assignmentEntries.find(({ candidate }) => candidate === pathItem)
               : assignmentEntries.length === 1 ? assignmentEntries[0] : undefined;
+            const attachedPlaque = pathItem.pathStyle === 'case-agree' ? collectionPlaque(frameItems, pathItem) : undefined;
+            if (attachedPlaque && featurePlaqueAssignment(frameItems, attachedPlaque.index) === undefined) return;
             if (!assignmentEntry && pathItem.pathStyle === 'case-agree') {
               const layer = ensureAgreementCaseRelationLayer();
               layer.append('path').attr('class', 'babel-case-collection-path').attr('d', primitive.d);
@@ -5585,55 +5596,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const bearerRect = acceptedAnchorRect(assignment.toNodeId);
             if (!assignerRect || !bearerRect) return;
             markPreterminalLensNode(assignment.fromNodeId, 'case-assigner');
-            const collectionEntries = frameItems
-              .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-              .filter(({ candidate }) =>
-                candidate.kind === 'directed-path'
-                && candidate.pathStyle === 'case-agree'
-                && assignmentEntries.length === 1
-                && planItemsShareAuthoredStage(candidate, assignment)
-                && candidate.fromNodeId === assignment.toNodeId);
-            const bundleEntries = frameItems
-              .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
-              .filter(({ candidate }) =>
-                candidate.kind === 'node-plaque'
-                && candidate.plaqueStyle === 'feature'
-                && planItemsShareAuthoredStage(candidate, assignment)
-                && candidate.anchorNodeIds[0] === assignment.toNodeId);
-            const bundleEntry = bundleEntries.length === 1 && assignmentEntries.length === 1 ? bundleEntries[0] : undefined;
-            const bundleRevealed = bundleEntry && revealedItemIndices.has(bundleEntry.candidateIndex);
-            const assignmentPair = assignment.featureRow || { label: '', value: assignment.label || '' };
-            const collectionPairs = collectionEntries.map(({ candidate, candidateIndex }) => ({
-              candidate,
-              candidateIndex,
-              pair: candidate.kind === 'directed-path'
-                ? candidate.featureRow || { label: '', value: candidate.label || '' }
-                : { label: '', value: '' }
-            }));
-            const authoredRows = bundleRevealed && bundleEntry.candidate.kind === 'node-plaque'
-              ? bundleEntry.candidate.rows
-              : [assignmentPair, ...collectionPairs.map(({ pair }) => pair)];
-            const rows = authoredRows.map((row) => {
-              if (row.label === assignmentPair.label) {
-                return {
-                  feature: row.label,
-                  value: revealedItemIndices.has(assignmentEntry.candidateIndex)
-                    ? assignmentPair.value
-                    : '__'
-                };
-              }
-              const collection = collectionPairs.find(({ pair }) => pair.label === row.label);
-              return {
-                feature: row.label,
-                value: collection && revealedItemIndices.has(collection.candidateIndex)
-                  ? collection.pair.value
-                  : collection ? '__' : row.value
-              };
-            });
-            const plaqueWidth = 310;
-            const headerHeight = 62;
-            const rowHeight = 62;
-            const plaqueHeight = headerHeight + rows.length * rowHeight + 14;
+            const composition = caseFeatureComposition(frameItems, assignmentEntry.candidateIndex)!;
+            const bundleEntry = composition.bundle;
+            const bundleRevealed = bundleEntry && revealedItemIndices.has(bundleEntry.index);
+            const assignmentPair = pathFeatureRow(assignment);
+            const rowLayout = prepareCasePlaqueRows(composition.rows);
+            const { width: plaqueWidth, height: plaqueHeight } = rowLayout;
             const placement = replayPlaqueLayout.get(assignmentEntry.candidateIndex);
             if (!placement) return;
             const plaqueX = placement.x;
@@ -5644,11 +5612,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('data-feature-placement', 'accepted')
               .attr('opacity', bundleEntry && focusedRelationMoment
                 && planItemOwnsRelationMoment(
-                  bundleEntry.candidate,
+                  bundleEntry.item,
                   focusedRelationMoment.stageIndex,
                   focusedRelationMoment.relationIndex
                 ) ? null : opacity);
-            const plaqueOwner = bundleRevealed ? bundleEntry.candidate : assignment;
+            const plaqueOwner = bundleRevealed ? bundleEntry.item : assignment;
             const plaqueNode = plaque.node();
             if (plaqueNode) {
               decorateRelationElement(
@@ -5669,25 +5637,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('x', (plaqueX + 20).toFixed(1))
               .attr('y', (plaqueY + 32).toFixed(1))
               .text('CASE / AGREEMENT');
-            const rowTargets = new Map<string, { left: { x: number; y: number }; right: { x: number; y: number } }>();
-            rows.forEach((row, rowIndex) => {
-              const rowY = plaqueY + headerHeight + rowIndex * rowHeight + rowHeight / 2;
+            const rowTargets = new Map<string, number>();
+            rowLayout.rows.forEach((row, rowIndex) => {
+              const claim = composition.rows[rowIndex];
+              const revealed = claim.ownerIndices.some(index => revealedItemIndices.has(index));
+              const value = revealed ? row.value : '__';
+              const rowY = plaqueY + row.y;
               const rowGroup = plaque.append('g')
                 .attr('class', 'babel-feature-row')
-                .attr('data-feature-label', row.feature);
-              rowGroup.append('text')
-                .attr('class', 'babel-feature-text')
+                .attr('data-feature-label', row.label);
+              const text = rowGroup.append('text').attr('class', 'babel-feature-text')
+                .attr('dominant-baseline', 'middle');
+              const lines = revealed ? row.lines : [`[${row.label}: ${value}]`];
+              lines.forEach((line, lineIndex) => text.append('tspan')
                 .attr('x', (plaqueX + 22).toFixed(1))
-                .attr('y', rowY.toFixed(1))
-                .attr('dominant-baseline', 'middle')
-                .text(`[${row.feature}: ${row.value}]`);
-              rowTargets.set(row.feature, {
-                left: { x: plaqueX - 12, y: rowY },
-                right: { x: plaqueX + plaqueWidth + 12, y: rowY }
-              });
+                .attr('y', (plaqueY + row.firstLineY + lineIndex * 38).toFixed(1)).text(line));
+              rowTargets.set(featureRowKey(row), rowY);
             });
-            const caseTarget = rowTargets.get(assignmentPair.label)?.left;
-            if (caseTarget) {
+            const caseTarget = rowTargets.get(featureRowKey(assignmentPair));
+            if (caseTarget !== undefined) {
               const assignmentPath = layer.append('path')
                 .attr('class', 'babel-case-assignment-path')
                 .attr('opacity', focusedRelationMoment && planItemOwnsRelationMoment(
@@ -5697,7 +5665,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 ) ? null : opacity)
                 .attr('marker-end', `url(#babel-agree-arrow-${activeDerivationFrameIndex})`)
                 .attr('d', caseAssignmentPlaquePath(assignerRect,
-                  { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight }, caseTarget.y));
+                  { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight }, caseTarget));
               const assignmentPathNode = assignmentPath.node();
               if (assignmentPathNode) {
                 decorateRelationElement(
@@ -5707,15 +5675,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 );
               }
             }
-            collectionPairs.forEach(({ candidate, candidateIndex, pair }, pathIndex) => {
-              if (candidate.kind !== 'directed-path' || !revealedItemIndices.has(candidateIndex)) return;
+            composition.collections.forEach(({ item: candidate, index: candidateIndex }, pathIndex) => {
+              if (!revealedItemIndices.has(candidateIndex)) return;
               const sourceRect = acceptedAnchorRect(candidate.toNodeId);
-              const target = rowTargets.get(pair.label)?.right;
-              if (!sourceRect || !target) return;
-              const source = { x: sourceRect.x, y: sourceRect.y + sourceRect.height / 2 };
-              const laneOffset = 68 + pathIndex * 24;
-              const firstControl = { x: target.x + laneOffset, y: target.y };
-              const secondControl = { x: source.x - laneOffset, y: source.y };
+              const rowY = rowTargets.get(featureRowKey(pathFeatureRow(candidate)));
+              if (!sourceRect || rowY === undefined) return;
               const collectionPath = layer.append('path')
                 .attr('class', 'babel-case-collection-path')
                 .attr('opacity', focusedRelationMoment && planItemOwnsRelationMoment(
@@ -5723,12 +5687,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   focusedRelationMoment.stageIndex,
                   focusedRelationMoment.relationIndex
                 ) ? null : opacity)
-                .attr('d', [
-                  `M ${target.x.toFixed(1)} ${target.y.toFixed(1)}`,
-                  `C ${firstControl.x.toFixed(1)} ${firstControl.y.toFixed(1)},`,
-                  `${secondControl.x.toFixed(1)} ${secondControl.y.toFixed(1)},`,
-                  `${source.x.toFixed(1)} ${source.y.toFixed(1)}`
-                ].join(' '));
+                .attr('d', featureCollectionPlaquePath(
+                  { x: plaqueX, y: plaqueY, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect, pathIndex,
+                  featureCollectionObstacles(candidate.toNodeId, assignmentEntry.candidateIndex)));
               const collectionPathNode = collectionPath.node();
               if (collectionPathNode) {
                 decorateRelationElement(
@@ -6199,15 +6160,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             queueAcceptedRelationDraw(planItem, emphasis, () => {
               const plaqueItem = planItem.kind === 'node-plaque' ? planItem : null;
               const anchorId = plaqueItem?.anchorNodeIds[0] || '';
-              const assignments = frameItems.filter((candidate) =>
-              candidate.kind === 'directed-path'
-              && candidate.pathStyle === 'case-assignment'
-              && planItemsShareAuthoredStage(candidate, planItem)
-              && candidate.toNodeId === anchorId);
-            const bundles = frameItems.filter((candidate) => candidate.kind === 'node-plaque'
-              && candidate.plaqueStyle === 'feature' && candidate.anchorNodeIds[0] === anchorId
-              && planItemsShareAuthoredStage(candidate, planItem));
-            if (assignments.length === 1 && bundles.length === 1) return;
+            if (featurePlaqueAssignment(frameItems, primitive.itemIndex) !== undefined) return;
             const anchorRect = measuredTerminalSubtreeRectNow(anchorId)
               || measuredTreeLabelRectNow(anchorId, false);
             if (!anchorId || !anchorRect) return;
@@ -6238,6 +6191,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('data-feature-label', primitive.rows[row.rowIndex].label)
                 .attr('data-plaque-row-index', row.rowIndex);
               drawPlaqueText(rowGroup, row, 'babel-feature-text', origin);
+            });
+            frameItems.forEach((candidate, candidateIndex) => {
+              if (candidate.kind !== 'directed-path' || candidate.pathStyle !== 'case-agree'
+                || !revealedItemIndices.has(candidateIndex)
+                || collectionPlaque(frameItems, candidate)?.index !== primitive.itemIndex) return;
+              const rowIndex = primitive.rows.findIndex(row => featureRowKey(row) === featureRowKey(pathFeatureRow(candidate)));
+              const row = layout.rows.find(row => row.rowIndex === rowIndex);
+              const sourceRect = measuredTreeLabelRectNow(candidate.toNodeId, false)
+                || measuredTerminalSubtreeRectNow(candidate.toNodeId);
+              if (!row?.lines.length || !sourceRect) return;
+              const first = row.lines[0], last = row.lines[row.lines.length - 1];
+              const rowY = origin.y + (first.y - first.ascent + last.y + last.descent) / 2;
+              const path = layer.append('path').attr('class', 'babel-case-collection-path')
+                .attr('d', featureCollectionPlaquePath({ ...origin, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect, 0,
+                  featureCollectionObstacles(candidate.toNodeId, primitive.itemIndex)));
+              decorateRelationElement(path.node()!, candidate, relationEmphasisForItem(candidate));
             });
             });
             return;

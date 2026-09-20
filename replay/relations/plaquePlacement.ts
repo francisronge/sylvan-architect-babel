@@ -2,13 +2,14 @@ import { categoryTextLayout, CATEGORY_LINE_HEIGHT, type CategoryTextMeasure } fr
 import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf } from '../replayCompiler.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import { planItemsShareAuthoredStage, type RelationPlanItem } from './renderPlanCompiler.ts';
+import { type RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from './markGeometry.ts';
 import { caseAssignmentPlaqueCurve } from './overlayGeometry.ts';
-import { preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
+import { caseFeatureComposition, featurePlaqueAssignment } from './featureComposition.ts';
+import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
-  blocksConnectors?: boolean; connectorAttachment?: string };
+  caseRowY?: number; blocksConnectors?: boolean; connectorAttachment?: string };
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
@@ -117,7 +118,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean };
+type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number };
 
 /** A single word can carry a head's mark; a complex head retains its own category anchor. */
 export function caseAssignmentSource(node: Node): Node {
@@ -134,7 +135,7 @@ const caseSourceRect = (anchor: Node): PlaqueRect => {
 };
 
 const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => {
-  const { source, control1, control2, target } = caseAssignmentPlaqueCurve(caseSourceRect(anchor), box, box.y + 93);
+  const { source, control1, control2, target } = caseAssignmentPlaqueCurve(caseSourceRect(anchor), box, box.y + (box.caseRowY ?? 93));
   const points = sampleCubic(source, control1, control2, target, 32);
   return points.slice(1).map((point, i) => ({
     x: Math.min(points[i].x, point.x) - 8, y: Math.min(points[i].y, point.y) - 8,
@@ -167,12 +168,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
   items.forEach((item, index) => {
     if (item.kind === 'node-plaque') {
       if (item.plaqueStyle === 'feature') {
-        const assignments = items.filter(other => other.kind === 'directed-path'
-          && other.pathStyle === 'case-assignment' && other.toNodeId === item.anchorNodeIds[0]
-          && planItemsShareAuthoredStage(other, item));
-        const bundles = items.filter(other => other.kind === 'node-plaque' && other.plaqueStyle === 'feature'
-          && other.anchorNodeIds[0] === item.anchorNodeIds[0] && planItemsShareAuthoredStage(other, item));
-        if (assignments.length === 1 && bundles.length === 1) return;
+        if (featurePlaqueAssignment(items, index) !== undefined) return;
       }
       let size = preparePlaqueTextLayout(item, { variant: item.plaqueStyle === 'feature' ? 'feature' : 'generic' });
       if (item.plaqueStyle === 'realization') {
@@ -191,17 +187,10 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
         width: size.width, height: size.height, ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
-      const assignments = items.filter(other => other.kind === 'directed-path'
-        && other.pathStyle === 'case-assignment' && other.toNodeId === item.toNodeId
-        && planItemsShareAuthoredStage(other, item));
-      const bundles = items.filter(other => other.kind === 'node-plaque' && other.plaqueStyle === 'feature'
-        && other.anchorNodeIds[0] === item.toNodeId && planItemsShareAuthoredStage(other, item));
-      const bundle = assignments.length === 1 && bundles.length === 1 && bundles[0].kind === 'node-plaque' ? bundles[0] : null;
-      const collections = assignments.length === 1 ? items.filter(other => other.kind === 'directed-path'
-        && other.pathStyle === 'case-agree' && other.fromNodeId === item.toNodeId
-        && planItemsShareAuthoredStage(other, item)) : [];
-      requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: 310, caseAssignment: true,
-        height: 76 + (bundle?.rows.length ?? 1 + collections.length) * 62 });
+      const composition = caseFeatureComposition(items, index)!;
+      const size = prepareCasePlaqueRows(composition.rows);
+      requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: size.width, caseAssignment: true,
+        height: size.height, caseRowY: size.rows[0].y });
     }
   });
   return requests;
@@ -246,8 +235,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
     const clear = (candidate: PlaqueRect) => occupied.every(obstacle => !plaquesOverlap(candidate, obstacle))
-      && (!request.caseAssignment || (space ? space.acceptsConnector(candidate)
-        : caseAssignmentClears(anchor, candidate, occupied)));
+      && (!request.caseAssignment || (space ? space.acceptsConnector({ ...candidate, caseRowY: request.caseRowY })
+        : caseAssignmentClears(anchor, { ...candidate, caseRowY: request.caseRowY }, occupied)));
     const ancestors = anchor.ancestors();
     let domain = ancestors.find(candidate => visible(candidate) && anchors.every(node => node.ancestors().includes(candidate))) || anchor;
     if (anchors.length === 1 && !domain.children?.length && domain.parent && visible(domain.parent)) domain = domain.parent;
@@ -318,6 +307,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       placement = { x, y, width, height };
     }
+    placement = { ...placement, ...(request.caseRowY ? { caseRowY: request.caseRowY } : {}) };
     const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),

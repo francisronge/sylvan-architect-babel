@@ -225,6 +225,21 @@ export const preparePlaqueTextLayout = (
   return { width, ...plaqueViewport(rowTop + (feature ? 16 : 0), font.row.fontSize), ...(title ? { title: title.block } : {}), rows };
 };
 
+/** Keep D6's row centres and spacing; longer authored rows grow within its width. */
+export function prepareCasePlaqueRows(rows: readonly { label: string; value: string }[]) {
+  let top = 62;
+  const laidOut = rows.map(row => {
+    const text = `[${row.label}: ${row.value}]`;
+    const lines = wrapPlaqueText(text, 266, value => ({ width: graphemes(value).reduce((width, char) => width
+      + (/[^\u0000-\u024f\u0300-\u036f]/u.test(char) ? 30 : 18) + 0.6, 0) }));
+    const height = 62 + (lines.length - 1) * 38;
+    const result = { ...row, lines, y: top + height / 2, firstLineY: top + 31 };
+    top += height;
+    return result;
+  });
+  return { width: 310, height: top + 14, rows: laidOut };
+}
+
 /** Native grid columns share one content-sized layout for reservation and drawing. */
 export const prepareThetaGridTextLayout = (
   predicate: string,

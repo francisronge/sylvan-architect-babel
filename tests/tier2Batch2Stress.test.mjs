@@ -93,8 +93,10 @@ for (const [facet, positives, negatives] of [
         const result = inspect(relation({ probe: 'a', goal: 'b' }, { features, index: 'k' }));
         assert(!result.facets.includes(facet), JSON.stringify(features));
         assert(!result.items.some(item => item.pathStyle === facet));
-        assert.equal(result.items.find(item => item.pathStyle === 'case-agree').label,
-          (Array.isArray(features) ? features : [features]).join(', '));
+        assert.deepEqual(result.items.filter(item => item.pathStyle === 'case-agree').map(item => item.featureRow.value).sort(),
+          [...new Set(Array.isArray(features) ? features : [features])].sort());
+        assert.deepEqual(result.items.find(item => item.kind === 'node-plaque').rows.map(row => row.value),
+          [...new Set(Array.isArray(features) ? features : [features])]);
       }
     }
   });

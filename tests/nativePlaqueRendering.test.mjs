@@ -9,9 +9,10 @@ import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthored
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
 import { projectPlaqueLayout, placeStagePlaques, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
-import { preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
+import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
+import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { appendPlaqueContent } from '../components/plaqueViewport.ts';
-import { caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
+import { featureCollectionPlaquePath, caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
 import { bindRelationPlanFrame, FALLBACK_ROLE_STYLE } from '../replay/relations/geometryBinding.ts';
 import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
 
@@ -167,7 +168,8 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   };
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
-    planItemsShareAuthoredStage,
+    planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
+    featureCollectionPlaquePath, featureCollectionObstacles: () => [], decorateRelationElement() {}, relationEmphasisForItem: () => null,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,6 +210,8 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     planItem: item, emphasis: null, opacity: null, frameItems, planItemsShareAuthoredStage,
+    caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
+    prepareCasePlaqueRows, featureCollectionPlaquePath, featureCollectionObstacles: () => [],
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
     relationLayerKey: () => 'case', renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureFeatureRelationLayer() {}, ensureAgreementCaseRelationLayer: () => select(root),
@@ -234,9 +238,9 @@ test('a coalesced Case path still composes with a later-stage feature plaque in 
   ] }));
   const layout = placeStagePlaques([item, bundle], tree.descendants(), []);
   assert.equal(layout.size, 1, 'reserve one combined plaque');
-  assert.equal(layout.get(0).height, 200, 'reserve both authored rows');
+  assert.equal(layout.get(0).height, prepareCasePlaqueRows(bundle.rows).height, 'reserve both authored rows including wrapped lines');
   const painted = drawCasePlaque(item, layout.get(0), { x: 0, y: 0, width: 100, height: 60 }, [item, bundle]);
-  assert(descendants(painted).some(node => node.text === '[number: plural]'), 'the later bundle contributes its row');
+  assert(descendants(painted).some(node => node.textContent === '[number: plural]'), 'the later bundle contributes its row');
   const beforeBundle = drawCasePlaque(item, layout.get(0), { x: 0, y: 0, width: 100, height: 60 }, [item, bundle], [0]);
   assert(!descendants(beforeBundle).some(node => node.text.includes('plural')),
     'a carried Case mark must not reveal the later bundle before its relation moment');
@@ -250,7 +254,7 @@ test('native Case connector approaches the outside edge for plaques on every sid
     featureRow: { label: 'Case', value: 'accusative' }, relationRef: { stageIndex: 0, relationIndex: 0 } };
   const assigner = { x: 450, y: 450, width: 100, height: 60 };
   for (const [x, y] of [[650, 570], [0, 280], [350, 600], [350, 150], [0, 600], [650, 150]]) {
-    const box = { x, y, width: 310, height: 138 };
+    const box = { x, y, ...prepareCasePlaqueRows([item.featureRow]) };
     const painted = drawCasePlaque(item, box, assigner);
     const all = descendants(painted);
     const shell = all.find(node => matches(node, '.babel-feature-plaque-shell'));
@@ -274,7 +278,7 @@ test('native Case connector approaches the outside edge for plaques on every sid
       assert(!(px > assigner.x && px < assigner.x + assigner.width
         && py > assigner.y && py < assigner.y + assigner.height), 'Case connector entered the assigner label');
     }
-    assert(all.some(node => node.text === '[Case: accusative]'));
+    assert(all.some(node => node.textContent === '[Case: accusative]'));
     assert.deepEqual(svgSnapshot(drawCasePlaque(item, box, assigner)), svgSnapshot(painted));
   }
 });

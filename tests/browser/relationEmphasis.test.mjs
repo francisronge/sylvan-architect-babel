@@ -92,6 +92,7 @@ test('an agreement restatement shares one plaque and keeps both Replay moments a
       await page.locator('input[type=range]').fill(String(index));
       await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index);
       const plaque = page.locator('svg .babel-feature-plaque');
+      await plaque.waitFor({ state: 'attached' });
       assert.equal(await plaque.count(), 1);
       const owner = await plaque.evaluate(e => e.closest('.vr-item').getAttribute('data-vr-owner-refs'));
       assert.equal(owner, si === 0 ? '0:0' : '0:0 1:0');
