@@ -169,8 +169,9 @@ and the initial fitted appearance are unchanged.
 Long category labels wrap at measured display width without abbreviating or
 changing their characters. Combining sequences stay intact. Wrapped categories
 use the same multiline bounds for plaque obstacles and stage Fit. Native branch
-geometry never depends on label height: visible wrapped labels mask branches
-behind their text in tree coordinates, without relocating endpoints. Short
+geometry never depends on label height. Category glyphs and their dark stroke
+paint over branches without masking the surrounding multiline rectangle. The
+incoming branch remains visible between and outside the glyphs. Short
 labels preserve their existing bounds and native branches.
 Wrapping does not change child order, tree spacing or the authored notation.
 
@@ -242,3 +243,11 @@ Neither reviewer changed repository files.
 No provider parse, model parse, fixture regeneration, commit, push, or deploy
 was performed. The pre-closeout Tier-2 specification backup is at
 `/private/tmp/visual-relations-tier2-shape-dispatch-spec.pre-closeout-20260825.md`.
+
+
+Head adjunction targets the structurally established resulting head complex,
+not its pronounced descendant. If a later authored head movement takes that
+exact complex as its prior source, the earlier arrow retains the intermediate
+position through that movement's exact lower witness. This switch occurs at the
+later relation moment, never at an earlier structural micro-step. Plain terminal
+landings and phrasal movements retain their existing attachment rules.

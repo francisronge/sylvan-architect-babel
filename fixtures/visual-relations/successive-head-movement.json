@@ -1,0 +1,1094 @@
+{
+  "sentence": "Mia liest das Buch und Leo schreibt einen Brief.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "externalArgument": "sm",
+            "internalArgument": "om",
+            "predicate": "vm"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "sl",
+            "internalArgument": "ol",
+            "predicate": "vl"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "im",
+            "subject": "sm"
+          },
+          "relation": "finite agreement and nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "il",
+            "subject": "sl"
+          },
+          "relation": "finite agreement and nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "vm",
+            "object": "om"
+          },
+          "relation": "government and structural Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "vl",
+            "object": "ol"
+          },
+          "relation": "government and structural Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "stageRecord": "The sentence coordinates two independent propositions: Mia reads the book, and Leo writes a letter. In this GB analysis, German VP and IP are underlyingly head-final, while the surface declaratives will be verb-second CPs. Each subject is generated in Spec-IP, the traditional GB external-argument position adopted here; no VP-internal subject movement is assumed. Each accusative object is the complement of its verb inside V′. Nominal arguments are DPs, with a silent D for each proper name. Finite I licenses nominative on its subject, and each transitive verb governs and assigns accusative to its object. The verbs are introduced as the inflected lexical forms liest and schreibt; abstract I bears matching present-tense and third-person singular features but is not a separately pronounced affix. Consequently, no morphological fusion or special token realization is required. The separate coordinator will eventually take the two completed CPs as its conjuncts.",
+      "statement": "Construct two head-final German IPs and the coordinating head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "smd",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "smn",
+                              "label": "N",
+                              "tokenIndex": 0,
+                              "word": "Mia"
+                            }
+                          ],
+                          "id": "smnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "smnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "smdbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sm",
+              "label": "DP",
+              "lineageId": "subject-Mia"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "omd",
+                                  "label": "D",
+                                  "tokenIndex": 2,
+                                  "word": "das"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "omn",
+                                          "label": "N",
+                                          "tokenIndex": 3,
+                                          "word": "Buch"
+                                        }
+                                      ],
+                                      "id": "omnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "omnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "omdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "om",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [],
+                          "id": "vm",
+                          "label": "V",
+                          "lineageId": "verb-read",
+                          "tokenIndex": 1,
+                          "word": "liest"
+                        }
+                      ],
+                      "id": "vbarm",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpm",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "im",
+                  "label": "I [finite, present, 3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "ipbarm",
+              "label": "I′"
+            }
+          ],
+          "id": "ipm",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "sld",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sln",
+                              "label": "N",
+                              "tokenIndex": 5,
+                              "word": "Leo"
+                            }
+                          ],
+                          "id": "slnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "slnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "sldbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sl",
+              "label": "DP",
+              "lineageId": "subject-Leo"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "old",
+                                  "label": "D",
+                                  "tokenIndex": 7,
+                                  "word": "einen"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oln",
+                                          "label": "N",
+                                          "tokenIndex": 8,
+                                          "word": "Brief"
+                                        }
+                                      ],
+                                      "id": "olnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "olnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "oldbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "ol",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [],
+                          "id": "vl",
+                          "label": "V",
+                          "lineageId": "verb-write",
+                          "tokenIndex": 6,
+                          "word": "schreibt"
+                        }
+                      ],
+                      "id": "vbarl",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpl",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "il",
+                  "label": "I [finite, present, 3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "ipbarl",
+              "label": "I′"
+            }
+          ],
+          "id": "ipl",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "and",
+          "label": "&",
+          "tokenIndex": 4,
+          "word": "und"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "inflection": "im",
+            "landingHead": "ihm",
+            "lowerTrace": "tvm",
+            "movedVerb": "vm"
+          },
+          "priorAnchors": {
+            "sourceVerb": "vm",
+            "targetInflection": "im"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head-movement chain",
+            "operation": "head adjunction"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "il",
+            "landingHead": "ihl",
+            "lowerTrace": "tvl",
+            "movedVerb": "vl"
+          },
+          "priorAnchors": {
+            "sourceVerb": "vl",
+            "targetInflection": "il"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head-movement chain",
+            "operation": "head adjunction"
+          }
+        }
+      ],
+      "stageRecord": "Each verb adjoins to its own finite I before movement to C. This intermediate workspace makes the successive-cyclic head-movement commitment explicit: neither verb skips the intervening inflectional head. The lower V positions become silent head traces, while the inflected lexical terminals are pronounced in the newly formed complex I heads. Their lexical forms already agree with the finite features of I; this movement does not concatenate or respell morphological pieces. The objects remain in their original complement positions, and the subjects remain in Spec-IP. The argument and Case dependencies established in the preceding stage are preserved through the verbal chains.",
+      "statement": "Raise each finite verb from V to I, retaining its VP-internal trace.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "smd",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "smn",
+                              "label": "N",
+                              "tokenIndex": 0,
+                              "word": "Mia"
+                            }
+                          ],
+                          "id": "smnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "smnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "smdbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sm",
+              "label": "DP",
+              "lineageId": "subject-Mia"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "omd",
+                                  "label": "D",
+                                  "tokenIndex": 2,
+                                  "word": "das"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "omn",
+                                          "label": "N",
+                                          "tokenIndex": 3,
+                                          "word": "Buch"
+                                        }
+                                      ],
+                                      "id": "omnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "omnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "omdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "om",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [],
+                          "id": "tvm",
+                          "label": "V trace",
+                          "lineageId": "verb-read",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vbarm",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpm",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vm",
+                      "label": "V",
+                      "lineageId": "verb-read",
+                      "tokenIndex": 1,
+                      "word": "liest"
+                    },
+                    {
+                      "children": [],
+                      "id": "im",
+                      "label": "I [finite, present, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "ihm",
+                  "label": "I",
+                  "lineageId": "finite-head-Mia"
+                }
+              ],
+              "id": "ipbarm",
+              "label": "I′"
+            }
+          ],
+          "id": "ipm",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "sld",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sln",
+                              "label": "N",
+                              "tokenIndex": 5,
+                              "word": "Leo"
+                            }
+                          ],
+                          "id": "slnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "slnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "sldbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sl",
+              "label": "DP",
+              "lineageId": "subject-Leo"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "old",
+                                  "label": "D",
+                                  "tokenIndex": 7,
+                                  "word": "einen"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oln",
+                                          "label": "N",
+                                          "tokenIndex": 8,
+                                          "word": "Brief"
+                                        }
+                                      ],
+                                      "id": "olnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "olnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "oldbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "ol",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [],
+                          "id": "tvl",
+                          "label": "V trace",
+                          "lineageId": "verb-write",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vbarl",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpl",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vl",
+                      "label": "V",
+                      "lineageId": "verb-write",
+                      "tokenIndex": 6,
+                      "word": "schreibt"
+                    },
+                    {
+                      "children": [],
+                      "id": "il",
+                      "label": "I [finite, present, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "ihl",
+                  "label": "I",
+                  "lineageId": "finite-head-Leo"
+                }
+              ],
+              "id": "ipbarl",
+              "label": "I′"
+            }
+          ],
+          "id": "ipl",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "and",
+          "label": "&",
+          "tokenIndex": 4,
+          "word": "und"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingHead": "chm",
+            "lowerTrace": "tim",
+            "lowerVerbTrace": "tvm",
+            "movedHead": "ihm"
+          },
+          "priorAnchors": {
+            "sourceHead": "ihm"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "headPath": [
+              "V",
+              "I",
+              "C"
+            ],
+            "operation": "head adjunction"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "cpm",
+            "lowerTrace": "tsm",
+            "movedSubject": "sm"
+          },
+          "priorAnchors": {
+            "sourceProjection": "ipm",
+            "sourceSubject": "sm"
+          },
+          "relation": "subject A-prime movement",
+          "values": {
+            "landingPosition": "Spec-CP",
+            "retainedCase": "nominative",
+            "retainedThetaRole": "Agent",
+            "sourcePosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "landingHead": "chl",
+            "lowerTrace": "til",
+            "lowerVerbTrace": "tvl",
+            "movedHead": "ihl"
+          },
+          "priorAnchors": {
+            "sourceHead": "ihl"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "headPath": [
+              "V",
+              "I",
+              "C"
+            ],
+            "operation": "head adjunction"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "cpl",
+            "lowerTrace": "tsl",
+            "movedSubject": "sl"
+          },
+          "priorAnchors": {
+            "sourceProjection": "ipl",
+            "sourceSubject": "sl"
+          },
+          "relation": "subject A-prime movement",
+          "values": {
+            "landingPosition": "Spec-CP",
+            "retainedCase": "nominative",
+            "retainedThetaRole": "Agent",
+            "sourcePosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "accusativeObjects": [
+              "om",
+              "ol"
+            ],
+            "conjuncts": [
+              "cpm",
+              "cpl"
+            ],
+            "headTraces": [
+              "tim",
+              "tvm",
+              "til",
+              "tvl"
+            ],
+            "referentialSubjects": [
+              "sm",
+              "sl"
+            ],
+            "root": "coord",
+            "subjectTraces": [
+              "tsm",
+              "tsl"
+            ]
+          },
+          "relation": "GB well-formedness judgment",
+          "values": {
+            "constraints": [
+              "V2 satisfied independently in both conjuncts",
+              "theta criterion and Case Filter satisfied",
+              "local movement chains satisfy the ECP",
+              "Binding Condition C satisfied",
+              "Coordinate Structure Constraint respected"
+            ],
+            "judgment": "grammatical"
+          }
+        }
+      ],
+      "stageRecord": "A head-initial C projection is built above each existing IP. Each complex finite I head moves to its local C, leaving an I trace, and each subject moves from its already established Spec-IP position to Spec-CP, leaving an A′-bound DP trace. These local operations produce one constituent before the finite verb in each conjunct: Mia before liest, and Leo before schreibt. Subject fronting here is a structural Vorfeld operation and does not require a contrastive-topic interpretation. The head chains proceed through V, I, and C without skipping a head; under the adopted GB treatment, the local head traces and subject traces meet the ECP. The subject chains retain the nominative Case and external theta roles licensed at their lower positions, and the objects retain accusative and their internal theta roles. The two completed CPs are then combined in an X-bar coordination projection: the first CP occupies Spec-&P, und heads &′, and the second CP is its complement. This is full clausal coordination, not gapping or shared-argument coordination; all movement is internal to a conjunct and creates no extraction from a coordinate island. The proper-name DPs are referential expressions and have no coindexed c-commanding antecedent, so Condition C is respected; there are no overt anaphors or pronouns requiring Conditions A or B. The completed structure is grammatical and yields exactly the supplied nine tokens, with no punctuation terminal because punctuation is absent from the token list.",
+      "statement": "Complete both verb-second CPs and coordinate them into the grammatical surface sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "smd",
+                          "label": "D",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "smn",
+                                  "label": "N",
+                                  "tokenIndex": 0,
+                                  "word": "Mia"
+                                }
+                              ],
+                              "id": "smnbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "smnp",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "smdbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "sm",
+                  "label": "DP",
+                  "lineageId": "subject-Mia"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vm",
+                              "label": "V",
+                              "lineageId": "verb-read",
+                              "tokenIndex": 1,
+                              "word": "liest"
+                            },
+                            {
+                              "children": [],
+                              "id": "im",
+                              "label": "I [finite, present, 3sg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "ihm",
+                          "label": "I",
+                          "lineageId": "finite-head-Mia"
+                        },
+                        {
+                          "children": [],
+                          "id": "cm",
+                          "label": "C [declarative, V2]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "chm",
+                      "label": "C"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tsm",
+                          "label": "DP trace",
+                          "lineageId": "subject-Mia",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "omd",
+                                              "label": "D",
+                                              "tokenIndex": 2,
+                                              "word": "das"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "omn",
+                                                      "label": "N",
+                                                      "tokenIndex": 3,
+                                                      "word": "Buch"
+                                                    }
+                                                  ],
+                                                  "id": "omnbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "omnp",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "omdbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "om",
+                                      "label": "DP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "tvm",
+                                      "label": "V trace",
+                                      "lineageId": "verb-read",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vbarm",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpm",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "tim",
+                              "label": "I trace",
+                              "lineageId": "finite-head-Mia",
+                              "silent": true
+                            }
+                          ],
+                          "id": "ipbarm",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipm",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarm",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpm",
+              "label": "CP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and",
+                  "label": "&",
+                  "tokenIndex": 4,
+                  "word": "und"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sld",
+                              "label": "D",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sln",
+                                      "label": "N",
+                                      "tokenIndex": 5,
+                                      "word": "Leo"
+                                    }
+                                  ],
+                                  "id": "slnbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "slnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "sldbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "sl",
+                      "label": "DP",
+                      "lineageId": "subject-Leo"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vl",
+                                  "label": "V",
+                                  "lineageId": "verb-write",
+                                  "tokenIndex": 6,
+                                  "word": "schreibt"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "il",
+                                  "label": "I [finite, present, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "ihl",
+                              "label": "I",
+                              "lineageId": "finite-head-Leo"
+                            },
+                            {
+                              "children": [],
+                              "id": "cl",
+                              "label": "C [declarative, V2]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "chl",
+                          "label": "C"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tsl",
+                              "label": "DP trace",
+                              "lineageId": "subject-Leo",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "old",
+                                                  "label": "D",
+                                                  "tokenIndex": 7,
+                                                  "word": "einen"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "oln",
+                                                          "label": "N",
+                                                          "tokenIndex": 8,
+                                                          "word": "Brief"
+                                                        }
+                                                      ],
+                                                      "id": "olnbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "olnp",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "oldbar",
+                                              "label": "D′"
+                                            }
+                                          ],
+                                          "id": "ol",
+                                          "label": "DP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "tvl",
+                                          "label": "V trace",
+                                          "lineageId": "verb-write",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vbarl",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vpl",
+                                  "label": "VP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "til",
+                                  "label": "I trace",
+                                  "lineageId": "finite-head-Leo",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "ipbarl",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "ipl",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "cbarl",
+                      "label": "C′"
+                    }
+                  ],
+                  "id": "cpl",
+                  "label": "CP"
+                }
+              ],
+              "id": "coordbar",
+              "label": "&′"
+            }
+          ],
+          "id": "coord",
+          "label": "&P"
+        }
+      ]
+    }
+  ]
+}

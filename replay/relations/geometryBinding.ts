@@ -1192,8 +1192,8 @@ export const bindRelationPlanFrame = (
     if (item.kind === 'trajectory') {
       // Endpoint attachment comes from the semantic plan: the departure is
       // the witness (or source) resolved per sourceAttachment, the landing is
-      // the target resolved per targetAttachment. A head target therefore
-      // binds to its pronounced terminal, never the preterminal shell.
+      // the target resolved per targetAttachment. Head adjunction uses the
+      // established landing shell; simple terminal landings keep their word.
       const departureNodeId = item.trajectoryKind === 'parasitic-gap'
         ? item.sourceAttachment === 'terminal'
           ? item.witnessNodeId || item.sourceNodeId

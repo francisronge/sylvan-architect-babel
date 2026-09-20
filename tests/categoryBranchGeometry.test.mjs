@@ -35,3 +35,17 @@ test('wrapped categories preserve the original downward branch instead of moving
     }
   }
 });
+
+
+test('multiline category labels cannot mask the entire incoming branch', () => {
+  const branchMasks = [];
+  const visitMasks = node => {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
+      && node.expression.name.text === 'attr' && node.arguments[0]?.text === 'mask'
+      && node.expression.expression.getText(source).includes("selectAll('.branch')")) branchMasks.push(node);
+    ts.forEachChild(node, visitMasks);
+  };
+  visitMasks(source);
+  assert.equal(branchMasks.length, 0, 'native branches must remain visible between the label glyphs');
+  assert.match(source.text, /style\('paint-order', 'stroke'\)/, 'text retains its local readability halo');
+});

@@ -214,7 +214,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput) {
     const byId = indexHierarchyNodesByIdAndAliases(visibleNodes(scene.currentTree, scene.visibleIds));
     const frame = input.plan.frames[input.stageIndex];
     const trajectories = (frame?.items ?? []).filter(item => item.kind === 'trajectory')
-      .map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id)?.data));
+      .map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id)?.data,
+        { stageIndex: input.stageIndex, playedRelationIndices: scene.playedRelations }));
     if (!trajectories.length) return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations };
     const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
       index === input.stageIndex ? { ...frame, items: trajectories } : frame) };

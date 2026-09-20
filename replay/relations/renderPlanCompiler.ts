@@ -1,3 +1,4 @@
+import { movementContextFailure } from './movementEvidence.ts';
 import { composeThetaGrids, projectThetaGrid } from './thetaGridComposition.ts';
 import { nativeThetaAssignments } from './compoundAssignments.ts';
 /**
@@ -180,7 +181,8 @@ export const planItemsShareAuthoredStage = (left: RelationPlanItem, right: Relat
  * Endpoint attachment, explicit in the semantic plan: `terminal` endpoints
  * resolve to the visible materialized terminal inside the exact anchored
  * preterminal or witness subtree; `shell` endpoints resolve to the anchored
- * node itself. Head-sized trajectories run terminal-to-terminal;
+ * node itself. Head adjunction lands on the established head complex;
+ * other head-sized trajectories retain their exact terminal attachment;
  * phrase-sized trajectories run trace-terminal-to-phrase-shell. The
  * source-backed ParasiticGap composition meets the measured lower edge of
  * both phrase-shell labels, matching the accepted plate.
@@ -202,14 +204,28 @@ export type TrajectoryPlanItem = PlanItemBase & {
   orthogonalDepartureNodeIds?: string[];
   sourceAttachment: TrajectoryEndpointAttachment;
   targetAttachment: TrajectoryEndpointAttachment;
+  /** A head-adjunction landing stays at its syntactic position when its contents move again. */
+  headLandingSite?: {
+    nodeId: string;
+    transfers: Array<{ nodeId: string; stageIndex: number; relationIndex: number }>;
+  };
 };
 
-/** A pending PF realization can leave the exact displayed head wordless. */
+/** Bind established head landing sites and pending wordless realizations in this Replay moment. */
 export const resolveDisplayedTrajectoryAttachments = (
   item: RelationPlanItem,
-  nodeFor: (nodeId: string) => SyntaxNode | undefined
+  nodeFor: (nodeId: string) => SyntaxNode | undefined,
+  moment?: { stageIndex: number; playedRelationIndices: ReadonlySet<number> | null }
 ): RelationPlanItem => {
   if (item.kind !== 'trajectory') return item;
+  if (item.headLandingSite) {
+    const transfers = item.headLandingSite.transfers.filter(transfer => !moment
+      || transfer.stageIndex < moment.stageIndex
+      || (transfer.stageIndex === moment.stageIndex
+        && (moment.playedRelationIndices === null || moment.playedRelationIndices.has(transfer.relationIndex))));
+    item = { ...item, targetNodeId: transfers.at(-1)?.nodeId ?? item.headLandingSite.nodeId,
+      targetAttachment: 'shell-bottom' };
+  }
   const source = nodeFor(item.sourceNodeId);
   const target = nodeFor(item.targetNodeId);
   const sourceAttachment = item.sourceAttachment === 'terminal' && source && isWordlessCategoryLeaf(source)
@@ -872,6 +888,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
       || key === 'composedRefs'
       || key === 'coalescedRefs'
       || key === 'supersededAt'
+      || key === 'headLandingSite'
       || key === 'subtreeDerived'
       || key === 'positionNodeIds'
       || key === 'priorWitnessNodeIds'
@@ -3216,6 +3233,37 @@ export const compileRelationRenderPlan = (
     }
   });
 
+  // Adjunction targets the resulting head complex, not its pronounced descendant.
+  // Later movement can leave an exact authored witness at that landing position.
+  const headLandingSites = new Map<TrajectoryPlanItem, string>();
+  items.forEach(item => {
+    if (item.kind !== 'trajectory' || item.trajectoryKind !== 'head') return;
+    const forest = stageList[item.appearsAtStage].workspaceForest;
+    const candidates = [...stageNodeMaps[item.appearsAtStage].values()].filter(node =>
+      node.children?.some(child => child.id === item.targetNodeId)
+      && movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex') === undefined);
+    if (candidates.length === 1) headLandingSites.set(item, candidates[0].id);
+  });
+  const headLandingForFrame = (item: TrajectoryPlanItem, frameIndex: number): TrajectoryPlanItem['headLandingSite'] => {
+    const site = headLandingSites.get(item);
+    if (!site) return undefined;
+    let currentSite = site;
+    const transfers: NonNullable<TrajectoryPlanItem['headLandingSite']>['transfers'] = [];
+    for (let stageIndex = item.appearsAtStage + 1; stageIndex <= frameIndex; stageIndex++) {
+      const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) => {
+        const movement = dispatch.evidence.movement;
+        return movement?.transition && movement.trajectoryKind === 'head'
+          && movement.priorSourceNodeId === currentSite
+          ? [{ nodeId: movement.witnessNodeId, stageIndex, relationIndex }] : [];
+      });
+      if (candidates.length === 1) {
+        transfers.push(candidates[0]);
+        currentSite = candidates[0].nodeId;
+      }
+    }
+    return { nodeId: site, transfers };
+  };
+
   /* Materialize into per-stage frames per persistence, before coalescing. */
   const stageCount = stageList.length;
   const frames = Array.from({ length: stageCount }, (_unused, stageIndex) => ({
@@ -3283,6 +3331,8 @@ export const compileRelationRenderPlan = (
      */
     const frameLocal: RelationPlanItem = {
       ...item,
+      ...(item.kind === 'trajectory' && headLandingSites.has(item)
+        ? { headLandingSite: headLandingForFrame(item, frameIndex) } : {}),
       ...(supersededAt ? { supersededAt } : {})
     };
     if (frameIndex > item.appearsAtStage && item.subtreeDerived) {

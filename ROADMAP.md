@@ -49,6 +49,13 @@ performance concern. The Arabic thematic claims also name both an introducer and
 a different predicate; their assigning source remains ambiguous to the current
 reader. These remain active renderer/contract work, not app-readiness closeout.
 
+User review of the new parses exposed successive head arrows following one
+pronounced descendant instead of retaining their landing positions, and a
+multiline label mask hiding a whole incoming branch. Head-adjunction arrows now
+retain their established landing sites through exact authored movement witnesses;
+category text paints over branches without a rectangular mask. Plaque distance
+and dense allocation remain separate open work.
+
 ## App workflow evidence
 
 The local workflow is checked with saved fixture replies through the real input,
