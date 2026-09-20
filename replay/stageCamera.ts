@@ -1,3 +1,4 @@
+import { layoutSyntaxTree, type TreeDirection } from './treeLayout.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
@@ -16,6 +17,7 @@ import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
   plan: RelationRenderPlan | null; width: number; height: number;
+  direction?: TreeDirection;
   abstractionMode?: boolean; protectedNodeIds?: Set<string>;
   layoutGroups?: readonly (readonly number[])[];
   measurePlaqueText?: PlaqueTextMeasure;
@@ -53,8 +55,7 @@ export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspac
   const positions = (canvas: SyntaxNode, ids: string[]) => {
     const root = d3.hierarchy(canvas);
     applyVizIds(root);
-    const tree = d3.tree<SyntaxNode>().size([1, 1])
-      .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+    const tree = layoutSyntaxTree(root, [1, 1]);
     const byId = new Map<string | undefined, d3.HierarchyPointNode<SyntaxNode>>(
       tree.descendants().map(node => [node.data.id, node]));
     return ids.map(id => byId.get(id));
@@ -80,7 +81,7 @@ export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspac
   return groups;
 }
 
-function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
+function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>() }: StageLayoutInput) {
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const hierarchy = (canvas: SyntaxNode) => {
@@ -102,19 +103,16 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
       continue;
     }
     const root = hierarchy(step.replayCanvasData);
-    const layout = d3.tree<SyntaxNode>()
-      .size(stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height))
-      .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5);
-    const currentTree = layout(root);
+    const currentTree = layoutSyntaxTree(root,
+      stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction);
     const scene = { currentTree,
       isRecord: step.replayKind === 'macro', visibleIds: step.replayVisibleNodeIds ? new Set(step.replayVisibleNodeIds) : null };
     scenes.push(scene);
     seen.set(key, scene);
   }
   const root = hierarchy(completedCanvas);
-  const completedTree = d3.tree<SyntaxNode>()
-    .size(stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height))
-    .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+  const completedTree = layoutSyntaxTree(root,
+    stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction);
   return { scenes, completedTree };
 }
 
@@ -220,7 +218,7 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
   } : null;
 }
 
-function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups,
+function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
   includePlaques = includeOverlays, plaqueLayout, measureCategoryText }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
@@ -231,7 +229,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       maxX: Math.max(bounds.maxX, next.maxX), maxY: Math.max(bounds.maxY, next.maxY)
     } : { ...next };
   };
-  const input = { steps, stageIndex, completedCanvas, plan, width, height, abstractionMode, protectedNodeIds, layoutGroups, measureCategoryText };
+  const input = { steps, stageIndex, completedCanvas, plan, width, height, direction, abstractionMode, protectedNodeIds, layoutGroups, measureCategoryText };
   const placements = includePlaques ? plaqueLayout ?? buildStagePlaqueLayout(input) : new Map();
   for (const { currentTree, visibleIds } of stageLayouts(input).scenes) {
     const positions = indexHierarchyNodesByIdAndAliases(currentTree.descendants());

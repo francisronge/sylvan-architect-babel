@@ -63,7 +63,7 @@ function WorkspaceInspection({ records }: { records: Inspection[] }) {
       </nav>
     </header>
     <section className="inspection-tree" aria-label="Authored workspace" data-stage-index={stageIndex}>
-      {tree ? <TreeVisualizer key={`${selection}:${stageIndex}`} data={tree} />
+      {tree ? <TreeVisualizer key={`${selection}:${stageIndex}`} data={tree} sentence={selected?.record.input?.sentence} />
         : <p>{stage?.blockedByStageIndex !== undefined
           ? `Expansion blocked by stage ${stage.blockedByStageIndex + 1}.`
           : stage?.diagnostic ? 'Workspace could not be expanded.'

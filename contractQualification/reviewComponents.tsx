@@ -39,7 +39,7 @@ export function ReviewTree({ choice, stage, mode, source = 'original' }: {
       inputTokens={source === 'copy' ? choice.copyInputTokens : choice.inputTokens} />
     : <p className="review-empty">No complete Replay was compiled for this analysis.</p>;
   const tree = buildDerivationCanvasData(forest);
-  return tree ? <TreeVisualizer data={tree} /> : <p className="review-empty">{
+  return tree ? <TreeVisualizer data={tree} sentence={choice?.sentence} /> : <p className="review-empty">{
     stage?.blockedByStageIndex !== undefined ? `Expansion blocked by stage ${stage.blockedByStageIndex + 1}.`
       : stage?.diagnostic ? 'Workspace could not be expanded.'
         : stage?.workspaceForest ? 'Empty workspace.' : 'No readable stages.'

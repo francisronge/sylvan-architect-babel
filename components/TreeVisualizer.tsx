@@ -1,3 +1,5 @@
+import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { useTreeDirection } from './useTreeDirection';
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
@@ -219,6 +221,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   preparedReplay,
   manualCameraState
 }) => {
+  const treeDirection = useTreeDirection(sentence);
   const svgRef = useRef<SVGSVGElement>(null);
   // An active D3 gesture must dispatch to the current frame's handler after a redraw.
   const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.05, 10]), []);
@@ -521,35 +524,35 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildStagePlaqueLayout({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText
     });
     return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
   }, [activeDerivationFrame, activeDerivationFrameIndex, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass]);
+    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection]);
   const stageCameraBounds = useMemo(() => {
     if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
     return buildStageCameraBounds({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
       plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups, measureCategoryText
     });
   }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups, measureCategoryText]);
+    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups, measureCategoryText, treeDirection]);
   const stagePlaqueContainmentBounds = useMemo(() => {
     if (!stageCameraBounds || !activeDerivationFrame || disableRelationOverlay || !acceptedCompositionIsTreeFirst) return null;
     return buildStageCameraBounds({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: false, includePlaques: true, plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups, measureCategoryText
     });
   }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst,
     playbackSteps, activeDerivationFrameIndex, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, stagePlaqueLayout, stageLayoutGroups, measureCategoryText]);
+    movementProtectedNodeIds, stagePlaqueLayout, stageLayoutGroups, measureCategoryText, treeDirection]);
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -870,9 +873,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
     svg.call(zoom as any);
 
-    const treeLayout = d3.tree<SyntaxNode>()
-      .size([innerWidth, innerHeight])
-      .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5);
+    const treeLayout = (root: d3.HierarchyNode<SyntaxNode>) =>
+      layoutSyntaxTree(root, [innerWidth, innerHeight], treeDirection);
+    svg.attr('data-babel-tree-direction', treeDirection);
 
     const treeData = treeLayout(rootHierarchy);
     const alignReplayUnaryTerminalLeaves = (root: d3.HierarchyPointNode<SyntaxNode>) => {
@@ -8626,6 +8629,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     stagePlaqueContainmentBounds,
     stagePlaqueLayout,
     stageLayoutSize,
+    treeDirection,
     acceptedCompositionIsTreeFirst,
     dimensions,
     fontLayoutPass,

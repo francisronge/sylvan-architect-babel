@@ -1,3 +1,4 @@
+import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
@@ -27,8 +28,8 @@ const productionTreeLayout = (canvas, width, height, stageSize = null) => {
   const root = d3.hierarchy(canvas);
   applyVizIds(root);
   const [innerWidth, innerHeight] = stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height);
-  const layout = new Function('d3', 'innerWidth', 'innerHeight', ts.transpile(`return ${treeLayoutFunction.getText(renderer)};`,
-    { target: ts.ScriptTarget.ES2023 }))(d3, innerWidth, innerHeight);
+  const layout = new Function('layoutSyntaxTree', 'treeDirection', 'innerWidth', 'innerHeight', ts.transpile(`return ${treeLayoutFunction.getText(renderer)};`,
+    { target: ts.ScriptTarget.ES2023 }))(layoutSyntaxTree, 'ltr', innerWidth, innerHeight);
   return layout(root);
 };
 
