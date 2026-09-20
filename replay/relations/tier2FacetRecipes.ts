@@ -11,7 +11,7 @@ import {
   authoredOutcomeLiterals,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { isExplicitTier2Role, normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { FEATURE_DIMENSION_KEYS, isExplicitTier2Role, normalizeTier2Synonym } from './tier2Synonyms.ts';
 import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
@@ -277,9 +277,14 @@ export type Tier2AuthoredEvidenceEntry = {
 // Edge outlines are independent per node; organizational rails retain each
 // authored role group. Neither drawing asserts one joint linguistic group.
 export const INDEPENDENT_TIER2_ANCHOR_ROLES: ReadonlySet<string> = new Set(['phase.edge', 'large.anchor.array']);
-// These plaques print each original field name with its literals, without
-// pairing values or combining them into a feature-sharing claim.
+// These are rows of content, not competing alternative bindings of one slot.
+// Their owning recipe must still establish participants and any dependency.
 export const INDEPENDENT_TIER2_VALUE_ROLES: ReadonlySet<string> = new Set(['plaque.rows', 'pf.rows']);
+
+/** Distinct scalar dimensions form one bundle; alternative bundles do not. */
+export const independentFeatureDimensions = (entries: readonly Pick<Tier2AuthoredEvidenceEntry, 'key' | 'items'>[]) =>
+  entries.length > 0 && entries.every(entry => FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(entry.key)) && entry.items.length === 1)
+    && new Set(entries.map(entry => normalizeTier2Synonym(entry.key))).size === entries.length;
 
 export type Tier2FacetEvidence = {
   movement?: import('./movementEvidence.ts').RecoveredMovement;
@@ -1589,6 +1594,7 @@ export const evaluateTier2FacetRecipe = (
     for (const concept of new Set(concepts)) {
       if ((field === 'values' ? INDEPENDENT_TIER2_VALUE_ROLES : INDEPENDENT_TIER2_ANCHOR_ROLES).has(concept)) continue;
       const groups = entries?.filter(entry => entry.concepts.includes(concept)) ?? [];
+      if (field === 'values' && concept === 'feature.rows' && independentFeatureDimensions(groups)) continue;
       const distinct = new Set(groups.map(entry => JSON.stringify(
         entry.conceptItemIndices?.[concept]?.map(index => entry.items[index]) ?? entry.items
       )));

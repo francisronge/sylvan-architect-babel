@@ -40,6 +40,11 @@ export const normalizeTier2Synonym = (value: unknown): string => String(value ??
 // Case: those meanings still require the owning recipe's evidence checks.
 const licensingSources = ['licensor', 'licenser', 'license source', 'licensing head'];
 const licensingTargets = ['licensee', 'licensed item', 'licensed phrase', 'licensed constituent', 'licensed nominal', 'licensing target'];
+export const FEATURE_DIMENSION_KEYS = new Set(['person', 'number', 'gender']);
+
+// Inflect only declared role nouns. This does not stem arbitrary open names.
+const singularRole = (key: string) => key.replace(/\b(assigners|sources|targets|recipients|assignees|bearers|governors|licensors|licensers|predicates|arguments|heads|introducers)$/u,
+  noun => noun.slice(0, -1));
 
 export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'movement.source', ['source', 'origin', 'from', 'lower copy', 'lower occurrence', 'intermediate occurrence', 'base copy', 'base position', 'departure', 'moved from', 'real gap', 'variable', 'foot']),
@@ -146,7 +151,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'accent.label', ['accent label', 'accent', 'pitch accent', 'tone mark']),
   group('value', 'cycle', ['cycle', 'round', 'pass', 'iteration', 'search cycle', 'derivational cycle']),
   group('value', 'step', ['step']),
-  group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values', 'agreement', 'agreement features', 'phi features']),
+  group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values', 'agreement', 'agreement features', 'phi features', ...FEATURE_DIMENSION_KEYS]),
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
   group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'exponent']),
   group('value', 'fission.input', ['input features']),
@@ -213,7 +218,8 @@ export const lookupTier2SynonymCandidates = (
   index: Tier2SynonymIndex,
   scope: Tier2SynonymScope,
   literal: unknown
-): string[] => (index.get(normalizeTier2Synonym(literal)) ?? [])
+): string[] => (index.get(normalizeTier2Synonym(literal))
+  ?? (scope === 'role' ? index.get(singularRole(normalizeTier2Synonym(literal))) : undefined) ?? [])
   .filter((candidate) => candidate.scope === scope)
   .map((candidate) => candidate.concept);
 
@@ -224,7 +230,7 @@ const assignmentDirection = (role: string): 'source' | 'target' | undefined =>
       || /^licensed [\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u.test(role) ? 'target' : undefined;
 
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
-  const [domain, ...rest] = normalizeTier2Synonym(key).split(' ');
+  const [domain, ...rest] = singularRole(normalizeTier2Synonym(key)).split(' ');
   const role = rest.join(' ');
   const source = assignmentDirection(role) === 'source' || (domain === 'case' && role === 'governor');
   const target = assignmentDirection(role) === 'target';
@@ -242,7 +248,7 @@ export const relationRoleConcepts = (
   context: { anchors?: Record<string, unknown>; values?: Record<string, unknown> } = {}
 ): string[] => {
   const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key)]);
-  const spelling = normalizeTier2Synonym(key);
+  const spelling = singularRole(normalizeTier2Synonym(key));
   // Direction plus an occurrence type supplies a candidate role. The movement
   // reader must still prove exact lineage, the preceding slot and the landing.
   const occurrence = /^(?:movement )?(source|lower|base|intermediate|landing|target|higher|upper|raised|moved) (head|phrase|constituent|occurrence|copy|complex)$/.exec(spelling);
@@ -281,10 +287,25 @@ export const relationRoleConcepts = (
   // An introducer supplies a thematic source only in a thematic claim. The
   // same word alone can describe structural introduction or other relations.
   if (spelling === 'introducer' && thetaDomain && !featureDomain) concepts.add('predicate');
-  if (spelling === 'governor' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
+  const pairedCase = Object.keys(context.anchors ?? {}).some(role =>
+    /^case /.test(normalizeTier2Synonym(role)) && qualifiedAssignmentConcepts(role).includes('feature.target')
+    && nonBlankLiteral(context.values?.[role]));
+  if (spelling === 'governor' && (hasLiteral('case.literal') || pairedCase) && Object.keys(context.anchors ?? {}).some(role =>
     qualifiedAssignmentConcepts(role).includes('feature.target')
-      || isExplicitTier2Role('feature.target', role) || assignmentDirection(normalizeTier2Synonym(role)) === 'target')) {
+      || isExplicitTier2Role('feature.target', role) || assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'target'
+      || normalizeTier2Synonym(role) === 'nominal')) {
     concepts.add('feature.source');
+  }
+  // A named Case value and licenser establish the role of a named nominal;
+  // a Case exponent remains separate evidence, never an inferred endpoint.
+  if (spelling === 'nominal' && hasLiteral('case.literal') && Object.keys(context.anchors ?? {}).some(role =>
+    assignmentDirection(singularRole(normalizeTier2Synonym(role))) === 'source'
+      || singularRole(normalizeTier2Synonym(role)) === 'governor')) concepts.add('feature.target');
+  const hasAgreementController = Object.keys(context.anchors ?? {}).some(role =>
+    normalizeTier2Synonym(role) === 'agreement controller');
+  if (hasLiteral('feature.rows') && hasAgreementController) {
+    if (spelling === 'agreement controller') concepts.add('feature.target');
+    if (spelling === 'finite head') concepts.add('feature.source');
   }
   return [...concepts];
 };

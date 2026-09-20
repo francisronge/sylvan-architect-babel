@@ -59,8 +59,8 @@ can supply the source only with thematic evidence and no competing Case/feature
 interpretation. Licensed phrases, constituents and nominals retain the licensing
 target role. Typed Case values and an independently supported source still have
 to establish a Case dependency. A Case exponent or head is not implicitly its
-assigner or recipient. Multiple sources, ambiguous chains and unpaired literals
-remain neutral. Phrasal movement's attracting head is context, not a second
+assigner or recipient. Ambiguous chains and unpaired literals remain neutral.
+Phrasal movement's attracting head is context, not a second
 endpoint or proof of head movement; it retains its neutral annotation.
 
 ### Established assignment continuity
@@ -89,9 +89,26 @@ shared by drawing and continuity; open role labels retain their authored meaning
 The predicate label uses the anchored word, a unary display shell's word, or the
 anchored category. It never selects the first word in a branching subtree.
 
-Equal list lengths alone do not establish which entries are paired. The current
-prompt already instructs models to give paired entries the same length and order;
-compound recovery should assess that convention before proposing a new field.
+Equal list lengths alone do not establish which entries are paired. Ordered
+compound assignments now use explicit source/recipient roles and same-name,
+same-length recipient literals. The authored order must agree with the unique
+one-to-one grouping supported by the smallest enclosing branches containing the
+declared sources. An alternative pairing, crossed order, duplicate occurrence,
+unresolved endpoint, collective flat group or malformed exact primary prevents
+this recovery. This is a sufficient recognition condition, not a requirement on
+linguistic locality: other valid analyses can remain neutral. The shared recipe
+still validates each scoped claim, including outcomes. Categories, scripts and
+left/right word order do not determine this grouping.
+
+Declared role nouns retain their meaning in plural lists. A named nominal can
+be a Case recipient when an explicit Case literal and distinct licenser/governor
+establish that dependency; its Case exponent remains separate context. A finite
+head and explicitly named agreement controller can establish a feature
+dependency with authored feature values. Distinct scalar person/number/gender
+fields form one bundle. Competing values for the same dimension or competing
+bundle aliases remain ambiguous; those records cannot be silently combined.
+
+The current prompt already supplies the needed pairing convention.
 If neither the current record nor earlier complete claims establishes a unique
 association, the renderer cannot assert one. Optional neutral claim grouping is
 only a possible contract proposal, not a demonstrated requirement or an implemented

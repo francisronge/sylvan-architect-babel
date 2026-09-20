@@ -94,6 +94,17 @@ test('missing or ambiguous timing remains inspection evidence rather than an inv
   }
 });
 
+test('ambiguous realization descriptions never win by wording or list order', () => {
+  for (const names of [['Inflection', 'Case preservation'], ['Case preservation', 'Inflection'], ['形態', 'تحقق']]) {
+    const relations = names.map(name => relation(['root', 'past'], undefined, name));
+    const stages = [stage(), stage([group()], relations)];
+    const original = structuredClone(stages), steps = play(stages);
+    assert(moments(steps, 1).every(step => step.replayRealizations.length === 0));
+    assert.deepEqual(completion(steps, 1).replayRealizations, [group()]);
+    assert.deepEqual(stages, original);
+  }
+});
+
 test('realizations survive stage, frame and snapshot projections without mutating the authored record', () => {
   const stages = [stage([group()], [relation(['root', 'past'])])];
   const original = structuredClone(stages);

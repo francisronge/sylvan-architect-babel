@@ -10,9 +10,9 @@ type Assignment = { kind: 'theta-grid' | 'feature.dependency'; source: Occurrenc
 export type AssignmentContext = { assignments: Assignment[]; continuations: Map<string, Set<string>> };
 export const createAssignmentContext = (): AssignmentContext => ({ assignments: [], continuations: new Map() });
 
-const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
+export const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
   entry.concepts.includes('outcome') || ['outcome', 'status', 'result', 'verdict', 'judgment'].includes(normalizeTier2Synonym(entry.key)));
-const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).every(entry =>
+export const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).every(entry =>
   entry.items.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
 
 function occurrences(forest: readonly SyntaxNode[]) {

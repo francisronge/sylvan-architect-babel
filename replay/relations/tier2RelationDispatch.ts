@@ -1,4 +1,5 @@
 import { createAssignmentContext, recoverAssignmentContinuity, rememberAssignments, rememberAssignmentMovement, type AssignmentContext, type AssignmentScope } from './assignmentContinuity.ts';
+import { recoverCompoundAssignments } from './compoundAssignments.ts';
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
  *
@@ -29,6 +30,7 @@ import {
   evaluateTier2FacetRecipe,
   indexTier2Forests,
   nativeThetaRoles,
+  independentFeatureDimensions,
   type Tier2ForestIndexes,
   type Tier2AuthoredEvidenceEntry,
   type Tier2FacetEvidence,
@@ -319,7 +321,10 @@ const normalizeBlock = (
       const blockIdentity = JSON.stringify(conceptItems);
       const previousBlocks = conceptBlocks.get(concept) ?? [];
       if (!previousBlocks.includes(blockIdentity)) {
-        if (previousBlocks.length === 0 || (scope === 'role' ? INDEPENDENT_TIER2_ANCHOR_ROLES : INDEPENDENT_TIER2_VALUE_ROLES).has(concept)) {
+        const dimensions = scope === 'value' && concept === 'feature.rows' && independentFeatureDimensions([
+          ...authored.filter(entry => entry.concepts.includes(concept)), { key: authoredKey, items }
+        ]);
+        if (previousBlocks.length === 0 || dimensions || (scope === 'role' ? INDEPENDENT_TIER2_ANCHOR_ROLES : INDEPENDENT_TIER2_VALUE_ROLES).has(concept)) {
           appendItems(normalized, concept, conceptItems);
         } else {
           normalized[concept] = [];
@@ -623,14 +628,15 @@ export const dispatchRelationClaims = (
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
     kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
   });
-  const continued: Tier2EvaluatedFacet[] = !registryEntry && input.assignmentContext
-    ? recoverAssignmentContinuity(evidence, input.assignmentContext).flatMap(scope => {
+  const continued: Tier2EvaluatedFacet[] = !registryEntry
+    ? [...recoverCompoundAssignments(evidence), ...(input.assignmentContext ? recoverAssignmentContinuity(evidence, input.assignmentContext) : [])].flatMap(scope => {
         if (completeClaims.some(facet => facet.recipe.id === scope.kind)) return [];
         const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
         const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
         return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins, restates: scope.restates }] : [];
       }) : [];
-  const tier2ClaimFacets = attachFacetIdentities([...selected, ...continued], evidence, stageIndex, indexes);
+  const tier2ClaimFacets = [...new Map(attachFacetIdentities([...selected, ...continued], evidence, stageIndex, indexes)
+    .map(facet => [facet.facetIdentity, facet])).values()];
   const companions = attachFacetIdentities(
     evaluateCompanions(evidence, tier2ClaimFacets.length > 0, indexes),
     evidence,
