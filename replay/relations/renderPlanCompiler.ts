@@ -181,8 +181,8 @@ export const planItemsShareAuthoredStage = (left: RelationPlanItem, right: Relat
  * Endpoint attachment, explicit in the semantic plan: `terminal` endpoints
  * resolve to the visible materialized terminal inside the exact anchored
  * preterminal or witness subtree; `shell` endpoints resolve to the anchored
- * node itself. Head adjunction lands on the established head complex;
- * other head-sized trajectories retain their exact terminal attachment;
+ * node itself. Head-sized trajectories retain their terminal attachment;
+ * earlier landings stay at the retained occurrence after subsequent movement;
  * phrase-sized trajectories run trace-terminal-to-phrase-shell. The
  * source-backed ParasiticGap composition meets the measured lower edge of
  * both phrase-shell labels, matching the accepted plate.
@@ -223,8 +223,8 @@ export const resolveDisplayedTrajectoryAttachments = (
       || transfer.stageIndex < moment.stageIndex
       || (transfer.stageIndex === moment.stageIndex
         && (moment.playedRelationIndices === null || moment.playedRelationIndices.has(transfer.relationIndex))));
-    item = { ...item, targetNodeId: transfers.at(-1)?.nodeId ?? item.headLandingSite.nodeId,
-      targetAttachment: 'shell-bottom' };
+    const retainedLanding = transfers.at(-1);
+    if (retainedLanding) item = { ...item, targetNodeId: retainedLanding.nodeId };
   }
   const source = nodeFor(item.sourceNodeId);
   const target = nodeFor(item.targetNodeId);
@@ -3233,7 +3233,7 @@ export const compileRelationRenderPlan = (
     }
   });
 
-  // Adjunction targets the resulting head complex, not its pronounced descendant.
+  // Track the enclosing head position without changing the initial terminal attachment.
   // Later movement can leave an exact authored witness at that landing position.
   const headLandingSites = new Map<TrajectoryPlanItem, string>();
   items.forEach(item => {

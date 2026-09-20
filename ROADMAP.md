@@ -52,7 +52,8 @@ reader. These remain active renderer/contract work, not app-readiness closeout.
 User review of the new parses exposed successive head arrows following one
 pronounced descendant instead of retaining their landing positions, and a
 multiline label mask hiding a whole incoming branch. Head-adjunction arrows now
-retain their established landing sites through exact authored movement witnesses;
+retain their original initial attachments, and preserve intermediate landing
+positions through exact authored movement witnesses;
 category text paints over branches without a rectangular mask. Plaque distance
 and dense allocation remain separate open work.
 

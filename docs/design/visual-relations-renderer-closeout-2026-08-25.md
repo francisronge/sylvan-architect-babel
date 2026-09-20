@@ -245,9 +245,10 @@ was performed. The pre-closeout Tier-2 specification backup is at
 `/private/tmp/visual-relations-tier2-shape-dispatch-spec.pre-closeout-20260825.md`.
 
 
-Head adjunction targets the structurally established resulting head complex,
-not its pronounced descendant. If a later authored head movement takes that
-exact complex as its prior source, the earlier arrow retains the intermediate
+Head adjunction keeps its original terminal attachment in its first movement
+instance. The enclosing head complex identifies its landing position without
+redirecting the arrow to that complex's label. If a later authored head movement
+takes that exact complex as its prior source, the earlier arrow retains the intermediate
 position through that movement's exact lower witness. This switch occurs at the
 later relation moment, never at an earlier structural micro-step. Plain terminal
 landings and phrasal movements retain their existing attachment rules.

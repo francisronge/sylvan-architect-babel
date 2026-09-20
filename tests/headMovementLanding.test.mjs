@@ -33,17 +33,21 @@ for (const renamed of [false, true]) {
     const at = (item, frame, played) => resolveDisplayedTrajectoryAttachments(item,
       nodeId => index(input.derivationStages[frame].workspaceForest).get(nodeId),
       { stageIndex: frame, playedRelationIndices: played });
-    for (const [firstRelation, nextRelation, firstSite, witness, finalSite] of [
-      [0, 0, 'ihm', 'tim', 'chm'], [1, 2, 'ihl', 'til', 'chl']
+    for (const [firstRelation, nextRelation, firstTarget, witness, finalTarget] of [
+      [0, 0, 'vm', 'tim', 'ihm'], [1, 2, 'vl', 'til', 'ihl']
     ]) {
       const first = trajectory(plan, 1, 1, firstRelation);
-      assert.equal(at(first, 1, null).targetNodeId, id(firstSite));
-      assert.equal(at(first, 1, null).targetAttachment, 'shell-bottom');
+      assert.equal(at(first, 1, null).targetNodeId, id(firstTarget));
+      assert.equal(at(first, 1, null).targetAttachment, 'terminal');
+      assert.equal(at(first, 1, null), first, 'the first movement instance keeps its original attachment unchanged');
       assert.deepEqual(first.headLandingSite.transfers, [], 'future witnesses cannot leak into an earlier stage');
       const carried = trajectory(plan, 2, 1, firstRelation);
-      assert.equal(at(carried, 2, new Set()).targetNodeId, id(firstSite), 'do not retarget before the movement moment, even if future nodes are measured');
+      assert.equal(at(carried, 2, new Set()).targetNodeId, id(firstTarget), 'do not retarget before the movement moment, even if future nodes are measured');
       assert.equal(at(carried, 2, new Set([nextRelation])).targetNodeId, id(witness));
-      assert.equal(at(trajectory(plan, 2, 2, nextRelation), 2, null).targetNodeId, id(finalSite));
+      const next = trajectory(plan, 2, 2, nextRelation);
+      assert.equal(at(next, 2, null).targetNodeId, id(finalTarget));
+      assert.equal(at(next, 2, null).targetAttachment, 'terminal');
+      assert.equal(at(next, 2, null), next, 'the later movement keeps its original terminal attachment too');
       assert.equal(at(carried, 2, null).targetNodeId, id(witness), 'the completed stage retains the intermediate stop');
     }
     assert.equal(JSON.stringify(input), original);
