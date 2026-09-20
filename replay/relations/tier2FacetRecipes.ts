@@ -1922,8 +1922,15 @@ export const buildTier2FacetOutputIdentities = (
     && !Object.values(input.evidence.priorAnchors ?? {}).some(ids => ids.length > 0);
   const facetIdentity = buildFacetIdentity(input, persistent);
   if (!facetIdentity) return [];
-  return input.evaluation.outputs.map((piece) => ({
-    piece,
-    key: JSON.stringify(canonicalizeIdentity({ facetIdentity, piece }))
-  }));
+  return input.evaluation.outputs.map((piece) => {
+    let pieceIdentity = facetIdentity;
+    if (persistent && input.recipe.id === 'operator-binding' && piece === 'Variable-binding path') {
+      // The domain owns the hull. Restating the same binding without that
+      // optional domain does not introduce another operator-variable path.
+      const binding = JSON.parse(facetIdentity);
+      delete binding.currentAnchors['scope.domain'];
+      pieceIdentity = JSON.stringify(canonicalizeIdentity(binding));
+    }
+    return { piece, key: JSON.stringify(canonicalizeIdentity({ facetIdentity: pieceIdentity, piece })) };
+  });
 };

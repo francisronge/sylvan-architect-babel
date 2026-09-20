@@ -446,6 +446,10 @@ export type OperatorVariableBindingPlanItem = PlanItemBase & {
   scopeDomainNodeId?: string;
   scopeMemberNodeIds?: string[];
   index: string;
+  /** Shared path owners; the optional domain retains this item's own owners. */
+  bindingPathRefs?: PlanRelationRef[];
+  /** Another co-visible item draws this exact binding path and its indices. */
+  bindingPathSuppressed?: boolean;
 };
 
 /** A source-backed semantic copy fork: one filler-content input, one open
@@ -3370,8 +3374,9 @@ export const compileRelationRenderPlan = (
    * authored linguistic claims are incompatible merely because they share a
    * visual channel: exactly identical marks are visually coalesced with every
    * contributing relation instance retained in `coalescedRefs`; distinct
-   * marks remain distinct except for theta-grid composition, whose rows retain
-   * their separate histories. The geometry binder routes other marks apart. Replacement happens only through explicitly declared
+   * marks remain distinct except for theta-grid rows and shared binding paths,
+   * whose pieces retain their separate histories. The geometry binder routes
+   * other marks apart. Replacement happens only through explicitly declared
    * replace-previous-instance family metadata, upstream of this pass.
    */
   /*
@@ -3552,6 +3557,31 @@ export const compileRelationRenderPlan = (
         return;
       }
       mergeRelationRefs(holder, item);
+    });
+    // Compose only the binding piece, leaving each domain's timing and hover
+    // ownership intact. Identity comes from dispatch, not matching geometry.
+    const bindingGroups = new Map<string, OperatorVariableBindingPlanItem[]>();
+    coalescedItems.forEach(item => {
+      if (item.kind !== 'operator-variable-binding' || item.backward) return;
+      const pathIdentity = item.tier2OutputIdentities?.find(identity =>
+        JSON.parse(identity).piece === 'Variable-binding path');
+      if (!pathIdentity) return;
+      const key = JSON.stringify([pathIdentity, item.index, item.traceWitnessNodeId, item.supersededAt]);
+      const group = bindingGroups.get(key) ?? [];
+      group.push(item);
+      bindingGroups.set(key, group);
+    });
+    bindingGroups.forEach(group => {
+      if (group.length < 2) return;
+      // Distinct explicitly scoped claims stay separate. Absence of a domain
+      // can restate a scoped path, but cannot choose between different scopes.
+      const domains = new Set(group.map(item => item.scopeDomainNodeId).filter(Boolean));
+      if (domains.size > 1) return;
+      const [holder, ...rest] = group;
+      holder.bindingPathRefs = group.flatMap(planItemRelationRefs).filter((ref, index, refs) =>
+        refs.findIndex(candidate => candidate.stageIndex === ref.stageIndex
+          && candidate.relationIndex === ref.relationIndex) === index);
+      rest.forEach(item => { item.bindingPathSuppressed = true; });
     });
     frame.items = composeThetaGrids(coalescedItems, grid =>
       stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId);

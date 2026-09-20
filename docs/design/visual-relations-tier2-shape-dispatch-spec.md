@@ -761,6 +761,15 @@ Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
 renderer ranks the distinct operator-domain facets that are visible together.
 
+A binding restatement without the optional domain shares the existing path when
+its dispatch-attached path identity matches, including exact occurrences, lineage,
+index and other binding evidence. The domain contributes to the hull identity,
+not the path identity. Different explicitly named domains remain separate.
+The shared curve keeps its original route and every contributing Replay owner;
+the hull keeps its own appearance time and emphasis. Hovering the shared curve
+during a contributing relation moment selects that current claim. Prior-state
+claims and different replacement lifetimes do not compose this way.
+
 ## Required Verification
 
 ### Evidence accounting

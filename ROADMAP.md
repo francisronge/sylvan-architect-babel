@@ -260,6 +260,14 @@ browser checks. The offline gate passes 1,788 tests, typecheck and both fixtures
 the two browser regressions pass. Before/after images and recordings are in the
 temporary review at `/tmp/babel-sept17-review/frame-repairs`.
 
+A later review found two remaining binding curves in the final Astra relative
+clause. A scoped binding and its unscoped restatement now share one curve and its
+indices. The domain retains its own timing and emphasis; the current claim owns
+hover on the shared curve. Focused regressions cover both claim orders and keep
+different scopes, indices, occurrence lineages and prior-state claims separate.
+The exact before/after preserves tree positions and all movement paths. Replay,
+mobile, zoom and Fit pass, alongside the 1,791-test offline gate.
+
 ## Current Baseline
 
 The preceding varied subscription batch made eight Babel-only OAuth requests on

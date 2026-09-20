@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   compileRelationRenderPlan,
+  planItemRelationRefs,
   visiblePlanFrameItems
 } from '../replay/relations/renderPlanCompiler.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
@@ -701,4 +702,57 @@ test('embedding an unchanged movement chain draws one path and retains both rela
   changed[2].workspaceForest.forEach(rewrite);
   assert.equal(compileRelationRenderPlan(changed).frames[2].items.filter(i => i.kind === 'trajectory').length, 2,
     'reusing an ID with different occurrence identity cannot erase an independent claim');
+});
+
+const bindingForest = () => [node('clause', 'CP', [
+  leaf('operator', 'D', '', { lineageId: 'relative' }),
+  node('domain', 'TP', [leaf('subject', 'D', 'Mia'),
+    node('vp', 'VP', [leaf('verb', 'V', 'bought'),
+      leaf('variable', 'D[trace]', '', { lineageId: 'relative' })])])
+])];
+const bindingClaim = (domain = true) => ({ relation: 'relative abstraction',
+  anchors: { operator: 'operator', variable: 'variable', ...(domain ? { domain: 'domain' } : {}) } });
+const bindingItems = frame => frame.items.filter(item => item.kind === 'operator-variable-binding');
+const bindingPaths = frame => bindingItems(frame).filter(item => !item.bindingPathSuppressed);
+
+test('restating binding without its domain shares only the path and preserves both histories', () => {
+  const forest = bindingForest();
+  const stages = [stage([bindingClaim()], forest), stage([], [node('larger', 'DP', forest)]),
+    stage([{ ...bindingClaim(false), relation: 'relative operator dependency' }], [node('larger', 'DP', forest)])];
+  const original = structuredClone(stages);
+  const plan = compileRelationRenderPlan(stages);
+  assert.equal(bindingPaths(plan.frames[0]).length, 1);
+  assert.equal(bindingPaths(plan.frames[0])[0].bindingPathRefs, undefined, 'later owners do not leak into earlier frames');
+  assert.equal(bindingPaths(plan.frames[2]).length, 1);
+  const holder = bindingPaths(plan.frames[2])[0];
+  assert.equal(holder.scopeDomainNodeId, 'domain');
+  assert.deepEqual(holder.bindingPathRefs.map(ref => [ref.stageIndex, ref.relationIndex]), [[0, 0], [2, 0]]);
+  assert.deepEqual(planItemRelationRefs(holder).map(ref => ref.stageIndex), [0], 'the domain keeps only its original owner');
+  assert.equal(bindingItems(plan.frames[2]).length, 2, 'authored claims survive independently');
+  assert.deepEqual(stages, original);
+});
+
+test('a later same-stage domain is not revealed with an earlier shared binding path', () => {
+  const plan = compileRelationRenderPlan([stage([bindingClaim(false), bindingClaim()], bindingForest())]);
+  const beforeDomain = visiblePlanFrameItems(plan, 0, new Set([0]), 0);
+  assert.equal(bindingPaths({ items: beforeDomain }).length, 1);
+  assert.equal(beforeDomain.some(item => item.scopeDomainNodeId), false);
+  const afterDomain = visiblePlanFrameItems(plan, 0, new Set([0, 1]), 1);
+  assert.equal(bindingPaths({ items: afterDomain }).length, 1);
+  assert.equal(afterDomain.filter(item => item.scopeDomainNodeId).length, 1);
+  assert.deepEqual(bindingPaths({ items: afterDomain })[0].bindingPathRefs.map(ref => ref.relationIndex), [0, 1]);
+});
+
+test('different binding indices, scopes, occurrence lineages and prior-state claims stay distinct', () => {
+  for (const variant of ['index', 'scope', 'lineage', 'prior']) {
+    const first = bindingClaim();
+    const second = bindingClaim(false);
+    const nextForest = bindingForest();
+    if (variant === 'index') { first.values = { index: 'i' }; second.values = { index: 'j' }; }
+    if (variant === 'scope') second.anchors.domain = 'vp';
+    if (variant === 'lineage') nextForest[0].children[0].lineageId = 'different-operator';
+    if (variant === 'prior') second.priorAnchors = { operator: 'operator', variable: 'variable' };
+    const plan = compileRelationRenderPlan([stage([first], bindingForest()), stage([second], nextForest)]);
+    assert.equal(bindingPaths(plan.frames[1]).length, 2, variant);
+  }
 });

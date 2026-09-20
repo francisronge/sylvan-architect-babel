@@ -2362,6 +2362,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const bindingRelationLayers = new Map<string, AcceptedRelationLayer>();
       const coindexRelationLayers = new Map<string, AcceptedRelationLayer>();
       const operatorVariableBindingLayers = new Map<string, AcceptedRelationLayer>();
+      const operatorVariableSharedPathLayers = new Map<string, AcceptedRelationLayer>();
       const predicationRelationLayers = new Map<string, AcceptedRelationLayer>();
       let featureRelationLayer: AcceptedRelationLayer | null = null;
       let agreementCaseRelationLayer: AcceptedRelationLayer | null = null;
@@ -5139,8 +5140,39 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('data-operator-variable-count', String(operatorVariableScopeItems.length || 1))
             .attr('data-operator-variable-color', color);
 
+          if (primitive.scopeDomainNodeId) {
+            host.append('path')
+              .attr('class', 'babel-operator-variable-domain')
+              .attr('data-operator-variable-domain-shape', primitive.scopeDomainNodeId)
+              .attr('fill', color)
+              .attr('fill-opacity', rank === 0 ? 0.12 : 0.105)
+              .attr('stroke', color)
+              .attr('stroke-opacity', rank % palette.length === 2 ? 0.78 : 0.88)
+              .attr('stroke-width', rank % palette.length === 2 ? 3.2 : 3)
+              .attr('stroke-dasharray', rank % palette.length === 2 ? '12 8' : '10 9')
+              .attr('stroke-linejoin', 'round')
+              .attr('vector-effect', 'non-scaling-stroke');
+          }
+          if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathSuppressed) return;
+          let pathHost = host;
+          if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathRefs) {
+            const pathOwner = planItem.bindingPathRefs.find(ref =>
+              ref.stageIndex === focusedRelationMoment?.stageIndex
+              && ref.relationIndex === focusedRelationMoment?.relationIndex) ?? planItem.relationRef;
+            const pathItem = { ...planItem, relationRef: pathOwner, composedRefs: [],
+              coalescedRefs: planItem.bindingPathRefs.filter(ref =>
+                ref.stageIndex !== pathOwner.stageIndex
+                || ref.relationIndex !== pathOwner.relationIndex) };
+            // The shared path can be active while the earlier domain is quiet.
+            // Separate root groups prevent inherited opacity or hover leakage.
+            pathHost = acceptedRootLayerBeforeNodes(operatorVariableSharedPathLayers,
+              pathItem, relationEmphasisForItem(pathItem), 'babel-operator-variable-shared-path-layer');
+            for (const attr of Array.from((host.node() as SVGGElement).attributes)) {
+              if (attr.name.startsWith('data-operator-variable-')) pathHost.attr(attr.name, attr.value);
+            }
+          }
           const markerId = `babel-operator-variable-arrow-${planItem.relationRef.stageIndex}-${planItem.relationRef.relationIndex}`;
-          const marker = host.append('defs').append('marker')
+          const marker = pathHost.append('defs').append('marker')
             .attr('id', markerId)
             .attr('viewBox', '0 -5 10 10')
             .attr('refX', 8.5)
@@ -5159,20 +5191,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('stroke-linecap', 'round')
             .attr('stroke-linejoin', 'round');
 
-          if (primitive.scopeDomainNodeId) {
-            host.append('path')
-              .attr('class', 'babel-operator-variable-domain')
-              .attr('data-operator-variable-domain-shape', primitive.scopeDomainNodeId)
-              .attr('fill', color)
-              .attr('fill-opacity', rank === 0 ? 0.12 : 0.105)
-              .attr('stroke', color)
-              .attr('stroke-opacity', rank % palette.length === 2 ? 0.78 : 0.88)
-              .attr('stroke-width', rank % palette.length === 2 ? 3.2 : 3)
-              .attr('stroke-dasharray', rank % palette.length === 2 ? '12 8' : '10 9')
-              .attr('stroke-linejoin', 'round')
-              .attr('vector-effect', 'non-scaling-stroke');
-          }
-          host.append('path')
+          pathHost.append('path')
             .attr('class', 'babel-operator-variable-path')
             .attr('fill', 'none')
             .attr('stroke', color)
@@ -5182,7 +5201,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             .attr('marker-end', `url(#${markerId})`)
             .attr('vector-effect', 'non-scaling-stroke');
           ['operator', 'variable'].forEach((role) => {
-            host.append('text')
+            pathHost.append('text')
               .attr('class', 'babel-binding-index babel-relation-index babel-operator-variable-index')
               .attr('data-operator-variable-index-role', role)
               .attr('fill', color)
