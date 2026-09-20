@@ -179,12 +179,12 @@ feature target using the shared dotted Orchard D6 connector. Case evidence is no
 required for the plaque; Case evidence independently earns a solid assignment
 arrow. No particular feature dimensions or languages are required.
 
-Case and collection share a plaque only when the Case bearer is also the
-collection probe in a shared authored stage, as in Orchard D6. Reusing the same
-two endpoints is insufficient when their roles are reversed: a Case
-assigner-to-bearer claim and an agreement probe-to-goal claim keep separate
-plaques. A bundle already connected elsewhere cannot be borrowed. Ambiguous
-assignments stay separate.
+Case and collection share a plaque when their exact current anchors meet at the
+same bearer, or describe the same assigner-recipient pair, in a shared authored
+stage. A standalone feature specification on that assigner can join only when
+that explicit pair exists and the assigner has one Case recipient. A bundle
+already connected elsewhere cannot be borrowed. Ambiguous assignments stay
+separate. Physical grouping never changes the semantic owner of a row or path.
 
 Each row retains its semantic owner, feature source and contributing relation
 moments. Equal text on different owners or different collection sources does not

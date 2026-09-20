@@ -20,11 +20,12 @@ export function collectionPlaque(items: RelationPlanItem[], path: DirectedPathPl
   return owned.length === 1 ? owned[0] : bundles.length === 1 ? bundles[0] : undefined;
 }
 
-/** A collection can share Case's bearer only when that bearer is also its probe. */
+/** A collection can share Case's bearer, or describe the same assigner–recipient pair. */
 export function collectionAssignment(items: RelationPlanItem[], path: DirectedPathPlanItem): number | undefined {
   const candidates = items.flatMap((item, index) => item.kind === 'directed-path'
     && item.pathStyle === 'case-assignment' && planItemsShareAuthoredStage(item, path)
-    && item.toNodeId === path.fromNodeId ? [index] : []);
+    && (item.toNodeId === path.fromNodeId
+      || (item.fromNodeId === path.fromNodeId && item.toNodeId === path.toNodeId)) ? [index] : []);
   if (candidates.length !== 1) return undefined;
   const assignment = items[candidates[0]] as DirectedPathPlanItem;
   const incoming = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
@@ -41,6 +42,10 @@ export function caseFeatureComposition(items: RelationPlanItem[], assignmentInde
   const collections = incoming.length !== 1 ? [] : items.flatMap((item, index): Entry<DirectedPathPlanItem>[] =>
     item.kind === 'directed-path' && item.pathStyle === 'case-agree'
       && collectionAssignment(items, item) === assignmentIndex ? [{ item, index }] : []);
+  const paired = collections.some(({ item }) => item.fromNodeId === assignment.fromNodeId
+    && item.toNodeId === assignment.toNodeId);
+  const outgoing = items.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+    && item.fromNodeId === assignment.fromNodeId && planItemsShareAuthoredStage(item, assignment));
   const bundles = incoming.length !== 1 ? [] : items.flatMap((item, index): Entry<NodePlaquePlanItem>[] => {
     if (item.kind !== 'node-plaque' || item.plaqueStyle !== 'feature'
       || !planItemsShareAuthoredStage(item, assignment)) return [];
@@ -50,7 +55,8 @@ export function caseFeatureComposition(items: RelationPlanItem[], assignmentInde
     if (ownedCollections.length && !ownedCollections.every(candidate =>
       collections.some(entry => entry.item === candidate))) return [];
     const anchor = item.anchorNodeIds[0];
-    return ownedCollections.length > 0 || anchor === assignment.toNodeId ? [{ item, index }] : [];
+    return ownedCollections.length > 0 || anchor === assignment.toNodeId
+      || (paired && outgoing.length === 1 && anchor === assignment.fromNodeId) ? [{ item, index }] : [];
   });
   const rows: Array<FeatureRow & { ownerNodeId: string; sourceNodeId?: string; ownerIndices: number[] }> = [];
   const add = (row: FeatureRow, ownerNodeId: string, index: number, sourceNodeId?: string) => {

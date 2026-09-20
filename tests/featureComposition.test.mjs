@@ -102,7 +102,7 @@ test('dotted collection geometry keeps the shallow Orchard D6 curve at every end
   assert.equal(lane[6] - lane[4], 92);
 });
 
-test('Case and agreement with reversed D6 roles remain separate despite sharing endpoints', () => {
+test('Case and agreement for the same pair share a plaque without changing each row owner', () => {
   const items = compile([
     { relation: 'Finite specification', anchors: { finiteHead: 'p' }, values: { number: 'singular', person: 'third' } },
     assignment,
@@ -110,19 +110,15 @@ test('Case and agreement with reversed D6 roles remain separate despite sharing 
   ]);
   const index = items.findIndex(item => item.pathStyle === 'case-assignment');
   const composition = caseFeatureComposition(items, index);
-  assert.equal(composition.collections.length, 0);
-  assert.deepEqual(composition.rows.map(row => [row.label, row.value, row.ownerNodeId]), [['Case', 'DAT', 'k']]);
-  const featurePlaques = items.map((item, itemIndex) => ({ item, itemIndex }))
-    .filter(({ item }) => item.kind === 'node-plaque' && item.plaqueStyle === 'feature');
-  assert.equal(featurePlaques.length, 2);
-  for (const { itemIndex } of featurePlaques) assert.equal(featurePlaqueAssignment(items, itemIndex), undefined);
-  const agreementPath = items.find(item => item.kind === 'directed-path' && item.pathStyle === 'case-agree');
-  const agreementPlaque = collectionPlaque(items, agreementPath);
-  assert(agreementPlaque);
-  assert.deepEqual(agreementPlaque.item.anchorNodeIds, ['p']);
-  assert.deepEqual(agreementPlaque.item.rows.map(row => [row.label, row.value]), [
-    ['agreement', 'third-person singular']
+  assert.equal(composition.bundles.length, 2);
+  assert.deepEqual(composition.rows.map(row => [row.label, row.value, row.ownerNodeId]), [
+    ['number', 'singular', 'p'], ['person', 'third', 'p'], ['Case', 'DAT', 'k'], ['agreement', 'third-person singular', 'p']
   ]);
+  for (const bundle of composition.bundles) assert.equal(featurePlaqueAssignment(items, bundle.index), index);
+  const agreementRow = composition.rows.find(row => row.label === 'agreement');
+  assert.equal(agreementRow.sourceNodeId, 'k');
+  assert(agreementRow.ownerIndices.every(i => items[i].relationRef.relationIndex === 2));
+  assert.deepEqual(composition.rows.find(row => row.label === 'Case').ownerIndices, [index]);
 });
 
 test('collections at one bearer share a shell but identical values from different sources retain separate rows', () => {

@@ -318,8 +318,8 @@ test('rows above Case do not lengthen its curved approach when the same pocket i
     workspaceForest: [nodes[0].data], relations }]).frames[0].items;
   const plain = compile([assignment]);
   const composed = compile([
-    { relation: 'Finite features', anchors: { finiteHead: 'right' }, values: { number: 'singular', person: 'third' } },
-    assignment, { relation: 'Agreement', anchors: { head: 'right', specifier: 'left' }, values: { agreement: 'third-person singular' } }
+    { relation: 'Finite features', anchors: { finiteHead: 'left' }, values: { number: 'singular', person: 'third' } },
+    assignment, { relation: 'Agreement', anchors: { head: 'left', specifier: 'right' }, values: { agreement: 'third-person singular' } }
   ]);
   const plainIndex = plain.findIndex(item => item.pathStyle === 'case-assignment');
   const composedIndex = composed.findIndex(item => item.pathStyle === 'case-assignment');
@@ -357,7 +357,7 @@ test('a fixed Orchard collection curve clears opaque ink by choosing its plaque 
 });
 
 for (const [width, height] of [[1596, 1016], [390, 844]]) {
-  test(`${width}px: earlier grids leave room for separate Case and agreement plaques`, () => {
+  test(`${width}px: earlier grids leave room for the shared Case and agreement plaque`, () => {
     const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/shared-plaque.json', import.meta.url)));
     const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
     const plan = compileRelationRenderPlan(record.derivationStages);
@@ -366,16 +366,16 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
     const layouts = buildReplayPlaqueLayouts(input);
     assert.deepEqual(layouts, buildReplayPlaqueLayouts({ ...input, steps: [...steps].reverse() }),
       'frame traversal order cannot change the reserved pockets');
-    const caseIndex = plan.frames[2].items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'iPast');
-    const caseBox = layouts[2].get(caseIndex);
+    const index = plan.frames[2].items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'iPast');
+    const box = layouts[2].get(index);
     const nodes = measureStagePlaqueSpace(input).nodes;
     const source = caseAssignmentSource(nodes.find(node => node.data.id === 'iPast'));
     const curve = caseAssignmentPlaqueCurve({ x: source.x - 75, y: source.y + 65, width: 150, height: 60 },
-      caseBox, caseBox.y + caseBox.caseRowY);
+      box, box.y + box.caseRowY);
     const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 32);
     const length = points.slice(1).reduce((sum, point, i) => sum + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0);
-    assert(length < 320, `Case must keep a short approach; got ${length}`);
-    assert.equal(caseBox.location, 'local');
+    assert(length < 425, `Case must use the nearest clear shared-plaque approach; got ${length}`);
+    assert.equal(box.location, 'local');
     for (let stageIndex = 1; stageIndex < layouts.length; stageIndex++) {
       const items = plan.frames[stageIndex].items;
       for (const [itemIndex, placement] of layouts[stageIndex]) {
@@ -386,14 +386,10 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
         assert(Math.abs(placement.y - placement.attachmentY - prior.y + prior.attachmentY) < 1e-8);
       }
     }
-    const agreementIndex = plan.frames[2].items.findIndex(item => item.kind === 'node-plaque'
-      && item.plaqueStyle === 'feature' && item.rows.some(row => row.label === 'agreement'));
-    const agreementBox = layouts[2].get(agreementIndex);
-    assert(agreementBox, 'agreement keeps its own feature plaque');
-    const segments = plaqueCollectionConnectorObstacles(nodes, new Map([[agreementIndex, agreementBox]]));
+    const segments = plaqueCollectionConnectorObstacles(nodes, new Map([[index, box]]));
     assert(segments.length > 0);
     for (const [otherIndex, other] of layouts[2]) {
-      if (otherIndex !== agreementIndex) assert(segments.every(segment => !plaquesOverlap(segment, other, 0)),
+      if (otherIndex !== index) assert(segments.every(segment => !plaquesOverlap(segment, other, 0)),
         'the collection curve must clear every earlier grid and plaque');
     }
   });
