@@ -15,12 +15,13 @@ test('standalone and Case-composed feature plaques keep row attachment through R
   const browser = await chromium.launch({ headless: true });
   try {
     for (const variant of ['standalone', 'bearer', 'same-pair']) {
-      const combined = variant !== 'standalone';
+      const combined = variant === 'bearer';
       const samePair = variant === 'same-pair';
       const agreementIndex = samePair ? 2 : Number(combined);
       const relations = [...(samePair ? [{ relation: 'Finite specification', anchors: { finiteHead: 'p' },
-        values: { number: 'singular', person: 'third' } }] : []), ...(combined ? [caseRelation] : []),
-        samePair ? { ...agreement, anchors: { head: 'p', specifier: 'k' } } : agreement, { relation: 'Another description', anchors: { participant: 'n' } }];
+        values: { number: 'singular', person: 'third' } }] : []), ...(combined || samePair ? [caseRelation] : []),
+        samePair ? { ...agreement, anchors: { head: 'p', specifier: 'k' }, values: { agreement: 'third-person singular' } }
+          : agreement, { relation: 'Another description', anchors: { participant: 'n' } }];
       const stages = [{ statement: 'Features.', stageRecord: 'Independent moments.', workspaceForest: [tree], relations }];
       const steps = prepareReplay({ sentence: 'with books', derivationStages: stages, includePlayback: true }).playbackSteps;
       const moment = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex);
@@ -38,28 +39,33 @@ test('standalone and Case-composed feature plaques keep row attachment through R
       await page.evaluate(() => document.fonts.ready);
       const go = async index => { await page.locator('input[type=range]').fill(String(index));
         await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index); };
-      let earlierShell;
       if (samePair) {
         await go(steps.findIndex(step => step.replayRelationIdentity?.relationIndex === 0));
         await page.locator('.babel-feature-row[data-feature-label="number"]').waitFor();
         assert.equal(await page.locator('.babel-feature-plaque').count(), 1);
         assert.equal(await page.locator('.babel-case-assignment-path').count(), 0, 'an earlier feature row must not reveal the Case arrow');
         assert.equal(await page.locator('.babel-feature-row[data-feature-label="Case"]').count(), 0);
-        earlierShell = await page.locator('.babel-feature-plaque-shell').evaluate(e => ['x', 'y', 'width', 'height'].map(k => e.getAttribute(k)));
+        await go(steps.findIndex(step => step.replayRelationIdentity?.relationIndex === 1));
+        assert.equal(await page.locator('.babel-feature-plaque').count(), 2, 'Case and finite specification keep separate owners');
+        assert.equal(await page.locator('.babel-case-collection-path[data-vr-owner-refs="0:2"]').count(), 0,
+          'future agreement connectors stay hidden at the Case moment');
       }
       if (combined) {
         await go(steps.findIndex(step => step.replayRelationIdentity?.relationIndex === (samePair ? 1 : 0)));
         assert.equal(await page.locator('.babel-case-collection-path').count(), 0);
         assert(!await page.locator('.babel-feature-plaque').innerText().catch(() => page.locator('.babel-feature-plaque').textContent()).then(text => /inclusive|dual/.test(text)));
       }
-      const read = () => page.evaluate(() => {
-        const shell = document.querySelector('.babel-feature-plaque-shell');
+      const read = () => page.evaluate(owner => {
+        const agreementRow = document.querySelector('.babel-feature-row[data-feature-label="agreement"]');
+        const agreementPlaque = agreementRow?.closest('.babel-feature-plaque');
+        const shell = agreementPlaque?.querySelector('.babel-feature-plaque-shell');
         const rect = Object.fromEntries(['x', 'y', 'width', 'height'].map(key => [key, +shell.getAttribute(key)]));
-        const paths = [...document.querySelectorAll('.babel-case-collection-path')].map(path => ({ d: path.getAttribute('d'),
+        const paths = [...document.querySelectorAll('.babel-case-collection-path')]
+          .filter(path => path.getAttribute('data-vr-owner-refs') === owner).map(path => ({ d: path.getAttribute('d'),
           start: { x: path.getPointAtLength(0).x, y: path.getPointAtLength(0).y },
           owner: path.getAttribute('data-vr-owner-refs'), marker: path.getAttribute('marker-end') }));
         return { rect, paths };
-      });
+      }, `0:${agreementIndex}`);
       for (const width of [1200, 390]) {
         if (page.viewportSize().width !== width) {
           const old = await page.locator('svg > g').first().elementHandle();
@@ -67,26 +73,26 @@ test('standalone and Case-composed feature plaques keep row attachment through R
           await page.waitForFunction(old => !old.isConnected && document.querySelector('svg[data-babel-rendered-step]'), old);
         }
         await go(moment);
-        await page.waitForFunction(() => document.querySelectorAll('.babel-case-collection-path').length === 2);
-        assert.equal(await page.locator('.babel-feature-plaque').count(), 1);
-        assert.equal(await page.locator('.babel-case-assignment-path').count(), Number(combined));
+        const expectedPaths = samePair ? 1 : 2;
+        await page.waitForFunction(({ expected, owner }) => [...document.querySelectorAll('.babel-case-collection-path')]
+          .filter(path => path.getAttribute('data-vr-owner-refs') === owner).length === expected,
+        { expected: expectedPaths, owner: `0:${agreementIndex}` });
+        assert.equal(await page.locator('.babel-feature-plaque').count(), samePair ? 3 : 1);
+        assert.equal(await page.locator('.babel-case-assignment-path').count(), Number(combined || samePair));
         const state = await read();
         if (samePair) {
-          if (width === 1200) assert.deepEqual(await page.locator('.babel-feature-plaque-shell').evaluate(e =>
-            ['x', 'y', 'width', 'height'].map(k => e.getAttribute(k))), earlierShell, 'later rows and arrows cannot relocate or resize the shared plaque');
           const caseRow = page.locator('.babel-feature-row[data-feature-label="Case"]');
           const agreementRows = page.locator('.babel-feature-row[data-feature-label="agreement"]');
           assert.equal(await caseRow.getAttribute('data-feature-anchor'), 'k');
           assert.equal(await caseRow.getAttribute('data-vr-owner-refs'), '0:1');
           assert.equal(await caseRow.getAttribute('data-vr-emphasis'), 'quiet');
-          assert.equal(await agreementRows.first().getAttribute('data-feature-anchor'), 'p');
-          assert.equal(await agreementRows.first().getAttribute('data-feature-source'), 'k');
-          assert.equal(await agreementRows.first().getAttribute('data-vr-owner-refs'), '0:2');
-          assert.equal(await agreementRows.first().getAttribute('data-vr-emphasis'), 'active');
+          assert.equal(await agreementRows.count(), 1);
+          assert.equal(await agreementRows.first().locator('xpath=ancestor::*[contains(@class,"babel-feature-plaque")]').getAttribute('data-feature-anchor'), 'p');
         }
-        assert.notEqual(state.paths[0].d, state.paths[1].d, 'two rows cannot collapse into one curve');
+        if (state.paths.length > 1) assert.notEqual(state.paths[0].d, state.paths[1].d, 'two rows cannot collapse into one curve');
         for (const path of state.paths) {
-          assert.match(path.d, /^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/, 'the actual painted collection must be straight');
+          assert.match(path.d, /^M [-\d.]+ [-\d.]+ C [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+$/,
+            'the painted collection must use the shallow Orchard D6 curve');
           assert.equal(path.owner, `0:${agreementIndex}`);
           assert.equal(path.marker, null, 'collection has no assignment arrowhead');
           assert(Math.abs(path.start.x - state.rect.x + 12) < 1 || Math.abs(path.start.x - state.rect.x - state.rect.width - 12) < 1);
@@ -97,7 +103,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         await page.waitForFunction(previous => document.querySelector('svg > g')?.getAttribute('transform') !== previous, treeTransform);
         assert.deepEqual(await read(), state, 'zoom preserves plaque and connector coordinates together');
         await go(next);
-        const plaque = page.locator(combined ? '.babel-feature-plaque-frame' : '.babel-feature-plaque');
+        const plaque = page.locator(combined ? '.babel-feature-plaque-frame' : '.babel-feature-plaque').last();
         assert.equal(await plaque.evaluate(e => getComputedStyle(e.closest('.vr-item')).opacity), '0.3');
         const quiet = await read();
         await plaque.dispatchEvent('mousemove', { clientX: 200, clientY: 250 });
@@ -106,7 +112,8 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         await go(moment);
         const restored = await read();
         assert.deepEqual(restored.rect, state.rect, 'reverse scrubbing preserves the plaque reservation');
-        const screenScale = await page.locator('.babel-case-collection-path').first().evaluate(e => Math.abs(e.getScreenCTM().a));
+        const screenScale = await page.locator(`.babel-case-collection-path[data-vr-owner-refs="0:${agreementIndex}"]`)
+          .first().evaluate(e => Math.abs(e.getScreenCTM().a));
         restored.paths.forEach((path, index) => {
           const coordinates = path.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
           const original = state.paths[index].d.match(/-?\d+(?:\.\d+)?/g).map(Number);

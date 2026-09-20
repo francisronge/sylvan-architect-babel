@@ -82,21 +82,27 @@ test('collection geometry attaches to its row and feature source on either side 
   for (const source of [{ x: 900, y: 60, width: 60, height: 50 }, { x: 0, y: 400, width: 60, height: 50 }]) {
     const points = featureCollectionPlaquePath(plaque, 255, source).match(/-?\d+(?:\.\d+)?/g).map(Number);
     assert.equal(points[1], 255);
-    assert.equal(points[3], source.y + source.height / 2);
+    assert.equal(points[7], source.y + source.height / 2);
     assert.equal(points[0], source.x > plaque.x ? 622 : 288);
-    assert.equal(points[2], source.x > plaque.x ? source.x : source.x + source.width);
+    assert.equal(points[6], source.x > plaque.x ? source.x : source.x + source.width);
+    assert.equal(points[1], points[3], 'the curve leaves the plaque horizontally');
+    assert.equal(points[5], points[7], 'the curve reaches the source horizontally');
   }
 });
 
-test('dotted collection geometry is one straight segment at steep, shallow and equal-height endpoints', () => {
+test('dotted collection geometry keeps the shallow Orchard D6 curve at every endpoint height', () => {
   for (const y of [-500, 50, 500]) {
     const path = featureCollectionPlaquePath({ x: 800, y: 0, width: 310, height: 262 }, 50,
       { x: 0, y: y - 25, width: 60, height: 50 });
-    assert.match(path, /^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
+    assert.match(path, /^M [-\d.]+ [-\d.]+ C [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+, [-\d.]+ [-\d.]+$/);
   }
+  const lane = featureCollectionPlaquePath({ x: 0, y: 0, width: 310, height: 262 }, 50,
+    { x: 1000, y: 75, width: 60, height: 50 }, 1).match(/-?\d+(?:\.\d+)?/g).map(Number);
+  assert.equal(lane[2] - lane[0], 92, 'D6 separates its second row with the original 92-unit control lane');
+  assert.equal(lane[6] - lane[4], 92);
 });
 
-test('Case and agreement for the same pair share a plaque without changing each row owner', () => {
+test('Case and agreement with reversed D6 roles remain separate despite sharing endpoints', () => {
   const items = compile([
     { relation: 'Finite specification', anchors: { finiteHead: 'p' }, values: { number: 'singular', person: 'third' } },
     assignment,
@@ -104,15 +110,19 @@ test('Case and agreement for the same pair share a plaque without changing each 
   ]);
   const index = items.findIndex(item => item.pathStyle === 'case-assignment');
   const composition = caseFeatureComposition(items, index);
-  assert.equal(composition.bundles.length, 2);
-  assert.deepEqual(composition.rows.map(row => [row.label, row.value, row.ownerNodeId]), [
-    ['number', 'singular', 'p'], ['person', 'third', 'p'], ['Case', 'DAT', 'k'], ['agreement', 'third-person singular', 'p']
+  assert.equal(composition.collections.length, 0);
+  assert.deepEqual(composition.rows.map(row => [row.label, row.value, row.ownerNodeId]), [['Case', 'DAT', 'k']]);
+  const featurePlaques = items.map((item, itemIndex) => ({ item, itemIndex }))
+    .filter(({ item }) => item.kind === 'node-plaque' && item.plaqueStyle === 'feature');
+  assert.equal(featurePlaques.length, 2);
+  for (const { itemIndex } of featurePlaques) assert.equal(featurePlaqueAssignment(items, itemIndex), undefined);
+  const agreementPath = items.find(item => item.kind === 'directed-path' && item.pathStyle === 'case-agree');
+  const agreementPlaque = collectionPlaque(items, agreementPath);
+  assert(agreementPlaque);
+  assert.deepEqual(agreementPlaque.item.anchorNodeIds, ['p']);
+  assert.deepEqual(agreementPlaque.item.rows.map(row => [row.label, row.value]), [
+    ['agreement', 'third-person singular']
   ]);
-  for (const bundle of composition.bundles) assert.equal(featurePlaqueAssignment(items, bundle.index), index);
-  const agreementRow = composition.rows.find(row => row.label === 'agreement');
-  assert.equal(agreementRow.sourceNodeId, 'k');
-  assert(agreementRow.ownerIndices.every(i => items[i].relationRef.relationIndex === 2));
-  assert.deepEqual(composition.rows.find(row => row.label === 'Case').ownerIndices, [index]);
 });
 
 test('collections at one bearer share a shell but identical values from different sources retain separate rows', () => {

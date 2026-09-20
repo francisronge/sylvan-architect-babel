@@ -34,18 +34,25 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
-/** A collection is a straight segment, including when its endpoints differ in height. */
-export function featureCollectionPlaqueSegment(plaque: Rect, rowY: number, sourceRect: Rect) {
+/** Orchard D6's quiet collection curve, mirrored with horizontal approaches. */
+export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0) {
   const right = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2;
+  const direction = right ? 1 : -1;
+  const source = { x: right ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
+  const target = { x: right ? sourceRect.x : sourceRect.x + sourceRect.width,
+    y: sourceRect.y + sourceRect.height / 2 };
+  const offset = Math.min(68 + lane * 24, Math.max(16, Math.abs(target.x - source.x) / 2));
   return {
-    start: { x: right ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY },
-    end: { x: right ? sourceRect.x : sourceRect.x + sourceRect.width, y: sourceRect.y + sourceRect.height / 2 }
+    source, target,
+    control1: { x: source.x + direction * offset, y: source.y },
+    control2: { x: target.x - direction * offset, y: target.y }
   };
 }
 
-export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect): string {
-  const { start, end } = featureCollectionPlaqueSegment(plaque, rowY, sourceRect);
-  return `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0): string {
+  const { source, target, control1, control2 } = featureCollectionPlaqueCurve(plaque, rowY, sourceRect, lane);
+  return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${control1.x.toFixed(1)} ${control1.y.toFixed(1)},`
+    + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
 export type AnalysisVerdictAnchor = {

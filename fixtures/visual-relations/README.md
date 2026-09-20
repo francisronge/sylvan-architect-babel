@@ -7,7 +7,7 @@ checkout.
 
 `shared-plaque.json` preserves the saved Sol X-bar analysis of “Ali kitabı okudu.”
 It is consumed by `tests/plaquePlacement.test.mjs` to verify that earlier grids
-leave room for later straight feature connectors, Case arrows stay short, and
+leave room for later Orchard D6 feature curves, Case arrows stay short, and
 plaque offsets remain stable through head movement on desktop and mobile.
 
 The fixtures are immutable characterization evidence. New browser captures

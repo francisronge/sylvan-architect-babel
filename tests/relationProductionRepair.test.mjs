@@ -222,7 +222,7 @@ test('FeatureBundle hands one accepted plaque from the old state to the new stat
     .filter((primitive) => primitive.type === 'plaque' && primitive.plaqueStyle === 'feature');
   assert.ok(plaque);
   assert.equal(plaque.width, 360);
-  assert.equal(plaque.height, 150);
+  assert.equal(plaque.height, 172, 'fallback layout reserves the complete browser font box');
   assert.equal(boundOverlayBounds(bound), null,
     'the accepted feature plaque is measured after the ordinary tree fit');
 });

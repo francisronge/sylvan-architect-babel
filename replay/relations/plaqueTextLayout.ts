@@ -83,8 +83,11 @@ export const fallbackPlaqueTextMeasure: PlaqueTextMeasure = (text, style) => ({
   width: graphemes(text).reduce((width, grapheme) => width
     + style.fontSize * (/[^\u0000-\u024f\u0300-\u036f]/u.test(grapheme) ? 1 : 0.65)
     + style.letterSpacing, 0),
-  ascent: style.fontSize * 0.8,
-  descent: style.fontSize * 0.2
+  // Reserve the full JetBrains/IBM glyph box before browser fonts are ready.
+  // Underestimating these values lets the painted rows outgrow their planned
+  // connector lanes and can put a fixed D6 curve through a tree label.
+  ascent: style.fontSize * 1.05,
+  descent: style.fontSize * 0.3
 });
 
 const validMetric = (value: number | undefined, fallback: number): number =>

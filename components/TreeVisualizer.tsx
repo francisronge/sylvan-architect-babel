@@ -4755,12 +4755,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             decorateRelationElement(path.node()!, assignment, relationEmphasisForItem(assignment));
           }
         }
-        composition.collections.forEach(({ item, index }) => {
+        composition.collections.forEach(({ item, index }, lane) => {
           if (!revealedItemIndices.has(index)) return;
           const sourceRect = anchorRect(item.toNodeId);
           if (!sourceRect || !anchorRect(item.fromNodeId)) return;
           const path = layer.append('path').attr('class', 'babel-case-collection-path')
-            .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect));
+            .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect, lane));
           decorateRelationElement(path.node()!, item, relationEmphasisForItem(item));
         });
       };

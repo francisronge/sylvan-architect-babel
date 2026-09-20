@@ -4,14 +4,14 @@ import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { planItemRelationRefs, type RelationPlanItem } from './renderPlanCompiler.ts';
 import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from './markGeometry.ts';
-import { caseAssignmentPlaqueCurve, featureCollectionPlaqueSegment } from './overlayGeometry.ts';
+import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from './overlayGeometry.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
   caseRowY?: number; collectionRows?: CollectionRow[]; blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number } };
-type CollectionRow = { sourceNodeId: string; y: number; ownerKeys?: string[] };
+type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[] };
 type Node = HierarchyPointNode<SyntaxNode>;
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
@@ -155,7 +155,7 @@ export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: P
   return caseRouteRects(anchor, box).every(segment => blockers.every(rect => !plaquesOverlap(segment, rect, 0)));
 }
 
-function collectionSegments(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[] = []) {
+function collectionCurves(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[] = []) {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   return (box.collectionRows ?? []).flatMap(row => {
     const node = byId.get(row.sourceNodeId);
@@ -164,43 +164,42 @@ function collectionSegments(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRec
     const attachment = labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:category`)
       ?? labels.find(rect => rect.connectorAttachment === `${row.sourceNodeId}:terminal`);
     if (!attachment) return [];
-    return [{ row, attachment, ...featureCollectionPlaqueSegment(box, box.y + row.y, attachment.connectorInk ?? attachment) }];
+    return [{ row, attachment,
+      ...featureCollectionPlaqueCurve(box, box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0) }];
   });
 }
 
-/** Straight collections are kept clear by placement, never by bending or cutting the line. */
+const collectionRouteRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>) => {
+  const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 32);
+  return points.slice(1).map((point, i) => ({
+    x: Math.min(points[i].x, point.x) - 6, y: Math.min(points[i].y, point.y) - 6,
+    width: Math.abs(points[i].x - point.x) + 12, height: Math.abs(points[i].y - point.y) + 12
+  }));
+};
+
+/** Fixed Orchard collection curves stay clear by placement, never by rerouting. */
 export function collectionPlaqueClears(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): boolean {
-  return collectionSegments(box, nodes, obstacles).every(({ attachment, start, end }) => {
-    return [box, ...obstacles.filter(rect => rect.blocksConnectors
-      && rect.connectorAttachment !== attachment.connectorAttachment)].every(obstacle => {
-      const rect = obstacle.connectorInk ?? obstacle;
-      let from = 0, to = 1;
-      for (const axis of ['x', 'y'] as const) {
-        const delta = end[axis] - start[axis];
-        const low = rect[axis] - 6, high = rect[axis] + (axis === 'x' ? rect.width : rect.height) + 6;
-        if (Math.abs(delta) < 1e-9) {
-          if (start[axis] < low || start[axis] > high) return true;
-        } else {
-          const a = (low - start[axis]) / delta, b = (high - start[axis]) / delta;
-          from = Math.max(from, Math.min(a, b)); to = Math.min(to, Math.max(a, b));
-          if (from > to) return true;
-        }
-      }
-      return false;
-    });
-  });
+  return collectionCurves(box, nodes, obstacles).every(({ attachment, row: _row, ...curve }) =>
+    collectionRouteRects(curve).every(segment => [box, ...obstacles.filter(rect => rect.blocksConnectors
+      && rect.connectorAttachment !== attachment.connectorAttachment)]
+      .every(obstacle => !plaquesOverlap(segment, obstacle.connectorInk ?? obstacle, 0))));
 }
 
-/** Candidate heights at which a straight collection passes an opaque corner. */
+/** Candidate heights at which the fixed Orchard curve passes an opaque corner. */
 export function collectionPlaqueCandidateYs(box: PlaqueRect, nodes: Node[], obstacles: PlaqueRect[]): number[] {
-  return collectionSegments(box, nodes, obstacles).flatMap(({ row, attachment, start, end }) => {
+  return collectionCurves(box, nodes, obstacles).flatMap(({ row, attachment, source, target, control1, control2 }) => {
     return obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment.connectorAttachment)
       .flatMap(obstacle => {
         const rect = obstacle.connectorInk ?? obstacle;
-        return [rect.x - 8, rect.x + rect.width + 8].flatMap(x => {
-          if ((x - end.x) * (start.x - x) <= 0) return [];
+        return Array.from({ length: 63 }, (_, i) => (i + 1) / 64).flatMap(t => {
+          const u = 1 - t;
+          const x = u ** 3 * source.x + 3 * u * u * t * control1.x
+            + 3 * u * t * t * control2.x + t ** 3 * target.x;
+          if (x < rect.x - 8 || x > rect.x + rect.width + 8) return [];
+          const targetWeight = 3 * u * t * t + t ** 3;
+          const sourceWeight = 1 - targetWeight;
           return [rect.y - 8, rect.y + rect.height + 8].map(y =>
-            end.y + (y - end.y) * (start.x - end.x) / (x - end.x) - row.y);
+            (y - target.y * targetWeight) / sourceWeight - row.y);
         });
       });
   });
@@ -208,15 +207,8 @@ export function collectionPlaqueCandidateYs(box: PlaqueRect, nodes: Node[], obst
 
 /** Reserve collections before other plaques choose their lifetime pockets. */
 export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
-  return [...layout.values()].flatMap(box => collectionSegments(box, nodes).flatMap(({ start, end }) => {
-    const count = Math.max(1, Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 24));
-    return Array.from({ length: count }, (_, i) => {
-      const x = start.x + (end.x - start.x) * i / count, y = start.y + (end.y - start.y) * i / count;
-      const dx = (end.x - start.x) / count, dy = (end.y - start.y) / count;
-      return { x: Math.min(x, x + dx) - 6, y: Math.min(y, y + dy) - 6,
-        width: Math.abs(dx) + 12, height: Math.abs(dy) + 12 };
-    });
-  }));
+  return [...layout.values()].flatMap(box => collectionCurves(box, nodes)
+    .flatMap(({ row: _row, attachment: _attachment, ...curve }) => collectionRouteRects(curve)));
 }
 
 /** Reserve the same curved approach as the painter, including carried claims. */
@@ -268,7 +260,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
       const composition = caseFeatureComposition(items, index)!;
       const size = prepareCasePlaqueRows(composition.rows);
-      const collectionRows = composition.collections.map(({ item, index }) => ({ sourceNodeId: item.toNodeId,
+      const collectionRows = composition.collections.map(({ item, index }, lane) => ({ sourceNodeId: item.toNodeId, lane,
         ownerKeys: planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`),
         y: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y }));
       requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: size.width, caseAssignment: true,
@@ -305,8 +297,15 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const attachment = prior && byId.get(prior.attachmentNodeId);
     if (!prior || !attachment || prior.width !== request.width || prior.height !== request.height) continue;
     const placement = { ...prior, x: prior.x + attachment.x - prior.attachmentX,
-      y: prior.y + attachment.y - prior.attachmentY, attachmentX: attachment.x, attachmentY: attachment.y };
-    if (!lifetime && [...obstacles, ...placed].some(obstacle => plaquesOverlap(placement, obstacle))) continue;
+      y: prior.y + attachment.y - prior.attachmentY, attachmentX: attachment.x, attachmentY: attachment.y,
+      ...(request.caseRowY !== undefined ? { caseRowY: request.caseRowY } : {}),
+      ...(request.collectionRows ? { collectionRows: request.collectionRows } : {}) };
+    const space = lifetime?.spaceFor(request.index, attachment, result);
+    const occupied = [...(space?.obstacles ?? obstacles), ...placed];
+    const connectorsClear = space ? space.acceptsConnector(placement)
+      : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied))
+        && collectionPlaqueClears(placement, nodes, occupied);
+    if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
     result.set(request.index, placement);
     placed.push({ ...placement, blocksConnectors: true },
       ...(request.caseAssignment ? caseRouteRects(attachment, placement) : []));
@@ -371,8 +370,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         // The nearest box-sized gap can still put the curved approach through
         // another label. Consider the remaining gap edges before falling below.
         const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
-        const connectorLanes = space?.connectorCandidateYs?.(candidate)
-          ?? collectionPlaqueCandidateYs(candidate, nodes, occupied);
+        const rawConnectorLanes = request.collectionRows?.length ? [
+          ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
+          ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
+        ] : [];
+        const connectorLanes = rawConnectorLanes.flatMap(y => [y, y - 16, y + 16]);
         const ys = [...new Set([idealY, ...connectorLanes, ...merged.flat()])].filter(Number.isFinite)
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
         for (const y of ys) {

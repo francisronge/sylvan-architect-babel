@@ -175,16 +175,16 @@ feature blocks, prior-only anchors and prose alone do not earn this plaque.
 Exact-primary ownership and independent-claim checks remain unchanged.
 A recovered feature dependency with explicit values draws those authored values
 in a feature plaque at its source. Each value row connects to the corresponding
-feature target using the shared straight dotted connector. Case evidence is not
+feature target using the shared dotted Orchard D6 connector. Case evidence is not
 required for the plaque; Case evidence independently earns a solid assignment
 arrow. No particular feature dimensions or languages are required.
 
-Case and collection share a plaque when their exact current anchors meet at the
-same bearer, or describe the same assigner–recipient pair, in a shared authored
-stage. A standalone feature specification on that assigner can join only when
-that explicit pair exists and the assigner has one Case recipient. A bundle
-already connected elsewhere cannot be borrowed. Ambiguous assignments stay
-separate.
+Case and collection share a plaque only when the Case bearer is also the
+collection probe in a shared authored stage, as in Orchard D6. Reusing the same
+two endpoints is insufficient when their roles are reversed: a Case
+assigner-to-bearer claim and an agreement probe-to-goal claim keep separate
+plaques. A bundle already connected elsewhere cannot be borrowed. Ambiguous
+assignments stay separate.
 
 Each row retains its semantic owner, feature source and contributing relation
 moments. Equal text on different owners or different collection sources does not
@@ -193,10 +193,10 @@ connectors reveal and focus independently. Rows follow their first authored
 moment, so future values do not leave an empty heading area. Future rows reserve
 space but do not print placeholders. Layout reserves the combined content before
 reveal; plaques widen up to 480 units before long rows wrap. D6 retains its original
-short-row dimensions. Dotted collections
-are straight segments, including diagonal ones. Placement checks those segments
-against opaque labels across future Replay frames; the painter neither bends
-nor cuts the line. Collection plaques and their straight paths reserve space
+short-row dimensions. Dotted collections use D6's shallow cubic: horizontal at
+both endpoints, mirrored when the source sits left of the plaque, with no added
+collision bow. Placement checks the fixed curve against opaque labels across
+future Replay frames; the painter neither reroutes nor cuts it. Collection plaques and their paths reserve space
 before other plaques, including grids introduced in earlier stages. Each plaque
 keeps its chosen offset throughout Replay. The curved Case approach is positioned
 by its own row; nearby clear pockets are ranked by actual arrow length, so adding

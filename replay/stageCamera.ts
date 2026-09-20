@@ -179,8 +179,8 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
     layout.forEach((placement, index) => remembered.set(plaqueIdentity(frame.items[index]), placement));
     return layout;
   };
-  // Straight collections have two fixed endpoints. Reserve them first so an
-  // earlier, freely placed grid cannot force a later connector into a detour.
+  // D6 collection curves have fixed endpoints and control lanes. Reserve them
+  // first so an earlier, freely placed grid cannot force a later detour.
   frames.forEach((_, stageIndex) => allocate(stageIndex, true));
   return frames.map((_, stageIndex) => allocate(stageIndex));
 }
