@@ -46,7 +46,7 @@ test('registered theta assignment counts exact source occurrences without rewrit
     const rejected = dispatchRelationClaims({ relation: distinct, currentForest: sameLineageForest,
       stageIndex: 0, relationIndex: 0 });
     assert.equal(rejected.primaryClaim.tier, 3);
-    assert.ok(rejected.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'invalid-arity'));
+    assert.ok(rejected.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'theta-assignments-unproven'));
     assert.equal(compileRelationRenderPlan([stage([distinct])]).frames[0].items
       .some(item => item.plaqueStyle === 'theta-grid'), false);
   }

@@ -213,11 +213,18 @@ The final offline gate passes 1,766 tests, typecheck and both parse fixtures.
   The existing realization groups permit Astra's alternative single-stem analysis.
   The old input segmentation could influence the choice, but the saved comparison
   does not prove causation. No prompt change or new generation was made.
-- One remaining visual composition issue is now explicit: an earlier partial role
-  grid and a later expanded role inventory can overlap in content without being
-  identical claims. Consolidating them needs row-level ownership, so earlier Replay
-  moments and hover cannot acquire roles introduced later. Do not erase the earlier
-  claim or merge its provenance into the entire expanded grid.
+- Overlapping theta inventories now share one grid per exact predicate when their
+  role assignments agree. Each row retains its authored relation references and
+  appears only after its own moment. Earlier Theme hover does not highlight a later
+  Agent. Prior-state claims, conflicting roles, repeated recipients and changed
+  predicate lineage remain separate. The grid reserves room for later rows and
+  keeps its placement identity as it grows.
+- Registry 19 accepts complete multiple-predicate theta assignments through the
+  same structural pairing check used for open relation names. Sol's saved negation
+  relation now draws both assignments under its unchanged registered name. Missing,
+  ambiguous or contradictory pairings still fail the registered signature; Tier 2
+  does not bypass that check. Shared evidence normalization has one implementation.
+
 
 Verification and direct comparisons are in `/tmp/babel-current-six-20260920` and
 `/tmp/babel-sept17-review/current-six`. The saved-record audit covers 27 analyses,

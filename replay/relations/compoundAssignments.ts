@@ -1,5 +1,5 @@
 import { assignmentOutcomes, establishesAssignment, type AssignmentScope } from './assignmentContinuity.ts';
-import { sameNameValueEntries, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { nativeThetaRoles, sameNameValueEntries, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 
 /** Split ordered assignment lists only when their explicit roles, paired values
  * and unique structural grouping independently agree. Array length is not proof. */
@@ -69,4 +69,21 @@ export function recoverCompoundAssignments(evidence: Tier2FacetEvidence): Assign
     }
   }
   return scopes;
+}
+
+/** The registered grid accepts either one predicate's inventory or fully proven
+ * paired assignments. Both tiers use the same compound association check. */
+export function nativeThetaAssignments(evidence: Tier2FacetEvidence): {
+  assignments?: Array<{ predicate: string; roles: Array<{ nodeId: string; label: string }> }>;
+  error?: string;
+} {
+  const predicates = [...new Set(evidence.currentAnchors.predicate ?? [])];
+  if (predicates.length === 1) {
+    const { roles, error } = nativeThetaRoles(evidence);
+    return roles ? { assignments: [{ predicate: predicates[0], roles }] } : { error };
+  }
+  const scopes = recoverCompoundAssignments(evidence).filter(scope => scope.kind === 'theta-grid');
+  if (scopes.length !== predicates.length || scopes.length < 2) return { error: 'Multiple predicates require complete, uniquely supported paired assignments.' };
+  return { assignments: scopes.map(scope => ({ predicate: scope.evidence.currentAnchors.predicate[0],
+    roles: [{ nodeId: scope.evidence.currentAnchors['theta.arguments'][0], label: scope.evidence.values['role.label'][0] }] })) };
 }

@@ -1,3 +1,5 @@
+import { composeThetaGrids, projectThetaGrid } from './thetaGridComposition.ts';
+import { nativeThetaAssignments } from './compoundAssignments.ts';
 /**
  * Production render-plan compiler for authored visual relations.
  *
@@ -20,8 +22,8 @@
  * is deterministic (layer order, then stage, then authored relation index).
  * There is no semantic conflict suppression: marks identical in every
  * semantic respect coalesce with all contributing instances retained in
- * `coalescedRefs`; distinct authored claims all survive and the geometry
- * binder routes them apart. Babel never judges two authored claims
+ * `coalescedRefs`. Overlapping theta inventories share a grid with row-level
+ * references and timing; other distinct marks are routed apart. Babel never judges two authored claims
  * incompatible merely because they share a visual channel.
  */
 import type {
@@ -58,7 +60,7 @@ import {
 import { buildTier2FacetEvidence, dispatchStageRelations, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
-import { literalThetaRoles, nativeThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
+import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export type PlanRelationRef = {
@@ -364,7 +366,7 @@ export type NodePlaquePlanItem = PlanItemBase & {
   plaqueStyle: NodePlaqueStyle;
   title?: string;
   rows: Array<{ label: string; value: string }>;
-  thetaRoles?: Array<{ nodeId: string; label: string; index?: string }>;
+  thetaRoles?: Array<{ nodeId: string; label: string; index?: string; relationRefs?: PlanRelationRef[] }>;
   nativeContent?: NativePlaqueContent;
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
@@ -862,6 +864,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
   const walk = (value: unknown, key: string) => {
     if (
       key === 'relationRef'
+      || key === 'relationRefs'
       || key === 'composedRefs'
       || key === 'coalescedRefs'
       || key === 'supersededAt'
@@ -3014,36 +3017,20 @@ export const compileRelationRenderPlan = (
 
         case 'theta-grid': {
           if (anchors.traceWitness && pushCompositeTrajectory('phrasal')) return;
-          const predicate = flattenAnchorIds(anchors.predicate)[0];
-          if (!requireResolved('predicate', predicate)) return;
           const evidence = buildTier2FacetEvidence({ relation: claimDispatch.boundPrimaryRelation, currentForest: stage.workspaceForest || [] });
-          const { roles, error } = nativeThetaRoles(evidence);
-          if (!roles) {
-            pushDiagnostic('illegal-configuration', error);
+          const { assignments, error } = nativeThetaAssignments(evidence);
+          if (!assignments) {
+            pushDiagnostic('illegal-configuration', error || 'Incomplete theta assignment');
             pushNeutralFallback(primaryRelation.anchors, false);
             return;
           }
-          const roleBadges = roles.map(({ nodeId, label }) => ({ nodeId, role: label }));
-          if (roleBadges.some(({ nodeId }) => !requireResolved('argument', nodeId))) return;
-          items.push({
-            ...base,
-            kind: 'node-plaque',
-            anchorNodeIds: [predicate],
-            plaqueStyle: 'theta-grid',
-            thetaRoles: roleBadges.map(({ role, nodeId }) => ({ nodeId, label: role })),
-            rows: roleBadges.map(({ role }) => ({ label: role, value: '' }))
-          });
-          if (roleBadges.length > 0) {
-            items.push({
-              ...base,
-              kind: 'node-badges',
-              badgeStyle: 'theta-role',
-              badges: roleBadges.map(({ nodeId }, index) => ({
-                nodeId,
-                text: String(index + 1),
-                shape: 'plain' as const
-              }))
-            });
+          for (const { predicate, roles } of assignments) {
+            if (!requireResolved('predicate', predicate) || roles.some(({ nodeId }) => !requireResolved('argument', nodeId))) continue;
+            const owner = { ...base, ...(assignments.length > 1 ? { tier2ClaimIdentity: `theta:${predicate}` } : {}) };
+            items.push({ ...owner, kind: 'node-plaque', anchorNodeIds: [predicate],
+              plaqueStyle: 'theta-grid', thetaRoles: roles, rows: roles.map(({ label }) => ({ label, value: '' })) });
+            items.push({ ...owner, kind: 'node-badges', badgeStyle: 'theta-role',
+              badges: roles.map(({ nodeId }, index) => ({ nodeId, text: String(index + 1), shape: 'plain' as const })) });
           }
           return;
         }
@@ -3383,8 +3370,8 @@ export const compileRelationRenderPlan = (
    * authored linguistic claims are incompatible merely because they share a
    * visual channel: exactly identical marks are visually coalesced with every
    * contributing relation instance retained in `coalescedRefs`; distinct
-   * marks all survive, and the geometry binder routes, offsets, or stacks
-   * them apart. Replacement happens only through explicitly declared
+   * marks remain distinct except for theta-grid composition, whose rows retain
+   * their separate histories. The geometry binder routes other marks apart. Replacement happens only through explicitly declared
    * replace-previous-instance family metadata, upstream of this pass.
    */
   /*
@@ -3543,7 +3530,8 @@ export const compileRelationRenderPlan = (
       }
       mergeRelationRefs(holder, item);
     });
-    frame.items = coalescedItems;
+    frame.items = composeThetaGrids(coalescedItems, grid =>
+      stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId);
   });
 
   return {
@@ -3588,7 +3576,8 @@ export const visiblePlanFrameItems = (
   playedRelationIndices: ReadonlySet<number> | null,
   activeRelationIndex: number | null = null
 ): RelationPlanItem[] => (plan.frames[frameIndex]?.items ?? []).filter(item =>
-  isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex));
+  isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex))
+  .map(item => projectThetaGrid(item, frameIndex, playedRelationIndices));
 
 /** Whether this visible item represents the authored relation moment in focus. */
 export const planItemOwnsRelationMoment = (

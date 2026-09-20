@@ -81,3 +81,32 @@ test('Case nominals and agreement controllers need explicit supporting values an
     { person: 'third', Person: 'first' }
   ]) assert.equal(facets(stage({ ...relation, values })).length, 0, 'competing bundles or dimensions remain ambiguous');
 });
+
+test('registered theta accepts the same proven multiple assignments as an open name', () => {
+  for (const name of ['ThetaAssignment', 'Theta-role assignment']) {
+    const relation = { relation: name, anchors: { thetaAssigners: ['a', 'c'], thetaBearers: ['b', 'd'] },
+      values: { thetaBearers: ['Agent', 'Theme'] } };
+    const s = stage(relation), original = structuredClone(s);
+    const result = dispatchStageRelations([s])[0][0];
+    assert.equal(result.primaryClaim.tier, 1);
+    assert.equal(result.facets.length, 0, 'the registered reader owns the complete claim');
+    const grids = compileRelationRenderPlan([s]).frames[0].items.filter(item => item.plaqueStyle === 'theta-grid');
+    assert.deepEqual(grids.map(grid => [grid.anchorNodeIds, grid.thetaRoles.map(role => [role.nodeId, role.label])]),
+      [[['a'], [['b', 'Agent']]], [['c'], [['d', 'Theme']]]]);
+    assert.equal(new Set(grids.map(grid => grid.tier2ClaimIdentity)).size, 2);
+    assert.equal(prepareReplay({ sentence: '', derivationStages: [s], includePlayback: true }).playbackSteps
+      .filter(step => step.replayKind === 'relation').length, 1);
+    assert.deepEqual(s, original);
+    for (const invalid of [
+      stage({ ...relation, values: { thetaBearers: ['Agent'] } }),
+      stage({ ...relation, anchors: { ...relation.anchors, thetaBearers: ['d', 'b'] } }),
+      stage({ ...relation, values: { ...relation.values, outcome: 'failed' } }),
+      stage(relation, [node('root', ['a', 'b', 'c', 'd'].map(id => node(id)))]),
+      stage(relation, [node('root', [node('a'), node('b')])])
+    ]) {
+      const rejected = dispatchStageRelations([invalid])[0][0];
+      assert.equal(rejected.primaryClaim.tier, 3);
+      assert.equal(rejected.facets.length, 0, 'an incomplete registered claim is not rescued through Tier 2');
+    }
+  }
+});

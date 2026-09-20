@@ -164,6 +164,7 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
     drawPlaqueText: new Function(`${declaration('drawPlaqueText')} return draw;`)(),
     withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(text => ({ width: [...text].length * 4.2 })),
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
+    decorateRelationElement() {},
     measureGraphicsElementsInTreeSpace: elements => elements.length ? ({ x: 0, y: 0, width: 260, height: 280 }) : null,
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
     exactScreenDirectTreeLabelRectNow: () => ({ x: 0, y: 0, width: 50, height: 30 }),

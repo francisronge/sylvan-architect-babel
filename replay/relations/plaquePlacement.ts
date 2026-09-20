@@ -14,6 +14,8 @@ export type PlaquePlacement = PlaqueRect & {
 };
 /** Identify the same drawn claim across plan frames, never by its changing array position. */
 export function plaqueIdentity(item: RelationPlanItem): string {
+  if (item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') return JSON.stringify(['theta-grid',
+    item.relationRef.stageIndex, item.relationRef.relationIndex, item.anchorNodeIds, item.tier2ClaimIdentity]);
   return JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex,
     item.kind, item.familyId, item.canonicalClaimIdentity, item.tier2FacetId, item.tier2RenderPart,
     item.kind === 'node-plaque' ? [item.plaqueStyle, item.title, item.anchorNodeIds, item.rows, item.thetaRoles]

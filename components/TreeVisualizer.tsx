@@ -1,3 +1,4 @@
+import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { useTreeDirection } from './useTreeDirection';
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
@@ -1978,7 +1979,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
       };
       const frameItems = (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
-        resolveDisplayedTrajectoryAttachments(item, (nodeId) => overlayNodeById.get(nodeId)?.data));
+        resolveDisplayedTrajectoryAttachments(projectThetaGrid(item, activeDerivationFrameIndex, playedRelationIndices), (nodeId) => overlayNodeById.get(nodeId)?.data));
       const displayedRelationPlan = {
         ...relationRenderPlan,
         frames: relationRenderPlan.frames.map((frame, index) => index === activeDerivationFrameIndex
@@ -4105,12 +4106,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             );
             if (!treeRect) return;
 
-            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, index }, columnIndex) => {
+            const roleEntries = grid.thetaRoles.flatMap(({ nodeId, index, relationRefs }, columnIndex) => {
                 const anchor = resolveOverlayAnchor(nodeId);
                 const terminal = anchor?.leaves().at(-1);
                 return nodeId && terminal
                   ? [{
                       columnIndex,
+                      relationRefs,
                       index,
                       nodeId,
                       terminalId: getNodeId(terminal as unknown as HierNode)
@@ -4122,7 +4124,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               prepareThetaGridTextLayout(thetaGridPredicateLabel(predicateAnchor), grid.thetaRoles, { measureText }));
             const layer = g.append('g')
               .attr('class', 'babel-theta-relation-layer')
-              .attr('opacity', emphasis === 'quiet' ? 0.3 : null);
+              .attr('data-vr-stage-index', item.relationRef.stageIndex);
             const layerNode = layer.node();
             if (layerNode) {
               (layerNode as SVGGElement & { __babelProductionRelation?: true }).__babelProductionRelation = true;
@@ -4131,26 +4133,28 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const plateOrigin = replayPlaqueLayout.get(frameItems.indexOf(grid));
             if (!plateOrigin) return;
             const plate = layer.append('g').attr('class', 'babel-theta-grid-plate');
-            plate.append('rect')
+            const chrome = plate.append('g').attr('class', 'babel-theta-grid-chrome');
+            decorateRelationElement(chrome.node()!, grid, emphasis);
+            chrome.append('rect')
               .attr('class', 'babel-theta-grid-shell')
               .attr('x', plateOrigin.x.toFixed(1))
               .attr('y', plateOrigin.y.toFixed(1))
               .attr('width', plateWidth.toFixed(1))
               .attr('height', plateHeight.toFixed(1))
               .attr('rx', 12);
-            plate.append('text')
+            chrome.append('text')
               .attr('class', 'babel-theta-grid-title')
               .attr('x', (plateOrigin.x + 16).toFixed(1))
               .attr('y', (plateOrigin.y + 27).toFixed(1))
               .text('θ GRID');
-            plate.append('line')
+            chrome.append('line')
               .attr('class', 'babel-theta-grid-rule')
               .attr('x1', (plateOrigin.x + 16).toFixed(1))
               .attr('x2', (plateOrigin.x + plateWidth - 16).toFixed(1))
               .attr('y1', (plateOrigin.y + 39).toFixed(1))
               .attr('y2', (plateOrigin.y + 39).toFixed(1));
-            drawPlaqueText(plate, gridLayout.predicate, 'babel-theta-grid-predicate', plateOrigin);
-            plate.append('line')
+            drawPlaqueText(chrome, gridLayout.predicate, 'babel-theta-grid-predicate', plateOrigin);
+            chrome.append('line')
               .attr('class', 'babel-theta-grid-rule')
               .attr('x1', (plateOrigin.x + leftColumnWidth).toFixed(1))
               .attr('x2', (plateOrigin.x + leftColumnWidth).toFixed(1))
@@ -4158,18 +4162,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
             roleEntries.forEach((role) => {
               const column = gridLayout.columns[role.columnIndex];
+              const rowOwner = role.relationRefs?.length ? { ...grid, relationRef: role.relationRefs[0],
+                composedRefs: role.relationRefs.slice(1), coalescedRefs: [] } : grid;
+              const row = plate.append('g').attr('class', 'babel-theta-grid-column');
+              decorateRelationElement(row.node()!, rowOwner, null);
               const left = plateOrigin.x + column.left;
               if (role.columnIndex > 0) {
-                plate.append('line')
+                row.append('line')
                   .attr('class', 'babel-theta-grid-rule')
                   .attr('x1', left.toFixed(1))
                   .attr('x2', left.toFixed(1))
                   .attr('y1', (plateOrigin.y + 47).toFixed(1))
                   .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
               }
-              drawPlaqueText(plate, column.label, 'babel-theta-grid-role', plateOrigin)
+              drawPlaqueText(row, column.label, 'babel-theta-grid-role', plateOrigin)
                 .attr('text-anchor', 'middle');
-              drawPlaqueText(plate, column.index, 'babel-theta-grid-index babel-relation-index', plateOrigin)
+              drawPlaqueText(row, column.index, 'babel-theta-grid-index babel-relation-index', plateOrigin)
                 .attr('text-anchor', 'middle');
 
               const roleAnchor = resolveOverlayAnchor(role.nodeId);
@@ -4192,7 +4200,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 label.text(baseLabel)
                   .classed('babel-theta-indexed-label', true)
                   .attr('data-theta-base-label', baseLabel);
-                label.append('tspan')
+                const terminalIndex = label.append('tspan')
                   .attr('class', 'babel-theta-terminal-index babel-relation-index')
                   .attr('dx', 5)
                   .attr('dy', roleIsEntirelyTraces ? 9 : 14)
@@ -4200,6 +4208,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .attr('font-family', 'Crimson Pro, Georgia, serif')
                   .attr('font-style', 'italic')
                   .text(role.index || '');
+                decorateRelationElement(terminalIndex.node()!, rowOwner, null);
               });
             });
           });

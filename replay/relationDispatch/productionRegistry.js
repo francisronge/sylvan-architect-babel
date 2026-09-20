@@ -90,7 +90,7 @@ const trajectoryEntry = (id, identities, { requireWitness = true } = {}) => entr
 
 export const productionRelationRegistry = createRelationRegistry({
   registryId: 'babel.semantic-visual-grammar',
-  version: '18',
+  version: '19',
   entries: [
     /* ------------------------------------------------- trajectories */
     trajectoryEntry('trajectory.phrasal', [
@@ -372,7 +372,7 @@ export const productionRelationRegistry = createRelationRegistry({
       required: { accentBearer: scalar, projections: array }
     }),
     entry('theta.grid', ['ThetaAssignment'], {
-      required: { predicate: { ...scalar, aliases: ['assigner'], countDistinct: true } },
+      required: { predicate: { ...array, aliases: ['assigner'], countDistinct: true } },
       allowAdditional: true
     }),
     entry('gapping.alignment', ['GappingAlignment'], {

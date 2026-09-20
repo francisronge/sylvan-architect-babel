@@ -1,3 +1,5 @@
+import { buildTier2FacetEvidence } from '../relations/relationEvidence.ts';
+import { nativeThetaAssignments } from '../relations/compoundAssignments.ts';
 import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from '../relations/tier2Synonyms.ts';
 import { movementContextFailure, recoverMovementEvidence } from '../relations/movementEvidence.ts';
 import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
@@ -174,6 +176,11 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       const conflicts = hosts('licensed.hosts').filter(id => rejected.includes(id));
       if (conflicts.length) issues.push({ kind: 'candidate-outcome-conflict', field: 'anchors', nodeIds: [...new Set(conflicts)] });
     }
+  }
+  if (entry.id === 'theta.grid' && new Set(items(bound.anchors?.predicate ?? [])).size > 1 && !issues.length) {
+    const result = currentForest && nativeThetaAssignments(buildTier2FacetEvidence({ relation, currentForest }));
+    if (!result?.assignments) issues.push({ kind: 'theta-assignments-unproven', field: 'anchors',
+      role: 'predicate', reason: result?.error || 'workspace-required' });
   }
   return { relation: bound, bindings, issues };
 };

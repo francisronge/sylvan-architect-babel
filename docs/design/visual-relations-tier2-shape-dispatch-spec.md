@@ -741,6 +741,22 @@ Different supersession moments keep separate visibility lifetimes. Same-stage
 composition considers all retained authored references, and a carried drawing
 must not reveal a newly composed feature bundle before its own relation moment.
 
+Theta grids may combine overlapping inventories for the same exact predicate
+occurrence and lineage, provided shared recipients have identical role labels and
+indices. Each displayed row retains every contributing relation reference. Only
+played rows enter Replay's drawing or its current-node dependencies; the full
+inventory reserves space. Grid framing and individual rows use separate emphasis
+groups, so hovering an earlier Theme does not highlight an Agent introduced later.
+Conflicting roles, repeated recipients, prior-state claims and different replacement
+moments remain separate. This is display composition; authored relations and their
+Replay moments remain independent.
+
+The registered theta signature permits multiple predicates only when the shared
+compound-assignment reader proves the complete ordered pairing of sources,
+recipients and role values. Tier 1 retains ownership of these supported records;
+it does not route incomplete registered claims through Tier 2. A relation's known
+name must not reject a complete compound shape that the registered reader supports.
+
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
 renderer ranks the distinct operator-domain facets that are visible together.

@@ -1,5 +1,7 @@
+import { buildTier2FacetEvidence } from './relationEvidence.ts';
+export { buildTier2FacetEvidence } from './relationEvidence.ts';
 import { createAssignmentContext, recoverAssignmentContinuity, rememberAssignments, rememberAssignmentMovement, type AssignmentContext, type AssignmentScope } from './assignmentContinuity.ts';
-import { recoverCompoundAssignments } from './compoundAssignments.ts';
+import { nativeThetaAssignments, recoverCompoundAssignments } from './compoundAssignments.ts';
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
  *
@@ -19,18 +21,13 @@ import {
   productionRelationRegistry
 } from '../relationDispatch/index.js';
 import { resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { recoverMovementEvidence } from './movementEvidence.ts';
 import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import {
   TIER2_FACET_RECIPES,
-  INDEPENDENT_TIER2_ANCHOR_ROLES,
-  INDEPENDENT_TIER2_VALUE_ROLES,
   buildTier2FacetIdentity,
   buildTier2FacetOutputIdentities,
   evaluateTier2FacetRecipe,
   indexTier2Forests,
-  nativeThetaRoles,
-  independentFeatureDimensions,
   type Tier2ForestIndexes,
   type Tier2AuthoredEvidenceEntry,
   type Tier2FacetEvidence,
@@ -41,10 +38,8 @@ import {
 import {
   buildTier2SynonymIndex,
   lookupTier2SynonymCandidates,
-  relationRoleConcepts,
   normalizeTier2Synonym,
-  type Tier2SynonymIndex,
-  type Tier2SynonymScope
+  type Tier2SynonymIndex
 } from './tier2Synonyms.ts';
 
 type Tier1Dispatch = ReturnType<typeof dispatchRelation>;
@@ -272,137 +267,6 @@ const removeConsumedEvidence = (
     anchors,
     ...(Object.keys(priorAnchors).length > 0 ? { priorAnchors } : {}),
     ...(Object.keys(values).length > 0 ? { values } : {})
-  };
-};
-
-const authoredItems = (value: string | string[]): string[] => (
-  (Array.isArray(value) ? value : [value])
-    .map((item) => String(item ?? ''))
-);
-
-const appendItems = (
-  target: Record<string, string[]>,
-  concept: string,
-  items: readonly string[]
-) => {
-  target[concept] = [...(target[concept] ?? []), ...items];
-};
-
-const normalizeBlock = (
-  block: Record<string, string | string[]> | undefined,
-  scope: Tier2SynonymScope,
-  synonymIndex: Tier2SynonymIndex,
-  context?: DerivationStageRelation
-): {
-  concepts: Record<string, string[]>;
-  authored: Tier2AuthoredEvidenceEntry[];
-} => {
-  const normalized: Record<string, string[]> = {};
-  const authored: Tier2AuthoredEvidenceEntry[] = [];
-  const conceptBlocks = new Map<string, string[]>();
-  Object.entries(block ?? {}).forEach(([authoredKey, value]) => {
-    const items = authoredItems(value);
-    const concepts = scope === 'role' ? relationRoleConcepts(synonymIndex, authoredKey, context)
-      : lookupTier2SynonymCandidates(synonymIndex, scope, authoredKey);
-    const activeConcepts: string[] = [];
-    const conceptItemIndices: Record<string, number[]> = {};
-    concepts.forEach((concept) => {
-      const conceptItems = scope === 'value' && concept === 'outcome'
-        ? items.filter((item) => resolveOutcomeLiteral(item)?.concept)
-        : scope === 'value' && concept === 'verdict'
-          ? items.filter((item) => !resolveOutcomeLiteral(item)?.concept)
-          : items;
-      if (conceptItems.length === 0) {
-        if (items.length === 0) activeConcepts.push(concept);
-        return;
-      }
-      activeConcepts.push(concept);
-      conceptItemIndices[concept] = items.flatMap((item, index) => conceptItems.includes(item) ? [index] : []);
-      const blockIdentity = JSON.stringify(conceptItems);
-      const previousBlocks = conceptBlocks.get(concept) ?? [];
-      if (!previousBlocks.includes(blockIdentity)) {
-        const dimensions = scope === 'value' && concept === 'feature.rows' && independentFeatureDimensions([
-          ...authored.filter(entry => entry.concepts.includes(concept)), { key: authoredKey, items }
-        ]);
-        if (previousBlocks.length === 0 || dimensions || (scope === 'role' ? INDEPENDENT_TIER2_ANCHOR_ROLES : INDEPENDENT_TIER2_VALUE_ROLES).has(concept)) {
-          appendItems(normalized, concept, conceptItems);
-        } else {
-          normalized[concept] = [];
-        }
-      }
-      conceptBlocks.set(concept, [...previousBlocks, blockIdentity]);
-    });
-    authored.push({
-      key: authoredKey,
-      concepts: activeConcepts,
-      conceptItemIndices,
-      items: [...items]
-    });
-  });
-  return { concepts: normalized, authored };
-};
-
-export const buildTier2FacetEvidence = ({
-  relation,
-  currentForest,
-  priorForest,
-  activeLens,
-  synonymIndex = DEFAULT_SYNONYM_INDEX
-}: Omit<ExclusiveRelationDispatchInput, 'stageIndex' | 'relationIndex' | 'registry'>): Tier2FacetEvidence => {
-  const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, relation);
-  const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {} });
-  const values = normalizeBlock(relation.values, 'value', synonymIndex);
-  // One current participant makes explicit record rows attachable without
-  // interpreting its role or the relation title. Multiple participants still
-  // need an authored recipient; this rule never earns a dependency.
-  const participant = currentAnchors.authored.length === 1 ? currentAnchors.authored[0] : undefined;
-  if (participant?.items.length === 1 && (values.concepts['plaque.rows']?.length || values.concepts['feature.rows']?.length)) {
-    currentAnchors.concepts['plaque.anchor'] = [...participant.items];
-    participant.concepts = [...new Set([...participant.concepts, 'plaque.anchor'])];
-    participant.conceptItemIndices = { ...participant.conceptItemIndices, 'plaque.anchor': [0] };
-    if (values.concepts['feature.rows']?.length) {
-      appendItems(values.concepts, 'plaque.rows', values.concepts['feature.rows']);
-      values.authored.filter(entry => entry.concepts.includes('feature.rows')).forEach(entry => {
-        entry.concepts = [...entry.concepts, 'plaque.rows'];
-        entry.conceptItemIndices = { ...entry.conceptItemIndices, 'plaque.rows': entry.items.map((_, index) => index) };
-      });
-    }
-  }
-  const realizationHost = (currentAnchors.concepts['pf.host']?.length ?? 0) > 0;
-  if (realizationHost) {
-    values.authored.filter(entry => normalizeTier2Synonym(entry.key) === 'notation').forEach(entry => {
-      entry.concepts = [...entry.concepts, 'pf.rows'];
-      entry.conceptItemIndices = { ...entry.conceptItemIndices, 'pf.rows': entry.items.map((_, index) => index) };
-      appendItems(values.concepts, 'pf.rows', entry.items);
-    });
-  }
-  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
-  if (movement) {
-    currentAnchors.concepts['movement.source'] = [movement.sourceNodeId];
-    currentAnchors.concepts['movement.witness'] = [movement.witnessNodeId];
-    currentAnchors.concepts['movement.landing'] = [movement.targetNodeId];
-    currentAnchors.authored.forEach(entry => {
-      entry.concepts = entry.concepts.filter(c => !['movement.source', 'movement.witness', 'movement.landing'].includes(c));
-      entry.concepts = [...entry.concepts, ...(movement.roles[normalizeTier2Synonym(entry.key)] || [])];
-    });
-  }
-  return {
-    movementDiagnostics,
-    ...(movementFailure ? { movementFailure } : {}),
-    ...(movement ? { movement } : {}),
-    currentAnchors: currentAnchors.concepts,
-    authoredCurrentAnchors: currentAnchors.authored,
-    ...(relation.priorAnchors
-      ? {
-          priorAnchors: priorAnchors.concepts,
-          authoredPriorAnchors: priorAnchors.authored
-        }
-      : {}),
-    values: values.concepts,
-    authoredValues: values.authored,
-    currentForest,
-    ...(priorForest ? { priorForest } : {}),
-    ...(activeLens === undefined ? {} : { activeLens })
   };
 };
 
@@ -861,8 +725,10 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
     if (dispatch.primaryClaim?.tier === 1) {
       const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
       if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
-        const { roles } = nativeThetaRoles(primary);
-        if (roles) rememberAssignments(assignmentContext, 'theta-grid', primary, { stageIndex, relationIndex }, roles);
+        for (const assignment of nativeThetaAssignments(primary).assignments ?? []) {
+          rememberAssignments(assignmentContext, 'theta-grid', { ...primary, currentAnchors: { ...primary.currentAnchors, predicate: [assignment.predicate] } },
+            { stageIndex, relationIndex }, assignment.roles);
+        }
       }
       for (const facet of evaluateClaims(primary, indexTier2Forests(primary))) {
         if (facet.evaluation.complete) rememberAssignments(assignmentContext, facet.recipe.id, primary, { stageIndex, relationIndex });
