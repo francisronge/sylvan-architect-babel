@@ -92,3 +92,77 @@ test('phrasal movement recovers its path while retaining the attracting head as 
   assert.deepEqual(context.unrecoveredItemIndices, [0]);
   assert.equal(d.evidence.movement.targetNodeId, 'high');
 });
+
+test('explicit subject/head agreement pairs preserve scalar feature dimensions and exact endpoints', () => {
+  for (const [anchors, values] of [
+    [{ finiteHead: 'source', subject: 'argument' }, { features: 'third-person singular' }],
+    [{ finiteHead: 'source', subject: 'argument', verb: 'exponent' }, { person: 'third', number: 'singular', gender: 'feminine' }],
+    [{ head: 'source', specifier: 'argument' }, { agreement: '3SG' }]
+  ]) {
+    const relation = { relation: 'An unfamiliar name', anchors, values };
+    const original = structuredClone(relation);
+    const d = dispatch(relation);
+    assert(d.facets.some(f => f.recipe.id === 'feature.dependency'));
+    assert.deepEqual(d.evidence.currentAnchors['feature.source'], ['source']);
+    assert.deepEqual(d.evidence.currentAnchors['feature.target'], ['argument']);
+    const path = plan(relation).find(item => item.kind === 'directed-path');
+    assert.equal(path.fromNodeId, 'source'); assert.equal(path.toNodeId, 'argument');
+    assert.deepEqual(path.relationRef.values, values);
+    assert.deepEqual(relation, original);
+  }
+  for (const relation of [
+    { relation: 'subject agreement', anchors: { finiteHead: 'source', subject: 'argument' } },
+    { relation: 'subject agreement', anchors: { finiteHead: 'source', topic: 'argument' }, values: { agreement: '3SG' } },
+    { relation: 'subject agreement', anchors: { finiteHead: ['source', 'other'], subject: 'argument' }, values: { agreement: '3SG' } },
+    { relation: 'subject agreement', anchors: { finiteHead: 'source', subject: 'argument' }, values: { features: '3SG', agreement: '3PL' } },
+    { relation: 'specifier-head agreement', anchors: { head: 'source', specifier: 'argument' }, values: { features: 'unrelated description' } }
+  ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});
+
+test('an agreement-qualified goal works through the registered Agree signature', () => {
+  for (const role of ['agreementGoal', 'goalAtAgreement']) {
+    const relation = { relation: 'Agree', anchors: { probe: 'source', [role]: 'argument' },
+      values: { case: 'nominative', phiFeatures: 'third-person singular' } };
+    const d = dispatch(relation);
+    assert.equal(d.primaryClaim.tier, 1);
+    assert.equal(d.tier1Dispatch.boundRelation.anchors.goal, 'argument');
+    assert.deepEqual(relation.anchors, { probe: 'source', [role]: 'argument' });
+  }
+});
+
+test('qualified control roles name their exact occurrences without choosing from a chain', () => {
+  for (const controller of ['controller', 'controllerThetaPosition', 'controllerChainHead']) {
+    for (const controlled of ['controlee', 'controllee', 'controlledPRO', 'controlledNP']) {
+      const relation = { relation: 'An unfamiliar name', anchors: { [controller]: 'source', [controlled]: 'argument' } };
+      assert(dispatch(relation).facets.some(f => f.recipe.id === 'control.dependency'), JSON.stringify(relation));
+      const path = plan(relation).find(item => item.pathStyle === 'control');
+      assert.equal(path.fromNodeId, 'source'); assert.equal(path.toNodeId, 'argument');
+    }
+  }
+  const direct = { relation: 'An unfamiliar name', anchors: { controller: 'source', controllerThematicOccurrence: 'other', controlledPRO: 'argument' } };
+  const d = dispatch(direct);
+  assert(d.facets.some(f => f.recipe.id === 'control.dependency'));
+  assert.deepEqual(d.evidence.currentAnchors.controller, ['source']);
+  assert.deepEqual(d.evidenceCoverage.fields.find(f => f.key === 'controllerThematicOccurrence').unrecoveredItemIndices, [0]);
+  for (const anchors of [
+    { controllerOccurrences: ['source', 'other'], controlledPRO: 'argument' },
+    { controllerThetaPosition: 'source', controllerChainHead: 'other', controlledPRO: 'argument' },
+    { antecedent: 'source', pro: 'argument' },
+    { controller: 'source', notControlledPRO: 'argument' }
+  ]) assert(!dispatch({ relation: 'Control only in the title', anchors }).facets.some(f => f.recipe.id === 'control.dependency'), JSON.stringify(anchors));
+});
+
+test('governing heads and governed complements require an explicit Case value', () => {
+  for (const anchors of [
+    { governor: 'source', governedComplement: 'argument' },
+    { governingLowerHead: 'source', licensedDP: 'argument', raisedChainHead: 'other' },
+    { governingLexicalHead: 'source', governedNP: 'argument' }
+  ]) {
+    const relation = { relation: 'An unfamiliar name', anchors, values: { Case: 'accusative' } };
+    const path = plan(relation).find(item => item.pathStyle === 'case-assignment');
+    assert(path, JSON.stringify(relation));
+    assert.equal(path.fromNodeId, 'source'); assert.equal(path.toNodeId, 'argument');
+    assert.equal(path.label, 'accusative');
+    assert(!dispatch({ ...relation, values: undefined }).facets.some(f => f.recipe.id === 'feature.dependency'));
+  }
+});

@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 17 binds recognized equivalent role wording before
+Production registry version 20 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -62,6 +62,20 @@ to establish a Case dependency. A Case exponent or head is not implicitly its
 assigner or recipient. Ambiguous chains and unpaired literals remain neutral.
 Phrasal movement's attracting head is context, not a second
 endpoint or proof of head movement; it retains its neutral annotation.
+
+Agreement-qualified goals also bind the registered Agree signature. A finite
+head and subject with explicit feature values, or a head and specifier with an
+explicit agreement value, can establish a feature dependency. Governing heads
+and governed complements require an explicit Case value. Controller positions
+and controlled subjects retain their explicitly named occurrences; when a direct
+controller is present, additional controller-chain descriptions remain context.
+Competing endpoints still fail the complete recipe. These shared rules neither
+choose positions from child order nor interpret relation titles or prose.
+
+Registered restatements use those already-bound roles when comparing complete
+claims for shared drawing. Original role wording remains in each Replay record.
+Different recipients, values, occurrence lineages and preceding-state witnesses
+remain distinct, even when their plaques would display identical text.
 
 ### Established assignment continuity
 

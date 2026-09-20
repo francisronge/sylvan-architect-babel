@@ -58,7 +58,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'facet.anchors', ['anchors', 'participants', 'relation anchors', 'facet anchors', 'witnesses']),
 
   group('role', 'controller', ['controller', 'control source'], ['antecedent', 'matrix argument']),
-  group('role', 'controllee', ['controllee', 'controlled', 'controlled subject'], ['pro', 'silent subject']),
+  group('role', 'controllee', ['controllee', 'controlee', 'controlled', 'controlled subject'], ['pro', 'silent subject']),
   group('role', 'domain', ['domain', 'region', 'scope', 'constituent domain', 'local domain']),
   group('role', 'binder', ['binder', 'antecedent', 'binding source'], ['operator']),
   group('role', 'dependent', ['dependent', 'bound', 'anaphor', 'pronoun', 'binding target'], ['variable']),
@@ -91,7 +91,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'plaque.anchor', ['plaque anchor', 'anchor', 'participant', 'terminal', 'word', 'predicate']),
   group('role', 'feature.bearers', ['feature bearers', 'bearers', 'participants', 'feature holders', 'sharing members']),
   group('role', 'probe', ['probe', 'searcher', 'agree probe', 'feature source'], licensingSources),
-  group('role', 'goal', ['goal', 'goals', 'agree goal', 'feature target'], ['target', ...licensingTargets]),
+  group('role', 'goal', ['goal', 'goals', 'agree goal', 'agreement goal', 'goal at agreement', 'feature target'], ['target', ...licensingTargets]),
   group('role', 'feature.source', ['feature source', 'source', 'probe', 'assigner', 'collector', ...licensingSources]),
   group('role', 'feature.target', ['feature target', 'target', 'goal', 'bearer', 'recipient', 'valued node', ...licensingTargets]),
   group('role', 'feature.hierarchy', ['feature hierarchy', 'hierarchy', 'feature tree', 'feature sequence', 'feature links']),
@@ -171,7 +171,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
 export const isExplicitTier2Role = (concept: string, key: string): boolean => {
   const entry = TIER2_ROLE_SYNONYMS.find(group => group.concept === concept);
   const normalized = normalizeTier2Synonym(key);
-  return Boolean(entry?.aliases.some(alias => normalizeTier2Synonym(alias) === normalized)
+  return qualifiedControlConcepts(normalized).includes(concept) || Boolean(entry?.aliases.some(alias => normalizeTier2Synonym(alias) === normalized)
     && !entry.contextualAliases?.some(alias => normalizeTier2Synonym(alias) === normalized));
 };
 
@@ -229,6 +229,12 @@ const assignmentDirection = (role: string): 'source' | 'target' | undefined =>
     : ['target', 'recipient', 'assignee', 'bearer', 'marked', ...licensingTargets].includes(role)
       || /^licensed [\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u.test(role) ? 'target' : undefined;
 
+// A position or occurrence qualifier preserves an explicit control role. It
+// never chooses an occurrence from a chain or makes a bare PRO its controllee.
+const qualifiedControlConcepts = (role: string): string[] =>
+  /^controller (?:(?:theta|thematic|chain) )?(?:position|occurrence|head)$/u.test(role) ? ['controller']
+    : /^controlled (?:pro|subject|nominal|argument|np|dp|phrase|constituent|occurrence)$/u.test(role) ? ['controllee'] : [];
+
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
   const [domain, ...rest] = singularRole(normalizeTier2Synonym(key)).split(' ');
   const role = rest.join(' ');
@@ -247,7 +253,14 @@ export const relationRoleConcepts = (
   key: string,
   context: { anchors?: Record<string, unknown>; values?: Record<string, unknown> } = {}
 ): string[] => {
-  const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key)]);
+  // An explicit controller owns the endpoint; additional descriptions of its
+  // chain/thematic occurrences stay contextual. Qualified roles fill an absent slot.
+  const directController = Object.keys(context.anchors ?? {}).some(role =>
+    !qualifiedControlConcepts(normalizeTier2Synonym(role)).length
+    && isExplicitTier2Role('controller', role));
+  const qualifiedControl = qualifiedControlConcepts(normalizeTier2Synonym(key))
+    .filter(concept => concept !== 'controller' || !directController);
+  const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key), ...qualifiedControl]);
   const spelling = singularRole(normalizeTier2Synonym(key));
   // Direction plus an occurrence type supplies a candidate role. The movement
   // reader must still prove exact lineage, the preceding slot and the landing.
@@ -303,9 +316,25 @@ export const relationRoleConcepts = (
       || singularRole(normalizeTier2Synonym(role)) === 'governor')) concepts.add('feature.target');
   const hasAgreementController = Object.keys(context.anchors ?? {}).some(role =>
     normalizeTier2Synonym(role) === 'agreement controller');
-  if (hasLiteral('feature.rows') && hasAgreementController) {
-    if (spelling === 'agreement controller') concepts.add('feature.target');
-    if (spelling === 'finite head') concepts.add('feature.source');
+  const roles = new Set(Object.keys(context.anchors ?? {}).map(normalizeTier2Synonym));
+  if (hasLiteral('feature.rows')) {
+    // These pairs explicitly name the two participants. Finite heads or
+    // subjects alone do not establish agreement, nor does the relation title.
+    if (hasAgreementController || (roles.has('finite head') && roles.has('subject'))) {
+      if (spelling === 'agreement controller' || spelling === 'subject') concepts.add('feature.target');
+      if (spelling === 'finite head') concepts.add('feature.source');
+    }
+    if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
+      ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {
+      if (spelling === 'head') concepts.add('feature.source');
+      if (spelling === 'specifier') concepts.add('feature.target');
+    }
+  }
+  if (hasLiteral('case.literal')) {
+    const governedTarget = (role: string) => /^governed (?:complement|argument|nominal|phrase|constituent|np|dp|kp|xp)$/u.test(role);
+    const governingHead = (role: string) => /^governing (?:(?:lower|higher|lexical) )?head$/u.test(role);
+    if (governedTarget(spelling)) concepts.add('feature.target');
+    if (governingHead(spelling) || spelling === 'governor' && [...roles].some(governedTarget)) concepts.add('feature.source');
   }
   return [...concepts];
 };

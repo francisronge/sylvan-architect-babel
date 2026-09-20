@@ -3446,14 +3446,27 @@ export const compileRelationRenderPlan = (
      * are provenance and stay excluded — a persisted claim and its identical
      * later restatement still paint once.
      */
+    // Registered role binding already proves equivalent wording. Reuse that
+    // evidence for identity while keeping the original Replay references.
+    const registered = item.claimTier === 1
+      ? stageDispatches[item.relationRef.stageIndex]?.[item.relationRef.relationIndex]
+      : undefined;
+    const bound = registered?.tier1Dispatch.outcome === 'resolved'
+      ? registered.boundPrimaryRelation : item.relationRef;
     content.authoredClaim = {
       ...(item.familyId
         ? {}
         : { relation: String(item.relationRef.relation || '').trim() }),
-      anchors: item.relationRef.anchors ?? {},
-      priorAnchors: item.relationRef.priorAnchors ?? null,
+      anchors: bound.anchors ?? {},
+      priorAnchors: bound.priorAnchors ?? null,
       values: item.relationRef.values ?? null
     };
+    if (registered) {
+      content.occurrenceLineages = Object.fromEntries(Object.values(bound.anchors ?? {})
+        .flatMap(flattenAnchorIds).sort().map(id => [id,
+          stageNodeMaps[item.appearsAtStage].get(id)?.lineageId ?? null]));
+      if (item.backward) content.priorStageIndex = item.appearsAtStage - 1;
+    }
     return JSON.stringify(canonicalize(content));
   };
   const unchangedAssignmentInk = (part: RelationPlanItem) => {

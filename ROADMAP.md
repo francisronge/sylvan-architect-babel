@@ -268,6 +268,22 @@ different scopes, indices, occurrence lineages and prior-state claims separate.
 The exact before/after preserves tree positions and all movement paths. Replay,
 mobile, zoom and Fit pass, alongside the 1,791-test offline gate.
 
+The follow-up checks all 27 saved analyses for duplicate Case, agreement, theta
+and domain drawings. Shared role reading recovers 14 additional claims: seven
+agreement claims, five control claims and two Case assignments. A registered
+Agree restatement now shares its existing plaque despite equivalent recipient
+wording; both Replay moments retain ownership. Different targets and histories
+remain separate. In two saved X-bar analyses, similar theta grids name the moved
+phrase and its lower occurrence respectively; those are not exact duplicates.
+
+All 1,230 Replay frames retain their syntax and relation order. The 14 changed
+relation frames preserve tree coordinates; desktop, 390px, following-frame,
+hover, zoom and Fit checks pass. The agreement-sharing browser regression also
+checks reveal timing and quiet hover. Before/after captures and short recordings
+are under `/tmp/babel-sept17-review/drawing-audit`. No new parses were generated.
+The final gate passes 1,797 tests, typecheck and both fixtures; both emphasis
+browser regressions pass.
+
 ## Current Baseline
 
 The preceding varied subscription batch made eight Babel-only OAuth requests on

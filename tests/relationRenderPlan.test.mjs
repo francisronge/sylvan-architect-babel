@@ -85,6 +85,43 @@ test('coalescing does not hide a fresh restatement when an earlier instance is s
   }
 });
 
+test('registered agreement restatements share their plaque across equivalent role wording', () => {
+  const forest = [node('tp', 'TP', [leaf('t', 'T'), leaf('dp', 'DP', 'Mia')])];
+  const first = { relation: 'Agree', anchors: { probe: 't', goal: 'dp' },
+    values: { case: 'nominative', phiFeatures: 'third-person singular' } };
+  const second = { ...first, anchors: { probe: 't', goalAtAgreement: 'dp' } };
+  for (const relations of [[first, second], [second, first]]) {
+    const stages = relations.map(relation => stage([relation], forest));
+    const original = structuredClone(stages);
+    const plan = compileRelationRenderPlan(stages);
+    const plaques = plan.frames[1].items.filter(item => item.familyId === 'agree.plaque');
+    assert.equal(plaques.length, 1);
+    assert.equal(plan.frames[0].items[0].coalescedRefs, undefined);
+    for (const si of [0, 1]) assert(planItemOwnsRelationMoment(plaques[0], si, 0));
+    assert.deepEqual(plaques[0].relationRef.anchors, relations[0].anchors);
+    assert.deepEqual(plaques[0].coalescedRefs[0].anchors, relations[1].anchors);
+    assert.deepEqual(stages, original);
+  }
+});
+
+test('registered plaque sharing preserves distinct recipients, values, occurrence identity and history', () => {
+  const forest = [node('tp', 'TP', [leaf('t', 'T'), leaf('dp', 'DP', 'Mia'), leaf('other', 'DP', 'Leo')])];
+  const first = { relation: 'Agree', anchors: { probe: 't', goal: 'dp' }, values: { phiFeatures: '3SG' } };
+  const restatement = { ...first, anchors: { probe: 't', goalAtAgreement: 'dp' } };
+  for (const [relation, nextForest] of [
+    [{ ...restatement, anchors: { probe: 't', goalAtAgreement: 'other' } }, forest],
+    [{ ...restatement, values: { phiFeatures: '3PL' } }, forest],
+    [{ ...restatement, priorAnchors: { goal: 'dp' } }, forest],
+    [restatement, [node('tp', 'TP', [leaf('t', 'T'), leaf('dp', 'DP', 'Mia', { lineageId: 'different' }), leaf('other', 'DP', 'Leo')])]]
+  ]) {
+    const plan = compileRelationRenderPlan([stage([first], forest), stage([relation], nextForest)]);
+    assert.equal(plan.frames[1].items.filter(item => item.familyId === 'agree.plaque').length, 2);
+  }
+  const historical = { ...restatement, priorAnchors: { goal: 'dp' } };
+  const history = compileRelationRenderPlan([stage([], forest), stage([historical], forest), stage([historical], forest)]);
+  assert.equal(history.frames[2].items.filter(item => item.familyId === 'agree.plaque').length, 2);
+});
+
 test('committed question fixture compiles both authored movements without diagnostics', () => {
   const fixture = JSON.parse(fs.readFileSync(
     new URL('../fixtures/normalized/what-did-mia-see.xbar.json', import.meta.url),
@@ -118,7 +155,7 @@ test('registered phrasal movement compiles with witness endpoints and authored p
     }], [whTree])
   ]);
 
-  assert.equal(plan.registryVersion, '19');
+  assert.equal(plan.registryVersion, '20');
   assert.equal(plan.frames.length, 1);
   const [item] = plan.frames[0].items;
   assert.equal(item.kind, 'trajectory');
