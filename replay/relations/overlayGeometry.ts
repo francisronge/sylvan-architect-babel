@@ -21,8 +21,10 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
   const source = { x: centerX, y: target.y < assigner.y
     ? assigner.y - 8 : assigner.y + assigner.height + 8 };
   const bendY = (target.y - source.y) / 2;
-  const approachX = target.side === 'left' ? -Math.min(76, Math.abs(target.x - source.x) / 2)
-    : target.side === 'right' ? Math.min(76, Math.abs(target.x - source.x) / 2) : 0;
+  // A nearly aligned side attachment still needs room to turn into the row.
+  // Its vertical span must not collapse the curve into a stem and tiny hook.
+  const approach = Math.min(76, Math.max(Math.abs(target.x - source.x), Math.abs(target.y - source.y)) / 2);
+  const approachX = target.side === 'left' ? -approach : target.side === 'right' ? approach : 0;
   // Aligned boxes still get a short curve wholly within their vertical gap.
   const bowX = target.side === 'vertical' ? Math.min(32, Math.abs(bendY)) : 0;
   const approachY = target.side === 'vertical' ? source.y + bendY : target.y;

@@ -69,6 +69,11 @@ the rendered Orchard paths do not change.
 
 These general corrections let the German nominative plaque sit beside I and the
 accusative plaque beneath the verb, with the same offsets throughout Replay.
+Near-aligned Case side attachments use both horizontal and vertical separation
+to size their approach, capped at the existing 76-unit handle. They retain a
+curved turn into the Case row instead of collapsing into a straight stem with a
+tiny hook. Ordinary wide side approaches and vertical attachments retain their
+accepted geometry; placement checks use the same curve as the painter.
 The five-language local browser check measured German opening at 1.2 seconds
 and ordinary frame changes at 18–45ms. Initial allocation still blocks the main
 thread for roughly 0.9 seconds. The broader geometry and contract review remains
