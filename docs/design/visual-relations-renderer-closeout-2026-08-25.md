@@ -74,10 +74,19 @@ to size their approach, capped at the existing 76-unit handle. They retain a
 curved turn into the Case row instead of collapsing into a straight stem with a
 tiny hook. Ordinary wide side approaches and vertical attachments retain their
 accepted geometry; placement checks use the same curve as the painter.
-The five-language local browser check measured German opening at 1.2 seconds
-and ordinary frame changes at 18–45ms. Initial allocation still blocks the main
-thread for roughly 0.9 seconds. The broader geometry and contract review remains
-open; these measurements do not establish phase completion.
+Allocation now runs in a worker after chunked browser text measurement. In the
+local bundled German review, full readiness took about 1.4 seconds, compared with
+1.1 seconds before this change; the longest main-thread task fell from 902ms to
+55ms. The improvement is responsiveness while calculating, not reduced CPU work.
+Across 1,432 saved Replay frames, 95% of completed frame changes took under 29ms.
+All 61 Orchard final views also rendered without browser errors. These bounded
+checks support a candidate for user review, not a claim of universal correctness.
+
+Reserved connector obstacles carry their precise cubic and stroke margin through
+future-stage translations. A new plaque tests that same curve rather than the
+empty corners of its bounding rectangle. This makes clearance independent of
+which claim was allocated first and prevents an established Japanese theta grid
+from moving when a later Case arrow appears.
 
 Stability can require a more distant initial pocket in a dense changing tree. It
 does not guarantee every connector remains short. Different overlapping claims
@@ -214,9 +223,22 @@ redraws. These lifecycle rules do not change tree layout or the stage-fit math.
 
 `replay/prepareReplay.ts` assembles the existing Replay compiler and relation plan
 without React or DOM access. The application invokes it through a dedicated worker
-before mounting `TreeVisualizer`. The standalone Orchard and archived-review
-renderers invoke the same function directly, so their self-contained builds do not
-need a worker asset. Neither path has separate linguistic or scheduling rules.
+before mounting `TreeVisualizer`. Archived reviews use the same asynchronous
+wrapper. Standalone build tooling embeds the existing worker entry points as blob
+workers; the app's Vite build emits worker assets. Orchard fixtures may still
+prepare Replay directly, but use the same worker for plaque allocation. Neither
+path has separate linguistic or scheduling rules.
+
+After fonts are ready, browser text measurements are captured in chunks that yield
+between stages. A second worker receives these exact metrics and allocates plaques
+against their complete future lifetime. The serializable job uses the same
+allocator as the direct path, with no approximated replacement font metrics.
+Missing measurements fail visibly. Input changes, retries and unmounting cancel
+obsolete jobs; stale results cannot supply placements for another input.
+
+The tree waits for this allocation before revealing its first complete drawing.
+The rendered-frame receipt is written only after the full D3 drawing completes;
+slider updates and the intermediate loading view do not count as readiness.
 
 Each preparation owns one worker. Completion, failure, view changes and unmounting
 release it; stale results cannot mount a previous analysis. A failed preparation
@@ -229,8 +251,9 @@ invisible for 200 ms, so quick preparations do not flash an indicator; completio
 never waits for the animation. Screen readers receive a status immediately, and
 reduced-motion preferences disable the spinning and pulsing decoration.
 
-The worker removes compilation from the app's UI thread, not its CPU cost. Message
-transfer and D3 layout/painting still involve the UI thread. There is no persistent
+The workers remove compilation and plaque allocation from the app's UI thread,
+not their CPU cost. Message transfer, font measurement and D3 layout/painting still
+involve the UI thread. There is no persistent
 cache, worker pool, automatic provider retry or change to JSON processing. Canopy
 preparation omits Replay steps; switching into Replay prepares those steps then.
 
@@ -240,6 +263,14 @@ limit. Tree lookups for casing and visible-token accounting are local to one
 canvas. They preserve first-preorder ID/alias resolution, inherited flags and
 existing count rules. Neither reuse mechanism survives a new preparation or
 changes the serialized result.
+
+Realization changes appear at a relation moment only when its exact current and
+prior references uniquely cover the change. If several relations cover it, Replay
+retains the earlier association through those moments and shows the completed
+association at the Stage Record. It does not choose from prose, relation names or
+linguistic expectations. Diagnostics list the candidate relation numbers. The
+Japanese stem/allomorph and orthographic-association regression exercises this
+case without changing the authored structure or pronunciation.
 
 ## Review
 

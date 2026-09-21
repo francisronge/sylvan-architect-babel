@@ -15,29 +15,34 @@ The renderer and derivation contract remain active work. Passing saved examples
 or the offline gate does not establish that unfamiliar records work correctly.
 Desktop is the primary experience; compact-screen work must not compromise it.
 
-Current execution order:
+Current candidate, awaiting final user review:
 
-1. Finish removing Replay loading stalls and measure complete rendered frame
-   changes. Collision indexing, font preloading and accurate clearance checks
-   cut the German review page from about 28 seconds to 1.2 seconds. Tested frame
-   changes across five language examples take 18–45ms. The opening target is met
-   in that local capture; initial allocation still blocks the main thread for
-   about 0.9 seconds and needs to remain responsive.
-2. Finish plaque placement and connector clearance, especially the English
-   agreement plaque above T. The German nominative plaque now fits beside I and
-   accusative below the verb after correcting oversized label reservations and
-   false connector collisions. Preserve future-branch reservation and the
-   original Orchard drawing geometry throughout the remaining review.
-3. Resolve the Arabic thematic claims that name both an introducer and predicate,
-   and the Japanese realization change with several possible owning relations.
-   Repair generic readers when authored evidence is sufficient. Change the open
-   contract only if a necessary association or timing distinction is unexpressed.
-4. Close the regression review for compound claims, shared plaque rows, movement
-   timing and retained landings, duplicates, branch visibility and long labels.
-   Check exact values, occurrences, claim ownership, zoom and hover throughout.
-5. Qualify the existing 32 analyses and Orchard references in one review set.
-   Generate further parses only for a specific uncovered question. Preserve
-   provenance and keep linguistic judgments separate from rendering defects.
+1. Replay compilation and plaque allocation run in workers. Browser text
+   measurement yields between stages. The German page opens fully in about
+   1.4 seconds; its longest measured main-thread task fell from 902ms to 55ms.
+   Across all 1,432 saved frames, 95% of completed frame changes took under 29ms.
+   These are local bundled-runtime measurements, not remote loading promises.
+2. Plaque clearance now checks the actual reserved connector curve in either
+   allocation order. This removes a Japanese grid's unnecessary later jump.
+   German plaques keep their accepted nearby positions and curved approaches.
+   The English plaque remains above T: the nearby lower pockets intersect later
+   syntax or movement. Tree layout and Orchard connector geometry are unchanged.
+3. The thematic reader accepts an explicit introducer as the assigning source
+   when a separate predicate is also named. This recovers two Arabic claims and
+   preserves the predicate as context. When several relations cover one
+   realization change without identifying its owner, the change appears at the
+   Stage Record. The diagnostic now names the candidate relations. No prompt or
+   authored-contract change was needed.
+4. Four saved analyses exposed a movement curve drawn again by a later chain
+   description. The exact curve now retains both owners and paints once;
+   different landing positions remain separate. Regression coverage includes
+   compound claims, shared rows, retained landings, branch visibility, long
+   values, hover, zoom, worker cancellation and retry.
+5. One interactive review contains all 32 saved analyses. All 1,432 frames and
+   the final views of 61 Orchard references passed browser geometry/error checks.
+   The saved-record comparison preserves every authored record and Replay step;
+   only the intended claim drawings and diagnostic text changed. No new parses
+   were generated. Human linguistic review remains separate.
 
 ### Exit goal for this phase
 
@@ -60,34 +65,16 @@ bounded regression set, not an assertion of universal linguistic accuracy.
   review page. Desktop quality remains primary. Storage, mobile redesign and
   deployment qualification follow this phase.
 
-The current saved-record audit covers 27 analyses and 417 relations. It exposed
-Case claims whose explicit licensor and subject/object were left neutral. The
-shared reader now accepts those participants with an authored Case value, keeps
-agreement rows, and gives an explicitly named recipient precedence. Three saved
-claims change; all 1,230 Replay steps and authored stages remain unchanged. This
-audit found no duplicate drawing groups under its exact-content comparison.
+The regression set combines 27 earlier analyses with five subsequent analyses
+from four Astra/high requests: English passive/raising, German coordination,
+Japanese inflection and two Arabic analyses. Earlier repairs recovered explicit
+Case participants, preserved intermediate head-movement landings and restored
+branches hidden by multiline label masks. The current pass adds the repairs above
+without modifying source records or provider configuration.
 
-Four subsequent Astra/high requests returned five normalized analyses: English
-passive/raising, German coordination, Japanese inflection and two Arabic analyses.
-They add 54 relations and 202 Replay steps. The new Japanese records expose the
-same Case-recipient gap for `argument`; the shared rule now covers that role too.
-No model-facing prompt, schema or provider request changed.
-
-Visual inspection exposed a separate allocation defect: a Case/agree plaque was
-sent far below the tree because connector clearance searched extra heights but
-not extra columns. The shared search now considers both coordinates and retains
-the reserved offset through later inflection. Dense allocation remains a
-performance concern. The Arabic thematic claims also name both an introducer and
-a different predicate; their assigning source remains ambiguous to the current
-reader. These remain active renderer/contract work, not app-readiness closeout.
-
-User review of the new parses exposed successive head arrows following one
-pronounced descendant instead of retaining their landing positions, and a
-multiline label mask hiding a whole incoming branch. Head-adjunction arrows now
-retain their original initial attachments, and preserve intermediate landing
-positions through exact authored movement witnesses;
-category text paints over branches without a rectangular mask. Plaque distance
-and dense allocation remain separate open work.
+The next gate is final user review of this candidate. Reopen a renderer issue for
+a reproducible failure, with a focused regression. Broader deployment, storage
+and compact-screen work remain separate; passing this set does not finish Babel.
 
 ## App workflow evidence
 
