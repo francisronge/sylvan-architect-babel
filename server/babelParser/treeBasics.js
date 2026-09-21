@@ -18,7 +18,10 @@ export const collectNodeReferencesById = (value) => {
       references.set(id, current);
     }
 
-    Object.values(current).forEach(walk);
+    // Only workspace roots and children are syntax occurrences. Retained
+    // metadata may contain node-shaped objects, but cannot define a refId or
+    // participate in token alignment.
+    if (Array.isArray(current.children)) current.children.forEach(walk);
   };
 
   walk(value);
