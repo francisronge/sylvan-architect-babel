@@ -2,6 +2,7 @@ import { caseFeatureComposition, collectionAssignment, collectionPlaque, feature
 import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { useTreeDirection } from './useTreeDirection';
+import { useReplayPlaqueLayout } from './useReplayPlaqueLayout';
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
 import { watchTreeVisualizerFonts } from './treeVisualizerFonts';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ import { appendPlaqueContent } from './plaqueViewport';
 import { identityLightSites } from './identityForestLight';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
-import { buildStageCameraBounds, buildStageLayoutGroups, buildReplayPlaqueLayouts, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
+import { buildStageCameraBounds, buildStageLayoutGroups, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 import { caseAssignmentSource, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
@@ -519,20 +520,27 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
-  const replayPlaqueLayouts = useMemo(() => {
-    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay || settledFontText !== fontText) return [];
-    const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildReplayPlaqueLayouts({
-      steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
+  const plaqueLayoutInput = useMemo(() => {
+    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay || settledFontText !== fontText) return null;
+    const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
+    const measurePlaqueText: PlaqueTextMeasure = (text, style) => {
+      const key = JSON.stringify([text, style]);
+      if (!measured.has(key)) measured.set(key,
+        withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)));
+      return measured.get(key)!;
+    };
+    return { steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
       plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText
-    });
-    return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
+      layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText };
   }, [committedDerivationCanvasData, playbackSteps, relationRenderPlan,
     dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection, settledFontText, fontText]);
+  const { layouts: replayPlaqueLayouts, ready: plaqueLayoutReady, error: plaqueLayoutError,
+    retry: retryPlaqueLayout } = useReplayPlaqueLayout(plaqueLayoutInput);
+  const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady;
   const stagePlaqueLayout = useMemo(() => replayPlaqueLayouts[activeDerivationFrameIndex] ?? new Map(),
     [replayPlaqueLayouts, activeDerivationFrameIndex]);
   const stageCameraBounds = useMemo(() => {
-    if (!animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
+    if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
     return buildStageCameraBounds({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
@@ -540,7 +548,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
       plaqueLayout: stagePlaqueLayout, layoutGroups: stageLayoutGroups, measureCategoryText
     });
-  }, [animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
+  }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
     movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, stageLayoutGroups, measureCategoryText, treeDirection]);
   const stagePlaqueContainmentBounds = useMemo(() => {
@@ -617,7 +625,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!animated || !isAutoPlaying || isScrubbing || playbackSteps.length === 0) {
+    if (!layoutReady || !animated || !isAutoPlaying || isScrubbing || playbackSteps.length === 0) {
       return;
     }
 
@@ -631,7 +639,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     }, STEP_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [activeStepIndex, animated, isAutoPlaying, isScrubbing, playbackSteps]);
+  }, [layoutReady, activeStepIndex, animated, isAutoPlaying, isScrubbing, playbackSteps]);
 
   useEffect(() => {
     if (!isScrubbing) return;
@@ -654,6 +662,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
   useLayoutEffect(() => {
     if (!svgRef.current) return;
+    if (!layoutReady) {
+      d3.select(svgRef.current).attr('data-babel-rendered-step', null);
+      return;
+    }
     const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
     const effectiveRevealThreshold = usesDerivationFrames
       ? Number.MAX_SAFE_INTEGER
@@ -798,6 +810,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       });
   }, [
     activeDerivationArrowLinks,
+    layoutReady,
     activeDerivationFrame,
     activeDerivationFrameIndex,
     activeDerivationRelationLinks,
@@ -820,7 +833,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ]);
 
   useEffect(() => {
-    if (!canvasData || !svgRef.current || dimensions.width === 0) return;
+    if (!layoutReady || !canvasData || !svgRef.current || dimensions.width === 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -8573,6 +8586,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       forestLightCanvas?.remove();
     };
   }, [
+    layoutReady,
     zoomBehavior,
     activeDerivationFrame,
     activeDerivationFrameIndex,
@@ -8969,6 +8983,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           </div>
         </div>
       )}
+      {!layoutReady && <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#03130e]/90">
+        {plaqueLayoutError ? <div role="alert" className="text-center text-emerald-100">
+          <p>Could not lay out this tree.</p>
+          <button type="button" onClick={retryPlaqueLayout} className="mt-3 underline">Retry</button>
+        </div> : <div role="status" className="text-emerald-200">Preparing tree layout…</div>}
+      </div>}
       <svg
         ref={svgRef}
         data-babel-tree="true"

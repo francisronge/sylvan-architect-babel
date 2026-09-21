@@ -1,3 +1,4 @@
+import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
@@ -25,7 +26,8 @@ test('standalone and Case-composed feature plaques keep row attachment through R
       const steps = prepareReplay({ sentence: 'with books', derivationStages: stages, includePlayback: true }).playbackSteps;
       const moment = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex);
       const next = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex + 1);
-      const compiled = await build({ absWorkingDir: new URL('../../', import.meta.url).pathname,
+      const compiled = await build({
+        plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
         stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import TreeVisualizer from './components/TreeVisualizer';
           createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}} derivationStages={${JSON.stringify(stages)}} sentence="with books" animated />);`,
         loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },

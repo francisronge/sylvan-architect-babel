@@ -8,6 +8,13 @@ export const startReplayPreparation = (
   onReady: (result: PreparedReplay) => void,
   onError: (error: Error) => void,
   createWorker: () => PreparationWorker = () => new Worker(new URL('./replay.worker.ts', import.meta.url), { type: 'module' })
+): (() => void) => startWorkerJob(input, onReady, onError, createWorker);
+
+export const startWorkerJob = <Input, Result>(
+  input: Input,
+  onReady: (result: Result) => void,
+  onError: (error: Error) => void,
+  createWorker: () => PreparationWorker
 ): (() => void) => {
   let worker: PreparationWorker | undefined;
   let active = true;
@@ -26,7 +33,7 @@ export const startReplayPreparation = (
   };
   try {
     worker = createWorker();
-    worker.onmessage = ({ data }: MessageEvent<{ result?: PreparedReplay; error?: string }>) => {
+    worker.onmessage = ({ data }: MessageEvent<{ result?: Result; error?: string }>) => {
       if (!active) return;
       if (!data.result) {
         fail(new Error(data.error || 'Replay preparation returned no result.'));

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import TreeVisualizer from '../components/TreeVisualizer';
+import TreeVisualizer from '../components/AsyncTreeVisualizer';
 import { buildDerivationCanvasData } from '../replay/replayCompiler';
 import {
   changeReviewSelection, initialReviewSelection, reviewAnalyses, reviewStatus, reviewViews

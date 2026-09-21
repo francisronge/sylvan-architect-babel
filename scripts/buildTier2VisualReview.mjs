@@ -1,3 +1,4 @@
+import { inlineWorkerPlugin } from './inlineWorkerPlugin.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +25,7 @@ fs.writeFileSync(
 );
 
 await build({
+  plugins: [inlineWorkerPlugin()],
   entryPoints: [path.join(repoRoot, 'docs/design/visual-relations-tier2-review.tsx')],
   bundle: true,
   format: 'iife',

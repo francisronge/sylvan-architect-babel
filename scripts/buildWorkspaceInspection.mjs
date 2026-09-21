@@ -1,3 +1,4 @@
+import { inlineWorkerPlugin } from './inlineWorkerPlugin.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'esbuild';
@@ -22,7 +23,7 @@ const result = await build({
   jsx: 'automatic', minify: true,
   define: { 'process.env.NODE_ENV': '"production"' },
   loader: { '.woff': 'dataurl', '.woff2': 'dataurl' },
-  plugins: [{ name: 'production-styles', setup(builder) {
+  plugins: [inlineWorkerPlugin(), { name: 'production-styles', setup(builder) {
     builder.onLoad({ filter: /styles\.css$/ }, async ({ path: file }) => {
       const css = await fs.readFile(file, 'utf8');
       const processed = await postcss([tailwindcss()]).process(css, { from: file });
@@ -33,6 +34,6 @@ const result = await build({
 const js = result.outputFiles.find((file) => file.path.endsWith('.js')).text;
 const css = result.outputFiles.find((file) => file.path.endsWith('.css')).text;
 const data = JSON.stringify(records).replace(/</g, '\\u003c');
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data:; connect-src 'none'"><title>Babel stage inspection</title><style>${css.replace(/<\/style/gi, '<\\/style')}</style></head><body><div id="root"></div><script id="inspection-data" type="application/json">${data}</script><script>${js.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; worker-src blob:; style-src 'unsafe-inline'; font-src data:; img-src data:; connect-src 'none'"><title>Babel stage inspection</title><style>${css.replace(/<\/style/gi, '<\\/style')}</style></head><body><div id="root"></div><script id="inspection-data" type="application/json">${data}</script><script>${js.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
 await fs.writeFile(path.resolve(output), html, { flag: 'wx' });
 console.log(path.resolve(output));

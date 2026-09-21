@@ -58,19 +58,13 @@ const attempt = () => {
   };
 };
 
-test('the live view mounts the production Replay panel from normalized stages, not compact frames or PNGs', () => {
+test('the live view prepares production Replay asynchronously without displaying archived frames or PNGs', () => {
   const record = attempt();
   const before = structuredClone(record);
   const html = render(QualificationReview, { data: { attempts: [record] } });
-  assert.match(html, /data-babel-replay-panel="true"/);
-  assert.match(html, /data-babel-replay-timeline="true"/);
-  assert.match(html, />Play<\/button>/);
-  assert.match(html, />Next<\/button>/);
-  assert.match(html, /type="range"/);
-  assert.match(html, /cursor-grab active:cursor-grabbing/);
-  assert.match(html, /<svg[^>]*class="cursor-grab/);
-  assert.doesNotMatch(html, /Replay 1\/999|replay-\d+\.png|capture has not/);
-  assert.match(html, /aria-label="Replay frame" min="0" max="7"/);
+  assert.match(html, /role="status"/);
+  assert.match(html, /Preparing Replay/);
+  assert.doesNotMatch(html, /Replay 1\/999|replay-\d+\.png|capture has not|data-babel-replay-panel/);
   assert.match(html, /Live Replay \/ archived normalized derivative/);
   assert.match(html, /Linguistic: unreviewed; visual: unreviewed/);
   assert.match(html, />Normalized<\/span>/);
@@ -100,7 +94,7 @@ test('failed originals retain all analyses and later inspection stages without i
   const props = { choice: choices[0], mode: 'inspection' };
   assert.match(render(ReviewTree, { ...props, stage: choices[0].inspection.stages[1] }), /Expansion blocked by stage 1/);
   const later = render(ReviewTree, { ...props, stage: choices[0].inspection.stages[2] });
-  assert.match(later, /<svg/);
+  assert.match(later, /Preparing tree/);
   assert.doesNotMatch(later, /data-babel-replay-panel/);
   assert.match(render(ReviewTree, { choice: choices[0], mode: 'replay' }), /No complete Replay/);
 });
@@ -148,6 +142,7 @@ test('all evidence views retain original bytes, unknown fields, archived frames 
   assert.deepEqual(data.attempts[0], record);
   assert.doesNotMatch(html, /<script>untrusted\(\)/);
   assert.match(html, /connect-src 'none'/);
+  assert.match(html, /worker-src blob:/);
 });
 
 test('explicit copy Replay is separate from the failed original and its recorded corrections remain visible', () => {
@@ -169,7 +164,7 @@ test('explicit copy Replay is separate from the failed original and its recorded
   assert.equal(initialReviewSelection([record]).source, 'copy');
   const page = render(QualificationReview, { data: { attempts: [record] } });
   assert.match(page, /Inspection copy \/ recorded corrections/);
-  assert.match(page, /data-babel-replay-panel="true"/);
+  assert.match(page, /Preparing Replay/);
   assert.match(page, /aria-label="Replay record"/);
   assert.match(page, />Failed<\/span>/);
   assert.doesNotMatch(page, /Live Replay \/ archived normalized derivative/);
@@ -216,6 +211,7 @@ test('an archive-only build is self-contained, hash-attributed and leaves origin
     assert.match(html, /data:font\//);
     assert.match(html, /__BABEL_LOGO_SRC__="data:image\/png;base64,/);
     assert.match(html, /connect-src 'none'/);
+    assert.match(html, /worker-src blob:/);
     const data = JSON.parse(html.match(/<script id="review-data" type="application\/json">([\s\S]*?)<\/script>/)[1]);
     assert.deepEqual(Buffer.from(data.attempts[0].rawOutput.base64, 'base64'), bytes);
     assert.equal(data.attempts[0].rawOutput.matchesReceipt, true);

@@ -1,3 +1,4 @@
+import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
@@ -24,7 +25,8 @@ test('one binding curve serves both moments while the domain retains its own emp
   const moments = [0, 1].map(stageIndex => steps.findIndex(step => step.replayRelationIdentity?.stageIndex === stageIndex));
   assert(moments.every(index => index >= 0));
   const runtime = await buildQualificationReviewRuntime();
-  const compiled = await build({ absWorkingDir: new URL('../../', import.meta.url).pathname,
+  const compiled = await build({
+    plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
     stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
       import TreeVisualizer from './components/TreeVisualizer';
       createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}}
