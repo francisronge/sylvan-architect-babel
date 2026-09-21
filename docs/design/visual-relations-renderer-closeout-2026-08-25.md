@@ -53,19 +53,26 @@ search rather than rebuilt for every candidate.
 The collision search removes repeated placement rectangles from future frames
 and uses an immutable spatial index to reject distant obstacles before exact
 intersection checks. Connector attachment exclusions retain their original ink
-metadata. Candidate order, curve sampling, gap rules and chosen offsets are
-unchanged. Browser allocation waits for the category and plaque fonts, including
+metadata. Browser allocation waits for the category and plaque fonts, including
 the record's script subsets and the generated theta-grid heading. Font loading
 therefore does not repeat the initial allocation or stall a later relation frame.
 
 The September 21 local production capture reduced German coordination opening
 from 27.8 seconds to 2.7 seconds at 1600×1100. Tested frame changes across German,
 Turkish, English, Japanese and Arabic completed in 20–46ms after font preloading.
-German and Turkish full placement outputs match the earlier allocator at desktop
-and narrow widths; the German browser paths and plaque boxes also match exactly.
-This is a performance repair, not closeout: the German initial calculation still
-blocks the main thread for roughly 2.5 seconds and exceeds the roadmap's loading
-target. Plaque distance and the remaining geometry/contract cases remain open.
+That performance-only repair retained the earlier placements. The subsequent
+clearance repair measures short category labels with the same text layout as
+wrapped labels, instead of reserving a minimum 150-unit width. Connector checks
+subdivide the actual cubic against nearby ink; empty corners of coarse sample
+rectangles no longer reject clear pockets. Stroke margins remain reserved, and
+the rendered Orchard paths do not change.
+
+These general corrections let the German nominative plaque sit beside I and the
+accusative plaque beneath the verb, with the same offsets throughout Replay.
+The five-language local browser check measured German opening at 1.2 seconds
+and ordinary frame changes at 18–45ms. Initial allocation still blocks the main
+thread for roughly 0.9 seconds. The broader geometry and contract review remains
+open; these measurements do not establish phase completion.
 
 Stability can require a more distant initial pocket in a dense changing tree. It
 does not guarantee every connector remains short. Different overlapping claims

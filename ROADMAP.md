@@ -18,14 +18,16 @@ Desktop is the primary experience; compact-screen work must not compromise it.
 Current execution order:
 
 1. Finish removing Replay loading stalls and measure complete rendered frame
-   changes. The first performance repair cuts the German review page from about
-   28 seconds to 2.7 seconds by indexing collision obstacles and avoiding repeated
-   font-driven allocation. Tested frame changes across five language examples
-   take 20–46ms. The initial German calculation still blocks the main thread for
-   about 2.5 seconds; the 2-second opening target is not yet met.
+   changes. Collision indexing, font preloading and accurate clearance checks
+   cut the German review page from about 28 seconds to 1.2 seconds. Tested frame
+   changes across five language examples take 18–45ms. The opening target is met
+   in that local capture; initial allocation still blocks the main thread for
+   about 0.9 seconds and needs to remain responsive.
 2. Finish plaque placement and connector clearance, especially the English
-   agreement plaque above T and the distant German nominative plaque. Preserve
-   future-branch reservation and the original Orchard drawing geometry.
+   agreement plaque above T. The German nominative plaque now fits beside I and
+   accusative below the verb after correcting oversized label reservations and
+   false connector collisions. Preserve future-branch reservation and the
+   original Orchard drawing geometry throughout the remaining review.
 3. Resolve the Arabic thematic claims that name both an introducer and predicate,
    and the Japanese realization change with several possible owning relations.
    Repair generic readers when authored evidence is sufficient. Change the open

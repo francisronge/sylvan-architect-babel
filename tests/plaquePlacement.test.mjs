@@ -5,7 +5,8 @@ import * as d3 from 'd3';
 import { caseAssignmentSource, collectionPlaqueClears, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
-import { stageTreeLayoutSize, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
@@ -16,6 +17,54 @@ const plaque = (ids, long = false) => ({ kind: 'node-plaque', plaqueStyle: 'feat
 const tree = () => d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', label: 'XP', children: [
   { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }
 ]}));
+
+test('short category labels reserve their measured text instead of a fixed wide box', () => {
+  const nodes = tree().descendants();
+  for (const textWidth of [24, 110]) {
+    const box = plaqueTreeObstacles(nodes, () => textWidth).find(box => box.connectorAttachment === 'left:category');
+    assert.equal(box.width, textWidth + 16);
+    assert.equal(box.x + box.width / 2, nodes.find(node => node.data.id === 'left').x);
+    assert(box.y <= box.connectorInk.y && box.y + box.height >= box.connectorInk.y + box.connectorInk.height);
+  }
+});
+
+for (const width of [1596, 390]) test(`${width}px: successive head movement leaves both Case plaques close to their sources`, () => {
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/successive-head-movement.json', import.meta.url)));
+  const replay = prepareReplay({ ...record, includePlayback: true });
+  const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan, width, height: 1016,
+    layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),
+    completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) };
+  const layouts = buildReplayPlaqueLayouts(input);
+  const remembered = new Map();
+  for (let stageIndex = 0; stageIndex < layouts.length; stageIndex++) {
+    const items = input.plan.frames[stageIndex].items;
+    const space = measureStagePlaqueSpace({ ...input, stageIndex });
+    for (const id of ['im', 'vm']) {
+      const index = items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === id);
+      const box = layouts[stageIndex].get(index), prior = remembered.get(id);
+      assert(box);
+      if (prior) {
+        assert(Math.abs(box.x - box.attachmentX - prior.x + prior.attachmentX) < 1e-8);
+        assert(Math.abs(box.y - box.attachmentY - prior.y + prior.attachmentY) < 1e-8);
+      }
+      remembered.set(id, box);
+      for (const scene of space.scenes) {
+        const positions = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
+        const projected = projectPlaqueLayout(new Map([[index, box]]), id => positions.get(id)).get(index);
+        if (!projected) continue;
+        assert(scene.obstacles.every(obstacle => !plaquesOverlap(projected, obstacle)), 'the pocket clears every future branch and movement');
+      }
+    }
+    if (stageIndex !== layouts.length - 1) continue;
+    const nominative = remembered.get('im'), accusative = remembered.get('vm');
+    assert(nominative.x > nominative.attachmentX && nominative.y < nominative.attachmentY + 250,
+      'nominative sits beside I instead of a long distance below it');
+    const source = caseAssignmentSource(space.nodes.find(node => node.data.id === 'vm'));
+    assert(accusative.y > source.y + 140 && accusative.y < source.y + 500,
+      'accusative uses the nearby pocket beneath the pronounced verb');
+    assert(accusative.x + accusative.width < nominative.x, 'the Case arrows approach separate nearby pockets');
+  }
+});
 
 test('a small plaque uses a clear nearby pocket with room for its entire rectangle', () => {
   const nodes = tree().descendants();

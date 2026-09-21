@@ -8,6 +8,7 @@ import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from './overl
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 import { preparePlaqueObstacleIndex, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+import { cubicIntersectsRect } from './curveClearance.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
@@ -74,11 +75,9 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
   const included = new Set(nodes);
   for (const node of nodes.filter(visible)) {
     const label = categoryTextLayout(node.data.label || '', measureCategoryText);
-    const width = Math.max(150, String(node.data.label || '').length * 38);
     const hasCategory = Boolean(node.children?.length) || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data);
-    if (hasCategory) rectangles.push({ ...(label.lines.length > 1
-      ? { x: node.x + label.x - 8, y: node.y + label.y - 8, width: label.width + 16, height: label.height + 16 }
-      : { x: node.x - width / 2, y: node.y - 42, width, height: 84 }),
+    if (hasCategory) rectangles.push({
+      x: node.x + label.x - 8, y: node.y + label.y - 8, width: label.width + 16, height: label.height + 16,
       blocksConnectors: label.lines.length === 1, connectorAttachment: `${idOf(node)}:category`,
       ...(label.lines.length === 1 ? { connectorInk: { x: node.x + label.x, y: node.y + label.y,
         width: label.width, height: label.height } } : {}) });
@@ -178,8 +177,7 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
   const index = preparePlaqueObstacleIndex(blockers);
   return (box: PlaqueRect) => {
     const curve = caseAssignmentPlaqueCurve(rect, box, box.y + (box.caseRowY ?? 93));
-    if (!index.overlaps(curveBounds(curve, 8), 0)) return true;
-    return caseRouteRectsFrom(rect, box).every(segment => !index.overlaps(segment, 0));
+    return !index.some(curveBounds(curve, 8), blocker => cubicIntersectsRect(curve, blocker, 8));
   };
 }
 
@@ -242,10 +240,8 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
   return {
     clears: (box: PlaqueRect): boolean => curves(box).every(({ attachment, ...curve }) => {
       const bounds = curveBounds(curve, 6), index = inkIndex(attachment);
-      const touchesPlaque = plaquesOverlap(bounds, box, 0);
-      if (!touchesPlaque && !index.overlaps(bounds, 0)) return true;
-      return collectionRouteRects(curve).every(segment => (!touchesPlaque || !plaquesOverlap(segment, box, 0))
-        && !index.overlaps(segment, 0));
+      return !cubicIntersectsRect(curve, box, 6)
+        && !index.some(bounds, blocker => cubicIntersectsRect(curve, blocker, 6));
     }),
     candidateXs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'x'),
     candidateYs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'y'),

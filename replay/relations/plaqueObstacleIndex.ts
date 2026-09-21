@@ -34,6 +34,11 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
     return branch.boxes ? branch.boxes.some(obstacle => plaquesOverlap(box, obstacle, gap))
       : overlaps(box, gap, branch.left) || overlaps(box, gap, branch.right);
   };
+  const some = (box: ObstacleRect, predicate: (obstacle: T) => boolean, branch = root): boolean => {
+    if (!branch || !plaquesOverlap(box, branch.bounds, 0)) return false;
+    return branch.boxes ? branch.boxes.some(obstacle => plaquesOverlap(box, obstacle, 0) && predicate(obstacle))
+      : some(box, predicate, branch.left) || some(box, predicate, branch.right);
+  };
   const inColumn = (x: number, width: number, gap = 24): T[] => {
     const matches: T[] = [];
     const intersects = (box: ObstacleRect) => x < box.x + box.width + gap && x + width + gap > box.x;
@@ -45,5 +50,5 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
     visit(root);
     return matches;
   };
-  return { overlaps, inColumn };
+  return { overlaps, inColumn, some };
 }
