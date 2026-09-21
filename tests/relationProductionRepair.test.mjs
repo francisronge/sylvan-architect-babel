@@ -7,6 +7,7 @@ import {
   visiblePlanFrameItems
 } from '../replay/relations/renderPlanCompiler.ts';
 import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
+import { caseFeatureComposition, featurePlaqueAssignment } from '../replay/relations/featureComposition.ts';
 import {
   adaptDerivationStagesForReplay,
   buildPlaybackStepsFromDerivationFrames,
@@ -283,24 +284,20 @@ test('Case collection compiles one plaque and preserves each authored relation m
   ], [tree])]);
   const items = plan.frames[0].items;
 
-  assert.deepEqual(items.map((item) => ({
-    kind: item.kind,
-    pathStyle: item.pathStyle,
-    relationIndex: item.relationRef.relationIndex
-  })), [
-    { kind: 'directed-path', pathStyle: 'case-assignment', relationIndex: 0 },
-    { kind: 'directed-path', pathStyle: 'case-agree', relationIndex: 1 },
-    { kind: 'directed-path', pathStyle: 'case-agree', relationIndex: 2 },
-    { kind: 'node-plaque', pathStyle: undefined, relationIndex: 3 }
+  const assignmentIndex = items.findIndex(item => item.pathStyle === 'case-assignment');
+  const composition = caseFeatureComposition(items, assignmentIndex);
+  assert.deepEqual(composition.rows.map(({ label, value }) => ({ label, value })), [
+    { label: 'Case', value: 'DAT' }, { label: 'Number', value: 'PL' }, { label: 'Gender', value: 'MASC' }
   ]);
-  assert.equal(items.filter((item) => item.kind === 'node-plaque').length, 1);
-  assert.deepEqual(items.at(-1).rows, [
-    { label: 'Case', value: 'DAT' },
-    { label: 'Number', value: 'PL' },
-    { label: 'Gender', value: 'MASC' }
-  ]);
+  assert.deepEqual(composition.collections.map(({ item }) => item.relationRef.relationIndex), [1, 2]);
+  items.forEach((item, index) => {
+    if (item.kind === 'node-plaque') assert.equal(featurePlaqueAssignment(items, index), assignmentIndex,
+      'every owned value plaque joins the same visible Case shell, with none painted independently');
+  });
+  assert.deepEqual(composition.rows.map(row => [...new Set(row.ownerIndices.map(index => items[index].relationRef.relationIndex))]),
+    [[0, 3], [1, 3], [2, 3]], 'each row keeps its original agreement moment and later bundle restatement');
   assert.deepEqual(
-    visiblePlanFrameItems(plan, 0, new Set([0, 1])).map((item) => item.relationRef.relationIndex),
+    [...new Set(visiblePlanFrameItems(plan, 0, new Set([0, 1])).map((item) => item.relationRef.relationIndex))],
     [0, 1],
     'the second Agree path cannot appear before its own relation moment'
   );

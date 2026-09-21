@@ -61,6 +61,83 @@ test('ambiguous incoming assignments keep feature claims in their own plaques', 
   }
 });
 
+test('registered agreement retains its owned plaque when Case grouping is ambiguous', () => {
+  const agree = { relation: 'Agree', anchors: { probe: 'k', goal: 'num' }, values: { feature: 'Number', value: 'PL' } };
+  for (const secondAssignment of [
+    { ...assignment, anchors: { assigner: 'n', bearer: 'k' } },
+    { relation: 'A separate licensing claim', anchors: { licensor: 'n', licensee: 'k' }, values: { case: 'ACC' } }
+  ]) {
+    for (const relations of [[assignment, secondAssignment, agree], [agree, secondAssignment, assignment]]) {
+      const original = structuredClone(relations);
+      const items = compile(relations);
+      const paths = items.filter(item => item.pathStyle === 'case-agree');
+      assert.equal(paths.length, 1, 'each agreement owns one collector, irrespective of Case source count');
+      const plaque = collectionPlaque(items, paths[0]);
+      assert.ok(plaque, 'an unshared collector must retain its own value plaque');
+      assert.deepEqual(plaque.item.rows, [{ label: 'Number', value: 'PL' }]);
+      assert.equal(featurePlaqueAssignment(items, plaque.index), undefined);
+      assert.equal(plaque.item.relationRef.relationIndex, relations.indexOf(agree));
+      items.forEach((item, index) => {
+        if (item.pathStyle === 'case-assignment') assert.equal(caseFeatureComposition(items, index).collections.length, 0);
+      });
+      assert.deepEqual(relations, original);
+    }
+  }
+});
+
+test('equivalent feature keys preserve the same shared Case row and its collection source', () => {
+  for (const values of [
+    { feature: 'Number', value: 'PL' },
+    { FEATURE: 'Number', VALUE: 'PL' },
+    { 'feature notation': 'Number', Value: ['PL'] },
+    { Value: 'PL', 'FEATURE-LABEL': ['Number'] }
+  ]) {
+    const agree = { relation: 'Agree', anchors: { searcher: 'k', agreeGoal: 'num' }, values };
+    for (const relations of [[assignment, agree], [agree, assignment]]) {
+      const items = compile(relations);
+      const index = items.findIndex(item => item.pathStyle === 'case-assignment');
+      const composition = caseFeatureComposition(items, index);
+      assert.deepEqual(composition.rows.map(({ label, value }) => [label, value]).sort(), [['Case', 'DAT'], ['Number', 'PL']]);
+      assert.equal(composition.collections.length, 1);
+      const collection = composition.collections[0].item;
+      assert.equal(collection.toNodeId, 'num');
+      assert.equal(collection.relationRef.relationIndex, relations.indexOf(agree));
+      assert.deepEqual(collection.relationRef.values, values);
+    }
+  }
+  for (const values of [
+    { feature: 'Number', FEATURE: 'Gender', value: 'PL' },
+    { 'feature notation': ['Number', 'Gender'], Value: 'PL' },
+    { FEATURE: 'Number', VALUE: 'PL', qualification: 'Additional authored context' }
+  ]) {
+    const items = compile([assignment, { relation: 'Agree', anchors: { probe: 'k', goal: 'num' }, values }]);
+    assert.equal(items.some(item => item.pathStyle === 'case-agree'), false, 'one collection row cannot absorb competing or extra values');
+    const plaque = items.find(item => item.kind === 'node-plaque');
+    assert.deepEqual(plaque.relationRef.values, values);
+    assert.equal(plaque.rows.length, Object.values(values).flat().length);
+  }
+});
+
+test('unaccompanied Agree and value-free Case companions retain their existing drawings', () => {
+  const anchors = { probe: 'k', goal: 'num' };
+  const values = { feature: 'Number', value: 'PL' };
+  const standalone = compile([{ relation: 'Agree', anchors, values }]);
+  assert.equal(standalone.length, 1);
+  assert.deepEqual(standalone[0].rows, [{ label: 'feature', value: 'Number' }, { label: 'value', value: 'PL' }]);
+  assert.equal(standalone[0].title, 'KP probe');
+  const emptyStandalone = compile([{ relation: 'Agree', anchors }]);
+  assert.equal(emptyStandalone.length, 1);
+  assert.equal(emptyStandalone[0].badgeStyle, 'agreement-goal');
+  for (const values of [undefined, {}]) {
+    const items = compile([assignment, { relation: 'Agree', anchors, ...(values ? { values } : {}) }]);
+    assert.equal(items.some(item => item.kind === 'node-plaque'), false, 'no empty plaque is invented');
+    const composition = caseFeatureComposition(items, items.findIndex(item => item.pathStyle === 'case-assignment'));
+    assert.equal(composition.collections.length, 1);
+    assert.equal(composition.collections[0].item.toNodeId, 'num');
+    assert.deepEqual(composition.collections[0].item.featureRow, { label: '', value: '' });
+  }
+});
+
 test('the complete D6 composition keeps three rows, their independent owners and its accepted short-row dimensions', () => {
   const items = compile([assignment,
     { relation: 'Agree', anchors: { probe: 'k', goal: 'num' }, values: { feature: 'Number', value: 'PL' } },

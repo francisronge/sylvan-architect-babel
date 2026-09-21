@@ -1,6 +1,7 @@
 import { movementContextFailure } from './movementEvidence.ts';
 import { composeThetaGrids, projectThetaGrid } from './thetaGridComposition.ts';
 import { nativeThetaAssignments } from './compoundAssignments.ts';
+import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 /**
  * Production render-plan compiler for authored visual relations.
  *
@@ -950,9 +951,19 @@ export const compileRelationRenderPlan = (
   };
   // The combined curve has only one feature/value row. Other authored content
   // stays in Agree's full plaque instead of disappearing during composition.
-  const canComposeCaseAgreement = (relation: DerivationStageRelation) =>
-    Object.entries(relation.values || {}).every(([key, value]) =>
-      ['feature', 'value'].includes(key) && (!Array.isArray(value) || value.length === 1));
+  const caseAgreementRow = (stageIndex: number, relationIndex: number) => {
+    const fields = stageDispatches[stageIndex][relationIndex].evidence.authoredValues ?? [];
+    const row = { label: '', value: '' };
+    const assigned = new Set<keyof typeof row>();
+    for (const field of fields) {
+      const slot = field.concepts.includes('feature.label') ? 'label'
+        : normalizeTier2Synonym(field.key) === 'value' ? 'value' : undefined;
+      if (!slot || field.items.length !== 1 || (assigned.has(slot) && row[slot] !== field.items[0])) return undefined;
+      row[slot] = field.items[0];
+      assigned.add(slot);
+    }
+    return row;
+  };
   const diagnostics: PlanDiagnostic[] = [];
   const unregisteredCounts = new Map<string, number>();
   const items: RelationPlanItem[] = [];
@@ -1937,15 +1948,35 @@ export const compileRelationRenderPlan = (
           if (familyId === 'agree.plaque') {
             const probe = flattenAnchorIds(anchors.probe)[0];
             const goal = flattenAnchorIds(anchors.goal)[0];
-            const composedWithCase = canComposeCaseAgreement(relation) && relations.some((companion, companionIndex) => {
+            const collectionRow = caseAgreementRow(stageIndex, relationIndex);
+            const composedWithCase = collectionRow && relations.some((companion, companionIndex) => {
               const companionEntry = findRelationRegistryEntry(registry, companion.relation);
               return companionEntry?.id === 'case-assignment.path'
                 && flattenAnchorIds(companionAnchors(stageIndex, companionIndex).bearer)[0] === probe;
             });
-            // A Case composition already emits this Agree instance's own
-            // dotted collection path, with the Agree relationRef preserved.
-            // A second independent plaque would duplicate that same claim.
-            if (composedWithCase) return;
+            if (composedWithCase) {
+              // The shared composer joins this owned row to Case only when
+              // that association is unique. Otherwise its own plaque survives.
+              if (collectionRow.label || collectionRow.value) items.push({
+                ...base,
+                kind: 'node-plaque',
+                anchorNodeIds: [probe],
+                positionNodeIds: collectSubtreeLeafIds(nodes.get(probe)),
+                plaqueStyle: 'feature',
+                rows: [collectionRow]
+              });
+              items.push({
+                ...base,
+                kind: 'directed-path',
+                fromNodeId: probe,
+                toNodeId: goal,
+                pathStyle: 'case-agree',
+                featureRow: collectionRow,
+                ...(collectionRow.label || collectionRow.value
+                  ? { label: [collectionRow.label, collectionRow.value].filter(Boolean).join(': ') } : {})
+              });
+              return;
+            }
             if (rows.length > 0) {
               const plaqueNodeId = probe || participant;
               if (!requireResolved(probe ? 'probe' : role, plaqueNodeId)) return;
@@ -2101,49 +2132,6 @@ export const compileRelationRenderPlan = (
             ...(scalarValue(values, 'feature') || scalarValue(values, 'value')
               ? { label: [scalarValue(values, 'feature'), scalarValue(values, 'value')].filter(Boolean).join(': ') }
               : {})
-          });
-          /*
-           * The accepted Case card composes the solid Case path with the
-           * quieter dotted collection curves of the same-stage Agree
-           * relations whose probe is this bearer. Each collection curve is
-           * the COMPANION's mark: it carries the companion Agree instance's
-           * own relationRef (so Replay reveals it at that Agree's relation
-           * moment, never earlier) and the companion's family persistence —
-           * only its dotted-collection styling comes from the Case
-           * composition.
-           */
-          relations.forEach((companion, companionIndex) => {
-            const companionEntry = findRelationRegistryEntry(registry, companion.relation);
-            if (!companionEntry || families[companionEntry.id]?.family !== 'feature-plaque'
-              || !canComposeCaseAgreement(companion)) return;
-            const boundAnchors = companionAnchors(stageIndex, companionIndex);
-            const companionProbe = flattenAnchorIds(boundAnchors.probe)[0];
-            const companionGoal = flattenAnchorIds(boundAnchors.goal)[0];
-            if (companionProbe !== bearer || !companionGoal || !nodes.has(companionGoal)) return;
-            const companionFamily = families[companionEntry.id];
-            items.push({
-              relationRef: {
-                stageIndex,
-                relationIndex: companionIndex,
-                relation: companion.relation,
-                anchors: companion.anchors,
-                ...(companion.priorAnchors ? { priorAnchors: companion.priorAnchors } : {}),
-                ...(companion.values ? { values: companion.values } : {})
-              },
-              familyId: String(companionEntry.id),
-              appearsAtStage: stageIndex,
-              persistence: companionFamily.persistence,
-              backward: false,
-              priorWitnessNodeIds: [],
-              kind: 'directed-path',
-              fromNodeId: bearer,
-              toNodeId: companionGoal,
-              pathStyle: 'case-agree',
-              featureRow: { label: scalarValue(companion.values, 'feature'), value: scalarValue(companion.values, 'value') },
-              ...(scalarValue(companion.values, 'feature') || scalarValue(companion.values, 'value')
-                ? { label: [scalarValue(companion.values, 'feature'), scalarValue(companion.values, 'value')].filter(Boolean).join(': ') }
-                : {})
-            });
           });
           return;
         }
