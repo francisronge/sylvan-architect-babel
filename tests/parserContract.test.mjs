@@ -118,6 +118,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching\./);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
+    assert.match(instruction, /The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);

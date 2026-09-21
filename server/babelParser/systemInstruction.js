@@ -39,6 +39,7 @@ To reuse an unchanged subtree, use refId or write out the entire subtree, includ
 The complete nodes and reference objects use only the fields defined above.
 
 Realizations
+The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries.
 Omit realizations when ordinary whole-word terminals already express the stage's input associations. Use it when the analysis retains syntax whose collective realization differs from one terminal per input token, such as separate morphological pieces realizing one word or one syntactic object realizing several words.
 realizations is an array of groups. Each group has exactly two fields:
 - nodeIds: a nonempty, duplicate-free array of exact ids in this stage's expanded workspace. A nonterminal id includes its current subtree; overlapping source subtrees count once within a group.
