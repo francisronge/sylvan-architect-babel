@@ -720,6 +720,29 @@ test('successive retained trees compile without mutating inputs or sharing mutab
   assert.equal(stages[0].workspaceForest[0].word, 'word0');
 });
 
+test('a later invalid future scaffold retains the earlier valid reservation', () => {
+  const word = leaf('nominal_word', 'N', 'Mia');
+  const nominal = node('nominal', 'NP', [word]);
+  const adjunct = leaf('adjunct', 'Adv', 'here');
+  const attached = node('phrase', 'XP', [nominal, adjunct]);
+  // The final forest retains both detached roots, but moves an existing child
+  // outside its current parent without authorizing a future occurrence.
+  const changed = node('outer', 'YP', [node('phrase', 'XP', [
+    node('nominal', 'NP', []), adjunct, word
+  ])]);
+  const stage = workspaceForest => ({ statement: 'Current state', stageRecord: 'Structural control.', relations: [], workspaceForest });
+  const stages = [stage([nominal, adjunct]), stage([attached]), stage([changed])];
+  const original = structuredClone(stages);
+  const steps = compile(stages, 'Mia here');
+  const firstRecord = steps.find(step => step.replayFrameIndex === 0 && step.replayKind === 'macro');
+  assert.equal(firstRecord.replayUsesFutureLayoutScaffold, true);
+  assert.equal(findNode(firstRecord.replayCanvasData, 'outer'), null);
+  assert.equal(findNode(firstRecord.replayCanvasData, 'phrase').replayLayoutOnly, true);
+  assert.deepEqual(findNode(firstRecord.replayCanvasData, 'nominal').children.map(child => child.id), ['nominal_word']);
+  assert.equal(firstRecord.replayVisibleNodeIds.includes('phrase'), false);
+  assert.deepEqual(stages, original);
+});
+
 test('future silent parents do not mute selected words before their phrase exists', () => {
   const words = [leaf('det', 'D', 'which'), leaf('noun', 'N', 'book')];
   const phrase = node('phrase', 'DP', words, { lineageId: 'nominal' });

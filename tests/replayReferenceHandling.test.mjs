@@ -123,3 +123,25 @@ test('lineage continuity compares lineage with lineage, not with node ids', () =
     'a continuing object is not rebuilt as new material'
   );
 });
+
+test('subtree continuity preserves Unicode-equivalent words and recomputes changed lexical content', () => {
+  const phrase = (suffix, words) => node(`phrase_${suffix}`, 'DP', words.map((word, index) =>
+    leaf(`word_${index}_${suffix}`, 'N', word)));
+  const prior = phrase('before', ['élève', 'livre']);
+  const build = words => [
+    stage('The phrase is present.', [], [prior]),
+    stage('The verb joins it.', [], [node('vp', 'VP', [leaf('verb', 'V', 'voit'), phrase('after', words)])])
+  ];
+  for (const [words, continues] of [
+    [['E\u0301LE\u0300VE', 'LIVRE'], true],
+    [['chat', 'livre'], false],
+    [['élève', 'livre'], true]
+  ]) {
+    const stages = build(words);
+    const original = structuredClone(stages);
+    const steps = play(stages, `voit ${words.join(' ')}`);
+    const firstNewStage = steps.find(step => step.replayFrameIndex === 1);
+    assert.equal(firstNewStage.replayVisibleNodeIds.includes('phrase_after'), continues);
+    assert.deepEqual(stages, original);
+  }
+});

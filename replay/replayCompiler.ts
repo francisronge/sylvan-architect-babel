@@ -1097,31 +1097,6 @@ const findExactNodesByIdInForest = (
   return matches;
 };
 
-const forestCanUseFutureLayoutScaffold = (
-  currentRoots: SyntaxNode[],
-  futureRoots: SyntaxNode[]
-): boolean => {
-  if (!Array.isArray(currentRoots) || currentRoots.length === 0) return false;
-  if (!Array.isArray(futureRoots) || futureRoots.length === 0) return false;
-  return currentRoots.every((currentRoot) => {
-    const currentRootId = String(currentRoot?.id || '');
-    if (!currentRootId) return false;
-    const futureMatches = findExactNodesByIdInForest(futureRoots, currentRootId);
-    return futureMatches.length === 1
-      && replayLayoutContinuitySignature(futureMatches[0])
-        === replayLayoutContinuitySignature(currentRoot);
-  });
-};
-
-const futureForestPreservesCurrentRootIdentities = (
-  currentRoots: SyntaxNode[],
-  futureRoots: SyntaxNode[]
-): boolean => currentRoots.every((currentRoot) => {
-  const currentRootId = String(currentRoot?.id || '');
-  return Boolean(currentRootId)
-    && findExactNodesByIdInForest(futureRoots, currentRootId).length === 1;
-});
-
 const collectExactNodesByIdInForest = (forest: SyntaxNode[]): Map<string, SyntaxNode[]> => {
   const nodesById = new Map<string, SyntaxNode[]>();
   const visit = (node?: SyntaxNode | null) => {
@@ -1333,19 +1308,22 @@ const inferFutureLayoutScaffold = (
 ): SyntaxNode[] | null => {
   if (!Array.isArray(workspaceRoots) || workspaceRoots.length === 0) return null;
   const seeksComposedWorkspaceLayout = workspaceRoots.length > 1;
-  let bestLayoutScaffold: SyntaxNode[] | null = null;
+  const candidates: Array<{ forest: SyntaxNode[]; allowedOccurrenceIds: Set<string> }> = [];
   const allowedFutureOccurrenceIds = new Set<string>();
   const currentRootIds = new Set(collectWorkspaceRootIds(workspaceRoots));
   let previousParents = new Map<string, SyntaxNode | null>();
+  const currentRootSignatures = new Map(workspaceRoots.map(root => [root, replayLayoutContinuitySignature(root)]));
   const currentForestSignature = JSON.stringify(
-    workspaceRoots.map((root) => replayLayoutContinuitySignature(root))
+    workspaceRoots.map(root => currentRootSignatures.get(root))
   );
+  const currentTopologySignature = JSON.stringify(workspaceRoots.map(replayLayoutTopologySignature));
 
   for (let futureFrameIndex = currentFrameIndex + 1; futureFrameIndex < frames.length; futureFrameIndex += 1) {
     const futureFrame = frames[futureFrameIndex];
     const futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
       ? frames[futureFrameIndex].workspaceForest
       : [];
+    const futureNodesById = collectExactNodesByIdInForest(futureRoots);
     const futureParents = collectWorkspaceRootParents(futureRoots, currentRootIds);
     // Reserve a detached object's first attachment, never a later relocation.
     // Otherwise an early selection can start at a movement landing and jump
@@ -1354,16 +1332,17 @@ const inferFutureLayoutScaffold = (
       && (futureParents.get(id)?.id !== parent.id
         || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
     previousParents = futureParents;
-    const preservesCurrentSubtrees = forestCanUseFutureLayoutScaffold(workspaceRoots, futureRoots);
-    const preservesCurrentTopology = JSON.stringify(
-      workspaceRoots.map((root) => replayLayoutTopologySignature(root))
-    ) === JSON.stringify(
+    const preservesCurrentSubtrees = workspaceRoots.every(root => {
+      const matches = futureNodesById.get(String(root.id || '')) || [];
+      return matches.length === 1 && replayLayoutContinuitySignature(matches[0]) === currentRootSignatures.get(root);
+    });
+    const preservesCurrentTopology = currentTopologySignature === JSON.stringify(
       futureRoots.map((root) => replayLayoutTopologySignature(root))
     );
     const addsOnlyOuterWrapper = workspaceRoots.every((currentRoot) => {
       const currentRootId = String(currentRoot?.id || '');
       if (!currentRootId) return false;
-      return findExactNodesByIdInForest(futureRoots, currentRootId).length === 1
+      return futureNodesById.get(currentRootId)?.length === 1
         && !futureRoots.some((futureRoot) => String(futureRoot?.id || '') === currentRootId);
     });
     const futureIntroducesTrajectory = (Array.isArray(futureFrame?.relations) ? futureFrame.relations : [])
@@ -1389,7 +1368,7 @@ const inferFutureLayoutScaffold = (
               const normalizedTargetId = String(targetId || '');
               if (!normalizedTargetId) return;
               allowedFutureOccurrenceIds.add(normalizedTargetId);
-              const targetMatches = findExactNodesByIdInForest(futureRoots, normalizedTargetId);
+              const targetMatches = futureNodesById.get(normalizedTargetId) || [];
               if (targetMatches.length === 1) {
                 collectExactNodesByIdInForest([targetMatches[0]]).forEach((_nodes, nodeId) => {
                   allowedFutureOccurrenceIds.add(nodeId);
@@ -1411,31 +1390,24 @@ const inferFutureLayoutScaffold = (
         futureRoots.map((root) => replayLayoutContinuitySignature(root))
       );
       if (futureForestSignature !== currentForestSignature) {
-        const scaffold = buildCurrentMaterialLayoutScaffold(
-          workspaceRoots,
-          futureRoots,
-          allowedFutureOccurrenceIds
-        );
-        if (scaffold) {
-          bestLayoutScaffold = scaffold;
-        }
+        candidates.push({ forest: futureRoots, allowedOccurrenceIds: new Set(allowedFutureOccurrenceIds) });
       }
       continue;
     }
-    const topologyScaffold = buildCurrentMaterialLayoutScaffold(
-      workspaceRoots,
-      futureRoots,
-      allowedFutureOccurrenceIds
-    );
-    if (topologyScaffold) {
-      bestLayoutScaffold = topologyScaffold;
-      continue;
-    }
     if (preservesCurrentTopology) continue;
-    if (!futureForestPreservesCurrentRootIdentities(workspaceRoots, futureRoots)) break;
+    if (!workspaceRoots.every(root => futureNodesById.get(String(root.id || ''))?.length === 1)) break;
+    candidates.push({ forest: futureRoots, allowedOccurrenceIds: new Set(allowedFutureOccurrenceIds) });
   }
 
-  return bestLayoutScaffold;
+  // Only the last valid candidate survives the forward scan. Construct it
+  // first, falling back through earlier candidates if its material is invalid.
+  // Each candidate retains the occurrence permissions from its own stage.
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const candidate = candidates[index];
+    const scaffold = buildCurrentMaterialLayoutScaffold(workspaceRoots, candidate.forest, candidate.allowedOccurrenceIds);
+    if (scaffold) return scaffold;
+  }
+  return null;
 };
 
 const buildWorkspaceRootSideHints = (
@@ -4705,6 +4677,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
     }
 
     const exactNodesById = collectExactNodesByIdInForest([canvas]);
+    const continuitySignatures = collectReplayContinuitySubtreeSignatures([canvas]);
     const nextVisibleIds = new Set(
       rawVisibleIds.filter((visibleNodeId) => !suppressedAutoRevealNodeIds.has(visibleNodeId))
     );
@@ -4725,7 +4698,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
     if (persistentVisibleSubtreeSignatures.size > 0) {
       const signatureBuckets = new Map<string, SyntaxNode[]>();
       collectReplayCanvasNodes(canvas).forEach((node) => {
-        const signature = getReplayContinuitySubtreeSignature(node);
+        const signature = continuitySignatures.get(node);
         if (!signature || !persistentVisibleSubtreeSignatures.has(signature)) return;
         const entries = signatureBuckets.get(signature) || [];
         entries.push(node);
@@ -4755,7 +4728,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
           || nextVisibleIds.has(subtreeNodeId);
       });
       if (!completeSubtreeIsVisible) return;
-      const signature = getReplayContinuitySubtreeSignature(node);
+      const signature = continuitySignatures.get(node);
       if (signature) persistentVisibleSubtreeSignatures.add(signature);
     });
     return {
@@ -4835,18 +4808,29 @@ const collectReplayRootStructuralKey = (forest: SyntaxNode[] = []): string =>
     .filter(Boolean)
     .join('||');
 
-const getReplayContinuitySubtreeSignature = (root?: SyntaxNode | null): string => {
-  if (!root || typeof root !== 'object') return '';
-  const label = String(root.label || '').trim().toUpperCase();
-  const tokens = collectReplayOvertTokenSequence(root);
-  if (!label || tokens.length < 2) return '';
-  return `${label}|${tokens.join(' ')}`;
+const collectReplayContinuitySubtreeSignatures = (forest: SyntaxNode[]): Map<SyntaxNode, string> => {
+  const signatures = new Map<SyntaxNode, string>();
+  // Each immutable canvas is inspected more than once for continuity. Gather
+  // tokens bottom-up so each leaf is normalized once, rather than at every ancestor.
+  const visit = (node: SyntaxNode): string[] => {
+    const children = Array.isArray(node.children) ? node.children : [];
+    const tokens = children.length > 0
+      ? children.flatMap(visit)
+      : (node as any).replayLayoutOnly !== true && isLexicalLeaf(node)
+        ? [normalizeToken(authoredWord(node))].filter(Boolean) : [];
+    const label = String(node.label || '').trim().toUpperCase();
+    signatures.set(node, label && tokens.length >= 2 ? `${label}|${tokens.join(' ')}` : '');
+    return tokens;
+  };
+  forest.forEach(visit);
+  return signatures;
 };
 
 const collectUniqueReplayContinuitySubtrees = (forest: SyntaxNode[] = []): Map<string, SyntaxNode> => {
   const candidates = new Map<string, SyntaxNode[]>();
+  const signatures = collectReplayContinuitySubtreeSignatures(forest);
   const visit = (node: SyntaxNode) => {
-    const signature = getReplayContinuitySubtreeSignature(node);
+    const signature = signatures.get(node);
     if (signature) {
       const entries = candidates.get(signature) || [];
       entries.push(node);
@@ -6042,8 +6026,9 @@ export const buildStructuralDerivationPlaybackSteps = (
 
     const previousContinuitySubtrees = collectUniqueReplayContinuitySubtrees(previousFrameForest);
     const currentContinuitySubtrees = new Map<string, HierNode[]>();
+    const continuitySignatures = collectReplayContinuitySubtreeSignatures([cloned]);
     visibleNodes.forEach((node) => {
-      const signature = getReplayContinuitySubtreeSignature(node.data as SyntaxNode);
+      const signature = continuitySignatures.get(node.data as SyntaxNode);
       if (!signature || !previousContinuitySubtrees.has(signature)) return;
       const entries = currentContinuitySubtrees.get(signature) || [];
       entries.push(node);
