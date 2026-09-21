@@ -1,0 +1,3439 @@
+[
+  {
+    "name": "raising-control-xbar-sol",
+    "sentence": "Mia seems to want to leave.",
+    "source": "miaLow",
+    "target": "miaHigh",
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "arguments": [
+                "proLeave"
+              ],
+              "predicate": "vLeave"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Agent"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "PRO": "proLeave",
+              "clausalBoundary": "cpLeave",
+              "nonfiniteHead": "iToLeave"
+            },
+            "relation": "PRO-theorem licensing",
+            "values": {
+              "governmentStatus": "ungoverned"
+            }
+          }
+        ],
+        "stageRecord": "The derivation begins with leave projecting a VP inside a nonfinite IP. The silent subject PRO occupies Spec-IP and receives leave's external theta-role. Nonfinite to is the head of I′. A silent C projects CP over this IP; this CP layer is the clause selected by the control verb want at the next stage. In the Government and Binding analysis adopted here, nonfinite I does not assign ordinary nominative Case or govern PRO, and the CP boundary prevents a higher verb from governing PRO. PRO therefore satisfies the PRO theorem by occupying an ungoverned subject position.",
+        "statement": "The controlled infinitival complement of want is constructed.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "cNullLeave",
+                    "label": "C⁰",
+                    "silent": true,
+                    "word": "Ø"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "proLeave",
+                        "label": "NP[PRO]",
+                        "lineageId": "proLeaveObject",
+                        "silent": true,
+                        "word": "PRO"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "iToLeave",
+                            "label": "I⁰[−finite]",
+                            "tokenIndex": 4,
+                            "word": "to"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "vLeave",
+                                    "label": "V⁰",
+                                    "tokenIndex": 5,
+                                    "word": "leave"
+                                  }
+                                ],
+                                "id": "vBarLeave",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "vpLeave",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "iBarLeave",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ipLeave",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cBarLeave",
+                "label": "C′"
+              }
+            ],
+            "id": "cpLeave",
+            "label": "CP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "arguments": [
+                "proLeave"
+              ],
+              "predicate": "vLeave"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Agent"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "PRO": "proLeave",
+              "clausalBoundary": "cpLeave",
+              "nonfiniteHead": "iToLeave"
+            },
+            "relation": "PRO-theorem licensing",
+            "values": {
+              "governmentStatus": "ungoverned"
+            }
+          },
+          {
+            "anchors": {
+              "selectedComplement": "cpLeave",
+              "selector": "vWant"
+            },
+            "relation": "Selection",
+            "values": {
+              "complementType": "control infinitive",
+              "selectedCategory": "CP"
+            }
+          },
+          {
+            "anchors": {
+              "arguments": [
+                "miaLow",
+                "cpLeave"
+              ],
+              "predicate": "vWant"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Experiencer",
+                "Proposition"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "controlledPRO": "proLeave",
+              "controller": "miaLow"
+            },
+            "relation": "Obligatory subject control",
+            "values": {
+              "dependencyType": "control rather than movement",
+              "reference": "coreferential"
+            }
+          },
+          {
+            "anchors": {
+              "caseRequiringNP": "miaLow",
+              "nonfiniteHead": "iToWant"
+            },
+            "relation": "Unlicensed overt Case requirement",
+            "values": {
+              "caseStatus": "not licensed in the embedded subject position"
+            }
+          }
+        ],
+        "stageRecord": "Want merges with the previously built CP, which meets want's selection for a controlled infinitival proposition. Want assigns its propositional theta-role to that CP and its external experiencer role to Mia, base-generated in the subject position of the higher nonfinite IP. The higher infinitival I is the first occurrence of to in the input. Because this I is nonfinite, it cannot assign nominative Case to Mia. Want is a subject-control predicate, so its theta-marked subject obligatorily controls the embedded PRO; control is not movement, and PRO remains a distinct syntactic object. The lower PRO licensing and theta assignment persist in the enlarged workspace.",
+        "statement": "Want forms a subject-control clause with Mia in its theta-position.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "miaLow",
+                "label": "NP",
+                "lineageId": "miaAChain",
+                "tokenIndex": 0,
+                "word": "Mia"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "iToWant",
+                    "label": "I⁰[−finite]",
+                    "tokenIndex": 2,
+                    "word": "to"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "vWant",
+                            "label": "V⁰",
+                            "tokenIndex": 3,
+                            "word": "want"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "cNullLeave",
+                                    "label": "C⁰",
+                                    "silent": true,
+                                    "word": "Ø"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "proLeave",
+                                        "label": "NP[PRO]",
+                                        "lineageId": "proLeaveObject",
+                                        "silent": true,
+                                        "word": "PRO"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "iToLeave",
+                                            "label": "I⁰[−finite]",
+                                            "tokenIndex": 4,
+                                            "word": "to"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "vLeave",
+                                                    "label": "V⁰",
+                                                    "tokenIndex": 5,
+                                                    "word": "leave"
+                                                  }
+                                                ],
+                                                "id": "vBarLeave",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "vpLeave",
+                                            "label": "VP"
+                                          }
+                                        ],
+                                        "id": "iBarLeave",
+                                        "label": "I′"
+                                      }
+                                    ],
+                                    "id": "ipLeave",
+                                    "label": "IP"
+                                  }
+                                ],
+                                "id": "cBarLeave",
+                                "label": "C′"
+                              }
+                            ],
+                            "id": "cpLeave",
+                            "label": "CP"
+                          }
+                        ],
+                        "id": "vBarWant",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vpWant",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBarWant",
+                "label": "I′"
+              }
+            ],
+            "id": "ipWant",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "arguments": [
+                "proLeave"
+              ],
+              "predicate": "vLeave"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Agent"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "PRO": "proLeave",
+              "clausalBoundary": "cpLeave",
+              "nonfiniteHead": "iToLeave"
+            },
+            "relation": "PRO-theorem licensing",
+            "values": {
+              "governmentStatus": "ungoverned"
+            }
+          },
+          {
+            "anchors": {
+              "selectedComplement": "cpLeave",
+              "selector": "vWant"
+            },
+            "relation": "Selection",
+            "values": {
+              "complementType": "control infinitive",
+              "selectedCategory": "CP"
+            }
+          },
+          {
+            "anchors": {
+              "arguments": [
+                "miaLow",
+                "cpLeave"
+              ],
+              "predicate": "vWant"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Experiencer",
+                "Proposition"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "controlledPRO": "proLeave",
+              "controller": "miaLow"
+            },
+            "relation": "Obligatory subject control",
+            "values": {
+              "dependencyType": "control rather than movement",
+              "reference": "coreferential"
+            }
+          },
+          {
+            "anchors": {
+              "selectedComplement": "ipWant",
+              "selector": "vSeems"
+            },
+            "relation": "Selection",
+            "values": {
+              "complementType": "raising infinitive",
+              "selectedCategory": "IP"
+            }
+          },
+          {
+            "anchors": {
+              "arguments": [
+                "ipWant"
+              ],
+              "predicate": "vSeems"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Proposition"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "matrixSubjectPosition": "npEmptyMatrix",
+              "raisingPredicate": "vSeems"
+            },
+            "relation": "Absence of external theta-role",
+            "values": {
+              "externalThetaRole": "none"
+            }
+          },
+          {
+            "anchors": {
+              "caseRequiringNP": "miaLow",
+              "nonfiniteHead": "iToWant"
+            },
+            "relation": "Unlicensed overt Case requirement",
+            "values": {
+              "caseStatus": "not licensed in the embedded subject position"
+            }
+          },
+          {
+            "anchors": {
+              "availableSpecifier": "npEmptyMatrix",
+              "finiteHead": "iMatrix"
+            },
+            "relation": "Finite subject-position availability",
+            "values": {
+              "availableCase": "nominative",
+              "specifierRequirement": "EPP"
+            }
+          }
+        ],
+        "stageRecord": "Seem merges with the infinitival IP headed by the first to. Unlike control want, raising seem selects a structurally transparent IP rather than a CP containing PRO. Seem assigns a propositional theta-role to this IP but has no external theta-role for a matrix subject. Finite matrix I is projected with tense, nominative Case, and an EPP subject position, shown at this pre-movement point as an empty position. Mia remains in the embedded position where want theta-marks it, but that position still cannot license its overt Case; finite Spec-IP is therefore the available A-position. English lexical V-to-I movement is not assumed: the whole-word terminal seems remains in VP, while finite I is an abstract silent head.",
+        "statement": "The raising predicate seem and the finite matrix clause are projected.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "npEmptyMatrix",
+                "label": "NP[empty position]",
+                "silent": true,
+                "word": "e"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "iMatrix",
+                    "label": "I⁰[+finite, present, nominative]",
+                    "silent": true,
+                    "word": "PRES"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "vSeems",
+                            "label": "V⁰",
+                            "tokenIndex": 1,
+                            "word": "seems"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "miaLow",
+                                "label": "NP",
+                                "lineageId": "miaAChain",
+                                "tokenIndex": 0,
+                                "word": "Mia"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "iToWant",
+                                    "label": "I⁰[−finite]",
+                                    "tokenIndex": 2,
+                                    "word": "to"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "vWant",
+                                            "label": "V⁰",
+                                            "tokenIndex": 3,
+                                            "word": "want"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "cNullLeave",
+                                                    "label": "C⁰",
+                                                    "silent": true,
+                                                    "word": "Ø"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "proLeave",
+                                                        "label": "NP[PRO]",
+                                                        "lineageId": "proLeaveObject",
+                                                        "silent": true,
+                                                        "word": "PRO"
+                                                      },
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "iToLeave",
+                                                            "label": "I⁰[−finite]",
+                                                            "tokenIndex": 4,
+                                                            "word": "to"
+                                                          },
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [
+                                                                  {
+                                                                    "children": [],
+                                                                    "id": "vLeave",
+                                                                    "label": "V⁰",
+                                                                    "tokenIndex": 5,
+                                                                    "word": "leave"
+                                                                  }
+                                                                ],
+                                                                "id": "vBarLeave",
+                                                                "label": "V′"
+                                                              }
+                                                            ],
+                                                            "id": "vpLeave",
+                                                            "label": "VP"
+                                                          }
+                                                        ],
+                                                        "id": "iBarLeave",
+                                                        "label": "I′"
+                                                      }
+                                                    ],
+                                                    "id": "ipLeave",
+                                                    "label": "IP"
+                                                  }
+                                                ],
+                                                "id": "cBarLeave",
+                                                "label": "C′"
+                                              }
+                                            ],
+                                            "id": "cpLeave",
+                                            "label": "CP"
+                                          }
+                                        ],
+                                        "id": "vBarWant",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "vpWant",
+                                    "label": "VP"
+                                  }
+                                ],
+                                "id": "iBarWant",
+                                "label": "I′"
+                              }
+                            ],
+                            "id": "ipWant",
+                            "label": "IP"
+                          }
+                        ],
+                        "id": "vBarSeem",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vpSeem",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBarMatrix",
+                "label": "I′"
+              }
+            ],
+            "id": "ipMatrix",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "arguments": [
+                "proLeave"
+              ],
+              "predicate": "vLeave"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Agent"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "PRO": "proLeave",
+              "clausalBoundary": "cpLeave",
+              "nonfiniteHead": "iToLeave"
+            },
+            "relation": "PRO-theorem licensing",
+            "values": {
+              "governmentStatus": "ungoverned"
+            }
+          },
+          {
+            "anchors": {
+              "selectedComplement": "cpLeave",
+              "selector": "vWant"
+            },
+            "relation": "Selection",
+            "values": {
+              "complementType": "control infinitive",
+              "selectedCategory": "CP"
+            }
+          },
+          {
+            "anchors": {
+              "arguments": [
+                "miaLow",
+                "cpLeave"
+              ],
+              "predicate": "vWant"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Experiencer",
+                "Proposition"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "selectedComplement": "ipWant",
+              "selector": "vSeems"
+            },
+            "relation": "Selection",
+            "values": {
+              "complementType": "raising infinitive",
+              "selectedCategory": "IP"
+            }
+          },
+          {
+            "anchors": {
+              "arguments": [
+                "ipWant"
+              ],
+              "predicate": "vSeems"
+            },
+            "relation": "Theta-role assignment",
+            "values": {
+              "arguments": [
+                "Proposition"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "matrixSubject": "miaHigh",
+              "raisingPredicate": "vSeems"
+            },
+            "relation": "Absence of external theta-role",
+            "values": {
+              "externalThetaRole": "none"
+            }
+          },
+          {
+            "anchors": {
+              "lowerOccurrence": "miaLow",
+              "matrixClause": "ipMatrix",
+              "raisedOccurrence": "miaHigh"
+            },
+            "priorAnchors": {
+              "source": "miaLow",
+              "target": "npEmptyMatrix"
+            },
+            "relation": "A-movement",
+            "values": {
+              "motivations": [
+                "Case Filter",
+                "EPP"
+              ],
+              "movementType": "A-movement"
+            }
+          },
+          {
+            "anchors": {
+              "occurrences": [
+                "miaHigh",
+                "miaLow"
+              ]
+            },
+            "relation": "A-chain",
+            "values": {
+              "chainType": "argument chain",
+              "pronouncedOccurrence": "higher",
+              "thetaPosition": "lower"
+            }
+          },
+          {
+            "anchors": {
+              "caseAssigner": "iMatrix",
+              "caseBearer": "miaHigh"
+            },
+            "relation": "Nominative Case assignment",
+            "values": {
+              "case": "nominative"
+            }
+          },
+          {
+            "anchors": {
+              "finiteClause": "ipMatrix",
+              "subject": "miaHigh"
+            },
+            "relation": "EPP satisfaction",
+            "values": {
+              "status": "satisfied"
+            }
+          },
+          {
+            "anchors": {
+              "antecedent": "miaHigh",
+              "trace": "miaLow"
+            },
+            "relation": "Antecedent licensing of A-trace",
+            "values": {
+              "ECPStatus": "satisfied",
+              "licensing": "antecedent government"
+            }
+          },
+          {
+            "anchors": {
+              "controlledPRO": "proLeave",
+              "controllerOccurrences": [
+                "miaHigh",
+                "miaLow"
+              ]
+            },
+            "relation": "Obligatory subject control",
+            "values": {
+              "dependencyType": "control rather than movement",
+              "reference": "coreferential"
+            }
+          }
+        ],
+        "stageRecord": "Mia moves from the embedded Spec-IP shown in the immediately preceding stage into the empty matrix Spec-IP. The higher occurrence is pronounced, while the lower occurrence is retained as a silent copy or NP-trace; both occurrences share one A-chain lineage. Movement is possible because seem assigns no external theta-role, so the landing position does not create a second theta-role, and because the selected complement is IP rather than a CP barrier. Finite I assigns nominative Case to the raised occurrence and the raised NP satisfies the matrix EPP. The lower occurrence remains the unique position to which want assigns its experiencer theta-role, preserving the theta criterion and Projection Principle. The A-chain antecedent-licenses the lower trace. Obligatory control is interpreted from the resulting Mia chain to the distinct embedded PRO, which continues to receive its own theta-role from leave. The pronounced terminals now occur in the supplied order: Mia, seems, to, want, to, leave.",
+        "statement": "Mia undergoes A-movement to matrix Spec-IP, completing the grammatical raising analysis.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "miaHigh",
+                "label": "NP",
+                "lineageId": "miaAChain",
+                "tokenIndex": 0,
+                "word": "Mia"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "iMatrix",
+                    "label": "I⁰[+finite, present, nominative]",
+                    "silent": true,
+                    "word": "PRES"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "vSeems",
+                            "label": "V⁰",
+                            "tokenIndex": 1,
+                            "word": "seems"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "miaLow",
+                                "label": "NP[trace]",
+                                "lineageId": "miaAChain",
+                                "silent": true,
+                                "word": "Mia"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "iToWant",
+                                    "label": "I⁰[−finite]",
+                                    "tokenIndex": 2,
+                                    "word": "to"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "vWant",
+                                            "label": "V⁰",
+                                            "tokenIndex": 3,
+                                            "word": "want"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "cNullLeave",
+                                                    "label": "C⁰",
+                                                    "silent": true,
+                                                    "word": "Ø"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "proLeave",
+                                                        "label": "NP[PRO]",
+                                                        "lineageId": "proLeaveObject",
+                                                        "silent": true,
+                                                        "word": "PRO"
+                                                      },
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "iToLeave",
+                                                            "label": "I⁰[−finite]",
+                                                            "tokenIndex": 4,
+                                                            "word": "to"
+                                                          },
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [
+                                                                  {
+                                                                    "children": [],
+                                                                    "id": "vLeave",
+                                                                    "label": "V⁰",
+                                                                    "tokenIndex": 5,
+                                                                    "word": "leave"
+                                                                  }
+                                                                ],
+                                                                "id": "vBarLeave",
+                                                                "label": "V′"
+                                                              }
+                                                            ],
+                                                            "id": "vpLeave",
+                                                            "label": "VP"
+                                                          }
+                                                        ],
+                                                        "id": "iBarLeave",
+                                                        "label": "I′"
+                                                      }
+                                                    ],
+                                                    "id": "ipLeave",
+                                                    "label": "IP"
+                                                  }
+                                                ],
+                                                "id": "cBarLeave",
+                                                "label": "C′"
+                                              }
+                                            ],
+                                            "id": "cpLeave",
+                                            "label": "CP"
+                                          }
+                                        ],
+                                        "id": "vBarWant",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "vpWant",
+                                    "label": "VP"
+                                  }
+                                ],
+                                "id": "iBarWant",
+                                "label": "I′"
+                              }
+                            ],
+                            "id": "ipWant",
+                            "label": "IP"
+                          }
+                        ],
+                        "id": "vBarSeem",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vpSeem",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBarMatrix",
+                "label": "I′"
+              }
+            ],
+            "id": "ipMatrix",
+            "label": "IP"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "english-negation-minimalism-sol",
+    "sentence": "No student has ever read this book.",
+    "source": "dpSubjBase",
+    "target": "dpSubjHigh",
+    "derivationStages": [
+      {
+        "relations": [],
+        "stageRecord": "The noun student projects an NP and combines with the negative quantificational determiner No, producing the subject DP No student. The noun book similarly projects an NP and combines with demonstrative this, producing the object DP this book. The remaining selected objects are participial read, NPI adverb ever, a silent transitive light verb, finite perfect auxiliary has in T, and a silent declarative C. Treating has as finite T and read as its participial predicate records the sentence-specific perfect construction.",
+        "statement": "The lexical items and the two nominal arguments are introduced.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "dNoBase",
+                "label": "D[Neg,Q]",
+                "lineageId": "noDLineage",
+                "tokenIndex": 0,
+                "word": "No"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nStudentBase",
+                    "label": "N",
+                    "lineageId": "studentNLineage",
+                    "tokenIndex": 1,
+                    "word": "student"
+                  }
+                ],
+                "id": "npStudentBase",
+                "label": "NP",
+                "lineageId": "studentNPLineage"
+              }
+            ],
+            "id": "dpSubjBase",
+            "label": "DP",
+            "lineageId": "subjectDPLineage"
+          },
+          {
+            "children": [],
+            "id": "vRead",
+            "label": "V[Part]",
+            "tokenIndex": 4,
+            "word": "read"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "dThis",
+                "label": "D[Dem]",
+                "tokenIndex": 5,
+                "word": "this"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nBook",
+                    "label": "N",
+                    "tokenIndex": 6,
+                    "word": "book"
+                  }
+                ],
+                "id": "npBook",
+                "label": "NP"
+              }
+            ],
+            "id": "dpObject",
+            "label": "DP"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "advEver",
+                "label": "Adv[NPI]",
+                "tokenIndex": 3,
+                "word": "ever"
+              }
+            ],
+            "id": "advpEver",
+            "label": "AdvP[NPI]"
+          },
+          {
+            "children": [],
+            "id": "vLight",
+            "label": "v[trans]",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "tHas",
+            "label": "T[Pres,Perf,3sg]",
+            "tokenIndex": 2,
+            "word": "has"
+          },
+          {
+            "children": [],
+            "id": "cDecl",
+            "label": "C[Decl]",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dpObject",
+              "assigner": "vRead"
+            },
+            "relation": "Theme theta-role",
+            "values": {
+              "role": "Theme"
+            }
+          }
+        ],
+        "stageRecord": "Participial read first merges with the object DP this book, assigning that DP the Theme role. The NPI adverbial ever then adjoins to the resulting VP. This low attachment places ever within the predicate that will become the nuclear scope of the negative subject, while producing the overt predicate order ever read this book.",
+        "statement": "The lexical VP is built and ever is adjoined below the external argument position.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "dNoBase",
+                "label": "D[Neg,Q]",
+                "lineageId": "noDLineage",
+                "tokenIndex": 0,
+                "word": "No"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nStudentBase",
+                    "label": "N",
+                    "lineageId": "studentNLineage",
+                    "tokenIndex": 1,
+                    "word": "student"
+                  }
+                ],
+                "id": "npStudentBase",
+                "label": "NP",
+                "lineageId": "studentNPLineage"
+              }
+            ],
+            "id": "dpSubjBase",
+            "label": "DP",
+            "lineageId": "subjectDPLineage"
+          },
+          {
+            "children": [],
+            "id": "vLight",
+            "label": "v[trans]",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "advEver",
+                    "label": "Adv[NPI]",
+                    "tokenIndex": 3,
+                    "word": "ever"
+                  }
+                ],
+                "id": "advpEver",
+                "label": "AdvP[NPI]"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "vRead",
+                    "label": "V[Part]",
+                    "tokenIndex": 4,
+                    "word": "read"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "dThis",
+                        "label": "D[Dem]",
+                        "tokenIndex": 5,
+                        "word": "this"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "nBook",
+                            "label": "N",
+                            "tokenIndex": 6,
+                            "word": "book"
+                          }
+                        ],
+                        "id": "npBook",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "dpObject",
+                    "label": "DP"
+                  }
+                ],
+                "id": "vpCore",
+                "label": "VP"
+              }
+            ],
+            "id": "vpEver",
+            "label": "VP"
+          },
+          {
+            "children": [],
+            "id": "tHas",
+            "label": "T[Pres,Perf,3sg]",
+            "tokenIndex": 2,
+            "word": "has"
+          },
+          {
+            "children": [],
+            "id": "cDecl",
+            "label": "C[Decl]",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dpObject",
+              "assigner": "vRead"
+            },
+            "relation": "Theme theta-role",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "dpSubjBase",
+              "introducer": "vLight"
+            },
+            "relation": "External theta-role",
+            "values": {
+              "role": "Reader"
+            }
+          },
+          {
+            "anchors": {
+              "licensee": "advEver",
+              "licensingDomain": "vP",
+              "licensor": "dpSubjBase"
+            },
+            "relation": "NPI licensing",
+            "values": {
+              "basis": "c-command within the downward-entailing nuclear scope of no"
+            }
+          }
+        ],
+        "stageRecord": "The silent transitive v head merges with the VP, and No student is then externally merged as the vP specifier and receives the predicate's external Reader role. From this base position the negative quantificational DP c-commands the VP containing ever. Because no creates a downward-entailing nuclear scope, this configuration licenses the polarity-sensitive adverb ever before any subject raising occurs.",
+        "statement": "The transitive vP is completed and the negative subject licenses ever.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "tHas",
+            "label": "T[Pres,Perf,3sg]",
+            "tokenIndex": 2,
+            "word": "has"
+          },
+          {
+            "children": [],
+            "id": "cDecl",
+            "label": "C[Decl]",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "dNoBase",
+                    "label": "D[Neg,Q]",
+                    "lineageId": "noDLineage",
+                    "tokenIndex": 0,
+                    "word": "No"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "nStudentBase",
+                        "label": "N",
+                        "lineageId": "studentNLineage",
+                        "tokenIndex": 1,
+                        "word": "student"
+                      }
+                    ],
+                    "id": "npStudentBase",
+                    "label": "NP",
+                    "lineageId": "studentNPLineage"
+                  }
+                ],
+                "id": "dpSubjBase",
+                "label": "DP",
+                "lineageId": "subjectDPLineage"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "vLight",
+                    "label": "v[trans]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "advEver",
+                            "label": "Adv[NPI]",
+                            "tokenIndex": 3,
+                            "word": "ever"
+                          }
+                        ],
+                        "id": "advpEver",
+                        "label": "AdvP[NPI]"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "vRead",
+                            "label": "V[Part]",
+                            "tokenIndex": 4,
+                            "word": "read"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "dThis",
+                                "label": "D[Dem]",
+                                "tokenIndex": 5,
+                                "word": "this"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "nBook",
+                                    "label": "N",
+                                    "tokenIndex": 6,
+                                    "word": "book"
+                                  }
+                                ],
+                                "id": "npBook",
+                                "label": "NP"
+                              }
+                            ],
+                            "id": "dpObject",
+                            "label": "DP"
+                          }
+                        ],
+                        "id": "vpCore",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "vpEver",
+                    "label": "VP"
+                  }
+                ],
+                "id": "vBar",
+                "label": "v′"
+              }
+            ],
+            "id": "vP",
+            "label": "vP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dpObject",
+              "assigner": "vRead"
+            },
+            "relation": "Theme theta-role",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "dpSubjBase",
+              "introducer": "vLight"
+            },
+            "relation": "External theta-role",
+            "values": {
+              "role": "Reader"
+            }
+          },
+          {
+            "anchors": {
+              "licensee": "advEver",
+              "licensingDomain": "vP",
+              "licensor": "dpSubjBase"
+            },
+            "relation": "NPI licensing",
+            "values": {
+              "basis": "c-command within the downward-entailing nuclear scope of no"
+            }
+          },
+          {
+            "anchors": {
+              "participialPredicate": "vRead",
+              "selectedDomain": "vP",
+              "selector": "tHas"
+            },
+            "relation": "Perfect-complement selection",
+            "values": {
+              "requiredForm": "past participle"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "dpSubjBase",
+              "probe": "tHas"
+            },
+            "relation": "T-subject Agree",
+            "values": {
+              "result": [
+                "third-person singular agreement on T",
+                "nominative Case on the subject DP"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "Finite has merges with the completed vP. As a perfect auxiliary, it selects a predicate whose lexical verb bears participial form; the syncretic spelling read realizes that participle in this sentence. Finite T then probes the closest accessible DP, No student. The singular DP supplies third-person singular agreement and receives nominative Case. The subject remains in its theta position at this stage, so the previously established NPI licensing relation is unchanged.",
+        "statement": "Finite perfect T merges with vP and agrees with the in-situ subject.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "cDecl",
+            "label": "C[Decl]",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "tHas",
+                "label": "T[Pres,Perf,3sg]",
+                "tokenIndex": 2,
+                "word": "has"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "dNoBase",
+                        "label": "D[Neg,Q]",
+                        "lineageId": "noDLineage",
+                        "tokenIndex": 0,
+                        "word": "No"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "nStudentBase",
+                            "label": "N",
+                            "lineageId": "studentNLineage",
+                            "tokenIndex": 1,
+                            "word": "student"
+                          }
+                        ],
+                        "id": "npStudentBase",
+                        "label": "NP",
+                        "lineageId": "studentNPLineage"
+                      }
+                    ],
+                    "id": "dpSubjBase",
+                    "label": "DP",
+                    "lineageId": "subjectDPLineage"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "vLight",
+                        "label": "v[trans]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "advEver",
+                                "label": "Adv[NPI]",
+                                "tokenIndex": 3,
+                                "word": "ever"
+                              }
+                            ],
+                            "id": "advpEver",
+                            "label": "AdvP[NPI]"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "vRead",
+                                "label": "V[Part]",
+                                "tokenIndex": 4,
+                                "word": "read"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "dThis",
+                                    "label": "D[Dem]",
+                                    "tokenIndex": 5,
+                                    "word": "this"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "nBook",
+                                        "label": "N",
+                                        "tokenIndex": 6,
+                                        "word": "book"
+                                      }
+                                    ],
+                                    "id": "npBook",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "dpObject",
+                                "label": "DP"
+                              }
+                            ],
+                            "id": "vpCore",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "vpEver",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "vBar",
+                    "label": "v′"
+                  }
+                ],
+                "id": "vP",
+                "label": "vP"
+              }
+            ],
+            "id": "tBar",
+            "label": "T′"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dpObject",
+              "assigner": "vRead"
+            },
+            "relation": "Theme theta-role",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "dpSubjBase",
+              "introducer": "vLight"
+            },
+            "relation": "External theta-role",
+            "values": {
+              "role": "Reader"
+            }
+          },
+          {
+            "anchors": {
+              "licensee": "advEver",
+              "licensingDomain": "vP",
+              "licensor": "dpSubjBase"
+            },
+            "relation": "NPI licensing",
+            "values": {
+              "basis": "c-command within the downward-entailing nuclear scope of no"
+            }
+          },
+          {
+            "anchors": {
+              "participialPredicate": "vRead",
+              "selectedDomain": "vP",
+              "selector": "tHas"
+            },
+            "relation": "Perfect-complement selection",
+            "values": {
+              "requiredForm": "past participle"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "dpSubjBase",
+              "probe": "tHas"
+            },
+            "relation": "T-subject Agree",
+            "values": {
+              "result": [
+                "third-person singular agreement on T",
+                "nominative Case on the subject DP"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "higherOccurrence": "dpSubjHigh",
+              "landingProjection": "tpClause",
+              "lowerOccurrence": "dpSubjBase",
+              "trigger": "tHas"
+            },
+            "priorAnchors": {
+              "source": "dpSubjBase",
+              "trigger": "tHas"
+            },
+            "relation": "A-chain formed by Internal Merge",
+            "values": {
+              "requirement": "EPP subject position"
+            }
+          }
+        ],
+        "stageRecord": "The EPP requirement of finite T triggers Internal Merge of No student from the already established vP-specifier position to Spec-TP. The higher occurrence is pronounced and receives the input positions for No and student; the lower occurrence remains in the theta position as a silent copy. Shared lineages identify the two DP occurrences and their corresponding internal material as copies of the same syntactic object. Agreement and NPI licensing remain anchored to the lower occurrence with which they were originally established, while the higher occurrence supplies the surface subject-before-auxiliary order.",
+        "statement": "The subject undergoes Internal Merge to the finite-clause subject position.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "cDecl",
+            "label": "C[Decl]",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "dNoHigh",
+                    "label": "D[Neg,Q]",
+                    "lineageId": "noDLineage",
+                    "tokenIndex": 0,
+                    "word": "No"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "nStudentHigh",
+                        "label": "N",
+                        "lineageId": "studentNLineage",
+                        "tokenIndex": 1,
+                        "word": "student"
+                      }
+                    ],
+                    "id": "npStudentHigh",
+                    "label": "NP",
+                    "lineageId": "studentNPLineage"
+                  }
+                ],
+                "id": "dpSubjHigh",
+                "label": "DP",
+                "lineageId": "subjectDPLineage"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "tHas",
+                    "label": "T[Pres,Perf,3sg]",
+                    "tokenIndex": 2,
+                    "word": "has"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "dNoBase",
+                            "label": "D[Neg,Q]",
+                            "lineageId": "noDLineage",
+                            "silent": true,
+                            "word": "No"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "nStudentBase",
+                                "label": "N",
+                                "lineageId": "studentNLineage",
+                                "silent": true,
+                                "word": "student"
+                              }
+                            ],
+                            "id": "npStudentBase",
+                            "label": "NP",
+                            "lineageId": "studentNPLineage",
+                            "silent": true
+                          }
+                        ],
+                        "id": "dpSubjBase",
+                        "label": "DP",
+                        "lineageId": "subjectDPLineage",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "vLight",
+                            "label": "v[trans]",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "advEver",
+                                    "label": "Adv[NPI]",
+                                    "tokenIndex": 3,
+                                    "word": "ever"
+                                  }
+                                ],
+                                "id": "advpEver",
+                                "label": "AdvP[NPI]"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "vRead",
+                                    "label": "V[Part]",
+                                    "tokenIndex": 4,
+                                    "word": "read"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "dThis",
+                                        "label": "D[Dem]",
+                                        "tokenIndex": 5,
+                                        "word": "this"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "nBook",
+                                            "label": "N",
+                                            "tokenIndex": 6,
+                                            "word": "book"
+                                          }
+                                        ],
+                                        "id": "npBook",
+                                        "label": "NP"
+                                      }
+                                    ],
+                                    "id": "dpObject",
+                                    "label": "DP"
+                                  }
+                                ],
+                                "id": "vpCore",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "vpEver",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "vBar",
+                        "label": "v′"
+                      }
+                    ],
+                    "id": "vP",
+                    "label": "vP"
+                  }
+                ],
+                "id": "tBar",
+                "label": "T′"
+              }
+            ],
+            "id": "tpClause",
+            "label": "TP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dpObject",
+              "assigner": "vRead"
+            },
+            "relation": "Theme theta-role",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "dpSubjBase",
+              "introducer": "vLight"
+            },
+            "relation": "External theta-role",
+            "values": {
+              "role": "Reader"
+            }
+          },
+          {
+            "anchors": {
+              "licensee": "advEver",
+              "licensingDomain": "vP",
+              "licensor": "dpSubjBase"
+            },
+            "relation": "NPI licensing",
+            "values": {
+              "basis": "c-command within the downward-entailing nuclear scope of no"
+            }
+          },
+          {
+            "anchors": {
+              "participialPredicate": "vRead",
+              "selectedDomain": "vP",
+              "selector": "tHas"
+            },
+            "relation": "Perfect-complement selection",
+            "values": {
+              "requiredForm": "past participle"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "dpSubjBase",
+              "probe": "tHas"
+            },
+            "relation": "T-subject Agree",
+            "values": {
+              "result": [
+                "third-person singular agreement on T",
+                "nominative Case on the subject DP"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "higherOccurrence": "dpSubjHigh",
+              "landingProjection": "tpClause",
+              "lowerOccurrence": "dpSubjBase",
+              "trigger": "tHas"
+            },
+            "relation": "A-chain formed by Internal Merge",
+            "values": {
+              "requirement": "EPP subject position"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cpRoot",
+              "forceHead": "cDecl"
+            },
+            "relation": "Clause typing",
+            "values": {
+              "auxiliaryMovement": "none",
+              "force": "declarative"
+            }
+          }
+        ],
+        "stageRecord": "The silent declarative C merges with TP and supplies declarative clause force. Because C bears no interrogative feature, it does not attract has, so the auxiliary remains in T after the raised subject. The completed CP pronounces the higher subject copy followed by has, ever, participial read, and this book. The lower subject copy and the functional heads v and C are silent. The derivation is licit: third-person singular has agrees with No student, the perfect auxiliary selects participial read, and ever is licensed in the downward-entailing scope established by the negative subject.",
+        "statement": "A silent declarative C completes the clause.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "cDecl",
+                "label": "C[Decl]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "dNoHigh",
+                        "label": "D[Neg,Q]",
+                        "lineageId": "noDLineage",
+                        "tokenIndex": 0,
+                        "word": "No"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "nStudentHigh",
+                            "label": "N",
+                            "lineageId": "studentNLineage",
+                            "tokenIndex": 1,
+                            "word": "student"
+                          }
+                        ],
+                        "id": "npStudentHigh",
+                        "label": "NP",
+                        "lineageId": "studentNPLineage"
+                      }
+                    ],
+                    "id": "dpSubjHigh",
+                    "label": "DP",
+                    "lineageId": "subjectDPLineage"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "tHas",
+                        "label": "T[Pres,Perf,3sg]",
+                        "tokenIndex": 2,
+                        "word": "has"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "dNoBase",
+                                "label": "D[Neg,Q]",
+                                "lineageId": "noDLineage",
+                                "silent": true,
+                                "word": "No"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "nStudentBase",
+                                    "label": "N",
+                                    "lineageId": "studentNLineage",
+                                    "silent": true,
+                                    "word": "student"
+                                  }
+                                ],
+                                "id": "npStudentBase",
+                                "label": "NP",
+                                "lineageId": "studentNPLineage",
+                                "silent": true
+                              }
+                            ],
+                            "id": "dpSubjBase",
+                            "label": "DP",
+                            "lineageId": "subjectDPLineage",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "vLight",
+                                "label": "v[trans]",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "advEver",
+                                        "label": "Adv[NPI]",
+                                        "tokenIndex": 3,
+                                        "word": "ever"
+                                      }
+                                    ],
+                                    "id": "advpEver",
+                                    "label": "AdvP[NPI]"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "vRead",
+                                        "label": "V[Part]",
+                                        "tokenIndex": 4,
+                                        "word": "read"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "dThis",
+                                            "label": "D[Dem]",
+                                            "tokenIndex": 5,
+                                            "word": "this"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "nBook",
+                                                "label": "N",
+                                                "tokenIndex": 6,
+                                                "word": "book"
+                                              }
+                                            ],
+                                            "id": "npBook",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "dpObject",
+                                        "label": "DP"
+                                      }
+                                    ],
+                                    "id": "vpCore",
+                                    "label": "VP"
+                                  }
+                                ],
+                                "id": "vpEver",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "vBar",
+                            "label": "v′"
+                          }
+                        ],
+                        "id": "vP",
+                        "label": "vP"
+                      }
+                    ],
+                    "id": "tBar",
+                    "label": "T′"
+                  }
+                ],
+                "id": "tpClause",
+                "label": "TP"
+              }
+            ],
+            "id": "cpRoot",
+            "label": "CP"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "english-negation-minimalism-astra",
+    "sentence": "No student has ever read this book.",
+    "source": "hasLow",
+    "target": "hasHigh",
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "object",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "theme"
+            }
+          }
+        ],
+        "stageRecord": "External Merge combines the demonstrative this with book, producing an object labeled D. Merge then combines read with that object, producing a constituent labeled V. These are Bare Phrase Structure objects: their labels identify the projecting lexical category, without introducing an X-bar template. Read is selected in its participial use, as required by the perfect auxiliary that will enter later; its surface form is already the whole word read. The object receives the theme interpretation of read.",
+        "statement": "Construct the participial predicate and its demonstrative object.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "read",
+                "label": "V[participle]",
+                "tokenIndex": 4,
+                "word": "read"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "this",
+                    "label": "D",
+                    "tokenIndex": 5,
+                    "word": "this"
+                  },
+                  {
+                    "children": [],
+                    "id": "book",
+                    "label": "N",
+                    "tokenIndex": 6,
+                    "word": "book"
+                  }
+                ],
+                "id": "object",
+                "label": "D"
+              }
+            ],
+            "id": "predicate",
+            "label": "V"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "subjectLow",
+              "predicate": "v"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "agent"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "object",
+              "licensor": "v"
+            },
+            "relation": "Case licensing",
+            "values": {
+              "case": "accusative"
+            }
+          },
+          {
+            "anchors": {
+              "licensor": "subjectLow",
+              "negativeDeterminer": "noLow",
+              "polarityItem": "ever"
+            },
+            "relation": "negative-polarity licensing",
+            "values": {
+              "environment": "c-command by a downward-entailing negative quantificational subject",
+              "interpretation": "ever means at any relevant time or occasion"
+            }
+          }
+        ],
+        "stageRecord": "Ever is externally merged as a left adjunct to the verbal predicate. The adjunct does not change the predicate's V label and contributes existential quantification over relevant times or occasions. A silent transitive v then merges with this predicate. Independently, No merges with student to form a negative quantificational D object, which merges as the external argument of v. The subject receives the agent role, and transitive v licenses the object's accusative Case. Although the determiner No does not itself c-command out of its nominal constituent, the negative quantificational subject does c-command ever. On the selected polarity analysis, that subject supplies the downward-entailing environment required by negative-polarity ever.",
+        "statement": "Introduce ever and the negative external argument.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "noLow",
+                    "label": "D[negative]",
+                    "lineageId": "negativeDeterminerChain",
+                    "tokenIndex": 0,
+                    "word": "No"
+                  },
+                  {
+                    "children": [],
+                    "id": "studentLow",
+                    "label": "N",
+                    "lineageId": "studentChain",
+                    "tokenIndex": 1,
+                    "word": "student"
+                  }
+                ],
+                "id": "subjectLow",
+                "label": "D[negative]",
+                "lineageId": "subjectChain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "v",
+                    "label": "v[transitive]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "ever",
+                        "label": "Adv[NPI]",
+                        "tokenIndex": 3,
+                        "word": "ever"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "read",
+                            "label": "V[participle]",
+                            "tokenIndex": 4,
+                            "word": "read"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "this",
+                                "label": "D",
+                                "tokenIndex": 5,
+                                "word": "this"
+                              },
+                              {
+                                "children": [],
+                                "id": "book",
+                                "label": "N",
+                                "tokenIndex": 6,
+                                "word": "book"
+                              }
+                            ],
+                            "id": "object",
+                            "label": "D"
+                          }
+                        ],
+                        "id": "predicate",
+                        "label": "V"
+                      }
+                    ],
+                    "id": "modifiedPredicate",
+                    "label": "V"
+                  }
+                ],
+                "id": "vCore",
+                "label": "v"
+              }
+            ],
+            "id": "externalArgumentStructure",
+            "label": "v"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "participle": "read",
+              "selector": "hasLow"
+            },
+            "relation": "perfect participle selection",
+            "values": {
+              "requiredForm": "past participle"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "subjectLow",
+              "probe": "tense"
+            },
+            "relation": "Agree and nominative licensing",
+            "values": {
+              "case": "nominative",
+              "number": "singular",
+              "person": "third"
+            }
+          },
+          {
+            "anchors": {
+              "agreementGoal": "subjectLow",
+              "auxiliary": "hasLow",
+              "tense": "tense"
+            },
+            "relation": "finite auxiliary feature compatibility",
+            "values": {
+              "agreement": "third-person singular",
+              "auxiliaryForm": "has",
+              "tenseValue": "present"
+            }
+          }
+        ],
+        "stageRecord": "The perfect auxiliary has externally merges with the participial v structure, and silent present-tense T merges above the resulting Perf object. This analysis locates the auxiliary initially in Perf rather than inserting it directly in T. The participial selection requirement is satisfied by read. T probes its domain and agrees with the singular third-person subject, licensing nominative Case. Has is treated as an inflected whole-word lexical item whose finite features are checked against T; it is not decomposed into separately realized morphological pieces. The subject and auxiliary remain in their original positions at this stage, providing the source positions for subsequent Internal Merge.",
+        "statement": "Build perfect aspect beneath finite present T.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "tense",
+                "label": "T[present, finite, EPP]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "hasLow",
+                    "label": "Perf",
+                    "lineageId": "auxiliaryChain",
+                    "tokenIndex": 2,
+                    "word": "has"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "noLow",
+                            "label": "D[negative]",
+                            "lineageId": "negativeDeterminerChain",
+                            "tokenIndex": 0,
+                            "word": "No"
+                          },
+                          {
+                            "children": [],
+                            "id": "studentLow",
+                            "label": "N",
+                            "lineageId": "studentChain",
+                            "tokenIndex": 1,
+                            "word": "student"
+                          }
+                        ],
+                        "id": "subjectLow",
+                        "label": "D[negative]",
+                        "lineageId": "subjectChain"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "v",
+                            "label": "v[transitive]",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "ever",
+                                "label": "Adv[NPI]",
+                                "tokenIndex": 3,
+                                "word": "ever"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "read",
+                                    "label": "V[participle]",
+                                    "tokenIndex": 4,
+                                    "word": "read"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "this",
+                                        "label": "D",
+                                        "tokenIndex": 5,
+                                        "word": "this"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "book",
+                                        "label": "N",
+                                        "tokenIndex": 6,
+                                        "word": "book"
+                                      }
+                                    ],
+                                    "id": "object",
+                                    "label": "D"
+                                  }
+                                ],
+                                "id": "predicate",
+                                "label": "V"
+                              }
+                            ],
+                            "id": "modifiedPredicate",
+                            "label": "V"
+                          }
+                        ],
+                        "id": "vCore",
+                        "label": "v"
+                      }
+                    ],
+                    "id": "externalArgumentStructure",
+                    "label": "v"
+                  }
+                ],
+                "id": "perfect",
+                "label": "Perf"
+              }
+            ],
+            "id": "tenseCore",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "hasHigh",
+              "lowerOccurrence": "hasLow",
+              "resultingHead": "finiteHead",
+              "target": "tense"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "hasLow",
+              "target": "tense"
+            },
+            "relation": "auxiliary head movement",
+            "values": {
+              "dependency": "Perf-to-T",
+              "pronunciation": "higher auxiliary copy pronounced; lower copy silent"
+            }
+          }
+        ],
+        "stageRecord": "The auxiliary undergoes head movement from its previously established Perf position to T. The analysis represents this as a higher auxiliary copy adjoined to T, with the lower Perf occurrence retained but unpronounced. The resulting complex head is labeled T. This commitment captures the English finite auxiliary's position above the lexical predicate and ever, without raising the lexical verb read. The existing T occurrence is retained inside the new complex head. The auxiliary's highest occurrence now supplies the input word has; this changes the pronunciation site, not its lexical form.",
+        "statement": "Raise the perfect auxiliary to T.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "hasHigh",
+                    "label": "Perf",
+                    "lineageId": "auxiliaryChain",
+                    "tokenIndex": 2,
+                    "word": "has"
+                  },
+                  {
+                    "children": [],
+                    "id": "tense",
+                    "label": "T[present, finite, EPP]",
+                    "silent": true
+                  }
+                ],
+                "id": "finiteHead",
+                "label": "T"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "hasLow",
+                    "label": "Perf",
+                    "lineageId": "auxiliaryChain",
+                    "silent": true,
+                    "word": "has"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "noLow",
+                            "label": "D[negative]",
+                            "lineageId": "negativeDeterminerChain",
+                            "tokenIndex": 0,
+                            "word": "No"
+                          },
+                          {
+                            "children": [],
+                            "id": "studentLow",
+                            "label": "N",
+                            "lineageId": "studentChain",
+                            "tokenIndex": 1,
+                            "word": "student"
+                          }
+                        ],
+                        "id": "subjectLow",
+                        "label": "D[negative]",
+                        "lineageId": "subjectChain"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "v",
+                            "label": "v[transitive]",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "ever",
+                                "label": "Adv[NPI]",
+                                "tokenIndex": 3,
+                                "word": "ever"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "read",
+                                    "label": "V[participle]",
+                                    "tokenIndex": 4,
+                                    "word": "read"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "this",
+                                        "label": "D",
+                                        "tokenIndex": 5,
+                                        "word": "this"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "book",
+                                        "label": "N",
+                                        "tokenIndex": 6,
+                                        "word": "book"
+                                      }
+                                    ],
+                                    "id": "object",
+                                    "label": "D"
+                                  }
+                                ],
+                                "id": "predicate",
+                                "label": "V"
+                              }
+                            ],
+                            "id": "modifiedPredicate",
+                            "label": "V"
+                          }
+                        ],
+                        "id": "vCore",
+                        "label": "v"
+                      }
+                    ],
+                    "id": "externalArgumentStructure",
+                    "label": "v"
+                  }
+                ],
+                "id": "perfect",
+                "label": "Perf"
+              }
+            ],
+            "id": "tenseCore",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "subjectHigh",
+              "lowerOccurrence": "subjectLow",
+              "resultingProjection": "finiteClause",
+              "trigger": "tense"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "subjectLow",
+              "targetProjection": "tenseCore"
+            },
+            "relation": "subject Internal Merge",
+            "values": {
+              "pronunciation": "higher subject copy pronounced; lower copy silent",
+              "requirement": "EPP"
+            }
+          },
+          {
+            "anchors": {
+              "higherOccurrence": "hasHigh",
+              "lowerOccurrence": "hasLow"
+            },
+            "relation": "auxiliary copy dependency",
+            "values": {
+              "dependency": "Perf-to-T",
+              "pronunciation": "higher auxiliary copy pronounced"
+            }
+          },
+          {
+            "anchors": {
+              "licensor": "subjectHigh",
+              "lowerSubjectOccurrence": "subjectLow",
+              "polarityItem": "ever"
+            },
+            "relation": "negative-polarity licensing",
+            "values": {
+              "environment": "ever is in the negative subject's downward-entailing scope"
+            }
+          },
+          {
+            "anchors": {
+              "object": "object",
+              "quantifier": "subjectHigh",
+              "scopeDomain": "perfect",
+              "temporalPolarityItem": "ever"
+            },
+            "relation": "scope interpretation",
+            "values": {
+              "reading": "No student is such that the student has read this book at any relevant time."
+            }
+          },
+          {
+            "anchors": {
+              "root": "clause"
+            },
+            "relation": "grammaticality judgment",
+            "values": {
+              "framework": "Minimalist Program with Bare Phrase Structure and copy-based movement",
+              "judgment": "grammatical"
+            }
+          }
+        ],
+        "stageRecord": "Internal Merge copies the subject from its established external-argument position to the edge of T, satisfying T's EPP requirement. The higher subject occurrence is pronounced and the lower occurrence is silent; its internal determiner–noun structure is preserved. A silent declarative C then merges with the completed T object. The pronounced terminal order is exactly No student has ever read this book. The sentence is grammatical: finite agreement is singular, perfect has selects participial read, both arguments receive Case, and the negative subject licenses ever. The negative quantifier takes scope over the perfect proposition: there is no student who has read the demonstrated book at any relevant time. Its lower occurrence already provided a licensing configuration for ever before subject movement, so no exceptional licensing across an unlicensed intermediate structure is required. The demonstrative identifies the book; contextual differences in its referent do not introduce a separate syntactic reading.",
+        "statement": "Raise the subject and complete the grammatical declarative clause.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "declarativeC",
+                "label": "C[declarative]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "noHigh",
+                        "label": "D[negative]",
+                        "lineageId": "negativeDeterminerChain",
+                        "tokenIndex": 0,
+                        "word": "No"
+                      },
+                      {
+                        "children": [],
+                        "id": "studentHigh",
+                        "label": "N",
+                        "lineageId": "studentChain",
+                        "tokenIndex": 1,
+                        "word": "student"
+                      }
+                    ],
+                    "id": "subjectHigh",
+                    "label": "D[negative]",
+                    "lineageId": "subjectChain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "hasHigh",
+                            "label": "Perf",
+                            "lineageId": "auxiliaryChain",
+                            "tokenIndex": 2,
+                            "word": "has"
+                          },
+                          {
+                            "children": [],
+                            "id": "tense",
+                            "label": "T[present, finite, EPP]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteHead",
+                        "label": "T"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "hasLow",
+                            "label": "Perf",
+                            "lineageId": "auxiliaryChain",
+                            "silent": true,
+                            "word": "has"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "noLow",
+                                    "label": "D[negative]",
+                                    "lineageId": "negativeDeterminerChain",
+                                    "silent": true,
+                                    "word": "No"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "studentLow",
+                                    "label": "N",
+                                    "lineageId": "studentChain",
+                                    "silent": true,
+                                    "word": "student"
+                                  }
+                                ],
+                                "id": "subjectLow",
+                                "label": "D[negative]",
+                                "lineageId": "subjectChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "v",
+                                    "label": "v[transitive]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "ever",
+                                        "label": "Adv[NPI]",
+                                        "tokenIndex": 3,
+                                        "word": "ever"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "read",
+                                            "label": "V[participle]",
+                                            "tokenIndex": 4,
+                                            "word": "read"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "this",
+                                                "label": "D",
+                                                "tokenIndex": 5,
+                                                "word": "this"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "book",
+                                                "label": "N",
+                                                "tokenIndex": 6,
+                                                "word": "book"
+                                              }
+                                            ],
+                                            "id": "object",
+                                            "label": "D"
+                                          }
+                                        ],
+                                        "id": "predicate",
+                                        "label": "V"
+                                      }
+                                    ],
+                                    "id": "modifiedPredicate",
+                                    "label": "V"
+                                  }
+                                ],
+                                "id": "vCore",
+                                "label": "v"
+                              }
+                            ],
+                            "id": "externalArgumentStructure",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "perfect",
+                        "label": "Perf"
+                      }
+                    ],
+                    "id": "tenseCore",
+                    "label": "T"
+                  }
+                ],
+                "id": "finiteClause",
+                "label": "T"
+              }
+            ],
+            "id": "clause",
+            "label": "C"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "english-passive-minimalism-astra",
+    "sentence": "The books seem to have been read.",
+    "source": "dp1",
+    "target": "dp2",
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "dp0",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "Theme"
+            }
+          }
+        ],
+        "stageRecord": "External Merge combines The with books, and then combines the resulting nominal object with read. The nominal is the Theme of read, not an external argument of seem. Labels identify the projecting heads in Bare Phrase Structure; the branching does not introduce independent phrase-level or bar-level symbols. Read is selected in its participial use, although its spelling alone does not distinguish that use. The nominal remains pronounced in its initial position at this stage; lower-copy nonpronunciation will be established when movement occurs.",
+        "statement": "Construct the lexical predicate with the books as its internal argument.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "read",
+                "label": "V[participle]",
+                "tokenIndex": 6,
+                "word": "read"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "the0",
+                    "label": "D",
+                    "lineageId": "determiner",
+                    "tokenIndex": 0,
+                    "word": "The"
+                  },
+                  {
+                    "children": [],
+                    "id": "books0",
+                    "label": "N[plural]",
+                    "lineageId": "noun",
+                    "tokenIndex": 1,
+                    "word": "books"
+                  }
+                ],
+                "id": "dp0",
+                "label": "D",
+                "lineageId": "booksArgument"
+              }
+            ],
+            "id": "readProjection",
+            "label": "V"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "selectedHead": "read",
+              "selector": "been"
+            },
+            "relation": "auxiliary form selection",
+            "values": {
+              "requiredForm": "passive participle"
+            }
+          },
+          {
+            "anchors": {
+              "selectedHead": "been",
+              "selector": "have"
+            },
+            "relation": "auxiliary form selection",
+            "values": {
+              "requiredForm": "past participle"
+            }
+          },
+          {
+            "anchors": {
+              "licensor": "to",
+              "selectedHead": "have"
+            },
+            "relation": "infinitival form licensing",
+            "values": {
+              "requiredForm": "bare form"
+            }
+          },
+          {
+            "anchors": {
+              "infinitivalHead": "to",
+              "nominal": "dp0",
+              "passiveHead": "been"
+            },
+            "relation": "unvalued structural Case",
+            "values": {
+              "status": "Neither passive Voice nor infinitival T values the nominal's structural Case."
+            }
+          }
+        ],
+        "stageRecord": "Merge passive been with the projection of read, merge perfect have above the passive projection, and then merge infinitival to. This order gives to scope over the perfect, and the perfect scope over the passive. The analysis treats been as the overt passive Voice head rather than introducing an additional silent passive auxiliary. Passive Voice licenses the participial complement but introduces no overt external-argument nominal and supplies no structural accusative Case to the books. Have selects the participial form been; infinitival to licenses the bare form have. These are whole-word lexical terminals, so no split morphological realization is required. The infinitival T head cannot itself value nominative Case on the books.",
+        "statement": "Build the perfect passive infinitive above the internal argument.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "to",
+                "label": "T[infinitival, EPP]",
+                "tokenIndex": 3,
+                "word": "to"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "have",
+                    "label": "Perf[bare]",
+                    "tokenIndex": 4,
+                    "word": "have"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "been",
+                        "label": "Voice[passive, participle]",
+                        "tokenIndex": 5,
+                        "word": "been"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "read",
+                            "label": "V[participle]",
+                            "tokenIndex": 6,
+                            "word": "read"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "the0",
+                                "label": "D",
+                                "lineageId": "determiner",
+                                "tokenIndex": 0,
+                                "word": "The"
+                              },
+                              {
+                                "children": [],
+                                "id": "books0",
+                                "label": "N[plural]",
+                                "lineageId": "noun",
+                                "tokenIndex": 1,
+                                "word": "books"
+                              }
+                            ],
+                            "id": "dp0",
+                            "label": "D",
+                            "lineageId": "booksArgument"
+                          }
+                        ],
+                        "id": "readProjection",
+                        "label": "V"
+                      }
+                    ],
+                    "id": "passiveProjection",
+                    "label": "Voice"
+                  }
+                ],
+                "id": "perfectProjection",
+                "label": "Perf"
+              }
+            ],
+            "id": "infinitivalCore",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "attractingHead": "to",
+              "lowerOccurrence": "dp0",
+              "raisedOccurrence": "dp1"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "dp0"
+            },
+            "relation": "A-movement",
+            "values": {
+              "CaseAfterMovement": "unvalued",
+              "trigger": "infinitival EPP"
+            }
+          },
+          {
+            "anchors": {
+              "pronouncedOccurrence": "dp1",
+              "unpronouncedOccurrence": "dp0"
+            },
+            "relation": "copy pronunciation",
+            "values": {
+              "choice": "Pronounce the highest occurrence currently established."
+            }
+          }
+        ],
+        "stageRecord": "Internal Merge copies the books from the complement position already present under read to the edge of the infinitival T projection. This analysis gives infinitival T an EPP requirement, so movement passes through its subject position rather than proceeding directly to the matrix clause. The new occurrence receives pronunciation, and the thematic occurrence is retained as an unpronounced copy. The movement adds no theta-role and does not value Case: the nominal must remain accessible to a higher finite probe. Passive Voice is taken to be nonphasal here, so this step crosses no intervening strong phase boundary.",
+        "statement": "Raise the internal argument to the embedded infinitival subject position.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "the1",
+                    "label": "D",
+                    "lineageId": "determiner",
+                    "tokenIndex": 0,
+                    "word": "The"
+                  },
+                  {
+                    "children": [],
+                    "id": "books1",
+                    "label": "N[plural]",
+                    "lineageId": "noun",
+                    "tokenIndex": 1,
+                    "word": "books"
+                  }
+                ],
+                "id": "dp1",
+                "label": "D",
+                "lineageId": "booksArgument"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "to",
+                    "label": "T[infinitival, EPP]",
+                    "tokenIndex": 3,
+                    "word": "to"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "have",
+                        "label": "Perf[bare]",
+                        "tokenIndex": 4,
+                        "word": "have"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "been",
+                            "label": "Voice[passive, participle]",
+                            "tokenIndex": 5,
+                            "word": "been"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "read",
+                                "label": "V[participle]",
+                                "tokenIndex": 6,
+                                "word": "read"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "the0",
+                                    "label": "D",
+                                    "lineageId": "determiner",
+                                    "silent": true,
+                                    "word": "The"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "books0",
+                                    "label": "N[plural]",
+                                    "lineageId": "noun",
+                                    "silent": true,
+                                    "word": "books"
+                                  }
+                                ],
+                                "id": "dp0",
+                                "label": "D",
+                                "lineageId": "booksArgument",
+                                "silent": true
+                              }
+                            ],
+                            "id": "readProjection",
+                            "label": "V"
+                          }
+                        ],
+                        "id": "passiveProjection",
+                        "label": "Voice"
+                      }
+                    ],
+                    "id": "perfectProjection",
+                    "label": "Perf"
+                  }
+                ],
+                "id": "infinitivalCore",
+                "label": "T"
+              }
+            ],
+            "id": "infinitivalProjection",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "accessibleNominal": "dp1",
+              "complement": "infinitivalProjection",
+              "predicate": "seem"
+            },
+            "relation": "raising complement selection",
+            "values": {
+              "complementType": "transparent infinitival T projection",
+              "externalThetaRole": "none"
+            }
+          }
+        ],
+        "stageRecord": "External Merge combines seem with the completed infinitival projection, and finite present T is then merged above that predicate. Seem selects a transparent infinitival T complement, not a CP containing an independent subject or PRO. It assigns no external theta-role, so the analysis introduces neither a thematic matrix subject nor an agentive matrix Voice layer. The matrix T head is an abstract, unpronounced head; seem is retained as a whole-word lexical form rather than decomposed into a stem and tense suffix. Its compatibility with present tense and plural agreement will be licensed after matrix Agree. The embedded subject occurrence is now the closest accessible nominal goal.",
+        "statement": "Introduce the matrix raising predicate and finite T.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "finiteT",
+                "label": "T[present, finite, uPhi, EPP]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "seem",
+                    "label": "V[raising]",
+                    "tokenIndex": 2,
+                    "word": "seem"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "the1",
+                            "label": "D",
+                            "lineageId": "determiner",
+                            "tokenIndex": 0,
+                            "word": "The"
+                          },
+                          {
+                            "children": [],
+                            "id": "books1",
+                            "label": "N[plural]",
+                            "lineageId": "noun",
+                            "tokenIndex": 1,
+                            "word": "books"
+                          }
+                        ],
+                        "id": "dp1",
+                        "label": "D",
+                        "lineageId": "booksArgument"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "to",
+                            "label": "T[infinitival, EPP]",
+                            "tokenIndex": 3,
+                            "word": "to"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "have",
+                                "label": "Perf[bare]",
+                                "tokenIndex": 4,
+                                "word": "have"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "been",
+                                    "label": "Voice[passive, participle]",
+                                    "tokenIndex": 5,
+                                    "word": "been"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V[participle]",
+                                        "tokenIndex": 6,
+                                        "word": "read"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "the0",
+                                            "label": "D",
+                                            "lineageId": "determiner",
+                                            "silent": true,
+                                            "word": "The"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "books0",
+                                            "label": "N[plural]",
+                                            "lineageId": "noun",
+                                            "silent": true,
+                                            "word": "books"
+                                          }
+                                        ],
+                                        "id": "dp0",
+                                        "label": "D",
+                                        "lineageId": "booksArgument",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "readProjection",
+                                    "label": "V"
+                                  }
+                                ],
+                                "id": "passiveProjection",
+                                "label": "Voice"
+                              }
+                            ],
+                            "id": "perfectProjection",
+                            "label": "Perf"
+                          }
+                        ],
+                        "id": "infinitivalCore",
+                        "label": "T"
+                      }
+                    ],
+                    "id": "infinitivalProjection",
+                    "label": "T"
+                  }
+                ],
+                "id": "seemProjection",
+                "label": "V"
+              }
+            ],
+            "id": "matrixCore",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "goal": "dp1",
+              "probe": "finiteT"
+            },
+            "relation": "Agree and Case valuation",
+            "values": {
+              "Case": "nominative",
+              "phiFeatures": "third-person plural"
+            }
+          },
+          {
+            "anchors": {
+              "attractingHead": "finiteT",
+              "lowerOccurrence": "dp1",
+              "raisedOccurrence": "dp2"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "dp1"
+            },
+            "relation": "A-movement",
+            "values": {
+              "trigger": "matrix EPP"
+            }
+          },
+          {
+            "anchors": {
+              "finiteHead": "finiteT",
+              "lexicalVerb": "seem"
+            },
+            "relation": "finite form licensing",
+            "values": {
+              "agreement": "third-person plural",
+              "licensedForm": "seem",
+              "tense": "present"
+            }
+          },
+          {
+            "anchors": {
+              "CaseLicensor": "finiteT",
+              "highestOccurrence": "dp2",
+              "intermediateOccurrence": "dp1",
+              "thematicOccurrence": "dp0",
+              "thetaRoleAssigner": "read"
+            },
+            "relation": "completed A-chain",
+            "values": {
+              "Case": "nominative",
+              "thetaRole": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "pronouncedOccurrence": "dp2",
+              "unpronouncedOccurrences": [
+                "dp1",
+                "dp0"
+              ]
+            },
+            "relation": "copy pronunciation",
+            "values": {
+              "choice": "Pronounce only the highest occurrence of the completed A-chain."
+            }
+          },
+          {
+            "anchors": {
+              "root": "matrixProjection"
+            },
+            "relation": "grammaticality judgment",
+            "values": {
+              "basis": "Theta-role, Case, agreement, and EPP requirements are satisfied.",
+              "judgment": "grammatical"
+            }
+          }
+        ],
+        "stageRecord": "Finite T first Agrees with the embedded subject occurrence of the books, obtaining third-person plural features and valuing the nominal's Case as nominative. Its EPP requirement then triggers Internal Merge of that occurrence into the matrix subject position. The embedded subject occurrence and the original object occurrence remain as silent copies; only the matrix occurrence is pronounced. The nominal thus receives its sole theta-role from read but receives nominative Case from matrix T, the characteristic division of labor in passive plus raising. The finite lexical form seem is licensed by present T with plural agreement; no overt verb movement or separate morphological token is posited. The final root is the finite T projection, with no independently required complementizer layer. The derivation is grammatical: passive blocks object accusative, the infinitive leaves Case unresolved, and matrix Agree resolves it without an intervening competing nominal or opaque phase. Ignoring the silent copies and abstract T, the terminals yield exactly The books seem to have been read.",
+        "statement": "Complete matrix raising, nominative licensing, and surface pronunciation.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "the2",
+                    "label": "D",
+                    "lineageId": "determiner",
+                    "tokenIndex": 0,
+                    "word": "The"
+                  },
+                  {
+                    "children": [],
+                    "id": "books2",
+                    "label": "N[plural]",
+                    "lineageId": "noun",
+                    "tokenIndex": 1,
+                    "word": "books"
+                  }
+                ],
+                "id": "dp2",
+                "label": "D",
+                "lineageId": "booksArgument"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "finiteT",
+                    "label": "T[present, finite, third-person plural, EPP satisfied]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "seem",
+                        "label": "V[raising]",
+                        "tokenIndex": 2,
+                        "word": "seem"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "the1",
+                                "label": "D",
+                                "lineageId": "determiner",
+                                "silent": true,
+                                "word": "The"
+                              },
+                              {
+                                "children": [],
+                                "id": "books1",
+                                "label": "N[plural]",
+                                "lineageId": "noun",
+                                "silent": true,
+                                "word": "books"
+                              }
+                            ],
+                            "id": "dp1",
+                            "label": "D",
+                            "lineageId": "booksArgument",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "to",
+                                "label": "T[infinitival, EPP]",
+                                "tokenIndex": 3,
+                                "word": "to"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "have",
+                                    "label": "Perf[bare]",
+                                    "tokenIndex": 4,
+                                    "word": "have"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "been",
+                                        "label": "Voice[passive, participle]",
+                                        "tokenIndex": 5,
+                                        "word": "been"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "read",
+                                            "label": "V[participle]",
+                                            "tokenIndex": 6,
+                                            "word": "read"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "the0",
+                                                "label": "D",
+                                                "lineageId": "determiner",
+                                                "silent": true,
+                                                "word": "The"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "books0",
+                                                "label": "N[plural]",
+                                                "lineageId": "noun",
+                                                "silent": true,
+                                                "word": "books"
+                                              }
+                                            ],
+                                            "id": "dp0",
+                                            "label": "D",
+                                            "lineageId": "booksArgument",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "readProjection",
+                                        "label": "V"
+                                      }
+                                    ],
+                                    "id": "passiveProjection",
+                                    "label": "Voice"
+                                  }
+                                ],
+                                "id": "perfectProjection",
+                                "label": "Perf"
+                              }
+                            ],
+                            "id": "infinitivalCore",
+                            "label": "T"
+                          }
+                        ],
+                        "id": "infinitivalProjection",
+                        "label": "T"
+                      }
+                    ],
+                    "id": "seemProjection",
+                    "label": "V"
+                  }
+                ],
+                "id": "matrixCore",
+                "label": "T"
+              }
+            ],
+            "id": "matrixProjection",
+            "label": "T"
+          }
+        ]
+      }
+    ]
+  }
+]

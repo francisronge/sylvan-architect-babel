@@ -3424,19 +3424,21 @@ export const compileRelationRenderPlan = (
    * authored linguistic claims are incompatible merely because they share a
    * visual channel: exactly identical marks are visually coalesced with every
    * contributing relation instance retained in `coalescedRefs`; distinct
-   * marks remain distinct except for theta-grid rows and shared binding paths,
-   * whose pieces retain their separate histories. The geometry binder routes
+   * marks remain distinct except for theta-grid rows, shared binding paths and
+   * repeated descriptions of one unchanged movement. These pieces retain their
+   * separate histories. The geometry binder routes
    * other marks apart. Replacement happens only through explicitly declared
    * replace-previous-instance family metadata, upstream of this pass.
    */
   /*
-   * Two items may paint once only when they are the SAME COMPLETE semantic
-   * claim: same registered render family and every meaning-bearing field —
+   * The general key requires the same complete semantic claim: the same
+   * registered render family and every meaning-bearing field —
    * anchors, antecedents, labels, values, outcomes, ghost/member sets, the
    * backward cue, all of it. Sharing a route or a site is not identity; an
    * ellipsis claim naming a different antecedent, or a coincident path from
-   * a different family, is a distinct authored claim and must survive for
-   * collision routing. The key is therefore the canonical serialization of
+   * a different family, remains a distinct authored claim. The explicit grid,
+   * binding and movement sharing rules below retain each claim's ownership.
+   * The general key is the canonical serialization of
    * the whole item minus provenance bookkeeping (`relationRef`,
    * `coalescedRefs`) and the appearance stage — a persisted claim and an
    * identical later restatement still paint once in their co-visible frames.
@@ -3533,11 +3535,14 @@ export const compileRelationRenderPlan = (
     return null;
   };
   const unchangedMovementInk = (part: RelationPlanItem) => {
-    if (part.kind !== 'trajectory' || part.familyId !== 'tier2.movement-path') return null;
-    return Object.fromEntries(Object.entries(part).filter(([field]) =>
-      !COALESCE_EXCLUDED_FIELDS.has(field)
-      && !['canonicalClaimIdentity', 'replacementGroup', 'claimTier',
-        'tier2ClaimIdentity', 'tier2OutputIdentities', 'tier2OutputPieces'].includes(field)));
+    if (part.kind !== 'trajectory' || !['phrasal', 'head'].includes(part.trajectoryKind)) return null;
+    // A later chain description can share the movement's exact curve, including
+    // across tiers. Prior-anchor bookkeeping is retained on each relation ref;
+    // it does not make a second movement between the same exact occurrences.
+    return { kind: part.trajectoryKind, source: part.sourceNodeId, target: part.targetNodeId,
+      witness: part.witnessNodeId, sourceAttachment: part.sourceAttachment, targetAttachment: part.targetAttachment,
+      headLandingSite: part.headLandingSite, departures: part.orthogonalDepartureNodeIds,
+      outcome: part.outcome, supersededAt: part.supersededAt };
   };
   const retainsMovementOccurrences = (earlier: RelationPlanItem, later: RelationPlanItem) => {
     if (earlier.kind !== 'trajectory' || later.kind !== 'trajectory') return false;

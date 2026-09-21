@@ -27,6 +27,7 @@ interface RealizationChange {
   before: SurfaceRealization[];
   after: SurfaceRealization[];
   relationIndex: number | null;
+  candidateRelationIndices?: number[];
   diagnostic?: string;
 }
 
@@ -83,8 +84,10 @@ export const resolveRealizationChanges = (
     });
     if (candidates.length === 1) return { ...change, relationIndex: candidates[0] };
     const reason = candidates.length === 0 ? 'MISSING_OWNER' : 'AMBIGUOUS_OWNER';
-    return { ...change, relationIndex: null,
-      diagnostic: `REALIZATION_${reason}: Stage ${stageIndex + 1} has no unique exact relation owner for input positions ${[...new Set([...change.before, ...change.after].flatMap(group => group.tokenIndices))].sort((a, b) => a - b).join(', ')}.` };
+    return { ...change, relationIndex: null, candidateRelationIndices: candidates,
+      diagnostic: `REALIZATION_${reason}: Stage ${stageIndex + 1}, input positions ${[...new Set([...change.before, ...change.after].flatMap(group => group.tokenIndices))].sort((a, b) => a - b).join(', ')}. ${candidates.length
+        ? `Relations ${candidates.map(index => index + 1).join(', ')} cover the same change.`
+        : 'No relation covers the complete change.'} The association becomes visible at the Stage Record.` };
   });
 };
 

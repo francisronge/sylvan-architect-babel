@@ -300,6 +300,17 @@ export const relationRoleConcepts = (
   // An introducer supplies a thematic source only in a thematic claim. The
   // same word alone can describe structural introduction or other relations.
   if (spelling === 'introducer' && thetaDomain && !featureDomain) concepts.add('predicate');
+  // An explicitly assigning/introducing role identifies the source. A separate
+  // predicate names its lexical context, just as a Case exponent is not a licenser.
+  const explicitThetaSource = thetaDomain && !featureDomain && Object.keys(context.anchors ?? {}).some(role => {
+    const normalized = singularRole(normalizeTier2Synonym(role));
+    return normalized === 'introducer'
+      || qualifiedAssignmentConcepts(role).includes('predicate') && !/ (?:head|predicate)$/u.test(normalized)
+      || assignmentDirection(normalized) === 'source';
+  });
+  if (explicitThetaSource && ['predicate', 'head', 'theta predicate', 'thematic predicate', 'theta head', 'thematic head'].includes(spelling)) {
+    concepts.delete('predicate');
+  }
   const pairedCase = Object.keys(context.anchors ?? {}).some(role =>
     /^case /.test(normalizeTier2Synonym(role)) && qualifiedAssignmentConcepts(role).includes('feature.target')
     && nonBlankLiteral(context.values?.[role]));

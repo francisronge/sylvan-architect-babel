@@ -63,6 +63,12 @@ assigner or recipient. Ambiguous chains and unpaired literals remain neutral.
 Phrasal movement's attracting head is context, not a second
 endpoint or proof of head movement; it retains its neutral annotation.
 
+When the same thematic claim names an explicit introducer or assigner and a
+separate lexical predicate, the directed role owns the assignment. The predicate
+reference remains neutral context with its original value and occurrence. This
+does not select among two introducers, two assigning heads, or an unpaired list
+of assigners and arguments; those still require independent association evidence.
+
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
 explicit agreement value, can establish a feature dependency. Governing heads
@@ -786,6 +792,14 @@ anchors or screen geometry alone never establish identity.
 Different supersession moments keep separate visibility lifetimes. Same-stage
 composition considers all retained authored references, and a carried drawing
 must not reveal a newly composed feature bundle before its own relation moment.
+
+A later chain description may share an established head or phrasal movement
+curve across tiers when the exact source, target, witness, attachment choices,
+landing transfers, outcome and visibility lifetime match. Those occurrences must
+retain their nonempty lineages through every intervening stage. Prior-anchor
+bookkeeping remains on each contributing relation reference; both Replay moments
+and explanations survive. Different intermediate and final landings never merge.
+This shares the trajectory only, not the complete authored claims.
 
 Theta grids may combine overlapping inventories for the same exact predicate
 occurrence and lineage, provided shared recipients have identical role labels and

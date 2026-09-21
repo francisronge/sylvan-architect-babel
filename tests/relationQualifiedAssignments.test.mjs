@@ -46,6 +46,25 @@ test('introducer requires thematic evidence and cannot select a source from comp
   }
 });
 
+test('an explicit thematic introducer owns the assignment while its lexical predicate stays contextual', () => {
+  for (const source of ['introducer', 'thetaAssigner', 'thematicSource', 'θ-introducer']) {
+    for (const entries of [[['predicate', 'other'], [source, 'source']], [[source, 'source'], ['predicate', 'other']]]) {
+      const relation = { relation: 'An unfamiliar claim', anchors: { ...Object.fromEntries(entries), argument: 'argument' }, values: { role: 'Agent' } };
+      const before = structuredClone(relation), d = dispatch(relation);
+      const grid = plan(relation).find(item => item.plaqueStyle === 'theta-grid');
+      assert(grid, JSON.stringify(relation));
+      assert.deepEqual(grid.anchorNodeIds, ['source']);
+      assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [{ nodeId: 'argument', label: 'Agent' }]);
+      assert.deepEqual(d.evidenceCoverage.fields.find(field => field.key === 'predicate').unrecoveredItemIndices, [0]);
+      assert.deepEqual(relation, before);
+    }
+  }
+  for (const anchors of [
+    { introducer: ['source', 'other'], predicate: 'vp', argument: 'argument' },
+    { introducer: 'source', thetaAssigner: 'other', predicate: 'vp', argument: 'argument' }
+  ]) assert(!plan({ relation: 'An unfamiliar claim', anchors, values: { role: 'Agent' } }).some(item => item.plaqueStyle === 'theta-grid'));
+});
+
 test('licensed phrase identifies the Case recipient without consuming its distinct exponent', () => {
   for (const source of ['governor', 'licenser', 'licensor']) {
     for (const recipient of ['licensedPhrase', 'licensed_constituent', 'licensed-nominal', 'licensedDP', 'licensed-XP']) {

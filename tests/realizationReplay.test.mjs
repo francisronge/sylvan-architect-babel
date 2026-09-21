@@ -105,6 +105,24 @@ test('ambiguous realization descriptions never win by wording or list order', ()
   }
 });
 
+test('a stem change and its input-token association remain distinct claims with explicit timing evidence', () => {
+  const stages = [stage(), stage([group(['root'], [0, 1])], [
+    { relation: 'Past-conditioned stem allomorphy', anchors: { stem: 'root', conditioner: 'past' },
+      values: { lexicalCitationForm: '書く', surfaceStem: '書い' } },
+    { relation: 'Orthographic input association', anchors: { stem: 'root' },
+      values: { inputPiecesInOrder: ['書', 'い'] } }
+  ])];
+  const before = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+  const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
+  assert.deepEqual(change.candidateRelationIndices, [0, 1]);
+  assert.match(change.diagnostic, /Relations 1, 2.*Stage Record/);
+  const steps = play(stages);
+  assert.deepEqual(moments(steps, 1).map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  assert(moments(steps, 1).every(step => step.replayRealizations.length === 0));
+  assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
+  assert.deepEqual(stages, before);
+});
+
 test('realizations survive stage, frame and snapshot projections without mutating the authored record', () => {
   const stages = [stage([group()], [relation(['root', 'past'])])];
   const original = structuredClone(stages);
