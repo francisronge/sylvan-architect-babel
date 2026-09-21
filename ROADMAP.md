@@ -25,8 +25,12 @@ Current candidate, awaiting final user review:
 2. Plaque clearance now checks the actual reserved connector curve in either
    allocation order. This removes a Japanese grid's unnecessary later jump.
    German plaques keep their accepted nearby positions and curved approaches.
-   The English plaque remains above T: the nearby lower pockets intersect later
-   syntax or movement. Tree layout and Orchard connector geometry are unchanged.
+   The English plaque remains above T, but its lone dotted collector can now
+   leave the bottom edge. This also supports top attachments and reserves the
+   chosen edge across Replay; blocked vertical routes can retain the existing
+   side connection. D6's multiple row collectors keep their original geometry.
+   A Japanese Case arrow now leaves the side of T's word instead of starting
+   inside the V label below it. Tree layout and authored relations are unchanged.
 3. The thematic reader accepts an explicit introducer as the assigning source
    when a separate predicate is also named. This recovers two Arabic claims and
    preserves the predicate as context. When several relations cover one

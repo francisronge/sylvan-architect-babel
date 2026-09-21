@@ -4,7 +4,7 @@ import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompile
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows } from '../replay/relations/plaqueTextLayout.ts';
 import { dottedCollectionPath } from '../replay/relations/markGeometry.ts';
-import { featureCollectionPlaquePath } from '../replay/relations/overlayGeometry.ts';
+import { featureCollectionPlaquePath, featureCollectionPlaqueCurve, featureCollectionEdge } from '../replay/relations/overlayGeometry.ts';
 const tree = { id: 'root', label: 'PP', children: [{ id: 'p', label: 'P' }, { id: 'k', label: 'KP', children: [
   { id: 'num', label: 'Num', word: 'books' }, { id: 'n', label: 'N' }
 ] }] };
@@ -91,17 +91,34 @@ test('collection geometry attaches to its row and feature source on either side 
   }
 });
 
-test('plaque collections use the original Orchard geometry, including short and vertical spans', () => {
+test('reserved side collections retain original Orchard geometry, including short and vertical spans', () => {
   const plaque = { x: 0, y: 0, width: 310, height: 262 };
   for (const target of [{ x: 1000, y: 70 }, { x: -500, y: 400 }, { x: 330, y: 55 },
     { x: 322, y: 500 }, { x: -12, y: -500 }]) {
     for (const lane of [0, 1, 2]) {
       const rect = { ...target, width: 0, height: 0 };
       const start = { x: target.x >= 155 ? 322 : -12, y: 50 };
-      assert.equal(featureCollectionPlaquePath(plaque, 50, rect, lane), dottedCollectionPath(start, target, lane),
+      assert.equal(featureCollectionPlaquePath(plaque, 50, rect, lane, target.x >= 155 ? 'right' : 'left'), dottedCollectionPath(start, target, lane),
         'Tier 2 must use the same curve as the original drawing');
     }
   }
+});
+
+test('vertical collections leave the plaque edge facing the source and retain the shared handles', () => {
+  const plaque = { x: 100, y: 100, width: 480, height: 238 };
+  for (const [edge, label] of [
+    ['bottom', { x: 390, y: 900, width: 60, height: 52 }],
+    ['top', { x: 180, y: -700, width: 60, height: 52 }]
+  ]) {
+    assert.equal(featureCollectionEdge(plaque, 274, label), edge);
+    const curve = featureCollectionPlaqueCurve(plaque, 274, label);
+    assert.equal(curve.source.y, edge === 'bottom' ? 350 : 88);
+    assert.equal(curve.source.x, label.x + label.width / 2);
+    assert.equal(curve.target.y, edge === 'bottom' ? label.y : label.y + label.height);
+    assert.equal(featureCollectionPlaquePath(plaque, 274, label), dottedCollectionPath(curve.source, curve.target));
+  }
+  const diagonal = { x: 2000, y: 800, width: 60, height: 52 };
+  assert.equal(featureCollectionEdge(plaque, 274, diagonal), 'right', 'wide D6 collectors stay on their value row');
 });
 
 test('Case and agreement for the same pair share a plaque without changing each row owner', () => {

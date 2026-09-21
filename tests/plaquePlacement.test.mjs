@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { caseAssignmentSource, collectionPlaqueClears, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentSource, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
@@ -17,6 +17,27 @@ const plaque = (ids, long = false) => ({ kind: 'node-plaque', plaqueStyle: 'feat
 const tree = () => d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', label: 'XP', children: [
   { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }
 ]}));
+
+test('a vertical collector reserves its edge, checks its actual curve, and keeps the edge during projection', () => {
+  const nodes = tree().descendants();
+  const destination = nodes.find(node => node.data.id === 'right');
+  destination.x = 200; destination.y = 1000;
+  const box = { x: 0, y: 0, width: 480, height: 238, collectionRows: [
+    { sourceNodeId: 'right', y: 174, ownerKeys: ['0:0'] }
+  ], attachmentNodeId: 'left', attachmentX: 0, attachmentY: 0 };
+  const allocated = prepareCollectionPlaqueSpace(nodes).attach(box);
+  assert.equal(allocated.collectionRows[0].edge, 'bottom');
+  const blocker = { x: 175, y: 480, width: 50, height: 50, blocksConnectors: true };
+  assert(!collectionPlaqueClears(allocated, nodes, [blocker]), 'bottom clearance checks the whole drawn path');
+  const projected = projectPlaqueLayout(new Map([[0, allocated]]), () => ({ x: 600, y: 300 })).get(0);
+  assert.equal(projected.collectionRows[0].edge, 'bottom', 'projection must not reselect the edge');
+  assert.equal(projected.x, 600);
+  assert.equal(projected.y, 300);
+  const multiple = prepareCollectionPlaqueSpace(nodes).attach({ ...box, collectionRows: [
+    ...box.collectionRows, { sourceNodeId: 'right', y: 212, ownerKeys: ['0:1'] }
+  ] });
+  assert(multiple.collectionRows.every(row => row.edge === 'side'), 'multiple rows keep their own direct attachment');
+});
 
 test('a later Case arrow cannot displace a carried grid when their actual ink remains clear', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/stable-complex-head-plaques.json', import.meta.url)));

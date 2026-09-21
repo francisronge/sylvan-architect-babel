@@ -18,6 +18,16 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
     : centerX > plaque.x + plaque.width
       ? { x: plaque.x + plaque.width + 12, y: rowY, side: 'right' }
       : { x: centerX, y: assigner.y < plaque.y ? plaque.y - 12 : plaque.y + plaque.height + 12, side: 'vertical' };
+  // A row beside the word must leave its side, not the space beneath it,
+  // which may already belong to the next category label.
+  if (target.side !== 'vertical' && rowY >= assigner.y && rowY <= assigner.y + assigner.height) {
+    const direction = target.side === 'left' ? 1 : -1;
+    const source = { x: direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8,
+      y: assigner.y + assigner.height / 2 };
+    const approach = Math.min(76, Math.abs(target.x - source.x) / 2);
+    return { source, target, control1: { x: source.x + direction * approach, y: source.y },
+      control2: { x: target.x - direction * approach, y: target.y } };
+  }
   const source = { x: centerX, y: target.y < assigner.y
     ? assigner.y - 8 : assigner.y + assigner.height + 8 };
   const bendY = (target.y - source.y) / 2;
@@ -38,18 +48,39 @@ export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: num
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
 
-/** Attach the shared Orchard collection geometry to a plaque row and source label. */
-export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0) {
-  const right = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2;
-  const source = { x: right ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
-  const target = { x: right ? sourceRect.x : sourceRect.x + sourceRect.width,
-    y: sourceRect.y + sourceRect.height / 2 };
+export type CollectionEdge = 'left' | 'right' | 'top' | 'bottom' | 'side';
+
+/** Prefer a vertical edge only when the label is outside the box and mostly above/below it. */
+export function featureCollectionEdge(plaque: Rect, rowY: number, sourceRect: Rect): CollectionEdge {
+  const dx = sourceRect.x + sourceRect.width / 2 - plaque.x - plaque.width / 2;
+  const dy = sourceRect.y + sourceRect.height / 2 - rowY;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    if (sourceRect.y > plaque.y + plaque.height + 24) return 'bottom';
+    if (sourceRect.y + sourceRect.height < plaque.y - 24) return 'top';
+  }
+  return dx >= 0 ? 'right' : 'left';
+}
+
+/** Keep Orchard handles and lane spacing; the reserved edge determines the attachment. */
+export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0,
+  edge = featureCollectionEdge(plaque, rowY, sourceRect)) {
+  if (edge === 'side') edge = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2 ? 'right' : 'left';
+  const vertical = edge === 'top' || edge === 'bottom';
+  const centerX = sourceRect.x + sourceRect.width / 2;
+  const source = vertical
+    ? { x: Math.max(plaque.x + 24, Math.min(plaque.x + plaque.width - 24, centerX)),
+      y: edge === 'bottom' ? plaque.y + plaque.height + 12 : plaque.y - 12 }
+    : { x: edge === 'right' ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
+  const target = vertical
+    ? { x: centerX, y: edge === 'bottom' ? sourceRect.y : sourceRect.y + sourceRect.height }
+    : { x: edge === 'right' ? sourceRect.x : sourceRect.x + sourceRect.width,
+      y: sourceRect.y + sourceRect.height / 2 };
   const [control1, control2] = dottedCollectionControls(source, target, lane);
   return { source, target, control1, control2 };
 }
 
-export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0): string {
-  const { source, target, control1, control2 } = featureCollectionPlaqueCurve(plaque, rowY, sourceRect, lane);
+export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0, edge?: CollectionEdge): string {
+  const { source, target, control1, control2 } = featureCollectionPlaqueCurve(plaque, rowY, sourceRect, lane, edge);
   return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${control1.x.toFixed(1)} ${control1.y.toFixed(1)},`
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }

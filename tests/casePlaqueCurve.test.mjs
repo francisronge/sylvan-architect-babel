@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
+import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
+
+test('a Case row beside its source exits the source side, clear of the category below', () => {
+  // Measured Japanese final-frame word and wrapped V label, in tree coordinates.
+  const word = { x: 5379.99, y: 1122.62, width: 64.56, height: 68.94 };
+  const lowerCategory = { x: 5268.90, y: 1175.27, width: 278.19, height: 99.71 };
+  for (const direction of [-1, 1]) {
+    const plaque = { x: direction > 0 ? 5928 : 4500, y: 1033.4, width: 380, height: 138 };
+    const curve = caseAssignmentPlaqueCurve(word, plaque, plaque.y + 93);
+    assert.equal(curve.source.y, word.y + word.height / 2);
+    assert.equal(curve.source.x, direction > 0 ? word.x + word.width + 8 : word.x - 8);
+    assert(!cubicIntersectsRect(curve, lowerCategory, 6), 'the arrow must not start in or cross V');
+    assert(!cubicIntersectsRect(curve, word, 6), 'the arrow must leave the word clear');
+  }
+});
 
 test('near-aligned Case arrows retain a visible turn into either side of the plaque', () => {
   const source = { x: -75, y: -60, width: 150, height: 60 };

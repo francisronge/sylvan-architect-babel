@@ -203,13 +203,22 @@ space but do not print placeholders. Layout reserves the combined content before
 reveal; plaques widen up to 480 units before long rows wrap. D6 retains its original
 short-row dimensions. Dotted collections call the same geometry helper as Orchard:
 handles follow the main separation axis, with the same lane offsets and no added
-collision bow. Placement checks the fixed curve against opaque labels across
-future Replay frames; the painter neither reroutes nor cuts it. Source measurements
+collision bow. A plaque with one collector may attach at its bottom or top when
+the connected label is mostly below or above it. Multiple collectors retain
+row-side attachments so each path identifies its own value. Allocation checks
+the preferred vertical attachment and the original side route against the claim's
+complete lifetime. A clear side route remains available when the vertical route
+is obstructed. The selected vertical edge is stored with that row and passed
+unchanged to projection, worker serialization and painting. Placement checks the
+fixed curve against opaque labels across future Replay frames; the painter neither reroutes nor cuts it. Source measurements
 are reused within each allocation search. Collection plaques and their paths reserve space
 before other plaques, including grids introduced in earlier stages. Each plaque
 keeps its chosen offset throughout Replay. The curved Case approach is positioned
 by its own row; nearby clear pockets are ranked by actual arrow length, so adding
 rows above Case does not automatically push its target downward.
+When a Case row sits alongside its assigner's label, its arrow leaves the facing
+side of that label rather than the bottom. This avoids making the arrow appear
+to originate from a different category immediately below the assigner.
 
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that

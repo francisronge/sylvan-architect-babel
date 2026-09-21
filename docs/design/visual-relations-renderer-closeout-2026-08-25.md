@@ -74,6 +74,18 @@ to size their approach, capped at the existing 76-unit handle. They retain a
 curved turn into the Case row instead of collapsing into a straight stem with a
 tiny hook. Ordinary wide side approaches and vertical attachments retain their
 accepted geometry; placement checks use the same curve as the painter.
+Case rows beside the source label now use its facing side as the origin. The
+Japanese nominative arrow previously left the bottom of T's word inside the
+wrapped V label below it. The source identity and separate Case plaques remain
+unchanged; tree layout is not adjusted.
+
+A lone dotted collector may now leave the plaque's bottom or top when its source
+is mostly below or above it. The allocator verifies that edge through future
+frames and keeps it with the row. If that route is blocked, the existing side
+route remains available. Multiple collectors retain their row-side associations,
+including D6's Number and Gender paths. The curve handles, dash styling, ownership
+and reveal timing are shared with the existing drawing.
+
 Allocation now runs in a worker after chunked browser text measurement. In the
 local bundled German review, full readiness took about 1.4 seconds, compared with
 1.1 seconds before this change; the longest main-thread task fell from 902ms to

@@ -7,7 +7,7 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques, caseAssignmentSource, collectionPlaqueEdge } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
@@ -169,7 +169,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
     planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    featureCollectionPlaquePath, collectionPlaqueEdge, decorateRelationElement() {}, relationEmphasisForItem: () => null,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,7 +208,7 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath,
+    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPlaqueEdge,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
@@ -221,6 +221,28 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   productionFunction('drawCaseFeatureComposition', dependencies)(0);
   return root;
 }
+
+test('a shared plaque paints the collector at its reserved edge and keeps its owning relation moment', () => {
+  const items = compileRelationRenderPlan([{ statement: 'Values.', stageRecord: 'Two claims.', workspaceForest: [
+    { id: 'root', label: 'TP', children: [{ id: 't', label: 'T' }, { id: 'd', label: 'D' }] }
+  ], relations: [
+    { relation: 'CaseAssignment', anchors: { assigner: 't', bearer: 'd' }, values: { Case: 'nominative' } },
+    { relation: 'Specifier-head agreement', anchors: { head: 't', specifier: 'd' }, values: { agreement: 'plural' } }
+  ] }]).frames[0].items;
+  const assignment = items.find(item => item.pathStyle === 'case-assignment');
+  assert.equal(items[0], assignment);
+  const composition = caseFeatureComposition(items, 0);
+  const layout = prepareCasePlaqueRows(composition.rows);
+  const rowY = layout.rows[1].y;
+  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd', y: rowY, edge: 'bottom' }] };
+  const source = { x: 1000, y: 100, width: 100, height: 60 };
+  const painted = drawCasePlaque(assignment, placement, source, items);
+  const path = descendants(painted).find(node => matches(node, '.babel-case-collection-path'));
+  assert.equal(path.attrs.d, featureCollectionPlaquePath(placement, rowY, source, 0, 'bottom'));
+  const beforeAgree = drawCasePlaque(assignment, placement, source, items, [0]);
+  assert(!descendants(beforeAgree).some(node => matches(node, '.babel-case-collection-path')),
+    'a reserved bottom attachment does not reveal its feature claim early');
+});
 
 test('a coalesced Case path still composes with a later-stage feature plaque in layout and painting', () => {
   const item = { kind: 'directed-path', pathStyle: 'case-assignment', fromNodeId: 'v', toNodeId: 'dp',
