@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
-import { preparePlaqueObstacleIndex } from '../replay/relations/plaqueObstacleIndex.ts';
+import { plaquesOverlap, preparePlaqueObstacleIndex, translateObstacle } from '../replay/relations/plaqueObstacleIndex.ts';
 
 test('a long diagonal connector does not occupy the empty corners of its sample rectangles', () => {
   const curve = { source: { x: 0, y: 0 }, control1: { x: 1000, y: 1000 },
@@ -24,4 +24,18 @@ test('curve clearance catches the bowed middle, tangent contact, and the stroke 
   assert.equal(cubicIntersectsRect(curve, { x: 49, y: 78, width: 2, height: 2 }, 4), true);
   assert.equal(cubicIntersectsRect(curve, { x: 49, y: 78, width: 2, height: 2 }, 2), false);
   assert.equal(cubicIntersectsRect(curve, { x: 45, y: 0, width: 10, height: 10 }, 0), false);
+});
+
+test('placing a plaque beside a reserved arrow uses the same ink clearance as placing the arrow beside the plaque', () => {
+  const curve = { source: { x: 0, y: 0 }, control1: { x: 100, y: 100 },
+    control2: { x: 200, y: 200 }, target: { x: 300, y: 300 } };
+  const obstacle = { x: -8, y: -8, width: 316, height: 316, curve, curvePadding: 8 };
+  const clear = { x: 160, y: 40, width: 40, height: 40 }, blocked = { x: 140, y: 140, width: 40, height: 40 };
+  assert(!plaquesOverlap(clear, obstacle));
+  assert(plaquesOverlap(blocked, obstacle));
+  assert.equal(preparePlaqueObstacleIndex([obstacle]).overlaps(clear), false);
+  const shifted = translateObstacle(obstacle, 2000, -700);
+  assert(!plaquesOverlap(translateObstacle(clear, 2000, -700), shifted));
+  assert(plaquesOverlap(translateObstacle(blocked, 2000, -700), shifted));
+  assert.deepEqual(obstacle.curve, curve, 'projecting a future frame cannot mutate the original curve');
 });

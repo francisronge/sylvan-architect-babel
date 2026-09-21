@@ -1,9 +1,22 @@
-export type ObstacleRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean };
+import { cubicIntersectsRect, type Cubic } from './curveClearance.ts';
+
+export type ObstacleRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
+  curve?: Cubic; curvePadding?: number };
 
 export const plaquesOverlap = (a: ObstacleRect, b: ObstacleRect, gap = 24): boolean =>
   a.x < b.x + b.width + gap && a.x + a.width + gap > b.x
   && (b.extendsDownward || a.y < b.y + b.height + gap)
-  && (a.extendsDownward || a.y + a.height + gap > b.y);
+  && (a.extendsDownward || a.y + a.height + gap > b.y)
+  && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding ?? 0))
+  && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding ?? 0));
+
+/** A lifetime reservation carries its precise curve with its bounding boxes. */
+export function translateObstacle<T extends ObstacleRect>(box: T, dx: number, dy: number): T {
+  const point = (p: { x: number; y: number }) => ({ x: p.x + dx, y: p.y + dy });
+  return { ...box, x: box.x + dx, y: box.y + dy,
+    ...(box.curve ? { curve: { source: point(box.curve.source), control1: point(box.curve.control1),
+      control2: point(box.curve.control2), target: point(box.curve.target) } } : {}) };
+}
 
 /** Immutable broad-phase lookup. Exact edge and gap rules still come from plaquesOverlap. */
 export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: readonly T[]) {

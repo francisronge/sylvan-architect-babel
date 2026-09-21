@@ -18,6 +18,26 @@ const tree = () => d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', lab
   { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }
 ]}));
 
+test('a later Case arrow cannot displace a carried grid when their actual ink remains clear', () => {
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/stable-complex-head-plaques.json', import.meta.url)));
+  const replay = prepareReplay({ ...record, includePlayback: true });
+  const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan,
+    width: 1596, height: 1016, layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),
+    completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) };
+  const layouts = buildReplayPlaqueLayouts(input), prior = new Map();
+  let carried = 0;
+  layouts.forEach((layout, stageIndex) => layout.forEach((box, index) => {
+    const item = input.plan.frames[stageIndex].items[index], key = plaqueIdentity(item), old = prior.get(key);
+    if (old) {
+      carried++;
+      assert(Math.abs(box.x - box.attachmentX - old.x + old.attachmentX) < 1e-7);
+      assert(Math.abs(box.y - box.attachmentY - old.y + old.attachmentY) < 1e-7);
+    }
+    prior.set(key, box);
+  }));
+  assert(carried >= 10);
+});
+
 test('short category labels reserve their measured text instead of a fixed wide box', () => {
   const nodes = tree().descendants();
   for (const textWidth of [24, 110]) {

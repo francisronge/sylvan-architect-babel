@@ -49,7 +49,7 @@ const union = (rects: PlaqueRect[]): PlaqueRect => {
 export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
   const seen = new Set<string>();
   return obstacles.filter(box => {
-    const key = `${box.x},${box.y},${box.width},${box.height},${Boolean(box.extendsDownward)}`;
+    const key = `${box.x},${box.y},${box.width},${box.height},${Boolean(box.extendsDownward)},${box.curve ? JSON.stringify([box.curve, box.curvePadding]) : ''}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -146,12 +146,8 @@ const caseSourceRect = (anchor: Node): PlaqueRect => {
 };
 
 const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect): PlaqueRect[] => {
-  const { source, control1, control2, target } = caseAssignmentPlaqueCurve(sourceRect, box, box.y + (box.caseRowY ?? 93));
-  const points = sampleCubic(source, control1, control2, target, 32);
-  return points.slice(1).map((point, i) => ({
-    x: Math.min(points[i].x, point.x) - 8, y: Math.min(points[i].y, point.y) - 8,
-    width: Math.abs(points[i].x - point.x) + 16, height: Math.abs(points[i].y - point.y) + 16
-  }));
+  const curve = caseAssignmentPlaqueCurve(sourceRect, box, box.y + (box.caseRowY ?? 93));
+  return curveObstacleRects(curve, 8);
 };
 const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => caseRouteRectsFrom(caseSourceRect(anchor), box);
 
@@ -161,6 +157,16 @@ const curveBounds = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, pad
   const y = Math.min(source.y, control1.y, control2.y, target.y) - padding;
   return { x, y, width: Math.max(source.x, control1.x, control2.x, target.x) + padding - x,
     height: Math.max(source.y, control1.y, control2.y, target.y) + padding - y };
+};
+
+/** Exact subcurve hulls keep broad bounds conservative without filling their empty corners. */
+const curveObstacleRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number, depth = 5): PlaqueRect[] => {
+  if (depth === 0) return [{ ...curveBounds(curve, padding), curve, curvePadding: padding }];
+  const middle = (a: { x: number; y: number }, b: { x: number; y: number }) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const ab = middle(curve.source, curve.control1), bc = middle(curve.control1, curve.control2), cd = middle(curve.control2, curve.target);
+  const abc = middle(ab, bc), bcd = middle(bc, cd), split = middle(abc, bcd);
+  return [...curveObstacleRects({ source: curve.source, control1: ab, control2: abc, target: split }, padding, depth - 1),
+    ...curveObstacleRects({ source: split, control1: bcd, control2: cd, target: curve.target }, padding, depth - 1)];
 };
 
 /** Test the drawn approach against opaque ink, leaving its own attachment available. */
@@ -250,11 +256,7 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
 }
 
 const collectionRouteRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>) => {
-  const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 32);
-  return points.slice(1).map((point, i) => ({
-    x: Math.min(points[i].x, point.x) - 6, y: Math.min(points[i].y, point.y) - 6,
-    width: Math.abs(points[i].x - point.x) + 12, height: Math.abs(points[i].y - point.y) + 12
-  }));
+  return curveObstacleRects(curve, 6);
 };
 
 /** Fixed Orchard collection curves stay clear by placement, never by rerouting. */

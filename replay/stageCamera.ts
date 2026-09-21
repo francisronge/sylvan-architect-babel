@@ -13,8 +13,9 @@ import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from '
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, uniquePlaqueObstacles, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
+import { translateObstacle } from './relations/plaqueObstacleIndex.ts';
 
-type StageLayoutInput = {
+export type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
   plan: RelationRenderPlan | null; width: number; height: number;
   direction?: TreeDirection;
@@ -161,7 +162,7 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
         });
         return {
           obstacles: uniquePlaqueObstacles(futureScenes.flatMap(scene => scene.obstacles.map(box =>
-            ({ ...box, x: box.x + scene.dx, y: box.y + scene.dy })))),
+            translateObstacle(box, scene.dx, scene.dy)))),
           connectorCandidateXs: box => futureScenes.flatMap(scene =>
             scene.collectionSpace.candidateXs({ ...box, x: box.x - scene.dx, y: box.y - scene.dy })
               .map(x => x + scene.dx)),

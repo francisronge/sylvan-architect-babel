@@ -1,0 +1,1088 @@
+{
+  "sentence": "太郎が本を読んだ。",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "vComplex",
+            "lexicalRoot": "vRoot",
+            "nasalExponent": "mOnbin"
+          },
+          "relation": "nasal-onbin stem formation",
+          "values": {
+            "process": "撥音便",
+            "resultingStem": "読ん"
+          }
+        }
+      ],
+      "stageRecord": "The proper name 太郎 and the common noun 本 project NPs. Each NP combines with a following case head inside a head-final KP: が is the nominative exponent and を the accusative exponent. The verbal material 読 and ん forms one complex V head; ん is analyzed as the nasal-onbin component of the stem 読ん rather than as an independent argument-taking head. The final だ is selected as the overt finite past T head. Every supplied token is therefore associated with an ordinary pronounced terminal. The ideographic full stop in the displayed sentence is an orthographic delimiter and is not part of the supplied token list, so it is not introduced into the syntactic workspace.",
+      "statement": "The lexical array contains two case-marked nominal projections, a complex verbal stem, and finite past T.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nSubj",
+                          "label": "N^0[proper]",
+                          "lineageId": "lin-subj-n",
+                          "tokenIndex": 0,
+                          "word": "太郎"
+                        }
+                      ],
+                      "id": "nbarSubj",
+                      "label": "N′",
+                      "lineageId": "lin-subj-nbar"
+                    }
+                  ],
+                  "id": "npSubj",
+                  "label": "NP",
+                  "lineageId": "lin-subj-np"
+                },
+                {
+                  "children": [],
+                  "id": "kSubj",
+                  "label": "K^0[Nom]",
+                  "lineageId": "lin-subj-k",
+                  "tokenIndex": 1,
+                  "word": "が"
+                }
+              ],
+              "id": "kbarSubj",
+              "label": "K′",
+              "lineageId": "lin-subj-kbar"
+            }
+          ],
+          "id": "kpSubj",
+          "label": "KP",
+          "lineageId": "lin-subj-kp"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nObj",
+                          "label": "N^0",
+                          "tokenIndex": 2,
+                          "word": "本"
+                        }
+                      ],
+                      "id": "nbarObj",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npObj",
+                  "label": "NP"
+                },
+                {
+                  "children": [],
+                  "id": "kObj",
+                  "label": "K^0[Acc]",
+                  "tokenIndex": 3,
+                  "word": "を"
+                }
+              ],
+              "id": "kbarObj",
+              "label": "K′"
+            }
+          ],
+          "id": "kpObj",
+          "label": "KP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "vRoot",
+              "label": "V-root",
+              "tokenIndex": 4,
+              "word": "読"
+            },
+            {
+              "children": [],
+              "id": "mOnbin",
+              "label": "M^0[nasal onbin]",
+              "tokenIndex": 5,
+              "word": "ん"
+            }
+          ],
+          "id": "vComplex",
+          "label": "V^0[complex stem]"
+        },
+        {
+          "children": [],
+          "id": "tPast",
+          "label": "T^0[finite,past]",
+          "tokenIndex": 6,
+          "word": "だ"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "vComplex",
+            "lexicalRoot": "vRoot",
+            "nasalExponent": "mOnbin"
+          },
+          "relation": "nasal-onbin stem formation",
+          "values": {
+            "process": "撥音便",
+            "resultingStem": "読ん"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpObj",
+            "predicate": "vComplex"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kObj",
+            "governor": "vComplex",
+            "licensedPhrase": "kpObj"
+          },
+          "relation": "government and objective Case licensing",
+          "values": {
+            "Case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpSubj",
+            "predicate": "vComplex"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        }
+      ],
+      "stageRecord": "First the accusative KP 本を merges as the complement of the complex V head, producing V′; V assigns this complement the Theme theta-role and licenses its structural accusative Case under government. The nominative KP 太郎が then merges in Spec-VP and receives the external Agent theta-role. This merge order preserves the binary X-bar distinction between the V complement and the VP specifier. Finite T remains a separate workspace object at this stage.",
+      "statement": "The verb projects a head-final VP containing its object and VP-internal subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nSubj",
+                              "label": "N^0[proper]",
+                              "lineageId": "lin-subj-n",
+                              "tokenIndex": 0,
+                              "word": "太郎"
+                            }
+                          ],
+                          "id": "nbarSubj",
+                          "label": "N′",
+                          "lineageId": "lin-subj-nbar"
+                        }
+                      ],
+                      "id": "npSubj",
+                      "label": "NP",
+                      "lineageId": "lin-subj-np"
+                    },
+                    {
+                      "children": [],
+                      "id": "kSubj",
+                      "label": "K^0[Nom]",
+                      "lineageId": "lin-subj-k",
+                      "tokenIndex": 1,
+                      "word": "が"
+                    }
+                  ],
+                  "id": "kbarSubj",
+                  "label": "K′",
+                  "lineageId": "lin-subj-kbar"
+                }
+              ],
+              "id": "kpSubj",
+              "label": "KP",
+              "lineageId": "lin-subj-kp"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nObj",
+                                  "label": "N^0",
+                                  "tokenIndex": 2,
+                                  "word": "本"
+                                }
+                              ],
+                              "id": "nbarObj",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npObj",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "kObj",
+                          "label": "K^0[Acc]",
+                          "tokenIndex": 3,
+                          "word": "を"
+                        }
+                      ],
+                      "id": "kbarObj",
+                      "label": "K′"
+                    }
+                  ],
+                  "id": "kpObj",
+                  "label": "KP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vRoot",
+                      "label": "V-root",
+                      "tokenIndex": 4,
+                      "word": "読"
+                    },
+                    {
+                      "children": [],
+                      "id": "mOnbin",
+                      "label": "M^0[nasal onbin]",
+                      "tokenIndex": 5,
+                      "word": "ん"
+                    }
+                  ],
+                  "id": "vComplex",
+                  "label": "V^0[complex stem]"
+                }
+              ],
+              "id": "vbar1",
+              "label": "V′"
+            }
+          ],
+          "id": "vp1",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "tPast",
+          "label": "T^0[finite,past]",
+          "tokenIndex": 6,
+          "word": "だ"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "vComplex",
+            "lexicalRoot": "vRoot",
+            "nasalExponent": "mOnbin"
+          },
+          "relation": "nasal-onbin stem formation",
+          "values": {
+            "process": "撥音便",
+            "resultingStem": "読ん"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpObj",
+            "predicate": "vComplex"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kObj",
+            "governor": "vComplex",
+            "licensedPhrase": "kpObj"
+          },
+          "relation": "government and objective Case licensing",
+          "values": {
+            "Case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpSubj",
+            "predicate": "vComplex"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "attractor": "tPast",
+            "closestEligibleNominal": "kpSubj"
+          },
+          "relation": "finite-T attraction requirement",
+          "values": {
+            "requirements": [
+              "EPP",
+              "nominative Case"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The VP merges to the left of the finite past head だ, yielding the head-final T′ order VP–T that directly produces 読んだ at the right edge. The subject is deliberately still shown in Spec-VP: this intermediate workspace establishes T before any movement from the already represented VP-internal position. Finite T carries an EPP requirement and nominative-Case licensing capacity, so the closest eligible nominal, 太郎が, is the prospective mover. Its nominative particle is present but is not yet licensed in the Spec-TP configuration.",
+      "statement": "Finite past T merges above VP and creates the subject-licensing configuration.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nSubj",
+                                  "label": "N^0[proper]",
+                                  "lineageId": "lin-subj-n",
+                                  "tokenIndex": 0,
+                                  "word": "太郎"
+                                }
+                              ],
+                              "id": "nbarSubj",
+                              "label": "N′",
+                              "lineageId": "lin-subj-nbar"
+                            }
+                          ],
+                          "id": "npSubj",
+                          "label": "NP",
+                          "lineageId": "lin-subj-np"
+                        },
+                        {
+                          "children": [],
+                          "id": "kSubj",
+                          "label": "K^0[Nom]",
+                          "lineageId": "lin-subj-k",
+                          "tokenIndex": 1,
+                          "word": "が"
+                        }
+                      ],
+                      "id": "kbarSubj",
+                      "label": "K′",
+                      "lineageId": "lin-subj-kbar"
+                    }
+                  ],
+                  "id": "kpSubj",
+                  "label": "KP",
+                  "lineageId": "lin-subj-kp"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nObj",
+                                      "label": "N^0",
+                                      "tokenIndex": 2,
+                                      "word": "本"
+                                    }
+                                  ],
+                                  "id": "nbarObj",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npObj",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [],
+                              "id": "kObj",
+                              "label": "K^0[Acc]",
+                              "tokenIndex": 3,
+                              "word": "を"
+                            }
+                          ],
+                          "id": "kbarObj",
+                          "label": "K′"
+                        }
+                      ],
+                      "id": "kpObj",
+                      "label": "KP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vRoot",
+                          "label": "V-root",
+                          "tokenIndex": 4,
+                          "word": "読"
+                        },
+                        {
+                          "children": [],
+                          "id": "mOnbin",
+                          "label": "M^0[nasal onbin]",
+                          "tokenIndex": 5,
+                          "word": "ん"
+                        }
+                      ],
+                      "id": "vComplex",
+                      "label": "V^0[complex stem]"
+                    }
+                  ],
+                  "id": "vbar1",
+                  "label": "V′"
+                }
+              ],
+              "id": "vp1",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "tPast",
+              "label": "T^0[finite,past]",
+              "tokenIndex": 6,
+              "word": "だ"
+            }
+          ],
+          "id": "tbar1",
+          "label": "T′"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "vComplex",
+            "lexicalRoot": "vRoot",
+            "nasalExponent": "mOnbin"
+          },
+          "relation": "nasal-onbin stem formation",
+          "values": {
+            "process": "撥音便",
+            "resultingStem": "読ん"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpObj",
+            "predicate": "vComplex"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kObj",
+            "governor": "vComplex",
+            "licensedPhrase": "kpObj"
+          },
+          "relation": "government and objective Case licensing",
+          "values": {
+            "Case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpSubj",
+            "predicate": "vComplex"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "attractor": "tPast",
+            "landingProjection": "tp1",
+            "lowerCopy": "kpSubj",
+            "movedCopy": "kpSubjHigh"
+          },
+          "priorAnchors": {
+            "attractor": "tPast",
+            "source": "kpSubj"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "landingSite": "Spec-TP",
+            "movementType": "A-movement"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kSubjHigh",
+            "licensedPhrase": "kpSubjHigh",
+            "licensor": "tPast"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "Case": "nominative",
+            "configuration": "Spec-head"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "tPast",
+            "projection": "tp1",
+            "specifier": "kpSubjHigh"
+          },
+          "relation": "EPP satisfaction"
+        },
+        {
+          "anchors": {
+            "chainFoot": "kpSubj",
+            "chainHead": "kpSubjHigh"
+          },
+          "relation": "well-formed subject A-chain",
+          "values": {
+            "chainProperties": [
+              "higher occurrence receives Case",
+              "lower occurrence receives the Agent theta-role",
+              "lower occurrence is silent and antecedent-governed"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The subject KP moves from Spec-VP to the newly projected Spec-TP position. The derivation is represented with copies: the higher occurrence is pronounced and bears the input indices for 太郎 and が, while the original VP-internal occurrence remains structurally present but is silent. The two occurrences share lineage, and the higher one c-commands the lower one. Finite T licenses nominative Case on the raised KP in the Spec-head domain and thereby satisfies its EPP requirement. The lower copy remains the position to which the Agent theta-role was assigned, so the A-chain has one theta-position and one Case position without violating the Theta Criterion.",
+      "statement": "The subject undergoes A-movement to Spec-TP, where nominative Case and the EPP are satisfied.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nSubjHigh",
+                              "label": "N^0[proper]",
+                              "lineageId": "lin-subj-n",
+                              "tokenIndex": 0,
+                              "word": "太郎"
+                            }
+                          ],
+                          "id": "nbarSubjHigh",
+                          "label": "N′",
+                          "lineageId": "lin-subj-nbar"
+                        }
+                      ],
+                      "id": "npSubjHigh",
+                      "label": "NP",
+                      "lineageId": "lin-subj-np"
+                    },
+                    {
+                      "children": [],
+                      "id": "kSubjHigh",
+                      "label": "K^0[Nom]",
+                      "lineageId": "lin-subj-k",
+                      "tokenIndex": 1,
+                      "word": "が"
+                    }
+                  ],
+                  "id": "kbarSubjHigh",
+                  "label": "K′",
+                  "lineageId": "lin-subj-kbar"
+                }
+              ],
+              "id": "kpSubjHigh",
+              "label": "KP",
+              "lineageId": "lin-subj-kp"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nSubj",
+                                      "label": "N^0[proper]",
+                                      "lineageId": "lin-subj-n",
+                                      "silent": true,
+                                      "word": "太郎"
+                                    }
+                                  ],
+                                  "id": "nbarSubj",
+                                  "label": "N′",
+                                  "lineageId": "lin-subj-nbar",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "npSubj",
+                              "label": "NP",
+                              "lineageId": "lin-subj-np",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "kSubj",
+                              "label": "K^0[Nom]",
+                              "lineageId": "lin-subj-k",
+                              "silent": true,
+                              "word": "が"
+                            }
+                          ],
+                          "id": "kbarSubj",
+                          "label": "K′",
+                          "lineageId": "lin-subj-kbar",
+                          "silent": true
+                        }
+                      ],
+                      "id": "kpSubj",
+                      "label": "KP",
+                      "lineageId": "lin-subj-kp",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nObj",
+                                          "label": "N^0",
+                                          "tokenIndex": 2,
+                                          "word": "本"
+                                        }
+                                      ],
+                                      "id": "nbarObj",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npObj",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "kObj",
+                                  "label": "K^0[Acc]",
+                                  "tokenIndex": 3,
+                                  "word": "を"
+                                }
+                              ],
+                              "id": "kbarObj",
+                              "label": "K′"
+                            }
+                          ],
+                          "id": "kpObj",
+                          "label": "KP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vRoot",
+                              "label": "V-root",
+                              "tokenIndex": 4,
+                              "word": "読"
+                            },
+                            {
+                              "children": [],
+                              "id": "mOnbin",
+                              "label": "M^0[nasal onbin]",
+                              "tokenIndex": 5,
+                              "word": "ん"
+                            }
+                          ],
+                          "id": "vComplex",
+                          "label": "V^0[complex stem]"
+                        }
+                      ],
+                      "id": "vbar1",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp1",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "tPast",
+                  "label": "T^0[finite,past]",
+                  "tokenIndex": 6,
+                  "word": "だ"
+                }
+              ],
+              "id": "tbar1",
+              "label": "T′"
+            }
+          ],
+          "id": "tp1",
+          "label": "TP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "vComplex",
+            "lexicalRoot": "vRoot",
+            "nasalExponent": "mOnbin"
+          },
+          "relation": "nasal-onbin stem formation",
+          "values": {
+            "process": "撥音便",
+            "resultingStem": "読ん"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpObj",
+            "predicate": "vComplex"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kObj",
+            "governor": "vComplex",
+            "licensedPhrase": "kpObj"
+          },
+          "relation": "government and objective Case licensing",
+          "values": {
+            "Case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "kpSubj",
+            "predicate": "vComplex"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "attractor": "tPast",
+            "chainFoot": "kpSubj",
+            "chainHead": "kpSubjHigh"
+          },
+          "relation": "subject A-chain",
+          "values": {
+            "interpretivePosition": "VP-internal Agent position",
+            "landingSite": "Spec-TP",
+            "pronouncedOccurrence": "chain head"
+          }
+        },
+        {
+          "anchors": {
+            "caseExponent": "kSubjHigh",
+            "licensedPhrase": "kpSubjHigh",
+            "licensor": "tPast"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "Case": "nominative",
+            "configuration": "Spec-head"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "tPast",
+            "projection": "tp1",
+            "specifier": "kpSubjHigh"
+          },
+          "relation": "EPP satisfaction"
+        },
+        {
+          "anchors": {
+            "clause": "cp1",
+            "forceHead": "cDecl"
+          },
+          "relation": "declarative force",
+          "values": {
+            "force": "declarative"
+          }
+        },
+        {
+          "anchors": {
+            "analysisRoot": "cp1"
+          },
+          "relation": "GB convergence",
+          "values": {
+            "judgment": "grammatical",
+            "satisfiedConditions": [
+              "Theta Criterion",
+              "Case Filter",
+              "EPP",
+              "A-chain binding and antecedent government"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The completed TP merges as the complement of a silent head-final declarative C. No further overt movement is required. The pronounced terminal sequence is exactly 太郎, が, 本, を, 読, ん, だ; the lower subject copy and declarative C are silent. The derivation converges in Government and Binding terms: the verb's Agent and Theme roles are each assigned once, the overt object is accusative-licensed under verbal government, the raised subject is nominative-licensed by finite T, the EPP is met, and the silent lower A-copy is bound by its c-commanding antecedent.",
+      "statement": "A null declarative C completes the clause, which converges as a grammatical Japanese sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nSubjHigh",
+                                      "label": "N^0[proper]",
+                                      "lineageId": "lin-subj-n",
+                                      "tokenIndex": 0,
+                                      "word": "太郎"
+                                    }
+                                  ],
+                                  "id": "nbarSubjHigh",
+                                  "label": "N′",
+                                  "lineageId": "lin-subj-nbar"
+                                }
+                              ],
+                              "id": "npSubjHigh",
+                              "label": "NP",
+                              "lineageId": "lin-subj-np"
+                            },
+                            {
+                              "children": [],
+                              "id": "kSubjHigh",
+                              "label": "K^0[Nom]",
+                              "lineageId": "lin-subj-k",
+                              "tokenIndex": 1,
+                              "word": "が"
+                            }
+                          ],
+                          "id": "kbarSubjHigh",
+                          "label": "K′",
+                          "lineageId": "lin-subj-kbar"
+                        }
+                      ],
+                      "id": "kpSubjHigh",
+                      "label": "KP",
+                      "lineageId": "lin-subj-kp"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "nSubj",
+                                              "label": "N^0[proper]",
+                                              "lineageId": "lin-subj-n",
+                                              "silent": true,
+                                              "word": "太郎"
+                                            }
+                                          ],
+                                          "id": "nbarSubj",
+                                          "label": "N′",
+                                          "lineageId": "lin-subj-nbar",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "npSubj",
+                                      "label": "NP",
+                                      "lineageId": "lin-subj-np",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "kSubj",
+                                      "label": "K^0[Nom]",
+                                      "lineageId": "lin-subj-k",
+                                      "silent": true,
+                                      "word": "が"
+                                    }
+                                  ],
+                                  "id": "kbarSubj",
+                                  "label": "K′",
+                                  "lineageId": "lin-subj-kbar",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "kpSubj",
+                              "label": "KP",
+                              "lineageId": "lin-subj-kp",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "nObj",
+                                                  "label": "N^0",
+                                                  "tokenIndex": 2,
+                                                  "word": "本"
+                                                }
+                                              ],
+                                              "id": "nbarObj",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "npObj",
+                                          "label": "NP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "kObj",
+                                          "label": "K^0[Acc]",
+                                          "tokenIndex": 3,
+                                          "word": "を"
+                                        }
+                                      ],
+                                      "id": "kbarObj",
+                                      "label": "K′"
+                                    }
+                                  ],
+                                  "id": "kpObj",
+                                  "label": "KP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vRoot",
+                                      "label": "V-root",
+                                      "tokenIndex": 4,
+                                      "word": "読"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "mOnbin",
+                                      "label": "M^0[nasal onbin]",
+                                      "tokenIndex": 5,
+                                      "word": "ん"
+                                    }
+                                  ],
+                                  "id": "vComplex",
+                                  "label": "V^0[complex stem]"
+                                }
+                              ],
+                              "id": "vbar1",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp1",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "tPast",
+                          "label": "T^0[finite,past]",
+                          "tokenIndex": 6,
+                          "word": "だ"
+                        }
+                      ],
+                      "id": "tbar1",
+                      "label": "T′"
+                    }
+                  ],
+                  "id": "tp1",
+                  "label": "TP"
+                },
+                {
+                  "children": [],
+                  "id": "cDecl",
+                  "label": "C^0[declarative]",
+                  "silent": true
+                }
+              ],
+              "id": "cbar1",
+              "label": "C′"
+            }
+          ],
+          "id": "cp1",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

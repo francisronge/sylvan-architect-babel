@@ -1,6 +1,6 @@
 import type { Point, Rect } from './overlayGeometry.ts';
 
-type Cubic = { source: Point; control1: Point; control2: Point; target: Point };
+export type Cubic = { source: Point; control1: Point; control2: Point; target: Point };
 
 /** Subdivide the curve, not its coarse sample boxes, when testing nearby ink. */
 export function cubicIntersectsRect(curve: Cubic, rect: Rect, padding: number): boolean {
