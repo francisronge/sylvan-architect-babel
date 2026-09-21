@@ -17,16 +17,46 @@ Desktop is the primary experience; compact-screen work must not compromise it.
 
 Current execution order:
 
-1. Trace saved failures through authored records, normalization, claim reading,
-   Replay construction and drawing. Separate missing evidence from reader errors.
-2. Repair shared rules with positive and negative regressions. Check compound
-   assignments, shared plaques, movement attachment, realization timing and
-   neutral fallback, including each claim's exact values and occurrences.
-3. Test four new Astra analyses across languages and both frameworks, chosen to
-   challenge those rules. Preserve exact prompt and model provenance. Change the
-   authored contract only when a necessary distinction cannot be expressed.
-4. Review the affected frames in the application, with before/after evidence and
-   movement playback. Record actual remaining defects before choosing more work.
+1. Finish removing Replay loading stalls and measure complete rendered frame
+   changes. The first performance repair cuts the German review page from about
+   28 seconds to 2.7 seconds by indexing collision obstacles and avoiding repeated
+   font-driven allocation. Tested frame changes across five language examples
+   take 20–46ms. The initial German calculation still blocks the main thread for
+   about 2.5 seconds; the 2-second opening target is not yet met.
+2. Finish plaque placement and connector clearance, especially the English
+   agreement plaque above T and the distant German nominative plaque. Preserve
+   future-branch reservation and the original Orchard drawing geometry.
+3. Resolve the Arabic thematic claims that name both an introducer and predicate,
+   and the Japanese realization change with several possible owning relations.
+   Repair generic readers when authored evidence is sufficient. Change the open
+   contract only if a necessary association or timing distinction is unexpressed.
+4. Close the regression review for compound claims, shared plaque rows, movement
+   timing and retained landings, duplicates, branch visibility and long labels.
+   Check exact values, occurrences, claim ownership, zoom and hover throughout.
+5. Qualify the existing 32 analyses and Orchard references in one review set.
+   Generate further parses only for a specific uncovered question. Preserve
+   provenance and keep linguistic judgments separate from rendering defects.
+
+### Exit goal for this phase
+
+Produce a renderer and Replay candidate ready for final user review. The current
+32 analyses contain 471 authored relations and 1,432 Replay steps. They are a
+bounded regression set, not an assertion of universal linguistic accuracy.
+
+- In the local bundled production runtime at a 1600px desktop viewport, aim for
+  usable Replay within 2 seconds and a 95th-percentile ordinary frame change
+  within 100ms. Measure completed rendering, not only slider updates. Initial
+  model generation and remote asset download time are separate measurements.
+- No open reported defect in this set may lose a branch, misattach a movement,
+  duplicate a claim's drawing, clip its values or move a stable plaque needlessly.
+  Known unreadable plaque placement and connector collisions must be resolved.
+- The remaining association and realization-timing cases must have an explicit,
+  tested outcome that preserves the authored analysis. Neutral rendering is an
+  appropriate result only when the record genuinely leaves an association open,
+  after investigating whether the reader overlooked available evidence.
+- Complete focused visual evidence, the full offline gate and one coherent
+  review page. Desktop quality remains primary. Storage, mobile redesign and
+  deployment qualification follow this phase.
 
 The current saved-record audit covers 27 analyses and 417 relations. It exposed
 Case claims whose explicit licensor and subject/object were left neutral. The

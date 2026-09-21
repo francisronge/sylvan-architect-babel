@@ -7,8 +7,10 @@ import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from './overlayGeometry.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
+import { preparePlaqueObstacleIndex, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
-export type PlaqueRect = { x: number; y: number; width: number; height: number; extendsDownward?: boolean;
+export type PlaqueRect = ObstacleRect & {
   caseRowY?: number; collectionRows?: CollectionRow[]; blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number } };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[] };
@@ -42,10 +44,16 @@ const union = (rects: PlaqueRect[]): PlaqueRect => {
   return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
     height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
 };
-export const plaquesOverlap = (a: PlaqueRect, b: PlaqueRect, gap = 24): boolean =>
-  a.x < b.x + b.width + gap && a.x + a.width + gap > b.x
-  && (b.extendsDownward || a.y < b.y + b.height + gap)
-  && (a.extendsDownward || a.y + a.height + gap > b.y);
+/** Placement-only union; connector queries keep their separate attachment and ink metadata. */
+export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
+  const seen = new Set<string>();
+  return obstacles.filter(box => {
+    const key = `${box.x},${box.y},${box.width},${box.height},${Boolean(box.extendsDownward)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 /** Carry a reserved offset with its actual Replay node, without choosing another pocket. */
 export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positionFor: (id: string) => { x: number; y: number } | null) {
@@ -148,6 +156,14 @@ const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect): PlaqueRect
 };
 const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => caseRouteRectsFrom(caseSourceRect(anchor), box);
 
+const curveBounds = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number): PlaqueRect => {
+  const { source, control1, control2, target } = curve;
+  const x = Math.min(source.x, control1.x, control2.x, target.x) - padding;
+  const y = Math.min(source.y, control1.y, control2.y, target.y) - padding;
+  return { x, y, width: Math.max(source.x, control1.x, control2.x, target.x) + padding - x,
+    height: Math.max(source.y, control1.y, control2.y, target.y) + padding - y };
+};
+
 /** Test the drawn approach against opaque ink, leaving its own attachment available. */
 export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: PlaqueRect[]): boolean {
   return prepareCasePlaqueSpace(anchor, obstacles)(box);
@@ -159,7 +175,12 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
   const rect = caseSourceRect(anchor);
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
   const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
-  return (box: PlaqueRect) => caseRouteRectsFrom(rect, box).every(segment => blockers.every(rect => !plaquesOverlap(segment, rect, 0)));
+  const index = preparePlaqueObstacleIndex(blockers);
+  return (box: PlaqueRect) => {
+    const curve = caseAssignmentPlaqueCurve(rect, box, box.y + (box.caseRowY ?? 93));
+    if (!index.overlaps(curveBounds(curve, 8), 0)) return true;
+    return caseRouteRectsFrom(rect, box).every(segment => !index.overlaps(segment, 0));
+  };
 }
 
 /** Measure source labels once per allocation space, not for every candidate pocket. */
@@ -171,6 +192,17 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     return [id, label(obstacles) ?? label(plaqueTreeObstacles([node]))] as const;
   }));
   const blockers = obstacles.filter(rect => rect.blocksConnectors);
+  const inkIndexes = new Map<string | undefined, ReturnType<typeof preparePlaqueObstacleIndex>>();
+  const inkIndex = (attachment: PlaqueRect) => {
+    const key = attachment.connectorAttachment;
+    let index = inkIndexes.get(key);
+    if (!index) {
+      index = preparePlaqueObstacleIndex(blockers.filter(rect => rect.connectorAttachment !== key)
+        .map(rect => rect.connectorInk ?? rect));
+      inkIndexes.set(key, index);
+    }
+    return index;
+  };
   const curves = (box: PlaqueRect) => (box.collectionRows ?? []).flatMap(row => {
     const attachment = sources.get(row.sourceNodeId);
     return attachment ? [{ row, attachment,
@@ -185,28 +217,35 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     const otherExtent = axis === 'x' ? 'height' : 'width';
     const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64)
       .slice(1, -1).map((point, index) => ({ ...point, t: (index + 1) / 64 }));
-    return blockers.filter(rect => rect.connectorAttachment !== attachment.connectorAttachment).flatMap(obstacle => {
+    const candidates: number[] = [];
+    const minOther = Math.min(...samples.map(point => point[other]));
+    const maxOther = Math.max(...samples.map(point => point[other]));
+    for (const obstacle of blockers) {
+      if (obstacle.connectorAttachment === attachment.connectorAttachment) continue;
       const rect = obstacle.connectorInk ?? obstacle;
-      const crossing = samples.filter(point => point[other] >= rect[other] - 8
-        && point[other] <= rect[other] + rect[otherExtent] + 8);
-      if (!crossing.length) return [];
-      return [crossing[0], crossing[crossing.length - 1]].flatMap(point => {
+      const low = rect[other] - 8, high = rect[other] + rect[otherExtent] + 8;
+      if (maxOther < low || minOther > high) continue;
+      let first: (typeof samples)[number] | undefined, last: (typeof samples)[number] | undefined;
+      for (const point of samples) if (point[other] >= low && point[other] <= high) {
+        first ??= point;
+        last = point;
+      }
+      if (!first) continue;
+      for (const point of [first, last!]) {
         const u = 1 - point.t, sourceWeight = u ** 3 + 3 * u * u * point.t;
-        return [rect[axis] - 8, rect[axis] + rect[extent] + 8].map(edge =>
-          box[axis] + (edge - point[axis]) / sourceWeight);
-      });
-    });
+        for (const edge of [rect[axis] - 8, rect[axis] + rect[extent] + 8])
+          candidates.push(box[axis] + (edge - point[axis]) / sourceWeight);
+      }
+    }
+    return candidates;
   });
   return {
     clears: (box: PlaqueRect): boolean => curves(box).every(({ attachment, ...curve }) => {
-      const points = [curve.source, curve.control1, curve.control2, curve.target];
-      const left = Math.min(...points.map(point => point.x)) - 6;
-      const top = Math.min(...points.map(point => point.y)) - 6;
-      const bounds = { x: left, y: top, width: Math.max(...points.map(point => point.x)) + 6 - left,
-        height: Math.max(...points.map(point => point.y)) + 6 - top };
-      const ink = [box, ...blockers.filter(rect => rect.connectorAttachment !== attachment.connectorAttachment)
-        .map(rect => rect.connectorInk ?? rect)].filter(rect => plaquesOverlap(bounds, rect, 0));
-      return collectionRouteRects(curve).every(segment => ink.every(rect => !plaquesOverlap(segment, rect, 0)));
+      const bounds = curveBounds(curve, 6), index = inkIndex(attachment);
+      const touchesPlaque = plaquesOverlap(bounds, box, 0);
+      if (!touchesPlaque && !index.overlaps(bounds, 0)) return true;
+      return collectionRouteRects(curve).every(segment => (!touchesPlaque || !plaquesOverlap(segment, box, 0))
+        && !index.overlaps(segment, 0));
     }),
     candidateXs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'x'),
     candidateYs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'y'),
@@ -347,11 +386,12 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
+    const obstacleIndex = preparePlaqueObstacleIndex(occupied);
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
     const clear = (candidate: PlaqueRect) => {
       const box = { ...candidate, caseRowY: request.caseRowY, collectionRows: request.collectionRows };
-      return occupied.every(obstacle => !plaquesOverlap(candidate, obstacle))
+      return !obstacleIndex.overlaps(candidate)
         && (space ? space.acceptsConnector(box)
           : (!caseClears || caseClears(box))
             && collectionPlaqueClears(box, nodes, occupied));
@@ -395,7 +435,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       for (const x of xs) {
         const dx = horizontalGap(x);
         if (dx * dx >= bestDistance) break;
-        const intervals = occupied.filter(box => x < box.x + box.width + gap && x + width + gap > box.x)
+        const intervals = obstacleIndex.inColumn(x, width, gap)
           .map(box => [box.y - height - gap, box.extendsDownward ? Infinity : box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
         const merged: number[][] = [];
         for (const interval of intervals) {

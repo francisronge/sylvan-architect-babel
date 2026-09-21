@@ -3,6 +3,7 @@ import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { useTreeDirection } from './useTreeDirection';
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
+import { watchTreeVisualizerFonts } from './treeVisualizerFonts';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
@@ -241,6 +242,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
+  const fontText = useMemo(() => [...new Set(JSON.stringify([data, derivationStages, sentence]))].sort().join(''),
+    [data, derivationStages, sentence]);
+  const [settledFontText, setSettledFontText] = useState<string | null>(null);
   const trajectoryLabelMaskId = `trajectory-labels-${useId().replace(/:/g, '')}`;
   const measureCategoryText = useMemo(() => {
     const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
@@ -256,18 +260,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [hoveredRelationMoment, setHoveredRelationMoment] = useState<RelationMoment | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const settle = () => {
-      if (!cancelled) setFontLayoutPass((pass) => pass + 1);
-    };
-    document.fonts?.ready.then(settle);
-    document.fonts?.addEventListener('loadingdone', settle);
-    return () => {
-      cancelled = true;
-      document.fonts?.removeEventListener('loadingdone', settle);
-    };
-  }, []);
+  useEffect(() => watchTreeVisualizerFonts(document.fonts, () => {
+    setSettledFontText(fontText);
+    setFontLayoutPass(pass => pass + 1);
+  }, fontText), [fontText]);
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps } = useMemo(
     () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
@@ -524,7 +520,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
   const replayPlaqueLayouts = useMemo(() => {
-    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay) return [];
+    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay || settledFontText !== fontText) return [];
     const allocate = (measurePlaqueText?: PlaqueTextMeasure) => buildReplayPlaqueLayouts({
       steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
       plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
@@ -532,7 +528,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     });
     return svgRef.current ? withPlaqueTextMeasure(d3.select(svgRef.current), allocate) : allocate();
   }, [committedDerivationCanvasData, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection]);
+    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection, settledFontText, fontText]);
   const stagePlaqueLayout = useMemo(() => replayPlaqueLayouts[activeDerivationFrameIndex] ?? new Map(),
     [replayPlaqueLayouts, activeDerivationFrameIndex]);
   const stageCameraBounds = useMemo(() => {
@@ -591,7 +587,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) setDimensions({ width, height });
+        if (width > 0 && height > 0) setDimensions(previous =>
+          previous.width === width && previous.height === height ? previous : { width, height });
       }
     });
     resizeObserver.observe(observeTarget);

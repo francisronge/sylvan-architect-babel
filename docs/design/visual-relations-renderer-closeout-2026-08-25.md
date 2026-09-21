@@ -50,6 +50,23 @@ candidate is checked before acceptance. This does not reroute the Orchard
 connector. Source-label measurements and Case blockers are reused during the
 search rather than rebuilt for every candidate.
 
+The collision search removes repeated placement rectangles from future frames
+and uses an immutable spatial index to reject distant obstacles before exact
+intersection checks. Connector attachment exclusions retain their original ink
+metadata. Candidate order, curve sampling, gap rules and chosen offsets are
+unchanged. Browser allocation waits for the category and plaque fonts, including
+the record's script subsets and the generated theta-grid heading. Font loading
+therefore does not repeat the initial allocation or stall a later relation frame.
+
+The September 21 local production capture reduced German coordination opening
+from 27.8 seconds to 2.7 seconds at 1600×1100. Tested frame changes across German,
+Turkish, English, Japanese and Arabic completed in 20–46ms after font preloading.
+German and Turkish full placement outputs match the earlier allocator at desktop
+and narrow widths; the German browser paths and plaque boxes also match exactly.
+This is a performance repair, not closeout: the German initial calculation still
+blocks the main thread for roughly 2.5 seconds and exceeds the roadmap's loading
+target. Plaque distance and the remaining geometry/contract cases remain open.
+
 Stability can require a more distant initial pocket in a dense changing tree. It
 does not guarantee every connector remains short. Different overlapping claims
 (for example an earlier Theme grid and a later Agent-plus-Theme grid) are not exact
