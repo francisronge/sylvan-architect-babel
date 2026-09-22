@@ -52,6 +52,114 @@ test('renamed IDs, open titles, role spelling and property order preserve contex
   assert.equal(dispatch.claims.some(c => c.tier === 3), false);
 });
 
+test('a unary head host retains the authored landing without inventing a silent host child', () => {
+  const input = example();
+  input.currentForest[0].children[0].children.pop();
+  const original = structuredClone(input);
+  const dispatch = dispatchRelationClaims(input);
+  assert.equal(dispatch.evidence.movement.trajectoryKind, 'head');
+  assert.equal(dispatch.evidence.movement.targetNodeId, 'upper');
+  assert.equal(dispatch.evidence.movement.sourceNodeId, 'lower');
+  assert(owned(dispatch, 'landingHead'));
+  assert(dispatch.facets.some(facet => facet.recipe.id === 'movement.path'));
+  assert.deepEqual(input, original);
+});
+
+test('zero-level head notation does not obscure the exact adjunction host', () => {
+  for (const zero of ['⁰', '^0', '0']) {
+    const input = example();
+    input.currentForest[0].children[0].label = `Z${zero}`;
+    const d = dispatchRelationClaims(input);
+    assert.equal(d.evidence.movement?.trajectoryKind, 'head');
+    assert.equal(d.evidence.movement?.targetNodeId, 'upper');
+    assert(owned(d, 'landingHead'));
+    input.currentForest[0].children[0].children[1].label = 'Q';
+    assert.equal(recovered(input).movement, undefined, 'a different host category does not prove adjunction');
+  }
+});
+
+test('a moved head can occupy its projection head position without an invented adjunction host', () => {
+  for (const parentLabel of ['Z′', "Z'", 'ZP']) for (const headLabel of ['Z', 'Z⁰', 'Z^0']) {
+    const input = example();
+    const parent = input.currentForest[0].children[0];
+    parent.label = parentLabel;
+    parent.children[0].label = headLabel;
+    parent.children[1].label = 'YP';
+    delete input.relation.anchors.landingHead;
+    const original = structuredClone(input);
+    const d = dispatchRelationClaims(input);
+    assert.equal(d.evidence.movement?.trajectoryKind, 'head', `${parentLabel}/${headLabel}`);
+    assert.equal(d.evidence.movement?.targetNodeId, 'upper');
+    assert(d.facets.some(facet => facet.recipe.id === 'movement.path'));
+    assert.deepEqual(input, original);
+    for (const mutate of [
+      x => { x.currentForest[0].children[0].children[0].label = 'QP'; },
+      x => { x.currentForest[0].children[0].children[0].label = 'Q'; },
+      x => { x.currentForest[0].children[0].children[1].label = 'Z'; },
+      x => { delete x.currentForest[0].children[0].children[0].lineageId; },
+      x => { x.relation.priorAnchors = { source: 'other' }; }
+    ]) {
+      const bad = structuredClone(input); mutate(bad);
+      assert.notEqual(recovered(bad).movement?.trajectoryKind, 'head');
+    }
+  }
+});
+
+test('saved projection landing appears at its movement moment with its lower witness', () => {
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/projected-head-landing.json', import.meta.url)));
+  for (const renamed of [false, true]) {
+    const response = structuredClone(record);
+    const id = key => renamed ? `opaque-${key}` : key;
+    if (renamed) for (const stage of response.analyses[0].derivationStages) {
+      const visit = node => { node.id = id(node.id); if (node.lineageId) node.lineageId = id(node.lineageId); node.children?.forEach(visit); };
+      stage.workspaceForest.forEach(visit);
+      stage.realizations?.forEach(group => { group.nodeIds = group.nodeIds.map(id); });
+      for (const relation of stage.relations) {
+        relation.relation = 'An unfamiliar authored claim';
+        for (const field of ['anchors', 'priorAnchors']) if (relation[field]) relation[field] = Object.fromEntries(Object.entries(relation[field]).reverse()
+          .map(([key, value]) => [key, Array.isArray(value) ? value.map(id) : id(value)]));
+      }
+    }
+    const stages = response.analyses[0].derivationStages;
+    const plan = compileRelationRenderPlan(stages);
+    const path = plan.frames[2].items.find(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 2 && item.relationRef.relationIndex === 4);
+    assert.equal(path?.targetNodeId, id('auxC'));
+    assert.equal(path?.sourceNodeId, id('auxITrace'));
+    const playback = buildReplayPlayback(response);
+    const moment = playback.steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 2 && step.replayRelationIdentity.relationIndex === 4);
+    assert(moment > 0);
+    const before = playback.steps[moment - 1], after = playback.steps[moment];
+    assert(!before.replayVisibleNodeIds.includes(id('auxC')));
+    assert(!before.replayVisibleNodeIds.includes(id('auxITrace')));
+    assert(before.replayVisibleNodeIds.includes(id('auxI')));
+    assert(after.replayVisibleNodeIds.includes(id('auxC')));
+    assert(after.replayVisibleNodeIds.includes(id('auxITrace')));
+    assert(!before.replayVisibleNodeIds.includes(id('rootCBar')));
+    assert(after.replayVisibleNodeIds.includes(id('rootCBar')), 'the landing projection belongs to the same movement moment');
+    assert.equal(after.replayRelationLinks.filter(link => link.authoredRelationKey === '2:4' && link.renderFamily === 'trajectory').length, 1);
+  }
+});
+
+test('unary landing recovery still requires a head, exact lineage, and one supported occurrence', () => {
+  for (const mutate of [
+    input => { input.currentForest[0].children[0].label = 'ZP'; },
+    input => { input.currentForest[0].children[0].label = 'Z′'; },
+    input => { input.currentForest[0].children[0].children[0].lineageId = 'different'; },
+    input => { delete input.currentForest[0].children[0].children[0].lineageId; },
+    input => { input.currentForest.push({ id: 'upper', label: 'X', lineageId: 'same' }); }
+  ]) {
+    const input = example();
+    input.currentForest[0].children[0].children.pop();
+    mutate(input);
+    assert.equal(recovered(input).movement, undefined, JSON.stringify(input));
+  }
+  const phrasal = example();
+  phrasal.currentForest[0].children[0].children.pop();
+  phrasal.currentForest[0].children[0].children[0].label = 'XP';
+  assert.notEqual(recovered(phrasal).movement?.trajectoryKind, 'head');
+  assert(!owned(dispatchRelationClaims(phrasal), 'landingHead'));
+});
+
 test('verified context does not change trajectory identity, witnesses or replacement behavior', () => {
   const input = example();
   const stage = (forest, relations) => ({ statement: 'State', stageRecord: 'Authored state.', workspaceForest: forest, relations });
@@ -162,4 +270,57 @@ test('Replay retains the precise host diagnostic even when movement succeeds', (
   assert.ok(moment.replayRelationLinks.some(link => link.renderFamily === 'trajectory'
     && link.sourceNodeId === 'lower' && link.targetNodeId === 'upper'));
   assert.match(moment.movementDiagnostics.join('\n'), /anchors.landingHead \(other\).*landing upper.*not-the-landing-host-or-complex/);
+});
+
+
+test('filling an existing head position is a movement independent of pronunciation', () => {
+  const relation = { relation: 'An unfamiliar claim', anchors: { lowerCopy: 'low', higherCopy: 'high' } };
+  for (const pronounced of [false, true]) {
+    const low = { id: 'low', label: 'T', lineageId: 'root-chain', children: [{ id: 'wordLow', label: 'X', lineageId: 'material-chain', ...(pronounced ? { word: 'form' } : { silent: true }) }] };
+    const high = { id: 'high', label: 'C', lineageId: 'root-chain', children: [] };
+    const before = [{ id: 'clause', label: 'CP', children: [{ id: 'bar', label: 'C′', children: [high, { id: 'phrase', label: 'TP', children: [low] }] }] }];
+    const after = structuredClone(before);
+    after[0].children[0].children[0].children = [{ ...low.children[0], id: 'wordHigh' }];
+    const result = recoverMovementEvidence(relation, after, before);
+    assert.equal(result.movement?.transition, true);
+    assert.equal(recoverMovementEvidence(relation, after, after).movement?.transition, false);
+    const onlySpelling = structuredClone(after); onlySpelling[0].children[0].children[0].children[0].word = 'new form';
+    assert.equal(recoverMovementEvidence(relation, onlySpelling, after).movement?.transition, false);
+  }
+});
+
+test('a decorated projection label still establishes a phrasal specifier landing', () => {
+  const lower = { id: 'lower', label: 'N[trace]', lineageId: 'chain', silent: true };
+  const old = { id: 'relativeT', label: 'T (projection)', children: [lower,
+    { id: 'verb', label: 'V', word: 'read' }] };
+  const before = [old];
+  const after = [{ id: 'relativeCP', label: 'C (relative projection)', children: [
+    { id: 'higher', label: 'N[operator]', lineageId: 'chain', silent: true },
+    { id: 'relativeCProjection', label: 'C (projection)', children: [
+      { id: 'relativeC', label: 'C', word: 'yang' }, structuredClone(old)
+    ] }
+  ] }];
+  const relation = { relation: 'An open movement claim', anchors: { landingOccurrence: 'higher', trace: 'lower' },
+    priorAnchors: { source: 'lower' } };
+  assert.equal(recoverMovementEvidence(relation, after, before).movement?.trajectoryKind, 'phrasal');
+  const unrelated = structuredClone(after);
+  unrelated[0].children[1].label = 'T (projection)';
+  assert.equal(recoverMovementEvidence(relation, unrelated, before).movement, undefined);
+});
+
+test('head features after a colon do not hide an exact head-adjunction landing', () => {
+  const before = [{ id: 'base', label: 'VP', children: [{ id: 'low', label: 'V', lineageId: 'verb', word: 'form' }] }];
+  const after = [{ id: 'root', label: 'IP', children: [
+    { id: 'complex', label: 'I', children: [
+      { id: 'high', label: 'V', lineageId: 'verb', word: 'form' },
+      { id: 'features', label: 'I: finite, present', silent: true }
+    ] },
+    { id: 'base', label: 'VP', children: [{ id: 'low', label: 'V: head trace', lineageId: 'verb', silent: true }] }
+  ] }];
+  const relation = { relation: 'Open head movement', anchors: { raisedHead: 'high', trace: 'low', landingHead: 'complex' },
+    priorAnchors: { source: 'low' } };
+  assert.equal(recoverMovementEvidence(relation, after, before).movement?.trajectoryKind, 'head');
+  const wrong = structuredClone(after);
+  wrong[0].children[0].children[1].label = 'C: declarative';
+  assert.equal(recoverMovementEvidence(relation, wrong, before).movement, undefined);
 });

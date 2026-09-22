@@ -14,6 +14,7 @@ import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, projectPlaqueContent, uniquePlaqueObstacles, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import { translateObstacle } from './relations/plaqueObstacleIndex.ts';
+import { bindingDomainEllipse, bindingDomainTreeRect, bindingEllipseBounds } from './relations/bindingDomainGeometry.ts';
 
 export type StageLayoutInput = {
   steps: PlaybackStep[]; stageIndex: number; completedCanvas: SyntaxNode;
@@ -279,7 +280,7 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, w
 }
 
 type StageCameraInput = StageLayoutInput & {
-  includeOverlays?: boolean; includePlaques?: boolean; plaqueLayout?: Map<number, PlaquePlacement>
+  includeOverlays?: boolean; includePlaques?: boolean; includeBindingDomains?: boolean; plaqueLayout?: Map<number, PlaquePlacement>
 };
 
 /** Reserve upcoming content before reveal, using one fit for a compatible layout group. */
@@ -297,7 +298,8 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
 
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
-  includePlaques = includeOverlays, plaqueLayout, measureCategoryText }: StageCameraInput): OverlayBounds | null {
+  includePlaques = includeOverlays, includeBindingDomains = false,
+  plaqueLayout, measureCategoryText, measurePlaqueText }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
     if (!next) return;
@@ -326,6 +328,15 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
         minY: node.y + label.y, maxY: node.y });
     }
     const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
+    if (includeBindingDomains && plan) {
+      const visible = new Set(fitNodes);
+      for (const item of plan.frames[stageIndex]?.items ?? []) {
+        if (item.kind !== 'binding-domain') continue;
+        const domain = byId.get(item.domainNodeId);
+        const rect = domain && bindingDomainTreeRect(domain.descendants().filter(node => visible.has(node)), measureCategoryText);
+        if (rect) include(bindingEllipseBounds(bindingDomainEllipse(rect)));
+      }
+    }
     if (includePlaques && plan) {
       const rectFor = (id: string, terminal: boolean) => {
         const node = byId.get(id);
@@ -341,7 +352,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
         return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
           height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
       };
-      nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor).forEach(rect => include({
+      nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor, measurePlaqueText).forEach(rect => include({
         minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
       }));
     }

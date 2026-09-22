@@ -1,0 +1,1004 @@
+{
+  "sentence": "Nora bought, and Eli read, the same book.",
+  "inputTokens": [
+    "Nora",
+    "bought",
+    "and",
+    "Eli",
+    "read",
+    "the",
+    "same",
+    "book"
+  ],
+  "analyses": [
+    {
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "And first merges with the Eli clause, and the Nora clause then merges as the other conjunct. The resulting binary coordination bears the coordinator's label. Coordination is at the finite-clause level, not at the verbal level, because each conjunct has its own overt subject and finite T. At this stage both corresponding objects still occupy their verb-complement positions. This intermediate workspace establishes the coordinate domain from which the next operation applies simultaneously. The commas in the supplied sentence support the right-node-raising prosodic grouping but are not syntactic terminals in the supplied token list.",
+          "statement": "Coordinate the finite clauses before right-node raising.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "noraHigh",
+                      "label": "D",
+                      "lineageId": "nora",
+                      "tokenIndex": 0,
+                      "word": "Nora"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tenseN",
+                          "label": "T[past, finite]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "noraLow",
+                              "label": "D",
+                              "lineageId": "nora",
+                              "silent": true,
+                              "word": "Nora"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vN",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bought",
+                                      "label": "V",
+                                      "tokenIndex": 1,
+                                      "word": "bought"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "theN",
+                                          "label": "D",
+                                          "lineageId": "sharedDeterminer",
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "sameN",
+                                              "label": "A",
+                                              "lineageId": "sharedModifier",
+                                              "word": "same"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "bookN",
+                                              "label": "N",
+                                              "lineageId": "sharedNoun",
+                                              "word": "book"
+                                            }
+                                          ],
+                                          "id": "nominalN",
+                                          "label": "N",
+                                          "lineageId": "sharedNominal"
+                                        }
+                                      ],
+                                      "id": "objectN",
+                                      "label": "D",
+                                      "lineageId": "sharedObject"
+                                    }
+                                  ],
+                                  "id": "predicateN",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "vComplementN",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "voiceN",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "tenseComplementN",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "clauseN",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "and",
+                      "label": "&",
+                      "tokenIndex": 2,
+                      "word": "and"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "eliHigh",
+                          "label": "D",
+                          "lineageId": "eli",
+                          "tokenIndex": 3,
+                          "word": "Eli"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tenseE",
+                              "label": "T[past, finite]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "eliLow",
+                                  "label": "D",
+                                  "lineageId": "eli",
+                                  "silent": true,
+                                  "word": "Eli"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vE",
+                                      "label": "v[transitive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "read",
+                                          "label": "V",
+                                          "tokenIndex": 4,
+                                          "word": "read"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "theE",
+                                              "label": "D",
+                                              "lineageId": "sharedDeterminer",
+                                              "word": "the"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sameE",
+                                                  "label": "A",
+                                                  "lineageId": "sharedModifier",
+                                                  "word": "same"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "bookE",
+                                                  "label": "N",
+                                                  "lineageId": "sharedNoun",
+                                                  "word": "book"
+                                                }
+                                              ],
+                                              "id": "nominalE",
+                                              "label": "N",
+                                              "lineageId": "sharedNominal"
+                                            }
+                                          ],
+                                          "id": "objectE",
+                                          "label": "D",
+                                          "lineageId": "sharedObject"
+                                        }
+                                      ],
+                                      "id": "predicateE",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "vComplementE",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "voiceE",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "tenseComplementE",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "clauseE",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "coordComplement",
+                  "label": "&"
+                }
+              ],
+              "id": "coordination",
+              "label": "&"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "coordinateDomain": "coordination",
+                "result": "raisedCoordination",
+                "sharedLandingOccurrence": "objectHigh",
+                "sourceOccurrences": [
+                  "objectN",
+                  "objectE"
+                ]
+              },
+              "priorAnchors": {
+                "coordinateDomain": "coordination",
+                "sourceOccurrences": [
+                  "objectN",
+                  "objectE"
+                ]
+              },
+              "relation": "across-the-board rightward Internal Merge",
+              "values": {
+                "dependency": "right-node raising",
+                "licensing": "Corresponding right-peripheral complements participate in both conjuncts.",
+                "linearization": "The shared upper object follows the entire coordinate domain.",
+                "localityCommitment": "This implementation licenses the shared dependency without obligatory intermediate phase-edge copies."
+              }
+            },
+            {
+              "anchors": {
+                "pronouncedOccurrence": "objectHigh",
+                "silentOccurrences": [
+                  "objectN",
+                  "objectE"
+                ]
+              },
+              "priorAnchors": {
+                "previousObjectOccurrences": [
+                  "objectN",
+                  "objectE"
+                ]
+              },
+              "relation": "shared-object copy pronunciation",
+              "values": {
+                "pronunciation": "Pronounce the shared upper object once and silence both lower object occurrences."
+              }
+            },
+            {
+              "anchors": {
+                "caseLicensers": [
+                  "vN",
+                  "vE"
+                ],
+                "lowerObjects": [
+                  "objectN",
+                  "objectE"
+                ],
+                "selectingVerbs": [
+                  "bought",
+                  "read"
+                ],
+                "upperObject": "objectHigh"
+              },
+              "relation": "local reconstruction of the shared object",
+              "values": {
+                "case": "Each lower branch retains its local accusative licensing.",
+                "interpretation": "The same definite book participates as the internal argument of both predicates."
+              }
+            },
+            {
+              "anchors": {
+                "finiteLicensers": [
+                  "tenseN",
+                  "tenseE"
+                ],
+                "lowerOccurrences": [
+                  "noraLow",
+                  "eliLow"
+                ],
+                "upperOccurrences": [
+                  "noraHigh",
+                  "eliHigh"
+                ]
+              },
+              "relation": "subject copy dependencies",
+              "values": {
+                "case": "nominative",
+                "pronunciation": "Only the upper subject occurrences are pronounced."
+              }
+            }
+          ],
+          "stageRecord": "Across-the-board Internal Merge supplies one shared upper object occurrence at the right edge of the coordination, linked to the two previously established verb-complement occurrences. The coordinate structure is preserved as the left daughter of the enlarged coordination; the shared D object is its right-peripheral adjunct, and the label remains that of the coordination. The rightward order is an explicit linearization commitment of this right-node-raising analysis, not something derived from unordered Merge alone. Both lower object occurrences are silenced, and the upper occurrence is associated with the final three input tokens. The operation applies to corresponding right-edge objects in both conjuncts, satisfying the across-the-board condition rather than extracting from just one conjunct. This implementation permits a shared upper copy with two lower branches and reconstructs those branches for local selection, thematic interpretation, and Case. It does not impose obligatory intermediate phase-edge copies on this right-node-raising dependency; that is a substantive locality commitment of the selected implementation, not a consequence of Bare Phrase Structure itself. The sentence is grammatical under these assumptions: Nora bought the book and Eli read that same book. Possible choices of comparison context for same do not require another constituent structure. A deletion-based account would be a competing derivational theory of this surface reading, rather than an additional reading required here. The final tree pronounces exactly Nora bought and Eli read the same book, with all lower copies and abstract heads silent.",
+          "statement": "Complete the grammatical right-node-raising structure and pronounce the shared object once.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "noraHigh",
+                          "label": "D",
+                          "lineageId": "nora",
+                          "tokenIndex": 0,
+                          "word": "Nora"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tenseN",
+                              "label": "T[past, finite]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "noraLow",
+                                  "label": "D",
+                                  "lineageId": "nora",
+                                  "silent": true,
+                                  "word": "Nora"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vN",
+                                      "label": "v[transitive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bought",
+                                          "label": "V",
+                                          "tokenIndex": 1,
+                                          "word": "bought"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "theN",
+                                              "label": "D",
+                                              "lineageId": "sharedDeterminer",
+                                              "silent": true,
+                                              "word": "the"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sameN",
+                                                  "label": "A",
+                                                  "lineageId": "sharedModifier",
+                                                  "silent": true,
+                                                  "word": "same"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "bookN",
+                                                  "label": "N",
+                                                  "lineageId": "sharedNoun",
+                                                  "silent": true,
+                                                  "word": "book"
+                                                }
+                                              ],
+                                              "id": "nominalN",
+                                              "label": "N",
+                                              "lineageId": "sharedNominal",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "objectN",
+                                          "label": "D",
+                                          "lineageId": "sharedObject",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "predicateN",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "vComplementN",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "voiceN",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "tenseComplementN",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "clauseN",
+                      "label": "T"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "and",
+                          "label": "&",
+                          "tokenIndex": 2,
+                          "word": "and"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "eliHigh",
+                              "label": "D",
+                              "lineageId": "eli",
+                              "tokenIndex": 3,
+                              "word": "Eli"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tenseE",
+                                  "label": "T[past, finite]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "eliLow",
+                                      "label": "D",
+                                      "lineageId": "eli",
+                                      "silent": true,
+                                      "word": "Eli"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "vE",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "read",
+                                              "label": "V",
+                                              "tokenIndex": 4,
+                                              "word": "read"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "theE",
+                                                  "label": "D",
+                                                  "lineageId": "sharedDeterminer",
+                                                  "silent": true,
+                                                  "word": "the"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "sameE",
+                                                      "label": "A",
+                                                      "lineageId": "sharedModifier",
+                                                      "silent": true,
+                                                      "word": "same"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "bookE",
+                                                      "label": "N",
+                                                      "lineageId": "sharedNoun",
+                                                      "silent": true,
+                                                      "word": "book"
+                                                    }
+                                                  ],
+                                                  "id": "nominalE",
+                                                  "label": "N",
+                                                  "lineageId": "sharedNominal",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "objectE",
+                                              "label": "D",
+                                              "lineageId": "sharedObject",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "predicateE",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "vComplementE",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "voiceE",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "tenseComplementE",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "clauseE",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "coordComplement",
+                      "label": "&"
+                    }
+                  ],
+                  "id": "coordination",
+                  "label": "&"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "theHigh",
+                      "label": "D",
+                      "lineageId": "sharedDeterminer",
+                      "tokenIndex": 5,
+                      "word": "the"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sameHigh",
+                          "label": "A",
+                          "lineageId": "sharedModifier",
+                          "tokenIndex": 6,
+                          "word": "same"
+                        },
+                        {
+                          "children": [],
+                          "id": "bookHigh",
+                          "label": "N",
+                          "lineageId": "sharedNoun",
+                          "tokenIndex": 7,
+                          "word": "book"
+                        }
+                      ],
+                      "id": "nominalHigh",
+                      "label": "N",
+                      "lineageId": "sharedNominal"
+                    }
+                  ],
+                  "id": "objectHigh",
+                  "label": "D",
+                  "lineageId": "sharedObject"
+                }
+              ],
+              "id": "raisedCoordination",
+              "label": "&"
+            }
+          ]
+        }
+      ],
+      "provenance": {
+        "framework": "minimalism",
+        "hasDerivationStages": true,
+        "modelRoute": "gpt",
+        "payloadIntegrityFlags": [
+          "derivation_stages_compiled_to_derivation_frames",
+          "prior_stage_refid_expanded:2:predicateN",
+          "prior_stage_refid_expanded:2:predicateE",
+          "prior_stage_refid_expanded:3:vComplementN",
+          "prior_stage_refid_expanded:3:vComplementE",
+          "prior_stage_refid_expanded:4:clauseN",
+          "prior_stage_refid_expanded:4:clauseE",
+          "prior_stage_refid_expanded:5:noraHigh",
+          "prior_stage_refid_expanded:5:tenseN",
+          "prior_stage_refid_expanded:5:noraLow",
+          "prior_stage_refid_expanded:5:vN",
+          "prior_stage_refid_expanded:5:bought",
+          "prior_stage_refid_expanded:5:and",
+          "prior_stage_refid_expanded:5:eliHigh",
+          "prior_stage_refid_expanded:5:tenseE",
+          "prior_stage_refid_expanded:5:eliLow",
+          "prior_stage_refid_expanded:5:vE",
+          "prior_stage_refid_expanded:5:read"
+        ],
+        "treeSource": "derivationStages"
+      },
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "noraHigh",
+                    "label": "D",
+                    "lineageId": "nora",
+                    "surfaceSpan": [
+                      0,
+                      0
+                    ],
+                    "tokenIndex": 0,
+                    "word": "Nora"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "tenseN",
+                        "label": "T[past, finite]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "noraLow",
+                            "label": "D",
+                            "lineageId": "nora",
+                            "silent": true,
+                            "word": "Nora"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "vN",
+                                "label": "v[transitive]",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "bought",
+                                    "label": "V",
+                                    "surfaceSpan": [
+                                      1,
+                                      1
+                                    ],
+                                    "tokenIndex": 1,
+                                    "word": "bought"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "theN",
+                                        "label": "D",
+                                        "lineageId": "sharedDeterminer",
+                                        "silent": true,
+                                        "word": "the"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "sameN",
+                                            "label": "A",
+                                            "lineageId": "sharedModifier",
+                                            "silent": true,
+                                            "word": "same"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "bookN",
+                                            "label": "N",
+                                            "lineageId": "sharedNoun",
+                                            "silent": true,
+                                            "word": "book"
+                                          }
+                                        ],
+                                        "id": "nominalN",
+                                        "label": "N",
+                                        "lineageId": "sharedNominal",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "objectN",
+                                    "label": "D",
+                                    "lineageId": "sharedObject",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "predicateN",
+                                "label": "V",
+                                "surfaceSpan": [
+                                  1,
+                                  1
+                                ]
+                              }
+                            ],
+                            "id": "vComplementN",
+                            "label": "v",
+                            "surfaceSpan": [
+                              1,
+                              1
+                            ]
+                          }
+                        ],
+                        "id": "voiceN",
+                        "label": "v",
+                        "surfaceSpan": [
+                          1,
+                          1
+                        ]
+                      }
+                    ],
+                    "id": "tenseComplementN",
+                    "label": "T",
+                    "surfaceSpan": [
+                      1,
+                      1
+                    ]
+                  }
+                ],
+                "id": "clauseN",
+                "label": "T",
+                "surfaceSpan": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "and",
+                    "label": "&",
+                    "surfaceSpan": [
+                      2,
+                      2
+                    ],
+                    "tokenIndex": 2,
+                    "word": "and"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "eliHigh",
+                        "label": "D",
+                        "lineageId": "eli",
+                        "surfaceSpan": [
+                          3,
+                          3
+                        ],
+                        "tokenIndex": 3,
+                        "word": "Eli"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "tenseE",
+                            "label": "T[past, finite]",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "eliLow",
+                                "label": "D",
+                                "lineageId": "eli",
+                                "silent": true,
+                                "word": "Eli"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "vE",
+                                    "label": "v[transitive]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V",
+                                        "surfaceSpan": [
+                                          4,
+                                          4
+                                        ],
+                                        "tokenIndex": 4,
+                                        "word": "read"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "theE",
+                                            "label": "D",
+                                            "lineageId": "sharedDeterminer",
+                                            "silent": true,
+                                            "word": "the"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "sameE",
+                                                "label": "A",
+                                                "lineageId": "sharedModifier",
+                                                "silent": true,
+                                                "word": "same"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "bookE",
+                                                "label": "N",
+                                                "lineageId": "sharedNoun",
+                                                "silent": true,
+                                                "word": "book"
+                                              }
+                                            ],
+                                            "id": "nominalE",
+                                            "label": "N",
+                                            "lineageId": "sharedNominal",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "objectE",
+                                        "label": "D",
+                                        "lineageId": "sharedObject",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "predicateE",
+                                    "label": "V",
+                                    "surfaceSpan": [
+                                      4,
+                                      4
+                                    ]
+                                  }
+                                ],
+                                "id": "vComplementE",
+                                "label": "v",
+                                "surfaceSpan": [
+                                  4,
+                                  4
+                                ]
+                              }
+                            ],
+                            "id": "voiceE",
+                            "label": "v",
+                            "surfaceSpan": [
+                              4,
+                              4
+                            ]
+                          }
+                        ],
+                        "id": "tenseComplementE",
+                        "label": "T",
+                        "surfaceSpan": [
+                          4,
+                          4
+                        ]
+                      }
+                    ],
+                    "id": "clauseE",
+                    "label": "T",
+                    "surfaceSpan": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "id": "coordComplement",
+                "label": "&",
+                "surfaceSpan": [
+                  2,
+                  4
+                ]
+              }
+            ],
+            "id": "coordination",
+            "label": "&",
+            "surfaceSpan": [
+              0,
+              4
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "theHigh",
+                "label": "D",
+                "lineageId": "sharedDeterminer",
+                "surfaceSpan": [
+                  5,
+                  5
+                ],
+                "tokenIndex": 5,
+                "word": "the"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "sameHigh",
+                    "label": "A",
+                    "lineageId": "sharedModifier",
+                    "surfaceSpan": [
+                      6,
+                      6
+                    ],
+                    "tokenIndex": 6,
+                    "word": "same"
+                  },
+                  {
+                    "children": [],
+                    "id": "bookHigh",
+                    "label": "N",
+                    "lineageId": "sharedNoun",
+                    "surfaceSpan": [
+                      7,
+                      7
+                    ],
+                    "tokenIndex": 7,
+                    "word": "book"
+                  }
+                ],
+                "id": "nominalHigh",
+                "label": "N",
+                "lineageId": "sharedNominal",
+                "surfaceSpan": [
+                  6,
+                  7
+                ]
+              }
+            ],
+            "id": "objectHigh",
+            "label": "D",
+            "lineageId": "sharedObject",
+            "surfaceSpan": [
+              5,
+              7
+            ]
+          }
+        ],
+        "id": "raisedCoordination",
+        "label": "&",
+        "surfaceSpan": [
+          0,
+          7
+        ]
+      }
+    }
+  ]
+}

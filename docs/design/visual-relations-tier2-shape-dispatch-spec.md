@@ -18,6 +18,59 @@ The complete executable facet catalog is
 `replay/relations/tier2FacetRecipes.ts`. The deterministic vocabulary is
 `replay/relations/tier2Synonyms.ts`.
 
+The current catalog has 54 recipes and still uses the same 69 primitives. A
+passing primitive test does not establish recognition coverage on model output.
+
+## Independently supported pieces
+
+- Separate named chains or occurrence lists remain separate identity groups.
+  Every group requires distinct, uniquely resolved occurrences with the same
+  nonempty root lineage. Shared descendants are insufficient.
+- Explicit nominal members with typed shared features can earn vines within
+  one nominal domain. A competing directed source/controller, unresolved
+  category or intervening clause blocks that reading.
+- Separately named idiom components can earn underlines without an authored
+  domain bracket. Ordinary verb and noun references plus explanatory prose do
+  not establish an idiom claim.
+- An explicit binder and anaphor can earn the existing binding connection
+  without supplying a domain circle. A negative outcome blocks that smaller
+  claim; a malformed exact registered Binding claim remains malformed.
+- An explicit polarity licensor and polarity item can earn the existing
+  association curve without asserting strong-NPI features. Strong-NPI evidence
+  retains its more specific recipe and does not produce a duplicate curve. In
+  an explicitly named NPI claim, `licensee` can identify the polarity item;
+  generic licensing does not supply that meaning.
+- An explicit focus particle and its associate can earn an association curve.
+  This does not assert prosodic prominence, an accent bearer or a projection
+  chain. Those drawings retain their own evidence requirements.
+- Ordinary and parasitic gaps may be leaf witnesses or explicitly silent
+  phrasal copies sharing the filler's root lineage. An overt phrase or unrelated
+  silent occurrence cannot substitute for a gap.
+
+These rules interpret authored roles and structure, never the relation title or
+explanatory prose. They preserve unused fields and the original relation moment.
+Ellipsis ghosting inherits silence through the entire authored silent subtree.
+
+## Public records and shared occurrences
+
+Every recipe must work on records accepted by the public derivation contract.
+The provider-free verification suite starts with those records, normalizes them,
+prepares Replay and binds the resulting drawings in both frameworks. It covers
+all 54 recipes and 69 drawing pieces, including presentation companions attached
+to a supported claim. Direct calls to a recipe alone do not satisfy this check.
+
+A shared constituent has one occurrence in a workspace tree. Explicit additional
+parents or predicate domains can establish sharing through a relation. Repeating
+the same occurrence ID under two parents is invalid and is not required for the
+shared-structure drawings. Shared lineage alone is insufficient.
+
+A movement relation may supply several sources and one landing. Each source must
+match exactly one preceding occurrence through the existing movement checks, and
+the matches must be distinct. Array order supplies no association. Preserve
+authored witnesses, context, routing and outcome for each recovered path. All
+paths owned by that relation appear together; a source whose movement already
+happened is not restored to its earlier form by a later shared claim.
+
 ## Shared role interpretation
 
 Production registry version 23 binds recognized equivalent role wording before
@@ -68,6 +121,12 @@ Several explicit argument fields may form one predicate's inventory when every
 field has its own same-name, same-length role literals and distinct occurrences.
 They produce one grid in the original relation moment. Unpaired aliases,
 competing normalized field names and incomplete literal lists remain ambiguous.
+An open role-valued field can also identify a participant by naming an exact,
+unique anchor role as its scalar value: `objectRole: experiencer` pairs with an
+`experiencer` anchor when a predicate is explicitly anchored. This reads the
+authored association across field names without interpreting the relation title
+or deciding what an object should mean. Duplicate labels and missing predicate
+or participant anchors remain neutral.
 Registered theta claims validate this same inventory before acceptance; a claim
 whose grid cannot be constructed or whose participants do not resolve uniquely
 in the supplied forest stays neutral.
@@ -96,6 +155,14 @@ explicit agreement value, can establish a feature dependency. Governing heads
 and governed complements require an explicit Case value. Controller positions
 and controlled subjects retain their explicitly named occurrences; when a direct
 controller is present, additional controller-chain descriptions remain context.
+An explicitly named goal occurrence is the anchored Case recipient when a
+separate licensor and Case value identify the dependency. A projection's
+parenthetical annotation does not change its category when checking an exact
+specifier landing; source, landing, lineage and preceding slot must still agree.
+Likewise, a head's colon-delimited features do not change its category in an
+adjunction complex. The exact sibling, host and movement transition still have
+to be proven. A finite licensor with a separate recipient and typed Case value
+identifies that Case source without relying on the relation title.
 Competing endpoints still fail the complete recipe. These shared rules neither
 choose positions from child order nor interpret relation titles or prose.
 
@@ -291,7 +358,14 @@ must agree. Matching positions or lineage alone cannot merge collectors.
 
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that
-domain; a generic `role` literal or the relation title cannot. Competing feature
+domain. A generic `role` literal also establishes a thematic assignment when
+the same relation names one lexical predicate and one subject, with no competing
+feature claim. A typed theta-role literal may identify an otherwise unfamiliar
+participant role by naming that anchor as a whole word; a distinct explicit
+introducer remains the source while a lexical predicate remains context.
+`subjectPosition` and `finiteHeadPosition` preserve the subject and finite-head
+roles of their exact anchored occurrences. Neither a role value by itself nor
+the relation title chooses a drawing. Competing feature
 evidence does not select a theta reading. The same source/recipient direction
 rule applies to typed Case and feature assignment, including domain-qualified
 roles; neither an assignment title nor an untyped recipient establishes meaning.
@@ -475,7 +549,7 @@ structural checks, outputs, and Replay transition evidence.
 | `identity.occurrences` | claim | `Coindex`, `Forest light` |
 | `presentation.lens` | presentation companion | `Lens emphasis` |
 | `control.dependency` | claim | `Rectangular domain`, `Control connector` |
-| `binding.dependency` | claim | `Elliptic domain` |
+| `binding.dependency` | claim | `Elliptic domain`, `Variable-binding path` |
 | `predication.dependency` | claim | `Predication connector` |
 | `parasitic-gap.paths` | claim | `Path-node rings` |
 | `parasitic-gap.copy` | claim | `Copy fork` |
@@ -508,7 +582,9 @@ structural checks, outputs, and Replay transition evidence.
 | `blocked-extraction` | claim | `Blocked extraction curve`, `Branch overlay` (adjunct branch only) |
 | `focus.prominence` | claim | `Prominence branches` |
 | `focus.projection` | claim | `Projection hop`, `Feature annotation`, `Accent annotation` |
+| `focus.association` | claim | `Nested association curves` |
 | `strong-npi` | claim | `Nested association curves`, `Feature notation` |
+| `polarity.licensing` | claim | `Nested association curves` |
 | `storage.ledger` | claim | `Ledger frame` |
 | `scope.movement` | claim | `Covert path`, `Scope domain` |
 | `operator-binding` | claim | `Ranked scope hulls`, `Variable-binding path` |
@@ -808,9 +884,13 @@ Persistence has three forms:
   facet's lifetime.
 
 Every claim uses `while-witnesses-resolve`. An unknown relation is therefore
-never presumed temporary. If a witness vanishes, Babel stops drawing that
-claim in the affected stage. It does not retarget the mark, and earlier Replay
-history remains intact.
+never presumed temporary. A later movement can explicitly replace an exact
+prior occurrence with its authored lower witness. An earlier mark stays at that
+position, using the old occurrence before the movement and the lower witness
+afterward. Preserve its original claim references and ownership. This requires
+one proved replacement at each intervening stage; matching lineage alone is
+insufficient. If a witness vanishes without that evidence, stop drawing the
+claim in the affected stage and retain its earlier Replay history.
 
 Replacement also fails closed. A later claim replaces an earlier claim only
 when its complete `priorAnchors` block resolves in the immediately preceding

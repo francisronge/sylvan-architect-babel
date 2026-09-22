@@ -1,9 +1,10 @@
 import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
 import { recoverMovementEvidence } from './movementEvidence.ts';
+import { nominalConcordMembers } from './nominalConcord.ts';
 import { resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields,
+import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields, independentIdiomMemberFields, sameNameValueEntries,
   type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts,
+import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts, relationValueConcepts,
   type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
 const DEFAULT_SYNONYM_INDEX = buildTier2SynonymIndex();
 
@@ -35,7 +36,7 @@ const normalizeBlock = (
   Object.entries(block ?? {}).forEach(([authoredKey, value]) => {
     const items = authoredItems(value);
     const concepts = scope === 'role' ? relationRoleConcepts(synonymIndex, authoredKey, context)
-      : lookupTier2SynonymCandidates(synonymIndex, scope, authoredKey);
+      : relationValueConcepts(synonymIndex, authoredKey, context);
     const activeConcepts: string[] = [];
     const conceptItemIndices: Record<string, number[]> = {};
     concepts.forEach((concept) => {
@@ -85,35 +86,87 @@ export const buildTier2FacetEvidence = ({
   priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
-  const values = normalizeBlock(relation.values, 'value', synonymIndex);
-  const contributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
+  const values = normalizeBlock(relation.values, 'value', synonymIndex, { ...relation, forest: currentForest });
+  // A Case value qualified by the exact recipient role belongs to that one
+  // participant. This cannot pair a subjectCase literal with a generic goal.
+  const recipients = currentAnchors.authored.filter(entry => entry.concepts.includes('feature.target'));
+  if (recipients.length === 1 && recipients[0].items.length === 1) {
+    const role = normalizeTier2Synonym(recipients[0].key);
+    const namedCases = values.authored.filter(entry => normalizeTier2Synonym(entry.key) === `${role} case` && entry.items.length === 1 && entry.items[0].trim());
+    namedCases.forEach(entry => {
+      entry.concepts = [...entry.concepts, 'case.literal'];
+      entry.conceptItemIndices = { ...entry.conceptItemIndices, 'case.literal': [0] };
+      appendItems(values.concepts, 'case.literal', entry.items);
+    });
+  }
+  if (independentIdiomMemberFields({ authoredCurrentAnchors: currentAnchors.authored })) {
+    currentAnchors.concepts.chunks = currentAnchors.authored.filter(entry => entry.concepts.includes('chunks')).flatMap(entry => entry.items);
+  }
+  const concord = nominalConcordMembers({ currentForest, authoredCurrentAnchors: currentAnchors.authored, authoredValues: values.authored });
+  if (concord.length) {
+    currentAnchors.concepts['feature.bearers'] = concord.flatMap(entry => entry.items);
+    concord.forEach(entry => {
+      entry.concepts = [...entry.concepts, 'feature.bearers'];
+      entry.conceptItemIndices = { ...entry.conceptItemIndices, 'feature.bearers': entry.items.map((_, index) => index) };
+    });
+  }
+  const declaredContributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
+  const contributors = declaredContributors.length ? declaredContributors : currentAnchors.authored;
   const surfaces = values.authored.filter(entry => entry.concepts.includes('pf.surface'));
+  let realizationGroupAnchorKeys: string[] | undefined;
   // The entire authored realization group owns the plate. No member is chosen
   // as a lexical source, output head or morphological controller.
-  if (contributors.length === 1 && surfaces.length === 1 && surfaces[0].items.length === 1
+  if ((!declaredContributors.length || declaredContributors.length === 1) && surfaces.length === 1 && surfaces[0].items.length === 1
     && surfaces[0].items[0].trim() && !Object.hasOwn(currentAnchors.concepts, 'rewrite.output')) {
-    const ids = contributors[0].items;
+    const ids = contributors.flatMap(entry => entry.items);
     const groups = currentRealizations ?? [];
-    const matches = groups.filter(group => group.nodeIds.length === ids.length
-      && new Set(group.nodeIds).size === ids.length && ids.every(id => group.nodeIds.includes(id)));
-    const group = matches.length === 1 ? matches[0] : undefined;
+    const nodes = new Map<string, SyntaxNode[]>();
+    const visit = (node: SyntaxNode) => {
+      nodes.set(node.id, [...(nodes.get(node.id) ?? []), node]);
+      node.children?.forEach(visit);
+    };
+    currentForest.forEach(visit);
+    const contains = (node: SyntaxNode, id: string): boolean => node.id === id || Boolean(node.children?.some(child => contains(child, id)));
+    const matches = groups.flatMap(group => {
+      if (group.nodeIds.length === ids.length && new Set(group.nodeIds).size === ids.length
+        && ids.every(id => group.nodeIds.includes(id))) return [{ group, carriers: [] as Tier2AuthoredEvidenceEntry[] }];
+      // A realization may name the whole constituent while its relation names
+      // the contained contributors. The carrier must also be explicitly anchored.
+      if (!declaredContributors.length || group.nodeIds.length !== 1) return [];
+      const carriers = currentAnchors.authored.filter(entry => !contributors.includes(entry)
+        && entry.items.length === 1 && entry.items[0] === group.nodeIds[0]);
+      const carrier = nodes.get(group.nodeIds[0]);
+      return carriers.length === 1 && carrier?.length === 1 && ids.every(id => contains(carrier[0], id))
+        ? [{ group, carriers }] : [];
+    });
+    const match = matches.length === 1 ? matches[0] : undefined;
+    const group = match?.group;
     const exactGroup = ids.length > 0 && new Set(ids).size === ids.length && group
+      && ids.every(id => nodes.get(id)?.length === 1)
       && group.tokenIndices.length > 0 && new Set(group.tokenIndices).size === group.tokenIndices.length
       && group.tokenIndices.every(index => Number.isInteger(index) && index >= 0)
       && groups.every(other => other === group || !other.tokenIndices.some(index => group.tokenIndices.includes(index)));
     if (exactGroup) {
-      currentAnchors.concepts['rewrite.output'] = [...ids];
-      contributors[0].concepts = [...contributors[0].concepts, 'rewrite.output'];
-      contributors[0].conceptItemIndices = { ...contributors[0].conceptItemIndices,
-        'rewrite.output': ids.map((_, index) => index) };
-      appendItems(values.concepts, 'pf.rows', surfaces[0].items);
-      surfaces[0].concepts = [...surfaces[0].concepts, 'pf.rows'];
+      const owners = [...match!.carriers, ...contributors];
+      realizationGroupAnchorKeys = owners.map(entry => entry.key);
+      currentAnchors.concepts['rewrite.output'] = [...new Set(owners.flatMap(entry => entry.items))];
+      owners.forEach(entry => {
+        entry.concepts = [...entry.concepts, 'rewrite.output'];
+        entry.conceptItemIndices = { ...entry.conceptItemIndices,
+          'rewrite.output': entry.items.map((_, index) => index) };
+      });
+      if (!surfaces[0].concepts.includes('pf.rows')) appendItems(values.concepts, 'pf.rows', surfaces[0].items);
+      surfaces[0].concepts = [...new Set([...surfaces[0].concepts, 'pf.rows'])];
       surfaces[0].conceptItemIndices = { ...surfaces[0].conceptItemIndices, 'pf.rows': [0] };
     }
   }
   if (independentThetaArgumentFields({ authoredCurrentAnchors: currentAnchors.authored, authoredValues: values.authored })) {
-    currentAnchors.concepts['theta.arguments'] = currentAnchors.authored
-      .filter(entry => entry.concepts.includes('theta.arguments')).flatMap(entry => [...entry.items]);
+    const arguments_ = currentAnchors.authored.filter(entry => entry.concepts.includes('theta.arguments'));
+    currentAnchors.concepts['theta.arguments'] = arguments_.flatMap(entry => [...entry.items]);
+    const paired = arguments_.map(entry => sameNameValueEntries({ authoredValues: values.authored }, entry, 'theta.arguments')[0]);
+    if (!values.concepts['role.label']?.length && paired.every(entry => entry?.concepts.includes('role.label'))) {
+      values.concepts['role.label'] = paired.flatMap(entry => entry.items);
+    }
   }
   // One current participant makes explicit record rows attachable without
   // interpreting its role or the relation title. Multiple participants still
@@ -160,6 +213,7 @@ export const buildTier2FacetEvidence = ({
     }
   }
   return {
+    ...(realizationGroupAnchorKeys ? { realizationGroupAnchorKeys } : {}),
     movementDiagnostics,
     ...(movementFailure ? { movementFailure } : {}),
     ...(movement ? { movement } : {}),

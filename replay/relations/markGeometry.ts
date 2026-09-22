@@ -12,6 +12,7 @@
  * agreement curves.
  */
 import type { Point, Rect } from './overlayGeometry.ts';
+import { prepareSharedFeatureTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 const fixed = (value: number): string => value.toFixed(1);
 
@@ -138,19 +139,72 @@ export const checkMarkPath = (point: Point, size = 12): string => [
  * A feature-sharing vine: the accepted cubic from a bearer's terminal down to
  * the shared convergence point.
  */
-export const featureSharingVinePath = (start: Point, convergence: Point): string => {
+const featureSharingVineControls = (start: Point, convergence: Point): [Point, Point] => {
   const spanY = convergence.y - start.y;
   const c1 = { x: start.x, y: start.y + spanY * 0.64 };
   const c2 = {
     x: convergence.x + (start.x - convergence.x) * 0.16,
     y: convergence.y - Math.max(22, spanY * 0.08)
   };
+  return [c1, c2];
+};
+
+export const featureSharingVinePath = (start: Point, convergence: Point): string => {
+  const [c1, c2] = featureSharingVineControls(start, convergence);
   return [
     `M ${fixed(start.x)} ${fixed(start.y)}`,
     `C ${fixed(c1.x)} ${fixed(c1.y)},`,
     `${fixed(c2.x)} ${fixed(c2.y)},`,
     `${fixed(convergence.x)} ${fixed(convergence.y)}`
   ].join(' ');
+};
+
+/** Keep accepted curves unless staggered bearer heights make them cross.
+ * Delay their inward bend together, preserving endpoints and the shared plaque.
+ * At full delay the curves share a starting level and retain horizontal order. */
+export const featureSharingVinePaths = (starts: Point[], convergence: Point): string[] => {
+  const lowestY = Math.max(...starts.map(start => start.y));
+  const ordered = [...starts].sort((a, b) => a.x - b.x);
+  const delayed = (start: Point, delay: number): Point => ({ x: start.x, y: start.y + (lowestY - start.y) * delay });
+  const xAtY = (start: Point, y: number): number => {
+    if (y <= start.y) return start.x;
+    const [c1, c2] = featureSharingVineControls(start, convergence);
+    let low = 0, high = 1;
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const t = (low + high) / 2, u = 1 - t;
+      const curveY = u ** 3 * start.y + 3 * u ** 2 * t * c1.y
+        + 3 * u * t ** 2 * c2.y + t ** 3 * convergence.y;
+      if (curveY < y) low = t; else high = t;
+    }
+    const t = (low + high) / 2, u = 1 - t;
+    return u ** 3 * start.x + 3 * u ** 2 * t * c1.x
+      + 3 * u * t ** 2 * c2.x + t ** 3 * convergence.x;
+  };
+  const crosses = (delay: number): boolean => ordered.some((left, index) => {
+    const right = ordered[index + 1];
+    if (!right || left.x === right.x) return false;
+    const fromY = Math.max(left.y, right.y);
+    const a = delayed(left, delay), b = delayed(right, delay);
+    for (let sample = 0; sample < 64; sample += 1) {
+      const y = fromY + (convergence.y - fromY) * sample / 64;
+      if (xAtY(a, y) > xAtY(b, y) + 0.01) return true;
+    }
+    return false;
+  });
+  if (!crosses(0)) return starts.map(start => featureSharingVinePath(start, convergence));
+  let low = 0, high = 1;
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    const delay = (low + high) / 2;
+    if (crosses(delay)) low = delay; else high = delay;
+  }
+  // A small margin avoids a near-tangent double stroke after coordinate rounding.
+  const delay = Math.min(1, high + 0.08);
+  return starts.map(start => {
+    const bend = delayed(start, delay);
+    const curve = featureSharingVinePath(bend, convergence);
+    return bend.y === start.y ? curve
+      : `M ${fixed(start.x)} ${fixed(start.y)} L ${fixed(bend.x)} ${fixed(bend.y)} ${curve.slice(curve.indexOf('C'))}`;
+  });
 };
 
 /** The convergence point of a vine set: mean bearer x, below the lowest. */
@@ -160,9 +214,10 @@ export const vineConvergence = (bearerRects: Rect[]): Point => ({
 });
 
 /** Native plaque footprints are shared by painting and the stage camera reservation. */
-export const featureSharingPlaqueRect = (bearerRects: Rect[]): Rect => {
+export const featureSharingPlaqueRect = (bearerRects: Rect[], label = '', measureText?: PlaqueTextMeasure): Rect => {
   const convergence = vineConvergence(bearerRects);
-  return { x: convergence.x - 124, y: convergence.y + 10, width: 248, height: 92 };
+  const { width, height } = prepareSharedFeatureTextLayout(label, measureText);
+  return { x: convergence.x - width / 2, y: convergence.y + 10, width, height };
 };
 
 export const dependentCaseStatePlaques = (
@@ -316,8 +371,13 @@ export const nestedUnderArcPath = (
   startX: number,
   endX: number,
   baseY: number,
-  depth: number
-): string => openArcPath(startX, endX, baseY, -depth);
+  depth: number,
+  endY = baseY
+): string => [
+  `M ${fixed(startX)} ${fixed(baseY)}`,
+  `Q ${fixed((startX + endX) / 2)} ${fixed(Math.max(baseY, endY) + depth)}`,
+  `${fixed(endX)} ${fixed(endY)}`
+].join(' ');
 
 /** The idiom interpretation bracket beneath the domain. */
 export const domainBracketPath = (x1: number, x2: number, y: number, lip = 12): string => [

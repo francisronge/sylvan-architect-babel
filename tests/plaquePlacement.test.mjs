@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { caseAssignmentSource, caseAssignmentClears, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout, projectPlaqueContent } from '../replay/relations/plaquePlacement.ts';
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
+import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
@@ -17,6 +18,28 @@ const plaque = (ids, long = false) => ({ kind: 'node-plaque', plaqueStyle: 'feat
 const tree = () => d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', label: 'XP', children: [
   { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }
 ]}));
+
+test('short grouped realization stays near its anchor instead of below the entire common subtree', () => {
+  const nodes = tree().descendants();
+  nodes.find(node => node.data.id === 'right').y = 2400;
+  const item = { kind: 'node-plaque', plaqueStyle: 'realization', anchorNodeIds: ['left', 'root'],
+    rows: [{ label: 'surfaceForm', value: '샀다' }], realizationRowKinds: ['literal'],
+    relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const measureText = (text, style) => ({ width: [...text].length * style.fontSize * .57 });
+  const obstacles = plaqueTreeObstacles(nodes);
+  const result = placeStagePlaques([item], nodes, obstacles, new Map(), measureText);
+  const box = result.get(0);
+  const painted = preparePfPlaqueTextLayout([{ ...item.rows[0], kind: 'literal', rowIndex: 0, isFinal: true }], { measureText });
+  assert.equal(box.width, painted.width, 'allocation and paint use the same font measurements');
+  assert.equal(box.height, painted.height);
+  assert.equal(box.location, 'local');
+  assert.equal(box.attachmentNodeId, 'left');
+  assert(box.y + box.height < 800, 'a distant descendant must not send the plate below the whole tree');
+  assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)));
+  const carried = placeStagePlaques([item], nodes, obstacles, new Map([[plaqueIdentity(item), box]]), measureText).get(0);
+  assert.deepEqual(carried, box, 'revisiting the stage preserves the selected pocket');
+  assert.deepEqual(item.anchorNodeIds, ['left', 'root'], 'placement cannot change any contributor');
+});
 
 test('a vertical collector reserves its edge, checks its actual curve, and keeps the edge during projection', () => {
   const nodes = tree().descendants();

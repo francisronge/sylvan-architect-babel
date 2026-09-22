@@ -446,7 +446,8 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
         const rows = item.rows.map((row, rowIndex) => ({ ...row, rowIndex,
           kind: item.realizationRowKinds?.[rowIndex], isFinal: rowIndex === item.rows.length - 1 }));
         size = { ...size, ...preparePfPlaqueTextLayout(rows, {
-          isZeroRealization: rows.length === 1 && rows[0].kind === 'rewrite' && rows[0].value === '\u2205'
+          isZeroRealization: rows.length === 1 && rows[0].kind === 'rewrite' && rows[0].value === '\u2205',
+          measureText
         }), rows: size.rows };
       }
       if (item.plaqueStyle === 'theta-grid') {
@@ -672,12 +673,12 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
 
 /** Native compounds retain their Orchard placement while contributing their full boxes to fitting. */
 export function nativeRelationPlaqueRects(items: RelationPlanItem[],
-  rectFor: (id: string, terminal: boolean) => PlaqueRect | null): PlaqueRect[] {
+  rectFor: (id: string, terminal: boolean) => PlaqueRect | null, measureText?: PlaqueTextMeasure): PlaqueRect[] {
   return items.flatMap(item => {
     if (item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing') {
       const ids = [...new Set(item.pairs.flatMap(pair => [pair.fromNodeId, pair.toNodeId]))];
       const rects = ids.map(id => rectFor(id, true)).filter((rect): rect is PlaqueRect => rect !== null);
-      return rects.length >= 2 ? [featureSharingPlaqueRect(rects)] : [];
+      return rects.length >= 2 ? [featureSharingPlaqueRect(rects, item.label, measureText)] : [];
     }
     if (item.kind !== 'directed-path' || item.pathStyle !== 'dependent-case') return [];
     const probe = rectFor(item.fromNodeId, true), goal = rectFor(item.toNodeId, true);

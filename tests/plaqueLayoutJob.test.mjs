@@ -16,6 +16,10 @@ test('serialized allocation preserves measured text, all future reservations and
     kind: 'node-plaque', plaqueStyle: 'theta-grid', anchorNodeIds: ['vm'], rows: [],
     thetaRoles: [{ label: 'A long role whose text wraps without losing its exact characters', index: 'i', nodeId: 'im' }],
     relationRef: { stageIndex, relationIndex: 90 }
+  }, {
+    kind: 'node-plaque', plaqueStyle: 'realization', anchorNodeIds: ['vm', 'im'],
+    rows: [{ label: 'surfaceForm', value: '샀다' }], realizationRowKinds: ['literal'],
+    relationRef: { stageIndex, relationIndex: 91 }
   }));
   const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan,
     width: 1596, height: 1016, layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),

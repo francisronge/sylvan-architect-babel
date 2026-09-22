@@ -74,7 +74,7 @@ const evidence = ({ currentAnchors, currentForest, priorAnchors, priorForest, va
   ...rest
 });
 
-test('the complete Tier-2 recipes cover 69 primitives with only Branch overlay shared', async () => {
+test('the complete Tier-2 recipes cover 69 primitives with explicit shared drawing ownership', async () => {
   const vocabularyNames = await readVocabularyNames();
   const ownedPieces = TIER2_FACET_RECIPES.flatMap((entry) => entry.outputs.map((output) => output.piece));
   const ownershipCounts = ownedPieces.reduce((counts, piece) => {
@@ -83,13 +83,14 @@ test('the complete Tier-2 recipes cover 69 primitives with only Branch overlay s
   }, new Map());
 
   assert.equal(TIER2_VISUAL_PRIMITIVE_NAMES.length, 69);
-  assert.equal(ownedPieces.length, 70);
+  assert.equal(ownedPieces.length, 73);
   assert.equal(new Set(ownedPieces).size, 69);
-  assert.equal(ownershipCounts.get('Branch overlay'), 2);
+  const shared = ['Branch overlay', 'Variable-binding path', 'Nested association curves'];
+  for (const piece of shared) assert.equal(ownershipCounts.get(piece), piece === 'Nested association curves' ? 3 : 2);
   assert.deepEqual(
-    [...ownershipCounts.entries()].filter(([piece]) => piece !== 'Branch overlay'),
+    [...ownershipCounts.entries()].filter(([piece]) => !shared.includes(piece)),
     [...ownershipCounts.entries()]
-      .filter(([piece]) => piece !== 'Branch overlay')
+      .filter(([piece]) => !shared.includes(piece))
       .map(([piece]) => [piece, 1])
   );
   assert.deepEqual([...new Set(ownedPieces)].sort(), [...TIER2_VISUAL_PRIMITIVE_NAMES].sort());
@@ -117,7 +118,7 @@ test('Pair Merge earns the shared branch overlay only for one native sibling for
   assert.ok(separateBranches.failures.includes('check:shared-native-parent'));
 });
 
-test('the reviewed ownership audit matches the 52 executable facet recipes', async () => {
+test('the reviewed ownership audit matches the 54 executable facet recipes', async () => {
   const auditedFacets = await readFacetOwnershipAudit();
   const kindLabel = {
     claim: 'claim',
@@ -125,9 +126,9 @@ test('the reviewed ownership audit matches the 52 executable facet recipes', asy
     'organizational-companion': 'organizational companion'
   };
 
-  assert.equal(TIER2_FACET_RECIPES.length, 52);
-  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, 52);
-  assert.equal(TIER2_FACET_RECIPES.filter((entry) => entry.kind === 'claim').length, 50);
+  assert.equal(TIER2_FACET_RECIPES.length, 54);
+  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, 54);
+  assert.equal(TIER2_FACET_RECIPES.filter((entry) => entry.kind === 'claim').length, 52);
   assert.deepEqual(
     auditedFacets,
     TIER2_FACET_RECIPES.map((entry) => ({

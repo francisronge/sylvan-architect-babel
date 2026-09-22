@@ -2,6 +2,9 @@ import { buildTier2FacetEvidence } from './relationEvidence.ts';
 export { buildTier2FacetEvidence } from './relationEvidence.ts';
 import { createAssignmentContext, recoverAssignmentContinuity, rememberAssignments, rememberAssignmentMovement, type AssignmentContext, type AssignmentScope } from './assignmentContinuity.ts';
 import { nativeThetaAssignments, recoverCompoundAssignments } from './compoundAssignments.ts';
+import { recoverOccurrenceGroups } from './occurrenceGroups.ts';
+import { recoverInterpretiveCorrespondence } from './interpretiveCorrespondence.ts';
+import { recoverSharedMovement } from './sharedMovement.ts';
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
  *
@@ -55,7 +58,9 @@ export type Tier2ResolvedFacet = {
   restates?: AssignmentScope['restates'];
 };
 
-type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation' | 'evidence' | 'restates'> & { origins?: AssignmentScope['origins'] };
+type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation' | 'evidence' | 'restates'> & {
+  origins?: AssignmentScope['origins'] & { priorAnchors?: Record<string, number[]> }
+};
 
 export type Tier2CollisionDiagnostic = {
   kind: 'ambiguous-facets' | 'more-specific-facet' | 'contradictory-evidence' | 'unrecovered-evidence';
@@ -325,6 +330,7 @@ const resolveClaimCollisions = (
   prefer('accord-or-generic-feature', 'accord', 'feature.dependency');
   prefer('cyclic-or-generic-feature', 'agreement.cycle', 'feature.dependency');
   prefer('transfer-owns-edge', 'transfer.domain', 'phase.edge');
+  prefer('strong-npi-owns-licensing', 'strong-npi', 'polarity.licensing');
 
   /* These ties have no structural discriminator in the current evidence. */
   failClosed('constituent-enclosure-reading', [
@@ -409,7 +415,7 @@ const attachFacetIdentities = (
     return [{
       recipe,
       evaluation: origins ? { ...evaluation, consumedEvidence: evaluation.consumedEvidence.map(ref => {
-        const indices = origins[ref.field === 'anchors' ? 'anchors' : 'values'][ref.key] ?? [];
+        const indices = origins[ref.field]?.[ref.key] ?? [];
         return { ...ref, itemIndices: indices };
       }) } : evaluation,
       ...(scopedEvidence ? { evidence: scopedEvidence } : {}),
@@ -497,12 +503,16 @@ export const dispatchRelationClaims = (
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
     kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
   });
+  const sharedMovements = recoverSharedMovement(evidence);
+  const occurrenceGroups = recoverOccurrenceGroups(evidence).filter(scope => !sharedMovements.some(movement =>
+    Object.keys(scope.origins.anchors).every(key => key in movement.origins.anchors)));
   const continued: Tier2EvaluatedFacet[] = !registryEntry
-    ? [...recoverCompoundAssignments(evidence), ...(input.assignmentContext ? recoverAssignmentContinuity(evidence, input.assignmentContext) : [])].flatMap(scope => {
+    ? [...sharedMovements, ...occurrenceGroups, ...recoverInterpretiveCorrespondence(evidence), ...recoverCompoundAssignments(evidence), ...(input.assignmentContext ? recoverAssignmentContinuity(evidence, input.assignmentContext) : [])].flatMap(scope => {
         if (completeClaims.some(facet => facet.recipe.id === scope.kind)) return [];
         const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
         const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
-        return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins, restates: scope.restates }] : [];
+        return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins,
+          ...('restates' in scope ? { restates: scope.restates } : {}) }] : [];
       }) : [];
   const tier2ClaimFacets = [...new Map(attachFacetIdentities([...selected, ...continued], evidence, stageIndex, indexes)
     .map(facet => [facet.facetIdentity, facet])).values()];
@@ -732,7 +742,7 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
   return stages.map((stage, stageIndex) => stage.relations.map((relation, relationIndex) => {
     const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext,
       currentForest: stage.workspaceForest, currentRealizations: stage.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest });
-    rememberAssignmentMovement(assignmentContext, dispatch.evidence.movement);
+    recoveredClaimMovements(dispatch).forEach(movement => rememberAssignmentMovement(assignmentContext, movement));
     if (dispatch.primaryClaim?.tier === 1) {
       const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
       if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
@@ -748,4 +758,13 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
     for (const facet of dispatch.facets) rememberAssignments(assignmentContext, facet.recipe.id, facet.evidence ?? dispatch.evidence, { stageIndex, relationIndex });
     return dispatch;
   }));
+}
+
+/** Every exact movement in a simultaneous claim contributes to continuation. */
+export function recoveredClaimMovements(dispatch: Pick<RelationClaimDispatch, 'evidence' | 'facets'>) {
+  const movements = [dispatch.evidence.movement, ...dispatch.facets.map(facet => facet.evidence?.movement)]
+    .filter((movement): movement is NonNullable<typeof movement> => Boolean(movement));
+  return [...new Map(movements.map(movement => [JSON.stringify([
+    movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId
+  ]), movement])).values()];
 }

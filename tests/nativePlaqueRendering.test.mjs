@@ -7,7 +7,8 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource, collectionPlaqueEdge, collectionPlaquePortX } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
+import { collectionPathAttachment, coalesceCollectionPaths } from '../components/collectionPaths.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
@@ -169,7 +170,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
     planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths, decorateRelationElement() {}, relationEmphasisForItem: () => null,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,7 +209,7 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX,
+    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
@@ -234,7 +235,8 @@ test('a shared plaque paints the collector at its reserved edge and keeps its ow
   const composition = caseFeatureComposition(items, 0);
   const layout = prepareCasePlaqueRows(composition.rows);
   const rowY = layout.rows[1].y;
-  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd', y: rowY, edge: 'bottom', portX: 70 }] };
+  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd',
+    featureKey: featureRowKey(pathFeatureRow(items.find(item => item.pathStyle === 'case-agree'))), y: rowY, edge: 'bottom', portX: 70 }] };
   const source = { x: 1000, y: 100, width: 100, height: 60 };
   const painted = drawCasePlaque(assignment, placement, source, items);
   const path = descendants(painted).find(node => matches(node, '.babel-case-collection-path'));
@@ -250,7 +252,7 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   for (const node of nodes.values()) { node.x = 200; node.y = node.data.id === 'd' ? 1000 : -300; }
   const plan = compileRelationRenderPlan([{ statement: 'Values.', stageRecord: 'Exact features.', workspaceForest: [root.data], relations: [
     ...(shared ? [{ relation: 'CaseAssignment', anchors: { assigner: 't', bearer: 'd' }, values: { Case: 'nominative' } }] : []),
-    { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { number: 'plural', gender: 'feminine' } }
+    { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { features: ['feminine', 'singular'] } }
   ] }]);
   const items = plan.frames[0].items;
   const request = prepareStagePlaqueRequests(items, [...nodes.values()])[0];
@@ -258,7 +260,8 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   const placement = prepareCollectionPlaqueSpace([...nodes.values()]).attach({ ...request, x: 0, y: 0 });
   assert(placement.collectionRows.every(row => row.edge === 'bottom'));
   const item = items[request.index];
-  const primitive = !shared && bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null).primitives
+  const primitive = !shared && bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null,
+    { plaqueTextLayout: { measureText: (text, style) => ({ width: text.length * style.fontSize * .6, ascent: 28, descent: 9 }) } }).primitives
     .find(primitive => primitive.type === 'plaque' && primitive.itemIndex === request.index);
   const painted = shared ? drawCasePlaque(item, placement, { x: 160, y: 970, width: 80, height: 60 }, items)
     : drawSavedPlaque(primitive, item, items, new Map([[request.index, placement]]), nodes, new Set([0]), 0);
@@ -268,6 +271,14 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   const starts = paths.map(path => path.attrs.d.match(/^M (-?[\d.]+) (-?[\d.]+)/).slice(1).map(Number));
   assert(Math.abs(starts[0][0] - starts[1][0]) >= 24);
   assert.equal(starts[0][1], starts[1][1], 'both collectors leave the bottom edge');
+  const coincident = { ...placement, collectionRows: placement.collectionRows.map(row => ({ ...row, portX: 200 })) };
+  const nearby = new Map([...nodes].map(([id, node]) => [id, id === 'd' ? { ...node, y: placement.height + 90 } : node]));
+  const combined = shared ? drawCasePlaque(item, coincident, { x: 160, y: placement.height + 60, width: 80, height: 60 }, items)
+    : drawSavedPlaque(primitive, item, items, new Map([[request.index, coincident]]), nearby, new Set([0]), 0);
+  const combinedPaths = descendants(combined).filter(node => matches(node, '.babel-case-collection-path'));
+  assert.equal(combinedPaths.length, 1, 'truly identical collector ink paints once');
+  const text = combined.textContent;
+  assert(text.includes('feminine') && text.includes('singular'), 'both feature rows stay visible');
 });
 
 test('a coalesced Case path still composes with a later-stage feature plaque in layout and painting', () => {
@@ -503,8 +514,9 @@ test('native zero realization retains its compact rewrite columns; a literal nul
   assert.deepEqual(row.children.map(text => text.textContent), ['C', '\u2192', '\u2205']);
   assertContained(compact);
   const literal = drawPf({ rows, kinds: ['literal'] });
-  assert.equal(Number(literal.shell.attrs.width), 590);
+  assert.equal(Number(literal.shell.attrs.width), 308, 'the literal plate fits its heading rather than reserving rewrite columns');
   assert.equal(literal.elements.filter(node => matches(node, '.babel-pf-plate-arrow')).length, 0);
+  assertContained(literal);
 });
 
 test('PF font size and local text positions do not change with camera scale', () => {

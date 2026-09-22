@@ -24,34 +24,41 @@ const setup = () => {
   const svg = { addEventListener: (name, listener) => listeners.set(name, listener), removeEventListener: name => listeners.delete(name),
     getBoundingClientRect: () => ({ left: 0, top: 0 }), clientLeft: 0, clientTop: 0 };
   const camera = { current: null };
+  const effects = { revealsFinished: 0, lightRefreshes: 0 };
   const bind = group => {
     const behavior = createBehavior().extent([[0, 0], [1000, 800]]).touchable(false);
-    return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', `
+    return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', 'effects', `
       let applyingCameraTransform = false;
       let refreshTrajectoryClearance = null;
+      const finishCollectionReveal = () => effects.revealsFinished++;
+      const refreshIdentityForestLight = () => effects.lightRefreshes++;
       const zoom = (() => { ${initializer('zoom')} })();
       const applyCameraTransform = (() => { ${initializer('applyCameraTransform')} })();
       return { zoom, applyCameraTransform };
-    `)(behavior, group, camera, 'same analysis', 'same stages', 1000, 800, () => {}, d3.select(svg));
+    `)(behavior, group, camera, 'same analysis', 'same stages', 1000, 800, () => {}, d3.select(svg), effects);
   };
   const group = () => ({ transform: null, attr(_name, value) { this.transform = value; return this; }, selectAll() { return { attr() {} }; } });
   const wheel = () => listeners.get('wheel').call(svg, { type: 'wheel', deltaY: -100, deltaMode: 0, clientX: 200, clientY: 200, preventDefault() {}, stopImmediatePropagation() {} });
-  return { svg, camera, bind, group, wheel };
+  return { svg, camera, bind, group, wheel, effects };
 };
 
 test('an active wheel gesture uses the new Replay frame handler after redraw', async () => {
-  const { svg, camera, bind, group, wheel } = setup();
+  const { svg, camera, bind, group, wheel, effects } = setup();
   const first = group(), next = group();
   const { zoom: firstBehavior } = bind(first);
   d3.select(svg).call(firstBehavior);
   const ended = new Promise(resolve => firstBehavior.on('end.test', resolve));
   wheel();
+  assert.equal(effects.revealsFinished, 1, 'manual zoom finishes an in-flight collector reveal');
+  assert.equal(effects.lightRefreshes, 1, 'manual zoom invalidates static lighting');
   const before = first.transform;
   assert(before.k > 1);
   const { zoom: nextBehavior, applyCameraTransform } = bind(next);
   assert.equal(nextBehavior, firstBehavior, 'the gesture dispatcher belongs to the SVG, not a frame');
   d3.select(svg).call(nextBehavior);
   applyCameraTransform(before);
+  assert.equal(effects.revealsFinished, 1, 'automatic fitting must not end the reveal');
+  assert.equal(effects.lightRefreshes, 2, 'automatic fitting also updates light positions');
   assert.deepEqual(next.transform, before);
   const later = before.translate(10, 20);
   applyCameraTransform(later);

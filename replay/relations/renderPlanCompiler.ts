@@ -1,4 +1,5 @@
 import { movementContextFailure } from './movementEvidence.ts';
+import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import { composeThetaGrids, projectThetaGrid } from './thetaGridComposition.ts';
 import { nativeThetaAssignments } from './compoundAssignments.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
@@ -59,7 +60,7 @@ import {
   resolveOutcomeLiteral,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { buildTier2FacetEvidence, dispatchStageRelations, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence, dispatchStageRelations, recoveredClaimMovements, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs, featureDependencyRows } from './tier2RenderPlanCompiler.ts';
 import { collectionAssignment } from './featureComposition.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
@@ -121,6 +122,8 @@ type PlanItemBase = {
    * state remains visible until that moment plays, then yields atomically.
    */
   supersededAt?: PlanRelationRef;
+  /** Exact lower-occurrence replacements proven by later movement, applied at their own moments. */
+  occurrenceTransfers?: Array<{ fromNodeId: string; toNodeId: string; stageIndex: number; relationIndex: number }>;
   /** True when the instance authors resolved previous-stage witnesses. */
   backward: boolean;
   /** Resolved previous-stage witness node ids, in authored order. */
@@ -213,12 +216,34 @@ export type TrajectoryPlanItem = PlanItemBase & {
   };
 };
 
-/** Bind established head landing sites and pending wordless realizations in this Replay moment. */
+/** Rewrite only derived geometry references. Authored evidence and claim ownership stay verbatim. */
+const remapPlanOccurrence = (item: RelationPlanItem, from: string, to: string): RelationPlanItem => {
+  const excluded = new Set(['relationRef', 'relationRefs', 'composedRefs', 'coalescedRefs', 'supersededAt',
+    'occurrenceTransfers', 'headLandingSite', 'priorWitnessNodeIds']);
+  const visit = (value: unknown, key: string): unknown => {
+    if (excluded.has(key)) return value;
+    if (Array.isArray(value)) return value.map(entry => visit(entry, key));
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
+      .map(([childKey, childValue]) => [childKey, visit(childValue, childKey)]));
+    return typeof value === 'string' && value === from && (/nodeids?$/iu.test(key) || key === 'witness') ? to : value;
+  };
+  return visit(item, '') as RelationPlanItem;
+};
+
+/** Bind exact occurrence replacements and pending terminal attachments at this Replay moment. */
 export const resolveDisplayedTrajectoryAttachments = (
   item: RelationPlanItem,
   nodeFor: (nodeId: string) => SyntaxNode | undefined,
   moment?: { stageIndex: number; playedRelationIndices: ReadonlySet<number> | null }
 ): RelationPlanItem => {
+  if (moment && item.occurrenceTransfers?.length) {
+    for (const transfer of [...item.occurrenceTransfers].reverse()) {
+      if (transfer.stageIndex > moment.stageIndex || transfer.stageIndex === moment.stageIndex
+        && moment.playedRelationIndices !== null && !moment.playedRelationIndices.has(transfer.relationIndex)) {
+        item = remapPlanOccurrence(item, transfer.toNodeId, transfer.fromNodeId);
+      }
+    }
+  }
   if (item.kind !== 'trajectory') return item;
   if (item.headLandingSite) {
     const transfers = item.headLandingSite.transfers.filter(transfer => !moment
@@ -600,23 +625,6 @@ const collectForest = (forest: SyntaxNode[] | undefined): Map<string, SyntaxNode
   return nodes;
 };
 
-/**
- * Only material the model itself authored as silent may take silence/ghost
- * styling. An ellipsis relation styles the already-authored silent
- * occurrence; it never makes an overt subtree silent.
- */
-const collectAuthoredSilentSubtreeIds = (node?: SyntaxNode): string[] => {
-  if (!node) return [];
-  const ids: string[] = [];
-  const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '');
-    if (id && current.silent === true) ids.push(id);
-    (Array.isArray(current.children) ? current.children : []).forEach(walk);
-  };
-  walk(node);
-  return ids;
-};
-
 const collectSubtreeIds = (node?: SyntaxNode): string[] => {
   if (!node) return [];
   const ids: string[] = [];
@@ -893,6 +901,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
       || key === 'coalescedRefs'
       || key === 'supersededAt'
       || key === 'headLandingSite'
+      || key === 'occurrenceTransfers'
       || key === 'subtreeDerived'
       || key === 'positionNodeIds'
       || key === 'priorWitnessNodeIds'
@@ -1279,6 +1288,7 @@ export const compileRelationRenderPlan = (
       if (claimDispatch.facets.length > 0) {
         const tier2 = compileTier2RelationOutputs({
           dependencyIndexFor,
+          identityIndexFor: ids => chainIndexFor(stableChainKey('identity', nodes, ids)),
           relationRef,
           dispatch: claimDispatch,
           currentForest: stage?.workspaceForest || [],
@@ -3295,17 +3305,19 @@ export const compileRelationRenderPlan = (
   const authoredIndicesByIdentity = new Map<string, Set<string>>();
   stageDispatches.forEach((dispatches, stageIndex) => {
     const nodes = collectForest(stageList[stageIndex].workspaceForest);
-    dispatches.forEach(({ evidence }) => {
+    dispatches.forEach(dispatch => {
+      const { evidence } = dispatch;
       const indices = evidence.values.index || [];
       indices.forEach(index => usedIndices.add(index));
-      const movement = evidence.movement;
-      if (indices.length !== 1 || !movement) return;
-      const lineage = nodes.get(movement.targetNodeId)?.lineageId;
-      if (!lineage) return;
-      const key = `lineage:${lineage}`;
-      const authored = authoredIndicesByIdentity.get(key) || new Set<string>();
-      authored.add(indices[0]);
-      authoredIndicesByIdentity.set(key, authored);
+      if (indices.length !== 1) return;
+      recoveredClaimMovements(dispatch).forEach(movement => {
+        const lineage = nodes.get(movement.targetNodeId)?.lineageId;
+        if (!lineage) return;
+        const key = `lineage:${lineage}`;
+        const authored = authoredIndicesByIdentity.get(key) || new Set<string>();
+        authored.add(indices[0]);
+        authoredIndicesByIdentity.set(key, authored);
+      });
     });
   });
   items.forEach(item => { if ('index' in item) usedIndices.add(item.index); });
@@ -3355,10 +3367,9 @@ export const compileRelationRenderPlan = (
     const transfers: NonNullable<TrajectoryPlanItem['headLandingSite']>['transfers'] = [];
     for (let stageIndex = item.appearsAtStage + 1; stageIndex <= frameIndex; stageIndex++) {
       const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) => {
-        const movement = dispatch.evidence.movement;
-        return movement?.transition && movement.trajectoryKind === 'head'
+        return recoveredClaimMovements(dispatch).flatMap(movement => movement.transition && movement.trajectoryKind === 'head'
           && movement.priorSourceNodeId === currentSite
-          ? [{ nodeId: movement.witnessNodeId, stageIndex, relationIndex }] : [];
+          ? [{ nodeId: movement.witnessNodeId, stageIndex, relationIndex }] : []);
       });
       if (candidates.length === 1) {
         transfers.push(candidates[0]);
@@ -3374,15 +3385,9 @@ export const compileRelationRenderPlan = (
     stageIndex,
     items: [] as RelationPlanItem[]
   }));
-  /*
-   * Vanished-anchor law: a persistent mark materializes into a later frame
-   * only while every authored anchor that resolved at its authoring stage
-   * still exists in that frame's forest. When an anchored node is gone, the
-   * mark is NOT drawn there — never retargeted through lineage or a nearby
-   * node — while its earlier Replay history keeps the correct mark, and a
-   * structured diagnostic records the stage, relation, and missing anchors
-   * for developers (the canvas itself shows nothing invented).
-   */
+  /* A disappearing anchor stays at an explicitly authored lower witness when
+   * a later movement proves that exact slot replacement. Without that evidence
+   * it still fails closed; shared lineage alone never supplies a replacement. */
   const stageNodeIdSets = stageNodeMaps.map((nodesById) => new Set(nodesById.keys()));
   const vanishedAnchorIds = (item: RelationPlanItem, frameIndex: number): string[] => {
     if (frameIndex === item.appearsAtStage) return [];
@@ -3390,13 +3395,34 @@ export const compileRelationRenderPlan = (
     if (!frameNodes) return [];
     return planItemDependencyNodeIds(item).filter((nodeId) => !frameNodes.has(nodeId));
   };
+  const transferOccurrences = (item: RelationPlanItem, frameIndex: number): RelationPlanItem => {
+    let projected = item;
+    const transfers: NonNullable<RelationPlanItem['occurrenceTransfers']> = [];
+    for (let stageIndex = item.appearsAtStage + 1; stageIndex <= frameIndex; stageIndex++) {
+      const missing = planItemDependencyNodeIds(projected).filter(id => !stageNodeIdSets[stageIndex].has(id));
+      for (const fromNodeId of missing) {
+        const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) =>
+          recoveredClaimMovements(dispatch).flatMap(movement => movement.transition
+            && movement.priorSourceNodeId === fromNodeId && movement.witnessNodeId !== fromNodeId
+            ? [{ fromNodeId, toNodeId: movement.witnessNodeId, stageIndex, relationIndex }] : []));
+        if (candidates.length !== 1) continue;
+        const transfer = candidates[0];
+        projected = remapPlanOccurrence(projected, transfer.fromNodeId, transfer.toNodeId);
+        transfers.push(transfer);
+      }
+      // A missing occurrence cannot skip an unsupported stage and reappear later.
+      if (planItemDependencyNodeIds(projected).some(id => !stageNodeIdSets[stageIndex].has(id))) break;
+    }
+    return transfers.length ? { ...projected, occurrenceTransfers: transfers } : projected;
+  };
   const reportedVanished = new Set<string>();
   const materializeIntoFrame = (
     item: RelationPlanItem,
     frameIndex: number,
     supersededAt?: PlanRelationRef
   ) => {
-    const missing = vanishedAnchorIds(item, frameIndex);
+    const projected = transferOccurrences(item, frameIndex);
+    const missing = vanishedAnchorIds(projected, frameIndex);
     if (missing.length > 0) {
       const dedupeKey = [
         frameIndex,
@@ -3434,14 +3460,14 @@ export const compileRelationRenderPlan = (
      * the mark closed above — this is refresh, never retargeting.
      */
     const frameLocal: RelationPlanItem = {
-      ...item,
+      ...projected,
       ...(item.kind === 'trajectory' && headLandingSites.has(item)
         ? { headLandingSite: headLandingForFrame(item, frameIndex) } : {}),
       ...(supersededAt ? { supersededAt } : {})
     };
-    if (frameIndex > item.appearsAtStage && item.subtreeDerived) {
+    if (frameIndex > item.appearsAtStage && projected.subtreeDerived) {
       const frameNodes = stageNodeMaps[frameIndex];
-      item.subtreeDerived.forEach((declaration) => {
+      projected.subtreeDerived.forEach((declaration) => {
         const rootNode = frameNodes?.get(declaration.rootNodeId);
         (frameLocal as unknown as Record<string, unknown>)[declaration.field] =
           declaration.mode === 'authored-silent'

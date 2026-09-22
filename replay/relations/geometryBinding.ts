@@ -26,7 +26,7 @@ import {
   domainBracketPath,
   dottedCollectionControls,
   dottedCollectionPath,
-  featureSharingVinePath,
+  featureSharingVinePaths,
   fongComponentArcPath,
   fongComponentLabelPoint,
   fongEdgeOutlineRect,
@@ -1693,16 +1693,16 @@ export const bindRelationPlanFrame = (
           });
         if (bearerRects.length < 2) return;
         const convergence = vineConvergence(bearerRects.map((entry) => entry.rect));
-        bearerRects.forEach((entry) => {
-          const start = {
+        const vinePaths = featureSharingVinePaths(bearerRects.map(entry => ({
             x: entry.rect.x + entry.rect.width / 2,
             y: entry.rect.y + entry.rect.height + 22
-          };
+          })), convergence);
+        vinePaths.forEach(path => {
           primitives.push({
             type: 'shape-path',
             shapeStyle: 'feature-sharing-vine',
             fitPolicy: 'tree-first',
-            d: featureSharingVinePath(start, convergence),
+            d: path,
             stroke: 'solid',
             arrowhead: false,
             itemIndex
@@ -1730,15 +1730,16 @@ export const bindRelationPlanFrame = (
           const from = requirePoint(itemIndex, pair.fromNodeId);
           const to = requirePoint(itemIndex, pair.toNodeId);
           if (!from || !to) return;
-          const baseY = Math.max(from.y, to.y) + labelHeight + 12;
+          const startY = from.y + labelHeight + 12;
+          const endY = to.y + labelHeight + 12;
           primitives.push({
             type: 'shape-path',
             shapeStyle: 'strong-npi',
-            d: nestedUnderArcPath(from.x, to.x, baseY, 44 + pairIndex * 30),
+            d: nestedUnderArcPath(from.x, to.x, startY, 44 + pairIndex * 30, endY),
             stroke: 'solid',
             arrowhead: false,
             ...(pairIndex === 0 && item.label
-              ? { label: item.label, labelAt: { x: (from.x + to.x) / 2, y: baseY + 60 } }
+              ? { label: item.label, labelAt: { x: (from.x + to.x) / 2, y: Math.max(startY, endY) + 60 } }
               : {}),
             itemIndex
           });

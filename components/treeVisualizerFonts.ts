@@ -16,8 +16,9 @@ export function watchTreeVisualizerFonts(fonts: FontFaceSet | undefined, changed
   // Request these faces before waiting. Otherwise initial text measurement starts
   // their download and invalidates the expensive layout it has just calculated.
   // Font files can be split by script. Include the record's characters and the
-  // generated theta-grid heading so later frames do not load an unmeasured subset.
-  const sample = [...new Set(`θ GRID ${text}`)].join('');
+  // generated headings and chain indices so later frames do not load an
+  // unmeasured script subset during Replay.
+  const sample = [...new Set(`θ GRID ᵢⱼ ${text}`)].join('');
   Promise.allSettled([CATEGORY_FONT, "800 30px 'JetBrains Mono'", "400 11px 'IBM Plex Mono'"]
     .map(font => fonts.load(font, sample)))
     .then(() => fonts.ready)

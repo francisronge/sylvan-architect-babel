@@ -36,6 +36,41 @@ for the September integration corrections; the original review below is retained
 
 ### Plaque lifetime placement
 
+Compound Case/feature claims reveal the plaque immediately, then draw its new
+dotted collector within the same relation moment. The short reveal uses a mask;
+the original dash pattern, width and path remain unchanged. Reduced motion,
+final views and already-visible collectors show the complete mark immediately.
+Font or viewport remounts continue the same reveal, and manual camera gestures
+finish it without replaying it.
+
+Identity lighting uses one common source and one light per exact participating
+terminal, including authored wordless witnesses. Repeated claims retain their
+owners without adding light twice. The canvas repaints on camera, viewport or
+Replay changes and remains idle otherwise.
+
+Binding ellipses retain the accepted padded-rectangle geometry and the whole
+authored domain. Replay reserves their extent across the stage before reveal;
+the existing containment correction pans or scales only when needed. Static
+painting measures the same ellipse before fitting. This prevents a whole-clause
+ellipse from being cut off without silently narrowing its scope.
+
+Shared-feature vine plaques measure the complete typed feature text and wrap it
+within a bounded width. The original short plaque keeps its 248-by-92 dimensions;
+longer content and camera reservations use the same measured layout. Single
+association curves retain each endpoint's own height, including when the two
+anchors occupy different levels.
+
+Vines are routed as a group. If staggered bearer heights make the independent
+curves cross, their inward bends begin later so their horizontal order remains
+intact. Endpoints and the shared plaque stay fixed. Noncrossing groups, including
+Orchard D5, retain their original paths.
+
+Literal-only PF plates use the measured width of their heading and rows, up to
+the existing 590-unit wrapping width. Short plates can therefore use the shared
+nearby placement search. Native rewrite and zero-realization columns retain
+their accepted dimensions. Allocation and painting use the same font metrics;
+all contributors and lifetime reservations remain unchanged.
+
 Replay reserves a plaque's content size and anchor-relative position against all
 remaining visible tree layouts, trajectories, neutral connector stems and already
 allocated claims in its lifetime. The nearest clear pocket search has no arbitrary
@@ -55,7 +90,8 @@ and uses an immutable spatial index to reject distant obstacles before exact
 intersection checks. Connector attachment exclusions retain their original ink
 metadata. Browser allocation waits for the category and plaque fonts, including
 the record's script subsets and the generated theta-grid heading. Font loading
-therefore does not repeat the initial allocation or stall a later relation frame.
+also includes generated chain-index glyphs before the first frame. It therefore
+does not repeat the initial allocation or stall a later relation frame.
 
 The September 21 local production capture reduced German coordination opening
 from 27.8 seconds to 2.7 seconds at 1600×1100. Tested frame changes across German,
@@ -84,7 +120,10 @@ when that source is mostly below or above it. If the nearest attachment point is
 blocked, an otherwise clear placement can use another point along the same edge.
 Distinct feature rows reserve separate attachment points. The allocator verifies
 each route through future frames and retains its plaque-local offset with the
-feature row. Ports fit the narrowest shell in the claim's lifetime. Clearance
+feature row. Painting finds that port by the exact source and feature identity,
+not a measured row height that can change when fonts load. Identical collector
+paths within one plaque paint once while retaining all their claim owners.
+Ports fit the narrowest shell in the claim's lifetime. Clearance
 uses each stage's painted dimensions and row positions, including other plaques'
 connector obstacles; the largest box still reserves space. A blocked vertical
 route can still use the side.
@@ -350,3 +389,21 @@ takes that exact complex as its prior source, the earlier arrow retains the inte
 position through that movement's exact lower witness. This switch occurs at the
 later relation moment, never at an earlier structural micro-step. Plain terminal
 landings and phrasal movements retain their existing attachment rules.
+
+The same exact replacement rule preserves earlier phrasal movement and Case
+marks when a later movement leaves an authored lower witness. Before that
+movement, those marks still bind to the preceding occurrence. Afterward, they
+bind to its lower witness, preserving the intermediate position and original
+claim ownership. A missing anchor without a unique explicit replacement still
+ends the mark's persistence.
+
+A movement can own a realization change on descendants of its exact source and
+landing. The complete old and new groups must cover the same input tokens,
+and their members must pair uniquely by exact ID or explicit lineage within
+those two movement domains. Apply that group change at the movement moment.
+Competing owners still defer to the Stage Record. Neither silence nor relation
+prose establishes this association.
+
+An existing empty head position can receive newly introduced source-linked
+material. Keep the position's preceding authored content until that movement;
+an existing target ID alone does not mean the movement has already happened.

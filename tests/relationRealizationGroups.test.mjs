@@ -27,7 +27,7 @@ const inspect = (r = relation, realizations = [group], workspaceForest = forest)
 
 test('an exact current realization group earns one PF plate owned by every contributor', () => {
   for (const contributors of ['contributors', 'realizationContributors', 'realization_participants']) {
-    for (const surface of ['surfaceForm', 'realized_form', 'surface realization']) {
+    for (const surface of ['surfaceForm', 'realized_form', 'surface realization', 'inputToken', 'surface_token', 'surfaceWord', 'realization']) {
       const r = { relation: 'No registered name', anchors: { context: 'root', [contributors]: ['z8', 'x7', 'y3'] },
         values: { operation: 'Keep this explanation.', [surface]: '새로운 형태' } };
       const { dispatch, plan, plates } = inspect(r);
@@ -84,7 +84,6 @@ test('partial, competing, unresolved, or unassociated groups cannot select a PF 
     { ...relation, anchors: { contributors: ['x7', 'y3', 'y3'] } },
     { ...relation, anchors: { contributors: group.nodeIds, realizationParticipants: group.nodeIds } },
     { ...relation, anchors: { contributors: group.nodeIds, output: 'q1' } },
-    { ...relation, anchors: { items: group.nodeIds } },
     { ...relation, values: { prose: 'The surface form is 甲乙丙.' } },
     { ...relation, values: { surfaceForm: ['甲', '乙'] } },
     { ...relation, values: { surfaceForm: '甲乙丙', realizedForm: 'different' } },
@@ -94,6 +93,31 @@ test('partial, competing, unresolved, or unassociated groups cannot select a PF 
   const missing = structuredClone(forest);
   missing[0].children = missing[0].children.filter(node => node.id !== 'z8');
   assert.equal(inspect(relation, [group], missing).plates.length, 0);
+});
+
+test('a literal surface token attaches to the complete exact group without a prescribed contributor role', () => {
+  for (const anchors of [{ items: group.nodeIds }, { article: 'x7', nominal: ['y3', 'z8'] }]) {
+    const { plates } = inspect({ relation: 'A novel name', anchors, values: { surfaceToken: 'whole token' } });
+    assert.equal(plates.length, 1);
+    assert.deepEqual(plates[0].anchorNodeIds, group.nodeIds);
+  }
+  for (const anchors of [{ article: 'x7', nominal: 'y3' }, { article: 'x7', nominal: ['y3', 'z8'], context: 'root' }]) {
+    assert.equal(inspect({ relation: 'A novel name', anchors, values: { surfaceToken: 'whole token' } }).plates.length, 0);
+  }
+});
+
+test('an explicitly realized carrier can associate its contained contributors with one PF plate', () => {
+  const realizations = [{ nodeIds: ['root'], tokenIndices: [0] }];
+  const r = { ...relation, anchors: { contributors: group.nodeIds, nominal: 'root' } };
+  const { dispatch, plates } = inspect(r, realizations);
+  assert.equal(plates.length, 1);
+  assert.deepEqual(plates[0].anchorNodeIds, ['root', ...group.nodeIds]);
+  for (const key of ['contributors', 'nominal']) assert.deepEqual(dispatch.evidenceCoverage.fields.find(f => f.key === key).unrecoveredItemIndices, []);
+  for (const anchors of [
+    { contributors: group.nodeIds },
+    { contributors: group.nodeIds, nominal: 'root', carrier: 'root' },
+    { contributors: [...group.nodeIds, 'outside'], nominal: 'root' }
+  ]) assert.equal(inspect({ ...relation, anchors }, realizations, [...forest, { id: 'outside', label: 'Z' }]).plates.length, 0);
 });
 
 test('independent sibling claims keep their own drawing and the realization plate remains one complete group', () => {
@@ -114,4 +138,18 @@ test('independent sibling claims keep their own drawing and the realization plat
       assert.deepEqual(result.plates[0].anchorNodeIds, group.nodeIds);
     }
   }
+});
+
+
+test('named morphology participants with an exact group retain realization literals without a fusion claim', () => {
+  const r = { relation: 'An independently chosen label', anchors: { preposition: 'x7', article: 'y3' },
+    values: { realization: 'combined spelling', operation: 'No syntactic fusion is asserted.' } };
+  const realizations = [{ nodeIds: ['y3', 'x7'], tokenIndices: [0] }];
+  const { plates, dispatch } = inspect(r, realizations);
+  assert.equal(plates.length, 1);
+  assert.deepEqual(plates[0].anchorNodeIds, ['x7', 'y3']);
+  assert.deepEqual(plates[0].rows, [{ label: 'realization', value: 'combined spelling' }]);
+  assert(!dispatch.facets.some(f => f.recipe.id === 'pf.fusion'));
+  assert.deepEqual(dispatch.evidenceCoverage.fields.find(f => f.key === 'operation').unrecoveredItemIndices, [0]);
+  for (const groups of [[], [{ nodeIds: ['x7'], tokenIndices: [0] }], [...realizations, ...realizations]]) assert.equal(inspect(r, groups).plates.length, 0);
 });

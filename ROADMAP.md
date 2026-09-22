@@ -9,200 +9,96 @@ Babel must accommodate all languages. Test languages expose general limitations;
 they do not define a supported-language allowlist or authorize language-specific
 syntactic rules.
 
-## Current priority: complete the derivation and rendering pipeline
+## Current priority: renderer and contract qualification
 
-The current phase qualifies the renderer and derivation contract on saved and
-unfamiliar records. Desktop is the primary experience; compact-screen work must
-not compromise it. A passing batch is evidence for a bounded release decision,
-not a guarantee about every future analysis.
+Complete the renderer and derivation contract before starting the application
+redesign. Desktop remains the primary experience. The work below governs this
+phase; the later programs describe subsequent product work.
 
-The September 21 candidate is a regression baseline, not the end of core
-qualification. Francis approved the following full pass on September 22:
+The current pass covers every saved relation, every declared drawing recipe,
+and fresh unfamiliar records. The exit conditions are:
 
-1. Audit authored fields through normalization, Replay and drawing. Reproduce
-   any lost content, incorrect attachment or unstated downstream requirement.
-2. Review model instructions for unnecessary linguistic constraints. Change only
-   demonstrated ambiguities, preserving the open relation vocabulary and both
-   frameworks' freedom to express an analysis.
-3. Generate six new inputs in both frameworks, at most twelve initial requests,
-   using GPT-6 Astra at high effort. Preserve every attempt, exact request,
-   prompt fingerprint and raw response. Assess linguistic analysis separately
-   from Babel's fidelity. No silent model substitution or replacement run.
-4. Repair general causes and test equivalent claims with changed identifiers,
-   role wording or structure, including mixed claims and neutral residuals.
-5. Exercise the production app, Replay and performance with the new records,
-   including larger derivations, analysis switching and cancellation/retry.
-6. After repairs, run four reserved requests on inputs not used to develop the
-   fixes, review the final diff, and present only the examples needing judgment.
+1. Every drawing recipe can be reached from a valid public record through
+   normalization, Replay, exact-anchor binding and the production painter.
+2. Every unresolved claim in the saved corpus has been checked against the
+   evidence actually supplied. Repair missed associations without inventing
+   linguistic facts, forcing relation names or discarding neutral content.
+3. Replay preserves exact occurrences, intermediate movement landings, authored
+   pronunciation and one simultaneous moment for each authored relation.
+4. Plaques, connectors and domain graphics remain legible, stable and attached
+   during playback, fitting, zoom and analysis switching.
+5. Unfamiliar holdout records pass without changes made to fit those records.
+   Show only the changed examples needing human judgment, with all analyses
+   available in the same review.
+6. The full offline gate passes. In the local bundled runtime at 1600px desktop,
+   usable Replay should open within 2 seconds and ordinary frame changes should
+   have a 95th percentile below 100ms. Measure rendered frames, not slider input.
 
-Verified baseline:
+The previous corpus contained 59 analyses and 806 authored relations. Its
+16 observed Tier-2 recipes did not establish renderer completeness. The current
+inventory contains 54 recipes and 69 drawing pieces. Recipe reachability and
+recognition of independently authored claims are separate checks; neither a
+high Tier-1 count nor eliminating every neutral relation is a release target.
 
-1. Replay compilation and plaque allocation run in workers. Browser text
-   measurement yields between stages. The German page opens fully in about
-   1.4 seconds; its longest measured main-thread task fell from 902ms to 55ms.
-   Across all 1,432 saved frames, 95% of completed frame changes took under 29ms.
-   These are local bundled-runtime measurements, not remote loading promises.
-2. Plaque clearance now checks the actual reserved connector curve in either
-   allocation order. This removes a Japanese grid's unnecessary later jump.
-   German plaques keep their accepted nearby positions and curved approaches.
-   The English plaque remains above T, but its lone dotted collector can now
-   leave the bottom edge. This also supports top attachments and reserves the
-   chosen edge across Replay; blocked vertical routes can retain the existing
-   side connection. D6's multiple row collectors keep their original geometry.
-   A Japanese Case arrow now leaves the side of T's word instead of starting
-   inside the V label below it. Tree layout and authored relations are unchanged.
-3. The thematic reader accepts an explicit introducer as the assigning source
-   when a separate predicate is also named. This recovers two Arabic claims and
-   preserves the predicate as context. When several relations cover one
-   realization change without identifying its owner, the change appears at the
-   Stage Record. The diagnostic now names the candidate relations. No prompt or
-   authored-contract change was needed.
-4. Four saved analyses exposed a movement curve drawn again by a later chain
-   description. The exact curve now retains both owners and paints once;
-   different landing positions remain separate. Regression coverage includes
-   compound claims, shared rows, retained landings, branch visibility, long
-   values, hover, zoom, worker cancellation and retry.
-5. One interactive review contains all 32 saved analyses. All 1,432 frames and
-   the final views of 61 Orchard references passed browser geometry/error checks.
-   The saved-record comparison preserves every authored record and Replay step;
-   only the intended claim drawings and diagnostic text changed. No new parses
-   were generated. Human linguistic review remains separate.
+The September 22 qualification review combines those saved records with 19
+Codex-OAuth requests made under the committed prompt contract. It exposes all
+82 analyses in one chooser, paused at Replay frame one. Across 1,076 authored
+relations and 3,502 Replay frames, the audit found no missing or duplicated
+relation moments. All 54 declared recipes are reachable through the public
+normalization-to-painter path in provider-free tests; 18 Tier-2 recipe families
+occur naturally in these records. Another 320 relations remain wholly neutral
+because their authored evidence does not establish a supported drawing. This
+is retained content, not a claim that their linguistic interpretation is wrong.
+The last untouched Tamil and Polish records needed no renderer adaptation.
+Human visual and linguistic review of the complete chooser remains a release
+decision; passing structural checks does not certify either.
+The final 1600px bundled-runtime sweep rendered all 3,502 frames with no
+invalid SVG paths or browser errors. Replay frame changes had a 12.5ms 95th
+percentile; the slowest analysis opened in 1.86 seconds. The focused French
+transition that had paused for about 740ms after a late font load now takes
+about 8ms after preloading the renderer-generated glyph subset.
 
-### September 22 qualification results
+Preserve these decisions:
 
-The planned sixteen successful sentence/framework cases produced twenty-one
-analyses. French, Hindi, Korean, Mandarin and English covered the initial batch;
-Spanish dative and English attachment ambiguity were reserved until candidate
-`1797c22`. Both reserved inputs retained their distinct authored readings in both
-frameworks. Review found no demonstrated linguistic defect requiring another
-prompt change. During that pass, the only prompt clarification said input-token
-addresses do not prescribe syntactic or morpheme boundaries.
+- Relations and anchor names remain open. Drawing classifications are derived.
+- A shared constituent can appear once in the tree while an explicit relation
+  names additional parents or predicate domains. Do not repeat an occurrence ID
+  in the tree, or infer sharing merely from matching lineage.
+- An explicit many-source movement with one landing is one relation moment.
+  Match each source to its own preceding occurrence; never pair arrays by order.
+- A compound plaque appears before its collector draws, within its existing
+  relation moment. Reduced-motion presentation is immediate. Persistent
+  collectors do not replay their reveal when another owner restates a claim.
+- Identity lights use one shared source and light each participating terminal
+  once. Chain ownership remains distinct. A static scene schedules no repeated
+  canvas painting.
+- Load the renderer's own heading and chain-index font subsets before Replay
+  appears; a font arriving during fast scrubbing must not trigger a second
+  layout pass at a stage boundary.
+- Qualification review opens each newly selected analysis paused at frame one.
+  Its Play control starts playback explicitly.
+- Binding domains retain their entire authored scope. Reserve enough room to
+  contain their accepted ellipse; do not narrow its linguistic domain to fit.
+- When several relations cover the same realization change without a unique
+  owner, show that change at the Stage Record and retain the diagnostic.
+- New OpenAI qualification uses GPT-6 Astra through `qualification:codex` with
+  Codex OAuth. No API-key substitution or paid fallback is authorized.
 
-The implementation repairs metadata being mistaken for syntax, missed explicit
-Case and thematic evidence, a missing successive clitic-movement path, repeated
-agreement plaques, and inconsistent native/open Case-agreement composition.
-Exact occurrences, authored values, separate relation moments and neutral
-unresolved content remain preserved. Identical repeated collectors retain every
-owner while drawing once. The reserved records did not require new recognition
-or linguistic repairs; the final visual checks exposed the agreement-composition
-and allocation defects on an initial record and saved records.
+Qualification evidence stays outside the repository under
+`/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82`.
+Earlier receipts preserve all actual transports, including ten mistaken paid-API
+attempts from the September 22 initial batch, eight completed and two failed.
+The subsequent requests use the dedicated OAuth harness. Do not relabel or
+replace those earlier records.
 
-Browser verification covers all 2,360 Replay frames in the 53 saved and new
-analyses and the final views of 61 Orchard references. The production app also
-passes recorded-response failure/retry, Canopy/Replay and analysis switching.
-The dense saved relative-clause Replay opens in 1.83 seconds, down from 3.3
-seconds. Fresh-record frame changes have a 28ms local 95th percentile. The
-96-stage synthetic stress control still takes 2.1–2.2 seconds to compile, before
-allocation and drawing. Slow devices and deployed loading remain unqualified.
+The earlier bundled-runtime checks covered 2,360 frames, recorded-response
+failure/retry, Canopy/Replay switching and analysis switching. Dense Replay
+opened in 1.81–1.84 seconds with frame changes around 31ms at the 95th percentile.
+The 96-stage synthetic stress input still took 2.1–2.2 seconds to compile before
+layout. Recheck affected paths after this pass; deployed loading and slow devices
+remain separate qualification work.
 
-Generation transport was mishandled. Ten initial attempts incorrectly used the
-paid API; eight completed and two failed for exhausted credit. The remaining
-four initial requests and all four reserved requests used the existing Codex
-OAuth qualification harness. This was eighteen actual attempts, not sixteen.
-Every attempt and raw output is preserved with its true transport. API usage was
-17,058 input and 79,300 output tokens; monetary cost was not established. Future
-OpenAI qualification must use `npm run qualification:codex`, with no paid
-fallback unless Francis explicitly authorizes it.
-
-Generation evidence is preserved outside the repository at
-`/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/core-qualification-20260922`.
-The user review exposes all 21 new analyses with direct selection and previous/next
-analysis controls. Selecting an analysis starts Replay at frame one. A second collection contains the
-32 earlier analyses. The final gate passes typecheck, 1,901 offline tests and both contract
-fixtures. Focused browser follow-up passes all 79 affected frames and preserves
-D6 geometry exactly; production build and native/open shared-plaque browser tests
-also pass. Independent review found no remaining blocker in the final repair.
-Verification and final review receipts accompany the evidence.
-
-Subsequent prompt review removed the two sentences directing grammaticality
-judgments into relations. The existing instructions to analyze the exact input,
-including ungrammatical input, and explain judgments remain. Existing generation
-records retain their original prompt hashes; this edit has no fresh model-output
-evidence. Future generations capture the revised instruction hash as usual.
-
-### Exit goal for this phase
-
-Qualify the current contract and renderer on saved and unfamiliar records. The
-saved 32 analyses contain 471 authored relations and 1,432 Replay steps. Their
-passing status alone is insufficient; the new batch and reserved final cases
-must also pass without unexplained content loss or a repair between each case.
-This is a bounded shipping decision, not universal linguistic certification.
-
-- In the local bundled production runtime at a 1600px desktop viewport, aim for
-  usable Replay within 2 seconds and a 95th-percentile ordinary frame change
-  within 100ms. Measure completed rendering, not only slider updates. Initial
-  model generation and remote asset download time are separate measurements.
-- No open reported defect in this set may lose a branch, misattach a movement,
-  duplicate a claim's drawing, clip its values or move a stable plaque needlessly.
-  Known unreadable plaque placement and connector collisions must be resolved.
-- The remaining association and realization-timing cases must have an explicit,
-  tested outcome that preserves the authored analysis. Neutral rendering is an
-  appropriate result only when the record genuinely leaves an association open,
-  after investigating whether the reader overlooked available evidence.
-- Complete focused visual evidence, the full offline gate and one coherent
-  review page. Desktop quality remains primary. Storage, mobile redesign and
-  deployment qualification follow this phase.
-
-The regression set combines 27 earlier analyses with five subsequent analyses
-from four Astra/high requests: English passive/raising, German coordination,
-Japanese inflection and two Arabic analyses. Earlier repairs recovered explicit
-Case participants, preserved intermediate head-movement landings and restored
-branches hidden by multiline label masks. The current pass adds the repairs above
-without modifying source records or provider configuration.
-
-Human review has not accepted the renderer's drawing coverage. Before the
-follow-up repairs, the 259 new relations included 114 wholly neutral relations,
-72 with both recovered drawings and neutral content, 63 wholly Tier 2 and ten
-wholly Tier 1. Only seven Tier-2 recipes appeared. The 69-primitive synthetic
-gate proves that complete recipe evidence reaches the painter; it does not
-prove recognition of independently model-authored claims.
-
-The follow-up recovers fifteen missed supported claims across the 730 saved and new
-relations: binding-qualified references, exact groups contributing to a spoken
-form, and explicit inflection/participle agreement. The five Korean realization plates retain
-every contributor. Independent siblings remain recoverable when an exact primary
-claim is malformed; that primary claim still cannot repair itself. Fresh wholly
-neutral relations fall from 114 to 100, while mixed drawing/neutral relations rise
-from 72 to 86. The corpus now reaches 12 of 52 Tier-2 recipes, previously ten.
-These counts expose a coverage gap rather than establishing completion.
-
-The visual follow-up addresses bottom connectors with repeated feature rows and
-the tiny Spanish Case arrow. Each feature needs a distinct stable attachment,
-validated against the plaque actually painted throughout Replay. Preserve
-Orchard D6's distinct-source row associations and keep drawing coverage separate
-from content preservation and performance checks.
-
-The follow-up passes typecheck, 1,922 offline tests and both contract fixtures.
-Browser checks preserve D6 geometry and verify the reported frames, all 21 new
-analysis selections at frame one, and zoom-stable connectors. Measured frame
-changes have a 31ms local 95th percentile. After removing repeated allocation
-work, the dense production-app Replay opens in 1.81–1.84 seconds in three
-isolated runs. All 53 analyses retain byte-identical full placement objects
-through that optimization. No new generations or provider calls were made.
-
-The recovered drawings expose two layout limitations that remain open. A
-whole-clause binding ellipse can extend outside the viewport because its
-tree-first fit excludes the ellipse. Ordinary PF plaques start at width 590,
-above the nearby-placement limit of 480, so even short literal realization rows
-go below their common subtree. Fix these shared containment and plaque-sizing
-rules with native/open, desktop, Replay and zoom comparisons; do not change the
-authored domain or participants to improve the picture.
-
-Compound relation reveal also needs a deliberate presentation decision. Orchard
-D6 accumulates Case and feature collectors through separate authored relations;
-a generated finite-agreement relation can contain those claims simultaneously.
-If a plaque-first reveal is adopted, keep its drawing sequence inside the one
-authored relation moment rather than inventing another linguistic relation.
-
-After these layout checks, qualify missing drawing families with targeted natural
-inputs, through the Codex OAuth harness. Separate absent claims from present
-claims whose evidence the reader missed. Do not force Orchard relation names or
-add linguistic claims just to increase visual variety. All retained raw records,
-including neutral results, remain reviewable. This coverage gate precedes moving
-on to application and release work. Deployment, storage and compact-screen work
-remain separate; passing the earlier set does not finish Babel.
-
-## App workflow evidence
+## Earlier app workflow evidence
 
 The local workflow is checked with saved fixture replies through the real input,
 request handler, Canopy, Replay, analysis selection, Tree Bank, reload/reopen and
@@ -232,7 +128,7 @@ Later app work, after the pipeline work above:
 5. Complete the launch decisions and operational checks in Program 5. A local
    workflow pass does not establish deployment, cost limits or recovery readiness.
 
-## Fresh multilingual qualification
+## Earlier multilingual qualification
 
 Twenty matched Babel-only subscription requests on `300d2eb` completed: English
 negation and raising/control, Japanese, Turkish and Arabic, each with Astra/Sol
@@ -507,7 +403,7 @@ are under `/tmp/babel-sept17-review/drawing-audit`. No new parses were generated
 The final gate passes 1,797 tests, typecheck and both fixtures; both emphasis
 browser regressions pass.
 
-## Current Baseline
+## Earlier baseline
 
 The preceding varied subscription batch made eight Babel-only OAuth requests on
 `707af42`, covering coordination, relatives, negation and raising/control in both

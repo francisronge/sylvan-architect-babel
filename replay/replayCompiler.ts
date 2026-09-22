@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { categoryLabel } from './categoryLabel.ts';
 import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
-import { dispatchRelationClaims, dispatchStageRelations, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
+import { dispatchRelationClaims, dispatchStageRelations, recoveredClaimMovements, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
 import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
@@ -192,6 +192,9 @@ interface DerivationReplayPlanStep {
   /** Exact evidence owned by the neutral primary, excluding recovered sibling claims. */
   neutralTransitionEvidence?: Pick<DerivationStageRelation, 'anchors' | 'priorAnchors'>;
   recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
+  /** Several proved sources may converge on one landing in this single moment. */
+  recoveredMovements?: Array<RecoveredMovement & { drawTrajectory: boolean }>;
+  preserveMovementLanding?: boolean;
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
   kind?: 'micro' | 'relation' | 'macro';
@@ -1761,9 +1764,10 @@ const buildPreMovementStructuralForest = (
     const sourceRoles = relationOwnedPhrasalSourceRoles(relation);
     const targetRoles = relationOwnedPhrasalTargetRoles(relation);
     const sourceIds = Array.from(new Set([
-      ...getRelationSourceNodeIds(relation),
-      ...findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
-        .map((anchor) => String(anchor.nodeId || ''))
+      ...(relation.recoveredMovements ? relation.recoveredMovements.filter(movement => movement.transition).map(movement => movement.sourceNodeId)
+        : getRelationSourceNodeIds(relation)),
+      ...(!relation.recoveredMovement ? findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
+        .map((anchor) => String(anchor.nodeId || '')) : [])
     ].filter(Boolean)));
     const targetId = String(
       getRelationTargetNodeId(relation)
@@ -1780,23 +1784,27 @@ const buildPreMovementStructuralForest = (
       && !relationOwnsPhrasalTreeTransition(relation)
     ) return;
     const movement = relation.recoveredMovement;
-    if (movement && movement.priorSourceNodeId !== movement.sourceNodeId) {
-      const before = findNodeInForest(previousForest, movement.priorSourceNodeId);
-      const lower = findNode(movement.sourceNodeId);
+    const movements = relation.recoveredMovements?.filter(item => item.transition) ?? (movement ? [movement] : []);
+    if (movement && movements.some(item => item.priorSourceNodeId !== item.sourceNodeId)) {
       const landing = findNode(movement.targetNodeId);
-      if (!before || !lower || !landing) return;
-      const restored = restoreCurrentSourceState(lower, before);
-      if (!restored) return;
+      const restoredSources = movements.map(item => {
+        const before = findNodeInForest(previousForest, item.priorSourceNodeId);
+        const lower = findNode(item.sourceNodeId);
+        return before && lower ? restoreCurrentSourceState(lower, before) : null;
+      });
+      if (!landing || restoredSources.some(restored => !restored)) return;
       // The retained ID may currently be at the landing. Remove that occurrence
       // before restoring the complete prior object at its proven lower slot.
       const parent = findParent(movement.targetNodeId);
       const priorSlot = precedingLandingSlot(relation, landing);
-      if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
-      else if (parent) parent.children = parent.children?.filter(child => child !== landing);
-      else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      if (!relation.preserveMovementLanding) {
+        if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
+        else if (parent) parent.children = parent.children?.filter(child => child !== landing);
+        else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      }
       if (movement.trajectoryKind === 'head') restoreHeadHost(parent);
-      replaceStructuralNode(movement.sourceNodeId, restored);
-      restorePrecedingContainers(restored.id);
+      movements.forEach((item, index) => replaceStructuralNode(item.sourceNodeId, restoredSources[index]!));
+      restoredSources.forEach(restored => restorePrecedingContainers(restored!.id));
       return;
     }
     const restoredFromPreviousStage = new Set<string>();
@@ -1815,6 +1823,7 @@ const buildPreMovementStructuralForest = (
     // and the movement check reports the unproven source. Nothing is
     // reconstructed from the landing.
     if (sourceIds.some((sourceId) => !restoredFromPreviousStage.has(sourceId))) return;
+    if (relation.preserveMovementLanding) return;
     const sources = sourceIds
       .map((sourceId) => findNode(sourceId))
       .filter((source): source is SyntaxNode => Boolean(source));
@@ -1832,7 +1841,10 @@ const buildPreMovementStructuralForest = (
     const targetParent = findParent(targetId);
     const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '') === targetId);
     if (!targetParent && targetRootIndex < 0) return;
-    const priorSlot = precedingLandingSlot(relation, target);
+    const priorTarget = previousLocations.get(targetId)?.node;
+    const priorSlot = precedingLandingSlot(relation, target)
+      ?? (trajectoryDisplayKind === 'head' && relation.recoveredMovement && priorTarget && !sourceIds.includes(targetId)
+        ? cloneSyntaxTree(priorTarget) : null);
 
     if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
       const targetChildren = Array.isArray(target.children) ? target.children : [];
@@ -1979,32 +1991,45 @@ const syntaxNodeMaterialSignature = (node: SyntaxNode): string => {
  * A relation owns its current/prior anchor subtrees, never the whole
  * stage forest. It may add the minimum current ancestor chain needed to keep
  * those subtrees attached and retire removed prior containers exhausted by
- * those edits; unrelated current-stage additions remain hidden.
+ * those edits. Independently scheduled construction may supply additional
+ * nodes, without applying another relation's pending output.
  */
 const buildAnchoredTreeTransitionForest = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[],
-  activeRelations: DerivationReplayPlanStep[]
+  activeRelations: DerivationReplayPlanStep[],
+  constructedNodeIds: Set<string> = new Set(),
+  withheldNodeIds: Set<string> = new Set()
 ): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
       const movement = relation.recoveredMovement;
       if (movement?.transition) {
         return {
-          currentNodeIds: new Set([movement.sourceNodeId, movement.targetNodeId].flatMap(id => {
+          currentNodeIds: new Set((relation.recoveredMovements ?? [movement]).flatMap(item => [item.sourceNodeId, item.targetNodeId]).flatMap(id => {
             const node = findExactNodeByIdInForest(currentForest, id);
             return node ? [...collectExactSubtreeNodeIds(node)] : [];
           })),
-          priorNodeIds: collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement.priorSourceNodeId)!)
+          priorNodeIds: new Set((relation.recoveredMovements ?? [movement]).flatMap(item =>
+            [...collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, item.priorSourceNodeId)!)]))
         };
       }
       return resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
     })
-    .filter((ownership): ownership is FallbackTreeTransitionOwnership => Boolean(ownership));
-  if (ownerships.length === 0) return cloneSyntaxForest(previousForest);
+    .filter((ownership): ownership is FallbackTreeTransitionOwnership => Boolean(ownership))
+    .map(ownership => {
+      if (withheldNodeIds.size === 0) return ownership;
+      const available = (ids: Set<string>, forest: SyntaxNode[]) => new Set([...ids].filter(nodeId =>
+        !withheldNodeIds.has(nodeId) && !collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(forest, nodeId))
+          .some(descendantId => withheldNodeIds.has(descendantId))));
+      return { currentNodeIds: available(ownership.currentNodeIds, currentForest),
+        priorNodeIds: available(ownership.priorNodeIds, previousForest) };
+    });
+  if (ownerships.length === 0 && constructedNodeIds.size === 0) return cloneSyntaxForest(previousForest);
 
   const activeCurrentNodeIds = new Set(
-    ownerships.flatMap((ownership) => Array.from(ownership.currentNodeIds))
+    [...ownerships.flatMap((ownership) => Array.from(ownership.currentNodeIds)),
+      ...Array.from(constructedNodeIds).filter(nodeId => !findExactNodeByIdInForest(previousForest, nodeId))]
   );
   const activePriorNodeIds = new Set(
     ownerships.flatMap((ownership) => Array.from(ownership.priorNodeIds))
@@ -2022,7 +2047,7 @@ const buildAnchoredTreeTransitionForest = (
     parent.children?.filter(child => child.id !== movement.targetNodeId
       && previousLocations.get(child.id)).forEach(child => attachmentNodeIds.add(child.id));
   });
-  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds]);
+  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds, ...constructedNodeIds]);
   let result = cloneSyntaxForest(previousForest);
 
   const exactLocation = (
@@ -2193,10 +2218,16 @@ const buildAnchoredTreeTransitionForest = (
       (exactLocation(currentLocations, left)?.depth || 0)
       - (exactLocation(currentLocations, right)?.depth || 0)
     ));
+  // A newly constructed ancestor may contain an existing subtree whose owned
+  // output is also new. Complete those outputs before copying the ancestor.
+  const addedCompletionNodeIds = constructedNodeIds.size > 0
+    ? [...addedNodeIds].sort((left, right) => (exactLocation(currentLocations, right)?.depth || 0)
+      - (exactLocation(currentLocations, left)?.depth || 0))
+    : topLevelAddedNodeIds;
 
   const destinationParentIds = Array.from(new Set([
     ...topLevelMovedNodeIds,
-    ...topLevelAddedNodeIds
+    ...addedCompletionNodeIds
   ].map((nodeId) => exactLocation(currentLocations, nodeId)?.parentId || '')
     .filter(Boolean)));
   if (destinationParentIds.some((parentId) => !ensureCurrentNodeShell(parentId))) {
@@ -2236,20 +2267,27 @@ const buildAnchoredTreeTransitionForest = (
       );
     });
 
-  topLevelAddedNodeIds
+  const cloneAvailableSubtree = (node: SyntaxNode): SyntaxNode | null => {
+    if (!activeCurrentNodeIds.has(node.id)) {
+      return cloneSyntaxTree(exactLocation(indexExactForestNodeLocations(result), node.id)?.node);
+    }
+    return { ...structuredClone(node), ...(node.children ? {
+      children: node.children.map(cloneAvailableSubtree).filter((child): child is SyntaxNode => Boolean(child))
+    } : {}) };
+  };
+  addedCompletionNodeIds
     .forEach((nodeId) => {
       const destination = exactLocation(currentLocations, nodeId);
       if (!destination) return;
       const shell = exactLocation(indexExactForestNodeLocations(result), nodeId);
       if (shell) {
         // Ancestor construction may already have attached existing children.
-        // This added subtree is wholly owned by the active relation, so finish
-        // its authored contents rather than mistaking the shell for completion.
-        Object.assign(shell.node, cloneSyntaxTree(destination.node));
+        // Finish only the available contents of the added subtree.
+        Object.assign(shell.node, cloneAvailableSubtree(destination.node));
         return;
       }
       insertExactNode(
-        cloneSyntaxTree(destination.node) || destination.node,
+        cloneAvailableSubtree(destination.node) || destination.node,
         destination.parentId,
         destination.childIndex,
         destination.rootIndex
@@ -2474,7 +2512,6 @@ export const buildPlaybackStepsFromDerivationFrames = (
       || String(frame.chainId || '')
       || plannedStageRelocatesPriorLandingOccurrence
     );
-    const frameHasRecoveredMovement = plannedFrameRelations.some(relation => relation.recoveredMovement?.transition);
     const frameCarriesAuthoredEffect =
       Boolean(String(getDerivationFrameChange(frame)?.statement || '').trim());
     const movementRecipe = pickPreferredReplayText(
@@ -2524,6 +2561,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
       index > 0
       && nonMovementTreeTransitionRelationIndexes.size > 0
       && JSON.stringify(previousFrameWorkspaceRoots) !== JSON.stringify(workspaceRoots);
+    const nonMovementTransitionNodeIds = new Map<number, Set<string>>();
+    nonMovementTreeTransitionRelationIndexes.forEach(relationIndex => {
+      nonMovementTransitionNodeIds.set(relationIndex,
+        fallbackTransitionOwnership.get(relationIndex)?.currentNodeIds || new Set(
+          getRelationAllAnchorNodeIds(frameRelationSteps[relationIndex]).flatMap(nodeId =>
+            collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
+    });
     const frameIsPureVisualTrajectoryStage =
       frameHasMovementPayload
       && collectReplayOvertTokenMultisetKey(previousFrameWorkspaceRoots) === collectReplayOvertTokenMultisetKey(workspaceRoots)
@@ -2717,11 +2761,19 @@ export const buildPlaybackStepsFromDerivationFrames = (
     const finalizeStructuralReplayForFrame = (steps: PlaybackStep[]): PlaybackStep[] => {
       let structuralSteps = steps.map(stripSemanticPayloadFromMicrostep);
       if (plannedStage) {
-        // PF, deletion, and rewrite relations own their serialized tree-state
-        // change at their exact authored relation index. Structural frames may
-        // not reveal that completed output first.
-        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload && !frameHasRecoveredMovement) {
-          structuralSteps = [];
+        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
+          && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
+          const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
+          const prerequisiteIds = new Set(frameRelationSteps.flatMap(relation =>
+            getRelationAllAnchorNodeIds(relation)
+              .filter(nodeId => !transitionNodeIds.has(nodeId))
+              .flatMap(nodeId => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
+          // A rewrite owns its output, not separately authored prerequisites of
+          // other claims in the same stage. Keep their ordinary construction.
+          structuralSteps = structuralSteps.filter(step => {
+            const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
+            return prerequisiteIds.has(nodeId) && !transitionNodeIds.has(nodeId);
+          });
         }
         const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
           const relationLabel = String(relation?.relation || '').trim() || 'Visual Relation';
@@ -2821,7 +2873,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           );
           if (!landingHostNodeId || findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)) return [];
           const priorSourceIds = placement.relation.recoveredMovement
-            ? [placement.relation.recoveredMovement.priorSourceNodeId]
+            ? (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).map(movement => movement.priorSourceNodeId)
             : placement.sourceNodeIds;
           const sourceWorkspaceIds = new Set(previousFrameWorkspaceRoots
             .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
@@ -2937,6 +2989,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           Array.from(singleRelationLinksByIndex.values()).some((links) => links.some(isResolvedMovementLink))
           || relationPlacements.some((placement) => placement.ownsPhrasalTreeTransition)
           || frameHasNonMovementTreeTransition;
+        const ordinaryStructuralNodeIds = new Set<string>();
         const collectInactiveTrajectoryTargetNodeIds = (
           activeRelationIndexes: Set<number>,
           preservedForest: SyntaxNode[] = []
@@ -2956,10 +3009,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
             const normalizedTargetNodeId = String(targetNodeId || '');
             if (!normalizedTargetNodeId) return;
             const retainedSource = relationPlacements.some(placement => {
-              const movement = placement.relation.recoveredMovement;
+              const movements = placement.relation.recoveredMovements ?? (placement.relation.recoveredMovement ? [placement.relation.recoveredMovement] : []);
               return !activeRelationIndexes.has(placement.relationIndex)
-                && movement?.priorSourceNodeId === normalizedTargetNodeId
-                && movement.sourceNodeId !== normalizedTargetNodeId
+                && movements.some(movement => movement.priorSourceNodeId === normalizedTargetNodeId
+                  && movement.sourceNodeId !== normalizedTargetNodeId)
                 && Boolean(findNodeByIdInForest(preservedForest, normalizedTargetNodeId))
                 && findParentNodeIdInForest(preservedForest, normalizedTargetNodeId)
                   === findParentNodeIdInForest(previousFrameWorkspaceRoots, normalizedTargetNodeId);
@@ -3062,27 +3115,35 @@ export const buildPlaybackStepsFromDerivationFrames = (
               .map((placement) => String(placement.authoredTargetNodeId || ''))
               .filter(Boolean)
           );
+          const pendingMovementNodeIds = new Set(frameRelationSteps.flatMap((relation, relationIndex) => {
+            if (activeRelationIndexes.has(relationIndex) || !relation.recoveredMovement?.transition) return [];
+            return (relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => [
+              ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.priorSourceNodeId)),
+              ...[movement.sourceNodeId, movement.targetNodeId].flatMap(nodeId =>
+                collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))
+            ]);
+          }));
           const nonMovementTransitionForest = !frameHasNonMovementTreeTransition
             || registeredNonMovementTreeTransitionIsActive
             ? workspaceRoots
-            : activeFallbackTransitionRelations.length > 0 || activeMovementRelations.length > 0
-              ? buildAnchoredTreeTransitionForest(
+            : buildAnchoredTreeTransitionForest(
                   previousFrameWorkspaceRoots,
                   workspaceRoots,
-                  [...activeFallbackTransitionRelations, ...activeMovementRelations]
-                )
-              : cloneSyntaxForest(previousFrameWorkspaceRoots);
+                  [...activeFallbackTransitionRelations, ...activeMovementRelations],
+                  new Set((baseStep?.replayVisibleNodeIds || [])
+                    .map(nodeId => replayOwnerId(baseStep?.replayCanvasData, nodeId))
+                    .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
+                  pendingMovementNodeIds
+                );
           const snapshotWorkspaceRoots = buildPreMovementStructuralForest(
             nonMovementTransitionForest,
-            frameRelationSteps.filter((_relation, relationIndex) =>
-              !activeRelationIndexes.has(relationIndex)
-              && !activeTreeTransitionTargetNodeIds.has(
-                String(
-                  relationPlacements.find((placement) => placement.relationIndex === relationIndex)
-                    ?.authoredTargetNodeId || ''
-                )
-              )
-            ),
+            frameRelationSteps.flatMap((relation, relationIndex) => {
+              if (activeRelationIndexes.has(relationIndex)) return [];
+              const landingActive = activeTreeTransitionTargetNodeIds.has(String(relationPlacements
+                .find(placement => placement.relationIndex === relationIndex)?.authoredTargetNodeId || ''));
+              if (!landingActive) return [relation];
+              return relation.recoveredMovement?.transition ? [{ ...relation, preserveMovementLanding: true }] : [];
+            }),
             previousFrameWorkspaceRoots
           );
           // Movement and realization may share a completed stage. Preserve the
@@ -3289,7 +3350,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             // Neutral transitions own their new structure just as recovered
             // movements do; emitting it separately can leave an empty step.
             if (!priorVisibleNodeIds.has(stepTargetNodeId)
-              && fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds.has(stepTargetNodeId)) {
+              && nonMovementTransitionNodeIds.get(placement.relationIndex)?.has(stepTargetNodeId)) {
               return true;
             }
             if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return false;
@@ -3447,6 +3508,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
           ];
         }
         const pendingStructuralSteps = pendingStructuralStepEntries.map((entry) => entry.step);
+        pendingStructuralSteps.forEach(step => {
+          const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
+          ordinaryStructuralNodeIds.add(nodeId);
+          (findExactNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
+            .filter(child => findExactNodeByIdInForest(previousFrameWorkspaceRoots, child.id))
+            .forEach(child => ordinaryStructuralNodeIds.add(child.id));
+        });
         const relationInsertionIndex = (
           placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
         ): number => {
@@ -3494,13 +3562,20 @@ export const buildPlaybackStepsFromDerivationFrames = (
         relationPlacements.forEach((placement) => {
           const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
             ? [
-                ...collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId))
+                ...[placement.authoredTargetNodeId, ...placement.sourceNodeIds].flatMap(nodeId =>
+                  collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
                   .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
                 ...getMovementCreatedLandingHostNodeIds(placement)
               ]
-            : [...(fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds || [])];
+            : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || [])];
           ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
-            if (!relationProducers.has(nodeId)) relationProducers.set(nodeId, placement.relationIndex);
+            const existingOwner = relationProducers.get(nodeId);
+            // Proven movement owns both new occurrences. A contextual claim
+            // may mention either copy, but cannot steal its construction.
+            if (existingOwner === undefined || (placement.relation.recoveredMovement?.transition
+              && !frameRelationSteps[existingOwner].recoveredMovement?.transition)) {
+              relationProducers.set(nodeId, placement.relationIndex);
+            }
           });
         });
         const emittedStructuralSteps = new Set<number>();
@@ -7202,6 +7277,22 @@ export const getFrameRelations = (
     const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
     const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
     const covert = facet?.recipe.id === 'scope.movement';
+    const sharedMovements = recoveredClaimMovements(dispatch);
+    if (!registeredEntry && sharedMovements.length > 1 && sharedMovements.every(movement =>
+      movement.targetNodeId === sharedMovements[0].targetNodeId && movement.trajectoryKind === sharedMovements[0].trajectoryKind)) {
+      const movements = sharedMovements.map(movement => {
+        const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
+          && item.evidence?.movement === movement);
+        const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+        const transition = !ownedMovements.has(key) && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
+        if (transition) ownedMovements.add(key);
+        return { ...movement, transition, drawTrajectory: Boolean(owner) };
+      });
+      const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
+      return { ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
+        ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
+        sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId };
+    }
     if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
     const { movementDiagnostics } = evidence;
     const movement: RecoveredMovement | undefined = covert ? {
@@ -7372,7 +7463,9 @@ export const buildAuthoredRelationLinksForFrames = (
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
 
-    relations.forEach((relation, relationIndex) => {
+    relations.flatMap((relation, relationIndex) => relation.recoveredMovements?.length
+      ? relation.recoveredMovements.map(movement => ({ relation: { ...relation, recoveredMovement: movement }, relationIndex }))
+      : [{ relation, relationIndex }]).forEach(({ relation, relationIndex }) => {
       const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
         ? Number(relation.authoredRelationIndex)
         : relationIndex;

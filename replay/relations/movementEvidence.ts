@@ -20,18 +20,34 @@ export interface RecoveredMovement {
 
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing';
 
-const categoryLabel = (node: SyntaxNode) => readCategoryLabel(node.label);
+const categoryLabel = (node: SyntaxNode) => readCategoryLabel(node.label).replace(/(?:\^?0|⁰)$/u, '');
+const headCategory = (node: SyntaxNode): string => categoryLabel(node).replace(/:.*$/u, '').trim();
 const onlyExponents = (node: SyntaxNode): boolean => !node.children?.length || node.children.every(child => !child.children?.length);
 const isHeadComplex = (parent: SyntaxNode, landingId: string): boolean => {
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
-  return siblings.length === 1 && categoryLabel(siblings[0]) === categoryLabel(parent)
-    && onlyExponents(siblings[0]) && !/P$/.test(categoryLabel(parent)) && !/[′'’]/.test(parent.label);
+  if (/P$/.test(categoryLabel(parent)) || /[′'’]/.test(parent.label)) return false;
+  if (parent.children?.length === 1 && parent.children[0].id === landingId) {
+    const landing = parent.children[0];
+    return !/P$/.test(categoryLabel(landing)) && !/[′'’]/.test(landing.label) && onlyExponents(landing);
+  }
+  return siblings.length === 1 && headCategory(siblings[0]) === headCategory(parent) && onlyExponents(siblings[0]);
+};
+
+const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode): boolean => {
+  const headCategory = categoryLabel(target);
+  const projection = /[′'’]/u.test(parent.label) || /P$/u.test(categoryLabel(parent));
+  return projection && !/[′'’]/u.test(target.label) && !/P$/u.test(headCategory) && onlyExponents(target)
+    && headCategory === categoryLabel(parent).replace(/P$/u, '')
+    && (parent.children ?? []).filter(child => child.id !== target.id)
+      .every(child => /[′'’]/u.test(child.label) || /P$/u.test(categoryLabel(child)));
 };
 
 const landingKind = (target: SyntaxNode, parent?: SyntaxNode): 'head' | 'phrasal' | undefined => {
-  if (parent && isHeadComplex(parent, target.id)) return 'head';
+  if (parent && (isHeadComplex(parent, target.id) || isProjectedHead(parent, target))) return 'head';
+  const projectionCategory = (node: SyntaxNode) => categoryLabel(node)
+    .replace(/\s+\([^)]*\bprojection\b[^)]*\)$/u, '').replace(/P$/u, '');
   const specifier = parent?.children?.some(n => n.id !== target.id
-    && categoryLabel(n).replace(/P$/, '') === categoryLabel(parent).replace(/P$/, '') && !onlyExponents(n));
+    && projectionCategory(n) === projectionCategory(parent) && !onlyExponents(n));
   if (!onlyExponents(target) || /P$/.test(categoryLabel(target)) || specifier) return 'phrasal';
 };
 
@@ -265,6 +281,19 @@ export function recoverMovementEvidence(
       return fail('MOVEMENT_PRIOR_POSITION_UNPROVEN', `${sourceId} does not occupy the preceding position of ${priorSourceId}.`);
     }
   }
+  // A head position may already exist before it receives moved material.
+  // New source-linked identity within that exact position proves filling;
+  // a later pronunciation change alone does not create another movement.
+  const lineages = (node?: SyntaxNode): Set<string> => {
+    const result = new Set<string>();
+    const visit = (n: SyntaxNode) => { if (n.lineageId) result.add(n.lineageId); n.children?.forEach(visit); };
+    if (node) visit(node);
+    return result;
+  };
+  const priorLanding = prior.nodes.get(targetId);
+  const oldLandingLineages = lineages(priorLanding), sourceLineages = lineages(before);
+  const fillsHeadPosition = kind === 'head' && priorLanding && [...lineages(target)]
+    .some(lineage => sourceLineages.has(lineage) && !oldLandingLineages.has(lineage));
   const roles: Record<string, string[]> = {};
   const context: NonNullable<RecoveredMovement['context']> = [];
   const diagnostics: string[] = [];
@@ -274,6 +303,8 @@ export function recoverMovementEvidence(
     if (e.ids.length === 1 && e.ids[0] === witnessId && (structurallyBound || hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))) concepts.push('movement.witness');
     if (e.ids.length === 1 && e.ids[0] === targetId && (structurallyBound || hasRole(e.key, 'movement.landing'))) concepts.push('movement.landing');
     if (concepts.length) roles[e.key] = concepts;
+    // A phrasal attractor is not the head-adjunction host of that phrase.
+    if (kind === 'phrasal' && e.key === 'attracting head') return;
     const contextKind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
       : hasRole(e.key, 'movement.host') ? ['landing head', 'receiving head'].includes(e.key) ? 'head-landing' : 'head-host'
       : e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId))
@@ -301,7 +332,7 @@ export function recoverMovementEvidence(
       priorSourceNodeId: priorSourceId,
       sourceNodeId: sourceId, targetNodeId: targetId, witnessNodeId: witnessId,
       trajectoryKind: kind,
-      transition: priorSourceId !== sourceId || !prior.nodes.has(targetId),
+      transition: priorSourceId !== sourceId || !prior.nodes.has(targetId) || Boolean(fillsHeadPosition),
       roles,
       ...(priorAnchorKeys.length ? { priorAnchorKeys } : {}),
       ...(context.length ? { context } : {})

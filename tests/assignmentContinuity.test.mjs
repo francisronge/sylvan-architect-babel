@@ -12,7 +12,8 @@ const stage = (workspaceForest, relations) => ({ workspaceForest, relations, sta
 const assignment = (role = 'Theme') => ({ relation: 'An open assignment', anchors: { predicate: 'v', argument: 'object' }, values: { thetaRole: role } });
 const movement = { relation: 'An open movement', anchors: { source: 'trace', raisedHead: 'raised', trace: 'trace' }, priorAnchors: { source: 'v' } };
 const restatement = { relation: 'An open restatement', anchors: { chain: ['raised', 'trace'], argument: 'object' }, values: { thetaRole: 'Theme' } };
-const continued = stages => dispatchStageRelations(stages).at(-1).at(-1).facets.filter(f => f.evidence);
+const continued = stages => dispatchStageRelations(stages).at(-1).at(-1).facets
+  .filter(f => f.evidence && ['theta-grid', 'feature.dependency'].includes(f.recipe.id));
 
 test('an explicit earlier assignment follows the proven lower occurrence, independent of list order and pronunciation', () => {
   for (const chain of [['raised', 'trace'], ['trace', 'raised']]) for (const pronounced of [false, true]) {
@@ -25,7 +26,8 @@ test('an explicit earlier assignment follows the proven lower occurrence, indepe
     assert.deepEqual(facets[0].evidence.currentAnchors, { predicate: ['trace'], 'theta.arguments': ['object'] });
     assert.deepEqual(facets[0].evaluation.consumedEvidence.find(ref => ref.key === 'chain').itemIndices, [chain.indexOf('trace')]);
     const d = dispatchStageRelations(stages)[1][1];
-    assert.deepEqual(d.evidenceCoverage.fields.find(f => f.key === 'chain').unrecoveredItemIndices, [chain.indexOf('raised')]);
+    assert.deepEqual(d.evidenceCoverage.fields.find(f => f.key === 'chain').unrecoveredItemIndices, []);
+    assert.deepEqual(d.facets.find(f => f.recipe.id === 'identity.occurrences').evidence.currentAnchors.occurrences, chain);
     const grid = compileRelationRenderPlan(stages).frames[1].items.find(item => item.plaqueStyle === 'theta-grid' && planItemRelationRefs(item).some(ref => ref.stageIndex === 1));
     assert.deepEqual(grid.anchorNodeIds, ['trace']);
     assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [{ nodeId: 'object', label: 'Theme' }]);

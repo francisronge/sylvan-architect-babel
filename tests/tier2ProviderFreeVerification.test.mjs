@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { __test__ } from '../server/babelParser.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import {
   compileRelationRenderPlan
@@ -152,6 +154,7 @@ const buildFacetFixture = (recipe, options = {}) => {
       }
       case 'contains-authored-silent':
       case 'authored-trace-or-gap':
+      case 'gap-or-silent-copy':
         current(check.role).forEach((member) => {
           member.silent = true;
           member.label = 't';
@@ -167,7 +170,7 @@ const buildFacetFixture = (recipe, options = {}) => {
       case 'multiple-parents': {
         const parents = current('parents');
         current(check.role).forEach((member) => {
-          parents.slice(0, check.minParents).forEach((parent) => attach(parent, member));
+          if (parents[0]) attach(parents[0], member);
         });
         break;
       }
@@ -376,7 +379,7 @@ test('every declared Tier-2 alias resolves to the complete deterministic candida
 });
 
 test('every Tier-2 facet has a provider-free complete and incomplete form', () => {
-  assert.equal(TIER2_FACET_RECIPES.length, 52, 'the reviewed facet inventory changed');
+  assert.equal(TIER2_FACET_RECIPES.length, 54, 'the reviewed facet inventory changed');
   TIER2_FACET_RECIPES.forEach((recipe) => {
     const fixture = buildFacetFixture(recipe);
     const complete = evaluateFixture(recipe, fixture).evaluation;
@@ -811,16 +814,21 @@ test('cross-family combinations preserve claims or expose a specific ambiguity w
     assert.deepEqual(dispatchRelationClaims(reversed).facets.map(f => f.recipe.id).sort(), result.facets.map(f => f.recipe.id).sort(), context);
     assert.deepEqual(fixture, original, context);
   }
-  // These are interpreter controls. In particular, the legacy sharing fixtures
-  // do not establish admission under the public single-position ID contract.
-  assert.deepEqual(counts, { complete: 1070, competingRoles: 37, competingStages: 1, includedByLargerDrawing: 1 });
+  // These combined claims exercise the interpreter; public normalization has
+  // separate controls for unique occurrence positions and surface coverage.
+  assert.deepEqual(counts, { complete: 1143, competingRoles: 40, competingStages: 1, includedByLargerDrawing: 1 });
 });
 
-test('legacy sharing topology controls are not valid public single-position trees', async () => {
-  const { __test__ } = await import('../server/babelParser.js');
+test('repeated occurrence IDs remain invalid even when a relation explicitly claims sharing', () => {
   for (const id of ['multidominance', 'argument-sharing']) {
-    const fixture = buildFacetFixture(TIER2_FACET_RECIPES.find(recipe => recipe.id === id));
-    const stages = [{ statement: 'Sharing control.', stageRecord: 'Topology-only control.',
+    const shared = leaf('repeated-occurrence');
+    const fixture = {
+      relation: { relation: 'An explicit sharing claim', anchors: id === 'multidominance'
+        ? { parents: ['first-parent', 'second-parent'], shared: shared.id }
+        : { predicateDomains: ['first-parent', 'second-parent'], sharedArgument: shared.id } },
+      currentForest: [node('root', [node('first-parent', [shared]), node('second-parent', [structuredClone(shared)])])]
+    };
+    const stages = [{ statement: 'Sharing control.', stageRecord: 'Duplicate topology is invalid.',
       relations: [fixture.relation], workspaceForest: fixture.currentForest }];
     const inspected = __test__.inspectDerivationWorkspaces(stages);
     assert.ok(inspected[0].anchorChecks.some(check => check.status === 'duplicate'), id);
@@ -828,3 +836,111 @@ test('legacy sharing topology controls are not valid public single-position tree
       error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID', id);
   }
 });
+
+const buildPublicFacetFixture = (recipe, options = {}) => {
+  const fixture = buildFacetFixture(recipe, options);
+  // Companions require an independently complete claim in the same relation.
+  // Identity supplies that claim through the public contract, without a forged
+  // parentFacetComplete flag or a synthetic compiler identity.
+  if (recipe.id === 'presentation.lens') {
+    const ids = [fixture.relation.anchors['facet.anchors'], 'second-occurrence'];
+    fixture.currentForest[0].children.push(leaf(ids[1], { word: 'second' }));
+    fixture.relation.anchors.occurrences = ids;
+    fixture.relation.anchors['facet.anchors'] = ids;
+  } else if (recipe.id === 'organization.large-anchor-set') {
+    fixture.relation.anchors.occurrences = fixture.relation.anchors['large.anchor.array'];
+  }
+  const terminals = (tree, silent = false) => {
+    const children = tree.children ?? [];
+    // The interpreter fixture helper initially creates every anchor as a word.
+    // Public trees pronounce terminals; their subsequently built parents do not.
+    if (children.length > 0) delete tree.word;
+    const childWords = children.flatMap(child => terminals(child, silent || tree.silent));
+    return silent || tree.silent ? [] : children.length > 0 ? childWords : tree.word ? [tree.word] : [];
+  };
+  let words = fixture.currentForest.flatMap(tree => terminals(tree));
+  fixture.priorForest.forEach(tree => terminals(tree));
+  if (words.length === 0) {
+    // An all-silent claim can occur beside pronounced syntax. The unrelated
+    // context supplies a nonempty input without changing the silent occurrence.
+    fixture.currentForest[0].children.push(leaf('pronounced-context', { word: 'context' }));
+    words = ['context'];
+  }
+  const stage = (workspaceForest, relations = []) => ({
+    statement: 'The authored relation is established.',
+    stageRecord: 'The workspace supplies the exact occurrences named in this relation.',
+    relations,
+    workspaceForest
+  });
+  return {
+    fixture,
+    sentence: words.join(' '),
+    relationStageIndex: fixture.priorForest.length > 0 ? 1 : 0,
+    derivationStages: [
+      ...(fixture.priorForest.length > 0 ? [stage(fixture.priorForest)] : []),
+      stage(fixture.currentForest, [fixture.relation]),
+      // Cross-workspace movement is an intermediate state. A later merge
+      // supplies the complete final tree required of a public analysis.
+      ...(fixture.currentForest.length > 1
+        ? [stage([node('completed-root', structuredClone(fixture.currentForest))])] : [])
+    ]
+  };
+};
+
+for (const framework of ['xbar', 'minimalism']) {
+  test(`${framework}: all 54 families and 69 pieces are reachable through public normalization and Replay`, () => {
+    const movement = TIER2_FACET_RECIPES.find(recipe => recipe.id === 'movement.path');
+    const examples = [
+      ...TIER2_FACET_RECIPES.map(recipe => ({ recipe })),
+      { recipe: movement, options: { movementRoute: 'orthogonal' } },
+      { recipe: movement, options: { crossWorkspace: true } }
+    ];
+    const seenFamilies = new Set();
+    const seenPieces = new Set();
+    for (const { recipe, options } of examples) {
+      const { fixture, sentence, derivationStages, relationStageIndex: stageIndex } = buildPublicFacetFixture(recipe, options);
+      const authored = { derivationStages };
+      const original = structuredClone(authored);
+      let bundle;
+      assert.doesNotThrow(() => {
+        bundle = __test__.normalizeParseBundle(authored, framework, sentence, 'grok', true);
+      }, `${recipe.id} ${JSON.stringify(options ?? {})}: invalid public record`);
+      const analysis = bundle.analyses[0];
+      assert.deepEqual(authored, original, `${recipe.id}: normalization mutated authored evidence`);
+      assert.deepEqual(analysis.derivationStages.map(stage => stage.relations),
+        derivationStages.map(stage => stage.relations), `${recipe.id}: public relation content changed`);
+      const replay = prepareReplay({ sentence, inputTokens: bundle.inputTokens,
+        derivationStages: analysis.derivationStages, includePlayback: true });
+      // The lens is a presentation context, not an authored stage field.
+      const plan = recipe.id === 'presentation.lens'
+        ? compileRelationRenderPlan(analysis.derivationStages, { activeLens: true })
+        : replay.relationRenderPlan;
+      const moment = replay.playbackSteps.find(step => step.replayRelationIdentity?.stageIndex === stageIndex
+        && step.replayRelationIdentity.relationIndex === 0);
+      assert.ok(moment, `${recipe.id}: no owning relation moment`);
+      const visible = new Set(moment.replayVisibleNodeIds);
+      const currentIds = new Set();
+      const visit = tree => { currentIds.add(tree.id); tree.children?.forEach(visit); };
+      analysis.derivationStages[stageIndex].workspaceForest.forEach(visit);
+      const binding = bindRelationPlanFrame(plan, stageIndex, (id, attachment) => (
+        currentIds.has(id) && visible.has(id) ? pointFor(id, attachment) : null
+      ));
+      assert.deepEqual(binding.failed, [], `${recipe.id}: a drawing needs an unavailable occurrence`);
+      const items = plan.frames[stageIndex].items;
+      const owned = items.flatMap((item, index) => item.tier2FacetId === recipe.id ? [index] : []);
+      assert.ok(owned.length > 0, `${recipe.id}: normalization made the family unreachable`);
+      assert.ok(binding.primitives.some(primitive => owned.includes(primitive.itemIndex)),
+        `${recipe.id}: the recovered family bound no drawing`);
+      const pieces = new Set(owned.flatMap(index => items[index].tier2OutputPieces ?? []));
+      const expected = evaluateFixture(recipe, fixture).evaluation;
+      assert.equal(expected.complete, true, `${recipe.id}: public fixture lost required evidence`);
+      for (const piece of expected.outputs) {
+        assert.ok(pieces.has(piece), `${recipe.id}: public record cannot reach ${piece}`);
+        seenPieces.add(piece);
+      }
+      seenFamilies.add(recipe.id);
+    }
+    assert.deepEqual([...seenFamilies].sort(), TIER2_FACET_RECIPES.map(recipe => recipe.id).sort());
+    assert.deepEqual([...seenPieces].sort(), [...TIER2_VISUAL_PRIMITIVE_NAMES].sort());
+  });
+}

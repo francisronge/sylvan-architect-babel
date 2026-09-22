@@ -2,6 +2,7 @@ import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '..
 import type { PlaybackStep, ReplayDerivationFrame } from './replayCompiler.ts';
 import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { recoverMovementEvidence } from './relations/movementEvidence.ts';
 
 export const cloneRealizations = (groups: readonly SurfaceRealization[]): SurfaceRealization[] =>
   groups.map(group => ({ nodeIds: [...group.nodeIds], tokenIndices: [...group.tokenIndices] }));
@@ -71,16 +72,42 @@ export const resolveRealizationChanges = (
   if (!changes.length) return [];
   const previousIds = syntaxIds(previous?.workspaceForest || []);
   const currentIds = syntaxIds(current.workspaceForest);
+  const nodes = (forest: readonly SyntaxNode[]) => {
+    const result = new Map<string, SyntaxNode[]>();
+    const visit = (node: SyntaxNode) => { result.set(node.id, [...(result.get(node.id) ?? []), node]); node.children?.forEach(visit); };
+    forest.forEach(visit); return result;
+  };
+  const oldNodes = nodes(previous?.workspaceForest || []), newNodes = nodes(current.workspaceForest);
+  const exactNode = (index: Map<string, SyntaxNode[]>, id: string) => index.get(id)?.length === 1 ? index.get(id)![0] : undefined;
   const relations = (current.relations || []).map(relation => ({
-    current: anchorIds(relation.anchors), prior: anchorIds(relation.priorAnchors)
+    current: anchorIds(relation.anchors), prior: anchorIds(relation.priorAnchors),
+    movement: recoverMovementEvidence(relation, current.workspaceForest, previous?.workspaceForest || []).movement
   }));
+  const movementCovers = (change: Pick<RealizationChange, 'before' | 'after'>, movement: typeof relations[number]['movement']) => {
+    if (!movement?.transition || !change.before.length || change.before.length !== change.after.length) return false;
+    const before = exactNode(oldNodes, movement.priorSourceNodeId);
+    const lower = exactNode(newNodes, movement.sourceNodeId), landing = exactNode(newNodes, movement.targetNodeId);
+    if (!before || !lower || !landing) return false;
+    const oldDomain = syntaxIds([before]), newDomain = syntaxIds([lower, landing]);
+    const tokens = (group: SurfaceRealization) => JSON.stringify([...group.tokenIndices].sort((a, b) => a - b));
+    return change.before.every(group => {
+      const matched = change.after.filter(after => tokens(after) === tokens(group));
+      if (matched.length !== 1 || group.nodeIds.length !== matched[0].nodeIds.length
+        || !group.nodeIds.every(id => oldDomain.has(id)) || !matched[0].nodeIds.every(id => newDomain.has(id))) return false;
+      const pairs = group.nodeIds.map(id => matched[0].nodeIds.filter(nextId => {
+        const old = exactNode(oldNodes, id), next = exactNode(newNodes, nextId);
+        return old && next && (id === nextId || Boolean(old.lineageId && old.lineageId === next.lineageId));
+      }));
+      return pairs.every(pair => pair.length === 1) && new Set(pairs.flat()).size === group.nodeIds.length;
+    });
+  };
   return changes.map(change => {
     const candidates = relations.flatMap((relation, index) => {
       const currentCovered = change.after.every(group => group.nodeIds.every(id =>
         currentIds.has(id) && relation.current.has(id)));
       const previousCovered = change.before.every(group => group.nodeIds.every(id =>
         previousIds.has(id) && (relation.prior.has(id) || (currentIds.has(id) && relation.current.has(id)))));
-      return currentCovered && previousCovered ? [index] : [];
+      return currentCovered && previousCovered || movementCovers(change, relation.movement) ? [index] : [];
     });
     if (candidates.length === 1) return { ...change, relationIndex: candidates[0] };
     const reason = candidates.length === 0 ? 'MISSING_OWNER' : 'AMBIGUOUS_OWNER';

@@ -5,13 +5,14 @@
  * dispatch can consume their authored evidence. Relation names are not used.
  */
 import type { SyntaxNode } from '../../types.ts';
+import { nominalConcordMembers } from './nominalConcord.ts';
 import {
   resolveOutcomeLiteral,
   negativeClaimFailure,
   authoredOutcomeLiterals,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { FEATURE_DIMENSION_KEYS, isExplicitTier2Role, normalizeTier2Synonym } from './tier2Synonyms.ts';
+import { FEATURE_DIMENSION_KEYS, isExplicitTier2Role, normalizeTier2Synonym, thematicSlotQualifier } from './tier2Synonyms.ts';
 import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
@@ -128,7 +129,9 @@ export const TIER2_FACET_IDS = [
   'blocked-extraction',
   'focus.prominence',
   'focus.projection',
+  'focus.association',
   'strong-npi',
+  'polarity.licensing',
   'storage.ledger',
   'scope.movement',
   'operator-binding',
@@ -197,6 +200,7 @@ export type Tier2StructuralCheck =
   | { kind: 'contains'; containerRole: string; memberRole: string }
   | { kind: 'contains-authored-silent'; role: string }
   | { kind: 'authored-trace-or-gap'; role: string }
+  | { kind: 'gap-or-silent-copy'; role: string; fillerRole: string }
   | { kind: 'shared-lineage'; roles: readonly string[] }
   | { kind: 'shared-root-lineage'; roles: readonly string[] }
   | { kind: 'separate-occurrences'; roles: readonly [string, string] }
@@ -213,6 +217,7 @@ export type Tier2StructuralCheck =
   /** The sequence is regrouped between the prior and current trees without changing terminal order. */
   | { kind: 'rebracketing-configuration' }
   | { kind: 'explicit-npi' }
+  | { kind: 'binding-domain-or-positive' }
   | { kind: 'movement-carrier' }
   | { kind: 'native-plaque'; style: 'fission' | 'impoverishment' | 'correspondence' | 'cooper-storage'; anchorRole: string }
   | { kind: 'shared-native-parent'; roles: readonly [string, string] }
@@ -230,6 +235,7 @@ export type Tier2OutputGate =
   | { kind: 'accepted-outcome' }
   | { kind: 'value-present'; value: string }
   | { kind: 'anchor-present'; role: string }
+  | { kind: 'anchor-absent'; role: string }
   | { kind: 'active-lens' }
   | { kind: 'movement-geometry'; variant: 'curve' | 'orthogonal' | 'cross-workspace' };
 
@@ -277,6 +283,13 @@ export type Tier2AuthoredEvidenceEntry = {
 // Edge outlines are independent per node; organizational rails retain each
 // authored role group. Neither drawing asserts one joint linguistic group.
 export const INDEPENDENT_TIER2_ANCHOR_ROLES: ReadonlySet<string> = new Set(['phase.edge', 'large.anchor.array']);
+
+export const independentIdiomMemberFields = (evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors'>): boolean => {
+  const fields = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('chunks')) ?? [];
+  return fields.length > 1 && fields.every(entry => entry.items.length === 1
+    && /^(?:idiom|idiomatic) (?:verb|noun|nominal|head|phrase|constituent|member|chunk|component)$/u.test(normalizeTier2Synonym(entry.key)))
+    && new Set(fields.flatMap(entry => entry.items)).size === fields.length;
+};
 // These are rows of content, not competing alternative bindings of one slot.
 // Their owning recipe must still establish participants and any dependency.
 export const INDEPENDENT_TIER2_VALUE_ROLES: ReadonlySet<string> = new Set(['plaque.rows', 'pf.rows']);
@@ -290,6 +303,10 @@ export type Tier2FacetEvidence = {
   movement?: import('./movementEvidence.ts').RecoveredMovement;
   movementDiagnostics?: string[];
   movementFailure?: string;
+  /** Authored fields jointly attached by one exact current realization group. */
+  realizationGroupAnchorKeys?: readonly string[];
+  /** Separately authored positions proven to belong to one exact lineage. */
+  occurrenceGroupAnchorKeys?: readonly string[];
   currentAnchors: Readonly<Record<string, readonly string[]>>;
   priorAnchors?: Readonly<Record<string, readonly string[]>>;
   values: Readonly<Record<string, readonly string[]>>;
@@ -494,11 +511,13 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     outputs: [output('Rectangular domain', { kind: 'anchor-present', role: 'domain' }), output('Control connector')]
   }),
   recipe('binding.dependency', {
-    anchors: [current('binder', 1, 1), current('dependent', 1, 1), current('domain', 1, 1)],
+    anchors: [current('binder', 1, 1), current('dependent', 1, 1), optionalCurrent('domain', 1, 1)],
     values: [optionalValue('outcome', 1, 1), optionalValue('index', 1, 1)],
     acceptedOutcomeConcepts: LOCAL_OUTCOMES,
-    checks: [{ kind: 'explicit-role', roles: ['binder', 'dependent'] }, { kind: 'contains', containerRole: 'domain', memberRole: 'dependent' }],
-    outputs: [output('Elliptic domain')]
+    checks: [{ kind: 'explicit-role', roles: ['binder', 'dependent'] }, { kind: 'distinct', roles: ['binder', 'dependent'] }, { kind: 'binding-domain-or-positive' },
+      { kind: 'contains', containerRole: 'domain', memberRole: 'dependent' }],
+    outputs: [output('Elliptic domain', { kind: 'anchor-present', role: 'domain' }),
+      output('Variable-binding path', { kind: 'anchor-absent', role: 'domain' })]
   }),
   recipe('predication.dependency', {
     anchors: [current('predicand', 1, 1), current('predicate', 1)],
@@ -516,8 +535,8 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     values: [],
     checks: [
       { kind: 'distinct', roles: ['filler', 'ordinary.gap', 'parasitic.gap'] },
-      { kind: 'authored-trace-or-gap', role: 'ordinary.gap' },
-      { kind: 'authored-trace-or-gap', role: 'parasitic.gap' }
+      { kind: 'gap-or-silent-copy', role: 'ordinary.gap', fillerRole: 'filler' },
+      { kind: 'gap-or-silent-copy', role: 'parasitic.gap', fillerRole: 'filler' }
     ],
     outputs: [output('Copy fork')]
   }),
@@ -578,13 +597,14 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('argument-sharing', {
     anchors: [current('predicate.domains', 2), current('shared.argument', 1, 1)],
     values: [optionalValue('role.label', 1, 1)],
-    checks: [{ kind: 'contains', containerRole: 'predicate.domains', memberRole: 'shared.argument' }],
+    checks: [{ kind: 'explicit-role', roles: ['shared.argument'] },
+      { kind: 'distinct', roles: ['predicate.domains', 'shared.argument'] }],
     outputs: [output('Crossed domain ovals'), output('Label box', { kind: 'value-present', value: 'role.label' })]
   }),
   recipe('idiom.chunks', {
     anchors: [current('chunks', 2), optionalCurrent('interpretation.domain', 1, 1)],
     values: [],
-    checks: [{ kind: 'explicit-role', roles: ['chunks', 'interpretation.domain'] },
+    checks: [{ kind: 'explicit-role', roles: ['chunks', 'interpretation.domain'] }, { kind: 'distinct', roles: ['chunks'] },
       { kind: 'contains', containerRole: 'interpretation.domain', memberRole: 'chunks' }],
     outputs: [output('Underline'), output('Domain bracket', { kind: 'anchor-present', role: 'interpretation.domain' })]
   }),
@@ -595,7 +615,9 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('feature-sharing', {
     anchors: [current('feature.bearers', 2)],
-    values: [value('feature.rows', 1)],
+    values: [value('feature.rows', 1), optionalValue('outcome', 1, 1)],
+    acceptedOutcomeConcepts: POSITIVE_OUTCOMES,
+    checks: [{ kind: 'distinct', roles: ['feature.bearers'] }],
     outputs: [output('Feature vine')]
   }),
   recipe('agreement.cycle', {
@@ -688,7 +710,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('intervention', {
     anchors: [current('intervention.target', 1, 1), current('intervention.landing', 1, 1), current('intervener', 1, 1)],
     values: [optionalValue('outcome', 1, 1)],
-    acceptedOutcomeConcepts: LOCAL_NEGATIVE_OUTCOMES,
+    acceptedOutcomeConcepts: [...LOCAL_NEGATIVE_OUTCOMES, 'crashed'],
     checks: [{ kind: 'negative-claim', roles: ['intervener'] }, { kind: 'distinct', roles: ['intervention.target', 'intervention.landing', 'intervener'] }],
     outputs: [output('Intervention path')]
   }),
@@ -722,11 +744,26 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
       output('Accent annotation', { kind: 'value-present', value: 'accent.label' })
     ]
   }),
+  recipe('focus.association', {
+    anchors: [current('association.particle', 1, 1), current('association.associate', 1, 1)],
+    values: [],
+    checks: [{ kind: 'explicit-role', roles: ['association.particle', 'association.associate'] },
+      { kind: 'distinct', roles: ['association.particle', 'association.associate'] }],
+    outputs: [output('Nested association curves')]
+  }),
   recipe('strong-npi', {
     anchors: [current('licensor', 1, 1), current('licensee', 1, 1)],
     values: [optionalValue('feature.label', 1, 1)],
     checks: [{ kind: 'explicit-npi' }],
     outputs: [output('Nested association curves'), output('Feature notation', { kind: 'value-present', value: 'feature.label' })]
+  }),
+  recipe('polarity.licensing', {
+    anchors: [current('licensor', 1, 1), current('polarity.item', 1, 1)],
+    values: [optionalValue('outcome', 1, 1)],
+    acceptedOutcomeConcepts: POSITIVE_OUTCOMES,
+    checks: [{ kind: 'explicit-role', roles: ['licensor', 'polarity.item'] },
+      { kind: 'distinct', roles: ['licensor', 'polarity.item'] }],
+    outputs: [output('Nested association curves')]
   }),
   recipe('storage.ledger', {
     anchors: [current('scope', 1, 1)],
@@ -955,7 +992,7 @@ export const pairedLiteralsDetail = (
   const ids = anchorIds(evidence, role);
   const anchorEntries = (evidence.authoredCurrentAnchors ?? []).filter(entry =>
     entry.concepts.includes(role) && entry.items.length > 0);
-  const candidates = anchorEntries.map(entry => sameNameValueEntries(evidence, entry));
+  const candidates = anchorEntries.map(entry => sameNameValueEntries(evidence, entry, role));
   if (candidates.some(entries => entries.length > 1)) {
     return { status: 'ambiguous', literals: candidates.flatMap(entries => entries.flatMap(entry => [...entry.items])) };
   }
@@ -986,7 +1023,8 @@ export const pairedLiterals = (
 
 export const sameNameValueEntries = (
   evidence: Pick<Tier2FacetEvidence, 'authoredValues'>,
-  anchorEntry: Tier2AuthoredEvidenceEntry
+  anchorEntry: Tier2AuthoredEvidenceEntry,
+  role?: string
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
   const entries = evidence.authoredValues ?? [];
   const exact = entries.filter(candidate => candidate.key === anchorEntry.key);
@@ -994,7 +1032,17 @@ export const sameNameValueEntries = (
   // exact authored pair or choose between competing fields by object order.
   const matches = exact.length ? exact : entries.filter(candidate =>
     normalizeTier2Synonym(candidate.key) === normalizeTier2Synonym(anchorEntry.key));
-  return matches.map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
+  const qualifier = (!role || role === 'theta.arguments') && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
+    ? thematicSlotQualifier(anchorEntry.key, 'anchor') : undefined;
+  const qualified = !matches.length && qualifier ? entries.filter(candidate => candidate.items.length === 1
+    && thematicSlotQualifier(candidate.key, 'value') === qualifier) : [];
+  const named = !matches.length && !qualified.length && (!role || role === 'theta.arguments')
+    && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
+    ? entries.filter(candidate => candidate.items.length === 1
+      && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
+      && normalizeTier2Synonym(candidate.items[0]) === normalizeTier2Synonym(anchorEntry.key)) : [];
+  return (matches.length ? matches : qualified.length ? qualified : named)
+    .map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 
 /** Separate argument fields form an inventory when each names its own role
@@ -1013,6 +1061,14 @@ export const independentThetaArgumentFields = (
         && values[0].items.length === entry.items.length
         && values[0].items.every(value => value.trim().length > 0);
     });
+};
+
+const independentThetaRoleValueFields = (evidence: Tier2FacetEvidence): boolean => {
+  const entries = evidence.authoredValues?.filter(entry => entry.concepts.includes('role.label')) ?? [];
+  const arguments_ = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
+  return entries.length > 1 && entries.length === arguments_.length
+    && arguments_.every(argument => sameNameValueEntries(evidence, argument, 'theta.arguments').length === 1)
+    && new Set(entries.map(entry => normalizeTier2Synonym(entry.key))).size === entries.length;
 };
 
 /** Every per-item literal concept a recipe pairs with this role, in recipe order. */
@@ -1231,13 +1287,15 @@ const evaluateStructuralCheck = (
     }
     case 'contains':
       if (ids(check.containerRole).length === 0 && recipeEntry.anchors.some(r => r.role === check.containerRole && r.optional)) return true;
-      if (recipeEntry.id === 'argument-sharing') return ids(check.containerRole).every(container =>
-        nodeContainsAny(currentIndex, [container], ids(check.memberRole)));
       return nodeContainsAny(currentIndex, ids(check.containerRole), ids(check.memberRole));
     case 'contains-authored-silent':
       return hasAuthoredSilent(currentIndex, ids(check.role));
     case 'authored-trace-or-gap':
       return isAuthoredTraceOrGap(currentIndex, ids(check.role));
+    case 'gap-or-silent-copy':
+      return ids(check.role).every(id => isAuthoredTraceOrGap(currentIndex, [id])
+        || currentIndex.nodes.get(id)?.length === 1 && currentIndex.nodes.get(id)![0].silent === true
+          && Boolean(sharedRootLineage(currentIndex, [id, ...ids(check.fillerRole)])));
     case 'shared-lineage':
       return sharesLineage(currentIndex, check.roles.map(ids));
     case 'shared-root-lineage':
@@ -1265,9 +1323,11 @@ const evaluateStructuralCheck = (
         && (check.optional || detail.literals.every(literal => literal.trim().length > 0));
     }
     case 'multiple-parents':
+      // The relation supplies the additional dominance edges. Requiring those
+      // edges in the forest would force one occurrence ID into several positions.
       return new Set(ids('parents')).size === ids('parents').length
         && ids('parents').length >= check.minParents
-        && ids(check.role).every(id => ids('parents').every(parent => currentIndex.parentIds.get(id)?.has(parent)));
+        && ids(check.role).every(id => !ids('parents').includes(id));
     case 'shared-native-parent': {
       const leftParents = new Set(ids(check.roles[0]).flatMap((id) => [...(currentIndex.parentIds.get(id) ?? [])]));
       return ids(check.roles[1]).some((id) =>
@@ -1345,6 +1405,10 @@ const evaluateStructuralCheck = (
     }
     case 'explicit-npi':
       return valueLiterals(evidence, 'feature.label').some(literal => normalizeTier2Synonym(literal) === 'strong npi');
+    case 'binding-domain-or-positive':
+      return ids('domain').length > 0 || ((!evidence.authoredCurrentAnchors || evidence.authoredCurrentAnchors.some(entry =>
+        entry.concepts.includes('dependent') && isExplicitTier2Role('dependent', entry.key)))
+        && valueLiterals(evidence, 'outcome').every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
     case 'movement-carrier':
       return ['movement.source', 'movement.landing'].some(role =>
         nodeContainsAny(currentIndex, ids('movement.carrier'), ids(role)));
@@ -1571,6 +1635,8 @@ const outputGatePasses = (
       return valueLiterals(evidence, gate.value).length > 0;
     case 'anchor-present':
       return anchorIds(evidence, gate.role).length > 0;
+    case 'anchor-absent':
+      return anchorIds(evidence, gate.role).length === 0;
     case 'active-lens':
       return evidence.activeLens === true;
     case 'movement-geometry': {
@@ -1613,8 +1679,14 @@ export const evaluateTier2FacetRecipe = (
     for (const concept of new Set(concepts)) {
       if ((field === 'values' ? INDEPENDENT_TIER2_VALUE_ROLES : INDEPENDENT_TIER2_ANCHOR_ROLES).has(concept)) continue;
       const groups = entries?.filter(entry => entry.concepts.includes(concept)) ?? [];
+      if (field === 'anchors' && concept === 'occurrences' && groups.every(entry => evidence.occurrenceGroupAnchorKeys?.includes(entry.key))) continue;
       if (field === 'values' && concept === 'feature.rows' && independentFeatureDimensions(groups)) continue;
+      if (field === 'values' && concept === 'role.label' && independentThetaRoleValueFields(evidence)) continue;
       if (field === 'anchors' && concept === 'theta.arguments' && independentThetaArgumentFields(evidence)) continue;
+      if (field === 'anchors' && concept === 'feature.bearers' && nominalConcordMembers(evidence).length) continue;
+      if (field === 'anchors' && concept === 'chunks' && independentIdiomMemberFields(evidence)) continue;
+      if (field === 'anchors' && concept === 'rewrite.output' && groups.length
+        && groups.every(entry => evidence.realizationGroupAnchorKeys?.includes(entry.key))) continue;
       const distinct = new Set(groups.map(entry => JSON.stringify(
         entry.conceptItemIndices?.[concept]?.map(index => entry.items[index]) ?? entry.items
       )));
@@ -1712,7 +1784,7 @@ export const evaluateTier2FacetRecipe = (
           return (evidence.authoredCurrentAnchors ?? [])
             .filter(entry => entry.concepts.includes(role) && entry.items.length > 0)
             .flatMap(entry => {
-              const candidates = sameNameValueEntries(evidence, entry);
+              const candidates = sameNameValueEntries(evidence, entry, role);
               const paired = candidates[0];
               if (candidates.length !== 1 || paired.items.length !== paired.anchorLength) return [];
               const optional = check.kind === 'paired-values' && Boolean(check.optional);

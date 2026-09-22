@@ -30,7 +30,7 @@ export function recoverCompoundAssignments(evidence: Tier2FacetEvidence): Assign
     const targets = anchors.filter(entry => entry.concepts.includes(targetRole));
     if (sources.length !== 1 || targets.length !== 1) continue;
     const source = sources[0], target = targets[0], count = source.items.length;
-    const values = sameNameValueEntries(evidence, target);
+    const values = sameNameValueEntries(evidence, target, targetRole);
     if (count < 2 || target.items.length !== count || values.length !== 1 || values[0].items.length !== count
       || new Set([...source.items, ...target.items]).size !== count * 2) continue;
     const value = values[0];

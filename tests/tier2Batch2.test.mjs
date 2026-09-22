@@ -152,12 +152,12 @@ test('candidate outcomes cannot mark the same host licensed and rejected', () =>
   assert.deepEqual(good.items.filter(item => item.pathStyle === 'improper-candidate').map(item => [item.toNodeId, item.outcome]), [['b', 'licensed'], ['c', 'blocked']]);
 });
 
-test('multidominance verifies the exact named parents', () => {
-  const shared = leaf('shared');
-  const tree = [node('root', 'TP', [leaf('a'), leaf('b'), node('p1', 'XP', [shared]), node('p2', 'XP', [structuredClone(shared)])])];
-  assert(!has(inspect(relation({ parents: ['a', 'b'], shared: 'shared' }), tree), 'multidominance'));
+test('multidominance uses the declared extra parents without duplicating a tree occurrence', () => {
+  const tree = [node('root', 'TP', [node('p1', 'XP', [leaf('shared')]), node('p2', 'XP', [leaf('b')])])];
   const good = inspect(relation({ parents: ['p1', 'p2'], shared: 'shared' }), tree);
   assert.deepEqual(good.items.find(item => item.kind === 'shared-node').parentNodeIds, ['p1', 'p2']);
+  for (const parents of [['p1', 'missing'], ['p1', 'p1'], ['p1', 'shared']])
+    assert(!has(inspect(relation({ parents, shared: 'shared' }), tree), 'multidominance'));
 });
 
 test('focus carries its witnessed native branch parent rather than the domain root', () => {
