@@ -75,8 +75,8 @@ analyses. French, Hindi, Korean, Mandarin and English covered the initial batch;
 Spanish dative and English attachment ambiguity were reserved until candidate
 `1797c22`. Both reserved inputs retained their distinct authored readings in both
 frameworks. Review found no demonstrated linguistic defect requiring another
-prompt change. The only prompt clarification says input-token addresses do not
-prescribe syntactic or morpheme boundaries.
+prompt change. During that pass, the only prompt clarification said input-token
+addresses do not prescribe syntactic or morpheme boundaries.
 
 The implementation repairs metadata being mistaken for syntax, missed explicit
 Case and thematic evidence, a missing successive clitic-movement path, repeated
@@ -113,6 +113,12 @@ fixtures. Focused browser follow-up passes all 79 affected frames and preserves
 D6 geometry exactly; production build and native/open shared-plaque browser tests
 also pass. Independent review found no remaining blocker in the final repair.
 Verification and final review receipts accompany the evidence.
+
+Subsequent prompt review removed the two sentences directing grammaticality
+judgments into relations. The existing instructions to analyze the exact input,
+including ungrammatical input, and explain judgments remain. Existing generation
+records retain their original prompt hashes; this edit has no fresh model-output
+evidence. Future generations capture the revised instruction hash as usual.
 
 ### Exit goal for this phase
 

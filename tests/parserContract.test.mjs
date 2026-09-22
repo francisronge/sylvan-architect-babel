@@ -131,13 +131,17 @@ test('both frameworks select the theory and share the open derivation contract w
   }
 });
 
-test('the model-facing contract distinguishes a completed analysis from grammaticality', () => {
-  const instruction = buildSystemInstruction('xbar', 'gemini');
-  assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
-  assert.match(instruction, /A completed analysis may establish that the input is illicit/);
-  assert.match(instruction, /A judgment about the whole analysis is anchored to its final root/);
-  assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
-  assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
+test('the model-facing contract supports illicit analyses without requiring judgment relations', () => {
+  for (const framework of ['xbar', 'minimalism']) {
+    const instruction = buildSystemInstruction(framework);
+    assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
+    assert.match(instruction, /Explain any judgment within the selected framework rather than changing the sentence\./);
+    assert.match(instruction, /A completed analysis may establish that the input is illicit/);
+    const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
+    assert.doesNotMatch(relationsInstruction, /judgment/i);
+    assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
+    assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
+  }
 });
 
 test('sentence requests preserve quoted, multiline and multilingual input as data', () => {

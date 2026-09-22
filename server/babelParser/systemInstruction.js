@@ -65,7 +65,6 @@ When a values entry lists one literal per item of an anchor entry, give both ent
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
 List relations in the derivational order explained in stageRecord, with prerequisites before dependent relations. This orders relations, not the display's selection, projection, and merge steps.
 Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation. Do not substitute a different occurrence introduced only by a later relation merely because it shares lineage.
-If the analysis makes an illicit judgment, explain it in stageRecord and anchor its relation to the relevant syntax. A judgment about the whole analysis is anchored to its final root.
 
 Input words
 In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization. Exact input coverage is required even for an ungrammatical input; it is not a grammaticality judgment.`;
