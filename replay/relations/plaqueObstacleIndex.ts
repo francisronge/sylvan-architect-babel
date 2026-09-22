@@ -65,3 +65,21 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
   };
   return { overlaps, inColumn, some };
 }
+
+/** Vertical order is fixed while a plaque searches different horizontal pockets. */
+export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[], height: number, gap = 24) {
+  const ordered = obstacles.map(box => ({ x: box.x, right: box.x + box.width + gap,
+    low: box.y - height - gap, high: box.extendsDownward ? Infinity : box.y + box.height + gap }))
+    .sort((a, b) => a.low - b.low);
+  return (x: number, width: number): number[][] => {
+    const right = x + width + gap;
+    const merged: number[][] = [];
+    for (const interval of ordered) {
+      if (!(x < interval.right && right > interval.x)) continue;
+      const last = merged[merged.length - 1];
+      if (last && interval.low < last[1]) last[1] = Math.max(last[1], interval.high);
+      else merged.push([interval.low, interval.high]);
+    }
+    return merged;
+  };
+}

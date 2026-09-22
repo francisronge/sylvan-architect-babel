@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
 import { plaquesOverlap, preparePlaqueObstacleIndex, translateObstacle } from '../replay/relations/plaqueObstacleIndex.ts';
 
@@ -38,4 +39,23 @@ test('placing a plaque beside a reserved arrow uses the same ink clearance as pl
   assert(!plaquesOverlap(translateObstacle(clear, 2000, -700), shifted));
   assert(plaquesOverlap(translateObstacle(blocked, 2000, -700), shifted));
   assert.deepEqual(obstacle.curve, curve, 'projecting a future frame cannot mutate the original curve');
+});
+
+
+test('cubic sampling retains exact coordinates at every collision-planning resolution', () => {
+  const curves = [
+    [{ x: -123.5, y: 987.25 }, { x: 1e5, y: -230.75 }, { x: -47.625, y: 5000 }, { x: 641.25, y: 9.5 }],
+    [{ x: 0, y: 0 }, { x: 0, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 0 }]
+  ];
+  for (const [from, c1, c2, to] of curves) for (const samples of [0, 1, 16, 32, 64, 3.5, -1, NaN]) {
+    const expected = Array.from({ length: samples + 1 }, (_, index) => {
+      const t = index / samples, u = 1 - t;
+      return {
+        x: u * u * u * from.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * to.x,
+        y: u * u * u * from.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * to.y
+      };
+    });
+    assert.deepEqual(sampleCubic(from, c1, c2, to, samples), expected);
+  }
+  assert.throws(() => sampleCubic(...curves[0], Infinity), RangeError);
 });

@@ -295,15 +295,18 @@ export const sampleCubic = (
   c2: Point,
   to: Point,
   samples = 16
-): Point[] =>
-  Array.from({ length: samples + 1 }, (_unused, index) => {
+): Point[] => {
+  const points: Point[] = new Array(Math.max(0, Math.floor(samples + 1)) || 0);
+  for (let index = 0; index < points.length; index++) {
     const t = index / samples;
     const u = 1 - t;
-    return {
+    points[index] = {
       x: u * u * u * from.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * to.x,
       y: u * u * u * from.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * to.y
     };
-  });
+  }
+  return points;
+};
 
 /**
  * A downward nesting arc for the strong-NPI containment curves: bows beneath

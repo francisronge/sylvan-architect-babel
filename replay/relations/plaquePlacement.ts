@@ -7,7 +7,7 @@ import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve, featureCollectionEdge, type CollectionEdge } from './overlayGeometry.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
-import { preparePlaqueObstacleIndex, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+import { preparePlaqueObstacleIndex, preparePlaqueColumnIntervals, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
@@ -268,11 +268,18 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
           : featureCollectionEdge(box, box.y + row.y, source.connectorInk ?? source);
         return { ...row, edge: edge === 'left' || edge === 'right' ? 'side' : edge };
       }) } : {}) }),
-    clears: (box: PlaqueRect): boolean => curves(box).every(({ attachment, ...curve }) => {
-      const bounds = curveBounds(curve, 6), index = inkIndex(attachment);
-      return !cubicIntersectsRect(curve, box, 6)
-        && !index.some(bounds, blocker => cubicIntersectsRect(curve, blocker, 6));
-    }),
+    clears: (box: PlaqueRect): boolean => {
+      for (const row of box.collectionRows ?? []) {
+        const attachment = sources.get(row.sourceNodeId);
+        if (!attachment) continue;
+        const curve = featureCollectionPlaqueCurve(box, box.y + row.y,
+          attachment.connectorInk ?? attachment, row.lane ?? 0, row.edge);
+        const bounds = curveBounds(curve, 6), index = inkIndex(attachment);
+        if (cubicIntersectsRect(curve, box, 6)
+          || index.some(bounds, blocker => cubicIntersectsRect(curve, blocker, 6))) return false;
+      }
+      return true;
+    },
     candidateXs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'x'),
     candidateYs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'y'),
     routeRects: (box: PlaqueRect) => curves(box).flatMap(collectionRouteRects)
@@ -472,18 +479,12 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...occupied.flatMap(box =>
         [box.x - width - gap, box.x + box.width + gap])])]
         .sort((a, b) => horizontalGap(a) - horizontalGap(b));
+      const columnIntervals = preparePlaqueColumnIntervals(occupied, height, gap);
       let bestDistance = Infinity;
       for (const x of xs) {
         const dx = horizontalGap(x);
         if (dx * dx >= bestDistance) break;
-        const intervals = obstacleIndex.inColumn(x, width, gap)
-          .map(box => [box.y - height - gap, box.extendsDownward ? Infinity : box.y + box.height + gap]).sort((a, b) => a[0] - b[0]);
-        const merged: number[][] = [];
-        for (const interval of intervals) {
-          const last = merged[merged.length - 1];
-          if (last && interval[0] < last[1]) last[1] = Math.max(last[1], interval[1]);
-          else merged.push(interval);
-        }
+        const merged = columnIntervals(x, width);
         const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
         // The nearest box-sized gap can still put the curved approach through
         // another label. Consider the remaining gap edges before falling below.
@@ -492,7 +493,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
           ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
         ] : [];
-        const connectorLanes = rawConnectorLanes.flatMap(y => [y, y - 16, y + 16]);
+        const connectorLanes = [...new Set(rawConnectorLanes)].flatMap(y => [y, y - 16, y + 16]);
         const ys = [...new Set([idealY, ...connectorLanes, ...merged.flat()])].filter(Number.isFinite)
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
         for (const y of ys) {

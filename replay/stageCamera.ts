@@ -156,7 +156,20 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
             const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
             const obstacles = [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected),
               ...plaqueCollectionConnectorObstacles(scene.nodes, projected)];
-            return [{ anchor: futureAnchor, caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), playedRelations: scene.playedRelations, stageIndex: stageIndex + offset, dx, dy,
+            const visibleRows = new WeakMap<string[], boolean>();
+            const rowVisible = (owners: string[] | undefined): boolean => {
+              if (!scene.playedRelations || !owners) return true;
+              let visible = visibleRows.get(owners);
+              if (visible === undefined) {
+                visible = owners.some(key => {
+                  const [stage, relation] = key.split(':').map(Number);
+                  return stage < stageIndex + offset || (stage === stageIndex + offset && scene.playedRelations!.has(relation));
+                });
+                visibleRows.set(owners, visible);
+              }
+              return visible;
+            };
+            return [{ anchor: futureAnchor, caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), rowVisible, dx, dy,
               obstacles }];
           });
         });
@@ -171,11 +184,7 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
               .map(y => y + scene.dy)),
           acceptsConnector: box => futureScenes.every(scene => {
             const projected = { ...box, x: box.x - scene.dx, y: box.y - scene.dy,
-              collectionRows: box.collectionRows?.filter(row => !scene.playedRelations || !row.ownerKeys
-                || row.ownerKeys.some(key => {
-                  const [stage, relation] = key.split(':').map(Number);
-                  return stage < scene.stageIndex || (stage === scene.stageIndex && scene.playedRelations!.has(relation));
-                })) };
+              collectionRows: box.collectionRows?.filter(row => scene.rowVisible(row.ownerKeys)) };
             return (box.caseRowY === undefined || scene.caseClears(projected))
               && scene.collectionSpace.clears(projected);
           })
