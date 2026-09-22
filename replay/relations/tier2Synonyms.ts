@@ -305,9 +305,10 @@ const qualifiedCaseDirection = (role: string, literals: readonly string[], index
 /** Feature-property modifiers preserve their literal row labels. A qualified
  * participant property needs one complete dependency and no competing owner. */
 export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
-  context: { anchors?: Record<string, unknown>; values?: Record<string, unknown> } = {}): string[] => {
+  context: { anchors?: Record<string, unknown>; values?: Record<string, unknown>; relation?: string } = {}): string[] => {
   const concepts = new Set(lookupTier2SynonymCandidates(index, 'value', key));
   const normalized = normalizeTier2Synonym(key);
+  if (normalized === 'status' && isWholeClauseJudgmentRelation(context.relation ?? '')) concepts.add('verdict');
   if (/(?:^| )role$/u.test(normalized)
     && Object.keys(context.anchors ?? {}).some(role => lookupTier2SynonymCandidates(index, 'role', role).includes('predicate'))
     && Object.keys(context.anchors ?? {}).some(role => typeof context.values?.[key] === 'string'
@@ -330,6 +331,11 @@ export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
   return [...concepts];
 };
 
+export const isWholeClauseJudgmentRelation = (name: string): boolean =>
+  /\b(?:grammaticality|convergence)\b/u.test(normalizeTier2Synonym(name))
+  || /\b(?:derivational|derivation|analysis|well formedness)\b.*\b(?:judgment|assessment)\b/u
+    .test(normalizeTier2Synonym(name));
+
 export const relationRoleConcepts = (
   index: Tier2SynonymIndex,
   key: string,
@@ -349,6 +355,12 @@ export const relationRoleConcepts = (
   // Generic licensing alone does not license a polarity drawing.
   if (spelling === 'licensee' && /\b(?:npi|negative polarity)\b/u.test(normalizeTier2Synonym(context.relation ?? '')))
     concepts.add('polarity.item');
+  // A whole-clause judgment may call its exact target "root" or "clause".
+  // These broad names carry verdict meaning only in an authored judgment.
+  const relationName = normalizeTier2Synonym(context.relation ?? '');
+  if (['root', 'clause', 'sentence', 'candidate', 'completed root', 'analysis root', 'completed structure'].includes(spelling)
+    && isWholeClauseJudgmentRelation(relationName))
+    concepts.add('analysis.anchor');
   // A position/occurrence names the anchored instance of an existing role.
   // It does not identify another point in that role's chain.
   const positioned = /^(subject|finite head) (?:position|occurrence)$/u.exec(spelling)?.[1];
@@ -539,12 +551,28 @@ export const relationRoleConcepts = (
   const hasQualifiedAgreementPair = qualifiedHosts.length === 1 && scalarRole(qualifiedHosts[0])
     && scalarRole('controller') && !hasAgreementMediator
     && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role));
+  const scalarId = (role: string) => Object.entries(context.anchors ?? {})
+    .find(([key]) => normalizeTier2Synonym(key) === role)?.[1];
+  const hasNamedAgreementTarget = /\bagreement\b/u.test(relationName)
+    && roles.has('controller') && roles.has('target');
+  const namedAgreementPair = hasNamedAgreementTarget
+    && scalarRole('controller') && scalarRole('target') && !hasAgreementMediator
+    && scalarId('controller') !== scalarId('target');
   const participialHost = (role: string) => !hasAgreementMediator && ['participle', 'participial head'].includes(role);
   const controllerEntries = Object.entries(context.anchors ?? {}).filter(([role]) => normalizeTier2Synonym(role) === 'controller');
-  const headedAgreementController = !hasQualifiedHost && (hasInflectionHead || [...roles].some(participialHost)) && controllerEntries.length === 1
+  const headedAgreementController = !hasQualifiedHost && !hasNamedAgreementTarget && (hasInflectionHead || [...roles].some(participialHost)) && controllerEntries.length === 1
     && (Array.isArray(controllerEntries[0][1]) ? controllerEntries[0][1].length === 1 : typeof controllerEntries[0][1] === 'string')
     && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role));
   if (hasLiteral('feature.rows')) {
+    if (namedAgreementPair) {
+      if (spelling === 'target') {
+        concepts.delete('feature.target');
+        concepts.delete('goal');
+        concepts.add('feature.source');
+        concepts.add('probe');
+      }
+      if (spelling === 'controller') { concepts.add('feature.target'); concepts.add('goal'); }
+    }
     // A named agreement target is the feature host. A separately named finite
     // head is contextual here; it cannot replace the explicit target.
     if (hasQualifiedAgreementPair) {

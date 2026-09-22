@@ -5,7 +5,7 @@ import { resolveOutcomeLiteral } from './outcomeResolver.ts';
 import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields, independentIdiomMemberFields, sameNameValueEntries,
   type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts, relationValueConcepts,
-  type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
+  isWholeClauseJudgmentRelation, type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
 const DEFAULT_SYNONYM_INDEX = buildTier2SynonymIndex();
 
 const authoredItems = (value: string | string[]): string[] => (
@@ -43,7 +43,7 @@ const normalizeBlock = (
       const conceptItems = scope === 'value' && concept === 'outcome'
         ? items.filter((item) => resolveOutcomeLiteral(item)?.concept)
         : scope === 'value' && concept === 'verdict'
-          ? items.filter((item) => !resolveOutcomeLiteral(item)?.concept)
+          ? items.filter((item) => isWholeClauseJudgmentRelation(context?.relation ?? '') || !resolveOutcomeLiteral(item)?.concept)
           : items;
       if (conceptItems.length === 0) {
         if (items.length === 0) activeConcepts.push(concept);

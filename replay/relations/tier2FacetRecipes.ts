@@ -224,6 +224,7 @@ export type Tier2StructuralCheck =
   | { kind: 'siblings-within-domain'; leftRole: string; rightRole: string; domainRole: string }
   | { kind: 'native-parent-branch'; role: string }
   | { kind: 'value-token'; value: string; tokens: readonly string[] }
+  | { kind: 'displayable-verdict'; maxCharacters: number }
   | { kind: 'accepted-outcome' }
   | { kind: 'negative-claim'; roles: readonly string[] }
   | { kind: 'active-lens' }
@@ -680,6 +681,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('judgment.verdict', {
     anchors: [current('analysis.anchor', 1, 1)],
     values: [value('verdict', 1, 1), optionalValue('label', 1, 1)],
+    checks: [{ kind: 'displayable-verdict', maxCharacters: 20 }],
     outputs: [
       output('Verdict glyph'),
       output('Verdict label', { kind: 'value-present', value: 'label' })
@@ -1341,6 +1343,10 @@ const evaluateStructuralCheck = (
     case 'value-token': {
       const statuses = valueLiterals(evidence, check.value).map(literal => featureNotationStatus(literal, check.tokens));
       return statuses.includes('affirmative') && !statuses.includes('contradiction');
+    }
+    case 'displayable-verdict': {
+      const verdicts = valueLiterals(evidence, 'verdict');
+      return verdicts.length === 1 && Array.from(verdicts[0].trim()).length <= check.maxCharacters;
     }
     case 'projection-chain': {
       const chain = projectionChain(evidence);

@@ -45,15 +45,16 @@ Codex-OAuth requests made under the committed prompt contract. It exposes all
 82 analyses in one chooser, paused at Replay frame one. Across 1,076 authored
 relations and 3,502 Replay frames, the audit found no missing or duplicated
 relation moments. All 54 declared recipes are reachable through the public
-normalization-to-painter path in provider-free tests; 18 Tier-2 recipe families
-occur naturally in these records. Another 320 relations remain wholly neutral
-because their authored evidence does not establish a supported drawing. This
-is retained content, not a claim that their linguistic interpretation is wrong.
+normalization-to-painter path in provider-free tests; 19 Tier-2 recipe families
+occur naturally in these records. Another 269 relations remain wholly neutral
+because their authored evidence does not establish a supported, legible
+drawing. This is retained content, not a claim that their linguistic
+interpretation is wrong.
 The last untouched Tamil and Polish records needed no renderer adaptation.
 Human visual and linguistic review of the complete chooser remains a release
 decision; passing structural checks does not certify either.
 The final 1600px bundled-runtime sweep rendered all 3,502 frames with no
-invalid SVG paths or browser errors. Replay frame changes had a 12.5ms 95th
+invalid SVG paths or browser errors. Replay frame changes had a 12.3ms 95th
 percentile; the slowest analysis opened in 1.86 seconds. The focused French
 transition that had paused for about 740ms after a late font load now takes
 about 8ms after preloading the renderer-generated glyph subset.

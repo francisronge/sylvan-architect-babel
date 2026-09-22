@@ -129,6 +129,41 @@ test('polarity licensing reuses association curves without asserting strong-NPI 
   assert.equal(strong.items.filter(i => i.linkStyle === 'strong-npi').length, 1);
 });
 
+test('an authored whole-clause grammaticality judgment earns a verdict glyph', () => {
+  const forest = [node('clause', 'CP', [leaf('word', 'N')])];
+  for (const [name, role, field] of [
+    ['grammaticality judgment', 'clause', 'judgment'],
+    ['completed grammaticality assessment', 'candidate', 'judgment'],
+    ['convergence judgment', 'completedRoot', 'status'],
+    ['completed derivation judgment', 'analysisRoot', 'judgment'],
+    ['grammaticality', 'root', 'status'],
+    ['GB convergence', 'clause', 'judgment']
+  ]) {
+    const result = inspect({ [role]: 'clause' }, { [field]: 'grammatical' }, forest, name);
+    assert(result.has('judgment.verdict'));
+    const verdict = result.items.find(item => item.kind === 'analysis-verdict');
+    assert.equal(verdict.analysisNodeId, 'clause');
+    assert.equal(verdict.judgment, 'grammatical');
+  }
+  assert.equal(inspect({ clause: 'clause' }, { judgment: 'grammatical' }, forest).has('judgment.verdict'), false);
+  assert.equal(inspect({ clause: 'clause' }, { status: 'grammatical' }, forest).has('judgment.verdict'), false);
+  assert.equal(inspect({ clause: 'clause' }, { judgment: 'illicit under the adopted locality theory' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
+  assert.equal(inspect({ clause: 'missing' }, { judgment: 'grammatical' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
+  assert.equal(inspect({ root: 'word', clause: 'clause' }, { judgment: 'grammatical' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
+});
+
+test('an explicit agreement controller and target retain their direction beside a finite head', () => {
+  const forest = [node('clause', 'IP', [leaf('subject', 'DP'), node('infl', 'I', [leaf('verb', 'V')])])];
+  const anchors = { controller: 'subject', target: 'verb', finiteHead: 'infl' };
+  const result = inspect(anchors, { features: 'third-person singular' }, forest, 'subject agreement');
+  assert(result.has('feature.dependency'));
+  const connector = result.items.find(item => item.kind === 'directed-path');
+  assert.equal(connector.fromNodeId, 'verb');
+  assert.equal(connector.toNodeId, 'subject');
+  assert.equal(inspect(anchors, { features: 'third-person singular' }, forest).has('feature.dependency'), false);
+  assert.equal(inspect({ ...anchors, target: 'subject' }, { features: 'third-person singular' }, forest, 'subject agreement').has('feature.dependency'), false);
+});
+
 test('qualified parasitic arguments need both actual gap occurrences', () => {
   const forest = [node('root', 'CP', [leaf('filler', 'DP'), leaf('ordinary', 'DP', { silent: true }), leaf('parasitic', 'DP', { silent: true })])];
   const anchors = { whLicenser: 'filler', matrixObject: 'ordinary', parasiticObject: 'parasitic' };

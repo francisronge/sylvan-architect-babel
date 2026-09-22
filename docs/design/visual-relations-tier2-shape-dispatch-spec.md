@@ -40,6 +40,16 @@ passing primitive test does not establish recognition coverage on model output.
   retains its more specific recipe and does not produce a duplicate curve. In
   an explicitly named NPI claim, `licensee` can identify the polarity item;
   generic licensing does not supply that meaning.
+- An authored grammaticality, convergence or derivational judgment may use a
+  uniquely anchored whole clause as its analysis target and its exact judgment
+  or status literal as the verdict. A generic clause reference or several
+  distinct candidate targets do not earn the verdict drawing. Long explanatory
+  judgments remain in the Stage Record instead of being clipped as large
+  single-line verdict glyphs.
+- In an explicit agreement claim, a unique `controller` and `target` with
+  authored features identify one dependency even when a finite head is also
+  named. The finite head remains context; a repeated or ambiguous endpoint
+  does not redirect the connector.
 - An explicit focus particle and its associate can earn an association curve.
   This does not assert prosodic prominence, an accent bearer or a projection
   chain. Those drawings retain their own evidence requirements.
