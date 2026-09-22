@@ -136,6 +136,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('role', 'rewrite.output', ['rewrite output', 'output', 'current terminal', 'surface form', 'exponent', 'supported head', 'supported tense', 'tense host', 'realization host']),
   group('role', 'pf.host', ['supported tense', 'tense host', 'realization host']),
   group('role', 'rewrite.outputs', ['rewrite outputs', 'outputs', 'current terminals', 'surface forms', 'exponents']),
+  group('role', 'pf.contributors', ['contributors', 'realization contributors', 'realization participants']),
   group('role', 'terminal', ['terminal', 'target terminal', 'word', 'morpheme', 'feature terminal']),
   group('role', 'sequence', ['sequence', 'order', 'items', 'pieces', 'linear sequence']),
   group('role', 'order', ['order', 'precedence order', 'linearization', 'ordering statements', 'sequence']),
@@ -157,6 +158,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values', 'agreement', 'agreement features', 'phi', 'φ', 'phi features', ...FEATURE_DIMENSION_KEYS]),
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
   group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'exponent']),
+  group('value', 'pf.surface', ['surface form', 'realized form', 'surface realization']),
   group('value', 'fission.input', ['input features']),
   group('value', 'fission.output', ['output features', 'outputs features', 'bundle features']),
   group('value', 'feature.hierarchy', ['feature hierarchy']),
@@ -174,7 +176,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
 export const isExplicitTier2Role = (concept: string, key: string): boolean => {
   const entry = TIER2_ROLE_SYNONYMS.find(group => group.concept === concept);
   const normalized = normalizeTier2Synonym(key);
-  return qualifiedControlConcepts(normalized).includes(concept) || Boolean(entry?.aliases.some(alias => normalizeTier2Synonym(alias) === normalized)
+  return [...qualifiedControlConcepts(normalized), ...qualifiedReferenceConcepts(normalized)].includes(concept) || Boolean(entry?.aliases.some(alias => normalizeTier2Synonym(alias) === normalized)
     && !entry.contextualAliases?.some(alias => normalizeTier2Synonym(alias) === normalized));
 };
 
@@ -238,6 +240,12 @@ const qualifiedControlConcepts = (role: string): string[] =>
   /^controller (?:(?:theta|thematic|chain) )?(?:position|occurrence|head)$/u.test(role) ? ['controller']
     : /^controlled (?:pro|subject|nominal|argument|np|dp|phrase|constituent|occurrence)$/u.test(role) ? ['controllee'] : [];
 
+// The noun identifies the anchored object; its binding qualification keeps the
+// declared role. A trace by itself supplies neither binding nor an operator.
+const qualifiedReferenceConcepts = (role: string): string[] =>
+  /^(?:bound|anaphoric) (?:trace|occurrence|copy|expression|nominal|pronoun)$/u.test(role) ? ['dependent']
+    : /^(?:argument|bound|scope) variable$/u.test(role) ? ['variable'] : [];
+
 const thematicIntroducer = (role: string) => role === 'introducer' || /^introducing (?:head|predicate)$/u.test(role);
 
 export const qualifiedAssignmentConcepts = (key: string): string[] => {
@@ -286,7 +294,8 @@ export const relationRoleConcepts = (
     && isExplicitTier2Role('controller', role));
   const qualifiedControl = qualifiedControlConcepts(normalizeTier2Synonym(key))
     .filter(concept => concept !== 'controller' || !directController);
-  const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key), ...qualifiedControl]);
+  const concepts = new Set([...lookupTier2SynonymCandidates(index, 'role', key), ...qualifiedAssignmentConcepts(key),
+    ...qualifiedControl, ...qualifiedReferenceConcepts(normalizeTier2Synonym(key))]);
   const spelling = singularRole(normalizeTier2Synonym(key));
   // Direction plus an occurrence type supplies a candidate role. The movement
   // reader must still prove exact lineage, the preceding slot and the landing.
@@ -391,6 +400,14 @@ export const relationRoleConcepts = (
   const hasAgreementController = Object.keys(context.anchors ?? {}).some(role =>
     normalizeTier2Synonym(role) === 'agreement controller');
   const roles = new Set(Object.keys(context.anchors ?? {}).map(normalizeTier2Synonym));
+  const inflectionHead = (role: string) => ['finite head', 'inflection', 'inflectional head'].includes(role);
+  const hasInflectionHead = [...roles].some(inflectionHead);
+  const hasAgreementMediator = [...roles].some(role => /^(?:(?:agreement|feature) )?mediator$/u.test(role));
+  const participialHost = (role: string) => !hasAgreementMediator && ['participle', 'participial head'].includes(role);
+  const controllerEntries = Object.entries(context.anchors ?? {}).filter(([role]) => normalizeTier2Synonym(role) === 'controller');
+  const headedAgreementController = (hasInflectionHead || [...roles].some(participialHost)) && controllerEntries.length === 1
+    && (Array.isArray(controllerEntries[0][1]) ? controllerEntries[0][1].length === 1 : typeof controllerEntries[0][1] === 'string')
+    && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role));
   if (hasLiteral('feature.rows')) {
     // In a complete probe/goal claim, a separately named feature origin may
     // describe material within the goal. Preserve that exact occurrence as
@@ -418,11 +435,15 @@ export const relationRoleConcepts = (
         }
       }
     }
-    // These pairs explicitly name the two participants. Finite heads or
-    // subjects alone do not establish agreement, nor does the relation title.
-    if (hasAgreementController || (roles.has('finite head') && roles.has('subject'))) {
-      if (spelling === 'agreement controller' || spelling === 'subject') concepts.add('feature.target');
-      if (spelling === 'finite head') concepts.add('feature.source');
+    // Literal features and complete participant roles establish collection.
+    // A separate mediator prevents treating the participle as the collector.
+    if (hasAgreementController || headedAgreementController || (hasInflectionHead && roles.has('subject'))) {
+      if (spelling === 'agreement controller' || spelling === 'subject' || spelling === 'controller' && headedAgreementController) concepts.add('feature.target');
+      if (inflectionHead(spelling) || participialHost(spelling)) concepts.add('feature.source');
+    }
+    if (headedAgreementController) {
+      if (inflectionHead(spelling) || participialHost(spelling)) concepts.add('probe');
+      if (spelling === 'controller') concepts.add('goal');
     }
     if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
       ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {

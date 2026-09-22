@@ -1,4 +1,4 @@
-import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
+import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
 import { recoverMovementEvidence } from './movementEvidence.ts';
 import { resolveOutcomeLiteral } from './outcomeResolver.ts';
 import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields,
@@ -77,13 +77,40 @@ const normalizeBlock = (
 export const buildTier2FacetEvidence = ({
   relation,
   currentForest,
+  currentRealizations,
   priorForest,
   activeLens,
   synonymIndex = DEFAULT_SYNONYM_INDEX
-}: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
+}: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; currentRealizations?: readonly SurfaceRealization[];
+  priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
+  const contributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
+  const surfaces = values.authored.filter(entry => entry.concepts.includes('pf.surface'));
+  // The entire authored realization group owns the plate. No member is chosen
+  // as a lexical source, output head or morphological controller.
+  if (contributors.length === 1 && surfaces.length === 1 && surfaces[0].items.length === 1
+    && surfaces[0].items[0].trim() && !Object.hasOwn(currentAnchors.concepts, 'rewrite.output')) {
+    const ids = contributors[0].items;
+    const groups = currentRealizations ?? [];
+    const matches = groups.filter(group => group.nodeIds.length === ids.length
+      && new Set(group.nodeIds).size === ids.length && ids.every(id => group.nodeIds.includes(id)));
+    const group = matches.length === 1 ? matches[0] : undefined;
+    const exactGroup = ids.length > 0 && new Set(ids).size === ids.length && group
+      && group.tokenIndices.length > 0 && new Set(group.tokenIndices).size === group.tokenIndices.length
+      && group.tokenIndices.every(index => Number.isInteger(index) && index >= 0)
+      && groups.every(other => other === group || !other.tokenIndices.some(index => group.tokenIndices.includes(index)));
+    if (exactGroup) {
+      currentAnchors.concepts['rewrite.output'] = [...ids];
+      contributors[0].concepts = [...contributors[0].concepts, 'rewrite.output'];
+      contributors[0].conceptItemIndices = { ...contributors[0].conceptItemIndices,
+        'rewrite.output': ids.map((_, index) => index) };
+      appendItems(values.concepts, 'pf.rows', surfaces[0].items);
+      surfaces[0].concepts = [...surfaces[0].concepts, 'pf.rows'];
+      surfaces[0].conceptItemIndices = { ...surfaces[0].conceptItemIndices, 'pf.rows': [0] };
+    }
+  }
   if (independentThetaArgumentFields({ authoredCurrentAnchors: currentAnchors.authored, authoredValues: values.authored })) {
     currentAnchors.concepts['theta.arguments'] = currentAnchors.authored
       .filter(entry => entry.concepts.includes('theta.arguments')).flatMap(entry => [...entry.items]);

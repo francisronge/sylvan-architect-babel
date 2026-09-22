@@ -7115,6 +7115,7 @@ const getAuthoredFrameRelations = (
 const createFrameRelationResolver = (frames: ReplayDerivationFrame[], replayPlan?: DerivationReplayPlan | null) => {
   const dispatches = dispatchStageRelations(frames.map((frame, i) => ({
     workspaceForest: frame.workspaceForest || [],
+    realizations: frame.after?.realizations ?? getReplayPlanStage(replayPlan, i)?.realizations,
     relations: getAuthoredFrameRelations(frame, getReplayPlanStage(replayPlan, i)) as DerivationStageRelation[]
   })));
   const resolved = new Map<number, DerivationReplayPlanStep[]>();
@@ -7150,6 +7151,7 @@ export const getFrameRelations = (
     const input = {
       relation: authoredStep as DerivationStageRelation,
       currentForest, priorForest: previousForest,
+      currentRealizations: frame?.after?.realizations ?? plannedStage?.realizations,
       stageIndex: plannedStage?.stageIndex ?? 0, relationIndex
     };
     const dispatch = claimDispatches?.[relationIndex] ?? dispatchRelationClaims(input);

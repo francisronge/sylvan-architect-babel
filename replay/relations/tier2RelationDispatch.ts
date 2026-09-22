@@ -13,6 +13,7 @@ import { nativeThetaAssignments, recoverCompoundAssignments } from './compoundAs
  */
 import type {
   DerivationStageRelation,
+  SurfaceRealization,
   SyntaxNode
 } from '../../types.ts';
 import {
@@ -143,6 +144,7 @@ export type ExclusiveRelationDispatchInput = {
   stageIndex: number;
   relationIndex: number;
   currentForest: readonly SyntaxNode[];
+  currentRealizations?: readonly SurfaceRealization[];
   priorForest?: readonly SyntaxNode[];
   activeLens?: boolean;
   assignmentContext?: AssignmentContext;
@@ -427,6 +429,7 @@ export const dispatchRelationClaims = (
     stageIndex,
     relationIndex,
     currentForest,
+    currentRealizations,
     priorForest,
     activeLens,
     registry = productionRelationRegistry,
@@ -440,14 +443,15 @@ export const dispatchRelationClaims = (
     currentForest,
     priorForest
   }) as Tier1Dispatch;
+  const registryEntry = findRelationRegistryEntry(registry, relation.relation);
   const evidence = buildTier2FacetEvidence({
     relation,
     currentForest,
+    ...(currentRealizations ? { currentRealizations } : {}),
     priorForest,
     activeLens,
     synonymIndex
   });
-  const registryEntry = findRelationRegistryEntry(registry, relation.relation);
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
     ? [
         ...Object.keys(registryEntry.signature.anchors.required),
@@ -474,7 +478,8 @@ export const dispatchRelationClaims = (
         return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
           ({ key }) => (
             !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
-            && lookupTier2SynonymCandidates(synonymIndex, 'role', key).every(
+            && [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
+              ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].every(
               (concept) => !declaredPrimaryAnchorConcepts.has(concept)
             )
           )
@@ -698,6 +703,7 @@ export const dispatchRelationClaimBatch = (
     relations,
     stageIndex,
     currentForest,
+    currentRealizations,
     priorForest,
     activeLens,
     registry,
@@ -710,6 +716,7 @@ export const dispatchRelationClaimBatch = (
       stageIndex,
       relationIndex,
       currentForest,
+      ...(currentRealizations ? { currentRealizations } : {}),
       ...(priorForest ? { priorForest } : {}),
       ...(activeLens === undefined ? {} : { activeLens }),
       ...(registry ? { registry } : {}),
@@ -719,12 +726,12 @@ export const dispatchRelationClaimBatch = (
 };
 
 /** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
-export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[] }[],
+export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
   options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
   return stages.map((stage, stageIndex) => stage.relations.map((relation, relationIndex) => {
     const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext,
-      currentForest: stage.workspaceForest, priorForest: stages[stageIndex - 1]?.workspaceForest });
+      currentForest: stage.workspaceForest, currentRealizations: stage.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest });
     rememberAssignmentMovement(assignmentContext, dispatch.evidence.movement);
     if (dispatch.primaryClaim?.tier === 1) {
       const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });

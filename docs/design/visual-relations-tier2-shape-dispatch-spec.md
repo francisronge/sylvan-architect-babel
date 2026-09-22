@@ -204,6 +204,33 @@ Control. The equivalent distinction applies to generic chunks, surface/LF
 correspondence and ordinary complements. Explicit-role checks are internal to
 the facet evaluator; the model receives no linguistic menu.
 
+Binding-qualified objects retain their declared role: a bound or anaphoric
+trace, occurrence, copy, expression, nominal or pronoun is a dependent, and an
+argument, bound or scope variable remains a variable. These qualifications do
+not supply the binder, operator or domain. The complete recipe still checks
+unique resolved endpoints and domain containment; conflicting qualified roles
+stay neutral. Binding does not require movement lineage, and a shared lineage
+does not establish binding. Additional claims and uninterpreted context retain
+their own ownership.
+
+An explicit finite or inflectional head with a subject or one controller and
+literal feature values establishes the existing directed feature dependency.
+A participle with one controller uses the same collection drawing unless an
+explicit mediator makes that attachment uncertain. Competing heads or goals,
+a controlled subject, and prose-only participant descriptions do not complete
+these contextual pairs. These roles do not establish symmetric feature sharing.
+
+An explicit contributor list and one surface-form value can use the existing
+PF plate when the list exactly matches one current realization group. Partial
+matches, competing exact matches or overlapping token spans stay neutral.
+A contributor may also participate in another group's distinct tokens.
+Every contributor anchors the plate; its geometric reference does not identify
+a linguistic source. The
+surface form remains a literal row, with no inferred rewrite operation. The
+compiler and Replay use the same realization context. Independent PF claims
+may accompany registered relations, but cannot rescue a malformed primary
+claim whose declared anchors overlap that recovered evidence.
+
 Dispatch passes its interpreted evidence directly to the lowerer and Replay.
 An explicit feature or record-row block with exactly one current anchor can
 use the existing structured plaque regardless of that anchor's role wording.
