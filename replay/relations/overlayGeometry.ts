@@ -63,12 +63,12 @@ export function featureCollectionEdge(plaque: Rect, rowY: number, sourceRect: Re
 
 /** Keep Orchard handles and lane spacing; the reserved edge determines the attachment. */
 export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0,
-  edge = featureCollectionEdge(plaque, rowY, sourceRect)) {
+  edge = featureCollectionEdge(plaque, rowY, sourceRect), portX?: number) {
   if (edge === 'side') edge = sourceRect.x + sourceRect.width / 2 >= plaque.x + plaque.width / 2 ? 'right' : 'left';
   const vertical = edge === 'top' || edge === 'bottom';
   const centerX = sourceRect.x + sourceRect.width / 2;
   const source = vertical
-    ? { x: Math.max(plaque.x + 24, Math.min(plaque.x + plaque.width - 24, centerX)),
+    ? { x: Math.max(plaque.x + 24, Math.min(plaque.x + plaque.width - 24, portX === undefined ? centerX : plaque.x + portX)),
       y: edge === 'bottom' ? plaque.y + plaque.height + 12 : plaque.y - 12 }
     : { x: edge === 'right' ? plaque.x + plaque.width + 12 : plaque.x - 12, y: rowY };
   const target = vertical
@@ -79,8 +79,8 @@ export function featureCollectionPlaqueCurve(plaque: Rect, rowY: number, sourceR
   return { source, target, control1, control2 };
 }
 
-export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0, edge?: CollectionEdge): string {
-  const { source, target, control1, control2 } = featureCollectionPlaqueCurve(plaque, rowY, sourceRect, lane, edge);
+export function featureCollectionPlaquePath(plaque: Rect, rowY: number, sourceRect: Rect, lane = 0, edge?: CollectionEdge, portX?: number): string {
+  const { source, target, control1, control2 } = featureCollectionPlaqueCurve(plaque, rowY, sourceRect, lane, edge, portX);
   return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${control1.x.toFixed(1)} ${control1.y.toFixed(1)},`
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }

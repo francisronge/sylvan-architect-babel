@@ -79,12 +79,20 @@ Japanese nominative arrow previously left the bottom of T's word inside the
 wrapped V label below it. The source identity and separate Case plaques remain
 unchanged; tree layout is not adjusted.
 
-A lone dotted collector may now leave the plaque's bottom or top when its source
-is mostly below or above it. The allocator verifies that edge through future
-frames and keeps it with the row. If that route is blocked, the existing side
-route remains available. Multiple collectors retain their row-side associations,
-including D6's Number and Gender paths. The curve handles, dash styling, ownership
-and reveal timing are shared with the existing drawing.
+Dotted collectors sharing one exact source may leave the plaque's bottom or top
+when that source is mostly below or above it. If the nearest attachment point is
+blocked, an otherwise clear placement can use another point along the same edge.
+Distinct feature rows reserve separate attachment points. The allocator verifies
+each route through future frames and retains its plaque-local offset with the
+feature row. Ports fit the narrowest shell in the claim's lifetime. Clearance
+uses each stage's painted dimensions and row positions, including other plaques'
+connector obstacles; the largest box still reserves space. A blocked vertical
+route can still use the side.
+Collectors with distinct sources retain their row-side associations, including
+D6's Number and Gender paths. Curve handles, dash styling, ownership and reveal
+timing remain shared with the existing drawing. Case plaques also reserve at least
+two category-line heights between the arrow's source and target; collision
+clearance alone must not reduce the shaft to an almost invisible fragment.
 
 Allocation now runs in a worker after chunked browser text measurement. In the
 local bundled German review, full readiness took about 1.4 seconds, compared with

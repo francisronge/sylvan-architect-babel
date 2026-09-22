@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { caseAssignmentSource, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
-import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
+import { caseAssignmentSource, caseAssignmentClears, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout, projectPlaqueContent } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
@@ -36,7 +36,149 @@ test('a vertical collector reserves its edge, checks its actual curve, and keeps
   const multiple = prepareCollectionPlaqueSpace(nodes).attach({ ...box, collectionRows: [
     ...box.collectionRows, { sourceNodeId: 'right', y: 212, ownerKeys: ['0:1'] }
   ] });
-  assert(multiple.collectionRows.every(row => row.edge === 'side'), 'multiple rows keep their own direct attachment');
+  assert(multiple.collectionRows.every(row => row.edge === 'bottom'), 'rows with the same source can leave the bottom');
+  assert.deepEqual(multiple.collectionRows.map(row => row.ownerKeys), [['0:0'], ['0:1']], 'each feature keeps its relation owner');
+  assert(!collectionPlaqueClears(multiple, nodes, [blocker]), 'each bottom route still requires clearance');
+  const distinct = prepareCollectionPlaqueSpace(nodes).attach({ ...box, collectionRows: [
+    ...box.collectionRows, { sourceNodeId: 'left', y: 212, ownerKeys: ['0:1'] }
+  ] });
+  assert(distinct.collectionRows.every(row => row.edge === 'side'), 'distinct sources keep their own row-side attachments');
+});
+
+test('Case placement rejects a collision-free pocket that collapses the assignment arrow', () => {
+  const source = d3.hierarchy({ id: 'assigner', label: 'v[transitive]' });
+  source.x = 0; source.y = 0;
+  const close = { x: -20, y: -226, width: 380, height: 138, caseRowY: 93 };
+  assert.equal(caseAssignmentClears(source, close, []), false,
+    'twelve units between label and plaque cannot carry a readable Case arrow');
+  assert.equal(caseAssignmentClears(source, { ...close, y: close.y - 100 }, []), true,
+    'an unobstructed approach retains the existing curve once it has enough room');
+});
+
+test('a blocked bottom collector finds a clear port without relocating its plaque', () => {
+  const destination = d3.hierarchy({ id: 'source', label: 'D' });
+  destination.x = 400; destination.y = 900;
+  const blocker = { x: 310, y: 300, width: 55, height: 80, blocksConnectors: true };
+  const box = { x: 0, y: 0, width: 380, height: 240, collectionRows: [
+    { sourceNodeId: 'source', y: 100, lane: 0, ownerKeys: ['0:0'] },
+    { sourceNodeId: 'source', y: 170, lane: 1, ownerKeys: ['0:1'] }
+  ], attachmentNodeId: 'anchor', attachmentX: 0, attachmentY: 0 };
+  const space = prepareCollectionPlaqueSpace([destination], [blocker]);
+  const allocated = space.attach(box);
+  assert.deepEqual([allocated.x, allocated.y], [box.x, box.y]);
+  assert(allocated.collectionRows.every(row => row.edge === 'bottom' && Number.isFinite(row.portX)));
+  assert(space.clears(allocated));
+  assert(!space.clears({ ...allocated, collectionRows: allocated.collectionRows.map(row => ({ ...row, portX: undefined })) }),
+    'the original nearest bottom attachment crosses the intervening label');
+  assert.deepEqual(allocated.collectionRows.map(row => row.ownerKeys), [['0:0'], ['0:1']]);
+  const projected = projectPlaqueLayout(new Map([[0, structuredClone(allocated)]]), () => ({ x: 700, y: 300 })).get(0);
+  assert.deepEqual(projected.collectionRows, allocated.collectionRows, 'serialized reservations keep every local port');
+  const sourceRect = plaqueTreeObstacles([destination]).find(rect => rect.connectorAttachment === 'source:category');
+  allocated.collectionRows.forEach(row => {
+    const original = featureCollectionPlaqueCurve(allocated, allocated.y + row.y, sourceRect, row.lane, row.edge, row.portX);
+    const moved = featureCollectionPlaqueCurve(projected, projected.y + row.y,
+      { ...sourceRect, x: sourceRect.x + 700, y: sourceRect.y + 300 }, row.lane, row.edge, row.portX);
+    for (const point of ['source', 'target', 'control1', 'control2']) {
+      assert(Math.abs(moved[point].x - original[point].x - 700) < 1e-8);
+      assert(Math.abs(moved[point].y - original[point].y - 300) < 1e-8);
+    }
+  });
+});
+
+for (const edge of ['top', 'bottom']) test(`collinear ${edge} collectors keep distinct feature ports as rows accumulate`, () => {
+  const destination = d3.hierarchy({ id: 'source', label: 'D' });
+  destination.x = 200; destination.y = edge === 'bottom' ? 1000 : -1000;
+  const box = { x: 0, y: 0, width: 480, height: 238, collectionRows: [
+    { sourceNodeId: 'source', featureKey: 'number', y: 120, ownerKeys: ['0:0'] },
+    { sourceNodeId: 'source', featureKey: 'gender', y: 180, ownerKeys: ['0:1'] }
+  ] };
+  const space = prepareCollectionPlaqueSpace([destination]);
+  const allocated = space.attach(box);
+  assert(allocated.collectionRows.every(row => row.edge === edge));
+  assert(Math.abs(allocated.collectionRows[0].portX - allocated.collectionRows[1].portX) >= 24);
+  const rect = { x: 175, y: destination.y - 50, width: 50, height: 50 };
+  const curves = allocated.collectionRows.map(row => featureCollectionPlaqueCurve(allocated, row.y, rect, 0, row.edge, row.portX));
+  assert.notDeepEqual(curves[0].source, curves[1].source, 'separate rows cannot paint one coincident curve even with lane zero');
+  assert.deepEqual(curves[0].target, curves[1].target, 'both still refer to the same exact node');
+  const first = space.attach({ ...box, collectionRows: box.collectionRows.slice(0, 1) });
+  const later = space.attach({ ...box, collectionRows: [...first.collectionRows, box.collectionRows[1]] });
+  assert.equal(later.collectionRows[0].portX, first.collectionRows[0].portX, 'a later feature cannot move an existing port');
+  assert.equal(later.collectionRows[1].portX, first.collectionRows[0].portX - 24,
+    'equally close free ports retain the existing left-before-right tie order');
+});
+
+test('a crowded vertical edge retains a side attachment instead of coincident feature ports', () => {
+  const destination = d3.hierarchy({ id: 'source', label: 'D' });
+  destination.x = 200; destination.y = 1000;
+  const box = { x: 0, y: 0, width: 72, height: 238, collectionRows: [120, 150, 180].map((y, i) =>
+    ({ sourceNodeId: 'source', featureKey: String(i), y, ownerKeys: [`0:${i}`] })) };
+  const space = prepareCollectionPlaqueSpace([destination]);
+  const allocated = space.attach(box);
+  const bottom = allocated.collectionRows.filter(row => row.edge === 'bottom');
+  assert.equal(bottom.length, 2);
+  assert.equal(allocated.collectionRows.filter(row => row.edge === 'side').length, 1);
+  assert.equal(new Set(bottom.map(row => row.portX)).size, 2);
+  assert(space.clears(allocated), 'the remaining side route must still clear the plaque');
+});
+
+test('a later wider plaque cannot clamp two reserved feature ports into one earlier connector', () => {
+  const destination = d3.hierarchy({ id: 'source', label: 'D' });
+  destination.x = 600; destination.y = 1000;
+  const box = { x: 0, y: 0, width: 480, collectionWidth: 220, height: 238, collectionRows: [
+    { sourceNodeId: 'source', featureKey: 'number', y: 120 },
+    { sourceNodeId: 'source', featureKey: 'gender', y: 180 }
+  ] };
+  const allocated = prepareCollectionPlaqueSpace([destination]).attach(box);
+  const rect = { x: 575, y: 950, width: 50, height: 50 };
+  const paths = allocated.collectionRows.map(row => featureCollectionPlaqueCurve({ ...allocated, width: box.collectionWidth }, row.y, rect, 0, row.edge, row.portX));
+  assert(allocated.collectionRows.every(row => row.portX <= box.collectionWidth - 24));
+  assert(Math.abs(paths[0].source.x - paths[1].source.x) >= 24);
+});
+
+test('collector clearance checks the current painted shell rather than its taller future reservation', () => {
+  const destination = d3.hierarchy({ id: 'source', label: 'D' });
+  destination.x = 1000; destination.y = 1056;
+  const blocker = { x: 519.29296875, y: 496.478515625, width: 20, height: 20, blocksConnectors: true };
+  const box = { x: 0, y: 0, width: 480, height: 600, collectionWidth: 220,
+    collectionRows: [{ sourceNodeId: 'source', y: 100, edge: 'bottom', portX: 196 }] };
+  const space = prepareCollectionPlaqueSpace([destination], [blocker]);
+  assert(space.clears(box), 'the tall reservation starts its bottom connector below the blocker');
+  assert(!space.clears({ ...box, drawnWidth: 220, drawnHeight: 200 }),
+    'the actual shorter shell sends its connector through the blocker');
+  const earlier = projectPlaqueContent(box, { width: 220, height: 200, caseRowY: 70,
+    collectionRows: [{ sourceNodeId: 'source', y: 80, lane: 1 }] });
+  assert.equal(earlier.width, box.width, 'the complete outer reservation remains intact');
+  assert.equal(earlier.height, box.height);
+  assert.equal(earlier.caseRowY, 70);
+  assert.deepEqual(earlier.collectionRows[0], { sourceNodeId: 'source', y: 80, lane: 1, edge: 'bottom', portX: 196 });
+  assert(!space.clears(earlier), 'remembered other-claim geometry also uses its current-stage shell');
+  const strokes = plaqueCollectionConnectorObstacles([destination], new Map([[0, earlier]]));
+  assert(strokes.some(stroke => plaquesOverlap(stroke, blocker, 0)), 'the actual earlier curve is reserved for subsequent claims');
+});
+
+test('lifetime placement keeps maximum space, minimum port width and each stage painted dimensions separately', () => {
+  const tree = { id: 'root', label: 'TP', children: [{ id: 't', label: 'T' }, { id: 'd', label: 'D', word: 'they' }] };
+  const assignment = { relation: 'CaseAssignment', anchors: { assigner: 't', bearer: 'd' }, values: { Case: 'nominative' } };
+  const record = { sentence: 'they', derivationStages: [
+    { statement: 'First.', stageRecord: 'Two features.', workspaceForest: [tree], relations: [assignment,
+      { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { number: 'plural', gender: 'feminine' } }] },
+    { statement: 'Second.', stageRecord: 'Another feature.', workspaceForest: [tree], relations: [assignment,
+      { relation: 'Finite features', anchors: { finiteHead: 't' },
+        values: { agreement: 'third person feminine plural with an additional authored restriction' } }] }
+  ] };
+  const replay = prepareReplay({ ...record, includePlayback: true });
+  const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan, width: 1596, height: 1016,
+    completedCanvas: buildRenderableDerivationCanvasData([tree]),
+    layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames) };
+  const layouts = buildReplayPlaqueLayouts(input);
+  const first = layouts[0].get(0), later = layouts[1].get(0);
+  assert(first.drawnWidth < later.drawnWidth && first.drawnHeight < later.drawnHeight);
+  assert.equal(first.width, later.width);
+  assert.equal(first.height, later.height);
+  assert.equal(first.collectionWidth, first.drawnWidth);
+  assert.equal(later.collectionWidth, first.drawnWidth);
+  assert.equal(first.x - first.attachmentX, later.x - later.attachmentX);
+  assert.equal(first.y - first.attachmentY, later.y - later.attachmentY);
 });
 
 test('a later Case arrow cannot displace a carried grid when their actual ink remains clear', () => {

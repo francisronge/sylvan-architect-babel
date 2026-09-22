@@ -106,8 +106,8 @@ fallback unless Francis explicitly authorizes it.
 
 Generation evidence is preserved outside the repository at
 `/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/core-qualification-20260922`.
-The user review exposes all 21 new analyses with direct selection, previous/next
-analysis controls and saved Replay positions. A second collection contains the
+The user review exposes all 21 new analyses with direct selection and previous/next
+analysis controls. Selecting an analysis starts Replay at frame one. A second collection contains the
 32 earlier analyses. The final gate passes typecheck, 1,901 offline tests and both contract
 fixtures. Focused browser follow-up passes all 79 affected frames and preserves
 D6 geometry exactly; production build and native/open shared-plaque browser tests
@@ -150,16 +150,57 @@ Case participants, preserved intermediate head-movement landings and restored
 branches hidden by multiline label masks. The current pass adds the repairs above
 without modifying source records or provider configuration.
 
-The next gate is human review of this qualification. One visual concern remains:
-plaques with several collection rows are forced to use side connections even
-when their source is below. Evaluate bottom attachment for these rows while
-preserving row ownership, clearance and the original multi-source D6 drawing.
-The current top/bottom rule supports only one collection row.
+Human review has not accepted the renderer's drawing coverage. Before the
+follow-up repairs, the 259 new relations included 114 wholly neutral relations,
+72 with both recovered drawings and neutral content, 63 wholly Tier 2 and ten
+wholly Tier 1. Only seven Tier-2 recipes appeared. The 69-primitive synthetic
+gate proves that complete recipe evidence reaches the painter; it does not
+prove recognition of independently model-authored claims.
 
-Reopen other renderer issues for a reproducible failure, with a focused
-regression. After review, continue the application and release work below. Broader deployment,
-storage and compact-screen work remain separate; passing this set does not
-finish Babel.
+The follow-up recovers fifteen missed supported claims across the 730 saved and new
+relations: binding-qualified references, exact groups contributing to a spoken
+form, and explicit inflection/participle agreement. The five Korean realization plates retain
+every contributor. Independent siblings remain recoverable when an exact primary
+claim is malformed; that primary claim still cannot repair itself. Fresh wholly
+neutral relations fall from 114 to 100, while mixed drawing/neutral relations rise
+from 72 to 86. The corpus now reaches 12 of 52 Tier-2 recipes, previously ten.
+These counts expose a coverage gap rather than establishing completion.
+
+The visual follow-up addresses bottom connectors with repeated feature rows and
+the tiny Spanish Case arrow. Each feature needs a distinct stable attachment,
+validated against the plaque actually painted throughout Replay. Preserve
+Orchard D6's distinct-source row associations and keep drawing coverage separate
+from content preservation and performance checks.
+
+The follow-up passes typecheck, 1,922 offline tests and both contract fixtures.
+Browser checks preserve D6 geometry and verify the reported frames, all 21 new
+analysis selections at frame one, and zoom-stable connectors. Measured frame
+changes have a 31ms local 95th percentile. After removing repeated allocation
+work, the dense production-app Replay opens in 1.81–1.84 seconds in three
+isolated runs. All 53 analyses retain byte-identical full placement objects
+through that optimization. No new generations or provider calls were made.
+
+The recovered drawings expose two layout limitations that remain open. A
+whole-clause binding ellipse can extend outside the viewport because its
+tree-first fit excludes the ellipse. Ordinary PF plaques start at width 590,
+above the nearby-placement limit of 480, so even short literal realization rows
+go below their common subtree. Fix these shared containment and plaque-sizing
+rules with native/open, desktop, Replay and zoom comparisons; do not change the
+authored domain or participants to improve the picture.
+
+Compound relation reveal also needs a deliberate presentation decision. Orchard
+D6 accumulates Case and feature collectors through separate authored relations;
+a generated finite-agreement relation can contain those claims simultaneously.
+If a plaque-first reveal is adopted, keep its drawing sequence inside the one
+authored relation moment rather than inventing another linguistic relation.
+
+After these layout checks, qualify missing drawing families with targeted natural
+inputs, through the Codex OAuth harness. Separate absent claims from present
+claims whose evidence the reader missed. Do not force Orchard relation names or
+add linguistic claims just to increase visual variety. All retained raw records,
+including neutral results, remain reviewable. This coverage gate precedes moving
+on to application and release work. Deployment, storage and compact-screen work
+remain separate; passing the earlier set does not finish Babel.
 
 ## App workflow evidence
 

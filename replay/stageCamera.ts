@@ -11,7 +11,7 @@ import { bindRelationPlanFrame, boundOverlayBounds, resolveUniqueDisplayTerminal
   type OverlayBounds, type PlanPositionProvider } from './relations/geometryBinding.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
-import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, uniquePlaqueObstacles, type PlaquePlacement } from './relations/plaquePlacement.ts';
+import { placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, projectPlaqueContent, uniquePlaqueObstacles, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import { translateObstacle } from './relations/plaqueObstacleIndex.ts';
 
@@ -126,10 +126,14 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
 export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, PlaquePlacement>[] {
   const frames = input.plan?.frames ?? [];
   const spaces = frames.map((_, stageIndex) => measureStagePlaqueSpace({ ...input, stageIndex }));
-  const sizes = new Map<string, { width: number; height: number }>();
-  frames.forEach((frame, i) => prepareStagePlaqueRequests(frame.items, spaces[i].nodes, input.measurePlaqueText).forEach(request => {
+  const requests = frames.map((frame, i) => prepareStagePlaqueRequests(frame.items, spaces[i].nodes, input.measurePlaqueText));
+  const requestByIndex = requests.map(stage => new Map(stage.map(request => [request.index, request])));
+  const sizes = new Map<string, { width: number; height: number; collectionWidth: number }>();
+  frames.forEach((frame, i) => requests[i].forEach(request => {
     const key = plaqueIdentity(frame.items[request.index]), prior = sizes.get(key);
-    sizes.set(key, { width: Math.max(prior?.width ?? 0, request.width), height: Math.max(prior?.height ?? 0, request.height) });
+    sizes.set(key, { width: Math.max(prior?.width ?? 0, request.width), height: Math.max(prior?.height ?? 0, request.height),
+      // A port must exist on the narrower shell too, before later rows widen it.
+      collectionWidth: Math.min(prior?.collectionWidth ?? Infinity, request.width) });
   }));
   const remembered = new Map<string, PlaquePlacement>();
   const allocate = (stageIndex: number, collectionsOnly = false) => {
@@ -142,7 +146,9 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
         allocated.forEach((placement, itemIndex) => known.set(plaqueIdentity(frame.items[itemIndex]), placement));
         const futureScenes = spaces.slice(stageIndex).flatMap((space, offset) => {
           const items = frames[stageIndex + offset].items;
-          if (!items.some(item => plaqueIdentity(item) === key)) return [];
+          const futureIndex = items.findIndex(item => plaqueIdentity(item) === key);
+          const futureRequest = requestByIndex[stageIndex + offset].get(futureIndex);
+          if (!futureRequest) return [];
           return space.scenes.flatMap(scene => {
             const byId = indexHierarchyNodesByIdAndAliases(scene.nodes);
             const futureAnchor = byId.get(String((anchor as any).__vizId ?? anchor.data.id));
@@ -150,7 +156,8 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
             const dx = anchor.x - futureAnchor.x, dy = anchor.y - futureAnchor.y;
             const otherPlacements = new Map(items.flatMap((item, index) => {
               const otherKey = plaqueIdentity(item), placement = known.get(otherKey);
-              return otherKey !== key && placement ? [[index, placement] as const] : [];
+              const request = requestByIndex[stageIndex + offset].get(index);
+              return otherKey !== key && placement && request ? [[index, projectPlaqueContent(placement, request)] as const] : [];
             }));
             const projected = projectPlaqueLayout(otherPlacements, id => byId.get(id) ?? null);
             const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
@@ -169,7 +176,8 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
               }
               return visible;
             };
-            return [{ anchor: futureAnchor, caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), rowVisible, dx, dy,
+            return [{ anchor: futureAnchor, request: futureRequest,
+              caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), rowVisible, dx, dy,
               obstacles }];
           });
         });
@@ -183,8 +191,8 @@ export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, P
             scene.collectionSpace.candidateYs({ ...box, x: box.x - scene.dx, y: box.y - scene.dy })
               .map(y => y + scene.dy)),
           acceptsConnector: box => futureScenes.every(scene => {
-            const projected = { ...box, x: box.x - scene.dx, y: box.y - scene.dy,
-              collectionRows: box.collectionRows?.filter(row => scene.rowVisible(row.ownerKeys)) };
+            const projected = projectPlaqueContent({ ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.request);
+            projected.collectionRows = projected.collectionRows?.filter(row => scene.rowVisible(row.ownerKeys));
             return (box.caseRowY === undefined || scene.caseClears(projected))
               && scene.collectionSpace.clears(projected);
           })

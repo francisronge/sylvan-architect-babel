@@ -12,10 +12,14 @@ import { cubicIntersectsRect } from './curveClearance.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
-  caseRowY?: number; collectionRows?: CollectionRow[]; blocksConnectors?: boolean; connectorAttachment?: string;
+  caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number;
+  blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number } };
-type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; edge?: CollectionEdge };
+type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
+const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
+  (box.drawnWidth === undefined || box.drawnWidth === box.width) && (box.drawnHeight === undefined || box.drawnHeight === box.height)
+    ? box : { ...box, width: box.drawnWidth ?? box.width, height: box.drawnHeight ?? box.height };
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
   scrollHeight?: number;
@@ -73,6 +77,12 @@ export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positi
 export function collectionPlaqueEdge(box: PlaqueRect, sourceNodeId: string, rowY: number) {
   return box.collectionRows?.find(row => row.sourceNodeId === sourceNodeId
     && Math.abs(row.y - rowY) < 1e-6)?.edge;
+}
+
+/** The reserved port stays plaque-local through Replay projection and zoom. */
+export function collectionPlaquePortX(box: PlaqueRect, sourceNodeId: string, rowY: number) {
+  return box.collectionRows?.find(row => row.sourceNodeId === sourceNodeId
+    && Math.abs(row.y - rowY) < 1e-6)?.portX;
 }
 
 /** Reserve labels, words, and sampled native cubic branches, including future stage syntax. */
@@ -135,7 +145,19 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[] };
+type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
+
+/** Keep the lifetime pocket and ports while checking the content painted in this stage. */
+export function projectPlaqueContent<T extends PlaqueRect>(box: T, request: Pick<PlaqueRequest, 'width' | 'height' | 'caseRowY' | 'collectionRows'>): T {
+  const rows = box.collectionRows ? [] as CollectionRow[] : undefined;
+  for (const row of box.collectionRows ?? []) {
+    const current = request.collectionRows?.find(candidate => candidate.sourceNodeId === row.sourceNodeId
+      && candidate.featureKey === row.featureKey);
+    if (current) rows!.push({ ...row, ...current });
+  }
+  return { ...box, drawnWidth: request.width, drawnHeight: request.height, caseRowY: request.caseRowY,
+    collectionRows: rows };
+}
 
 /** A single word can carry a head's mark; a complex head retains its own category anchor. */
 export function caseAssignmentSource(node: Node): Node {
@@ -152,7 +174,7 @@ const caseSourceRect = (anchor: Node): PlaqueRect => {
 };
 
 const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect): PlaqueRect[] => {
-  const curve = caseAssignmentPlaqueCurve(sourceRect, box, box.y + (box.caseRowY ?? 93));
+  const curve = caseAssignmentPlaqueCurve(sourceRect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
   return curveObstacleRects(curve, 8);
 };
 const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => caseRouteRectsFrom(caseSourceRect(anchor), box);
@@ -188,8 +210,11 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
   const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
   const index = preparePlaqueObstacleIndex(blockers);
   return (box: PlaqueRect) => {
-    const curve = caseAssignmentPlaqueCurve(rect, box, box.y + (box.caseRowY ?? 93));
-    return !index.some(curveBounds(curve, 8), blocker => cubicIntersectsRect(curve, blocker, 8));
+    const curve = caseAssignmentPlaqueCurve(rect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
+    // Collision clearance alone can leave an arrow shorter than its head.
+    // Reserve a readable shaft in tree coordinates, so zoom keeps its proportion.
+    return Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) >= CATEGORY_LINE_HEIGHT * 2
+      && !index.some(curveBounds(curve, 8), blocker => cubicIntersectsRect(curve, blocker, 8));
   };
 }
 
@@ -217,8 +242,90 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     const attachment = sources.get(row.sourceNodeId);
     const edge = row.edge ?? (sidesOnly ? 'side' : undefined);
     return attachment ? [{ row, attachment,
-      ...featureCollectionPlaqueCurve(box, box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0, edge) }] : [];
+      ...featureCollectionPlaqueCurve(drawnPlaque(box), box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0, edge, row.portX) }] : [];
   });
+  const routeClears = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, box: PlaqueRect, attachment: PlaqueRect) =>
+    !cubicIntersectsRect(curve, drawnPlaque(box), 6)
+      && !inkIndex(attachment).some(curveBounds(curve, 6), blocker => cubicIntersectsRect(curve, blocker, 6));
+  const portGap = 24;
+  const lastPort = (box: PlaqueRect) => Math.min(box.width, box.collectionWidth ?? box.width) - 24;
+  const portAvailable = (x: number, occupied: number[]) => occupied.every(port => Math.abs(x - port) >= portGap - 1e-6);
+  const reserveVerticalPorts = (box: PlaqueRect, rows: CollectionRow[]) => {
+    const reserved = [...rows], limit = lastPort(box);
+    for (const edge of ['top', 'bottom'] as const) {
+      const occupied: number[] = [], pending: number[] = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.edge !== edge) continue;
+        if (row.portX === undefined) pending.push(i);
+        else occupied.push(row.portX);
+      }
+      const centerTogether = !occupied.length;
+      for (let index = 0; index < pending.length; index++) {
+        const rowIndex = pending[index], row = rows[rowIndex];
+        const source = sources.get(row.sourceNodeId);
+        if (!source) continue;
+        const curve = featureCollectionPlaqueCurve(drawnPlaque(box), box.y + row.y, source.connectorInk ?? source, row.lane ?? 0, edge);
+        const preferred = curve.source.x - box.x + (centerTogether ? (index - (pending.length - 1) / 2) * portGap : 0);
+        const candidates = [Math.max(24, Math.min(limit, preferred)), 24, limit];
+        for (const x of occupied) candidates.push(x - portGap, x + portGap);
+        let portX: number | undefined, distance = Infinity;
+        for (const x of candidates) {
+          const nextDistance = Math.abs(x - preferred);
+          if (x >= 24 && x <= limit && portAvailable(x, occupied) && nextDistance < distance) {
+            portX = x; distance = nextDistance;
+          }
+        }
+        reserved[rowIndex] = portX === undefined ? { ...row, edge: 'side' } : { ...row, portX };
+        if (portX !== undefined) occupied.push(portX);
+      }
+    }
+    return reserved;
+  };
+  const verticalPort = (box: PlaqueRect, row: CollectionRow, attachment: PlaqueRect, occupied: number[]): CollectionRow => {
+    const rect = attachment.connectorInk ?? attachment;
+    const route = (portX = row.portX) => featureCollectionPlaqueCurve(drawnPlaque(box), box.y + row.y, rect, row.lane ?? 0, row.edge, portX);
+    const original = route();
+    if (portAvailable(original.source.x - box.x, occupied) && routeClears(original, box, attachment)) return row;
+    const preferred = original.source.x - box.x;
+    const candidates = new Set([24, lastPort(box), ...occupied.flatMap(x => [x - portGap, x + portGap])]);
+    const samples = sampleCubic(original.source, original.control1, original.control2, original.target, 64);
+    // Moving a vertical port changes the first two cubic points together.
+    // Solve that weight at each ink crossing, then validate the exact curve.
+    const possibleBounds = union([curveBounds(route(24), 8), curveBounds(route(lastPort(box)), 8)]);
+    inkIndex(attachment).some(possibleBounds, ink => {
+      let first = -1, last = -1;
+      samples.forEach((point, index) => {
+        if (index === 0 || index === 64 || point.y < ink.y - 8 || point.y > ink.y + ink.height + 8) return;
+        if (first < 0) first = index;
+        last = index;
+      });
+      for (const index of new Set([first, last])) {
+        if (index < 0) continue;
+        const t = index / 64, u = 1 - t, weight = u ** 3 + 3 * u * u * t;
+        for (const x of [ink.x - 8, ink.x + ink.width + 8]) {
+          const port = preferred + (x - samples[index].x) / weight;
+          if (port >= 24 && port <= lastPort(box)) candidates.add(port);
+        }
+      }
+      return false;
+    });
+    for (const portX of [...candidates].sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred))) {
+      if (portX >= 24 && portX <= lastPort(box) && portAvailable(portX, occupied)
+        && routeClears(route(portX), box, attachment)) return { ...row, portX };
+    }
+    return row;
+  };
+  const clearVerticalPorts = (box: PlaqueRect, rows: CollectionRow[]) => {
+    const reserved = [...rows];
+    reserved.forEach((row, index) => {
+      const source = sources.get(row.sourceNodeId);
+      if (!source || (row.edge !== 'top' && row.edge !== 'bottom')) return;
+      const occupied = reserved.flatMap((other, i) => i !== index && other.edge === row.edge && other.portX !== undefined ? [other.portX] : []);
+      reserved[index] = verticalPort(box, row, source, occupied);
+    });
+    return reserved;
+  };
   // A fixed curve can need horizontal clearance as well as a different height.
   // Solve both coordinates from sampled crossings; the allocator validates every
   // proposed pocket with the exact curve, including orientation/handle changes.
@@ -228,55 +335,64 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
       if (!routes.some(old => old.row === route.row && old.source.x === route.source.x && old.source.y === route.source.y
         && old.target.x === route.target.x && old.target.y === route.target.y)) routes.push(route);
     });
-    return routes.flatMap(({ attachment, ...curve }) => {
-      const other = axis === 'x' ? 'y' : 'x';
-      const extent = axis === 'x' ? 'width' : 'height';
-      const otherExtent = axis === 'x' ? 'height' : 'width';
-      const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64)
-        .slice(1, -1).map((point, index) => ({ ...point, t: (index + 1) / 64 }));
-      const candidates: number[] = [];
-      const minOther = Math.min(...samples.map(point => point[other]));
-      const maxOther = Math.max(...samples.map(point => point[other]));
+    const candidates: number[] = [];
+    const other = axis === 'x' ? 'y' : 'x';
+    const extent = axis === 'x' ? 'width' : 'height';
+    const otherExtent = axis === 'x' ? 'height' : 'width';
+    for (const curve of routes) {
+      const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
+      let minOther = Infinity, maxOther = -Infinity;
+      for (let i = 1; i < 64; i++) {
+        minOther = Math.min(minOther, samples[i][other]);
+        maxOther = Math.max(maxOther, samples[i][other]);
+      }
       for (const obstacle of blockers) {
-        if (obstacle.connectorAttachment === attachment.connectorAttachment) continue;
+        if (obstacle.connectorAttachment === curve.attachment.connectorAttachment) continue;
         const rect = obstacle.connectorInk ?? obstacle;
         const low = rect[other] - 8, high = rect[other] + rect[otherExtent] + 8;
         if (maxOther < low || minOther > high) continue;
-        let first: (typeof samples)[number] | undefined, last: (typeof samples)[number] | undefined;
-        for (const point of samples) if (point[other] >= low && point[other] <= high) {
-          first ??= point;
-          last = point;
+        let first = -1, last = -1;
+        for (let i = 1; i < 64; i++) if (samples[i][other] >= low && samples[i][other] <= high) {
+          if (first < 0) first = i;
+          last = i;
         }
-        if (!first) continue;
-        for (const point of [first, last!]) {
-          const u = 1 - point.t, sourceWeight = u ** 3 + 3 * u * u * point.t;
+        if (first < 0) continue;
+        for (const i of [first, last]) {
+          const t = i / 64, u = 1 - t, sourceWeight = u ** 3 + 3 * u * u * t;
           for (const edge of [rect[axis] - 8, rect[axis] + rect[extent] + 8])
-            candidates.push(box[axis] + (edge - point[axis]) / sourceWeight);
+            candidates.push(box[axis] + (edge - samples[i][axis]) / sourceWeight);
         }
       }
-      return candidates;
-    });
+    }
+    return candidates;
   };
   return {
-    attach: <T extends PlaqueRect>(box: T, sidesOnly = false): T => ({ ...box,
-      ...(box.collectionRows ? { collectionRows: box.collectionRows.map(row => {
+    attach: <T extends PlaqueRect>(box: T, sidesOnly = false, adjustPorts = true): T => {
+      const distinctSources = new Set(box.collectionRows?.map(row => row.sourceNodeId)).size > 1;
+      let rows = box.collectionRows?.map(row => {
         const source = sources.get(row.sourceNodeId);
         if (row.edge || !source) return row;
-        // Multiple collectors retain direct row-side associations. A lone
-        // collector may use the top/bottom without conflating feature rows.
-        const edge = sidesOnly || box.collectionRows!.length > 1 ? 'side'
-          : featureCollectionEdge(box, box.y + row.y, source.connectorInk ?? source);
-        return { ...row, edge: edge === 'left' || edge === 'right' ? 'side' : edge };
-      }) } : {}) }),
+        // Rows from one exact source can share its facing edge. Distinct
+        // sources retain the direct row-side associations used in Orchard D6.
+        const edge = sidesOnly || distinctSources ? 'side'
+          : featureCollectionEdge(drawnPlaque(box), box.y + row.y, source.connectorInk ?? source);
+        return { ...row, edge: edge === 'left' || edge === 'right' ? 'side' : edge } as CollectionRow;
+      });
+      if (rows) {
+        rows = reserveVerticalPorts(box, rows);
+        if (adjustPorts) rows = clearVerticalPorts(box, rows);
+      }
+      return { ...box, ...(rows ? { collectionRows: rows } : {}) };
+    },
+    withClearPorts: <T extends PlaqueRect>(box: T): T => ({ ...box,
+      collectionRows: box.collectionRows ? clearVerticalPorts(box, box.collectionRows) : undefined }),
     clears: (box: PlaqueRect): boolean => {
       for (const row of box.collectionRows ?? []) {
         const attachment = sources.get(row.sourceNodeId);
         if (!attachment) continue;
-        const curve = featureCollectionPlaqueCurve(box, box.y + row.y,
-          attachment.connectorInk ?? attachment, row.lane ?? 0, row.edge);
-        const bounds = curveBounds(curve, 6), index = inkIndex(attachment);
-        if (cubicIntersectsRect(curve, box, 6)
-          || index.some(bounds, blocker => cubicIntersectsRect(curve, blocker, 6))) return false;
+        const curve = featureCollectionPlaqueCurve(drawnPlaque(box), box.y + row.y,
+          attachment.connectorInk ?? attachment, row.lane ?? 0, row.edge, row.portX);
+        if (!routeClears(curve, box, attachment)) return false;
       }
       return true;
     },
@@ -346,7 +462,8 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
         const row = size.rows.find(row => row.rowIndex === rowIndex);
         if (!row?.lines.length) return [];
         const first = row.lines[0], last = row.lines[row.lines.length - 1];
-        return [{ sourceNodeId: candidate.toNodeId, y: (first.y - first.ascent + last.y + last.descent) / 2,
+        return [{ sourceNodeId: candidate.toNodeId, featureKey: featureRowKey(pathFeatureRow(candidate)),
+          y: (first.y - first.ascent + last.y + last.descent) / 2,
           ownerKeys: planItemRelationRefs(candidate).map(ref => `${ref.stageIndex}:${ref.relationIndex}`) }];
       }) : [];
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
@@ -356,6 +473,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       const composition = caseFeatureComposition(items, index)!;
       const size = prepareCasePlaqueRows(composition.rows);
       const collectionRows = composition.collections.map(({ item, index }, lane) => ({ sourceNodeId: item.toNodeId, lane,
+        featureKey: featureRowKey(pathFeatureRow(item)),
         ownerKeys: planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`),
         y: size.rows[composition.rows.findIndex(row => row.ownerIndices.includes(index))].y }));
       requests.push({ index, ids: [item.fromNodeId, item.toNodeId], width: size.width, caseAssignment: true,
@@ -367,7 +485,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 }
 
 type PlaqueLifetime = {
-  sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height'>>;
+  sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height' | 'collectionWidth'>>;
   collectionsOnly?: boolean;
   spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
     obstacles: PlaqueRect[];
@@ -385,13 +503,16 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
   const placed: PlaqueRect[] = [];
   const attachmentSpace = prepareCollectionPlaqueSpace(nodes, obstacles);
   const attach = <T extends PlaqueRect>(box: T, request: PlaqueRequest, prior?: PlaquePlacement, sidesOnly = false) => attachmentSpace.attach({
-    ...box, caseRowY: request.caseRowY, collectionRows: request.collectionRows?.map(row => {
+    ...box, caseRowY: request.caseRowY, collectionWidth: request.collectionWidth,
+    drawnWidth: request.drawnWidth, drawnHeight: request.drawnHeight, collectionRows: request.collectionRows?.map(row => {
       const previousRow = prior?.collectionRows?.find(old => old.sourceNodeId === row.sourceNodeId
+        && (row.featureKey ? old.featureKey === row.featureKey : Math.abs(old.y - row.y) < 1e-6)
         && old.ownerKeys?.some(key => row.ownerKeys?.includes(key)));
-      return previousRow?.edge ? { ...row, edge: previousRow.edge } : row;
+      return previousRow?.edge ? { ...row, edge: previousRow.edge, portX: previousRow.portX } : row;
     })
-  }, sidesOnly);
+  }, sidesOnly, false);
   const requests = prepareStagePlaqueRequests(items, nodes, measureText).map(request => ({ ...request,
+    drawnWidth: request.width, drawnHeight: request.height,
     ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }))
     .filter(request => !lifetime?.collectionsOnly || request.collectionRows?.length);
   // Lifetime reservations already cover future syntax. Standalone one-stage
@@ -432,11 +553,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           : (!caseClears || caseClears(box))
             && collectionPlaqueClears(box, nodes, occupied);
       if (accepts(box)) return box;
-      // A vertical attachment is optional. Keep a clear row-side route when
-      // a label blocks the top/bottom route, rather than moving the whole box.
+      // Try another port before accepting a clear side fallback. Restrict this
+      // search to otherwise valid pockets, not every rejected allocation candidate.
       if (box.collectionRows?.some(row => row.edge === 'top' || row.edge === 'bottom')) {
         const side = attach(candidate, request, undefined, true);
-        if (accepts(side)) return side;
+        if (accepts(side)) {
+          const vertical = attachmentSpace.withClearPorts(box);
+          return accepts(vertical) ? vertical : side;
+        }
       }
       return undefined;
     };
@@ -493,11 +617,16 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
           ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
         ] : [];
-        const connectorLanes = [...new Set(rawConnectorLanes)].flatMap(y => [y, y - 16, y + 16]);
-        const ys = [...new Set([idealY, ...connectorLanes, ...merged.flat()])].filter(Number.isFinite)
+        const lanes = new Set([idealY]);
+        for (const y of new Set(rawConnectorLanes)) {
+          lanes.add(y); lanes.add(y - 16); lanes.add(y + 16);
+        }
+        for (const [low, high] of merged) { lanes.add(low); lanes.add(high); }
+        // Blocked lanes are rejected before ranking; their position in the sort
+        // cannot affect which clear candidate wins or its stable tie order.
+        const ys = [...lanes].filter(y => Number.isFinite(y) && !merged.some(([low, high]) => y > low && y < high))
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
         for (const y of ys) {
-          if (merged.some(([low, high]) => y > low && y < high)) continue;
           const dy = y - idealY;
           const route = sourceRect ? caseAssignmentPlaqueCurve(sourceRect,
             { x, y, width, height }, y + (request.caseRowY ?? 93)) : null;

@@ -19,7 +19,7 @@ import { advanceFittedCamera, availableTreeViewport, containCamera, linearizatio
 import { buildStageCameraBounds, buildStageLayoutGroups, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
-import { caseAssignmentSource, collectionPlaqueEdge, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
+import { caseAssignmentSource, collectionPlaqueEdge, collectionPlaquePortX, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
   MOVEMENT_ARC_STROKE,
@@ -4748,7 +4748,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           if (!sourceRect || !anchorRect(item.fromNodeId)) return;
           const path = layer.append('path').attr('class', 'babel-case-collection-path')
             .attr('d', featureCollectionPlaquePath(box, rowTargets.get(index)!, sourceRect, lane,
-              collectionPlaqueEdge(placement, item.toNodeId, rowTargets.get(index)! - box.y)));
+              collectionPlaqueEdge(placement, item.toNodeId, rowTargets.get(index)! - box.y),
+              collectionPlaquePortX(placement, item.toNodeId, rowTargets.get(index)! - box.y)));
           decorateRelationElement(path.node()!, item, relationEmphasisForItem(item));
         });
       };
@@ -6132,7 +6133,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const rowY = origin.y + (first.y - first.ascent + last.y + last.descent) / 2;
               const path = layer.append('path').attr('class', 'babel-case-collection-path')
                 .attr('d', featureCollectionPlaquePath({ ...origin, width: plaqueWidth, height: plaqueHeight }, rowY, sourceRect, 0,
-                  collectionPlaqueEdge(origin, candidate.toNodeId, rowY - origin.y)));
+                  collectionPlaqueEdge(origin, candidate.toNodeId, rowY - origin.y),
+                  collectionPlaquePortX(origin, candidate.toNodeId, rowY - origin.y)));
               decorateRelationElement(path.node()!, candidate, relationEmphasisForItem(candidate));
             });
             });

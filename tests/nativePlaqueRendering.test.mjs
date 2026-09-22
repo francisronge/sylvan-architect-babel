@@ -7,7 +7,7 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques, caseAssignmentSource, collectionPlaqueEdge } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource, collectionPlaqueEdge, collectionPlaquePortX } from '../replay/relations/plaquePlacement.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
@@ -169,7 +169,7 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
     planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, collectionPlaqueEdge, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX, decorateRelationElement() {}, relationEmphasisForItem: () => null,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,7 +208,7 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPlaqueEdge,
+    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
@@ -234,14 +234,40 @@ test('a shared plaque paints the collector at its reserved edge and keeps its ow
   const composition = caseFeatureComposition(items, 0);
   const layout = prepareCasePlaqueRows(composition.rows);
   const rowY = layout.rows[1].y;
-  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd', y: rowY, edge: 'bottom' }] };
+  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd', y: rowY, edge: 'bottom', portX: 70 }] };
   const source = { x: 1000, y: 100, width: 100, height: 60 };
   const painted = drawCasePlaque(assignment, placement, source, items);
   const path = descendants(painted).find(node => matches(node, '.babel-case-collection-path'));
-  assert.equal(path.attrs.d, featureCollectionPlaquePath(placement, rowY, source, 0, 'bottom'));
+  assert.equal(path.attrs.d, featureCollectionPlaquePath(placement, rowY, source, 0, 'bottom', 70));
   const beforeAgree = drawCasePlaque(assignment, placement, source, items, [0]);
   assert(!descendants(beforeAgree).some(node => matches(node, '.babel-case-collection-path')),
     'a reserved bottom attachment does not reveal its feature claim early');
+});
+
+for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone feature'} plaque paints distinct collinear bottom collectors`, () => {
+  const root = d3.hierarchy({ id: 'root', label: 'TP', children: [{ id: 't', label: 'T' }, { id: 'd', label: 'D' }] });
+  const nodes = new Map(root.descendants().map(node => [node.data.id, node]));
+  for (const node of nodes.values()) { node.x = 200; node.y = node.data.id === 'd' ? 1000 : -300; }
+  const plan = compileRelationRenderPlan([{ statement: 'Values.', stageRecord: 'Exact features.', workspaceForest: [root.data], relations: [
+    ...(shared ? [{ relation: 'CaseAssignment', anchors: { assigner: 't', bearer: 'd' }, values: { Case: 'nominative' } }] : []),
+    { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { number: 'plural', gender: 'feminine' } }
+  ] }]);
+  const items = plan.frames[0].items;
+  const request = prepareStagePlaqueRequests(items, [...nodes.values()])[0];
+  assert.equal(request.collectionRows.length, 2);
+  const placement = prepareCollectionPlaqueSpace([...nodes.values()]).attach({ ...request, x: 0, y: 0 });
+  assert(placement.collectionRows.every(row => row.edge === 'bottom'));
+  const item = items[request.index];
+  const primitive = !shared && bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null).primitives
+    .find(primitive => primitive.type === 'plaque' && primitive.itemIndex === request.index);
+  const painted = shared ? drawCasePlaque(item, placement, { x: 160, y: 970, width: 80, height: 60 }, items)
+    : drawSavedPlaque(primitive, item, items, new Map([[request.index, placement]]), nodes, new Set([0]), 0);
+  const paths = descendants(painted).filter(node => matches(node, '.babel-case-collection-path'));
+  assert.equal(paths.length, 2);
+  assert.notEqual(paths[0].attrs.d, paths[1].attrs.d, 'different feature rows must remain separate painted curves');
+  const starts = paths.map(path => path.attrs.d.match(/^M (-?[\d.]+) (-?[\d.]+)/).slice(1).map(Number));
+  assert(Math.abs(starts[0][0] - starts[1][0]) >= 24);
+  assert.equal(starts[0][1], starts[1][1], 'both collectors leave the bottom edge');
 });
 
 test('a coalesced Case path still composes with a later-stage feature plaque in layout and painting', () => {
