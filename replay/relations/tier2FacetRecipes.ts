@@ -985,7 +985,7 @@ export const pairedLiterals = (
 };
 
 export const sameNameValueEntries = (
-  evidence: Tier2FacetEvidence,
+  evidence: Pick<Tier2FacetEvidence, 'authoredValues'>,
   anchorEntry: Tier2AuthoredEvidenceEntry
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
   const entries = evidence.authoredValues ?? [];
@@ -995,6 +995,24 @@ export const sameNameValueEntries = (
   const matches = exact.length ? exact : entries.filter(candidate =>
     normalizeTier2Synonym(candidate.key) === normalizeTier2Synonym(anchorEntry.key));
   return matches.map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
+};
+
+/** Separate argument fields form an inventory when each names its own role
+ * literals. Unpaired aliases still compete for one binding. */
+export const independentThetaArgumentFields = (
+  evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'authoredValues'>
+): boolean => {
+  const arguments_ = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
+  const ids = arguments_.flatMap(entry => [...entry.items]);
+  return arguments_.length > 1
+    && new Set(arguments_.map(entry => normalizeTier2Synonym(entry.key))).size === arguments_.length
+    && new Set(ids).size === ids.length
+    && arguments_.every(entry => {
+      const values = sameNameValueEntries(evidence, entry);
+      return entry.items.length > 0 && values.length === 1
+        && values[0].items.length === entry.items.length
+        && values[0].items.every(value => value.trim().length > 0);
+    });
 };
 
 /** Every per-item literal concept a recipe pairs with this role, in recipe order. */
@@ -1037,7 +1055,8 @@ export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{
   if (explicitArguments?.length && !explicitRoles) return { error: 'Theta arguments require exactly one authored role label per argument' };
   const roles = [...(explicitRoles ?? [])];
   for (const entry of evidence.authoredCurrentAnchors ?? []) {
-    if (entry.key.toLowerCase() === 'predicate' || entry.concepts.includes('theta.arguments')) continue;
+    if (entry.key.toLowerCase() === 'predicate' || entry.concepts.some(concept =>
+      ['predicate', 'predicate.context', 'theta.arguments'].includes(concept))) continue;
     const matches = sameNameValueEntries(evidence, entry);
     if (matches.length > 1 || (matches.length === 1 && (matches[0].items.length !== entry.items.length || matches[0].items.some(label => !label.trim())))) {
       return { error: 'Theta role literals require one unambiguous same-name value per argument' };
@@ -1595,6 +1614,7 @@ export const evaluateTier2FacetRecipe = (
       if ((field === 'values' ? INDEPENDENT_TIER2_VALUE_ROLES : INDEPENDENT_TIER2_ANCHOR_ROLES).has(concept)) continue;
       const groups = entries?.filter(entry => entry.concepts.includes(concept)) ?? [];
       if (field === 'values' && concept === 'feature.rows' && independentFeatureDimensions(groups)) continue;
+      if (field === 'anchors' && concept === 'theta.arguments' && independentThetaArgumentFields(evidence)) continue;
       const distinct = new Set(groups.map(entry => JSON.stringify(
         entry.conceptItemIndices?.[concept]?.map(index => entry.items[index]) ?? entry.items
       )));

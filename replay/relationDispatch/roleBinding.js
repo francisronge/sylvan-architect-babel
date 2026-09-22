@@ -28,9 +28,12 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     const candidatesFor = key => {
       const spelling = normalizeTier2Synonym(key);
       const concepts = field === 'values' ? [] : relationRoleConcepts(roleVocabulary, key,
-        { anchors: relation[field], values: relation.values });
+        { anchors: relation[field], values: relation.values, forest: field === 'priorAnchors' ? priorForest : currentForest });
       const spelled = Object.keys(rules).filter(role => role === key
         || (rules[role].aliases && normalizeTier2Synonym(role) === spelling));
+      // A proven origin inside an independently named goal is context, even
+      // though its open role spelling is also a probe alias elsewhere.
+      if (!spelled.length && concepts.includes('feature.origin-context')) return { spelled, candidates: [] };
       const candidates = spelled.length ? spelled : Object.keys(rules).filter(role =>
         rules[role].aliases && (rules[role].aliases.some(alias => normalizeTier2Synonym(alias) === spelling)
           || concepts.includes(rules[role].concept)));
@@ -177,10 +180,18 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       if (conflicts.length) issues.push({ kind: 'candidate-outcome-conflict', field: 'anchors', nodeIds: [...new Set(conflicts)] });
     }
   }
-  if (entry.id === 'theta.grid' && new Set(items(bound.anchors?.predicate ?? [])).size > 1 && !issues.length) {
-    const result = currentForest && nativeThetaAssignments(buildTier2FacetEvidence({ relation, currentForest }));
-    if (!result?.assignments) issues.push({ kind: 'theta-assignments-unproven', field: 'anchors',
-      role: 'predicate', reason: result?.error || 'workspace-required' });
+  if (entry.id === 'theta.grid' && !issues.length) {
+    const result = nativeThetaAssignments(buildTier2FacetEvidence({ relation: bound, currentForest: currentForest ?? [] }));
+    if (!result.assignments) issues.push({ kind: 'theta-assignments-unproven', field: 'anchors',
+      role: 'predicate', reason: result.error });
+    else if (currentForest) {
+      const counts = new Map();
+      const visit = node => { counts.set(node.id, (counts.get(node.id) ?? 0) + 1); node.children?.forEach(visit); };
+      currentForest.forEach(visit);
+      const ids = result.assignments.flatMap(assignment => [assignment.predicate, ...assignment.roles.map(role => role.nodeId)]);
+      if (ids.some(id => counts.get(id) !== 1)) issues.push({ kind: 'theta-assignments-unproven', field: 'anchors',
+        role: 'predicate', reason: 'Assignment participants must resolve to unique current occurrences.' });
+    }
   }
   return { relation: bound, bindings, issues };
 };

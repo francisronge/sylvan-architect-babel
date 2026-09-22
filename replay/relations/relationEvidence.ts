@@ -1,7 +1,7 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { recoverMovementEvidence } from './movementEvidence.ts';
 import { resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions,
+import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields,
   type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts,
   type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
@@ -24,7 +24,7 @@ const normalizeBlock = (
   block: Record<string, string | string[]> | undefined,
   scope: Tier2SynonymScope,
   synonymIndex: Tier2SynonymIndex,
-  context?: DerivationStageRelation
+  context?: Parameters<typeof relationRoleConcepts>[2]
 ): {
   concepts: Record<string, string[]>;
   authored: Tier2AuthoredEvidenceEntry[];
@@ -81,9 +81,13 @@ export const buildTier2FacetEvidence = ({
   activeLens,
   synonymIndex = DEFAULT_SYNONYM_INDEX
 }: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
-  const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, relation);
-  const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {} });
+  const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
+  const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
   const values = normalizeBlock(relation.values, 'value', synonymIndex);
+  if (independentThetaArgumentFields({ authoredCurrentAnchors: currentAnchors.authored, authoredValues: values.authored })) {
+    currentAnchors.concepts['theta.arguments'] = currentAnchors.authored
+      .filter(entry => entry.concepts.includes('theta.arguments')).flatMap(entry => [...entry.items]);
+  }
   // One current participant makes explicit record rows attachable without
   // interpreting its role or the relation title. Multiple participants still
   // need an authored recipient; this rule never earns a dependency.
@@ -117,6 +121,16 @@ export const buildTier2FacetEvidence = ({
       entry.concepts = entry.concepts.filter(c => !['movement.source', 'movement.witness', 'movement.landing'].includes(c));
       entry.concepts = [...entry.concepts, ...(movement.roles[normalizeTier2Synonym(entry.key)] || [])];
     });
+    // Proven source context must not re-enter the recipe as a competing endpoint.
+    if ('movement.source' in priorAnchors.concepts) {
+      priorAnchors.authored.forEach(entry => {
+        if (entry.items.length !== 1 || entry.items[0] !== movement.priorSourceNodeId) {
+          entry.concepts = entry.concepts.filter(concept => concept !== 'movement.source');
+        }
+      });
+      priorAnchors.concepts['movement.source'] = [...new Set(priorAnchors.authored
+        .filter(entry => entry.concepts.includes('movement.source')).flatMap(entry => entry.items))];
+    }
   }
   return {
     movementDiagnostics,
@@ -137,4 +151,3 @@ export const buildTier2FacetEvidence = ({
     ...(activeLens === undefined ? {} : { activeLens })
   };
 };
-

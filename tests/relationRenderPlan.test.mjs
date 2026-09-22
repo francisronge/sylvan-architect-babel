@@ -155,7 +155,7 @@ test('registered phrasal movement compiles with witness endpoints and authored p
     }], [whTree])
   ]);
 
-  assert.equal(plan.registryVersion, '22');
+  assert.equal(plan.registryVersion, '23');
   assert.equal(plan.frames.length, 1);
   const [item] = plan.frames[0].items;
   assert.equal(item.kind, 'trajectory');
@@ -1058,10 +1058,13 @@ test('named theta uses the same exact ordered role pairing as recovered theta', 
     [{ nodeId: 'a', label: 'Theme', index: 'i' }, { nodeId: 'b', label: 'Theme', index: 'j' }]);
   // A differently named list of the same length is not a pairing.
   const unpaired = compileRelationRenderPlan([stage([{ ...relation, values: { roles: ['Theme', 'Theme'] } }], forest)]);
-  assert.ok(unpaired.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+  assert.ok(unpaired.diagnostics.some((diagnostic) => diagnostic.kind === 'signature-incomplete'
+    && diagnostic.detail.includes('theta-assignments-unproven')));
+  assert.ok(unpaired.frames[0].items.some((item) => item.kind === 'fallback' && item.claimTier === 3));
   assert.equal(unpaired.frames[0].items.some((item) => item.plaqueStyle === 'theta-grid'), false);
   const mismatch = compileRelationRenderPlan([stage([{ ...relation, values: { arguments: ['Theme'] } }], forest)]);
-  assert.ok(mismatch.diagnostics.some((diagnostic) => diagnostic.kind === 'illegal-configuration'));
+  assert.ok(mismatch.diagnostics.some((diagnostic) => diagnostic.kind === 'signature-incomplete'
+    && diagnostic.detail.includes('theta-assignments-unproven')));
   assert.ok(mismatch.frames[0].items.some((item) => item.kind === 'fallback'));
   assert.equal(mismatch.frames[0].items.some((item) => item.plaqueStyle === 'theta-grid'), false);
 });

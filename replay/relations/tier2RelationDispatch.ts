@@ -532,8 +532,12 @@ export const dispatchRelationClaims = (
         priorForest
       }) as Tier1Dispatch
     : authoredTier1Dispatch;
-  const unownedAnchors = tier1Dispatch.outcome === 'resolved' && !primaryAcceptsAdditionalAnchors
-    ? Object.keys(primaryRelation.anchors ?? {}).filter(key => !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))) : [];
+  const thetaContext = registryEntry?.id === 'theta.grid'
+    ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')).map(entry => entry.key))
+    : new Set<string>();
+  const unownedAnchors = tier1Dispatch.outcome === 'resolved'
+    ? Object.keys(primaryRelation.anchors ?? {}).filter(key => thetaContext.has(key)
+      || !primaryAcceptsAdditionalAnchors && !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))) : [];
   const residualRelation = unownedAnchors.length ? {
     relation: relation.relation,
     anchors: Object.fromEntries(unownedAnchors.map(key => [key, primaryRelation.anchors[key]]))

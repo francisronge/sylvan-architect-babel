@@ -112,9 +112,16 @@ export function recoverMovementEvidence(
     authoredKey: key, key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
   }));
   const pick = (concept: string) => [...new Set(entries.filter(e => hasRole(e.key, concept)).flatMap(e => e.ids))];
-  const explicitPriorSources = [...new Set(Object.entries(relation.priorAnchors || {})
+  let explicitPriorSources = [...new Set(Object.entries(relation.priorAnchors || {})
     .filter(([key]) => hasRole(key, 'movement.source'))
     .flatMap(([, value]) => Array.isArray(value) ? value : [value]))];
+  // A source occurrence and its containing head complex are not two sources.
+  // Keep only the occurrence when every other reference proves its exact complex.
+  if (explicitPriorSources.length > 1) {
+    const occurrences = explicitPriorSources.filter(id => explicitPriorSources.every(otherId => id === otherId
+      || movementContextFailure(previous, id, otherId, 'head-complex') === undefined));
+    if (occurrences.length === 1) explicitPriorSources = occurrences;
+  }
   const contains = (n: SyntaxNode, id: string): boolean => n.id === id || (n.children || []).some(c => contains(c, id));
   let sources = pick('movement.source');
   const witnesses = pick('movement.witness');
@@ -131,6 +138,18 @@ export function recoverMovementEvidence(
   });
   const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
   const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
+  const canBindStructuralEndpoints = isMovementIdentity(relation.relation) || explicitPriorSources.length === 1
+    || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept)));
+  // In a successive step, only the anchored occurrence occupying this source's
+  // preceding slot is its new lower witness. Older copies stay separate evidence.
+  if (!sources.length && priorSource && canBindStructuralEndpoints) {
+    const lower = anchored.filter(id => current.nodes.get(id)?.lineageId
+      && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId && samePriorSlot(id, priorSource));
+    if (lower.length === 1) {
+      sources = lower;
+      structurallyBound = true;
+    }
+  }
   // A preceding source can name the same current occurrence directly. Resolve
   // it before distinguishing the landing occurrence from its containing site.
   if (!sources.length && !entries.some(e => hasRole(e.key, 'movement.source') || hasRole(e.key, 'movement.witness'))
@@ -148,11 +167,11 @@ export function recoverMovementEvidence(
     .every(e => e.ids.length === 1)) {
     const lineage = current.nodes.get(sources[0])?.lineageId;
     const occurrences = anchored.filter(id => id !== sources[0] && lineage
-      && current.nodes.get(id)?.lineageId === lineage);
-    if (occurrences.length === 1 && targets.every(id => id === occurrences[0]
-      || (targets.includes(occurrences[0]) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrences[0]))
-      || movementContextFailure(forest, occurrences[0], id, 'site') === undefined
-      || movementContextFailure(forest, occurrences[0], id, 'head-landing') === undefined)) {
+      && current.nodes.get(id)?.lineageId === lineage).filter(occurrence => targets.every(id => id === occurrence
+        || (targets.includes(occurrence) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrence))
+        || movementContextFailure(forest, occurrence, id, 'site') === undefined
+        || movementContextFailure(forest, occurrence, id, 'head-landing') === undefined));
+    if (occurrences.length === 1) {
       structurallyBound ||= targets.length !== 1 || targets[0] !== occurrences[0];
       targets = occurrences;
     }
@@ -161,8 +180,7 @@ export function recoverMovementEvidence(
   // identity, plus exact anchored occurrences and a changed preceding source slot.
   if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
     && witnesses.length <= 1 && explicitPriorSources.length <= 1
-    && (isMovementIdentity(relation.relation) || explicitPriorSources.length === 1
-      || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept))))) {
+    && canBindStructuralEndpoints) {
     const pairs: Array<{ source: string; target: string }> = [];
     for (const sourceId of sources.length ? sources : anchored) {
       const source = current.nodes.get(sourceId);

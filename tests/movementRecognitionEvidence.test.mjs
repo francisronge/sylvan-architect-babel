@@ -295,3 +295,65 @@ test('movement into a parent-owned empty position occurs at its first relation, 
   }
   assert.deepEqual(steps[moment + 1].replayVisibleNodeIds, steps[moment].replayVisibleNodeIds);
 });
+
+const successiveHeadExtraction = () => {
+  const earlier = { id: 'original', label: 'D⁰[trace]', lineageId: 'chain', silent: true };
+  const moving = { id: 'previous', label: 'D⁰[clitic]', lineageId: 'chain', word: 'les' };
+  const lowerComplex = child => ({ id: 'lower-complex', label: 'V⁰[complex]', children: [
+    child, { id: 'lower-host', label: 'V⁰[participle]', word: 'vus' }
+  ] });
+  const host = { id: 'higher-host', label: 'V⁰[auxiliary]', word: 'a' };
+  return {
+    relation: { relation: 'clitic excorporation', anchors: {
+      movedHead: 'higher', intermediateTrace: 'lower', originalTrace: 'original', landingComplex: 'higher-complex'
+    }, priorAnchors: { source: 'previous', sourceComplex: 'lower-complex', host: 'higher-host' } },
+    priorForest: [{ id: 'root', label: 'VP', children: [host, lowerComplex(moving), earlier] }],
+    currentForest: [{ id: 'root', label: 'VP', children: [
+      { id: 'higher-complex', label: 'V⁰[complex]', children: [{ ...moving, id: 'higher' }, host] },
+      lowerComplex({ id: 'lower', label: 'D⁰[intermediate trace]', lineageId: 'chain', silent: true }), earlier
+    ] }], stageIndex: 1, relationIndex: 0
+  };
+};
+
+test('successive head movement distinguishes occurrences from their complexes and retains earlier copies', () => {
+  for (const reverse of [false, true]) {
+    const input = successiveHeadExtraction();
+    if (reverse) for (const block of ['anchors', 'priorAnchors']) {
+      input.relation[block] = Object.fromEntries(Object.entries(input.relation[block]).reverse());
+    }
+    const original = structuredClone(input);
+    const movement = recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement;
+    assert.equal(movement?.priorSourceNodeId, 'previous');
+    assert.equal(movement?.sourceNodeId, 'lower');
+    assert.equal(movement?.targetNodeId, 'higher');
+    assert.equal(movement?.witnessNodeId, 'lower');
+    assert.equal(movement?.trajectoryKind, 'head');
+    const dispatch = dispatchRelationClaims(input);
+    assert.ok(dispatch.facets.some(facet => facet.recipe.id === 'movement.path'));
+    assert.ok(dispatch.claims.some(claim => claim.tier === 3
+      && claim.consumedEvidence.some(ref => ref.field === 'anchors' && ref.key === 'originalTrace')));
+    const trajectory = plan(input).find(item => item.kind === 'trajectory');
+    assert.equal(trajectory?.sourceNodeId, 'lower');
+    assert.equal(trajectory?.targetNodeId, 'higher');
+    assert.deepEqual(input, original);
+  }
+});
+
+test('a source complex cannot conceal conflicting, repeated or misplaced movement evidence', () => {
+  for (const [name, change] of [
+    ['unrelated complex', input => { input.relation.priorAnchors.sourceComplex = 'higher-host'; }],
+    ['enclosing ancestor', input => { input.relation.priorAnchors.sourceComplex = 'root'; }],
+    ['repeated source list', input => { input.relation.priorAnchors.source = ['previous', 'previous']; }],
+    ['wrong source identity', input => { input.priorForest[0].children[1].children[0].lineageId = 'other'; }],
+    ['different lower slot', input => { input.currentForest[0].children[1].children.reverse(); }],
+    ['competing landing', input => {
+      input.currentForest[0].children.push({ id: 'rival', label: 'DP', lineageId: 'chain' });
+      input.relation.anchors.higherOccurrence = 'rival';
+    }]
+  ]) {
+    const input = successiveHeadExtraction();
+    change(input);
+    assert.equal(recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement, undefined, name);
+    assert.ok(!plan(input).some(item => item.kind === 'trajectory'), name);
+  }
+});

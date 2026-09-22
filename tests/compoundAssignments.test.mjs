@@ -9,6 +9,51 @@ const forest = [node('root', [node('left', [node('a'), node('b')]), node('right'
 const stage = (relation, workspaceForest = forest) => ({ statement: 'State', stageRecord: 'Authored explanation', workspaceForest, relations: [relation] });
 const facets = s => dispatchStageRelations([s])[0][0].facets;
 
+test('one predicate combines independently paired argument fields in the same relation moment', () => {
+  const f = [node('root', [node('a'), node('b'), node('c'), node('d')])];
+  for (const name of ['Open thematic claim', 'ThetaAssignment']) {
+    for (const reverse of [false, true]) {
+      const relation = { relation: name,
+        anchors: { predicate: 'a', externalArgument: 'b', internalArguments: ['c', 'd'] },
+        values: { externalArgument: 'Actor', internalArguments: ['Theme', 'selected location'] } };
+      if (reverse) for (const field of ['anchors', 'values']) relation[field] = Object.fromEntries(Object.entries(relation[field]).reverse());
+      const s = stage(relation, f), original = structuredClone(s);
+      const result = dispatchStageRelations([s])[0][0];
+      assert(result.claims.some(claim => claim.tier === (name === 'ThetaAssignment' ? 1 : 2)));
+      const grids = compileRelationRenderPlan([s]).frames[0].items.filter(item => item.plaqueStyle === 'theta-grid');
+      assert.equal(grids.length, 1);
+      assert.deepEqual(grids[0].anchorNodeIds, ['a']);
+      assert.deepEqual(grids[0].thetaRoles.map(({ nodeId, label }) => [nodeId, label]).sort(),
+        [['b', 'Actor'], ['c', 'Theme'], ['d', 'selected location']]);
+      assert.equal(result.evidenceCoverage.fields.some(field => field.unrecoveredItemIndices.length), false);
+      assert.equal(prepareReplay({ sentence: '', derivationStages: [s], includePlayback: true }).playbackSteps
+        .filter(step => step.replayKind === 'relation').length, 1);
+      assert.deepEqual(s, original);
+    }
+  }
+});
+
+test('competing argument aliases and incomplete same-name literals do not become a joint inventory', () => {
+  const base = { anchors: { predicate: 'a', externalArgument: 'b', internalArgument: 'd' },
+    values: { externalArgument: 'Actor', internalArgument: 'Theme' } };
+  for (const relation of [
+    { ...base, values: { externalArgument: 'Actor' } },
+    { ...base, values: { roles: ['Actor', 'Theme'] } },
+    { ...base, values: { ...base.values, internalArgument: ['Theme', 'Goal'] } },
+    { ...base, values: { ...base.values, internalArgument: '' } },
+    { ...base, anchors: { ...base.anchors, internalArgument: 'b' } },
+    { ...base, anchors: { ...base.anchors, internalArgument: 'missing' } },
+    { anchors: { predicate: 'a', externalArgument: 'b', external_argument: 'd' },
+      values: { externalArgument: 'Actor', external_argument: 'Theme' } },
+    { ...base, anchors: { ...base.anchors, predicate: ['a', 'c'] } }
+  ]) for (const name of ['Open thematic claim', 'ThetaAssignment']) {
+    const s = stage({ ...relation, relation: name }), result = dispatchStageRelations([s])[0][0];
+    assert.equal(result.primaryClaim.tier, 3, JSON.stringify(s.relations));
+    assert.equal(result.facets.some(facet => facet.recipe.id === 'theta-grid'), false);
+    assert.equal(compileRelationRenderPlan([s]).frames[0].items.some(item => item.plaqueStyle === 'theta-grid'), false);
+  }
+});
+
 test('explicit paired compound assignments keep both owners and one simultaneous relation moment', () => {
   for (const [source, target, literals, kind] of [
     ['predicates', 'arguments', ['Agent', 'Theme'], 'theta-grid'],

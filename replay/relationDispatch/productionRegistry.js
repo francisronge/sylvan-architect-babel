@@ -90,7 +90,7 @@ const trajectoryEntry = (id, identities, { requireWitness = true } = {}) => entr
 
 export const productionRelationRegistry = createRelationRegistry({
   registryId: 'babel.semantic-visual-grammar',
-  version: '22',
+  version: '23',
   entries: [
     /* ------------------------------------------------- trajectories */
     trajectoryEntry('trajectory.phrasal', [

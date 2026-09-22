@@ -15,7 +15,7 @@ const plan = relation => compileRelationRenderPlan([{
 
 test('thematic source and argument qualifications retain literal roles and exact participants', () => {
   for (const relationName of ['theta-role assignment', 'An unfamiliar name']) {
-    for (const source of ['introducer', 'thetaHead', 'thematic_predicate', 'θ-introducer']) {
+    for (const source of ['introducer', 'introducingHead', 'introducing-predicate', 'thematicIntroducingHead', 'thetaHead', 'thematic_predicate', 'θ-introducer']) {
       for (const recipient of ['argument', 'internalArgument', 'external_argument']) {
         const relation = { relation: relationName, anchors: { [source]: 'source', [recipient]: 'argument' },
           values: { thetaRole: 'Experiencer' } };
@@ -40,22 +40,59 @@ test('introducer requires thematic evidence and cannot select a source from comp
     { relation: 'An unfamiliar name', anchors: { thetaHead: 'source', thetaPredicate: 'other', argument: 'argument' }, values: { thetaRole: 'Agent' } },
     { relation: 'An unfamiliar name', anchors: { thetaHead: ['source', 'other'], argument: 'argument' }, values: { thetaRole: 'Agent' } },
     { relation: 'An unfamiliar name', anchors: { thetaHead: 'source', argument: ['argument', 'other'] }, values: { thetaRole: 'Agent' } },
-    { relation: 'An unfamiliar name', anchors: { notThetaHead: 'source', argument: 'argument' }, values: { thetaRole: 'Agent' } }
+    { relation: 'An unfamiliar name', anchors: { notThetaHead: 'source', argument: 'argument' }, values: { thetaRole: 'Agent' } },
+    { relation: 'Open claim', anchors: { notIntroducingHead: 'source', argument: 'argument' }, values: { thetaRole: 'Agent' } },
+    { relation: 'Open claim', anchors: { introducingHead: 'source', argument: 'argument' } },
+    { relation: 'Open claim', anchors: { introducingHead: 'source', argument: 'argument' }, values: { case: 'ACC' } }
   ]) {
     assert.equal(plan(relation).some(item => item.plaqueStyle === 'theta-grid'), false, JSON.stringify(relation));
   }
 });
 
+test('an independently named probe and goal retain a feature origin inside that goal as exact context', () => {
+  for (const name of ['Open agreement', 'Agree']) {
+    for (const sourceRole of ['probe', 'searcher']) {
+      const relation = { relation: name, anchors: { [sourceRole]: 'source', goal: 'argument', featureSource: 'exponent' },
+        values: { gender: 'feminine', number: 'singular' } };
+      const original = structuredClone(relation);
+      const d = dispatch(relation);
+      assert(d.claims.some(claim => claim.tier === (name === 'Agree' ? 1 : 2)));
+      assert.deepEqual(d.evidence.currentAnchors['feature.source'], ['source']);
+      assert.deepEqual(d.evidence.currentAnchors['feature.target'], ['argument']);
+      assert.deepEqual(d.evidenceCoverage.fields.find(field => field.key === 'featureSource').unrecoveredItemIndices, [0]);
+      const items = plan(relation);
+      assert(items.some(item => item.kind === 'fallback' && item.relationRef.anchors.featureSource === 'exponent'));
+      for (const path of items.filter(item => item.pathStyle === 'case-agree')) {
+        assert.equal(path.fromNodeId, 'source');
+        assert.equal(path.toNodeId, 'argument');
+      }
+      assert.deepEqual(relation, original);
+    }
+  }
+  for (const anchors of [
+    { probe: 'source', goal: 'argument', featureSource: 'other' },
+    { probe: 'source', goal: ['argument', 'other'], featureSource: 'exponent' },
+    { probe: ['source', 'other'], goal: 'argument', featureSource: 'exponent' },
+    { probe: 'source', goal: 'argument', featureSource: 'missing' }
+  ]) {
+    const d = dispatch({ relation: 'Open agreement', anchors, values: { features: '3SG' } });
+    assert(!d.facets.some(facet => facet.recipe.id === 'feature.dependency'), JSON.stringify(anchors));
+  }
+  const noValues = dispatch({ relation: 'Open agreement', anchors: { probe: 'source', goal: 'argument', featureSource: 'exponent' } });
+  assert(!noValues.facets.some(facet => facet.recipe.id === 'feature.dependency'));
+});
+
 test('an explicit thematic introducer owns the assignment while its lexical predicate stays contextual', () => {
-  for (const source of ['introducer', 'thetaAssigner', 'thematicSource', 'θ-introducer']) {
-    for (const entries of [[['predicate', 'other'], [source, 'source']], [[source, 'source'], ['predicate', 'other']]]) {
-      const relation = { relation: 'An unfamiliar claim', anchors: { ...Object.fromEntries(entries), argument: 'argument' }, values: { role: 'Agent' } };
+  for (const source of ['introducer', 'introducingHead', 'thetaAssigner', 'thematicSource', 'θ-introducer']) {
+    for (const name of ['An unfamiliar claim', 'ThetaAssignment']) for (const entries of [[['predicate', 'other'], [source, 'source']], [[source, 'source'], ['predicate', 'other']]]) {
+      const relation = { relation: name, anchors: { ...Object.fromEntries(entries), argument: 'argument' }, values: { role: 'Agent' } };
       const before = structuredClone(relation), d = dispatch(relation);
       const grid = plan(relation).find(item => item.plaqueStyle === 'theta-grid');
       assert(grid, JSON.stringify(relation));
       assert.deepEqual(grid.anchorNodeIds, ['source']);
       assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [{ nodeId: 'argument', label: 'Agent' }]);
       assert.deepEqual(d.evidenceCoverage.fields.find(field => field.key === 'predicate').unrecoveredItemIndices, [0]);
+      assert(plan(relation).some(item => item.kind === 'fallback' && item.relationRef.anchors.predicate === 'other'));
       assert.deepEqual(relation, before);
     }
   }
@@ -187,7 +224,7 @@ test('governing heads and governed complements require an explicit Case value', 
 });
 
 test('Case licensing binds nominal roles consistently and preserves accompanying agreement', () => {
-  for (const source of ['licensor', 'licenser', 'licensingHead', 'governor', 'caseAssigner']) {
+  for (const source of ['licensor', 'licenser', 'licensingHead', 'governor', 'caseAssigner', 'probe', 'collector', 'featureSource']) {
     for (const recipient of ['nominal', 'subject', 'object', 'argument', 'internalArgument', 'external_argument']) {
       const relation = { relation: 'Unregistered claim', anchors: {
         [source]: 'source', [recipient]: 'argument', caseExponent: 'exponent'
@@ -207,6 +244,47 @@ test('Case licensing binds nominal roles consistently and preserves accompanying
       assert.deepEqual(relation, before);
     }
   }
+});
+
+test('phi notation keeps the authored feature bundle beside Case and its exact source', () => {
+  for (const key of ['phi', 'φ', 'ϕ', 'phiFeatures']) {
+    for (const recipient of ['goal', 'subject', 'object', 'nominal']) {
+      const relation = { relation: 'A new claim', anchors: { probe: 'source', [recipient]: 'argument', verb: 'other' },
+        values: { case: 'nominative', [key]: 'third person plural; inclusive' } };
+      const items = plan(relation);
+      const assignment = items.find(item => item.pathStyle === 'case-assignment');
+      const collector = items.find(item => item.pathStyle === 'case-agree');
+      assert.equal(assignment?.fromNodeId, 'source');
+      assert.equal(assignment?.toNodeId, 'argument');
+      assert.equal(collector?.fromNodeId, 'source');
+      assert.equal(collector?.toNodeId, 'argument');
+      assert.deepEqual(collector?.featureRow, { label: key, value: relation.values[key] });
+      assert.deepEqual(dispatch(relation).evidenceCoverage.fields.find(field => field.key === key).unrecoveredItemIndices, []);
+    }
+    const competing = { relation: 'A new claim', anchors: { probe: 'source', goal: 'argument' },
+      values: { [key]: '3SG', agreement: '3PL' } };
+    assert(!plan(competing).some(item => item.pathStyle === 'case-agree'), 'competing bundles must remain distinct and unresolved');
+  }
+});
+
+test('qualified Case-value keys share the literal reader without turning overt marking into assignment', () => {
+  for (const key of ['abstractCase', 'structural_case', 'INHERENT CASE']) {
+    for (const name of ['Open licensing claim', 'CaseAssignment']) {
+      const relation = { relation: name, anchors: { governor: 'source', nominal: 'argument', caseExponent: 'exponent' },
+        values: { [key]: 'a new Case value', overtCaseMarking: 'none' } };
+      const assignment = plan(relation).find(item => item.pathStyle === 'case-assignment');
+      assert(assignment, `${name} ${key}`);
+      assert.equal(assignment.fromNodeId, 'source');
+      assert.equal(assignment.toNodeId, 'argument');
+      assert.equal(assignment.featureRow?.value || assignment.label, 'a new Case value');
+      assert.equal(relation.values.overtCaseMarking, 'none');
+    }
+  }
+  for (const relation of [
+    { anchors: { governor: 'source', nominal: 'argument' }, values: { overtCaseMarking: 'accusative' } },
+    { anchors: { caseHead: 'source', nominal: 'argument' }, values: { inherentCase: 'ergative' } },
+    { anchors: { governor: 'source', nominal: 'argument' }, values: { abstractCase: 'accusative', structuralCase: 'nominative' } }
+  ]) assert(!plan({ relation: 'Open licensing claim', ...relation }).some(item => item.pathStyle === 'case-assignment'));
 });
 
 test('an explicit Case recipient leaves other nominal participants as context', () => {
@@ -230,4 +308,135 @@ test('nominal roles alone cannot establish or disambiguate Case licensing', () =
     { anchors: { licensor: 'source', subject: 'argument' }, values: { case: ['nominative', 'accusative'] } },
     { anchors: { licensor: 'source', subject: 'source' }, values: { case: 'nominative' } }
   ]) assert(!dispatch({ relation: 'Case licensing in the title', ...relation }).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});
+
+test('qualified Case direction requires its own Case-domain or matching literal evidence', () => {
+  for (const [qualifier, value] of [['case', 'any Case label'], ['accusative', 'ACC'], ['ergative', 'ERG'], ['nom', 'nominative'],
+    ['novel', 'novel'], ['外部 ', '外部'], ['structural case ', 'new Case distinction']]) {
+    for (const noun of ['Goal', 'Recipient', 'Assignee', 'Bearer']) {
+        const role = `${qualifier}${noun}`;
+        const relation = { relation: 'Unfamiliar claim', anchors: { licensor: 'source', [role]: 'argument' }, values: { case: value } };
+        const original = structuredClone(relation);
+        const items = plan(relation);
+        const assignment = items.find(item => item.pathStyle === 'case-assignment');
+        assert(assignment, JSON.stringify(relation));
+        assert.equal(assignment.fromNodeId, 'source');
+        assert.equal(assignment.toNodeId, 'argument');
+        assert.equal(assignment.label, value, 'the qualified role never supplies or changes the authored Case literal');
+        assert.deepEqual(relation, original);
+        assert(!plan({ ...relation, values: undefined }).some(item => item.pathStyle === 'case-assignment'));
+    }
+  }
+  for (const anchors of [
+    { structuralCaseAssigner: 'source', recipient: 'argument' },
+    { goal: 'argument', accusativeLicensor: 'source' },
+    { governor: 'source', caseRecipient: 'argument' },
+    { licensor: 'source', accusativeGoals: ['argument'] }
+  ]) {
+    const relation = { relation: 'Open claim', anchors, values: { case: 'ACC' } };
+    const assignment = plan(relation).find(item => item.pathStyle === 'case-assignment');
+    assert(assignment, JSON.stringify(anchors));
+    assert.equal(assignment.fromNodeId, 'source');
+    assert.equal(assignment.toNodeId, 'argument');
+  }
+  const explicit = { relation: 'Open claim', anchors: { licensor: 'source', accusativeGoal: 'argument', subject: 'other' }, values: { case: 'ACC' } };
+  assert.equal(plan(explicit).find(item => item.pathStyle === 'case-assignment').toNodeId, 'argument');
+  assert.deepEqual(dispatch(explicit).evidenceCoverage.fields.find(field => field.key === 'subject').unrecoveredItemIndices, [0]);
+});
+
+test('unrelated qualified goals remain context beside a supported Case recipient', () => {
+  const currentForest = [{ id: 'root', label: 'VP', children: [
+    { id: 'v', label: 'V', word: 'sent' }, { id: 'dp', label: 'DP', word: 'books' },
+    { id: 'pp', label: 'PP', children: [{ id: 'p', label: 'P', word: 'to' }, { id: 'mia', label: 'DP', word: 'Mia' }] }
+  ] }];
+  for (const name of ['Open joint claim', 'CaseAssignment']) for (const role of [
+    'semanticGoal', 'spatialGoal', 'θ-goal', 'alternativeGoal', 'unknownRecipient', 'dativeGoal', 'novelGoal', '外部 Goal'
+  ]) {
+    const relation = { relation: name, anchors: { caseAssigner: 'v', object: 'dp', [role]: 'pp' }, values: { case: 'ACC' } };
+    const original = structuredClone(relation);
+    const d = dispatchRelationClaims({ relation, currentForest, stageIndex: 0, relationIndex: 0 });
+    const items = compileRelationRenderPlan([{ statement: 'State', stageRecord: 'Authored', workspaceForest: currentForest, relations: [relation] }]).frames[0].items;
+    const assignments = items.filter(item => item.pathStyle === 'case-assignment');
+    assert.equal(assignments.length, 1, JSON.stringify(relation));
+    assert.equal(assignments[0].fromNodeId, 'v');
+    assert.equal(assignments[0].toNodeId, 'dp');
+    assert.deepEqual(d.evidenceCoverage.fields.find(field => field.key === role).unrecoveredItemIndices, [0]);
+    assert.deepEqual(relation, original);
+    const unsupported = { ...relation, anchors: { caseAssigner: 'v', [role]: 'pp' } };
+    const unsupportedPlan = compileRelationRenderPlan([{ statement: 'State', stageRecord: 'Authored', workspaceForest: currentForest, relations: [unsupported] }]);
+    assert(!unsupportedPlan.frames[0].items.some(item => item.pathStyle === 'case-assignment'), JSON.stringify(unsupported));
+  }
+});
+
+test('qualified Case roles preserve negation, prior context, competing participants and unresolved IDs', () => {
+  for (const role of ['notGoal', 'nonRecipient', 'blockedGoal', 'candidateRecipient', 'priorGoal', 'formerBearer', 'inaccessibleGoal', 'alternativeGoal']) {
+    const relation = { relation: 'Case assignment in the title', anchors: { licensor: 'source', [role]: 'argument' }, values: { case: 'ACC' } };
+    assert(!plan(relation).some(item => item.pathStyle === 'case-assignment'), role);
+    assert.deepEqual(dispatch(relation).evidenceCoverage.fields.find(field => field.key === role).unrecoveredItemIndices, [0]);
+  }
+  for (const anchors of [
+    { licensor: 'source', accusativeGoal: 'argument', caseRecipient: 'other' },
+    { licensor: 'source', caseAssigner: 'other', accusativeGoal: 'argument' },
+    { head: 'source', accusativeGoal: 'argument' },
+    { licensor: 'source', accusativeGoal: 'missing' },
+    { licensor: 'source', accusativeGoal: 'source' }
+  ]) {
+    const relation = { relation: 'Open claim', anchors, values: { case: 'ACC' } };
+    assert(!plan(relation).some(item => item.pathStyle === 'case-assignment'), JSON.stringify(anchors));
+  }
+});
+
+test('Case context cannot repurpose participants already qualified by another relation domain', () => {
+  for (const role of ['thetaSource', 'thematicAssigner', 'movementSource', 'covertMovementSource', 'controlSource', 'bindingSource', 'scopeSource', 'correspondenceSource']) {
+    const relation = { relation: 'Open compound claim', anchors: { [role]: 'source', recipient: 'argument' }, values: { case: 'ACC' } };
+    assert(!plan(relation).some(item => item.pathStyle === 'case-assignment'), role);
+    assert(!dispatch(relation).evidence.authoredCurrentAnchors.find(entry => entry.key === role).concepts.includes('feature.source'), role);
+  }
+  for (const role of ['thetaRecipient', 'movementGoal', 'controlRecipient', 'extractionTarget', 'bindingTarget']) {
+    const relation = { relation: 'Open compound claim', anchors: { licensor: 'source', [role]: 'argument' }, values: { case: 'ACC' } };
+    assert(!plan(relation).some(item => item.pathStyle === 'case-assignment'), role);
+  }
+});
+
+test('an explicitly licensed nominal topic can receive Case without prescribing a topic analysis', () => {
+  for (const label of ['D[topic, nominative]', 'DP', 'NP', 'N', 'KP']) {
+    const currentForest = structuredClone(forest);
+    currentForest[0].children[1].label = label;
+    for (const name of ['Open claim', 'CaseAssignment']) {
+      const relation = { relation: name, anchors: { licensor: 'source', topic: 'argument' }, values: { case: 'authored Case', discourseFunction: 'aboutness' } };
+      const items = compileRelationRenderPlan([{ statement: 'State', stageRecord: 'Authored', workspaceForest: currentForest, relations: [relation] }]).frames[0].items;
+      const assignment = items.find(item => item.pathStyle === 'case-assignment');
+      assert(assignment, `${name} ${label}`);
+      assert.equal(assignment.fromNodeId, 'source');
+      assert.equal(assignment.toNodeId, 'argument');
+      assert.equal(assignment.featureRow?.value || assignment.label, 'authored Case');
+    }
+  }
+  for (const label of ['CP', 'TP', 'VP', 'unknown category']) {
+    const currentForest = structuredClone(forest);
+    currentForest[0].children[1].label = label;
+    const relation = { relation: 'Topic Case', anchors: { licensor: 'source', topic: 'argument' }, values: { case: 'NOM' } };
+    assert(!dispatchRelationClaims({ relation, currentForest, stageIndex: 0, relationIndex: 0 }).facets.some(facet => facet.recipe.id === 'feature.dependency'));
+  }
+  for (const relation of [
+    { anchors: { licensor: 'source', topic: 'argument' } },
+    { anchors: { head: 'source', topic: 'argument' }, values: { case: 'NOM' } },
+    { anchors: { licensor: 'source', topic: 'missing' }, values: { case: 'NOM' } },
+    { anchors: { licensor: 'source', topic: 'argument', subject: 'other' }, values: { case: 'NOM' } },
+    { anchors: { finiteHead: 'source', topic: 'argument' }, values: { agreement: '3SG' } }
+  ]) assert(!plan({ relation: 'Open claim', ...relation }).some(item => item.pathStyle === 'case-assignment'));
+});
+
+test('Case recovery does not invent direction for finite-form and inflection claims', () => {
+  for (const anchors of [
+    { finiteVerb: 'argument', tenseAgreementHead: 'source' },
+    { inflectedPredicate: 'argument', licensor: 'source' },
+    { tenseHead: 'source', verb: 'argument' },
+    { finiteHead: 'source', lexicalVerb: 'argument' },
+    { tense: 'source', verb: 'argument' }
+  ]) {
+    const relation = { relation: 'Finite-form licensing', anchors, values: { agreement: '3SG', tense: 'past' } };
+    assert(!plan(relation).some(item => item.kind === 'directed-path'));
+    assert(dispatch(relation).claims.every(claim => claim.tier === 3));
+  }
 });

@@ -20,7 +20,7 @@ The complete executable facet catalog is
 
 ## Shared role interpretation
 
-Production registry version 22 binds recognized equivalent role wording before
+Production registry version 23 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
@@ -45,6 +45,17 @@ Agree. Typed values and the complete recipe still establish what can be drawn;
 unknown words, negated roles, competing endpoints and unpaired literals remain
 neutral. This bounded vocabulary does not interpret arbitrary natural language.
 
+A qualified directional role such as `accusativeGoal` supplies a Case endpoint
+only when its qualifier identifies Case or matches a separately authored Case
+literal. Conventional notation such as `ACC` and `accusative` compares equally;
+other labels compare literally, and displayed values remain unchanged. Typed
+Case alone cannot repurpose a semantic or spatial goal, override an independently
+supported recipient, or turn an alternative or previous participant into a
+current assignment. Known relation domains retain their existing meanings.
+`abstractCase`, `structuralCase` and `inherentCase` identify Case values while
+preserving their authored labels. Overt Case marking and Case heads alone do not
+identify an assigner.
+
 For the registered theta-grid claim, an assigning head can fill the predicate
 slot. That single-occurrence slot counts distinct exact IDs, so repeating one
 ID does not create multiple sources. It preserves the authored array and does
@@ -53,9 +64,17 @@ are unchanged. Open per-recipient fields read their same-name, same-length
 literal values before using a role key as a label. Invalid or competing literal
 pairs remain neutral; two different sources do not earn a one-predicate grid.
 
+Several explicit argument fields may form one predicate's inventory when every
+field has its own same-name, same-length role literals and distinct occurrences.
+They produce one grid in the original relation moment. Unpaired aliases,
+competing normalized field names and incomplete literal lists remain ambiguous.
+Registered theta claims validate this same inventory before acceptance; a claim
+whose grid cannot be constructed or whose participants do not resolve uniquely
+in the supplied forest stays neutral.
+
 Thematic head/predicate qualifications retain their source meaning; internal and
 external argument qualifications retain their recipient meaning. An `introducer`
-can supply the source only with thematic evidence and no competing Case/feature
+or `introducingHead` can supply the source only with thematic evidence and no competing Case/feature
 interpretation. Licensed phrases, constituents and nominals retain the licensing
 target role. Typed Case values and an independently supported source still have
 to establish a Case dependency. A Case exponent or head is not implicitly its
@@ -68,6 +87,8 @@ separate lexical predicate, the directed role owns the assignment. The predicate
 reference remains neutral context with its original value and occurrence. This
 does not select among two introducers, two assigning heads, or an unpaired list
 of assigners and arguments; those still require independent association evidence.
+Registered grids exclude the proven source from their recipient rows and retain
+the same lexical-predicate context as the equivalent recovered grid.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
@@ -129,6 +150,15 @@ head and explicitly named agreement controller can establish a feature
 dependency with authored feature values. Distinct scalar person/number/gender
 fields form one bundle. Competing values for the same dimension or competing
 bundle aliases remain ambiguous; those records cannot be silently combined.
+
+An explicitly anchored topic can serve as the Case recipient only when its exact
+occurrence uniquely resolves to an authored nominal category and a separate
+source and Case literal establish the assignment. An explicit probe can supply
+that source. `phi`, `φ` and `ϕ` retain their authored feature bundles and labels.
+When a complete probe/goal claim also names a `featureSource` occurrence within
+that exact goal, the additional origin stays neutral context. It does not become
+a second probe or redirect a collector from the authored goal. Unresolved,
+external or competing origins retain the original ambiguity.
 
 The current prompt already supplies the needed pairing convention.
 If neither the current record nor earlier complete claims establishes a unique
