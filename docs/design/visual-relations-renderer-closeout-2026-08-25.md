@@ -273,8 +273,26 @@ Within one compilation, interpreted stage relations are reused when constructing
 cumulative links. Links still resolve against their current forest and relation
 limit. Tree lookups for casing and visible-token accounting are local to one
 canvas. They preserve first-preorder ID/alias resolution, inherited flags and
-existing count rules. Neither reuse mechanism survives a new preparation or
-changes the serialized result.
+existing count rules. Subtree continuity signatures are built bottom-up once per
+canvas. Future-layout candidates retain the same chronological eligibility and
+stopping rules; only their construction is deferred, newest first, until the last
+valid candidate is found. Each candidate retains its own allowed occurrence IDs.
+These caches remain local to one compilation and preserve the serialized result.
+
+The September 22 CPU controls preserve all 1,432 saved Replay frames exactly.
+For a 96-stage left- or right-nested derivation, preparation fell from about
+3.3–3.4 seconds to 2.1–2.2 seconds. That extreme control still exceeds the
+2-second full-view target before browser allocation and drawing are included.
+The worker keeps the interface available while this work completes.
+
+Plaque allocation also reuses a request's sorted obstacle intervals and a future
+scene's row-visibility answers. Curve sampling and candidate expansion preserve
+their arithmetic and first-occurrence order while avoiding temporary arrays.
+The exact browser job and all 153 stage placement maps across the 32 saved
+analyses remain identical. In the local production app, the dense relative-clause
+Replay opens in 1.83 seconds instead of 3.3 seconds, with no recorded main-thread
+long task. This is a local measurement, not a slower-device or remote-loading
+promise.
 
 Realization changes appear at a relation moment only when its exact current and
 prior references uniquely cover the change. If several relations cover it, Replay

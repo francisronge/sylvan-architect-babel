@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-21
+Status date: 2026-09-22
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -11,11 +11,31 @@ syntactic rules.
 
 ## Current priority: complete the derivation and rendering pipeline
 
-The renderer and derivation contract remain active work. Passing saved examples
-or the offline gate does not establish that unfamiliar records work correctly.
-Desktop is the primary experience; compact-screen work must not compromise it.
+The current phase qualifies the renderer and derivation contract on saved and
+unfamiliar records. Desktop is the primary experience; compact-screen work must
+not compromise it. A passing batch is evidence for a bounded release decision,
+not a guarantee about every future analysis.
 
-Current candidate, awaiting final user review:
+The September 21 candidate is a regression baseline, not the end of core
+qualification. Francis approved the following full pass on September 22:
+
+1. Audit authored fields through normalization, Replay and drawing. Reproduce
+   any lost content, incorrect attachment or unstated downstream requirement.
+2. Review model instructions for unnecessary linguistic constraints. Change only
+   demonstrated ambiguities, preserving the open relation vocabulary and both
+   frameworks' freedom to express an analysis.
+3. Generate six new inputs in both frameworks, at most twelve initial requests,
+   using GPT-6 Astra at high effort. Preserve every attempt, exact request,
+   prompt fingerprint and raw response. Assess linguistic analysis separately
+   from Babel's fidelity. No silent model substitution or replacement run.
+4. Repair general causes and test equivalent claims with changed identifiers,
+   role wording or structure, including mixed claims and neutral residuals.
+5. Exercise the production app, Replay and performance with the new records,
+   including larger derivations, analysis switching and cancellation/retry.
+6. After repairs, run four reserved requests on inputs not used to develop the
+   fixes, review the final diff, and present only the examples needing judgment.
+
+Verified baseline:
 
 1. Replay compilation and plaque allocation run in workers. Browser text
    measurement yields between stages. The German page opens fully in about
@@ -48,11 +68,58 @@ Current candidate, awaiting final user review:
    only the intended claim drawings and diagnostic text changed. No new parses
    were generated. Human linguistic review remains separate.
 
+### September 22 qualification results
+
+The planned sixteen successful sentence/framework cases produced twenty-one
+analyses. French, Hindi, Korean, Mandarin and English covered the initial batch;
+Spanish dative and English attachment ambiguity were reserved until candidate
+`1797c22`. Both reserved inputs retained their distinct authored readings in both
+frameworks. Review found no demonstrated linguistic defect requiring another
+prompt change. The only prompt clarification says input-token addresses do not
+prescribe syntactic or morpheme boundaries.
+
+The implementation repairs metadata being mistaken for syntax, missed explicit
+Case and thematic evidence, a missing successive clitic-movement path, repeated
+agreement plaques, and inconsistent native/open Case-agreement composition.
+Exact occurrences, authored values, separate relation moments and neutral
+unresolved content remain preserved. Identical repeated collectors retain every
+owner while drawing once. The reserved records did not require new recognition
+or linguistic repairs; the final visual checks exposed the agreement-composition
+and allocation defects on an initial record and saved records.
+
+Browser verification covers all 2,360 Replay frames in the 53 saved and new
+analyses and the final views of 61 Orchard references. The production app also
+passes recorded-response failure/retry, Canopy/Replay and analysis switching.
+The dense saved relative-clause Replay opens in 1.83 seconds, down from 3.3
+seconds. Fresh-record frame changes have a 28ms local 95th percentile. The
+96-stage synthetic stress control still takes 2.1–2.2 seconds to compile, before
+allocation and drawing. Slow devices and deployed loading remain unqualified.
+
+Generation transport was mishandled. Ten initial attempts incorrectly used the
+paid API; eight completed and two failed for exhausted credit. The remaining
+four initial requests and all four reserved requests used the existing Codex
+OAuth qualification harness. This was eighteen actual attempts, not sixteen.
+Every attempt and raw output is preserved with its true transport. API usage was
+17,058 input and 79,300 output tokens; monetary cost was not established. Future
+OpenAI qualification must use `npm run qualification:codex`, with no paid
+fallback unless Francis explicitly authorizes it.
+
+Generation evidence is preserved outside the repository at
+`/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/core-qualification-20260922`.
+The focused user review contains movement, shared agreement and two attachment
+readings. The final gate passes typecheck, 1,901 offline tests and both contract
+fixtures. Focused browser follow-up passes all 79 affected frames and preserves
+D6 geometry exactly; production build and native/open shared-plaque browser tests
+also pass. Independent review found no remaining blocker in the final repair.
+Verification and final review receipts accompany the evidence.
+
 ### Exit goal for this phase
 
-Produce a renderer and Replay candidate ready for final user review. The current
-32 analyses contain 471 authored relations and 1,432 Replay steps. They are a
-bounded regression set, not an assertion of universal linguistic accuracy.
+Qualify the current contract and renderer on saved and unfamiliar records. The
+saved 32 analyses contain 471 authored relations and 1,432 Replay steps. Their
+passing status alone is insufficient; the new batch and reserved final cases
+must also pass without unexplained content loss or a repair between each case.
+This is a bounded shipping decision, not universal linguistic certification.
 
 - In the local bundled production runtime at a 1600px desktop viewport, aim for
   usable Replay within 2 seconds and a 95th-percentile ordinary frame change
@@ -76,9 +143,11 @@ Case participants, preserved intermediate head-movement landings and restored
 branches hidden by multiline label masks. The current pass adds the repairs above
 without modifying source records or provider configuration.
 
-The next gate is final user review of this candidate. Reopen a renderer issue for
-a reproducible failure, with a focused regression. Broader deployment, storage
-and compact-screen work remain separate; passing this set does not finish Babel.
+The next gate is the focused human review of this qualification. Reopen a
+renderer issue for a reproducible failure, with a focused regression. After that
+review, continue the application and release work below. Broader deployment,
+storage and compact-screen work remain separate; passing this set does not
+finish Babel.
 
 ## App workflow evidence
 

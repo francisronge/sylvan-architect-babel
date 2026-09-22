@@ -89,6 +89,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 
 ## Verification and safety
 
+- Use `npm run qualification:codex` for OpenAI qualification generations with the user's Codex OAuth. Never substitute API-key requests or a paid fallback without explicit user authorization.
 - During implementation, run the smallest focused test proving the changed behavior.
 - Behavior changes require focused regression tests.
 - Run `npm run verify:all` once before completing broad, shared, contract, fixture, or release work. Documentation-only changes do not require it.
