@@ -106,8 +106,9 @@ fallback unless Francis explicitly authorizes it.
 
 Generation evidence is preserved outside the repository at
 `/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/core-qualification-20260922`.
-The focused user review contains movement, shared agreement and two attachment
-readings. The final gate passes typecheck, 1,901 offline tests and both contract
+The user review exposes all 21 new analyses with direct selection, previous/next
+analysis controls and saved Replay positions. A second collection contains the
+32 earlier analyses. The final gate passes typecheck, 1,901 offline tests and both contract
 fixtures. Focused browser follow-up passes all 79 affected frames and preserves
 D6 geometry exactly; production build and native/open shared-plaque browser tests
 also pass. Independent review found no remaining blocker in the final repair.
@@ -143,9 +144,14 @@ Case participants, preserved intermediate head-movement landings and restored
 branches hidden by multiline label masks. The current pass adds the repairs above
 without modifying source records or provider configuration.
 
-The next gate is the focused human review of this qualification. Reopen a
-renderer issue for a reproducible failure, with a focused regression. After that
-review, continue the application and release work below. Broader deployment,
+The next gate is human review of this qualification. One visual concern remains:
+plaques with several collection rows are forced to use side connections even
+when their source is below. Evaluate bottom attachment for these rows while
+preserving row ownership, clearance and the original multi-source D6 drawing.
+The current top/bottom rule supports only one collection row.
+
+Reopen other renderer issues for a reproducible failure, with a focused
+regression. After review, continue the application and release work below. Broader deployment,
 storage and compact-screen work remain separate; passing this set does not
 finish Babel.
 
