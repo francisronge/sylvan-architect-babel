@@ -828,6 +828,13 @@ identities match. The shared piece retains every contributing relation reference
 so each authored relation moment can focus it. Changed anchors, lineage, values,
 outcomes, transition evidence, facets or output pieces stay distinct. Shared
 anchors or screen geometry alone never establish identity.
+
+A feature plaque's generated anchor heading does not distinguish otherwise
+identical registered claims. Repeating Agree on the same exact probe and goal
+with the same feature rows paints once even if the probe's display label changed.
+The plaque keeps its first heading and all owning relation references. Authored
+values, participant IDs, lineage and replacement timing still distinguish claims;
+an updated node label must not appear before its Replay moment.
 Different supersession moments keep separate visibility lifetimes. Same-stage
 composition considers all retained authored references, and a carried drawing
 must not reveal a newly composed feature bundle before its own relation moment.

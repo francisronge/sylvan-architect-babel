@@ -382,6 +382,8 @@ export type NodePlaquePlanItem = PlanItemBase & {
   positionNodeIds?: string[];
   plaqueStyle: NodePlaqueStyle;
   title?: string;
+  /** This heading describes an anchored node; it is not an authored value. */
+  anchorDerivedTitle?: true;
   rows: Array<{ label: string; value: string }>;
   thetaRoles?: Array<{ nodeId: string; label: string; index?: string; relationRefs?: PlanRelationRef[] }>;
   nativeContent?: NativePlaqueContent;
@@ -1989,6 +1991,7 @@ export const compileRelationRenderPlan = (
                 title: [String(nodes.get(plaqueNodeId)?.label || plaqueNodeId), probe ? 'probe' : role]
                   .filter(Boolean)
                   .join(' '),
+                anchorDerivedTitle: true,
                 rows
               });
               return;
@@ -2025,6 +2028,7 @@ export const compileRelationRenderPlan = (
             title: [String(nodes.get(participant)?.label || participant), role]
               .filter(Boolean)
               .join(' '),
+            anchorDerivedTitle: true,
             rows
           });
           return;
@@ -3470,6 +3474,10 @@ export const compileRelationRenderPlan = (
     const content: Record<string, unknown> = {};
     Object.entries(item).forEach(([field, value]) => {
       if (COALESCE_EXCLUDED_FIELDS.has(field)) return;
+      // A later label on the same occurrence does not create another feature
+      // claim. Keep the original heading with the one persistent plaque; every
+      // authored value and bound participant still contributes to its identity.
+      if (item.kind === 'node-plaque' && item.anchorDerivedTitle && field === 'title') return;
       content[field] = value;
     });
     /*
