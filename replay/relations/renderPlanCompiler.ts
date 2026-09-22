@@ -60,7 +60,8 @@ import {
   type OutcomeConcept
 } from './outcomeResolver.ts';
 import { buildTier2FacetEvidence, dispatchStageRelations, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
-import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
+import { compileTier2RelationOutputs, featureDependencyRows } from './tier2RenderPlanCompiler.ts';
+import { collectionAssignment } from './featureComposition.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
 import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
@@ -951,8 +952,8 @@ export const compileRelationRenderPlan = (
     const dispatch = stageDispatches[stageIndex][relationIndex];
     return dispatch.primaryClaim?.tier === 1 ? dispatch.boundPrimaryRelation.anchors : {};
   };
-  // The combined curve has only one feature/value row. Other authored content
-  // stays in Agree's full plaque instead of disappearing during composition.
+  // The curated feature/value notation names one row. Additional or competing
+  // fields cannot be folded into that row; supported generic rows stay separate.
   const caseAgreementRow = (stageIndex: number, relationIndex: number) => {
     const fields = stageDispatches[stageIndex][relationIndex].evidence.authoredValues ?? [];
     const row = { label: '', value: '' };
@@ -1034,12 +1035,115 @@ export const compileRelationRenderPlan = (
       : `${tag}:${Array.from(new Set(ids)).sort().join(',')}`;
   };
 
+  const stageNodeMaps = stageList.map(stage => collectForest(stage.workspaceForest));
+  const COALESCE_EXCLUDED_FIELDS = new Set([
+    'relationRef',
+    'composedRefs',
+    'coalescedRefs',
+    'appearsAtStage',
+    'subtreeDerived',
+    'positionNodeIds',
+    'orthogonalDepartureNodeIds'
+  ]);
+  const canonicalize = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonicalize);
+    if (value && typeof value === 'object') {
+      return Object.keys(value as Record<string, unknown>)
+        .sort()
+        .reduce<Record<string, unknown>>((out, key) => {
+          out[key] = canonicalize((value as Record<string, unknown>)[key]);
+          return out;
+        }, {});
+    }
+    return value;
+  };
+  const coalesceKeyOf = (item: RelationPlanItem): string => {
+    if (item.canonicalClaimIdentity) {
+      return JSON.stringify(canonicalize({
+        canonicalClaimIdentity: item.canonicalClaimIdentity,
+        supersededAt: item.supersededAt,
+        renderPart: item.tier2RenderPart || 'main'
+      }));
+    }
+    if ((item.tier2OutputIdentities || []).length > 0) {
+      return JSON.stringify(canonicalize({
+        tier2OutputIdentities: [...item.tier2OutputIdentities!].sort(),
+        supersededAt: item.supersededAt,
+        renderPart: item.tier2RenderPart || 'main'
+      }));
+    }
+    const content: Record<string, unknown> = {};
+    Object.entries(item).forEach(([field, value]) => {
+      if (COALESCE_EXCLUDED_FIELDS.has(field)) return;
+      // A later label on the same occurrence does not create another feature
+      // claim. Keep the original heading with the one persistent plaque; every
+      // authored value and bound participant still contributes to its identity.
+      if (item.kind === 'node-plaque' && item.anchorDerivedTitle && field === 'title') return;
+      content[field] = value;
+    });
+    /*
+     * The authored claim itself is meaning-bearing even where a specialized
+     * primitive copies none of it onto its own fields: the complete anchor
+     * role/value structure, `priorAnchors`, and every authored value belong
+     * to the key. Relation IDENTITY is the registered render family (already
+     * part of the item content via `familyId`): two registered aliases of
+     * one family making the otherwise-identical complete claim are one
+     * claim, and either authored Replay moment can activate the one mark.
+     * An UNREGISTERED relation has no registered family, so its normalized
+     * authored name is its identity — open relations never collapse across
+     * different authored names. Only the authored stage/relation coordinates
+     * are provenance and stay excluded — a persisted claim and its identical
+     * later restatement still paint once.
+     */
+    // Registered role binding already proves equivalent wording. Reuse that
+    // evidence for identity while keeping the original Replay references.
+    const registered = item.claimTier === 1
+      ? stageDispatches[item.relationRef.stageIndex]?.[item.relationRef.relationIndex]
+      : undefined;
+    const bound = registered?.tier1Dispatch.outcome === 'resolved'
+      ? registered.boundPrimaryRelation : item.relationRef;
+    content.authoredClaim = {
+      ...(item.familyId
+        ? {}
+        : { relation: String(item.relationRef.relation || '').trim() }),
+      anchors: bound.anchors ?? {},
+      priorAnchors: bound.priorAnchors ?? null,
+      values: item.relationRef.values ?? null
+    };
+    if (registered) {
+      content.occurrenceLineages = Object.fromEntries(Object.values(bound.anchors ?? {})
+        .flatMap(flattenAnchorIds).sort().map(id => [id,
+          stageNodeMaps[item.appearsAtStage].get(id)?.lineageId ?? null]));
+      if (item.backward) content.priorStageIndex = item.appearsAtStage - 1;
+    }
+    return JSON.stringify(canonicalize(content));
+  };
+  const mergeRelationRefs = (holder: RelationPlanItem, contributor: RelationPlanItem) => {
+    const holderRefs = planItemRelationRefs(holder);
+    const additionalRefs = planItemRelationRefs(contributor).filter(ref =>
+      !holderRefs.some(existing => existing.stageIndex === ref.stageIndex && existing.relationIndex === ref.relationIndex));
+    if (additionalRefs.length) holder.coalescedRefs = [...(holder.coalescedRefs || []), ...additionalRefs];
+  };
+  // Association sees the same complete Case claims as final visual coalescing.
+  // Clones retain every restatement's moment without mutating uncompiled frames.
+  const coalescedCaseItems = (candidates: RelationPlanItem[]): DirectedPathPlanItem[] => {
+    const unique = new Map<string, DirectedPathPlanItem>();
+    candidates.forEach(item => {
+      if (item.kind !== 'directed-path' || item.pathStyle !== 'case-assignment') return;
+      const key = coalesceKeyOf(item), holder = unique.get(key);
+      if (holder) mergeRelationRefs(holder, item);
+      else unique.set(key, { ...item });
+    });
+    return [...unique.values()];
+  };
+
   stageList.forEach((stage, stageIndex) => {
     const nodes = collectForest(stage?.workspaceForest);
     const priorNodes = stageIndex > 0
       ? collectForest(stageList[stageIndex - 1]?.workspaceForest)
       : null;
     const relations = Array.isArray(stage?.relations) ? stage.relations : [];
+    const pendingAgreementCollections: Array<(cases: DirectedPathPlanItem[]) => void> = [];
     /*
      * PF composition provenance: a VocabularyInsertion row joins a
      * PFRealization plate only when its own resolved target anchor is among
@@ -1951,38 +2055,43 @@ export const compileRelationRenderPlan = (
             const probe = flattenAnchorIds(anchors.probe)[0];
             const goal = flattenAnchorIds(anchors.goal)[0];
             const collectionRow = caseAgreementRow(stageIndex, relationIndex);
-            const composedWithCase = collectionRow && relations.some((companion, companionIndex) => {
-              const companionEntry = findRelationRegistryEntry(registry, companion.relation);
-              return companionEntry?.id === 'case-assignment.path'
-                && flattenAnchorIds(companionAnchors(stageIndex, companionIndex).bearer)[0] === probe;
-            });
-            if (composedWithCase) {
-              // The shared composer joins this owned row to Case only when
-              // that association is unique. Otherwise its own plaque survives.
-              if (collectionRow.label || collectionRow.value) items.push({
-                ...base,
-                kind: 'node-plaque',
-                anchorNodeIds: [probe],
-                positionNodeIds: collectSubtreeLeafIds(nodes.get(probe)),
-                plaqueStyle: 'feature',
-                rows: [collectionRow]
-              });
-              items.push({
+            let standalone: NodePlaquePlanItem | NodeBadgesPlanItem | undefined;
+            pendingAgreementCollections.push(caseItems => {
+              if (!standalone || !nodes.has(goal)) return;
+              const path: DirectedPathPlanItem = {
                 ...base,
                 kind: 'directed-path',
                 fromNodeId: probe,
                 toNodeId: goal,
-                pathStyle: 'case-agree',
-                featureRow: collectionRow,
-                ...(collectionRow.label || collectionRow.value
-                  ? { label: [collectionRow.label, collectionRow.value].filter(Boolean).join(': ') } : {})
-              });
-              return;
-            }
+                pathStyle: 'case-agree'
+              };
+              // All Case claims have lowered before this check. Their exact
+              // endpoints and ownership, not relation names, prove composition.
+              const uniqueAssignment = collectionAssignment(caseItems, path) !== undefined;
+              const existingBearerCollection = collectionRow !== undefined && caseItems.some(item =>
+                item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+                && planItemsShareAuthoredStage(item, path) && item.toNodeId === probe);
+              const collectionRows = collectionRow && (uniqueAssignment || existingBearerCollection)
+                ? [collectionRow]
+                : uniqueAssignment ? featureDependencyRows(claimDispatch.evidence) : [];
+              if (!collectionRows.length) return;
+              if (standalone.kind === 'node-plaque') {
+                if (collectionRow) standalone.rows = [collectionRow];
+                delete standalone.title;
+              } else {
+                items.splice(items.indexOf(standalone), 1);
+              }
+              collectionRows.forEach(row => items.push({
+                ...path,
+                featureRow: row,
+                ...(collectionRow && (row.label || row.value)
+                  ? { label: [row.label, row.value].filter(Boolean).join(': ') } : {})
+              }));
+            });
             if (rows.length > 0) {
               const plaqueNodeId = probe || participant;
               if (!requireResolved(probe ? 'probe' : role, plaqueNodeId)) return;
-              items.push({
+              standalone = {
                 ...base,
                 kind: 'node-plaque',
                 anchorNodeIds: [plaqueNodeId],
@@ -1993,16 +2102,18 @@ export const compileRelationRenderPlan = (
                   .join(' '),
                 anchorDerivedTitle: true,
                 rows
-              });
+              };
+              items.push(standalone);
               return;
             }
             if (!requireResolved('goal', goal)) return;
-            items.push({
+            standalone = {
               ...base,
               kind: 'node-badges',
               badgeStyle: 'agreement-goal',
               badges: [{ nodeId: goal, text: '', shape: 'plain' }]
-            });
+            };
+            items.push(standalone);
             return;
           }
           /*
@@ -2012,8 +2123,8 @@ export const compileRelationRenderPlan = (
            * authored values draws no plaque — an empty box would be an
            * invented claim — and its resolved participants instead keep the
            * neutral topology-only presentation so the authored relation stays
-           * visible without an invented connector semantics. The plaque never
-           * takes its title from a role name; only authored values label it.
+           * visible without invented connector semantics. Its generated heading
+           * describes the bearer; its rows retain authored labels and values.
            */
           if (rows.length === 0) {
             pushNeutralFallback(anchors, false);
@@ -3116,6 +3227,8 @@ export const compileRelationRenderPlan = (
         }
       }
     });
+    const caseItems = coalescedCaseItems(items);
+    pendingAgreementCollections.forEach(complete => complete(caseItems));
     pendingNeutralFallbacks.forEach((presentFallbackIfStillNeeded) => {
       presentFallbackIfStillNeeded();
     });
@@ -3198,7 +3311,6 @@ export const compileRelationRenderPlan = (
   items.forEach(item => { if ('index' in item) usedIndices.add(item.index); });
   const argumentIndexByKey = new Map<string, string>();
   let nextArgumentIndex = 0;
-  const stageNodeMaps = stageList.map(stage => collectForest(stage.workspaceForest));
   // Theta notation identifies the exact argument, or its explicit root lineage.
   // Shared descendants and similarly spelled labels cannot merge arguments.
   const argumentIndex = (stageIndex: number, nodeId: string): string => {
@@ -3435,88 +3547,6 @@ export const compileRelationRenderPlan = (
    * `coalescedRefs`) and the appearance stage — a persisted claim and an
    * identical later restatement still paint once in their co-visible frames.
    */
-  const COALESCE_EXCLUDED_FIELDS = new Set([
-    'relationRef',
-    'composedRefs',
-    'coalescedRefs',
-    'appearsAtStage',
-    'subtreeDerived',
-    'positionNodeIds',
-    'orthogonalDepartureNodeIds'
-  ]);
-  const canonicalize = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(canonicalize);
-    if (value && typeof value === 'object') {
-      return Object.keys(value as Record<string, unknown>)
-        .sort()
-        .reduce<Record<string, unknown>>((out, key) => {
-          out[key] = canonicalize((value as Record<string, unknown>)[key]);
-          return out;
-        }, {});
-    }
-    return value;
-  };
-  const coalesceKeyOf = (item: RelationPlanItem): string => {
-    if (item.canonicalClaimIdentity) {
-      return JSON.stringify(canonicalize({
-        canonicalClaimIdentity: item.canonicalClaimIdentity,
-        supersededAt: item.supersededAt,
-        renderPart: item.tier2RenderPart || 'main'
-      }));
-    }
-    if ((item.tier2OutputIdentities || []).length > 0) {
-      return JSON.stringify(canonicalize({
-        tier2OutputIdentities: [...item.tier2OutputIdentities!].sort(),
-        supersededAt: item.supersededAt,
-        renderPart: item.tier2RenderPart || 'main'
-      }));
-    }
-    const content: Record<string, unknown> = {};
-    Object.entries(item).forEach(([field, value]) => {
-      if (COALESCE_EXCLUDED_FIELDS.has(field)) return;
-      // A later label on the same occurrence does not create another feature
-      // claim. Keep the original heading with the one persistent plaque; every
-      // authored value and bound participant still contributes to its identity.
-      if (item.kind === 'node-plaque' && item.anchorDerivedTitle && field === 'title') return;
-      content[field] = value;
-    });
-    /*
-     * The authored claim itself is meaning-bearing even where a specialized
-     * primitive copies none of it onto its own fields: the complete anchor
-     * role/value structure, `priorAnchors`, and every authored value belong
-     * to the key. Relation IDENTITY is the registered render family (already
-     * part of the item content via `familyId`): two registered aliases of
-     * one family making the otherwise-identical complete claim are one
-     * claim, and either authored Replay moment can activate the one mark.
-     * An UNREGISTERED relation has no registered family, so its normalized
-     * authored name is its identity — open relations never collapse across
-     * different authored names. Only the authored stage/relation coordinates
-     * are provenance and stay excluded — a persisted claim and its identical
-     * later restatement still paint once.
-     */
-    // Registered role binding already proves equivalent wording. Reuse that
-    // evidence for identity while keeping the original Replay references.
-    const registered = item.claimTier === 1
-      ? stageDispatches[item.relationRef.stageIndex]?.[item.relationRef.relationIndex]
-      : undefined;
-    const bound = registered?.tier1Dispatch.outcome === 'resolved'
-      ? registered.boundPrimaryRelation : item.relationRef;
-    content.authoredClaim = {
-      ...(item.familyId
-        ? {}
-        : { relation: String(item.relationRef.relation || '').trim() }),
-      anchors: bound.anchors ?? {},
-      priorAnchors: bound.priorAnchors ?? null,
-      values: item.relationRef.values ?? null
-    };
-    if (registered) {
-      content.occurrenceLineages = Object.fromEntries(Object.values(bound.anchors ?? {})
-        .flatMap(flattenAnchorIds).sort().map(id => [id,
-          stageNodeMaps[item.appearsAtStage].get(id)?.lineageId ?? null]));
-      if (item.backward) content.priorStageIndex = item.appearsAtStage - 1;
-    }
-    return JSON.stringify(canonicalize(content));
-  };
   const unchangedAssignmentInk = (part: RelationPlanItem) => {
     if (part.kind === 'node-plaque' && part.plaqueStyle === 'theta-grid') return {
       kind: part.kind, anchors: part.anchorNodeIds, roles: part.thetaRoles, rows: part.rows, supersededAt: part.supersededAt
@@ -3548,6 +3578,21 @@ export const compileRelationRenderPlan = (
         .every(nodes => nodes.get(id!)?.lineageId === lineage);
     });
   };
+  const unchangedCollectionInk = (item: RelationPlanItem) => item.kind === 'directed-path'
+    && item.pathStyle === 'case-agree' && item.featureRow ? {
+      from: item.fromNodeId, to: item.toNodeId, row: item.featureRow, outcome: item.outcome,
+      authoredOutcomes: authoredOutcomeLiterals(item.relationRef.values),
+      relationOnly: item.persistence === 'relation-only', supersededAt: item.supersededAt,
+      backward: item.backward, priorWitnesses: item.priorWitnessNodeIds
+    } : null;
+  const retainsCollectionOccurrences = (earlier: RelationPlanItem, later: RelationPlanItem) => {
+    if (earlier.kind !== 'directed-path' || later.kind !== 'directed-path') return false;
+    return [later.fromNodeId, later.toNodeId].every(id => {
+      const occurrence = stageNodeMaps[earlier.appearsAtStage].get(id);
+      return occurrence && stageNodeMaps.slice(earlier.appearsAtStage, later.appearsAtStage + 1)
+        .every(nodes => nodes.has(id) && nodes.get(id)?.lineageId === occurrence.lineageId);
+    });
+  };
   frames.forEach((frame) => {
     const movementRoutes = new Set(frame.items.flatMap((item) => (
       item.kind === 'trajectory'
@@ -3576,20 +3621,20 @@ export const compileRelationRenderPlan = (
     });
     const coalescedItems: RelationPlanItem[] = [];
     const coalesceHolderIndices = new Map<string, number>();
-    const mergeRelationRefs = (
-      holder: RelationPlanItem,
-      contributor: RelationPlanItem
-    ) => {
-      const holderRefs = planItemRelationRefs(holder);
-      const additionalRefs = planItemRelationRefs(contributor).filter((ref) =>
-        !holderRefs.some((existing) =>
-          existing.stageIndex === ref.stageIndex
-          && existing.relationIndex === ref.relationIndex));
-      if (additionalRefs.length > 0) {
-        holder.coalescedRefs = [...(holder.coalescedRefs || []), ...additionalRefs];
-      }
-    };
+    const assignmentCandidates = coalescedCaseItems(frame.items);
     frame.items.forEach((item) => {
+      // A shared row has one collector even when native and recovered claims
+      // both own it. The accepted assignment and exact occurrences prove this
+      // association; coincident coordinates or lineage alone do not.
+      const collectionInk = unchangedCollectionInk(item);
+      if (collectionInk && item.kind === 'directed-path') {
+        const assignment = collectionAssignment(assignmentCandidates, item);
+        const holder = assignment === undefined ? undefined : coalescedItems.find(candidate =>
+          candidate.kind === 'directed-path' && collectionAssignment(assignmentCandidates, candidate) === assignment
+          && retainsCollectionOccurrences(candidate, item)
+          && JSON.stringify(canonicalize(unchangedCollectionInk(candidate))) === JSON.stringify(canonicalize(collectionInk)));
+        if (holder) { mergeRelationRefs(holder, item); return; }
+      }
       // Embedding an unchanged chain in a larger workspace does not create a
       // second trajectory. Keep both authored moments on the one proven path.
       const movementInk = unchangedMovementInk(item);

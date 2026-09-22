@@ -103,6 +103,14 @@ const authoredRows = (evidence: Tier2FacetEvidence): Array<{ label: string; valu
     items.map((value) => ({ label: key, value })))
 );
 
+/** Only explicitly interpreted feature rows earn a collection connector. */
+export const featureDependencyRows = (
+  evidence: Tier2FacetEvidence,
+  rows = authoredRows(evidence)
+): Array<{ label: string; value: string }> => [...new Map(rows.filter(row =>
+  evidence.authoredValues?.some(entry => entry.key === row.label && entry.concepts.includes('feature.rows')))
+  .map(row => [JSON.stringify(row), row])).values()];
+
 const outcomeState = (
   facet: Tier2ResolvedFacet
 ): 'licensed' | 'blocked' | 'failed' | undefined => {
@@ -597,8 +605,7 @@ export const compileTier2RelationOutputs = ({
       }
       case 'feature.dependency': {
         const caseLabels = pairedLiterals(evidence, 'feature.target', 'case.literal') ?? [];
-        const featureRows = [...new Map(rows.filter(row => evidence.authoredValues?.some(entry => entry.key === row.label
-          && entry.concepts.includes('feature.rows'))).map(row => [JSON.stringify(row), row])).values()];
+        const featureRows = featureDependencyRows(evidence, rows);
         if (featureRows.length) {
           push({
             ...base(facet, ['Feature connectors'], 'feature-bundle.plaque', 'values'),

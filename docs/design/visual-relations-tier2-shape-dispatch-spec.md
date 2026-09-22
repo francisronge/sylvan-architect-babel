@@ -223,6 +223,14 @@ stage. A standalone feature specification on that assigner can join only when
 that explicit pair exists and the assigner has one Case recipient. A bundle
 already connected elsewhere cannot be borrowed. Ambiguous assignments stay
 separate. Physical grouping never changes the semantic owner of a row or path.
+Accepted registered Agree claims use this same association check against the
+accepted Case paths after all relations in their stage have lowered. Supported
+feature rows then use the same row reader and collectors as an open dependency,
+whether the Case path came from Tier 1 or Tier 2. Other authored literals remain
+in the owned plaque without invented collection links. Ordinary Agree without a
+Case companion keeps its curated standalone drawing. Malformed exact claims
+cannot supply an assignment or collection, and competing assignments cannot
+select an arbitrary shared shell.
 
 Each row retains its semantic owner, feature source and contributing relation
 moments. Equal text on different owners or different collection sources does not
@@ -249,6 +257,10 @@ rows above Case does not automatically push its target downward.
 When a Case row sits alongside its assigner's label, its arrow leaves the facing
 side of that label rather than the bottom. This avoids making the arrow appear
 to originate from a different category immediately below the assigner.
+Native and recovered claims drawing the same row collector for one unique Case
+assignment share that collector and retain all authored owners. Exact source and
+target occurrences, their continuity, row values, outcomes and replacement timing
+must agree. Matching positions or lineage alone cannot merge collectors.
 
 Assignment roles compose from explicit domain evidence and source/recipient
 direction. Qualified theta roles or a typed theta-role value can establish that
@@ -909,8 +921,10 @@ a list. Production scalar slots declare that limitation in render-family metadat
 Tier-2 recipes declare matching cardinality. A diagnostic retains the original
 field and list when the drawing cannot carry them. This restricts the drawing,
 not the open authoring contract. Full-row and explicitly paired drawings keep
-their list support. Case/Agree uses its combined single-row curve only when it
-can carry all Agree values; otherwise Agree retains its full existing plaque.
+their list support. Case/Agree's curated `feature`/`value` notation forms one row
+only when it can carry that complete value block. Competing or extra fields stay
+in the full plaque. Independently supported feature rows can each own a collector
+when an accepted Case companion establishes a unique association.
 
 Dispatch retains the complete authored relation alongside a per-field report of
 the recipes using each original item and the items not recovered. A field may

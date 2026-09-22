@@ -15,13 +15,17 @@ test('standalone and Case-composed feature plaques keep row attachment through R
   const runtime = await buildQualificationReviewRuntime();
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const variant of ['standalone', 'bearer', 'same-pair']) {
+    for (const variant of ['standalone', 'bearer', 'same-pair', 'native-bearer', 'native-same-pair']) {
       const combined = variant !== 'standalone';
-      const samePair = variant === 'same-pair';
+      const samePair = variant.endsWith('same-pair');
+      const native = variant.startsWith('native-');
       const agreementIndex = samePair ? 2 : Number(combined);
       const relations = [...(samePair ? [{ relation: 'Finite specification', anchors: { finiteHead: 'p' },
         values: { number: 'singular', person: 'third' } }] : []), ...(combined ? [caseRelation] : []),
-        samePair ? { ...agreement, anchors: { head: 'p', specifier: 'k' } } : agreement, { relation: 'Another description', anchors: { participant: 'n' } }];
+        { ...agreement,
+          relation: native ? 'Agree' : agreement.relation,
+          anchors: samePair ? native ? { probe: 'p', goal: 'k' } : { head: 'p', specifier: 'k' } : agreement.anchors
+        }, { relation: 'Another description', anchors: { participant: 'n' } }];
       const stages = [{ statement: 'Features.', stageRecord: 'Independent moments.', workspaceForest: [tree], relations }];
       const steps = prepareReplay({ sentence: 'with books', derivationStages: stages, includePlayback: true }).playbackSteps;
       const moment = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex);
