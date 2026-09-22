@@ -473,7 +473,8 @@ const providerFailureReason = (error) => {
   const haystack = metadata.map(({ haystack }, index) => (
     `${chain[index]?.name || ''}\n${chain[index]?.code || ''}\n${haystack}`
   )).join('\n').toLowerCase();
-  if (statuses.includes(429) || /rate[\s_-]*limit|resource_exhausted|quota|too many requests/.test(haystack)) {
+  if (chain.some((cause) => cause.code === 'credit_balance_exhausted')
+    || statuses.includes(429) || /rate[\s_-]*limit|resource_exhausted|quota|too many requests/.test(haystack)) {
     return 'rate_limit';
   }
   // A timeout does not prove that a submitted generation stopped or never started.
@@ -708,6 +709,7 @@ const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
   if (!response.ok) {
     const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI response polling failed (${response.status})`));
     error.status = response.status;
+    error.code = payload.json?.error?.code;
     error.responseBody = payload.text;
     throw error;
   }
@@ -835,6 +837,7 @@ export const generateOpenAIStructuredContent = async ({
   if (!response.ok) {
     const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI request failed (${response.status})`));
     error.status = response.status;
+    error.code = payload.json?.error?.code;
     error.responseBody = payload.text;
     throw error;
   }
@@ -865,6 +868,7 @@ export const generateOpenAIStructuredContent = async ({
     const errorMessage = String(payload.json?.error?.message || `OpenAI response ${payload.json.status}.`);
     const error = new Error(errorMessage);
     error.status = 502;
+    error.code = payload.json?.error?.code;
     error.responseBody = payload.text;
     error.completedStopState = true;
     error.finishReason = String(payload.json.status).toUpperCase();

@@ -176,6 +176,22 @@ const classifyProviderRouteError = ({
   const { msg, haystack, statusCode } = getErrorMeta(error);
   const providerMessage = String(msg || '').trim();
   const providerAttemptDetails = getProviderAttemptDetails(error);
+  if (error?.code === 'credit_balance_exhausted' || error?.code === 'insufficient_quota') {
+    return new ParseApiError(
+      'PROVIDER_QUOTA',
+      error.code === 'credit_balance_exhausted'
+        ? `${providerLabel} API credits are exhausted. Add credits to the API account to continue.`
+        : `${providerLabel} API quota is exhausted. Check the API account's billing and usage limits.`,
+      429,
+      {
+        provider: providerLabel,
+        model,
+        ...providerAttemptDetails,
+        providerMessage: providerMessage || null,
+        providerErrorCode: error.code
+      }
+    );
+  }
   if (error?.completedStopState) {
     return new ParseApiError(
       'INCOMPLETE_GENERATION',

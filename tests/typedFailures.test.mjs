@@ -427,6 +427,102 @@ test('provider route failures retain a request receipt without calling another m
   }
 });
 
+test('native OpenAI quota failures reach the public error without a replacement generation', async (t) => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.OPENAI_API_KEY = 'provider-free-test-key';
+  process.env.NODE_ENV = 'production';
+  try {
+    for (const code of ['credit_balance_exhausted', 'insufficient_quota']) {
+      for (const httpStatus of [200, 429, 503]) {
+        await t.test(`${code}, HTTP ${httpStatus}`, async (t) => {
+          const payload = {
+            ...(httpStatus === 200 ? { id: 'resp_quota', status: 'failed', output: [] } : {}),
+            error: { code, message: 'The API account has no remaining allowance.' }
+          };
+          const rawResponse = JSON.stringify(payload);
+          const calls = [];
+          t.mock.method(globalThis, 'fetch', async (url, init) => {
+            calls.push({ url: String(url), method: init.method });
+            assert.equal(calls.length, 1, 'Quota failures must not submit another generation');
+            return new Response(rawResponse, { status: httpStatus });
+          });
+          const routes = createParseRoutes({
+            ParseApiError,
+            normalizeParseBundle: () => assert.fail('Quota failures must not reach normalization'),
+            parseModelJson: () => assert.fail('Quota failures must not be parsed as analyses')
+          });
+
+          await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+            assert.equal(error.details.providerErrorCode, code);
+            const { status, body } = formatApiError(error);
+            assert.equal(status, 429);
+            assert.equal(body.error.code, 'PROVIDER_QUOTA');
+            assert.match(body.error.message, code === 'credit_balance_exhausted' ? /credits are exhausted/ : /quota is exhausted/);
+            assert.equal(body.error.failure.class, 'transport_serialization');
+            assert.equal(Buffer.from(body.error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+            const receipt = body.error.generationRecord;
+            assert.equal(Buffer.from(receipt.rawProviderResponse.data, 'base64').toString('utf8'), rawResponse);
+            assert.equal(receipt.outcome.attempts.length, 1);
+            assert.equal(receipt.outcome.attempts[0].outcome, 'terminal_failure');
+            assert.equal(receipt.outcome.attempts[0].retryStopReason, 'not_retryable');
+            return true;
+          });
+          assert.deepEqual(calls, [{ url: 'https://api.openai.com/v1/responses', method: 'POST' }]);
+        });
+      }
+    }
+  } finally {
+    if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+    if (typeof previousNodeEnv === 'undefined') delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+});
+
+test('native OpenAI generic failed and cancelled responses remain incomplete generations', async (t) => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.OPENAI_API_KEY = 'provider-free-test-key';
+  process.env.NODE_ENV = 'production';
+  try {
+    for (const status of ['failed', 'cancelled']) {
+      await t.test(status, async (t) => {
+        let calls = 0;
+        const rawResponse = JSON.stringify({
+          id: 'resp_stopped', status, error: { code: 'server_error', message: 'Response stopped.' }
+        });
+        t.mock.method(globalThis, 'fetch', async () => {
+          assert.equal(++calls, 1, 'Completed stops must not submit another generation');
+          return new Response(rawResponse);
+        });
+        const routes = createParseRoutes({
+          ParseApiError,
+          normalizeParseBundle: () => assert.fail('Stopped responses must not reach normalization'),
+          parseModelJson: () => assert.fail('Stopped responses must not be parsed as analyses')
+        });
+
+        await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+          const result = formatApiError(error);
+          assert.equal(result.status, 502);
+          assert.equal(result.body.error.code, 'INCOMPLETE_GENERATION');
+          assert.equal(result.body.error.message, `OpenAI completed with ${status.toUpperCase()} and no valid generation.`);
+          assert.equal(result.body.error.failure.ruleId, 'GENERATION_COMPLETED_STOP_FAILURE');
+          assert.equal(Buffer.from(result.body.error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+          assert.equal(result.body.error.generationRecord.outcome.attempts.length, 1);
+          return true;
+        });
+        assert.equal(calls, 1);
+      });
+    }
+  } finally {
+    if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+    if (typeof previousNodeEnv === 'undefined') delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+});
+
 test('unexpected normalization crashes remain deterministic engine failures', async () => {
   const previousApiKey = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = 'provider-free-test-key';
