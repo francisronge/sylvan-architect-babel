@@ -258,7 +258,7 @@ const MODEL_BY_ID = new Map(RESEARCH_MODEL_CATALOG.map((entry) => [entry.id, ent
 // Available for local integration testing, not yet qualified for public release.
 export const GENERATION_MODEL_IDS = Object.freeze([
   'openai:gpt-6-astra',
-  'openai:gpt-5.6-sol',
+  'openai:gpt-6-sol',
   'anthropic:claude-opus-5',
   'anthropic:claude-fable-5-1',
   'moonshot:kimi-k3',

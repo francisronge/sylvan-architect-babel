@@ -113,7 +113,7 @@ const DEFAULT_MODEL_ID = GENERATION_MODEL_IDS[0];
 
 const MODEL_ACCENT_COLORS: Record<string, string> = {
   'openai:gpt-6-astra': '#eef59a',
-  'openai:gpt-5.6-sol': '#f6bf69',
+  'openai:gpt-6-sol': '#f6bf69',
   'anthropic:claude-opus-5': '#d8ac86',
   'anthropic:claude-fable-5-1': '#93baf3',
   'moonshot:kimi-k3': '#8ebfba',

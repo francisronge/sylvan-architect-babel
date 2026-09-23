@@ -19,7 +19,7 @@ const { values } = parseArgs({ options: {
 
 if (values.help) {
   console.log(`Babel-only generation through a ChatGPT Codex subscription.
-  --sentence TEXT --framework minimalism|xbar --model openai:gpt-6-sol|openai:gpt-6-astra|openai:gpt-5.6-sol
+  --sentence TEXT --framework minimalism|xbar --model openai:gpt-6-sol|openai:gpt-6-astra
   --out NEW_DIRECTORY [--effort high] [--auth-file PATH] [--run]
 Without --run, only saves the exact request and contract fingerprint; no login or network access.
 Each invocation makes at most one request. No retries, API-key fallback, tools or agent context.

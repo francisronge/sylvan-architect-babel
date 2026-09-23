@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   RESEARCH_MODEL_CATALOG,
+  GENERATION_MODEL_IDS,
   getResearchModel,
   resolveResearchModelSelection
 } from '../server/babelParser/researchModelCatalog.js';
@@ -33,6 +34,8 @@ test('the research catalog contains the approved unqualified candidates', () => 
   assert.equal(RESEARCH_MODEL_CATALOG.some((entry) => /gemini/i.test(entry.providerModel)), false);
   assert.equal(new Set(RESEARCH_MODEL_CATALOG.map((entry) => entry.id)).size, RESEARCH_MODEL_CATALOG.length);
   assert.equal(Object.isFrozen(RESEARCH_MODEL_CATALOG), true);
+  assert.deepEqual(GENERATION_MODEL_IDS.slice(0, 2), ['openai:gpt-6-astra', 'openai:gpt-6-sol']);
+  assert.equal(GENERATION_MODEL_IDS.includes('openai:gpt-5.6-sol'), false);
 });
 
 test('catalog settings retain each provider native parameter name', () => {
