@@ -131,14 +131,14 @@ test('both frameworks select the theory and share the open derivation contract w
   }
 });
 
-test('the model-facing contract supports illicit analyses without requiring judgment relations', () => {
+test('the model-facing contract specifies the framework and exact input without prompting for verdicts', () => {
   for (const framework of ['xbar', 'minimalism']) {
     const instruction = buildSystemInstruction(framework);
-    assert.match(instruction, /Analyze the exact input, including an ungrammatical input/);
-    assert.match(instruction, /Explain any judgment within the selected framework rather than changing the sentence\./);
-    assert.match(instruction, /A completed analysis may establish that the input is illicit/);
+    assert.match(instruction, /Analyze the exact input within the selected framework\./);
+    assert.match(instruction, /The last stage contains the completed analysis of the input\./);
     const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
-    assert.doesNotMatch(relationsInstruction, /judgment/i);
+    assert.match(relationsInstruction, /Names and roles are open; choose them to describe this analysis\./);
+    assert.doesNotMatch(instruction, /\b(?:ungrammatical|illicit|grammaticality|judgment|convergence)\b/i);
     assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
     assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
   }

@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-22
+Status date: 2026-09-23
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -41,7 +41,7 @@ recognition of independently authored claims are separate checks; neither a
 high Tier-1 count nor eliminating every neutral relation is a release target.
 
 The September 22 qualification review combines those saved records with 19
-Codex-OAuth requests made under the committed prompt contract. It exposes all
+Codex-OAuth requests made under the then-current prompt contract. It exposes all
 82 analyses in one chooser, paused at Replay frame one. Across 1,076 authored
 relations and 3,502 Replay frames, the audit found no missing or duplicated
 relation moments. All 54 declared recipes are reachable through the public
@@ -58,6 +58,13 @@ invalid SVG paths or browser errors. Replay frame changes had a 12.3ms 95th
 percentile; the slowest analysis opened in 1.86 seconds. The focused French
 transition that had paused for about 740ms after a late font load now takes
 about 8ms after preloading the renderer-generated glyph subset.
+
+Of the 82 analyses, 58 end with a relation named for judgment, grammaticality,
+or convergence: 9 of the 23 fresh analyses and 49 of the 59 older ones. The
+September 23 prompt revision removes explicit verdict and illicit-input
+instructions. The contract still requires exact input coverage and keeps
+relation names open. All 82 analyses predate that revision, so they cannot
+show whether it reduces unprompted verdicts.
 
 Preserve these decisions:
 
