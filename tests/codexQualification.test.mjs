@@ -10,6 +10,7 @@ import { writeQualificationAttempt } from '../contractQualification/artifacts.js
 import { runQualificationAttempt } from '../contractQualification/run.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
+import { GENERATION_MODEL_IDS } from '../server/babelParser/researchModelCatalog.js';
 
 const credentials = { token: 'dummy-secret-token', accountId: 'dummy-account' };
 const request = (overrides = {}) => buildCodexQualificationRequest({
@@ -40,8 +41,9 @@ const chunkedResponse = (bytes, { status = 200, failAfterBytes = false } = {}) =
 };
 
 test('subscription requests contain exactly Babel prompts, without agent instructions or history', () => {
+  assert.equal(GENERATION_MODEL_IDS.includes('openai:gpt-6-sol'), false);
   for (const framework of ['minimalism', 'xbar']) {
-    for (const model of ['openai:gpt-5.6-sol', 'openai:gpt-6-astra']) {
+    for (const model of ['openai:gpt-6-sol', 'openai:gpt-5.6-sol', 'openai:gpt-6-astra']) {
       const { body } = request({ framework, model });
       assert.deepEqual(body, {
         model: model.slice('openai:'.length),

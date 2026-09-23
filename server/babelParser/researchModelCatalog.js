@@ -35,6 +35,33 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     }
   },
   {
+    id: 'openai:gpt-6-sol',
+    label: 'GPT-6 Sol',
+    provider: 'openai',
+    providerRoute: 'gpt',
+    providerModel: 'gpt-6-sol',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'responses',
+    controls: [
+      {
+        id: 'reasoning.effort',
+        label: 'Reasoning effort',
+        values: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: {
+      maxOutputTokens: 128000,
+      background: true,
+      store: true
+    },
+    documentation: {
+      retrievedOn: '2026-09-23',
+      url: 'https://developers.openai.com/api/docs/models/gpt-6-sol'
+    }
+  },
+  {
     id: 'openai:gpt-5.6-sol',
     label: 'GPT 5.6 Sol',
     provider: 'openai',

@@ -12,6 +12,7 @@ test('the research catalog contains the approved unqualified candidates', () => 
     RESEARCH_MODEL_CATALOG.map((entry) => entry.id),
     [
       'openai:gpt-6-astra',
+      'openai:gpt-6-sol',
       'openai:gpt-5.6-sol',
       'anthropic:claude-opus-5',
       'anthropic:claude-fable-5-1',
@@ -72,6 +73,19 @@ test('Astra qualifies at high and accepts only its supported reasoning efforts',
     () => resolveResearchModelSelection('openai:gpt-6-astra', { 'reasoning.effort': 'none' }),
     /must be one of/
   );
+});
+
+test('GPT-6 Sol is selectable for qualification with its native effort settings', () => {
+  const sol = resolveResearchModelSelection('openai:gpt-6-sol');
+  assert.equal(sol.providerModel, 'gpt-6-sol');
+  assert.equal(sol.providerRoute, 'gpt');
+  assert.deepEqual(sol.nativeSettings, { 'reasoning.effort': 'high' });
+  for (const effort of ['none', 'low', 'medium', 'high', 'xhigh', 'max']) {
+    assert.deepEqual(
+      resolveResearchModelSelection('openai:gpt-6-sol', { 'reasoning.effort': effort }).nativeSettings,
+      { 'reasoning.effort': effort }
+    );
+  }
 });
 
 test('candidate identities and pending-settings gates remain exact', () => {
