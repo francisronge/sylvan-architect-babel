@@ -5939,11 +5939,6 @@ export const rawCases: LabCase[] = [
               goal: 'n_gender_case_assignment_embedded'
             },
             values: { feature: 'Gender', value: 'MASC' }
-          },
-          {
-            relation: 'FeatureBundle',
-            anchors: { bearer: 'k_case_assignment_embedded' },
-            values: { Case: 'DAT', Number: 'PL', Gender: 'MASC' }
           }
         ],
         embeddedCaseAssignmentTree
