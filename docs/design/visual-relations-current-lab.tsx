@@ -5864,7 +5864,7 @@ export const rawCases: LabCase[] = [
       stage(
         'D6',
         'P assigns dative Case while K collects number and gender.',
-        'CaseAssignment targets the Case row on K. Two Agree relations connect the same K plaque to the authored number and gender sources with dotted paths. FeatureBundle records the completed rows. These are four authored relations, so Replay gives each one its own moment.',
+        'CaseAssignment supplies the Case row on K. Two Agree relations supply the number and gender rows and connect the same plaque to their authored sources with dotted paths. Production composes one plaque from these three claims; Replay gives each claim its own moment.',
         [
           {
             relation: 'CaseAssignment',
@@ -5889,11 +5889,6 @@ export const rawCases: LabCase[] = [
               goal: 'n_gender_case_assignment'
             },
             values: { feature: 'Gender', value: 'MASC' }
-          },
-          {
-            relation: 'FeatureBundle',
-            anchors: { bearer: 'k_case_assignment' },
-            values: { Case: 'DAT', Number: 'PL', Gender: 'MASC' }
           }
         ],
         caseAssignmentTree
