@@ -1,0 +1,192 @@
+.babel-card-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.babel-card-actions .babel-lens-toggle {
+  margin-top: 0;
+}
+
+.babel-source-detail {
+  max-width: 100%;
+  color: rgba(236, 253, 245, 0.82);
+  font: 500 11px/1.45 "JetBrains Mono", monospace;
+}
+
+.babel-source-detail summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 29px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid rgba(110, 231, 183, 0.34);
+  border-radius: 9px;
+  background: rgba(16, 185, 129, 0.05);
+  cursor: pointer;
+  font: 800 9px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  list-style: none;
+}
+
+.babel-source-detail summary::-webkit-details-marker {
+  display: none;
+}
+
+.babel-source-detail summary::after {
+  content: "+";
+  font-size: 14px;
+  line-height: 0.7;
+}
+
+.babel-source-detail[open] summary::after {
+  content: "−";
+}
+
+.babel-source-detail summary:hover,
+.babel-source-detail summary:focus-visible {
+  color: #ecfdf5;
+  border-color: rgba(110, 231, 183, 0.72);
+}
+
+.babel-source-panel {
+  width: min(520px, calc(100vw - 96px));
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid rgba(110, 231, 183, 0.22);
+  border-radius: 9px;
+  background: rgba(0, 18, 12, 0.9);
+}
+
+.babel-source-panel figure {
+  margin: 0 0 12px;
+}
+
+.babel-source-panel figure > a {
+  display: block;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.babel-source-panel img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.babel-source-panel img[src*="assmann-et-al-focus-marking-example-49"] {
+  height: 330px;
+  object-fit: cover;
+  object-position: center 76%;
+}
+
+.babel-source-panel figcaption {
+  margin-top: 7px;
+  color: rgba(236, 253, 245, 0.55);
+  font-size: 9px;
+}
+
+.babel-source-panel p {
+  margin: 0 0 8px;
+  color: rgba(236, 253, 245, 0.7);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.babel-source-panel .babel-source-citation {
+  color: #ecfdf5;
+  font-weight: 700;
+}
+
+.babel-source-panel .babel-source-kind {
+  color: #6ee7b7;
+  font: 800 9px/1.2 "JetBrains Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.babel-source-panel a {
+  color: #6ee7b7;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.babel-selected-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.babel-source-figure-entry[open] {
+  grid-column: 1 / -1;
+}
+
+.babel-source-preview-intro {
+  margin-top: 20px;
+}
+
+.babel-source-preview-intro h4 {
+  margin: 0 0 8px;
+  color: #ecfdf5;
+  font: 800 12px/1.3 "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.babel-source-preview-intro p {
+  margin: 0 0 14px;
+}
+
+.babel-source-figure-entry summary {
+  width: 100%;
+  min-height: 38px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.babel-source-figure-entry summary small {
+  margin-left: auto;
+  color: rgba(236, 253, 245, 0.52);
+  font: 700 9px/1.2 "JetBrains Mono", monospace;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .babel-source-figure-entry summary small {
+    margin-left: 0;
+  }
+}
+
+.babel-source-figure-entry .babel-source-panel {
+  width: 100%;
+}
+
+.babel-source-figure-entry[open] .babel-source-panel {
+  max-width: 780px;
+}
+
+.babel-source-figure-entry[open] .babel-source-panel img {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.source-archive .babel-source-panel p {
+  font: 500 11px/1.45 "JetBrains Mono", monospace;
+}
+
+.source-archive .babel-source-panel .babel-source-citation {
+  font-weight: 700;
+}

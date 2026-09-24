@@ -11,6 +11,8 @@ import {
 import { SourceGallery } from './visual-relations-source-gallery.tsx';
 import { VisualVocabulary } from './visual-relations-vocabulary.tsx';
 import { FallbackPrototypesSection } from './visual-relations-fallback-prototypes.tsx';
+import { orchardSourceCitations, type OrchardSourceCitation } from '../research/relation-orchard/source-citations.ts';
+import { orchardResearchImages, orchardSourcePreviewPath } from '../research/relation-orchard/source-research-images.ts';
 
 type LabCase = {
   archetype: string;
@@ -5862,7 +5864,7 @@ export const rawCases: LabCase[] = [
       stage(
         'D6',
         'P assigns dative Case while K collects number and gender.',
-        'CaseAssignment targets the Case row on K. Two Agree relations connect the same K plaque to the authored number and gender sources with dotted paths.',
+        'CaseAssignment targets the Case row on K. Two Agree relations connect the same K plaque to the authored number and gender sources with dotted paths. FeatureBundle records the completed rows. These are four authored relations, so Replay gives each one its own moment.',
         [
           {
             relation: 'CaseAssignment',
@@ -8280,7 +8282,7 @@ export const rawCases: LabCase[] = [
   {
     archetype: 'M3. Multi-workspace / sideward',
     title: 'Sideward Movement',
-    status: 'Candidate Babel translation of Barnickel (2017), figure 155: the subject leaves the additional workspace on the right and is remerged in the primary predicate on the left. The arch is a cross-workspace path, not an ordinary within-tree movement curve.',
+    status: 'Barnickel (2017), example (155), shows the subject moving from an additional workspace into the primary predicate. Babel adapts that derivation to two complete trees; its cross-workspace arc is not a copied source mark.',
     sentence: 'Hinter jedem Löwen steht eine Dompteuse und krault ihm den Rücken',
     wide: true,
 
@@ -8785,7 +8787,7 @@ export const rawCases: LabCase[] = [
   {
     archetype: 'O5. Case / ordered stacking',
     title: 'Ordered Case Stacking',
-    status: 'The source supplies two ordered CASE slots on one DP occurrence. Replay first shows DAT plus one open slot, then fills the second slot with NOM; the ordinary phrasal path persists because the DP has already A-moved into the higher Case projection.',
+    status: 'Babel’s case-stacking fixture shows two ordered CASE slots on one DP occurrence. Replay first shows DAT plus one open slot, then fills the second slot with NOM; no matching source overlay has been verified.',
     sentence: 'Mina arrived',
 
 
@@ -8907,6 +8909,55 @@ export const archivedExampleArchetypes = new Set([
 
 const archetypeCode = (item: LabCaseView) => item.archetype.split('.')[0];
 
+function sourceImageUrl(path: string): string {
+  const orchardStylesheet = document.querySelector<HTMLLinkElement>('link[href*="relation-visuals.css"]')?.href;
+  return new URL(path, orchardStylesheet ?? window.location.href).href;
+}
+
+function OrchardSourcePanel({ code, source, card }: { code: string; source: OrchardSourceCitation; card?: LabCaseView }) {
+  const imageUrl = source.image ? sourceImageUrl(source.image.path) : null;
+  const researchImages = source.image ? [] : orchardResearchImages[code] ?? [];
+  return (
+    <div className="babel-source-panel">
+      <p className="babel-source-kind">{source.kind}</p>
+      {source.image && imageUrl ? (
+        <figure>
+          <a href={imageUrl} target="_blank" rel="noreferrer">
+            <img src={imageUrl} alt={source.image.alt} loading="lazy" />
+          </a>
+          <figcaption>
+            {source.image.credit} Select the image to see it at full size.{' '}
+            <a href={source.image.licenseUrl} target="_blank" rel="noreferrer">License ↗</a>
+          </figcaption>
+        </figure>
+      ) : null}
+      {researchImages.map((researchImage) => {
+        const url = sourceImageUrl(orchardSourcePreviewPath(researchImage.path));
+        return (
+          <figure key={researchImage.path}>
+            <a href={url} target="_blank" rel="noreferrer">
+              <img src={url} alt={researchImage.label} loading="lazy" />
+            </a>
+            <figcaption>{researchImage.role === 'visual precedent' ? 'Related visual precedent' : 'Cited source figure'}: {researchImage.label}. Small source preview; open the cited work below for the full figure.</figcaption>
+          </figure>
+        );
+      })}
+      {!source.image && researchImages.length === 0 && source.url ? (
+        <p>No image is hosted here for this entry. Open the cited work to inspect the source.</p>
+      ) : null}
+      <p className="babel-source-citation">{source.citation}</p>
+      <p>{source.location ? `${source.location}. ` : ''}{source.note}</p>
+      {source.url ? <a href={source.url} target="_blank" rel="noreferrer">Open cited work ↗</a> : null}
+      {source.related?.map((related) => (
+        <p key={related.url} className="babel-source-related">
+          Related evidence: <a href={related.url} target="_blank" rel="noreferrer">{related.citation} ↗</a> ({related.location})
+        </p>
+      ))}
+      {card ? <>{source.url ? ' · ' : ''}<a href={`#${relationAnchor(card)}`}>Orchard drawing ↗</a></> : null}
+    </div>
+  );
+}
+
 export const canonicalCases = allCases.filter(
   (item) => !archivedExampleArchetypes.has(archetypeCode(item))
 );
@@ -8926,6 +8977,7 @@ function relationAnchor(item: LabCaseView) {
 
 function RendererCard({ item }: { item: LabCaseView }) {
   const cardRef = useRef<HTMLElement | null>(null);
+  const source = orchardSourceCitations[archetypeCode(item)];
   const hasAuthoredRelation = item.derivationStages.some((stage) => stage.relations.length > 0);
   const [lensActive, setLensActive] = useState(hasAuthoredRelation);
   const [layoutPass, setLayoutPass] = useState(0);
@@ -9019,15 +9071,25 @@ function RendererCard({ item }: { item: LabCaseView }) {
         <div>
           <span className="babel-render-archetype">{item.archetype}</span>
           <h3>{item.title}</h3>
-          {item.lensLabel ? (
-            <button
-              type="button"
-              className="babel-lens-toggle"
-              aria-pressed={lensActive}
-              onClick={() => setLensActive((value) => !value)}
-            >
-              {item.lensLabel}
-            </button>
+          {item.lensLabel || source ? (
+            <div className="babel-card-actions">
+              {item.lensLabel ? (
+                <button
+                  type="button"
+                  className="babel-lens-toggle"
+                  aria-pressed={lensActive}
+                  onClick={() => setLensActive((value) => !value)}
+                >
+                  {item.lensLabel}
+                </button>
+              ) : null}
+              {source ? (
+                <details className="babel-source-detail">
+                  <summary>{source.image || orchardResearchImages[archetypeCode(item)]?.length ? source.kind === 'source figure' ? 'View source figure' : 'View visual evidence' : 'Drawing provenance'}</summary>
+                  <OrchardSourcePanel code={archetypeCode(item)} source={source} />
+                </details>
+              ) : null}
+            </div>
           ) : null}
         </div>
         {contractNotes.length > 0 ? (
@@ -9046,6 +9108,32 @@ function RendererCard({ item }: { item: LabCaseView }) {
         />
       </div>
     </article>
+  );
+}
+
+function OrchardSourceIndex() {
+  const imageCount = Object.entries(orchardSourceCitations)
+    .filter(([code, source]) => source.image || orchardResearchImages[code]?.length).length;
+  return (
+    <>
+      <div className="babel-source-preview-intro">
+        <h4>Sources for all 55 drawings</h4>
+        <p>Open an entry to compare its Orchard drawing with the cited visual evidence. {imageCount} entries have source previews. The others link to the cited work or identify a drawing made for Babel.</p>
+      </div>
+      <div className="babel-selected-sources">
+        {Object.entries(orchardSourceCitations).map(([code, source]) => {
+          const card = cases.find((item) => archetypeCode(item) === code);
+          if (!card) return null;
+          const hasImage = source.image || orchardResearchImages[code]?.length;
+          return (
+            <details id={`source-${code.toLowerCase()}`} className="babel-source-detail babel-source-figure-entry" name="babel-orchard-source" key={code}>
+              <summary><span>{code} · {card.title}</span><small>{hasImage ? source.kind === 'source figure' ? 'source figure' : 'visual evidence' : source.url ? 'source link' : source.kind}</small></summary>
+              <OrchardSourcePanel code={code} source={source} card={card} />
+            </details>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -9108,20 +9196,30 @@ if (typeof document !== 'undefined') {
     createRoot(sourceGalleryMount).render(<SourceGallery />);
   }
 
+  const selectedSourcesMount = document.getElementById('babel-selected-sources');
+  if (selectedSourcesMount) {
+    createRoot(selectedSourcesMount).render(<OrchardSourceIndex />);
+  }
+
   let atlasReadyFrames = 0;
   const revealAtlasWhenReady = () => {
     const cardsReady = !mount || Boolean(mount.querySelector('.babel-render-card'));
     const sidebarReady = !sidebarMount || Boolean(sidebarMount.querySelector('a'));
     const vocabularyReady = !vocabularyMount
       || Boolean(vocabularyMount.querySelector('.babel-vocabulary-specimen'));
+    const sourcesReady = !selectedSourcesMount
+      || Boolean(selectedSourcesMount.querySelector('.babel-source-figure-entry'));
 
-    if (cardsReady && sidebarReady && vocabularyReady) {
+    if (cardsReady && sidebarReady && vocabularyReady && sourcesReady) {
       document.documentElement.classList.remove('atlas-loading');
       document.documentElement.classList.add('atlas-ready');
       document.documentElement.dataset.atlasReady = 'true';
       mount?.setAttribute('aria-busy', 'false');
       sidebarMount?.setAttribute('aria-busy', 'false');
       vocabularyMount?.setAttribute('aria-busy', 'false');
+      if (window.location.hash === '#sources') {
+        document.getElementById('sources')?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+      }
       return;
     }
 
