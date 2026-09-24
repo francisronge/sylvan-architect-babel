@@ -915,6 +915,12 @@
       border-radius: 22px;
       background: linear-gradient(180deg, #04140e 0%, #020806 100%);
     }
+    .babel-render-mount > div:focus {
+      outline: none;
+    }
+    .babel-render-mount > div:focus-visible [data-babel-replay-panel="true"] {
+      border-color: rgba(110, 231, 183, 0.48);
+    }
     .babel-render-mount > div::after {
       content: "";
       position: absolute;
