@@ -296,6 +296,33 @@ test('Case collection compiles one plaque and preserves each authored relation m
   });
   assert.deepEqual(composition.rows.map(row => [...new Set(row.ownerIndices.map(index => items[index].relationRef.relationIndex))]),
     [[0, 3], [1, 3], [2, 3]], 'each row keeps its original agreement moment and later bundle restatement');
+  const withoutBundle = compileRelationRenderPlan([stage([
+    {
+      relation: 'CaseAssignment',
+      anchors: { assigner: 'p_case_collection', bearer: 'k_case_collection' },
+      values: { feature: 'Case', value: 'DAT' }
+    },
+    {
+      relation: 'Agree',
+      anchors: { probe: 'k_case_collection', goal: 'num_case_collection' },
+      values: { feature: 'Number', value: 'PL' }
+    },
+    {
+      relation: 'Agree',
+      anchors: { probe: 'k_case_collection', goal: 'n_case_collection' },
+      values: { feature: 'Gender', value: 'MASC' }
+    }
+  ], [tree])]);
+  const leanItems = withoutBundle.frames[0].items;
+  const leanComposition = caseFeatureComposition(leanItems,
+    leanItems.findIndex(item => item.pathStyle === 'case-assignment'));
+  assert.deepEqual(leanComposition.rows.map(({ label, value }) => ({ label, value })),
+    composition.rows.map(({ label, value }) => ({ label, value })),
+    'the three actual dependencies provide every visible plaque row without a redundant FeatureBundle moment');
+  assert.deepEqual(leanComposition.collections.map(({ item }) => item.relationRef.relationIndex), [1, 2]);
+  assert.deepEqual(leanComposition.rows.map(row => [...new Set(row.ownerIndices.map(index =>
+    leanItems[index].relationRef.relationIndex))]),
+    [[0], [1], [2]], 'each row remains owned by its own authored claim');
   assert.deepEqual(
     [...new Set(visiblePlanFrameItems(plan, 0, new Set([0, 1])).map((item) => item.relationRef.relationIndex))],
     [0, 1],
