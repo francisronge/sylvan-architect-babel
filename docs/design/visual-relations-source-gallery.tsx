@@ -10,8 +10,11 @@ export const visualSourceImagePaths = [
   'visual-relations-assets/atb-citko-minimal.png',
   'visual-relations-assets/atb-citko-shared.png',
   'visual-relations-assets/atb-torr-movement-schema.png',
+  'visual-relations-assets/barnickel-sideward-example-155.png',
+  'visual-relations-assets/belletti-smuggling-example-7.png',
   'visual-relations-assets/binding-c-command.png',
   'visual-relations-assets/co-indexation.png',
+  'visual-relations-assets/den-besten-webelhuth-remnant-page-78.png',
   'visual-relations-assets/glossa-after-k-lowering.png',
   'visual-relations-assets/glossa-before-k-lowering.png',
   'visual-relations-assets/glossa-before-linearization.png',
@@ -55,6 +58,7 @@ export const visualSourceImagePaths = [
   'visual-relations-assets/source-recovery-2026-07-30/multiple-parasitic-gaps-ishii-page7.png',
   'visual-relations-assets/source-recovery-2026-07-30/multiple-parasitic-gaps-ishii-page8.png',
   'visual-relations-assets/source-recovery-2026-07-30/pf-vocabulary-insertion-embick-noyer-2004.png',
+  'visual-relations-assets/source-recovery-2026-09-24/vocabulary-insertion-goryczka-example3a.png',
   'visual-relations-assets/source-recovery-2026-07-30/phase-arc-gao-2016.png',
   'visual-relations-assets/source-recovery-2026-07-30/reference-control-predication/control-agree-brodahl-fischer-hoyem-figure73.png',
   'visual-relations-assets/source-recovery-2026-07-30/reference-control-predication/control-reference-algebra-inokuma-2008-page132.png',
@@ -189,7 +193,16 @@ export const visualSourceImagePaths = [
   'visual-relations-assets/source-recovery-2026-08-06/fable-audit/shlonsky-2004-roll-up-figure39.png',
   'visual-relations-assets/source-recovery-2026-08-06/fable-audit/wagner-2010-ex67-f-projection.png',
   'visual-relations-assets/source-recovery-2026-08-06/fable-audit/yoo-1998-ex25-cooper-storage.png',
+  'visual-relations-assets/source-recovery-2026-09-24/fox-pesetsky-cyclic-linearization-example2.png',
+  'visual-relations-assets/source-recovery-2026-09-24/intervention-maeda-miyamoto-example9b.png',
+  'visual-relations-assets/source-recovery-2026-09-24/operator-variable-baumann-figure2-32.png',
+  'visual-relations-assets/source-recovery-2026-09-24/ordered-case-stacking-assmann-example33.png',
+  'visual-relations-assets/source-recovery-2026-09-24/quantifier-raising-lonsdale-slide9.png',
+  'visual-relations-assets/source-recovery-2026-09-24/quantifier-raising-wang-example14.png',
+  'visual-relations-assets/source-recovery-2026-09-24/remnant-movement-hunter-figure1.png',
+  'visual-relations-assets/source-recovery-2026-09-24/remnant-wiland-example62.png',
   'visual-relations-assets/umass-syntax-workshop.jpg',
+  'visual-relations-assets/villata-relativized-minimality-schemas.png',
   'visual-relations-assets/vp-ellipsis-shaded.jpg',
   'visual-relations-assets/y-model-covert-movement.jpg',
 ] as const;
@@ -212,7 +225,8 @@ const sourceGroups: SourceGroup[] = [
   { key: 'pf-morphology', label: 'PF, morphology and linearization', matches: (path) => path.includes('/pf-morphology-linearization/') },
   { key: 'sharing', label: 'Sharing, coordination and non-tree structures', matches: (path) => path.includes('/sharing-coordination-non-tree/') },
   { key: 'final-stretch', label: 'Final relation studies', matches: (path) => path.includes('/final-stretch/') },
-  { key: 'generality-audit', label: 'Generality audit', matches: (path) => path.includes('/fable-audit/') }
+  { key: 'generality-audit', label: 'Generality audit', matches: (path) => path.includes('/fable-audit/') },
+  { key: 'source-figure-corrections', label: 'Source figure corrections', matches: (path) => path.includes('/source-recovery-2026-09-24/') }
 ];
 
 const sourceAcronyms = new Set([

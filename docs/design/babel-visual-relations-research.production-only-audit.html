@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Babel Relation Orchard</title>
   <link rel="stylesheet" href="../research/relation-orchard/relation-visuals.css">
+  <link rel="stylesheet" href="../research/relation-orchard/source-citations.css">
   <style>
     @font-face {
       font-family: "Crimson Pro";
@@ -971,15 +972,25 @@
       overflow-y: auto;
     }
     .babel-render-mount [data-babel-replay-panel="true"] button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 23px;
+      box-sizing: border-box;
+      vertical-align: bottom;
       margin: 0 6px 8px 0;
       border: 1px solid rgba(16, 185, 129, 0.24);
       border-radius: 8px;
       background: rgba(16, 185, 129, 0.08);
       color: rgba(236, 253, 245, 0.78);
-      padding: 6px 8px;
+      padding: 0 8px;
       font: 800 9px/1 "JetBrains Mono", monospace;
       letter-spacing: 0.12em;
       text-transform: uppercase;
+    }
+    .babel-render-mount [data-babel-replay-panel="true"] button[aria-label="Fit tree"] svg {
+      width: 11px;
+      height: 11px;
     }
     .babel-render-mount [data-babel-replay-panel="true"] input[type="range"] {
       display: none;
@@ -1543,6 +1554,11 @@
           <h2 id="sources-title">Sources</h2>
         </div>
         <div class="source-records">
+          <h3>Drawing provenance</h3>
+          <p>Every public card is listed. “Source figure” points to a specific published figure; “adapted convention” names a source but marks Babel’s changes; “Babel composition” claims no matching figure; “source unverified” flags an unresolved source claim. Open a card below to see its source image or citation.</p>
+          <div id="babel-selected-sources"></div>
+        </div>
+        <div class="source-records">
           <h3>Research records</h3>
           <ul class="source-list">
             <li><a href="./visual-relations-source-recovery-2026-07-26.md">Primitive and source recovery</a></li>
@@ -1571,6 +1587,6 @@
   </div>
 
   <script>window.__BABEL_LOGO_SRC__ = "../../public/babellogo.png";</script>
-    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=shared-orchard-paint"></script>
+    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=source-images-14"></script>
 </body>
 </html>

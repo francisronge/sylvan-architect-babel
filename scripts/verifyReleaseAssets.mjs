@@ -3,6 +3,7 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { orchardResearchImages, orchardSourcePreviewPath } from '../docs/research/relation-orchard/source-research-images.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -19,6 +20,11 @@ const requiredPaths = [
   'docs/research/relation-orchard/index.md',
   'docs/research/relation-orchard/orchard.html',
   'docs/research/relation-orchard/relation-orchard.bundle.js',
+  'docs/research/relation-orchard/source-citations.css',
+  'docs/research/relation-orchard/assets/source-figures/poole-dependent-case-low.png',
+  'docs/research/relation-orchard/assets/source-figures/poole-keine-reconstruction-example-2.png',
+  'docs/research/relation-orchard/assets/source-figures/parasitic-gap-tree.png',
+  'docs/research/relation-orchard/assets/source-figures/assmann-et-al-focus-marking-example-49.png',
   'docs/research/relation-orchard/assets/relation-orchard-overview.png',
   'docs/research/relation-orchard/assets/babellogo.png',
   'docs/research/relation-orchard/assets/fonts/OFL-1.1.txt',
@@ -72,6 +78,9 @@ const collectReferences = (contents, extension) => {
 };
 
 const missing = [];
+const sourcePreviewPaths = new Set(Object.values(orchardResearchImages)
+  .flat()
+  .map((image) => `docs/research/relation-orchard/${orchardSourcePreviewPath(image.path)}`));
 const orchardBundles = await Promise.all([
   'docs/design/visual-relations-current-lab.production-only-audit.r96.bundle.js',
   'docs/research/relation-orchard/relation-orchard.bundle.js'
@@ -79,7 +88,7 @@ const orchardBundles = await Promise.all([
 if (!orchardBundles[0].equals(orchardBundles[1])) {
   missing.push('Orchard bundles differ; rebuild both with npm run orchard:build');
 }
-for (const relativePath of requiredPaths) {
+for (const relativePath of [...requiredPaths, ...sourcePreviewPaths]) {
   try {
     await access(path.join(repoRoot, relativePath));
   } catch {
@@ -107,5 +116,5 @@ if (missing.length > 0) {
   for (const failure of missing) console.error(`- ${failure}`);
   process.exitCode = 1;
 } else {
-  console.log(`Release assets verified: ${requiredPaths.length} required files and ${documentsToScan.length} linked documents.`);
+  console.log(`Release assets verified: ${requiredPaths.length} required files, ${sourcePreviewPaths.size} source previews, and ${documentsToScan.length} linked documents.`);
 }
