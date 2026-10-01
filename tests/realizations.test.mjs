@@ -110,10 +110,13 @@ test('groups are current-stage state; omission neither inherits earlier groups n
   assert.equal(normalize(partial, 'Mia walked').analyses.length, 1);
 });
 
-test('collective coverage does not mistake an unresolved final forest for mismatching input', () => {
+test('collective realization coverage accepts a final forest without inventing a tree', () => {
   const split = { ...stage(leaf('root', 'walk'), [group(['root', 'past'], [0])]),
     workspaceForest: [leaf('root', 'walk'), leaf('past', '-ed')] };
-  assert.throws(() => normalize([split], 'walked'), (error) => error.code === 'INCOMPLETE_GENERATION');
+  const analysis = normalize([split], 'walked').analyses[0];
+  assert.equal(analysis.tree, undefined);
+  assert.deepEqual(analysis.finalForest.map(({ id }) => id), ['root', 'past']);
+  assert.deepEqual(analysis.finalForest.map(({ surfaceSpan }) => surfaceSpan), [[0, 0], [0, 0]]);
   assert.deepEqual(__test__.inspectDerivationWorkspaces([split], { sentence: 'walked' })[0].diagnostics.map(({ ruleId }) => ruleId),
     ['DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS']);
 });

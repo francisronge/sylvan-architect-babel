@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { displayTreeForAnalysis } from '../replay/finalForest.ts';
 import { __test__ } from '../server/babelParser.js';
 import { buildSystemInstruction, DERIVATION_STAGES_BASE_INSTRUCTION } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
@@ -116,6 +118,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
     assert.match(instruction, /Replay derives its construction steps from workspace changes; do not add relations solely to narrate those steps\./);
     assert.match(instruction, /Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching\./);
+    assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\./);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
     assert.match(instruction, /The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries\./);
@@ -212,6 +215,7 @@ test('normalizes ordinary derivations without adding optional realization groups
   );
   assert.deepEqual(Object.keys(analysis).sort(), [
     'derivationStages',
+    'finalForest',
     'provenance',
     'tree'
   ]);
@@ -259,7 +263,7 @@ test('preserves every distinct analysis in the strict ambiguity envelope', () =>
   assert.equal(bundle.ambiguityDetected, true);
 });
 
-test('never substitutes an earlier committed tree for a split final stage', () => {
+test('keeps the complete final forest instead of substituting an earlier tree', () => {
   const payload = buildCurrentContractPayload();
   payload.derivationStages.push({
     statement: 'The final authored state is split and has not converged.',
@@ -271,22 +275,11 @@ test('never substitutes an earlier committed tree for a split final stage', () =
     ]
   });
 
-  assert.throws(
-    () => __test__.normalizeParseBundle(
-      payload,
-      'xbar',
-      'Mia laughed.',
-      'gemini',
-      true,
-      { payloadIntegrityFlags: [] }
-    ),
-    (error) => {
-      assert.equal(error.code, 'INCOMPLETE_GENERATION');
-      assert.equal(error.failure.ruleId, 'GENERATION_DID_NOT_CONVERGE');
-      assert.equal(error.failure.stageIndex, 4);
-      return true;
-    }
-  );
+  const analysis = __test__.normalizeParseBundle(
+    payload, 'xbar', 'Mia laughed.', 'gemini', true, { payloadIntegrityFlags: [] }
+  ).analyses[0];
+  assert.deepEqual(analysis.finalForest.map((root) => root.id), ['np_mia', 'vp_laughed']);
+  assert.equal(analysis.tree, undefined);
 });
 
 test('keeps the existing surface-mismatch result for a split final stage with different words', () => {
@@ -320,4 +313,39 @@ test('keeps the existing surface-mismatch result for a split final stage with di
       return true;
     }
   );
+});
+
+test('a spoken repair can retain the abandoned word beside the complete clause', () => {
+  const first = { id: 'first_the', label: 'D', word: 'The', tokenIndex: 0, children: [] };
+  const clause = { id: 'ip', label: 'IP', children: [
+    { id: 'subject', label: 'DP', children: [
+      { id: 'second_the', label: 'D', word: 'the', tokenIndex: 1, children: [] },
+      { id: 'dog', label: 'N', word: 'dog', tokenIndex: 2, children: [] }
+    ] },
+    { id: 'slept', label: 'V', word: 'slept', tokenIndex: 3, children: [] }
+  ] };
+  const payload = { derivationStages: [
+    { statement: 'The first word is uttered.', stageRecord: 'The initial determiner is present.',
+      relations: [], workspaceForest: [first] },
+    { statement: 'A restart forms a clause.', stageRecord: 'The first determiner remains outside the completed clause.',
+      relations: [{ relation: 'speech-repair replacement', anchors: { abandoned: 'first_the', restart: 'second_the' } }],
+      workspaceForest: [{ refId: 'first_the' }, clause] }
+  ] };
+  const analysis = __test__.normalizeParseBundle(payload, 'xbar', 'The the dog slept.', 'gemini', true).analyses[0];
+  assert.deepEqual(analysis.finalForest.map(root => root.id), ['first_the', 'ip']);
+  assert.equal(analysis.tree, undefined);
+  assert.equal(displayTreeForAnalysis(analysis).children.length, 2);
+  const replay = prepareReplay({ derivationStages: analysis.derivationStages,
+    sentence: 'The the dog slept.', includePlayback: true });
+  assert.equal(replay.playbackSteps.filter(step => step.replayKind === 'relation').length, 1);
+  assert.equal(replay.playbackSteps.at(-1).workspaceAfter.length, 2);
+
+  const missingWord = structuredClone(payload);
+  missingWord.derivationStages[1].workspaceForest[1].children[0].children.pop();
+  assert.throws(() => __test__.normalizeParseBundle(missingWord, 'xbar', 'The the dog slept.', 'gemini', true),
+    error => error.failure.ruleId === 'SURFACE_ORDER_EXACT');
+  const brokenReference = structuredClone(payload);
+  brokenReference.derivationStages[1].workspaceForest[0].refId = 'unknown';
+  assert.throws(() => __test__.normalizeParseBundle(brokenReference, 'xbar', 'The the dog slept.', 'gemini', true),
+    error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID');
 });

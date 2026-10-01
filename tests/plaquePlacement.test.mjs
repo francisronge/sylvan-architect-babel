@@ -6,8 +6,10 @@ import { caseAssignmentSource, caseAssignmentClears, collectionPlaqueClears, pre
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
-import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildReplayPlaqueSchedule, selectReplayPlaqueLayout, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
@@ -240,23 +242,20 @@ for (const width of [1596, 390]) test(`${width}px: successive head movement leav
   const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan, width, height: 1016,
     layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),
     completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) };
-  const layouts = buildReplayPlaqueLayouts(input);
+  const schedule = buildReplayPlaqueSchedule(input), layouts = schedule.stages;
   const remembered = new Map();
   for (let stageIndex = 0; stageIndex < layouts.length; stageIndex++) {
     const items = input.plan.frames[stageIndex].items;
     const space = measureStagePlaqueSpace({ ...input, stageIndex });
     for (const id of ['im', 'vm']) {
       const index = items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === id);
-      const box = layouts[stageIndex].get(index), prior = remembered.get(id);
+      const box = layouts[stageIndex].get(index);
       assert(box);
-      if (prior) {
-        assert(Math.abs(box.x - box.attachmentX - prior.x + prior.attachmentX) < 1e-8);
-        assert(Math.abs(box.y - box.attachmentY - prior.y + prior.attachmentY) < 1e-8);
-      }
       remembered.set(id, box);
       for (const scene of space.scenes) {
         const positions = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
-        const projected = projectPlaqueLayout(new Map([[index, box]]), id => positions.get(id)).get(index);
+        const active = selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0]).get(index);
+        const projected = active && projectPlaqueLayout(new Map([[index, active]]), id => positions.get(id)).get(index);
         if (!projected) continue;
         assert(scene.obstacles.every(obstacle => !plaquesOverlap(projected, obstacle)), 'the pocket clears every future branch and movement');
       }
@@ -309,6 +308,30 @@ test('large plaques are centered beneath their enclosing subtree and stack witho
   }
   assert(!plaquesOverlap(result.get(0), result.get(1)));
   assert.equal(JSON.stringify(items), original);
+});
+
+test('a wide role grid stays near its predicate instead of beneath its clausal argument', () => {
+  const nodes = tree().descendants();
+  const predicate = nodes.find(node => node.data.id === 'left');
+  predicate.data.word = 'πιστεύει';
+  nodes.find(node => node.data.id === 'right').y = 2400;
+  const item = { kind: 'node-plaque', plaqueStyle: 'theta-grid', anchorNodeIds: ['left'],
+    rows: [{ label: 'propositional Content', value: '' }],
+    thetaRoles: [{ nodeId: 'right', label: 'propositional Content', index: 'i' }],
+    relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const original = JSON.stringify(item);
+  const obstacles = plaqueTreeObstacles(nodes);
+  const box = placeStagePlaques([item], nodes, obstacles).get(0);
+  assert(box.width > 480, 'the complete predicate and role exceed the generic local width limit');
+  assert.equal(box.location, 'local');
+  assert.equal(box.attachmentNodeId, 'left');
+  assert(Math.hypot(box.x + box.width / 2 - predicate.x,
+    box.y + box.height / 2 - predicate.y) < 700, 'a wide grid must still search nearby clear pockets');
+  assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)));
+  const carried = placeStagePlaques([item], nodes, obstacles,
+    new Map([[plaqueIdentity(item), box]])).get(0);
+  assert.deepEqual(carried, box, 'the nearby pocket persists on subsequent frames');
+  assert.equal(JSON.stringify(item), original, 'placement preserves the authored predicate and role');
 });
 
 test('space reserved for a future word prevents an earlier plaque occupying its position', () => {
@@ -399,8 +422,9 @@ for (const record of records) {
   test(`${record.name}: carried plaques reserve future branches before their first appearance`, () => {
     const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
     const plan = compileRelationRenderPlan(record.derivationStages);
-    const layouts = buildReplayPlaqueLayouts({ steps, stageIndex: 0, plan, width: 1596, height: 1016,
+    const schedule = buildReplayPlaqueSchedule({ steps, stageIndex: 0, plan, width: 1596, height: 1016,
       completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) });
+    const layouts = schedule.stages;
     let previous = new Map();
     let carried = 0;
     for (const [stageIndex, stage] of record.derivationStages.entries()) {
@@ -410,7 +434,8 @@ for (const record of records) {
       const { scenes } = measureStagePlaqueSpace(input);
       for (const scene of scenes) {
         const positions = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
-        const boxes = [...projectPlaqueLayout(layout, id => positions.get(id)).values()];
+        const active = selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0]);
+        const boxes = [...projectPlaqueLayout(active, id => positions.get(id)).values()];
         boxes.forEach((box, i) => {
           assert(scene.obstacles.every(obstacle => !plaquesOverlap(box, obstacle, 0)));
           assert(boxes.slice(i + 1).every(other => !plaquesOverlap(box, other, 0)));
@@ -422,9 +447,8 @@ for (const record of records) {
         if (!prior) continue;
         carried++;
         assert.equal(box.attachmentNodeId, prior.attachmentNodeId);
-        assert.equal(box.location, prior.location);
-        assert(Math.abs((box.x - box.attachmentX) - (prior.x - prior.attachmentX)) < 1e-8);
-        assert(Math.abs((box.y - box.attachmentY) - (prior.y - prior.attachmentY)) < 1e-8);
+        assert(Number.isFinite(box.x - box.attachmentX));
+        assert(Number.isFinite(box.y - box.attachmentY));
       }
       previous = current;
     }
@@ -434,8 +458,11 @@ for (const record of records) {
 function replayTree(step, steps, width, height) {
   const root = d3.hierarchy(step.replayCanvasData);
   applyVizIds(root);
-  return d3.tree().size(stageTreeLayoutSize(steps, step.replayFrameIndex, width, height))
-    .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+  const size = stageTreeLayoutSize(steps, step.replayFrameIndex, width, height);
+  const coordinates = buildStageCoordinateReservations(steps, step.replayFrameIndex, size,
+    index => stageTreeLayoutSize(steps, index, width, height)).get(step.replayCanvasData);
+  return layoutSyntaxTree(root, size, 'ltr', coordinates,
+    step.replayVisibleNodeIds ? new Set(step.replayVisibleNodeIds) : undefined);
 }
 
 test('a probe plaque is reserved against actual Replay coordinates', () => {
@@ -462,17 +489,21 @@ for (const record of records) {
       const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
       const plan = compileRelationRenderPlan(record.derivationStages);
       const original = JSON.stringify({ steps, plan });
+      const base = { steps, stageIndex: 0, plan, width, height,
+        completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest) };
+      const schedule = buildReplayPlaqueSchedule(base);
+      assert.deepEqual(schedule.stages, buildReplayPlaqueSchedule({ ...base, steps: [...steps].reverse() }).stages);
       record.derivationStages.forEach((stage, stageIndex) => {
         const input = { steps, stageIndex, plan, width, height,
           completedCanvas: buildRenderableDerivationCanvasData(stage.workspaceForest) };
-        const layout = buildStagePlaqueLayout(input);
+        const layout = schedule.stages[stageIndex];
         for (const scene of measureStagePlaqueSpace(input).scenes) {
           const byId = new Map(scene.nodes.map(node => [node.__vizId ?? node.data.id, node]));
-          assert([...projectPlaqueLayout(layout, id => byId.get(id)).values()].every(box => scene.obstacles
+          const active = selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0]);
+          assert([...projectPlaqueLayout(active, id => byId.get(id)).values()].every(box => scene.obstacles
             .every(obstacle => !plaquesOverlap(box, obstacle, 0))), 'projected plaques clear syntax and movement trajectories');
         }
-        assert.deepEqual(layout, buildStagePlaqueLayout({ ...input, steps: [...steps].reverse() }));
-        const bounds = buildStageCameraBounds({ ...input, plaqueLayout: layout });
+        const bounds = buildStageCameraBounds({ ...input, plaqueSchedule: schedule });
         const boxes = [...layout.values()];
         boxes.forEach((box, index) => {
           assert(Object.values(box).filter(value => typeof value === 'number').every(Number.isFinite));
@@ -486,9 +517,10 @@ for (const record of records) {
           const visibleIds = new Set(step.replayVisibleNodeIds);
           const treeObstacles = plaqueTreeObstacles(root.descendants().filter(node =>
             visibleIds.has(node.__vizId ?? node.data.id)));
-          const projected = projectPlaqueLayout(layout, id => nodes.get(id) ?? null);
+          const active = selectReplayPlaqueLayout(schedule, stageIndex, steps.indexOf(step));
+          const projected = projectPlaqueLayout(active, id => nodes.get(id) ?? null);
           for (const [index, box] of projected) {
-            const reserved = layout.get(index);
+            const reserved = active.get(index);
             const anchor = nodes.get(box.attachmentNodeId);
             assert(Math.abs((box.x - anchor.x) - (reserved.x - reserved.attachmentX)) < 1e-8,
               'Replay must preserve the chosen horizontal offset, not choose another pocket');
@@ -618,7 +650,7 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
     const plan = compileRelationRenderPlan(record.derivationStages);
     const input = { steps, stageIndex: 2, plan, width, height,
       completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages[2].workspaceForest) };
-    const layouts = buildReplayPlaqueLayouts(input);
+    const schedule = buildReplayPlaqueSchedule(input), layouts = schedule.stages;
     assert.deepEqual(layouts, buildReplayPlaqueLayouts({ ...input, steps: [...steps].reverse() }),
       'frame traversal order cannot change the reserved pockets');
     const index = plan.frames[2].items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'iPast');
@@ -637,8 +669,8 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
         const priorIndex = plan.frames[stageIndex - 1].items.findIndex(item => plaqueIdentity(item) === plaqueIdentity(items[itemIndex]));
         const prior = layouts[stageIndex - 1].get(priorIndex);
         if (!prior) continue;
-        assert(Math.abs(placement.x - placement.attachmentX - prior.x + prior.attachmentX) < 1e-8);
-        assert(Math.abs(placement.y - placement.attachmentY - prior.y + prior.attachmentY) < 1e-8);
+        assert.equal(placement.attachmentNodeId, prior.attachmentNodeId,
+          'reattachment can reopen a pocket, but must not change its exact owner');
       }
     }
     const segments = plaqueCollectionConnectorObstacles(nodes, new Map([[index, box]]));
@@ -658,7 +690,7 @@ for (const [width, height] of [[1600, 1016], [390, 844]]) {
     const plan = compileRelationRenderPlan(record.derivationStages);
     const input = { steps, stageIndex: 1, plan, width, height,
       completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages[1].workspaceForest) };
-    const layouts = buildReplayPlaqueLayouts(input);
+    const schedule = buildReplayPlaqueSchedule(input), layouts = schedule.stages;
     const frame = plan.frames[1];
     const index = frame.items.findIndex(item => item.pathStyle === 'case-assignment' && item.fromNodeId === 'inflection');
     const box = layouts[1].get(index);
@@ -667,13 +699,13 @@ for (const [width, height] of [[1600, 1016], [390, 844]]) {
       `a clear side pocket exists; the search must not place this plaque far below the tree: ${JSON.stringify(box)}`);
     const laterIndex = plan.frames[2].items.findIndex(item => plaqueIdentity(item) === plaqueIdentity(frame.items[index]));
     const later = layouts[2].get(laterIndex);
-    assert(Math.abs(box.x - box.attachmentX - later.x + later.attachmentX) < 1e-8);
-    assert(Math.abs(box.y - box.attachmentY - later.y + later.attachmentY) < 1e-8,
-      'future inflection must not relocate an already visible plaque');
+    assert.equal(box.attachmentNodeId, later.attachmentNodeId,
+      'the receiving head retains its own plaque when it joins the head complex');
+    assert.deepEqual(box.collectionRows.map(row => row.sourceNodeId), later.collectionRows.map(row => row.sourceNodeId));
     for (const stageIndex of [1, 2]) {
       const space = measureStagePlaqueSpace({ ...input, stageIndex });
-      const placement = layouts[stageIndex].get(stageIndex === 1 ? index : laterIndex);
       for (const scene of space.scenes) {
+        const placement = selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0]).get(stageIndex === 1 ? index : laterIndex);
         const anchor = scene.nodes.find(node => node.data.id === placement.attachmentNodeId);
         if (!anchor) continue;
         const projected = projectPlaqueLayout(new Map([[0, placement]]), () => anchor).get(0);

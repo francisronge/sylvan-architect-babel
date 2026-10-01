@@ -1,0 +1,3570 @@
+[
+  {
+    "id": "successive-trace",
+    "sentence": "Which portrait of herself does Naila think Farah will display?",
+    "inputTokens": [
+      "Which",
+      "portrait",
+      "of",
+      "herself",
+      "does",
+      "Naila",
+      "think",
+      "Farah",
+      "will",
+      "display"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingProjection": "eCP",
+              "movedPhrase": "wh",
+              "sourceTrace": "tObject"
+            },
+            "priorAnchors": {
+              "sourcePhrase": "wh",
+              "sourceProjection": "eVbar"
+            },
+            "relation": "successive-cyclic A′-movement",
+            "values": {
+              "landingPosition": "Spec-CP"
+            }
+          },
+          {
+            "anchors": {
+              "positions": [
+                "wh",
+                "tObject"
+              ]
+            },
+            "relation": "A′-chain",
+            "values": {
+              "positions": [
+                "intermediate edge",
+                "theta-marked and Case-marked object position"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "The object NP moves from the complement of display to embedded Spec-CP, leaving an A′-trace in its previously established object position. Moving the whole NP pied-pipes of herself, so the reflexive remains inside the nominal. This intermediate landing site makes extraction successive-cyclic under the GB bounding-node account of Subjacency. Think is a bridge verb, and the embedded CP is not an island. Its silent declarative C does not trigger inversion of will. The trace retains the chain's object position for theta-role, Case, and subsequent reconstruction.",
+        "statement": "Move the whole interrogative NP to the embedded CP edge.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "mC",
+                    "label": "C[+Q]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "nNaila",
+                                "label": "N",
+                                "tokenIndex": 5,
+                                "word": "Naila"
+                              }
+                            ],
+                            "id": "nbarNaila",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "npNaila",
+                        "label": "NP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "iDoes",
+                            "label": "I[present, 3sg]",
+                            "lineageId": "finiteAuxiliary",
+                            "tokenIndex": 4,
+                            "word": "does"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "vThink",
+                                    "label": "V",
+                                    "tokenIndex": 6,
+                                    "word": "think"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "detWhich",
+                                                    "label": "Det[+wh]",
+                                                    "tokenIndex": 0,
+                                                    "word": "Which"
+                                                  }
+                                                ],
+                                                "id": "detBar",
+                                                "label": "Det′"
+                                              }
+                                            ],
+                                            "id": "detP",
+                                            "label": "DetP"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "nPortrait",
+                                                "label": "N",
+                                                "tokenIndex": 1,
+                                                "word": "portrait"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "pOf",
+                                                        "label": "P",
+                                                        "tokenIndex": 2,
+                                                        "word": "of"
+                                                      },
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "nSelf",
+                                                                "label": "N[anaphor]",
+                                                                "tokenIndex": 3,
+                                                                "word": "herself"
+                                                              }
+                                                            ],
+                                                            "id": "selfBar",
+                                                            "label": "N′"
+                                                          }
+                                                        ],
+                                                        "id": "npSelf",
+                                                        "label": "NP[anaphor]"
+                                                      }
+                                                    ],
+                                                    "id": "ofPbar",
+                                                    "label": "P′"
+                                                  }
+                                                ],
+                                                "id": "ofPP",
+                                                "label": "PP"
+                                              }
+                                            ],
+                                            "id": "portraitBar",
+                                            "label": "N′"
+                                          }
+                                        ],
+                                        "id": "wh",
+                                        "label": "NP[+wh]",
+                                        "lineageId": "portraitChain"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "eC",
+                                            "label": "C[declarative]",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "nFarah",
+                                                        "label": "N",
+                                                        "tokenIndex": 7,
+                                                        "word": "Farah"
+                                                      }
+                                                    ],
+                                                    "id": "nbarFarah",
+                                                    "label": "N′"
+                                                  }
+                                                ],
+                                                "id": "npFarah",
+                                                "label": "NP"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "iWill",
+                                                    "label": "I[modal]",
+                                                    "tokenIndex": 8,
+                                                    "word": "will"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "vDisplay",
+                                                            "label": "V",
+                                                            "tokenIndex": 9,
+                                                            "word": "display"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "tObject",
+                                                            "label": "NP: A′-trace",
+                                                            "lineageId": "portraitChain",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "eVbar",
+                                                        "label": "V′"
+                                                      }
+                                                    ],
+                                                    "id": "eVP",
+                                                    "label": "VP"
+                                                  }
+                                                ],
+                                                "id": "eIbar",
+                                                "label": "I′"
+                                              }
+                                            ],
+                                            "id": "eIP",
+                                            "label": "IP"
+                                          }
+                                        ],
+                                        "id": "eCbar",
+                                        "label": "C′"
+                                      }
+                                    ],
+                                    "id": "eCP",
+                                    "label": "CP"
+                                  }
+                                ],
+                                "id": "mVbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "mVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "mIbar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "mIP",
+                    "label": "IP"
+                  }
+                ],
+                "id": "mCbar",
+                "label": "C′"
+              }
+            ],
+            "id": "mCP",
+            "label": "CP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingProjection": "mCP",
+              "movedPhrase": "wh",
+              "sourceTrace": "tEdge"
+            },
+            "priorAnchors": {
+              "sourcePhrase": "wh",
+              "sourceProjection": "eCP"
+            },
+            "relation": "successive-cyclic A′-movement",
+            "values": {
+              "landingPosition": "Spec-CP"
+            }
+          },
+          {
+            "anchors": {
+              "positions": [
+                "wh",
+                "tEdge",
+                "tObject"
+              ]
+            },
+            "relation": "A′-chain",
+            "values": {
+              "positions": [
+                "interrogative operator",
+                "intermediate edge",
+                "theta-marked and Case-marked object position"
+              ]
+            }
+          },
+          {
+            "anchors": {
+              "antecedentGovernor": "wh",
+              "intermediateTrace": "tEdge",
+              "lexicalGovernor": "vDisplay",
+              "objectTrace": "tObject"
+            },
+            "relation": "proper government of wh-traces"
+          }
+        ],
+        "stageRecord": "The same interrogative NP now moves from the embedded Spec-CP position established in the preceding stage to matrix Spec-CP. It leaves an intermediate A′-trace at the embedded edge, extending rather than replacing the dependency with the object trace. The matrix landing site gives the phrase scope over Naila's thinking and satisfies the matrix interrogative C. The intermediate trace is antecedent-governed through the successive-cyclic chain; the object trace is lexically governed by display. Does remains in matrix I at this stage, so subject–auxiliary inversion has not yet applied.",
+        "statement": "Move the interrogative NP from the embedded edge to matrix Spec-CP.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "detWhich",
+                            "label": "Det[+wh]",
+                            "tokenIndex": 0,
+                            "word": "Which"
+                          }
+                        ],
+                        "id": "detBar",
+                        "label": "Det′"
+                      }
+                    ],
+                    "id": "detP",
+                    "label": "DetP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "nPortrait",
+                        "label": "N",
+                        "tokenIndex": 1,
+                        "word": "portrait"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "pOf",
+                                "label": "P",
+                                "tokenIndex": 2,
+                                "word": "of"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "nSelf",
+                                        "label": "N[anaphor]",
+                                        "tokenIndex": 3,
+                                        "word": "herself"
+                                      }
+                                    ],
+                                    "id": "selfBar",
+                                    "label": "N′"
+                                  }
+                                ],
+                                "id": "npSelf",
+                                "label": "NP[anaphor]"
+                              }
+                            ],
+                            "id": "ofPbar",
+                            "label": "P′"
+                          }
+                        ],
+                        "id": "ofPP",
+                        "label": "PP"
+                      }
+                    ],
+                    "id": "portraitBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "wh",
+                "label": "NP[+wh]",
+                "lineageId": "portraitChain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "mC",
+                    "label": "C[+Q]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "nNaila",
+                                "label": "N",
+                                "tokenIndex": 5,
+                                "word": "Naila"
+                              }
+                            ],
+                            "id": "nbarNaila",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "npNaila",
+                        "label": "NP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "iDoes",
+                            "label": "I[present, 3sg]",
+                            "lineageId": "finiteAuxiliary",
+                            "tokenIndex": 4,
+                            "word": "does"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "vThink",
+                                    "label": "V",
+                                    "tokenIndex": 6,
+                                    "word": "think"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "tEdge",
+                                        "label": "NP: A′-trace",
+                                        "lineageId": "portraitChain",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "eC",
+                                            "label": "C[declarative]",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "nFarah",
+                                                        "label": "N",
+                                                        "tokenIndex": 7,
+                                                        "word": "Farah"
+                                                      }
+                                                    ],
+                                                    "id": "nbarFarah",
+                                                    "label": "N′"
+                                                  }
+                                                ],
+                                                "id": "npFarah",
+                                                "label": "NP"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "iWill",
+                                                    "label": "I[modal]",
+                                                    "tokenIndex": 8,
+                                                    "word": "will"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "vDisplay",
+                                                            "label": "V",
+                                                            "tokenIndex": 9,
+                                                            "word": "display"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "tObject",
+                                                            "label": "NP: A′-trace",
+                                                            "lineageId": "portraitChain",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "eVbar",
+                                                        "label": "V′"
+                                                      }
+                                                    ],
+                                                    "id": "eVP",
+                                                    "label": "VP"
+                                                  }
+                                                ],
+                                                "id": "eIbar",
+                                                "label": "I′"
+                                              }
+                                            ],
+                                            "id": "eIP",
+                                            "label": "IP"
+                                          }
+                                        ],
+                                        "id": "eCbar",
+                                        "label": "C′"
+                                      }
+                                    ],
+                                    "id": "eCP",
+                                    "label": "CP"
+                                  }
+                                ],
+                                "id": "mVbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "mVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "mIbar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "mIP",
+                    "label": "IP"
+                  }
+                ],
+                "id": "mCbar",
+                "label": "C′"
+              }
+            ],
+            "id": "mCP",
+            "label": "CP"
+          }
+        ]
+      }
+    ],
+    "precedingStage": {
+      "relations": [
+        {
+          "anchors": {
+            "arguments": [
+              "npFarah",
+              "wh"
+            ],
+            "predicate": "vDisplay"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "npNaila",
+              "eCP"
+            ],
+            "predicate": "vThink"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Experiencer",
+              "Proposition"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "depictedIndividual": "npSelf",
+            "noun": "nPortrait"
+          },
+          "relation": "nominal content interpretation",
+          "values": {
+            "interpretation": "The reflexive identifies the individual represented in the portrait."
+          }
+        },
+        {
+          "anchors": {
+            "assigners": [
+              "iDoes",
+              "iWill",
+              "vDisplay",
+              "pOf"
+            ],
+            "recipients": [
+              "npNaila",
+              "npFarah",
+              "wh",
+              "npSelf"
+            ]
+          },
+          "relation": "Case assignment",
+          "values": {
+            "recipients": [
+              "nominative",
+              "nominative",
+              "accusative",
+              "prepositional objective"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The interrogative nominal is the Theme complement of display. Within it, Which occupies the determiner position in Spec-NP, and the PP of herself complements portrait inside N′. The reflexive denotes the individual depicted, not the possessor of the portrait. Neither this nominal nor its PP contains a referential subject. Farah is the embedded subject, will heads embedded I, and think selects the embedded declarative CP. Naila is the matrix subject. This analysis uses the classical GB option of base-generating subjects in Spec-IP rather than introducing VP-internal subject movement. For do-support, it adopts a representation in which supportive finite does is already available in matrix I before interrogative inversion; think remains an uninflected lexical verb. The matrix interrogative C and the embedded declarative C are silent. Theta and Case dependencies are established here, but Condition A will be evaluated at LF through the wh-chain rather than imposed on this base representation.",
+      "statement": "Construct the base structure with the interrogative nominal in the embedded object position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mC",
+                  "label": "C[+Q]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nNaila",
+                              "label": "N",
+                              "tokenIndex": 5,
+                              "word": "Naila"
+                            }
+                          ],
+                          "id": "nbarNaila",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "npNaila",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "iDoes",
+                          "label": "I[present, 3sg]",
+                          "lineageId": "finiteAuxiliary",
+                          "tokenIndex": 4,
+                          "word": "does"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vThink",
+                                  "label": "V",
+                                  "tokenIndex": 6,
+                                  "word": "think"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "eC",
+                                          "label": "C[declarative]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "nFarah",
+                                                      "label": "N",
+                                                      "tokenIndex": 7,
+                                                      "word": "Farah"
+                                                    }
+                                                  ],
+                                                  "id": "nbarFarah",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "npFarah",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "iWill",
+                                                  "label": "I[modal]",
+                                                  "tokenIndex": 8,
+                                                  "word": "will"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "vDisplay",
+                                                          "label": "V",
+                                                          "tokenIndex": 9,
+                                                          "word": "display"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "detWhich",
+                                                                      "label": "Det[+wh]",
+                                                                      "tokenIndex": 0,
+                                                                      "word": "Which"
+                                                                    }
+                                                                  ],
+                                                                  "id": "detBar",
+                                                                  "label": "Det′"
+                                                                }
+                                                              ],
+                                                              "id": "detP",
+                                                              "label": "DetP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "nPortrait",
+                                                                  "label": "N",
+                                                                  "tokenIndex": 1,
+                                                                  "word": "portrait"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "pOf",
+                                                                          "label": "P",
+                                                                          "tokenIndex": 2,
+                                                                          "word": "of"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "nSelf",
+                                                                                  "label": "N[anaphor]",
+                                                                                  "tokenIndex": 3,
+                                                                                  "word": "herself"
+                                                                                }
+                                                                              ],
+                                                                              "id": "selfBar",
+                                                                              "label": "N′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "npSelf",
+                                                                          "label": "NP[anaphor]"
+                                                                        }
+                                                                      ],
+                                                                      "id": "ofPbar",
+                                                                      "label": "P′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "ofPP",
+                                                                  "label": "PP"
+                                                                }
+                                                              ],
+                                                              "id": "portraitBar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "wh",
+                                                          "label": "NP[+wh]",
+                                                          "lineageId": "portraitChain"
+                                                        }
+                                                      ],
+                                                      "id": "eVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "eVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "eIbar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "eIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "eCbar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "eCP",
+                                  "label": "CP"
+                                }
+                              ],
+                              "id": "mVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "mVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "mIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "mIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "mCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "mCP",
+          "label": "CP"
+        }
+      ]
+    }
+  },
+  {
+    "id": "raising-hop",
+    "sentence": "Þessum börnum virðist hafa verið hjálpað.",
+    "inputTokens": [
+      "Þessum",
+      "börnum",
+      "virðist",
+      "hafa",
+      "verið",
+      "hjálpað"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "complement": "embeddedIP",
+              "predicate": "matrixV"
+            },
+            "relation": "Raising-predicate argument structure",
+            "values": {
+              "complementType": "bare infinitival IP",
+              "dependencyType": "raising, not control",
+              "externalThetaRole": "none"
+            }
+          }
+        ],
+        "stageRecord": "Virðist is introduced as a V head selecting the already constructed infinitival IP, and the resulting VP is placed under matrix finite I. Its lexical -st form is treated as part of the raising predicate, not as another passive operation. In this use, virðist assigns no external theta-role, leaving matrix Spec-IP available for raising rather than introducing a thematic subject or a controller. Matrix I carries present-tense and default third-person singular features. The inflected word virðist is represented as a whole lexical terminal before head movement; movement will establish its syntactic relation to finite I without splitting or respelling the word.",
+        "statement": "Embed the passive IP under the finite raising predicate.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "finiteFeatures",
+                        "label": "I⁰ [present, default 3sg]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "matrixI",
+                    "label": "I⁰ [finite]",
+                    "lineageId": "finiteInflection"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "matrixV",
+                            "label": "V⁰ [raising predicate]",
+                            "lineageId": "seemVerb",
+                            "tokenIndex": 2,
+                            "word": "virðist"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "demonstrativeD",
+                                        "label": "D⁰ [demonstrative, dative plural]",
+                                        "tokenIndex": 0,
+                                        "word": "Þessum"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "childrenN",
+                                                "label": "N⁰ [dative plural]",
+                                                "tokenIndex": 1,
+                                                "word": "börnum"
+                                              }
+                                            ],
+                                            "id": "childrenNbar",
+                                            "label": "N′"
+                                          }
+                                        ],
+                                        "id": "childrenNP",
+                                        "label": "NP"
+                                      }
+                                    ],
+                                    "id": "argumentDbar",
+                                    "label": "D′"
+                                  }
+                                ],
+                                "id": "embeddedSubjectDP",
+                                "label": "DP [dative plural, embedded subject]",
+                                "lineageId": "childrenArgument"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "haveI",
+                                    "label": "I⁰ [−finite, perfect]",
+                                    "tokenIndex": 3,
+                                    "word": "hafa"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "beenV",
+                                            "label": "V⁰ [passive auxiliary, participle]",
+                                            "tokenIndex": 4,
+                                            "word": "verið"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "helpV",
+                                                    "label": "V⁰ [passive participle]",
+                                                    "tokenIndex": 5,
+                                                    "word": "hjálpað"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "objectTrace",
+                                                    "label": "DP [A-trace, dative]",
+                                                    "lineageId": "childrenArgument",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "lexicalVbar",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "lexicalVP",
+                                            "label": "VP [passive participle]"
+                                          }
+                                        ],
+                                        "id": "passiveVbar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "passiveVP",
+                                    "label": "VP [passive auxiliary]"
+                                  }
+                                ],
+                                "id": "embeddedIbar",
+                                "label": "I′"
+                              }
+                            ],
+                            "id": "embeddedIP",
+                            "label": "IP [infinitival perfect passive]"
+                          }
+                        ],
+                        "id": "matrixVbar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "matrixVP",
+                    "label": "VP [raising]"
+                  }
+                ],
+                "id": "matrixIbar",
+                "label": "I′"
+              }
+            ],
+            "id": "matrixIP",
+            "label": "IP [finite]"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "foot": "objectTrace",
+              "head": "matrixSubjectDP",
+              "intermediate": "embeddedSubjectTrace",
+              "raisingPredicate": "matrixVTrace"
+            },
+            "priorAnchors": {
+              "source": "embeddedSubjectDP"
+            },
+            "relation": "Extended raising A-chain",
+            "values": {
+              "case": "lexical dative",
+              "thetaRole": "one help-recipient role at the object foot",
+              "trigger": "matrix subject requirement"
+            }
+          },
+          {
+            "anchors": {
+              "host": "matrixI",
+              "movedHead": "finiteV",
+              "trace": "matrixVTrace"
+            },
+            "priorAnchors": {
+              "source": "matrixV"
+            },
+            "relation": "V-to-I head movement"
+          },
+          {
+            "anchors": {
+              "finiteHead": "matrixI",
+              "quirkySubject": "matrixSubjectDP"
+            },
+            "relation": "Default finite agreement",
+            "values": {
+              "agreementStatus": "default; the dative DP is not a nominative agreement controller",
+              "finiteFeatures": "present, third-person singular",
+              "subjectFeatures": "dative plural"
+            }
+          }
+        ],
+        "stageRecord": "The dative DP raises from embedded Spec-IP to matrix Spec-IP, leaving an intermediate A-trace. Its movement is licensed by the non-thematic matrix subject position and the transparent infinitival IP complement. The resulting A-chain retains lexical dative and a single theta-role at its object foot; matrix I does not assign a second Case or theta-role to the DP. Independently, virðist moves from V to finite I, leaving a head trace in V. Its singular form is default agreement in the absence of a nominative agreement controller, not agreement with dative plural börnum. A declarative CP shell is then projected over the completed matrix IP. This analysis adopts a uniform CP account of Icelandic root V2: the overt subject will occupy Spec-CP and the finite head C. Both the matrix A-position and the intermediate I-position are therefore represented before those final movements.",
+        "statement": "Establish the matrix quirky subject and finite verb position, then project the root CP.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "declarativeFeatures",
+                        "label": "C⁰ [declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "rootC",
+                    "label": "C⁰ [declarative, V2]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "demonstrativeD",
+                                "label": "D⁰ [demonstrative, dative plural]",
+                                "tokenIndex": 0,
+                                "word": "Þessum"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "childrenN",
+                                        "label": "N⁰ [dative plural]",
+                                        "tokenIndex": 1,
+                                        "word": "börnum"
+                                      }
+                                    ],
+                                    "id": "childrenNbar",
+                                    "label": "N′"
+                                  }
+                                ],
+                                "id": "childrenNP",
+                                "label": "NP"
+                              }
+                            ],
+                            "id": "argumentDbar",
+                            "label": "D′"
+                          }
+                        ],
+                        "id": "matrixSubjectDP",
+                        "label": "DP [dative plural, matrix subject]",
+                        "lineageId": "childrenArgument"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "finiteV",
+                                "label": "V⁰ [raising predicate]",
+                                "lineageId": "seemVerb",
+                                "tokenIndex": 2,
+                                "word": "virðist"
+                              },
+                              {
+                                "children": [],
+                                "id": "finiteFeatures",
+                                "label": "I⁰ [present, default 3sg]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "matrixI",
+                            "label": "I⁰ [finite, V-adjoined]",
+                            "lineageId": "finiteInflection"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "matrixVTrace",
+                                    "label": "V⁰ [head trace]",
+                                    "lineageId": "seemVerb",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "embeddedSubjectTrace",
+                                        "label": "DP [intermediate A-trace, dative]",
+                                        "lineageId": "childrenArgument",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "haveI",
+                                            "label": "I⁰ [−finite, perfect]",
+                                            "tokenIndex": 3,
+                                            "word": "hafa"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "beenV",
+                                                    "label": "V⁰ [passive auxiliary, participle]",
+                                                    "tokenIndex": 4,
+                                                    "word": "verið"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "helpV",
+                                                            "label": "V⁰ [passive participle]",
+                                                            "tokenIndex": 5,
+                                                            "word": "hjálpað"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "objectTrace",
+                                                            "label": "DP [A-trace, dative]",
+                                                            "lineageId": "childrenArgument",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "lexicalVbar",
+                                                        "label": "V′"
+                                                      }
+                                                    ],
+                                                    "id": "lexicalVP",
+                                                    "label": "VP [passive participle]"
+                                                  }
+                                                ],
+                                                "id": "passiveVbar",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "passiveVP",
+                                            "label": "VP [passive auxiliary]"
+                                          }
+                                        ],
+                                        "id": "embeddedIbar",
+                                        "label": "I′"
+                                      }
+                                    ],
+                                    "id": "embeddedIP",
+                                    "label": "IP [infinitival perfect passive]"
+                                  }
+                                ],
+                                "id": "matrixVbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "matrixVP",
+                            "label": "VP [raising]"
+                          }
+                        ],
+                        "id": "matrixIbar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "matrixIP",
+                    "label": "IP [finite]"
+                  }
+                ],
+                "id": "rootCbar",
+                "label": "C′"
+              }
+            ],
+            "id": "rootCP",
+            "label": "CP [root declarative]"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "raising-completion",
+    "sentence": "Þessum börnum virðist hafa verið hjálpað.",
+    "inputTokens": [
+      "Þessum",
+      "börnum",
+      "virðist",
+      "hafa",
+      "verið",
+      "hjálpað"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "foot": "objectTrace",
+              "head": "matrixSubjectDP",
+              "intermediate": "embeddedSubjectTrace",
+              "raisingPredicate": "matrixVTrace"
+            },
+            "priorAnchors": {
+              "source": "embeddedSubjectDP"
+            },
+            "relation": "Extended raising A-chain",
+            "values": {
+              "case": "lexical dative",
+              "thetaRole": "one help-recipient role at the object foot",
+              "trigger": "matrix subject requirement"
+            }
+          },
+          {
+            "anchors": {
+              "host": "matrixI",
+              "movedHead": "finiteV",
+              "trace": "matrixVTrace"
+            },
+            "priorAnchors": {
+              "source": "matrixV"
+            },
+            "relation": "V-to-I head movement"
+          },
+          {
+            "anchors": {
+              "finiteHead": "matrixI",
+              "quirkySubject": "matrixSubjectDP"
+            },
+            "relation": "Default finite agreement",
+            "values": {
+              "agreementStatus": "default; the dative DP is not a nominative agreement controller",
+              "finiteFeatures": "present, third-person singular",
+              "subjectFeatures": "dative plural"
+            }
+          }
+        ],
+        "stageRecord": "The dative DP raises from embedded Spec-IP to matrix Spec-IP, leaving an intermediate A-trace. Its movement is licensed by the non-thematic matrix subject position and the transparent infinitival IP complement. The resulting A-chain retains lexical dative and a single theta-role at its object foot; matrix I does not assign a second Case or theta-role to the DP. Independently, virðist moves from V to finite I, leaving a head trace in V. Its singular form is default agreement in the absence of a nominative agreement controller, not agreement with dative plural börnum. A declarative CP shell is then projected over the completed matrix IP. This analysis adopts a uniform CP account of Icelandic root V2: the overt subject will occupy Spec-CP and the finite head C. Both the matrix A-position and the intermediate I-position are therefore represented before those final movements.",
+        "statement": "Establish the matrix quirky subject and finite verb position, then project the root CP.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "declarativeFeatures",
+                        "label": "C⁰ [declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "rootC",
+                    "label": "C⁰ [declarative, V2]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "demonstrativeD",
+                                "label": "D⁰ [demonstrative, dative plural]",
+                                "tokenIndex": 0,
+                                "word": "Þessum"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "childrenN",
+                                        "label": "N⁰ [dative plural]",
+                                        "tokenIndex": 1,
+                                        "word": "börnum"
+                                      }
+                                    ],
+                                    "id": "childrenNbar",
+                                    "label": "N′"
+                                  }
+                                ],
+                                "id": "childrenNP",
+                                "label": "NP"
+                              }
+                            ],
+                            "id": "argumentDbar",
+                            "label": "D′"
+                          }
+                        ],
+                        "id": "matrixSubjectDP",
+                        "label": "DP [dative plural, matrix subject]",
+                        "lineageId": "childrenArgument"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "finiteV",
+                                "label": "V⁰ [raising predicate]",
+                                "lineageId": "seemVerb",
+                                "tokenIndex": 2,
+                                "word": "virðist"
+                              },
+                              {
+                                "children": [],
+                                "id": "finiteFeatures",
+                                "label": "I⁰ [present, default 3sg]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "matrixI",
+                            "label": "I⁰ [finite, V-adjoined]",
+                            "lineageId": "finiteInflection"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "matrixVTrace",
+                                    "label": "V⁰ [head trace]",
+                                    "lineageId": "seemVerb",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "embeddedSubjectTrace",
+                                        "label": "DP [intermediate A-trace, dative]",
+                                        "lineageId": "childrenArgument",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "haveI",
+                                            "label": "I⁰ [−finite, perfect]",
+                                            "tokenIndex": 3,
+                                            "word": "hafa"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "beenV",
+                                                    "label": "V⁰ [passive auxiliary, participle]",
+                                                    "tokenIndex": 4,
+                                                    "word": "verið"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "helpV",
+                                                            "label": "V⁰ [passive participle]",
+                                                            "tokenIndex": 5,
+                                                            "word": "hjálpað"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "objectTrace",
+                                                            "label": "DP [A-trace, dative]",
+                                                            "lineageId": "childrenArgument",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "lexicalVbar",
+                                                        "label": "V′"
+                                                      }
+                                                    ],
+                                                    "id": "lexicalVP",
+                                                    "label": "VP [passive participle]"
+                                                  }
+                                                ],
+                                                "id": "passiveVbar",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "passiveVP",
+                                            "label": "VP [passive auxiliary]"
+                                          }
+                                        ],
+                                        "id": "embeddedIbar",
+                                        "label": "I′"
+                                      }
+                                    ],
+                                    "id": "embeddedIP",
+                                    "label": "IP [infinitival perfect passive]"
+                                  }
+                                ],
+                                "id": "matrixVbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "matrixVP",
+                            "label": "VP [raising]"
+                          }
+                        ],
+                        "id": "matrixIbar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "matrixIP",
+                    "label": "IP [finite]"
+                  }
+                ],
+                "id": "rootCbar",
+                "label": "C′"
+              }
+            ],
+            "id": "rootCP",
+            "label": "CP [root declarative]"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "host": "rootC",
+              "lexicalHead": "finiteV",
+              "movedHead": "frontedI",
+              "trace": "matrixITrace"
+            },
+            "priorAnchors": {
+              "source": "matrixI"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "licensing": "root declarative V2"
+            }
+          },
+          {
+            "anchors": {
+              "foot": "matrixSubjectTrace",
+              "head": "frontedSubjectDP"
+            },
+            "priorAnchors": {
+              "source": "matrixSubjectDP"
+            },
+            "relation": "Subject-fronting A-prime chain",
+            "values": {
+              "interpretation": "subject-initial V2; contrastive focus is not required",
+              "landingSite": "Spec-CP"
+            }
+          },
+          {
+            "anchors": {
+              "foot": "objectTrace",
+              "head": "matrixSubjectTrace",
+              "intermediate": "embeddedSubjectTrace",
+              "thetaGovernor": "helpV"
+            },
+            "relation": "Completed raising A-chain",
+            "values": {
+              "case": "lexical dative",
+              "chainStatus": "A-chain headed by the matrix subject position, itself linked to the pronounced DP by A-prime movement",
+              "thetaRole": "help-recipient, assigned at the object foot"
+            }
+          }
+        ],
+        "stageRecord": "The finite I head containing virðist moves to root C, leaving an I-trace. The dative subject then moves from matrix Spec-IP to Spec-CP, leaving an A′-trace in its grammatical subject position. This final subject fronting implements root V2 and need not carry contrastive focus. It follows, rather than replaces, the A-raising derivation: the matrix subject trace heads the A-chain through embedded Spec-IP to the complement of hjálpað, while the pronounced DP binds that subject position through the A′ dependency. Each link is c-commanded by the next higher link; the lexical object trace is governed by the participle, and the intermediate subject dependencies are licensed by successive raising. No PRO, reflexive binding, or additional thematic subject is required. The final pronounced sequence is exactly Þessum börnum virðist hafa verið hjálpað, interpreted as ‘These children seem to have been helped.’ The perfect is embedded under seeming; the fronted DP remains the help-recipient rather than an experiencer selected by virðist.",
+        "statement": "Complete subject-initial V2 and the raising-passive analysis.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "demonstrativeD",
+                        "label": "D⁰ [demonstrative, dative plural]",
+                        "tokenIndex": 0,
+                        "word": "Þessum"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "childrenN",
+                                "label": "N⁰ [dative plural]",
+                                "tokenIndex": 1,
+                                "word": "börnum"
+                              }
+                            ],
+                            "id": "childrenNbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "childrenNP",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "argumentDbar",
+                    "label": "D′"
+                  }
+                ],
+                "id": "frontedSubjectDP",
+                "label": "DP [dative plural, Spec-CP]",
+                "lineageId": "childrenArgument"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "finiteV",
+                            "label": "V⁰ [raising predicate]",
+                            "lineageId": "seemVerb",
+                            "tokenIndex": 2,
+                            "word": "virðist"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteFeatures",
+                            "label": "I⁰ [present, default 3sg]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "frontedI",
+                        "label": "I⁰ [finite, V-adjoined]",
+                        "lineageId": "finiteInflection"
+                      },
+                      {
+                        "children": [],
+                        "id": "declarativeFeatures",
+                        "label": "C⁰ [declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "rootC",
+                    "label": "C⁰ [declarative, I-adjoined]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "matrixSubjectTrace",
+                        "label": "DP [A′-trace, matrix subject, dative]",
+                        "lineageId": "childrenArgument",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "matrixITrace",
+                            "label": "I⁰ [head trace]",
+                            "lineageId": "finiteInflection",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "matrixVTrace",
+                                    "label": "V⁰ [head trace]",
+                                    "lineageId": "seemVerb",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "embeddedSubjectTrace",
+                                        "label": "DP [intermediate A-trace, dative]",
+                                        "lineageId": "childrenArgument",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "haveI",
+                                            "label": "I⁰ [−finite, perfect]",
+                                            "tokenIndex": 3,
+                                            "word": "hafa"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "beenV",
+                                                    "label": "V⁰ [passive auxiliary, participle]",
+                                                    "tokenIndex": 4,
+                                                    "word": "verið"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "helpV",
+                                                            "label": "V⁰ [passive participle]",
+                                                            "tokenIndex": 5,
+                                                            "word": "hjálpað"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "objectTrace",
+                                                            "label": "DP [A-trace, dative]",
+                                                            "lineageId": "childrenArgument",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "lexicalVbar",
+                                                        "label": "V′"
+                                                      }
+                                                    ],
+                                                    "id": "lexicalVP",
+                                                    "label": "VP [passive participle]"
+                                                  }
+                                                ],
+                                                "id": "passiveVbar",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "passiveVP",
+                                            "label": "VP [passive auxiliary]"
+                                          }
+                                        ],
+                                        "id": "embeddedIbar",
+                                        "label": "I′"
+                                      }
+                                    ],
+                                    "id": "embeddedIP",
+                                    "label": "IP [infinitival perfect passive]"
+                                  }
+                                ],
+                                "id": "matrixVbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "matrixVP",
+                            "label": "VP [raising]"
+                          }
+                        ],
+                        "id": "matrixIbar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "matrixIP",
+                    "label": "IP [finite]"
+                  }
+                ],
+                "id": "rootCbar",
+                "label": "C′"
+              }
+            ],
+            "id": "rootCP",
+            "label": "CP [root declarative, V2]"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "covert-object-low",
+    "sentence": "どの学生も二冊の本を読まなかった。",
+    "inputTokens": [
+      "どの",
+      "学生",
+      "も",
+      "二",
+      "冊",
+      "の",
+      "本",
+      "を",
+      "読",
+      "ま",
+      "なか",
+      "っ",
+      "た"
+    ],
+    "derivationStages": [
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "read"
+            ],
+            "tokenIndices": [
+              8,
+              9
+            ]
+          },
+          {
+            "nodeIds": [
+              "neg"
+            ],
+            "tokenIndices": [
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "sqh",
+              "licensingHead": "past",
+              "lowerOccurrence": "sq"
+            },
+            "priorAnchors": {
+              "source": "sq"
+            },
+            "relation": "subject Internal Merge",
+            "values": {
+              "interpretation": "higher quantificational scope; lower external-argument position",
+              "pronunciation": "higher copy"
+            }
+          }
+        ],
+        "stageRecord": "Internal Merge copies the subject from the established external-argument position to the edge of T, satisfying T's subject requirement. The higher occurrence is pronounced, and the complete lower occurrence becomes silent. The subject's universal quantifier will be interpreted at the higher position, while its thematic dependency remains anchored in the lower position. Establishing this position separately makes the subsequent object-scope operation relative to the universal subject explicit.",
+        "statement": "Raise the universal subject above negation.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "donoh",
+                        "label": "D[wh, adnominal]",
+                        "lineageId": "dono",
+                        "tokenIndex": 0,
+                        "word": "どの"
+                      },
+                      {
+                        "children": [],
+                        "id": "studenth",
+                        "label": "N",
+                        "lineageId": "student",
+                        "tokenIndex": 1,
+                        "word": "学生"
+                      }
+                    ],
+                    "id": "sdh",
+                    "label": "D",
+                    "lineageId": "subject-restrictor"
+                  },
+                  {
+                    "children": [],
+                    "id": "moh",
+                    "label": "Q[universal]",
+                    "lineageId": "mo",
+                    "tokenIndex": 2,
+                    "word": "も"
+                  }
+                ],
+                "id": "sqh",
+                "label": "Q",
+                "lineageId": "subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "dono",
+                                    "label": "D[wh, adnominal]",
+                                    "lineageId": "dono",
+                                    "silent": true,
+                                    "word": "どの"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "student",
+                                    "label": "N",
+                                    "lineageId": "student",
+                                    "silent": true,
+                                    "word": "学生"
+                                  }
+                                ],
+                                "id": "sd",
+                                "label": "D",
+                                "lineageId": "subject-restrictor",
+                                "silent": true
+                              },
+                              {
+                                "children": [],
+                                "id": "mo",
+                                "label": "Q[universal]",
+                                "lineageId": "mo",
+                                "silent": true,
+                                "word": "も"
+                              }
+                            ],
+                            "id": "sq",
+                            "label": "Q",
+                            "lineageId": "subject",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "two",
+                                                        "label": "Num",
+                                                        "lineageId": "two",
+                                                        "tokenIndex": 3,
+                                                        "word": "二"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "counter",
+                                                        "label": "Cl",
+                                                        "lineageId": "counter",
+                                                        "tokenIndex": 4,
+                                                        "word": "冊"
+                                                      }
+                                                    ],
+                                                    "id": "cl",
+                                                    "label": "Cl",
+                                                    "lineageId": "object-classifier"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "no",
+                                                    "label": "Gen",
+                                                    "lineageId": "no",
+                                                    "tokenIndex": 5,
+                                                    "word": "の"
+                                                  }
+                                                ],
+                                                "id": "gen",
+                                                "label": "Gen[adnominal]",
+                                                "lineageId": "object-gen"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "book",
+                                                "label": "N",
+                                                "lineageId": "book",
+                                                "tokenIndex": 6,
+                                                "word": "本"
+                                              }
+                                            ],
+                                            "id": "on",
+                                            "label": "N",
+                                            "lineageId": "object-n"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "exist",
+                                            "label": "D[existential]",
+                                            "lineageId": "existential",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "od",
+                                        "label": "D",
+                                        "lineageId": "object-d"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "wo",
+                                        "label": "K[accusative]",
+                                        "lineageId": "wo",
+                                        "tokenIndex": 7,
+                                        "word": "を"
+                                      }
+                                    ],
+                                    "id": "ok",
+                                    "label": "K",
+                                    "lineageId": "object"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "read",
+                                    "label": "V",
+                                    "word": "読ま"
+                                  }
+                                ],
+                                "id": "vp",
+                                "label": "V"
+                              },
+                              {
+                                "children": [],
+                                "id": "v",
+                                "label": "v[transitive]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "vb",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "va",
+                        "label": "v"
+                      },
+                      {
+                        "children": [],
+                        "id": "neg",
+                        "label": "Neg",
+                        "word": "なかっ"
+                      }
+                    ],
+                    "id": "negp",
+                    "label": "Neg"
+                  },
+                  {
+                    "children": [],
+                    "id": "past",
+                    "label": "T[past]",
+                    "tokenIndex": 12,
+                    "word": "た"
+                  }
+                ],
+                "id": "tp",
+                "label": "T"
+              }
+            ],
+            "id": "ts",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "read"
+            ],
+            "tokenIndices": [
+              8,
+              9
+            ]
+          },
+          {
+            "nodeIds": [
+              "neg"
+            ],
+            "tokenIndices": [
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "okh",
+              "lowerOccurrence": "ok",
+              "operator": "existh",
+              "scopeDomain": "negp"
+            },
+            "priorAnchors": {
+              "source": "ok"
+            },
+            "relation": "covert object Internal Merge",
+            "values": {
+              "interpretation": "higher existential operator binds lower object variable",
+              "landingSite": "edge of Neg below the subject",
+              "pronunciation": "lower copy"
+            }
+          },
+          {
+            "anchors": {
+              "intermediate": "odh",
+              "narrowest": "neg",
+              "widest": "sqh"
+            },
+            "relation": "scope interpretation",
+            "values": {
+              "ordering": "universal subject > existential two-book object > negation",
+              "reading": "For each student, there is a potentially student-dependent pair of books that the student did not read."
+            }
+          }
+        ],
+        "stageRecord": "Covert Internal Merge copies the case-marked object from its established complement position to the edge of the negative domain, below the raised universal subject. The higher object occurrence is silent, so the original object remains pronounced before the verb. At interpretation, its existential operator is interpreted in the higher occurrence and binds the object variable supplied by the lower occurrence; it does not introduce a second independent existential. This object-scope operation is assumed to apply before transfer of the verbal domain, with no intervening island or completed phase boundary. Silent declarative C completes the clause. The resulting scope is universal subject over existential object over negation: each student has a possibly different pair of books that the student did not read. The existential choice can depend on the student, unlike the shared-pair reading. Negation targets reading the pair; a stronger inference that neither member was read is not a separate syntactic derivation. The universal remains above negation, and the full stop has no supplied token position.",
+        "statement": "Complete the distributively varying, negation-external object reading.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "donoh",
+                            "label": "D[wh, adnominal]",
+                            "lineageId": "dono",
+                            "tokenIndex": 0,
+                            "word": "どの"
+                          },
+                          {
+                            "children": [],
+                            "id": "studenth",
+                            "label": "N",
+                            "lineageId": "student",
+                            "tokenIndex": 1,
+                            "word": "学生"
+                          }
+                        ],
+                        "id": "sdh",
+                        "label": "D",
+                        "lineageId": "subject-restrictor"
+                      },
+                      {
+                        "children": [],
+                        "id": "moh",
+                        "label": "Q[universal]",
+                        "lineageId": "mo",
+                        "tokenIndex": 2,
+                        "word": "も"
+                      }
+                    ],
+                    "id": "sqh",
+                    "label": "Q",
+                    "lineageId": "subject"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "twoh",
+                                                "label": "Num",
+                                                "lineageId": "two",
+                                                "silent": true,
+                                                "word": "二"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "counterh",
+                                                "label": "Cl",
+                                                "lineageId": "counter",
+                                                "silent": true,
+                                                "word": "冊"
+                                              }
+                                            ],
+                                            "id": "clh",
+                                            "label": "Cl",
+                                            "lineageId": "object-classifier",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "noh",
+                                            "label": "Gen",
+                                            "lineageId": "no",
+                                            "silent": true,
+                                            "word": "の"
+                                          }
+                                        ],
+                                        "id": "genh",
+                                        "label": "Gen[adnominal]",
+                                        "lineageId": "object-gen",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "bookh",
+                                        "label": "N",
+                                        "lineageId": "book",
+                                        "silent": true,
+                                        "word": "本"
+                                      }
+                                    ],
+                                    "id": "onh",
+                                    "label": "N",
+                                    "lineageId": "object-n",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "existh",
+                                    "label": "D[existential]",
+                                    "lineageId": "existential",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "odh",
+                                "label": "D",
+                                "lineageId": "object-d",
+                                "silent": true
+                              },
+                              {
+                                "children": [],
+                                "id": "woh",
+                                "label": "K[accusative]",
+                                "lineageId": "wo",
+                                "silent": true,
+                                "word": "を"
+                              }
+                            ],
+                            "id": "okh",
+                            "label": "K",
+                            "lineageId": "object",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "dono",
+                                            "label": "D[wh, adnominal]",
+                                            "lineageId": "dono",
+                                            "silent": true,
+                                            "word": "どの"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "student",
+                                            "label": "N",
+                                            "lineageId": "student",
+                                            "silent": true,
+                                            "word": "学生"
+                                          }
+                                        ],
+                                        "id": "sd",
+                                        "label": "D",
+                                        "lineageId": "subject-restrictor",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "mo",
+                                        "label": "Q[universal]",
+                                        "lineageId": "mo",
+                                        "silent": true,
+                                        "word": "も"
+                                      }
+                                    ],
+                                    "id": "sq",
+                                    "label": "Q",
+                                    "lineageId": "subject",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "two",
+                                                                "label": "Num",
+                                                                "lineageId": "two",
+                                                                "tokenIndex": 3,
+                                                                "word": "二"
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "counter",
+                                                                "label": "Cl",
+                                                                "lineageId": "counter",
+                                                                "tokenIndex": 4,
+                                                                "word": "冊"
+                                                              }
+                                                            ],
+                                                            "id": "cl",
+                                                            "label": "Cl",
+                                                            "lineageId": "object-classifier"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "no",
+                                                            "label": "Gen",
+                                                            "lineageId": "no",
+                                                            "tokenIndex": 5,
+                                                            "word": "の"
+                                                          }
+                                                        ],
+                                                        "id": "gen",
+                                                        "label": "Gen[adnominal]",
+                                                        "lineageId": "object-gen"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "book",
+                                                        "label": "N",
+                                                        "lineageId": "book",
+                                                        "tokenIndex": 6,
+                                                        "word": "本"
+                                                      }
+                                                    ],
+                                                    "id": "on",
+                                                    "label": "N",
+                                                    "lineageId": "object-n"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "exist",
+                                                    "label": "D[existential]",
+                                                    "lineageId": "existential",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "od",
+                                                "label": "D",
+                                                "lineageId": "object-d"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "wo",
+                                                "label": "K[accusative]",
+                                                "lineageId": "wo",
+                                                "tokenIndex": 7,
+                                                "word": "を"
+                                              }
+                                            ],
+                                            "id": "ok",
+                                            "label": "K",
+                                            "lineageId": "object"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "read",
+                                            "label": "V",
+                                            "word": "読ま"
+                                          }
+                                        ],
+                                        "id": "vp",
+                                        "label": "V"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "v",
+                                        "label": "v[transitive]",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "vb",
+                                    "label": "v"
+                                  }
+                                ],
+                                "id": "va",
+                                "label": "v"
+                              },
+                              {
+                                "children": [],
+                                "id": "neg",
+                                "label": "Neg",
+                                "word": "なかっ"
+                              }
+                            ],
+                            "id": "negp",
+                            "label": "Neg"
+                          }
+                        ],
+                        "id": "negscope",
+                        "label": "Neg"
+                      },
+                      {
+                        "children": [],
+                        "id": "past",
+                        "label": "T[past]",
+                        "tokenIndex": 12,
+                        "word": "た"
+                      }
+                    ],
+                    "id": "tp",
+                    "label": "T"
+                  }
+                ],
+                "id": "ts",
+                "label": "T"
+              },
+              {
+                "children": [],
+                "id": "c",
+                "label": "C[declarative]",
+                "silent": true
+              }
+            ],
+            "id": "cp",
+            "label": "C"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "covert-object-high",
+    "sentence": "どの学生も二冊の本を読まなかった。",
+    "inputTokens": [
+      "どの",
+      "学生",
+      "も",
+      "二",
+      "冊",
+      "の",
+      "本",
+      "を",
+      "読",
+      "ま",
+      "なか",
+      "っ",
+      "た"
+    ],
+    "derivationStages": [
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "read"
+            ],
+            "tokenIndices": [
+              8,
+              9
+            ]
+          },
+          {
+            "nodeIds": [
+              "neg"
+            ],
+            "tokenIndices": [
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "sqh",
+              "licensingHead": "past",
+              "lowerOccurrence": "sq"
+            },
+            "priorAnchors": {
+              "source": "sq"
+            },
+            "relation": "subject Internal Merge",
+            "values": {
+              "interpretation": "higher quantificational scope; lower external-argument position",
+              "pronunciation": "higher copy"
+            }
+          }
+        ],
+        "stageRecord": "The subject undergoes Internal Merge from the previously displayed external-argument position to the edge of T. The higher copy bears the pronunciation and universal scope; the complete lower copy is silent and retains the thematic position. This movement satisfies the subject requirement associated with T. The object has not yet undergone its distinct covert scope operation.",
+        "statement": "Establish the raised universal subject and its lower thematic copy.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "donoh",
+                        "label": "D[wh, adnominal]",
+                        "lineageId": "dono",
+                        "tokenIndex": 0,
+                        "word": "どの"
+                      },
+                      {
+                        "children": [],
+                        "id": "studenth",
+                        "label": "N",
+                        "lineageId": "student",
+                        "tokenIndex": 1,
+                        "word": "学生"
+                      }
+                    ],
+                    "id": "sdh",
+                    "label": "D",
+                    "lineageId": "subject-restrictor"
+                  },
+                  {
+                    "children": [],
+                    "id": "moh",
+                    "label": "Q[universal]",
+                    "lineageId": "mo",
+                    "tokenIndex": 2,
+                    "word": "も"
+                  }
+                ],
+                "id": "sqh",
+                "label": "Q",
+                "lineageId": "subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "dono",
+                                    "label": "D[wh, adnominal]",
+                                    "lineageId": "dono",
+                                    "silent": true,
+                                    "word": "どの"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "student",
+                                    "label": "N",
+                                    "lineageId": "student",
+                                    "silent": true,
+                                    "word": "学生"
+                                  }
+                                ],
+                                "id": "sd",
+                                "label": "D",
+                                "lineageId": "subject-restrictor",
+                                "silent": true
+                              },
+                              {
+                                "children": [],
+                                "id": "mo",
+                                "label": "Q[universal]",
+                                "lineageId": "mo",
+                                "silent": true,
+                                "word": "も"
+                              }
+                            ],
+                            "id": "sq",
+                            "label": "Q",
+                            "lineageId": "subject",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "two",
+                                                        "label": "Num",
+                                                        "lineageId": "two",
+                                                        "tokenIndex": 3,
+                                                        "word": "二"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "counter",
+                                                        "label": "Cl",
+                                                        "lineageId": "counter",
+                                                        "tokenIndex": 4,
+                                                        "word": "冊"
+                                                      }
+                                                    ],
+                                                    "id": "cl",
+                                                    "label": "Cl",
+                                                    "lineageId": "object-classifier"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "no",
+                                                    "label": "Gen",
+                                                    "lineageId": "no",
+                                                    "tokenIndex": 5,
+                                                    "word": "の"
+                                                  }
+                                                ],
+                                                "id": "gen",
+                                                "label": "Gen[adnominal]",
+                                                "lineageId": "object-gen"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "book",
+                                                "label": "N",
+                                                "lineageId": "book",
+                                                "tokenIndex": 6,
+                                                "word": "本"
+                                              }
+                                            ],
+                                            "id": "on",
+                                            "label": "N",
+                                            "lineageId": "object-n"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "exist",
+                                            "label": "D[existential]",
+                                            "lineageId": "existential",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "od",
+                                        "label": "D",
+                                        "lineageId": "object-d"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "wo",
+                                        "label": "K[accusative]",
+                                        "lineageId": "wo",
+                                        "tokenIndex": 7,
+                                        "word": "を"
+                                      }
+                                    ],
+                                    "id": "ok",
+                                    "label": "K",
+                                    "lineageId": "object"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "read",
+                                    "label": "V",
+                                    "word": "読ま"
+                                  }
+                                ],
+                                "id": "vp",
+                                "label": "V"
+                              },
+                              {
+                                "children": [],
+                                "id": "v",
+                                "label": "v[transitive]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "vb",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "va",
+                        "label": "v"
+                      },
+                      {
+                        "children": [],
+                        "id": "neg",
+                        "label": "Neg",
+                        "word": "なかっ"
+                      }
+                    ],
+                    "id": "negp",
+                    "label": "Neg"
+                  },
+                  {
+                    "children": [],
+                    "id": "past",
+                    "label": "T[past]",
+                    "tokenIndex": 12,
+                    "word": "た"
+                  }
+                ],
+                "id": "tp",
+                "label": "T"
+              }
+            ],
+            "id": "ts",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "read"
+            ],
+            "tokenIndices": [
+              8,
+              9
+            ]
+          },
+          {
+            "nodeIds": [
+              "neg"
+            ],
+            "tokenIndices": [
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "okh",
+              "lowerOccurrence": "ok",
+              "operator": "existh",
+              "scopeDomain": "ts"
+            },
+            "priorAnchors": {
+              "source": "ok"
+            },
+            "relation": "covert object Internal Merge",
+            "values": {
+              "interpretation": "higher existential operator binds lower object variable",
+              "landingSite": "outer edge of T above the universal subject",
+              "pronunciation": "lower copy"
+            }
+          },
+          {
+            "anchors": {
+              "intermediate": "sqh",
+              "narrowest": "neg",
+              "widest": "odh"
+            },
+            "relation": "scope interpretation",
+            "values": {
+              "ordering": "existential two-book object > universal subject > negation",
+              "reading": "There is one pair of books such that every student failed to read that pair."
+            }
+          }
+        ],
+        "stageRecord": "Covert Internal Merge copies the case-marked object from its established complement position to an outer edge of T, above the raised universal subject. The higher occurrence is silent, preserving the input's subject–object–verb order. Its existential operator is interpreted above the universal and binds the lower object variable; the pronounced lower copy is not interpreted as a second existential. As in the alternative object-raising derivation, this scope operation precedes transfer of the verbal domain. Silent declarative C then closes the clause. The result is ‘There are two books such that every student failed to read them,’ with one shared pair taking scope over all students and negation. This is distinct from selecting a potentially different pair for each student. Negation still scopes below universal どの…も; the analysis does not generate a free ‘not every student’ reading. Whether contextual knowledge strengthens failure to read the pair into reading neither member is not an additional structural ambiguity. The sentence-final punctuation is outside the supplied token list.",
+        "statement": "Complete the shared, wide-scope two-book reading.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "twoh",
+                                        "label": "Num",
+                                        "lineageId": "two",
+                                        "silent": true,
+                                        "word": "二"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "counterh",
+                                        "label": "Cl",
+                                        "lineageId": "counter",
+                                        "silent": true,
+                                        "word": "冊"
+                                      }
+                                    ],
+                                    "id": "clh",
+                                    "label": "Cl",
+                                    "lineageId": "object-classifier",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "noh",
+                                    "label": "Gen",
+                                    "lineageId": "no",
+                                    "silent": true,
+                                    "word": "の"
+                                  }
+                                ],
+                                "id": "genh",
+                                "label": "Gen[adnominal]",
+                                "lineageId": "object-gen",
+                                "silent": true
+                              },
+                              {
+                                "children": [],
+                                "id": "bookh",
+                                "label": "N",
+                                "lineageId": "book",
+                                "silent": true,
+                                "word": "本"
+                              }
+                            ],
+                            "id": "onh",
+                            "label": "N",
+                            "lineageId": "object-n",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "existh",
+                            "label": "D[existential]",
+                            "lineageId": "existential",
+                            "silent": true
+                          }
+                        ],
+                        "id": "odh",
+                        "label": "D",
+                        "lineageId": "object-d",
+                        "silent": true
+                      },
+                      {
+                        "children": [],
+                        "id": "woh",
+                        "label": "K[accusative]",
+                        "lineageId": "wo",
+                        "silent": true,
+                        "word": "を"
+                      }
+                    ],
+                    "id": "okh",
+                    "label": "K",
+                    "lineageId": "object",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "donoh",
+                                "label": "D[wh, adnominal]",
+                                "lineageId": "dono",
+                                "tokenIndex": 0,
+                                "word": "どの"
+                              },
+                              {
+                                "children": [],
+                                "id": "studenth",
+                                "label": "N",
+                                "lineageId": "student",
+                                "tokenIndex": 1,
+                                "word": "学生"
+                              }
+                            ],
+                            "id": "sdh",
+                            "label": "D",
+                            "lineageId": "subject-restrictor"
+                          },
+                          {
+                            "children": [],
+                            "id": "moh",
+                            "label": "Q[universal]",
+                            "lineageId": "mo",
+                            "tokenIndex": 2,
+                            "word": "も"
+                          }
+                        ],
+                        "id": "sqh",
+                        "label": "Q",
+                        "lineageId": "subject"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "dono",
+                                            "label": "D[wh, adnominal]",
+                                            "lineageId": "dono",
+                                            "silent": true,
+                                            "word": "どの"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "student",
+                                            "label": "N",
+                                            "lineageId": "student",
+                                            "silent": true,
+                                            "word": "学生"
+                                          }
+                                        ],
+                                        "id": "sd",
+                                        "label": "D",
+                                        "lineageId": "subject-restrictor",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "mo",
+                                        "label": "Q[universal]",
+                                        "lineageId": "mo",
+                                        "silent": true,
+                                        "word": "も"
+                                      }
+                                    ],
+                                    "id": "sq",
+                                    "label": "Q",
+                                    "lineageId": "subject",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "two",
+                                                                "label": "Num",
+                                                                "lineageId": "two",
+                                                                "tokenIndex": 3,
+                                                                "word": "二"
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "counter",
+                                                                "label": "Cl",
+                                                                "lineageId": "counter",
+                                                                "tokenIndex": 4,
+                                                                "word": "冊"
+                                                              }
+                                                            ],
+                                                            "id": "cl",
+                                                            "label": "Cl",
+                                                            "lineageId": "object-classifier"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "no",
+                                                            "label": "Gen",
+                                                            "lineageId": "no",
+                                                            "tokenIndex": 5,
+                                                            "word": "の"
+                                                          }
+                                                        ],
+                                                        "id": "gen",
+                                                        "label": "Gen[adnominal]",
+                                                        "lineageId": "object-gen"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "book",
+                                                        "label": "N",
+                                                        "lineageId": "book",
+                                                        "tokenIndex": 6,
+                                                        "word": "本"
+                                                      }
+                                                    ],
+                                                    "id": "on",
+                                                    "label": "N",
+                                                    "lineageId": "object-n"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "exist",
+                                                    "label": "D[existential]",
+                                                    "lineageId": "existential",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "od",
+                                                "label": "D",
+                                                "lineageId": "object-d"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "wo",
+                                                "label": "K[accusative]",
+                                                "lineageId": "wo",
+                                                "tokenIndex": 7,
+                                                "word": "を"
+                                              }
+                                            ],
+                                            "id": "ok",
+                                            "label": "K",
+                                            "lineageId": "object"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "read",
+                                            "label": "V",
+                                            "word": "読ま"
+                                          }
+                                        ],
+                                        "id": "vp",
+                                        "label": "V"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "v",
+                                        "label": "v[transitive]",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "vb",
+                                    "label": "v"
+                                  }
+                                ],
+                                "id": "va",
+                                "label": "v"
+                              },
+                              {
+                                "children": [],
+                                "id": "neg",
+                                "label": "Neg",
+                                "word": "なかっ"
+                              }
+                            ],
+                            "id": "negp",
+                            "label": "Neg"
+                          },
+                          {
+                            "children": [],
+                            "id": "past",
+                            "label": "T[past]",
+                            "tokenIndex": 12,
+                            "word": "た"
+                          }
+                        ],
+                        "id": "tp",
+                        "label": "T"
+                      }
+                    ],
+                    "id": "ts",
+                    "label": "T"
+                  }
+                ],
+                "id": "objectscope",
+                "label": "T"
+              },
+              {
+                "children": [],
+                "id": "c",
+                "label": "C[declarative]",
+                "silent": true
+              }
+            ],
+            "id": "cp",
+            "label": "C"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "head-trace",
+    "sentence": "الكتب التي اشتراها سامر ليست هنا.",
+    "inputTokens": [
+      "الكتب",
+      "التي",
+      "اشتراها",
+      "سامر",
+      "ليست",
+      "هنا"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "samer",
+              "assigner": "v"
+            },
+            "relation": "External theta-role assignment",
+            "values": {
+              "thetaRole": "agent"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "object",
+              "licenser": "v"
+            },
+            "relation": "Object Case licensing",
+            "values": {
+              "case": "accusative"
+            }
+          }
+        ],
+        "stageRecord": "Merge transitive v with the verbal object, then externally merge سامر as its specifier. Samer receives the agent role here, below the position that will host the finite verb. The silent object remains the verb's complement. The resulting subject-before-verb workspace is an intermediate structure, not the relative clause's final pronunciation order.",
+        "statement": "Introduce Samer as the relative clause's agent.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "samer-d",
+                    "label": "D [definite]",
+                    "silent": true
+                  },
+                  {
+                    "children": [],
+                    "id": "samer-n",
+                    "label": "N [proper name; masculine singular]",
+                    "tokenIndex": 3,
+                    "word": "سامر"
+                  }
+                ],
+                "id": "samer",
+                "label": "D"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "v",
+                    "label": "v [transitive]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb",
+                        "label": "V [past; object clitic 3fsg]",
+                        "lineageId": "verb-chain",
+                        "tokenIndex": 2,
+                        "word": "اشتراها"
+                      },
+                      {
+                        "children": [],
+                        "id": "object",
+                        "label": "D [pro; 3fsg]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "V"
+                  }
+                ],
+                "id": "v-complement",
+                "label": "v"
+              }
+            ],
+            "id": "vp-agent",
+            "label": "v"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHost": "v",
+              "lowerTrace": "verb-trace",
+              "movedHead": "verb"
+            },
+            "priorAnchors": {
+              "source": "verb"
+            },
+            "relation": "Head movement",
+            "values": {
+              "operation": "V-to-v",
+              "representation": "overt moved head and silent lower trace"
+            }
+          }
+        ],
+        "stageRecord": "The verbal head raises from the complement structure established previously and adjoins to v. Its inflected lexical form, including the object suffix, moves as one opaque head. A silent head trace records the vacated position. This intermediate workspace is retained because the resulting complex v head must exist before it can raise to T.",
+        "statement": "Raise the relative verb to transitive v.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "samer-d",
+                    "label": "D [definite]",
+                    "silent": true
+                  },
+                  {
+                    "children": [],
+                    "id": "samer-n",
+                    "label": "N [proper name; masculine singular]",
+                    "tokenIndex": 3,
+                    "word": "سامر"
+                  }
+                ],
+                "id": "samer",
+                "label": "D"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb",
+                        "label": "V [past; object clitic 3fsg]",
+                        "lineageId": "verb-chain",
+                        "tokenIndex": 2,
+                        "word": "اشتراها"
+                      },
+                      {
+                        "children": [],
+                        "id": "v",
+                        "label": "v [transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "complex-v",
+                    "label": "v [complex head]",
+                    "lineageId": "complex-v-chain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb-trace",
+                        "label": "V [trace]",
+                        "lineageId": "verb-chain",
+                        "silent": true
+                      },
+                      {
+                        "children": [],
+                        "id": "object",
+                        "label": "D [pro; 3fsg]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "V"
+                  }
+                ],
+                "id": "v-complement",
+                "label": "v"
+              }
+            ],
+            "id": "vp-agent",
+            "label": "v"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "complex-head-trace",
+    "sentence": "الكتب التي اشتراها سامر ليست هنا.",
+    "inputTokens": [
+      "الكتب",
+      "التي",
+      "اشتراها",
+      "سامر",
+      "ليست",
+      "هنا"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHost": "v",
+              "lowerTrace": "verb-trace",
+              "movedHead": "verb"
+            },
+            "priorAnchors": {
+              "source": "verb"
+            },
+            "relation": "Head movement",
+            "values": {
+              "operation": "V-to-v",
+              "representation": "overt moved head and silent lower trace"
+            }
+          }
+        ],
+        "stageRecord": "The verbal head raises from the complement structure established previously and adjoins to v. Its inflected lexical form, including the object suffix, moves as one opaque head. A silent head trace records the vacated position. This intermediate workspace is retained because the resulting complex v head must exist before it can raise to T.",
+        "statement": "Raise the relative verb to transitive v.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "samer-d",
+                    "label": "D [definite]",
+                    "silent": true
+                  },
+                  {
+                    "children": [],
+                    "id": "samer-n",
+                    "label": "N [proper name; masculine singular]",
+                    "tokenIndex": 3,
+                    "word": "سامر"
+                  }
+                ],
+                "id": "samer",
+                "label": "D"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb",
+                        "label": "V [past; object clitic 3fsg]",
+                        "lineageId": "verb-chain",
+                        "tokenIndex": 2,
+                        "word": "اشتراها"
+                      },
+                      {
+                        "children": [],
+                        "id": "v",
+                        "label": "v [transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "complex-v",
+                    "label": "v [complex head]",
+                    "lineageId": "complex-v-chain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb-trace",
+                        "label": "V [trace]",
+                        "lineageId": "verb-chain",
+                        "silent": true
+                      },
+                      {
+                        "children": [],
+                        "id": "object",
+                        "label": "D [pro; 3fsg]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "V"
+                  }
+                ],
+                "id": "v-complement",
+                "label": "v"
+              }
+            ],
+            "id": "vp-agent",
+            "label": "v"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHost": "relative-t",
+              "lowerTrace": "complex-v-trace",
+              "movedHead": "complex-v"
+            },
+            "priorAnchors": {
+              "source": "complex-v"
+            },
+            "relation": "Head movement",
+            "values": {
+              "operation": "v-to-T"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "samer",
+              "probe": "relative-t",
+              "verbalExponent": "verb"
+            },
+            "relation": "Finite agreement and Case licensing",
+            "values": {
+              "case": "nominative",
+              "subjectFeatures": "third person masculine singular",
+              "tense": "past"
+            }
+          }
+        ],
+        "stageRecord": "Merge past T above the agent-containing structure, then raise the previously constructed complex v head to T. The finite verb consequently precedes سامر, which remains in its external-argument position. T agrees with the postverbal subject and licenses nominative Case; no subject-raising requirement is imposed on this Arabic verb-initial clause. Past morphology is already contained in the overt verbal word, so abstract T introduces no additional pronounced material.",
+        "statement": "Establish finite verb–subject order inside the relative clause.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "verb",
+                        "label": "V [past; object clitic 3fsg]",
+                        "lineageId": "verb-chain",
+                        "tokenIndex": 2,
+                        "word": "اشتراها"
+                      },
+                      {
+                        "children": [],
+                        "id": "v",
+                        "label": "v [transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "complex-v",
+                    "label": "v [complex head]",
+                    "lineageId": "complex-v-chain"
+                  },
+                  {
+                    "children": [],
+                    "id": "relative-t",
+                    "label": "T [past; finite]",
+                    "silent": true
+                  }
+                ],
+                "id": "relative-finite-head",
+                "label": "T [complex head]"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "samer-d",
+                        "label": "D [definite]",
+                        "silent": true
+                      },
+                      {
+                        "children": [],
+                        "id": "samer-n",
+                        "label": "N [proper name; masculine singular]",
+                        "tokenIndex": 3,
+                        "word": "سامر"
+                      }
+                    ],
+                    "id": "samer",
+                    "label": "D"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "complex-v-trace",
+                        "label": "v [head trace]",
+                        "lineageId": "complex-v-chain",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "verb-trace",
+                            "label": "V [trace]",
+                            "lineageId": "verb-chain",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "object",
+                            "label": "D [pro; 3fsg]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "vp",
+                        "label": "V"
+                      }
+                    ],
+                    "id": "v-complement",
+                    "label": "v"
+                  }
+                ],
+                "id": "vp-agent",
+                "label": "v"
+              }
+            ],
+            "id": "relative-tp",
+            "label": "T"
+          }
+        ]
+      }
+    ]
+  }
+]

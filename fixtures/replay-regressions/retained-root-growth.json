@@ -1,0 +1,710 @@
+{
+  "sentence": "الكتاب الذي اشتراه سامر قرأته ليلى.",
+  "inputTokens": [
+    "الكتاب",
+    "الذي",
+    "اشتراه",
+    "سامر",
+    "قرأته",
+    "ليلى"
+  ],
+  "derivationStages": [
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "bookD",
+            "bookN"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "rVAtT",
+            "rObject"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        },
+        {
+          "nodeIds": [
+            "mVAtT",
+            "mObject"
+          ],
+          "tokenIndices": [
+            4
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "higherComplex": "rvAtT",
+            "landingHead": "rTHead",
+            "lowerComplex": "rvHead"
+          },
+          "priorAnchors": {
+            "sourceComplex": "rvHead"
+          },
+          "relation": "v-to-T head movement"
+        },
+        {
+          "anchors": {
+            "higherComplex": "mvAtT",
+            "landingHead": "mTHead",
+            "lowerComplex": "mvHead"
+          },
+          "priorAnchors": {
+            "sourceComplex": "mvHead"
+          },
+          "relation": "v-to-T head movement"
+        },
+        {
+          "anchors": {
+            "goal": "rSubject",
+            "probe": "rT"
+          },
+          "relation": "Finite agreement and subject Case licensing",
+          "values": {
+            "agreement": "third person masculine singular",
+            "case": "nominative",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "mSubject",
+            "inflectedVerb": "mVAtT",
+            "probe": "mT"
+          },
+          "relation": "Finite agreement and subject Case licensing",
+          "values": {
+            "agreement": "third person feminine singular",
+            "case": "nominative",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "licenser": "rvAtT",
+            "object": "rObject"
+          },
+          "relation": "Object Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "licenser": "mvAtT",
+            "object": "mObject"
+          },
+          "relation": "Object Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "objectClitic": "rObject",
+            "verb": "rVAtT"
+          },
+          "priorAnchors": {
+            "objectClitic": "rObject",
+            "verb": "rVAtV"
+          },
+          "relation": "Morphological realization at the finite verbal occurrence",
+          "values": {
+            "surfaceWord": "اشتراه"
+          }
+        },
+        {
+          "anchors": {
+            "objectClitic": "mObject",
+            "verb": "mVAtT"
+          },
+          "priorAnchors": {
+            "objectClitic": "mObject",
+            "verb": "mVAtV"
+          },
+          "relation": "Morphological realization at the finite verbal occurrence",
+          "values": {
+            "surfaceWord": "قرأته"
+          }
+        }
+      ],
+      "stageRecord": "A past-tense T merges with each v domain. Each previously formed V-v complex then raises to T, leaving a silent lower copy of that complex. The pronounced verbs consequently precede the subjects, which remain in their original v-specifier positions. This analysis does not impose an English-style requirement that finite T must attract the subject. T agrees with the accessible external argument and licenses its nominative Case; transitive v licenses the pronominal object's accusative Case. Relative-clause agreement is masculine singular with سامر, whereas main-clause agreement is feminine singular with ليلى. The feminine inflection already present in قرأت realizes the latter agreement. The object clitics remain syntactically distinct from the raised verbal heads, with their surface associations updated to the highest pronounced verb occurrences.",
+      "statement": "Construct the finite clauses and derive their verb-before-subject order.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rVAtT",
+                      "label": "V",
+                      "lineageId": "relative-verb",
+                      "word": "اشترى"
+                    },
+                    {
+                      "children": [],
+                      "id": "rvAtTLeaf",
+                      "label": "v",
+                      "lineageId": "relative-v",
+                      "silent": true
+                    }
+                  ],
+                  "id": "rvAtT",
+                  "label": "v",
+                  "lineageId": "relative-v-complex"
+                },
+                {
+                  "children": [],
+                  "id": "rT",
+                  "label": "T",
+                  "silent": true
+                }
+              ],
+              "id": "rTHead",
+              "label": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rSubject",
+                  "label": "D",
+                  "tokenIndex": 3,
+                  "word": "سامر"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rVAtV",
+                          "label": "V",
+                          "lineageId": "relative-verb",
+                          "silent": true,
+                          "word": "اشترى"
+                        },
+                        {
+                          "children": [],
+                          "id": "rv",
+                          "label": "v",
+                          "lineageId": "relative-v",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rvHead",
+                      "label": "v",
+                      "lineageId": "relative-v-complex",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rV",
+                          "label": "V",
+                          "lineageId": "relative-verb",
+                          "silent": true,
+                          "word": "اشترى"
+                        },
+                        {
+                          "children": [],
+                          "id": "rObject",
+                          "label": "D",
+                          "word": "ـه"
+                        }
+                      ],
+                      "id": "rVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "rvComplement",
+                  "label": "v"
+                }
+              ],
+              "id": "rvProjection",
+              "label": "v"
+            }
+          ],
+          "id": "rTP",
+          "label": "T"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mVAtT",
+                      "label": "V",
+                      "lineageId": "main-verb",
+                      "word": "قرأت"
+                    },
+                    {
+                      "children": [],
+                      "id": "mvAtTLeaf",
+                      "label": "v",
+                      "lineageId": "main-v",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mvAtT",
+                  "label": "v",
+                  "lineageId": "main-v-complex"
+                },
+                {
+                  "children": [],
+                  "id": "mT",
+                  "label": "T",
+                  "silent": true
+                }
+              ],
+              "id": "mTHead",
+              "label": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mSubject",
+                  "label": "D",
+                  "tokenIndex": 5,
+                  "word": "ليلى"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mVAtV",
+                          "label": "V",
+                          "lineageId": "main-verb",
+                          "silent": true,
+                          "word": "قرأت"
+                        },
+                        {
+                          "children": [],
+                          "id": "mv",
+                          "label": "v",
+                          "lineageId": "main-v",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mvHead",
+                      "label": "v",
+                      "lineageId": "main-v-complex",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mV",
+                          "label": "V",
+                          "lineageId": "main-verb",
+                          "silent": true,
+                          "word": "قرأت"
+                        },
+                        {
+                          "children": [],
+                          "id": "mObject",
+                          "label": "D",
+                          "word": "ـه"
+                        }
+                      ],
+                      "id": "mVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "mvComplement",
+                  "label": "v"
+                }
+              ],
+              "id": "mvProjection",
+              "label": "v"
+            }
+          ],
+          "id": "mTP",
+          "label": "T"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "bookD",
+              "label": "D",
+              "word": "الـ"
+            },
+            {
+              "children": [],
+              "id": "bookN",
+              "label": "N",
+              "word": "كتاب"
+            }
+          ],
+          "id": "bookDP",
+          "label": "D"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "bookD",
+            "bookN"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "rVAtT",
+            "rObject"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        },
+        {
+          "nodeIds": [
+            "mVAtT",
+            "mObject"
+          ],
+          "tokenIndices": [
+            4
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "operator": "rOperator",
+            "resumptiveObject": "rObject"
+          },
+          "relation": "Relative operator binding",
+          "values": {
+            "interpretation": "the object bought by Samer"
+          }
+        },
+        {
+          "anchors": {
+            "nominalHead": "bookN",
+            "operator": "rOperator",
+            "relativeClause": "rCP"
+          },
+          "relation": "Relative-head interpretation",
+          "values": {
+            "composition": "restrictive modification"
+          }
+        },
+        {
+          "anchors": {
+            "definiteDeterminer": "bookD",
+            "nominalHead": "bookN",
+            "relativizer": "rC"
+          },
+          "relation": "Relative concord",
+          "values": {
+            "features": "definite masculine singular"
+          }
+        }
+      ],
+      "stageRecord": "The overt relativizer الذي is analyzed as a relative C selecting the completed relative T domain. A silent operator is externally merged at the relative edge and binds the object pronoun inside اشتراه. This is a resumptive derivation, not extraction of الكتاب or movement of the object pronoun: the operator has no lower copy, and the pronounced pronoun remains the verb's internal argument. The resulting relative clause is adjoined to the nominal projection, restricting the book to the one Samer bought. الذي matches the definite masculine singular nominal head. Independently, a silent declarative C closes the main finite clause. The two object clitics are distinct syntactic objects: relative binding is established here, while the main-clause clitic awaits its topic antecedent.",
+      "statement": "Complete the resumptive relative clause and attach it to the nominal head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "bookD",
+              "label": "D",
+              "word": "الـ"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bookN",
+                  "label": "N",
+                  "word": "كتاب"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rOperator",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rC",
+                          "label": "C",
+                          "tokenIndex": 1,
+                          "word": "الذي"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rVAtT",
+                                      "label": "V",
+                                      "lineageId": "relative-verb",
+                                      "word": "اشترى"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rvAtTLeaf",
+                                      "label": "v",
+                                      "lineageId": "relative-v",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "rvAtT",
+                                  "label": "v",
+                                  "lineageId": "relative-v-complex"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "rT",
+                                  "label": "T",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "rTHead",
+                              "label": "T"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rSubject",
+                                  "label": "D",
+                                  "tokenIndex": 3,
+                                  "word": "سامر"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rVAtV",
+                                          "label": "V",
+                                          "lineageId": "relative-verb",
+                                          "silent": true,
+                                          "word": "اشترى"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "rv",
+                                          "label": "v",
+                                          "lineageId": "relative-v",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "rvHead",
+                                      "label": "v",
+                                      "lineageId": "relative-v-complex",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rV",
+                                          "label": "V",
+                                          "lineageId": "relative-verb",
+                                          "silent": true,
+                                          "word": "اشترى"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "rObject",
+                                          "label": "D",
+                                          "word": "ـه"
+                                        }
+                                      ],
+                                      "id": "rVP",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "rvComplement",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "rvProjection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "rTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "rCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "rCP",
+                  "label": "C"
+                }
+              ],
+              "id": "bookNominal",
+              "label": "N"
+            }
+          ],
+          "id": "bookDP",
+          "label": "D"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mC",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mVAtT",
+                          "label": "V",
+                          "lineageId": "main-verb",
+                          "word": "قرأت"
+                        },
+                        {
+                          "children": [],
+                          "id": "mvAtTLeaf",
+                          "label": "v",
+                          "lineageId": "main-v",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mvAtT",
+                      "label": "v",
+                      "lineageId": "main-v-complex"
+                    },
+                    {
+                      "children": [],
+                      "id": "mT",
+                      "label": "T",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mTHead",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mSubject",
+                      "label": "D",
+                      "tokenIndex": 5,
+                      "word": "ليلى"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mVAtV",
+                              "label": "V",
+                              "lineageId": "main-verb",
+                              "silent": true,
+                              "word": "قرأت"
+                            },
+                            {
+                              "children": [],
+                              "id": "mv",
+                              "label": "v",
+                              "lineageId": "main-v",
+                              "silent": true
+                            }
+                          ],
+                          "id": "mvHead",
+                          "label": "v",
+                          "lineageId": "main-v-complex",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mV",
+                              "label": "V",
+                              "lineageId": "main-verb",
+                              "silent": true,
+                              "word": "قرأت"
+                            },
+                            {
+                              "children": [],
+                              "id": "mObject",
+                              "label": "D",
+                              "word": "ـه"
+                            }
+                          ],
+                          "id": "mVP",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "mvComplement",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "mvProjection",
+                  "label": "v"
+                }
+              ],
+              "id": "mTP",
+              "label": "T"
+            }
+          ],
+          "id": "mCP",
+          "label": "C"
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "transport": "codex-oauth",
+    "rawOutputSha256": "29ae8d90bc2cd335e8ebf09ba15508d67d92cc24540936b05688da0d70ccb333",
+    "sourceStages": [
+      3,
+      4
+    ],
+    "requestSha256": "5e3fa51c354963967776e391fb17afb026ca093f7ecc19fd9b1915c7a05e0e04",
+    "contractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d",
+    "repositoryCommit": "5130d835f4a1a3a4094087fd359414add45e352c"
+  }
+}

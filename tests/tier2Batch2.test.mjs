@@ -349,10 +349,12 @@ test('linear precedence and rebracketing do not compete for the same ordinary ro
   assert(!has(precedence, 'pf.local-dislocation'));
   assert(!has(inspect(relation({ order: ['a', 'b', 'c'] }, { orderRows: ['a < b', 'b < c'] })), 'pf.linearization'));
   // Local dislocation is claimed only when the trees regroup the sequence.
-  const regrouped = [node('root', 'CP', [leaf('a'), leaf('b'), leaf('c')])];
+  const regrouped = [node('root', 'CP', [leaf('a'), node('other-group', 'XP', [leaf('b'), leaf('c')])])];
   const grouped = [node('root', 'CP', [node('group', 'XP', [leaf('a'), leaf('b')]), leaf('c')])];
-  const dislocation = inspect(relation({ sequence: ['a', 'b'] }, { note: 'regrouped at PF' }), regrouped, grouped);
+  const dislocation = inspect(relation({ sequence: ['a', 'b', 'c'] }, { note: 'regrouped at PF' }), regrouped, grouped);
   assert(has(dislocation, 'pf.local-dislocation'));
+  assert.deepEqual(dislocation.items.find(item => item.plaqueStyle === 'dislocation-lane').nativeContent,
+    { kind: 'local-dislocation', beforeGroupSizes: [2, 1], afterGroupSizes: [1, 2] });
   assert(!has(dislocation, 'pf.linearization'));
   assert(!has(inspect(relation({ sequence: ['a', 'b'] }, { orderRows: ['a b', '[a b]'] })), 'pf.local-dislocation'), 'bracket text proves nothing');
   assert(!has(inspect(relation({ order: ['a', 'b'] }, { orderRows: ['ordinary prose', 'more prose'] })), 'pf.linearization'));

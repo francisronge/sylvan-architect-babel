@@ -12,6 +12,7 @@ test('the research catalog contains the approved unqualified candidates', () => 
   assert.deepEqual(
     RESEARCH_MODEL_CATALOG.map((entry) => entry.id),
     [
+      'openai:gpt-6.1-sol',
       'openai:gpt-6-astra',
       'openai:gpt-6-sol',
       'openai:gpt-5.6-sol',
@@ -89,6 +90,18 @@ test('GPT-6 Sol is selectable for qualification with its native effort settings'
       { 'reasoning.effort': effort }
     );
   }
+});
+
+test('GPT-6.1 Sol subscription qualification preserves its identity without enabling an API route', () => {
+  const sol = resolveResearchModelSelection('openai:gpt-6.1-sol');
+  assert.equal(sol.providerModel, 'gpt-6.1-sol');
+  assert.equal(sol.label, 'GPT-6.1 Sol');
+  assert.deepEqual(sol.nativeSettings, { 'reasoning.effort': 'high' });
+  assert.equal(getResearchModel(sol.catalogId).api, 'codex-responses');
+  assert.equal(GENERATION_MODEL_IDS.includes(sol.catalogId), false);
+  assert.throws(() => resolveResearchModelSelection(sol.catalogId, {
+    'reasoning.effort': 'none'
+  }), /must be one of/);
 });
 
 test('candidate identities and pending-settings gates remain exact', () => {

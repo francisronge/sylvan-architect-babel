@@ -122,11 +122,44 @@ export const splitAntecedenceLinkPath = (
 
 export const ELBOW_ENDPOINT_RADIUS = 9;
 
+/** Keep the index beside its label unless the binding path uses that side.
+ * The cubic's y coordinates stay between its endpoints, so the upper index
+ * clears above that interval and the lower index clears below. Glyph bounds
+ * are baseline-relative in the same SVG space. Padding includes the existing
+ * marker and index outlines; paths and node positions are not adjusted. */
+export const operatorBindingIndexPoint = (
+  label: Rect,
+  glyph: Pick<Rect, 'y' | 'height'>,
+  role: 'operator' | 'variable',
+  direction: number,
+  otherEndpointY: number
+): Point => {
+  const point = { x: label.x + label.width + 10, y: label.y + label.height * 0.72 };
+  if (direction <= 0 || !Number.isFinite(glyph.y) || !(glyph.height > 0)) return point;
+  const endpointY = label.y + label.height * (role === 'operator' ? 0.62 : 0.58);
+  const arrowPaintHalfHeight = (4 + 1.15 / 2) * 11 / 10;
+  const indexStrokeHalfWidth = 7 / 2;
+  const clearance = arrowPaintHalfHeight + indexStrokeHalfWidth + 4;
+  return { x: point.x, y: endpointY < otherEndpointY
+    ? Math.min(point.y, endpointY - clearance - glyph.y - glyph.height)
+    : Math.max(point.y, endpointY + clearance - glyph.y) };
+};
+
 /** Anti-locality's blocked bar cap: a horizontal stop at the endpoint. */
 export const barCapPath = (endpoint: Point, halfWidth = 14): string => [
   `M ${fixed(endpoint.x - halfWidth)} ${fixed(endpoint.y)}`,
   `L ${fixed(endpoint.x + halfWidth)} ${fixed(endpoint.y)}`
 ].join(' ');
+
+/** The native locality cross occupies a 34-unit square in tree coordinates. */
+export const blockingCrossSegments = (point: Point, halfSize = 17): Array<{
+  x1: number; y1: number; x2: number; y2: number;
+}> => [-1, 1].map(direction => ({
+  x1: point.x + direction * halfSize,
+  y1: point.y - halfSize,
+  x2: point.x - direction * halfSize,
+  y2: point.y + halfSize
+}));
 
 /** The licensed check mark used opposite the bar cap. */
 export const checkMarkPath = (point: Point, size = 12): string => [
@@ -386,6 +419,26 @@ export const domainBracketPath = (x1: number, x2: number, y: number, lip = 12): 
   `L ${fixed(x2)} ${fixed(y)}`,
   `L ${fixed(x2)} ${fixed(y - lip)}`
 ].join(' ');
+
+/** Fit the idiom's right bracket once, then keep it in its domain's SVG space. */
+export const idiomDomainBracketPath = (domain: Rect, viewportRight = Infinity): string | null => {
+  if (![domain.x, domain.y, domain.width, domain.height].every(Number.isFinite)
+    || domain.width < 0 || domain.height < 0) return null;
+  const domainRight = domain.x + domain.width;
+  const top = domain.y - 80;
+  const bottom = domain.y + domain.height + 80;
+  const available = Number.isFinite(viewportRight) ? Math.max(0, viewportRight - domainRight) : 320;
+  const gutter = Math.min(320, available);
+  const bracketX = domainRight + gutter;
+  const cap = Math.min(96, gutter);
+  if (![bracketX, top, bottom].every(Number.isFinite)) return null;
+  return [
+    `M ${fixed(bracketX - cap)} ${fixed(top)}`,
+    `H ${fixed(bracketX)}`,
+    `V ${fixed(bottom)}`,
+    `H ${fixed(bracketX - cap)}`
+  ].join(' ');
+};
 
 /**
  * Fong's Transfer/PIC tilted component arc: the cubic that sweeps up and

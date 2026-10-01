@@ -7,7 +7,7 @@ import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve, featureCollectionEdge, type CollectionEdge } from './overlayGeometry.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
-import { preparePlaqueObstacleIndex, preparePlaqueColumnIntervals, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+import { preparePlaqueObstacleIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
@@ -36,7 +36,8 @@ export function plaqueIdentity(item: RelationPlanItem): string {
 }
 const idOf = (node: Node): string => String((node as Node & { __vizId?: string }).__vizId ?? node.data.id ?? '');
 const visible = (node: Node) => node.data.replayOrigin?.kind !== 'workspace';
-const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= 480;
+const localPlaqueSize = 480;
+const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= localPlaqueSize;
 export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'children'>): string {
   let node = anchor;
   // A unary display shell can expose its own word; branching cannot select a head.
@@ -145,7 +146,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
+type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; thetaGrid?: boolean; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
 
 /** Keep the lifetime pocket and ports while checking the content painted in this stage. */
 export function projectPlaqueContent<T extends PlaqueRect>(box: T, request: Pick<PlaqueRequest, 'width' | 'height' | 'caseRowY' | 'collectionRows'>): T {
@@ -209,22 +210,37 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
   const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
   const index = preparePlaqueObstacleIndex(blockers);
+  let previousX = NaN, previousY = NaN, previousWidth = NaN, previousHeight = NaN, previousRowY = NaN;
+  let previousResult = false;
   return (box: PlaqueRect) => {
-    const curve = caseAssignmentPlaqueCurve(rect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
+    const drawn = drawnPlaque(box), rowY = box.y + (box.caseRowY ?? 93);
+    // Trying another collection port leaves the Case curve unchanged. Reuse
+    // only that exact last curve against this immutable obstacle space.
+    if (drawn.x === previousX && drawn.y === previousY && drawn.width === previousWidth
+      && drawn.height === previousHeight && rowY === previousRowY) return previousResult;
+    previousX = drawn.x; previousY = drawn.y; previousWidth = drawn.width; previousHeight = drawn.height; previousRowY = rowY;
+    const curve = caseAssignmentPlaqueCurve(rect, drawn, rowY);
     // Collision clearance alone can leave an arrow shorter than its head.
     // Reserve a readable shaft in tree coordinates, so zoom keeps its proportion.
-    return Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) >= CATEGORY_LINE_HEIGHT * 2
+    previousResult = Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) >= CATEGORY_LINE_HEIGHT * 2
       && !index.some(curveBounds(curve, 8), blocker => cubicIntersectsRect(curve, blocker, 8));
+    return previousResult;
   };
 }
 
 /** Measure source labels once per allocation space, not for every candidate pocket. */
 export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRect[] = []) {
+  const attachments = new Map<string, PlaqueRect>();
+  for (const obstacle of obstacles) {
+    if (obstacle.connectorAttachment !== undefined && !attachments.has(obstacle.connectorAttachment))
+      attachments.set(obstacle.connectorAttachment, obstacle);
+  }
   const sources = new Map(nodes.map(node => {
     const id = idOf(node);
     const label = (labels: PlaqueRect[]) => labels.find(rect => rect.connectorAttachment === `${id}:category`)
       ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
-    return [id, label(obstacles) ?? label(plaqueTreeObstacles([node]))] as const;
+    return [id, attachments.get(`${id}:category`) ?? attachments.get(`${id}:terminal`)
+      ?? label(plaqueTreeObstacles([node]))] as const;
   }));
   const blockers = obstacles.filter(rect => rect.blocksConnectors);
   const inkIndexes = new Map<string | undefined, ReturnType<typeof preparePlaqueObstacleIndex>>();
@@ -342,19 +358,42 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     for (const curve of routes) {
       const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
       let minOther = Infinity, maxOther = -Infinity;
+      let increasing = true, decreasing = true;
       for (let i = 1; i < 64; i++) {
         minOther = Math.min(minOther, samples[i][other]);
         maxOther = Math.max(maxOther, samples[i][other]);
+        if (i > 1) {
+          increasing &&= samples[i][other] >= samples[i - 1][other];
+          decreasing &&= samples[i][other] <= samples[i - 1][other];
+        }
       }
+      // Search the existing samples, not an analytic substitute: the first/last
+      // crossing and its arithmetic define the candidate and stable tie order.
+      const sampleBound = (value: number, inclusive: boolean) => {
+        let low = 1, high = 64;
+        while (low < high) {
+          const middle = (low + high) >>> 1;
+          const coordinate = increasing ? samples[middle][other] : -samples[middle][other];
+          if (coordinate < value || (inclusive && coordinate === value)) low = middle + 1;
+          else high = middle;
+        }
+        return low;
+      };
       for (const obstacle of blockers) {
         if (obstacle.connectorAttachment === curve.attachment.connectorAttachment) continue;
         const rect = obstacle.connectorInk ?? obstacle;
         const low = rect[other] - 8, high = rect[other] + rect[otherExtent] + 8;
         if (maxOther < low || minOther > high) continue;
         let first = -1, last = -1;
-        for (let i = 1; i < 64; i++) if (samples[i][other] >= low && samples[i][other] <= high) {
-          if (first < 0) first = i;
-          last = i;
+        if (increasing || decreasing) {
+          first = sampleBound(increasing ? low : -high, false);
+          last = sampleBound(increasing ? high : -low, true) - 1;
+          if (last < first) continue;
+        } else {
+          for (let i = 1; i < 64; i++) if (samples[i][other] >= low && samples[i][other] <= high) {
+            if (first < 0) first = i;
+            last = i;
+          }
         }
         if (first < 0) continue;
         for (const i of [first, last]) {
@@ -469,8 +508,11 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       }) : [];
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
         width: size.width, height: size.height, ...(collectionRows.length ? { collectionRows } : {}),
+        ...(item.plaqueStyle === 'theta-grid' ? { thetaGrid: true } : {}),
         ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
+      // A Case route reserves its exact source; its recipient cannot stand in for an unavailable source.
+      if (!byId.has(item.fromNodeId)) return;
       const composition = caseFeatureComposition(items, index)!;
       const size = prepareCasePlaqueRows(composition.rows);
       const collectionRows = composition.collections.map(({ item, index }, lane) => ({ sourceNodeId: item.toNodeId, lane,
@@ -488,6 +530,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 type PlaqueLifetime = {
   sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height' | 'collectionWidth'>>;
   collectionsOnly?: boolean;
+  reconsider?: ReadonlySet<number>;
   spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
     obstacles: PlaqueRect[];
     acceptsConnector: (box: PlaqueRect) => boolean;
@@ -500,6 +543,7 @@ type PlaqueLifetime = {
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
   previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure, lifetime?: PlaqueLifetime) {
   const result = new Map<number, PlaquePlacement>();
+  const priorCandidates = new Map<number, PlaquePlacement>();
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const placed: PlaqueRect[] = [];
   const attachmentSpace = prepareCollectionPlaqueSpace(nodes, obstacles);
@@ -531,11 +575,15 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied))
         && collectionPlaqueClears(placement, nodes, occupied);
     if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
+    if (lifetime?.reconsider?.has(request.index)) {
+      priorCandidates.set(request.index, placement);
+      continue;
+    }
     result.set(request.index, placement);
     placed.push({ ...placement, blocksConnectors: true },
       ...(request.caseAssignment ? caseRouteRects(attachment, placement) : []));
   }
-  // Local boxes get the nearby pockets first. Large boxes do not consume those pockets.
+  // Compact boxes keep first choice of nearby pockets, even when a wider grid can also fit locally.
   requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
   for (const request of requests) {
     if (result.has(request.index)) continue;
@@ -571,10 +619,24 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const availableNodes = new Set(nodes);
     const domainBounds = union(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
     const { width, height } = request;
-    const local = fitsLocalPocket(request);
+    // Role grids grow horizontally with their columns; width alone must not detach them from the predicate.
+    const local = fitsLocalPocket(request) || (request.thetaGrid && height <= localPlaqueSize);
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
     const anchorY = terminal.length === 1 ? terminal[0].y + 140
       : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
+    const prior = priorCandidates.get(request.index);
+    const priorCandidate = prior && !obstacleIndex.overlaps(prior)
+      && (space ? space.acceptsConnector(prior)
+        : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
+    const placementDistance = (box: PlaqueRect) => {
+      if (!sourceRect) return (box.x + width / 2 - anchor.x) ** 2 + (box.y + height / 2 - anchorY) ** 2;
+      const curve = caseAssignmentPlaqueCurve(sourceRect,
+        { x: box.x, y: box.y, width, height }, box.y + (request.caseRowY ?? 93));
+      const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 16);
+      return points.slice(1).reduce((length, point, i) =>
+        length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
+    };
+    const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
     const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
       [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
         .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
@@ -588,7 +650,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       placement = clear(candidate);
       if (placement) break;
     }
+    // A genuine participant relocation can make a valid old pocket unnecessarily
+    // remote. Keep it as an incumbent; unchanged geometry takes the carry path.
+    if (placement && priorCandidate && priorDistance <= placementDistance(placement)) placement = priorCandidate;
     if (!placement && local) {
+      placement = priorCandidate;
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
       const gap = 24 + 1e-6;
@@ -605,7 +671,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         [box.x - width - gap, box.x + box.width + gap])])]
         .sort((a, b) => horizontalGap(a) - horizontalGap(b));
       const columnIntervals = preparePlaqueColumnIntervals(occupied, height, gap);
-      let bestDistance = Infinity;
+      let bestDistance = priorDistance;
       for (const x of xs) {
         const dx = horizontalGap(x);
         if (dx * dx >= bestDistance) break;
@@ -618,14 +684,24 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
           ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
         ] : [];
-        const lanes = new Set([idealY]);
+        const lanes = new Set<number>();
+        const canImprove = (y: number) => {
+          if (!Number.isFinite(y) || plaqueColumnContains(merged, y)) return false;
+          if (!Number.isFinite(bestDistance)) return true;
+          const dy = y - idealY;
+          if (!sourceRect) return dx * dx + dy * dy < bestDistance;
+          const route = caseAssignmentPlaqueCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
+          return (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 < bestDistance;
+        };
+        const addLane = (y: number) => { if (canImprove(y)) lanes.add(y); };
+        addLane(idealY);
         for (const y of new Set(rawConnectorLanes)) {
-          lanes.add(y); lanes.add(y - 16); lanes.add(y + 16);
+          addLane(y); addLane(y - 16); addLane(y + 16);
         }
-        for (const [low, high] of merged) { lanes.add(low); lanes.add(high); }
-        // Blocked lanes are rejected before ranking; their position in the sort
-        // cannot affect which clear candidate wins or its stable tie order.
-        const ys = [...lanes].filter(y => Number.isFinite(y) && !merged.some(([low, high]) => y > low && y < high))
+        for (const [low, high] of merged) { addLane(low); addLane(high); }
+        // Blocked lanes and candidates whose lower bound cannot beat the current
+        // placement never enter the sort. Surviving ties retain insertion order.
+        const ys = [...lanes]
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
         for (const y of ys) {
           const dy = y - idealY;
@@ -643,7 +719,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         }
       }
     }
-    const location = placement ? 'local' : 'below';
+    placement ??= priorCandidate;
+    const location = placement ? placement === priorCandidate ? priorCandidate.location : 'local' : 'below';
     if (!placement) {
       // A connector's lower lane clears all plaques, so its stems extend past
       // every below-tree plaque. Choose the nearest clear column before stacking.

@@ -25,8 +25,11 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
     const source = { x: direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8,
       y: assigner.y + assigner.height / 2 };
     const approach = Math.min(76, Math.abs(target.x - source.x) / 2);
-    return { source, target, control1: { x: source.x + direction * approach, y: source.y },
-      control2: { x: target.x - direction * approach, y: target.y } };
+    // Side exits need their own bow: level endpoints otherwise make both
+    // handles collinear. Bend above the gap, clear of the category below.
+    const bow = Math.min(76, Math.abs(target.x - source.x) / 4);
+    return { source, target, control1: { x: source.x + direction * approach, y: source.y - bow },
+      control2: { x: target.x - direction * approach, y: target.y - bow } };
   }
   const source = { x: centerX, y: target.y < assigner.y
     ? assigner.y - 8 : assigner.y + assigner.height + 8 };
@@ -130,15 +133,16 @@ export const analysisVerdictCompoundOrigin = (
   y: desiredCenterY - compoundRect.y - compoundRect.height / 2
 });
 
-/** Normalizes the verdict once against a card's initial camera fit. The
- * renderer keeps this local scale unchanged afterward, so manual zoom still
- * scales and moves the verdict with the syntax. */
+/** Word verdicts use terminal-sized type; judgment symbols retain their larger
+ * Orchard glyph. Initial fitting may reduce either, but never enlarge them
+ * relative to the syntax. Manual zoom keeps the compound together. */
 export const analysisVerdictInitialLocalScale = (
   initialCameraScale: number,
-  targetJudgmentScreenPx = 28,
-  judgmentTreeSize = 160
-): number => targetJudgmentScreenPx
-  / (Math.max(0.001, initialCameraScale || 1) * judgmentTreeSize);
+  judgment = '*'
+): number => Math.min(
+  /\p{L}/u.test(judgment) ? 56 / 160 : 1,
+  28 / (Math.max(0.001, initialCameraScale || 1) * 160)
+);
 
 const rectOverlapArea = (left: Rect, right: Rect): number => {
   const overlapWidth = Math.max(

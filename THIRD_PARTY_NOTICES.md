@@ -30,10 +30,51 @@ The complete copyright notices and license accompany the fonts at
 
 ## Academic Source Material
 
-The renderer research records cite academic publications and may refer to local
-recovery copies under `docs/design/visual-relations-assets/`. Those copied
-figures and PDFs are intentionally not part of the release and are not covered
-by Babel's Apache license. Copyright remains with their authors or publishers.
+The Relation Orchard displays small previews of selected academic figures under
+`docs/research/relation-orchard/assets/source-previews/`. Each source panel names
+the work, identifies what the image illustrates, and links to the original.
+These third-party excerpts are not covered by Babel's Apache license; copyright
+remains with their authors or publishers. The larger research copies under
+`docs/design/visual-relations-assets/` remain outside the release.
+
+Four separately licensed source figures are published in the Orchard's optional
+source viewer. `poole-dependent-case-low.png` is an unmodified page image from
+Ethan Poole, “Dependent-case assignment could be AGREE” (2024), page 8,
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The
+[original article](https://www.glossa-journal.org/articles/10.16995/glossa.9894/)
+provides the source and license. `parasitic-gap-tree.png` is the unmodified
+“Parasitic gap tree” by Kvandervelden (2021),
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Its
+[Wikimedia Commons page](https://commons.wikimedia.org/wiki/File:Parasitic_gap_tree.png)
+provides the source and license. These images retain their own licenses; Babel's
+Apache license does not cover them.
+
+`assmann-et-al-focus-marking-example-49.png` is a cropped page excerpt from
+Muriel Assmann, Daniel Büring, Izabela Jordanoska, and Max Prüller,
+“Towards a theory of morphosyntactic focus marking” (2023), example (49).
+The [original article](https://pmc.ncbi.nlm.nih.gov/articles/PMC10643371/)
+is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+`poole-keine-reconstruction-example-2.png` is a cropped excerpt of example (2)
+from Ethan Poole and Stefan Keine, “Not all reconstruction effects are syntactic”
+(2024). The [original article](https://link.springer.com/article/10.1007/s11049-023-09603-3)
+is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+The source previews `source-recovery-2026-10-01--jou-2026-case-stacking-example125.jpg`
+and `source-recovery-2026-10-01--jou-2026-case-stacking-example126.jpg` reproduce
+examples (125) and (126) from Eunsun Jou, "A successive-cyclic dependent case
+account of Korean case-marked adverbials" (2026). They are resized previews of
+the publisher's figures. The [original article](https://link.springer.com/article/10.1007/s11049-026-09717-4)
+and its figures are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+`source-recovery-2026-10-01--pdt-coreference-overlay-cmpr9413-006.jpg` reproduces the
+Prague Dependency Treebank reference overlay for tree `t-cmpr9413-006-p23s2`,
+shown as Figure 3.1 in the [PDT 3.0 documentation](https://ufal.mff.cuni.cz/node/780).
+The [original SVG](https://ufal.mff.cuni.cz/discourse/pics/cmpr9413_006.svg) was
+rasterized on a white background and resized. Copyright 2013 Charles University
+in Prague, Institute of Formal and Applied Linguistics. The source and this
+preview are licensed [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/),
+as specified by the [PDT licence](https://ufal.mff.cuni.cz/pdt3.0/licence).
 
 ## Model and Provider Outputs
 

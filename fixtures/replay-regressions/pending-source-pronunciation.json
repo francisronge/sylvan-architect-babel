@@ -1,0 +1,328 @@
+{
+  "sentence": "O livro que a Ana comprou desapareceu.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "anaBase",
+            "introducer": "rv",
+            "predicate": "rV"
+          },
+          "relation": "external argument interpretation",
+          "values": {
+            "role": "agent"
+          }
+        }
+      ],
+      "stageRecord": "The transitive light verb merges with the previously constructed verbal object, and the nominal a Ana merges as its external argument. The resulting object projects v and supplies the agent of buying. Que remains in its original complement position; neither the verb nor either argument has moved yet.",
+      "statement": "Introduce Ana as the relative clause's external argument.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "anaArticle",
+                  "label": "D",
+                  "tokenIndex": 3,
+                  "word": "a"
+                },
+                {
+                  "children": [],
+                  "id": "anaName",
+                  "label": "N",
+                  "tokenIndex": 4,
+                  "word": "Ana"
+                }
+              ],
+              "id": "anaBase",
+              "label": "D",
+              "lineageId": "anaArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rv",
+                  "label": "v[transitive]",
+                  "lineageId": "relativeLittleV",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rV",
+                      "label": "V",
+                      "lineageId": "buy",
+                      "tokenIndex": 5,
+                      "word": "comprou"
+                    },
+                    {
+                      "children": [],
+                      "id": "qBase",
+                      "label": "D[relative]",
+                      "lineageId": "relativeOperator",
+                      "tokenIndex": 2,
+                      "word": "que"
+                    }
+                  ],
+                  "id": "rVP",
+                  "label": "V"
+                }
+              ],
+              "id": "rvComplement",
+              "label": "v"
+            }
+          ],
+          "id": "rvP",
+          "label": "v"
+        },
+        {
+          "children": [],
+          "id": "bookArticle",
+          "label": "D",
+          "tokenIndex": 0,
+          "word": "O"
+        },
+        {
+          "children": [],
+          "id": "bookN",
+          "label": "N",
+          "tokenIndex": 1,
+          "word": "livro"
+        },
+        {
+          "children": [],
+          "id": "mV",
+          "label": "V",
+          "lineageId": "disappear",
+          "tokenIndex": 6,
+          "word": "desapareceu"
+        },
+        {
+          "children": [],
+          "id": "rT",
+          "label": "T[past, finite]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "rC",
+          "label": "C[relative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mv",
+          "label": "v[unaccusative]",
+          "lineageId": "matrixLittleV",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mT",
+          "label": "T[past, finite]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mC",
+          "label": "C[declarative]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "rVAtV",
+            "landingHead": "rvHead",
+            "lowerOccurrence": "rV"
+          },
+          "priorAnchors": {
+            "source": "rV",
+            "target": "rv"
+          },
+          "relation": "head movement",
+          "values": {
+            "operation": "V-to-v"
+          }
+        },
+        {
+          "anchors": {
+            "edgeOccurrence": "qEdge",
+            "lowerOccurrence": "qBase",
+            "phaseHead": "rvHead"
+          },
+          "priorAnchors": {
+            "source": "qBase"
+          },
+          "relation": "successive cyclic relative movement",
+          "values": {
+            "destination": "outer edge of transitive v",
+            "pronunciation": "edge occurrence only"
+          }
+        }
+      ],
+      "stageRecord": "Comprou raises from the established V position into the transitive light verb, creating a complex head. Its lower occurrence becomes unpronounced. Que then undergoes Internal Merge at the outer edge of the transitive v domain, outside the agent. This intermediate occurrence is required by the phase-based analysis: subsequent relative extraction must proceed from the accessible edge rather than directly from the transferred verbal complement. The lower object copy is unpronounced, while the edge copy temporarily carries que's pronunciation. Finite T subsequently merges above this completed v object. Head movement and operator movement have independent targets; both precede this Merge of T.",
+      "statement": "Raise the relative verb to v and evacuate the relative operator to the phase edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "rT",
+              "label": "T[past, finite]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "qEdge",
+                  "label": "D[relative]",
+                  "lineageId": "relativeOperator",
+                  "tokenIndex": 2,
+                  "word": "que"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "anaArticle",
+                          "label": "D",
+                          "tokenIndex": 3,
+                          "word": "a"
+                        },
+                        {
+                          "children": [],
+                          "id": "anaName",
+                          "label": "N",
+                          "tokenIndex": 4,
+                          "word": "Ana"
+                        }
+                      ],
+                      "id": "anaBase",
+                      "label": "D",
+                      "lineageId": "anaArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rv",
+                              "label": "v[transitive]",
+                              "lineageId": "relativeLittleV",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "rVAtV",
+                              "label": "V",
+                              "lineageId": "buy",
+                              "tokenIndex": 5,
+                              "word": "comprou"
+                            }
+                          ],
+                          "id": "rvHead",
+                          "label": "v",
+                          "lineageId": "relativeComplexHead"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rV",
+                              "label": "V",
+                              "lineageId": "buy",
+                              "silent": true,
+                              "word": "comprou"
+                            },
+                            {
+                              "children": [],
+                              "id": "qBase",
+                              "label": "D[relative]",
+                              "lineageId": "relativeOperator",
+                              "silent": true,
+                              "word": "que"
+                            }
+                          ],
+                          "id": "rVP",
+                          "label": "V",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rvComplement",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "rvP",
+                  "label": "v"
+                }
+              ],
+              "id": "rvEdgeProjection",
+              "label": "v"
+            }
+          ],
+          "id": "rTProjection",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "bookArticle",
+          "label": "D",
+          "tokenIndex": 0,
+          "word": "O"
+        },
+        {
+          "children": [],
+          "id": "bookN",
+          "label": "N",
+          "tokenIndex": 1,
+          "word": "livro"
+        },
+        {
+          "children": [],
+          "id": "mV",
+          "label": "V",
+          "lineageId": "disappear",
+          "tokenIndex": 6,
+          "word": "desapareceu"
+        },
+        {
+          "children": [],
+          "id": "rC",
+          "label": "C[relative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mv",
+          "label": "v[unaccusative]",
+          "lineageId": "matrixLittleV",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mT",
+          "label": "T[past, finite]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "mC",
+          "label": "C[declarative]",
+          "silent": true
+        }
+      ]
+    }
+  ]
+}

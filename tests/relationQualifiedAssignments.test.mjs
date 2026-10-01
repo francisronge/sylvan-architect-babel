@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { dispatchRelationClaims, dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 
 const forest = [{ id: 'vp', label: 'VP', children: [
@@ -59,6 +59,32 @@ test('qualified role pairing rejects competing labels, missing slots, and cross-
   ]) assert(!plan({ relation: 'A novel title', ...r }).some(item => item.plaqueStyle === 'theta-grid'), JSON.stringify(r));
 });
 
+test('an explicitly paired argument row survives another occurrence and corroboration does not duplicate its grid', () => {
+  const workspaceForest = [{ id: 'clause', label: 'TP', children: [
+    { id: 'higher', label: 'DP', lineageId: 'theme' },
+    { id: 'vp', label: 'VP', children: [
+      { id: 'predicate', label: 'V' }, { id: 'experiencer', label: 'DP' },
+      { id: 'lower', label: 'DP', lineageId: 'theme', silent: true }
+    ] }
+  ] }];
+  const relation = { relation: 'Thematic interpretation through a chain',
+    anchors: { predicate: 'predicate', experiencer: 'experiencer', themeArgument: 'higher', themePosition: 'lower' },
+    values: { experiencer: 'Experiencer', themeArgument: 'Theme' } };
+  const stages = [{ statement: '', stageRecord: '', workspaceForest, relations: [
+    { relation: 'An earlier assignment', anchors: { predicate: 'predicate', experiencer: 'experiencer' }, values: { experiencer: 'Experiencer' } }
+  ] }, { statement: '', stageRecord: '', workspaceForest, relations: [relation] }];
+  const dispatches = dispatchStageRelations(stages);
+  assert.equal(dispatches[1][0].facets.filter(f => f.recipe.id === 'theta-grid').length, 1);
+  const plan = compileRelationRenderPlan(stages);
+  const grids = plan.frames[1].items.filter(item => item.plaqueStyle === 'theta-grid');
+  assert.equal(grids.length, 1);
+  assert.deepEqual(grids[0].thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [
+    { nodeId: 'experiencer', label: 'Experiencer' }, { nodeId: 'higher', label: 'Theme' }
+  ]);
+  assert(!dispatches[1][0].facets.find(f => f.recipe.id === 'theta-grid').evaluation.consumedEvidence
+    .some(ref => ref.field === 'anchors' && ref.key === 'themePosition'));
+});
+
 test('scalar participant names pair with their explicitly qualified role value', () => {
   const r = { relation: 'A new title', anchors: { predicate: 'source', agent: 'other', theme: 'argument' },
     values: { themeRole: 'Theme', agentRole: 'Agent' } };
@@ -67,7 +93,103 @@ test('scalar participant names pair with their explicitly qualified role value',
   assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [
     { nodeId: 'other', label: 'Agent' }, { nodeId: 'argument', label: 'Theme' }
   ]);
-  assert(!plan({ ...r, values: { description: 'The agent receives Agent and the theme receives Theme.' } }).some(item => item.plaqueStyle === 'theta-grid'));
+  const named = plan({ ...r, values: { description: 'Additional prose remains neutral.' } });
+  assert.deepEqual(named.find(item => item.plaqueStyle === 'theta-grid').thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })),
+    [{ nodeId: 'other', label: 'agent' }, { nodeId: 'argument', label: 'theme' }]);
+  assert(named.some(item => item.kind === 'fallback' && item.relationRef.values.description === 'Additional prose remains neutral.'));
+});
+
+test('named thematic inventories require a predicate or an independently thematic claim', () => {
+  for (const source of ['predicate', 'verb']) {
+    const r = { relation: source === 'verb' ? 'Argument structure' : 'An unfamiliar description', anchors: { [source]: 'source', agent: 'other', theme: 'argument' } };
+    const original = structuredClone(r);
+    const grid = plan(r).find(item => item.plaqueStyle === 'theta-grid');
+    assert(grid);
+    assert.deepEqual(grid.anchorNodeIds, ['source']);
+    assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })),
+      [{ nodeId: 'other', label: 'agent' }, { nodeId: 'argument', label: 'theme' }]);
+    assert.deepEqual(r, original);
+    const changed = { ...r, anchors: { [source]: 'source', theme: 'other', agent: 'argument' } };
+    assert.notEqual(dispatch(r).facets.find(f => f.recipe.id === 'theta-grid').facetIdentity,
+      dispatch(changed).facets.find(f => f.recipe.id === 'theta-grid').facetIdentity);
+  }
+  for (const anchors of [
+    { verb: 'source', agent: 'other', theme: 'argument', goalPP: 'vp' },
+    { predicate: 'source', agent: 'other', theme: 'argument', recipient: 'vp' }
+  ]) assert.equal(plan({ relation: 'Thematic inventory', anchors }).find(item => item.plaqueStyle === 'theta-grid')?.thetaRoles.length, 3);
+});
+
+test('named inventories reject competing predicates, unresolved or ambiguous participants and conflicting values', () => {
+  const r = { relation: 'Novel', anchors: { verb: 'source', agent: 'other', theme: 'argument' } };
+  for (const candidate of [
+    { ...r, anchors: { ...r.anchors, predicate: 'vp' } },
+    { ...r, anchors: { ...r.anchors, theme: 'missing' } },
+    { ...r, anchors: { ...r.anchors, theme: 'other' } },
+    { ...r, anchors: { ...r.anchors, agent: ['other', 'argument'] } },
+    { ...r, anchors: { ...r.anchors, agentPosition: 'vp' } },
+    { ...r, anchors: { verb: 'source', item: 'other', entity: 'argument' } },
+    { ...r, anchors: { notVerb: 'source', agent: 'other', theme: 'argument' } },
+    { ...r, values: { role: 'Patient' } },
+    { ...r, values: { agentRole: 'Agent' } },
+    { ...r, values: { result: 'failed' } },
+    { ...r, values: { case: 'nominative' } },
+    { relation: 'ThetaAssignment', anchors: { agent: 'other', theme: 'argument' } }
+  ]) assert(!plan(candidate).some(item => item.plaqueStyle === 'theta-grid'), JSON.stringify(candidate));
+});
+
+test('a qualified goal phrase pairs with its explicit role literal', () => {
+  const r = { relation: 'Novel', anchors: { predicate: 'source', goalPP: 'argument' }, values: { role: 'goal' } };
+  assert.equal(plan(r).find(item => item.plaqueStyle === 'theta-grid')?.thetaRoles[0].label, 'goal');
+});
+
+test('a focus restrictor needs an explicit focus value and a unique restricted constituent', () => {
+  const r = { relation: 'Novel', anchors: { restrictor: 'source', restrictedDP: 'argument' }, values: { focus: 'Mia' } };
+  assert(dispatch(r).facets.some(f => f.recipe.id === 'focus.association'));
+  for (const candidate of [{ ...r, values: { scope: 'DP' } }, { ...r, values: {} },
+    { ...r, anchors: { ...r.anchors, restrictedClause: 'vp' } }]) {
+    assert(!dispatch(candidate).facets.some(f => f.recipe.id === 'focus.association'));
+  }
+});
+
+test('an explicitly inflected host receives its literal PF rows, retaining the separate inflection anchor', () => {
+  const r = { relation: 'Novel', anchors: { inflection: 'other', inflectedVerb: 'source' }, values: { tense: 'past' } };
+  const rendered = plan(r);
+  assert(dispatch(r).facets.some(f => f.recipe.id === 'pf.structured'));
+  assert(rendered.some(item => item.kind === 'fallback' && item.relationRef.anchors.inflection === 'other'));
+  for (const anchors of [{ inflection: 'other', verb: 'source' }, { inflection: 'other', notInflectedVerb: 'source' }]) {
+    assert(!dispatch({ ...r, anchors }).facets.some(f => f.recipe.id === 'pf.structured'));
+  }
+});
+
+test('matching Case-qualified fields recover independent assignments in one moment', () => {
+  const r = { relation: 'An open label', anchors: {
+    nominativeAssigner: 'source', nominativeDP: 'other',
+    accusativeAssigner: 'exponent', accusativeDP: 'argument'
+  } };
+  const original = structuredClone(r);
+  const paths = plan(r).filter(item => item.pathStyle === 'case-assignment');
+  assert.deepEqual(paths.map(item => [item.fromNodeId, item.toNodeId, item.label]),
+    [['source', 'other', 'nominative'], ['exponent', 'argument', 'accusative']]);
+  assert.equal(dispatch(r).claims.filter(c => c.tier === 2).length, 2);
+  assert.deepEqual(r, original);
+  const unfamiliar = { relation: 'Open', anchors: { 'unfamiliar Case assigner': 'source', 'unfamiliar Case nominal': 'argument' } };
+  assert.equal(plan(unfamiliar).find(item => item.pathStyle === 'case-assignment')?.label, 'unfamiliar');
+});
+
+test('Case-qualified pairs reject competing, missing, mismatched and negative evidence', () => {
+  for (const anchors of [
+    { nominativeAssigner: 'source', accusativeDP: 'argument' },
+    { nominativeAssigner: 'source', nominativeDP: 'missing' },
+    { nominativeAssigner: 'source', nominativeDP: ['other', 'argument'] },
+    { nominativeAssigner: 'source', nominativeDP: 'argument', nominativeRecipient: 'other' },
+    { nominativeAssigner: 'source', nominativeLicensor: 'exponent', nominativeDP: 'argument' },
+    { spatialAssigner: 'source', spatialDP: 'argument' },
+    { notNominativeAssigner: 'source', nominativeDP: 'argument' },
+    { 'not nominative Case assigner': 'source', 'not nominative Case DP': 'argument' }
+  ]) assert(!plan({ relation: 'nominative Case', anchors }).some(item => item.pathStyle === 'case-assignment'), JSON.stringify(anchors));
+  const r = { relation: 'Open', anchors: { nominativeAssigner: 'source', nominativeDP: 'argument' } };
+  assert(!plan({ ...r, values: { result: 'failed' } }).some(item => item.pathStyle === 'case-assignment'));
+  assert(!plan({ ...r, relation: 'CaseAssignment' }).some(item => item.pathStyle === 'case-assignment'));
 });
 
 test('role-valued fields identify exact named participants across open field names', () => {
@@ -92,8 +214,9 @@ test('explicit thematic participant names support literal scalar or same-name ro
     assert(grid, JSON.stringify(r));
     assert.deepEqual(grid.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [{ nodeId: 'argument', label: r.values.role }]);
     assert(plan({ ...r, values: { [recipient]: 'A literal role' } }).some(item => item.plaqueStyle === 'theta-grid'));
-    for (const values of [{ interpretation: 'Agent of this event.' }, {}, { role: ['Role 1', 'Role 2'] }]) {
-      assert(!plan({ ...r, values }).some(item => item.plaqueStyle === 'theta-grid'));
+    assert(!plan({ ...r, values: { role: ['Role 1', 'Role 2'] } }).some(item => item.plaqueStyle === 'theta-grid'));
+    for (const values of [{ interpretation: 'Agent of this event.' }, {}]) {
+      assert.equal(plan({ ...r, values }).some(item => item.plaqueStyle === 'theta-grid'), source === 'predicate');
     }
   }
   for (const recipient of ['recipient', 'goal']) {
@@ -331,6 +454,33 @@ test('explicit subject/head agreement pairs preserve scalar feature dimensions a
     { relation: 'subject agreement', anchors: { finiteHead: 'source', subject: 'argument' }, values: { features: '3SG', agreement: '3PL' } },
     { relation: 'specifier-head agreement', anchors: { head: 'source', specifier: 'argument' }, values: { features: 'unrelated description' } }
   ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});
+
+test('an anchored tense head and subject head recover finite features without treating a generic tense anchor as a head', () => {
+  const currentForest = [{ id: 'tp', label: 'TP', children: [
+    { id: 'subject', label: 'DP', children: [{ id: 'subjectN', label: 'N', word: 'children' }] },
+    { id: 'tense', label: 'T', children: [] },
+    { id: 'verb', label: 'V', word: 'laugh' }
+  ] }];
+  const relation = { relation: 'A finite dependency',
+    anchors: { tense: 'tense', subjectHead: 'subjectN', verb: 'verb' },
+    values: { number: 'plural' } };
+  const recovered = dispatchRelationClaims({ relation, currentForest, stageIndex: 0, relationIndex: 0 });
+  assert(recovered.facets.some(facet => facet.recipe.id === 'feature.dependency'));
+  assert.deepEqual(recovered.evidence.currentAnchors['feature.source'], ['tense']);
+  assert.deepEqual(recovered.evidence.currentAnchors['feature.target'], ['subjectN']);
+
+  for (const candidate of [
+    { ...relation, values: undefined },
+    { ...relation, anchors: { ...relation.anchors, tense: 'missing' } }
+  ]) {
+    const result = dispatchRelationClaims({ relation: candidate, currentForest, stageIndex: 0, relationIndex: 0 });
+    assert(!result.facets.some(facet => facet.recipe.id === 'feature.dependency'));
+  }
+  const nonHeadForest = structuredClone(currentForest);
+  nonHeadForest[0].children[1].label = 'Adv';
+  const nonHead = dispatchRelationClaims({ relation, currentForest: nonHeadForest, stageIndex: 0, relationIndex: 0 });
+  assert(!nonHead.facets.some(facet => facet.recipe.id === 'feature.dependency'));
 });
 
 test('an agreement-qualified goal works through the registered Agree signature', () => {
@@ -639,7 +789,7 @@ test('Case recovery does not invent direction for finite-form and inflection cla
   ]) {
     const relation = { relation: 'Finite-form licensing', anchors, values: { agreement: '3SG', tense: 'past' } };
     assert(!plan(relation).some(item => item.kind === 'directed-path'));
-    assert(dispatch(relation).claims.every(claim => claim.tier === 3));
+    assert(dispatch(relation).facets.some(facet => facet.recipe.id === 'pf.structured'));
   }
 });
 
@@ -700,11 +850,11 @@ test('qualified predicates preserve argument roles without selecting a competing
     const r = { relation: 'A novel title', anchors: { [`${qualifier}Predicate`]: 'source', agent: 'argument', agentPhrase: 'vp' }, values: { role: 'Agent' } };
     assert.equal(plan(r).find(item => item.plaqueStyle === 'theta-grid')?.thetaRoles[0].nodeId, 'argument');
     assert(plan({ ...r, anchors: Object.fromEntries(Object.entries(r.anchors).reverse()) }).some(item => item.plaqueStyle === 'theta-grid'));
+    assert(plan({ ...r, values: { description: 'Agent' } }).some(item => item.plaqueStyle === 'theta-grid'));
     for (const bad of [
       { ...r, anchors: { ...r.anchors, predicate: 'other' } },
       { ...r, anchors: { ...r.anchors, [`${qualifier}Predicate`]: ['source', 'other'] } },
       { ...r, anchors: { ...r.anchors, [`${qualifier}Predicate`]: 'missing' } },
-      { ...r, values: { description: 'Agent' } },
       { ...r, anchors: { unlicensedPredicate: 'source', agent: 'argument' } }
     ]) assert(!plan(bad).some(item => item.plaqueStyle === 'theta-grid'));
   }

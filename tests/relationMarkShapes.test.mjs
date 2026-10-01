@@ -430,7 +430,10 @@ test('analysis verdict geometry keeps the complete compound outside its tree', (
   assert.equal(origin.y + compoundRect.y + compoundRect.height / 2, 130);
   for (const initialCameraScale of [0.05, 0.1, 0.25, 1, 4]) {
     const localScale = analysisVerdictInitialLocalScale(initialCameraScale);
-    assert.ok(Math.abs(localScale * initialCameraScale * 160 - 28) < 1e-9);
+    assert.ok(Math.abs(localScale * initialCameraScale * 160 - Math.min(28, 160 * initialCameraScale)) < 1e-9);
+    const wordScale = analysisVerdictInitialLocalScale(initialCameraScale, 'illicit');
+    assert.ok(Math.abs(wordScale * initialCameraScale * 160 - Math.min(28, 56 * initialCameraScale)) < 1e-9,
+      'word verdicts must not dwarf the terminal labels when a large tree is fitted');
   }
 
   const anchors = [

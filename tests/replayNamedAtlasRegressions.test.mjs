@@ -680,7 +680,11 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
     assert.ok(relationStepIndex >= 0, `${title}: missing ${relationOperation} relation step`);
     const sourceFrameIndex = steps[relationStepIndex].sourceFrameIndex;
     const retainedSurfaces = steps
+      .slice(relationStepIndex)
       .filter((step) => step.sourceFrameIndex === sourceFrameIndex)
+      .filter((step) => step.replayVisibleNodeIds?.includes(leafId))
+      .filter((step) => collectPronouncedLeafNodeIdsInOrder(step.replayCanvasData)
+        .find((nodeId) => step.replayVisibleNodeIds?.includes(nodeId)) !== leafId)
       .map((step) => findNode([step.replayCanvasData], leafId))
       .filter(Boolean)
       .map((leaf) => String(leaf.word || leaf.label || '').trim());
@@ -705,7 +709,31 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   const uppercaseBaseHeadSteps = playback(uppercaseBaseHeadMovement);
   assert.equal(
     uppercaseBaseHeadSteps.find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
-    'did'
+    'Did',
+    'an uppercase authored head stays uppercase while it is the first visible word'
+  );
+  const headAfterSubjectSelection = uppercaseBaseHeadSteps.find((step) => (
+    step.replayFrameIndex === 0
+    && step.replayVisibleNodeIds?.includes('subj_noa_n::__leaf')
+    && step.replayVisibleNodeIds?.includes('t_head_trace::__leaf')
+  ));
+  assert.ok(headAfterSubjectSelection, 'the subject and lower head must become visible together');
+  assert.equal(
+    findNode([headAfterSubjectSelection.replayCanvasData], 't_head_trace::__leaf')?.word,
+    'did',
+    'the head becomes lowercase once the visible subject precedes it'
+  );
+  const headMovementMoment = uppercaseBaseHeadSteps.find((step) => step.operation === 'HeadMove');
+  assert.ok(headMovementMoment, 'head movement must have its own Replay moment');
+  assert.equal(
+    findNode([headMovementMoment.replayCanvasData], 'c_head_did::__leaf')?.word,
+    'Did',
+    'the initial landing receives uppercase at its movement moment'
+  );
+  assert.equal(
+    playback(headMovement).find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
+    'did',
+    'an explicitly lowercase authored source must retain its authored form'
   );
 
   const sluicingSteps = playback(cardNamed(rawCases, 'Ellipsis / Sluicing'));
@@ -1080,6 +1108,62 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   assert.deepEqual(phrasalSpellOutFinalStage.relations[0].values, {
     exponent: '-nak'
   });
+});
+
+test('Ordered Case Stacking follows Jou (124)–(126): recipient DAT–ACC beneath subject NOM–NOM', async (t) => {
+  const { rawCases, canonicalCases } = await loadAtlasCases(t);
+  const card = cardNamed(rawCases, 'Ordered Case Stacking');
+  assert.equal(card.sentence, 'Sensayngnim-kkeyse-man-i Mina-eykey-lul ton-ul ponay-si-ess-ta');
+  assert.equal(cardNamed(canonicalCases, card.title).contract.valid, true);
+  const stages = card.derivationStages;
+  assert.equal(stages[0].workspaceForest[0].label, 'VoiceP');
+  const finalTree = stages.at(-1).workspaceForest[0];
+  assert.equal(finalTree.label, 'CP');
+  assert.equal(collectNodes(finalTree).some(node => node.label === 'KP'), false);
+
+  const teacherFocus = findNode([finalTree], 'focp_teacher_case_stacking');
+  const minaFocus = findNode([finalTree], 'focp_mina_case_stacking');
+  assert.equal(teacherFocus.children[0].id, 'np_teacher_high_case_stacking');
+  assert.equal(teacherFocus.children[1].children[0].id, minaFocus.id);
+  assert.equal(minaFocus.children[0].id, 'np_mina_high_case_stacking');
+  assert.equal(minaFocus.children[1].children[0].label, 'TP');
+  assert.equal(findNode(stages[0].workspaceForest, 'applp_case_stacking').children[0].id,
+    'np_mina_low_case_stacking');
+
+  const movements = stages.flatMap(stage => stage.relations)
+    .filter(relation => ['AMove', 'AbarMove'].includes(relation.relation));
+  assert.deepEqual(movements.map(relation => [relation.relation, relation.anchors.lowerCopy,
+    relation.anchors.pronouncedCopy]), [
+    ['AMove', 'np_teacher_low_case_stacking', 'np_teacher_tp_case_stacking'],
+    ['AbarMove', 'np_mina_low_case_stacking', 'np_mina_high_case_stacking'],
+    ['AbarMove', 'np_teacher_tp_case_stacking', 'np_teacher_high_case_stacking']
+  ]);
+  for (const relation of movements) {
+    const lower = findNode([finalTree], relation.anchors.lowerCopy);
+    const higher = findNode([finalTree], relation.anchors.pronouncedCopy);
+    assert.equal(lower.label, 'NP');
+    assert.equal(lower.lineageId, higher.lineageId);
+    assert.equal(lower.children[0].lineageId, higher.children[0].lineageId);
+    assert.equal(lower.silent, true);
+  }
+
+  const minaStacks = stages.flatMap(stage => stage.relations).filter(relation =>
+    relation.relation === 'FeatureBundle' && relation.anchors.bearer === 'np_mina_high_case_stacking');
+  assert.deepEqual(minaStacks.map(relation => relation.values), [
+    { 'CASE 1': 'DAT', 'CASE 2': '--' },
+    { 'CASE 1': 'DAT', 'CASE 2': 'ACC' }
+  ]);
+  assert.deepEqual(stages.at(-1).relations.map(relation => [relation.anchors.bearer, relation.values]), [
+    ['np_mina_high_case_stacking', { 'CASE 1': 'DAT', 'CASE 2': 'ACC' }],
+    ['np_teacher_high_case_stacking', { 'CASE 1': 'NOM', 'CASE 2': 'NOM' }]
+  ]);
+
+  const steps = playback(card);
+  const minaMoveIndex = exactRelationStepIndex(steps, 2, 0);
+  assert.ok(minaMoveIndex > 0);
+  assert.equal(steps[minaMoveIndex].operation, 'AbarMove');
+  assert.equal(steps[minaMoveIndex - 1].replayVisibleNodeIds.includes('np_mina_high_case_stacking'), false);
+  assert.ok(steps[minaMoveIndex].replayVisibleNodeIds.includes('np_mina_high_case_stacking'));
 });
 
 test('Atlas relation moments keep every retained visible node at its reserved coordinate', async (t) => {

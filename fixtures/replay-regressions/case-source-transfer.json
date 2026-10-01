@@ -1,0 +1,560 @@
+{
+  "description": "Archived authored Icelandic stages reproduce Case plaque allocation before its exact transferred source is visible.",
+  "source": {
+    "attemptId": "untouched2-icelandic",
+    "analysisIndex": 0,
+    "model": "GPT-6 Astra / Codex OAuth",
+    "responseSha256": "220910e93ac6f22614718a1f94f72d88a0ee51e4c32b45288156f47d0216736a"
+  },
+  "sentence": "Mér líkar þessi bók.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Mér",
+    "líkar",
+    "þessi",
+    "bók"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "experiencer": "dpExp1",
+            "predicate": "v1",
+            "theme": "dpTheme"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "experiencer": "Experiencer",
+            "theme": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "assigner": "v1",
+            "recipient": "dpExp1"
+          },
+          "relation": "inherent Case assignment",
+          "values": {
+            "case": "dative"
+          }
+        }
+      ],
+      "stageRecord": "The Icelandic verb líkar means 'likes' or 'is pleasing to' and selects a dative experiencer and a theme. In the VP-internal-subject implementation adopted here, Mér is the experiencer in Spec-VP, while þessi bók is the theme complement of V. The demonstrative þessi occupies D, and bók projects NP. The verb assigns the experiencer inherent dative Case together with its theta-role; this dative does not make Mér an ordinary direct object. The theme receives its theta-role here, but its nominative Case is licensed by finite inflection at the next stage. The overt words are inserted in their supplied forms; líkar is treated as a whole inflected word rather than as separately pronounced stem and ending.",
+      "statement": "Construct the predicate with a dative experiencer and a theme.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dExp1",
+                  "label": "D: personal pronoun, first-person singular, dative",
+                  "lineageId": "experiencer-pronoun",
+                  "tokenIndex": 0,
+                  "word": "Mér"
+                }
+              ],
+              "id": "dpExp1",
+              "label": "DP",
+              "lineageId": "experiencer"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v1",
+                  "label": "V",
+                  "lineageId": "verb",
+                  "tokenIndex": 1,
+                  "word": "líkar"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "dTheme",
+                      "label": "D: demonstrative, feminine singular nominative",
+                      "tokenIndex": 2,
+                      "word": "þessi"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nTheme",
+                              "label": "N: feminine singular nominative",
+                              "tokenIndex": 3,
+                              "word": "bók"
+                            }
+                          ],
+                          "id": "nbarTheme",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "npTheme",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "dpTheme",
+                  "label": "DP"
+                }
+              ],
+              "id": "vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "experiencerPosition": "tExpVP",
+            "predicate": "v2",
+            "theme": "dpTheme"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "experiencerPosition": "Experiencer",
+            "theme": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "landingHead": "iComplex2",
+            "raisedHead": "v2",
+            "trace": "tV"
+          },
+          "priorAnchors": {
+            "source": "v1"
+          },
+          "relation": "V-to-I head movement"
+        },
+        {
+          "anchors": {
+            "finiteHead": "iComplex2",
+            "head": "dpExp2",
+            "trace": "tExpVP"
+          },
+          "priorAnchors": {
+            "source": "dpExp1"
+          },
+          "relation": "subject A-chain",
+          "values": {
+            "landingPosition": "Spec-IP",
+            "subjectRequirement": "satisfied"
+          }
+        },
+        {
+          "anchors": {
+            "chain": [
+              "dpExp2",
+              "tExpVP"
+            ],
+            "lexicalLicensor": "v2"
+          },
+          "relation": "inherent Case retained by the subject chain",
+          "values": {
+            "case": "dative"
+          }
+        },
+        {
+          "anchors": {
+            "finiteLicensor": "iComplex2",
+            "recipient": "dpTheme"
+          },
+          "relation": "structural Case licensing",
+          "values": {
+            "case": "nominative",
+            "configuration": "I licenses the lower theme in a quirky-dative-subject clause"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "iComplex2",
+            "nominativeArgument": "dpTheme"
+          },
+          "relation": "finite agreement compatibility",
+          "values": {
+            "evidentialLimit": "The overt form is also compatible with third-person singular default agreement.",
+            "features": "third-person singular"
+          }
+        }
+      ],
+      "stageRecord": "Finite I projects above the existing VP. The verb raises from V to I, leaving a head trace, and the dative experiencer raises from Spec-VP to Spec-IP, leaving an A-trace. These movements start from the positions represented in the preceding stage. Spec-IP satisfies the clause's subject requirement without replacing the experiencer's inherent dative with nominative. The subject chain receives only the experiencer theta-role assigned in VP. This analysis adopts the Icelandic quirky-subject configuration in which finite I licenses structural nominative on the lower theme across VP: the dative subject does not consume that nominative licensing. The third-person singular nominative theme is compatible with the singular form líkar. This example alone does not distinguish nominative-controlled third-person singular agreement from a matching default form. I carries abstract finite features and has no separate pronunciation; the supplied whole-word verb is licensed there without morphological splitting.",
+      "statement": "Build finite IP, raise the quirky subject, and license the nominative theme.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dExp2",
+                  "label": "D: personal pronoun, first-person singular, dative",
+                  "lineageId": "experiencer-pronoun",
+                  "tokenIndex": 0,
+                  "word": "Mér"
+                }
+              ],
+              "id": "dpExp2",
+              "label": "DP",
+              "lineageId": "experiencer"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v2",
+                      "label": "V",
+                      "lineageId": "verb",
+                      "tokenIndex": 1,
+                      "word": "líkar"
+                    },
+                    {
+                      "children": [],
+                      "id": "iFeatures2",
+                      "label": "I: present, finite, third-person singular",
+                      "lineageId": "inflection-features",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iComplex2",
+                  "label": "I",
+                  "lineageId": "finite-head"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tExpVP",
+                      "label": "DP: A-trace",
+                      "lineageId": "experiencer",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tV",
+                          "label": "V: head trace",
+                          "lineageId": "verb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dTheme",
+                              "label": "D: demonstrative, feminine singular nominative",
+                              "tokenIndex": 2,
+                              "word": "þessi"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nTheme",
+                                      "label": "N: feminine singular nominative",
+                                      "tokenIndex": 3,
+                                      "word": "bók"
+                                    }
+                                  ],
+                                  "id": "nbarTheme",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npTheme",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpTheme",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "experiencerPosition": "tExpVP",
+            "predicate": "v3",
+            "theme": "dpTheme"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "experiencerPosition": "Experiencer",
+            "theme": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "containingInflection": "iComplex3",
+            "raisedVerb": "v3",
+            "verbTrace": "tV"
+          },
+          "relation": "continued V-to-I head dependency"
+        },
+        {
+          "anchors": {
+            "landingHead": "cComplex",
+            "raisedHead": "iComplex3",
+            "trace": "tI"
+          },
+          "priorAnchors": {
+            "source": "iComplex2"
+          },
+          "relation": "I-to-C head movement"
+        },
+        {
+          "anchors": {
+            "overtAntecedent": "dpExp3",
+            "subjectPosition": "tExpIP",
+            "thetaPosition": "tExpVP"
+          },
+          "relation": "subject A-chain retained below the left periphery",
+          "values": {
+            "subjectPosition": "Spec-IP",
+            "thetaPosition": "Spec-VP"
+          }
+        },
+        {
+          "anchors": {
+            "head": "dpExp3",
+            "trace": "tExpIP"
+          },
+          "priorAnchors": {
+            "source": "dpExp2"
+          },
+          "relation": "subject A-prime movement",
+          "values": {
+            "landingPosition": "Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "chain": [
+              "dpExp3",
+              "tExpIP",
+              "tExpVP"
+            ],
+            "lexicalLicensor": "v3"
+          },
+          "relation": "inherent Case retained by the linked subject dependencies",
+          "values": {
+            "case": "dative"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "iComplex3",
+            "licensingPosition": "tI",
+            "recipient": "dpTheme"
+          },
+          "relation": "structural Case licensing retained through the inflectional chain",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "iComplex3",
+            "nominativeArgument": "dpTheme"
+          },
+          "relation": "finite agreement compatibility",
+          "values": {
+            "evidentialLimit": "Nominative-controlled agreement and matching default agreement are not distinguished by this form.",
+            "features": "third-person singular"
+          }
+        },
+        {
+          "anchors": {
+            "finiteSecondHead": "cComplex",
+            "initialConstituent": "dpExp3"
+          },
+          "relation": "V2 declarative configuration",
+          "values": {
+            "clauseType": "declarative",
+            "judgment": "grammatical"
+          }
+        }
+      ],
+      "stageRecord": "A declarative CP is built above IP. The finite I complex raises to C from its previously represented position, leaving an I trace. The dative subject moves from Spec-IP to Spec-CP, leaving an A′-trace in Spec-IP. These independent extensions produce the canonical subject-initial V2 order: Mér is the first constituent and líkar occupies the second-position finite head. The subject's passage through Spec-IP remains represented, so its final position is not mistaken for evidence that it originated as an object. The linked subject dependencies preserve the single experiencer theta-role and inherent dative Case; the theme stays inside VP with nominative Case. Head movement proceeds through I rather than skipping it, and the subject dependencies remain local and c-command their lower traces. No separate Binding Theory violation arises: Mér is a free personal pronoun, and the other DP does not bind it. The completed sentence is grammatical Icelandic, meaning 'I like this book.' Its dative subject and nominative theme are licensed by the lexical and finite-clause properties represented here, not by silently changing either form.",
+      "statement": "Complete the grammatical subject-initial V2 declarative.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dExp3",
+                  "label": "D: personal pronoun, first-person singular, dative",
+                  "lineageId": "experiencer-pronoun",
+                  "tokenIndex": 0,
+                  "word": "Mér"
+                }
+              ],
+              "id": "dpExp3",
+              "label": "DP",
+              "lineageId": "experiencer"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v3",
+                          "label": "V",
+                          "lineageId": "verb",
+                          "tokenIndex": 1,
+                          "word": "líkar"
+                        },
+                        {
+                          "children": [],
+                          "id": "iFeatures3",
+                          "label": "I: present, finite, third-person singular",
+                          "lineageId": "inflection-features",
+                          "silent": true
+                        }
+                      ],
+                      "id": "iComplex3",
+                      "label": "I",
+                      "lineageId": "finite-head"
+                    },
+                    {
+                      "children": [],
+                      "id": "cDecl",
+                      "label": "C: declarative, V2",
+                      "silent": true
+                    }
+                  ],
+                  "id": "cComplex",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tExpIP",
+                      "label": "DP: A′-trace in subject position",
+                      "lineageId": "experiencer",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tI",
+                          "label": "I: head trace",
+                          "lineageId": "finite-head",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tExpVP",
+                              "label": "DP: A-trace",
+                              "lineageId": "experiencer",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tV",
+                                  "label": "V: head trace",
+                                  "lineageId": "verb",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "dTheme",
+                                      "label": "D: demonstrative, feminine singular nominative",
+                                      "tokenIndex": 2,
+                                      "word": "þessi"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "nTheme",
+                                              "label": "N: feminine singular nominative",
+                                              "tokenIndex": 3,
+                                              "word": "bók"
+                                            }
+                                          ],
+                                          "id": "nbarTheme",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "npTheme",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "dpTheme",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

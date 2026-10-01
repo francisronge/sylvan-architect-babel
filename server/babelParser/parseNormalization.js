@@ -9,7 +9,6 @@ export const createParseNormalizationHelpers = ({
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   buildCanonicalDerivationFromDerivationFrames,
-  sameTokenSequence,
   collectOvertTerminalNodes,
   authoredWord
 }) => {
@@ -62,7 +61,7 @@ export const createParseNormalizationHelpers = ({
         nodeFieldPaths, validationIssues: alignmentIssues
       })
       : null;
-    if (!derivationPrimaryBundle?.tree) {
+    if (!derivationPrimaryBundle?.finalForest?.length) {
       if (alignmentIssues.length > 0) {
         const failure = alignmentIssues[0];
         throw new ParseApiError('BAD_MODEL_RESPONSE', failure.message, 502, withFailureDetails({}, {
@@ -89,22 +88,10 @@ export const createParseNormalizationHelpers = ({
           .map((token) => String(token || '').trim())
           .filter(Boolean)
       ));
-      const flattenedSurfaceOrder = observedRootSurfaceOrders.flat();
-      const hasExactRootSurface = observedRootSurfaceOrders.some((observedOrder) => (
-        sameTokenSequence(observedOrder, sentenceTokens)
-      ));
-      const incompleteWorkspaceCouldStillConverge = (
-        finalForest.length > 1
-        && (collectiveCoverage || sameTokenSequence(flattenedSurfaceOrder, sentenceTokens))
-      );
-      if (
-        observedRootSurfaceOrders.length > 0
-        && !hasExactRootSurface
-        && !incompleteWorkspaceCouldStillConverge
-      ) {
+      if (observedRootSurfaceOrders.length > 0 && !collectiveCoverage) {
         throw new ParseApiError(
           'BAD_MODEL_RESPONSE',
-          'No authored tree overt terminals match the input sentence order.',
+          'The final workspace overt terminals do not match the input sentence order.',
           502,
           withFailureDetails({}, {
             failureClass: 'contract_misunderstanding',
@@ -135,7 +122,7 @@ export const createParseNormalizationHelpers = ({
         })
       );
     }
-    const committedTree = derivationPrimaryBundle.tree;
+    const { tree: committedTree, finalForest } = derivationPrimaryBundle;
     const derivationStages = derivationFrames.map((frame) => {
       const details = frame?.change?.details && typeof frame.change.details === 'object' && !Array.isArray(frame.change.details)
         ? frame.change.details
@@ -170,7 +157,8 @@ export const createParseNormalizationHelpers = ({
     };
 
     return {
-      tree: committedTree,
+      ...(committedTree ? { tree: committedTree } : {}),
+      finalForest,
       derivationStages,
       provenance
     };

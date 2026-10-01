@@ -59,3 +59,18 @@ test('cubic sampling retains exact coordinates at every collision-planning resol
   }
   assert.throws(() => sampleCubic(...curves[0], Infinity), RangeError);
 });
+
+test('subdivision preserves endpoint, interior and padded contact over different coordinate scales', () => {
+  for (const scale of [0.125, 1, 1024, 1e6]) for (const offset of [-1e9, -15.75, 0, 1e9]) {
+    const point = (x, y) => ({ x: offset + x * scale, y: offset + y * scale });
+    const curve = { source: point(0, 0), control1: point(0, 100),
+      control2: point(100, 100), target: point(100, 0) };
+    const rect = (x, y, width, height) => ({ ...point(x, y), width: width * scale, height: height * scale });
+    assert.equal(cubicIntersectsRect(curve, rect(0, 0, 0, 0), 0), true);
+    assert.equal(cubicIntersectsRect(curve, rect(100, 0, 0, 0), 0), true);
+    assert.equal(cubicIntersectsRect(curve, rect(50, 75, 0, 0), 0), true);
+    assert.equal(cubicIntersectsRect(curve, rect(49, 78, 2, 2), 4 * scale), true);
+    assert.equal(cubicIntersectsRect(curve, rect(49, 78, 2, 2), 2 * scale), false);
+    assert.equal(cubicIntersectsRect(curve, rect(40, 0, 20, 10), 0), false);
+  }
+});

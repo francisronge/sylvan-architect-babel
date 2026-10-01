@@ -1,0 +1,464 @@
+{
+  "sentence": "لم يكتب الطالب الرسالة.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "لم",
+    "يكتب",
+    "الطالب",
+    "الرسالة"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "aLetter",
+            "predicate": "aV0"
+          },
+          "relation": "internal-argument interpretation",
+          "values": {
+            "thetaRole": "theme"
+          }
+        }
+      ],
+      "stageRecord": "On the ordinary active Form I reading, يكتب is the transitive verb ‘write’, الرسالة is its internal argument, and الطالب is its external argument. External Merge combines the verb with الرسالة; the verb supplies the resulting object's label. الطالب remains a separate workspace object pending introduction of the external argument. The category labels describe Bare Phrase Structure objects, not independently supplied phrase-structure templates. For this analysis, each definite nominal is a lexicalized D object, and the inflected verb is a whole-word terminal; no syntactic decomposition of the article or verbal affixes is posited. The spelling does not display the relevant nominal case endings or the verb's final mood vowel.",
+      "statement": "Build the predicate for the ordinary reading: the student did not write the letter.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "aV0",
+              "label": "V [active, Form I]",
+              "lineageId": "aWrite",
+              "tokenIndex": 1,
+              "word": "يكتب"
+            },
+            {
+              "children": [],
+              "id": "aLetter",
+              "label": "D [definite, feminine, singular]",
+              "tokenIndex": 3,
+              "word": "الرسالة"
+            }
+          ],
+          "id": "aVP",
+          "label": "V"
+        },
+        {
+          "children": [],
+          "id": "aStudent",
+          "label": "D [definite, masculine, singular]",
+          "tokenIndex": 2,
+          "word": "الطالب"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "aStudent",
+            "introducer": "av0"
+          },
+          "relation": "external-argument interpretation",
+          "values": {
+            "thetaRole": "agent"
+          }
+        },
+        {
+          "anchors": {
+            "licenser": "av0",
+            "nominal": "aLetter"
+          },
+          "relation": "accusative licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "higherOccurrence": "aV1",
+            "landingHead": "av0",
+            "lowerOccurrence": "aV0"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "aV0"
+          },
+          "relation": "head movement and copy pronunciation",
+          "values": {
+            "operation": "V-to-v Internal Merge",
+            "pronouncedOccurrence": "higher"
+          }
+        }
+      ],
+      "stageRecord": "Merge an active, agent-introducing v with the previously built predicate, and then merge الطالب at its edge. Internal Merge raises the previously displayed V to v, forming a complex head. The lower V occurrence is retained as an unpronounced copy, while the higher occurrence bears the whole-word realization يكتب. This analysis adopts local syntactic head movement, with incorporation preserving the v label. Active v licenses the internal argument's accusative case. The subject remains below the finite head that will subsequently be introduced; consequently, verb–subject order does not require lowering or rightward movement of the subject.",
+      "statement": "Introduce the student as the external argument and raise the verb to active v.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "aStudent",
+              "label": "D [definite, masculine, singular]",
+              "tokenIndex": 2,
+              "word": "الطالب"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aV1",
+                      "label": "V [active, Form I]",
+                      "lineageId": "aWrite",
+                      "tokenIndex": 1,
+                      "word": "يكتب"
+                    },
+                    {
+                      "children": [],
+                      "id": "av0",
+                      "label": "v [active, agent-introducing]",
+                      "lineageId": "aLittleV",
+                      "silent": true
+                    }
+                  ],
+                  "id": "avHead0",
+                  "label": "v [V-adjoined]",
+                  "lineageId": "aVerbComplex"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aV0",
+                      "label": "V [active, Form I]",
+                      "lineageId": "aWrite",
+                      "silent": true,
+                      "word": "يكتب"
+                    },
+                    {
+                      "children": [],
+                      "id": "aLetter",
+                      "label": "D [definite, feminine, singular]",
+                      "tokenIndex": 3,
+                      "word": "الرسالة"
+                    }
+                  ],
+                  "id": "aVP",
+                  "label": "V"
+                }
+              ],
+              "id": "avBar",
+              "label": "v"
+            }
+          ],
+          "id": "avP",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "aStudent",
+            "probe": "aT0",
+            "verbalExponent": "aV2"
+          },
+          "relation": "finite Agree and nominative licensing",
+          "values": {
+            "agreement": "third-person masculine singular",
+            "case": "nominative",
+            "subjectMovement": "not required"
+          }
+        },
+        {
+          "anchors": {
+            "higherOccurrence": "avHead1",
+            "landingHead": "aT0",
+            "lowerOccurrence": "avHead0"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "avHead0"
+          },
+          "relation": "head movement and copy pronunciation",
+          "values": {
+            "operation": "V-v-to-T Internal Merge",
+            "pronouncedOccurrence": "higher"
+          }
+        }
+      ],
+      "stageRecord": "Merge a finite T specified for the jussive environment of لم with the v-labeled object. T probes the accessible external argument الطالب, licensing nominative case and singular masculine agreement. This Arabic T has no requirement that an overt subject occupy its edge, so the subject stays in its thematic position. The already formed V–v complex undergoes Internal Merge to T. Its lower occurrence becomes silent, and its higher occurrence pronounces يكتب. The result is the order verb–student–letter. Jussive morphology is treated as a feature of the whole-word verb rather than a separately pronounced suffix; the unvocalized spelling يكتب is compatible with the standard jussive reading يَكْتُبْ.",
+      "statement": "Build finite structure and derive verb–subject–object order.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aV2",
+                      "label": "V [active, Form I, jussive]",
+                      "lineageId": "aWrite",
+                      "tokenIndex": 1,
+                      "word": "يكتب"
+                    },
+                    {
+                      "children": [],
+                      "id": "av1",
+                      "label": "v [active, agent-introducing]",
+                      "lineageId": "aLittleV",
+                      "silent": true
+                    }
+                  ],
+                  "id": "avHead1",
+                  "label": "v [V-adjoined]",
+                  "lineageId": "aVerbComplex"
+                },
+                {
+                  "children": [],
+                  "id": "aT0",
+                  "label": "T [finite, jussive]",
+                  "silent": true
+                }
+              ],
+              "id": "aTHead",
+              "label": "T [v-adjoined, finite, jussive]"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "aStudent",
+                  "label": "D [definite, masculine, singular]",
+                  "tokenIndex": 2,
+                  "word": "الطالب"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aV1",
+                          "label": "V [active, Form I]",
+                          "lineageId": "aWrite",
+                          "silent": true,
+                          "word": "يكتب"
+                        },
+                        {
+                          "children": [],
+                          "id": "av0",
+                          "label": "v [active, agent-introducing]",
+                          "lineageId": "aLittleV",
+                          "silent": true
+                        }
+                      ],
+                      "id": "avHead0",
+                      "label": "v [V-adjoined]",
+                      "lineageId": "aVerbComplex",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aV0",
+                          "label": "V [active, Form I]",
+                          "lineageId": "aWrite",
+                          "silent": true,
+                          "word": "يكتب"
+                        },
+                        {
+                          "children": [],
+                          "id": "aLetter",
+                          "label": "D [definite, feminine, singular]",
+                          "tokenIndex": 3,
+                          "word": "الرسالة"
+                        }
+                      ],
+                      "id": "aVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "avBar",
+                  "label": "v"
+                }
+              ],
+              "id": "avP",
+              "label": "v"
+            }
+          ],
+          "id": "aTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteHead": "aT0",
+            "selector": "aNeg",
+            "verbalExponent": "aV2"
+          },
+          "relation": "negative selection and mood licensing",
+          "values": {
+            "polarity": "negative",
+            "selectedMood": "jussive",
+            "temporalInterpretation": "past"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "aCP",
+            "object": "aLetter",
+            "subject": "aStudent"
+          },
+          "relation": "completed derivation judgment",
+          "values": {
+            "judgment": "grammatical",
+            "reading": "The student did not write the letter.",
+            "surfaceArgumentOrder": "VSO"
+          }
+        }
+      ],
+      "stageRecord": "Merge لم as a negative head selecting the finite jussive object, then merge a silent declarative C. This implements the familiar dependency in which لم negates a past-time proposition while selecting a jussive imperfect verb; the imperfect verb form therefore does not entail present-time interpretation here. The analysis locates negation and its past-time contribution in لم rather than adding an overt past auxiliary. The negative head precedes the raised verb, which precedes the low subject and object. The completed sentence is grammatical on the standard vocalization لَمْ يَكْتُبْ الطَّالِبُ الرِّسَالَةَ, ‘The student did not write the letter.’ That vocalization explains the analysis without changing the supplied orthographic input. All four supplied tokens are pronounced exactly once; the sentence-final punctuation is not a supplied token.",
+      "statement": "Complete the grammatical negative declarative clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "aC",
+              "label": "C [declarative]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "aNeg",
+                  "label": "Neg [past negation, selects jussive]",
+                  "tokenIndex": 0,
+                  "word": "لم"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "aV2",
+                              "label": "V [active, Form I, jussive]",
+                              "lineageId": "aWrite",
+                              "tokenIndex": 1,
+                              "word": "يكتب"
+                            },
+                            {
+                              "children": [],
+                              "id": "av1",
+                              "label": "v [active, agent-introducing]",
+                              "lineageId": "aLittleV",
+                              "silent": true
+                            }
+                          ],
+                          "id": "avHead1",
+                          "label": "v [V-adjoined]",
+                          "lineageId": "aVerbComplex"
+                        },
+                        {
+                          "children": [],
+                          "id": "aT0",
+                          "label": "T [finite, jussive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "aTHead",
+                      "label": "T [v-adjoined, finite, jussive]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aStudent",
+                          "label": "D [definite, masculine, singular]",
+                          "tokenIndex": 2,
+                          "word": "الطالب"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aV1",
+                                  "label": "V [active, Form I]",
+                                  "lineageId": "aWrite",
+                                  "silent": true,
+                                  "word": "يكتب"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "av0",
+                                  "label": "v [active, agent-introducing]",
+                                  "lineageId": "aLittleV",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "avHead0",
+                              "label": "v [V-adjoined]",
+                              "lineageId": "aVerbComplex",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aV0",
+                                  "label": "V [active, Form I]",
+                                  "lineageId": "aWrite",
+                                  "silent": true,
+                                  "word": "يكتب"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "aLetter",
+                                  "label": "D [definite, feminine, singular]",
+                                  "tokenIndex": 3,
+                                  "word": "الرسالة"
+                                }
+                              ],
+                              "id": "aVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "avBar",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "avP",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "aTP",
+                  "label": "T"
+                }
+              ],
+              "id": "aNegP",
+              "label": "Neg"
+            }
+          ],
+          "id": "aCP",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

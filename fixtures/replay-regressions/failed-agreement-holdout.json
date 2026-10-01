@@ -1,0 +1,150 @@
+{
+  "sentence": "Those musician has been applauded.",
+  "provenance": {
+    "model": "gpt-6-astra",
+    "harness": "Codex OAuth qualification",
+    "source": "Frozen holdout 2026-09-28; unmodified authored relations and workspace forests"
+  },
+  "cases": [
+    {
+      "stageNumber": 1,
+      "relation": {
+        "anchors": {
+          "demonstrative": "d0",
+          "nominal": "n0"
+        },
+        "relation": "Number-concord conflict",
+        "values": {
+          "demonstrativeNumber": "plural",
+          "nominalNumber": "singular",
+          "status": "unlicensed"
+        }
+      },
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "d0",
+              "label": "D[demonstrative, plural]",
+              "lineageId": "demonstrative",
+              "tokenIndex": 0,
+              "word": "Those"
+            },
+            {
+              "children": [],
+              "id": "n0",
+              "label": "N[singular]",
+              "lineageId": "nominalHead",
+              "tokenIndex": 1,
+              "word": "musician"
+            }
+          ],
+          "id": "dp0",
+          "label": "D",
+          "lineageId": "subjectNominal"
+        },
+        {
+          "children": [],
+          "id": "has",
+          "label": "T[present, perfect, third-person singular]",
+          "tokenIndex": 2,
+          "word": "has"
+        },
+        {
+          "children": [],
+          "id": "been",
+          "label": "Pass[perfect participle]",
+          "tokenIndex": 3,
+          "word": "been"
+        },
+        {
+          "children": [],
+          "id": "applauded",
+          "label": "V[passive participle]",
+          "tokenIndex": 4,
+          "word": "applauded"
+        }
+      ]
+    },
+    {
+      "stageNumber": 4,
+      "relation": {
+        "anchors": {
+          "goal": "dp0",
+          "probe": "has"
+        },
+        "relation": "Finite agreement conflict",
+        "values": {
+          "goalSpecification": "third-person plural",
+          "probeSpecification": "third-person singular",
+          "status": "Agree cannot successfully license the supplied auxiliary form"
+        }
+      },
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "has",
+              "label": "T[present, perfect, third-person singular]",
+              "tokenIndex": 2,
+              "word": "has"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "been",
+                  "label": "Pass[perfect participle]",
+                  "tokenIndex": 3,
+                  "word": "been"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "applauded",
+                      "label": "V[passive participle]",
+                      "tokenIndex": 4,
+                      "word": "applauded"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "d0",
+                          "label": "D[demonstrative, plural]",
+                          "lineageId": "demonstrative",
+                          "tokenIndex": 0,
+                          "word": "Those"
+                        },
+                        {
+                          "children": [],
+                          "id": "n0",
+                          "label": "N[singular]",
+                          "lineageId": "nominalHead",
+                          "tokenIndex": 1,
+                          "word": "musician"
+                        }
+                      ],
+                      "id": "dp0",
+                      "label": "D",
+                      "lineageId": "subjectNominal"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "V"
+                }
+              ],
+              "id": "pass",
+              "label": "Pass"
+            }
+          ],
+          "id": "tcore",
+          "label": "T"
+        }
+      ]
+    }
+  ]
+}

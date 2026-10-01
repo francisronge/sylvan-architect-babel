@@ -257,7 +257,7 @@ test('compiler rejects duplicate active authored node IDs instead of removing ro
   );
 });
 
-test('compiler rejects anchor-value aliases instead of silently rewriting them', () => {
+test('compiler keeps an invalid anchor-value alias as neutral raw evidence', () => {
   const payload = buildSingleStagePayload([{
     id: 'mia',
     label: 'Mia',
@@ -271,10 +271,11 @@ test('compiler rejects anchor-value aliases instead of silently rewriting them',
       witness: { nodeId: 'mia' }
     }
   }];
-  assert.throws(
-    () => normalize(payload, 'Mia'),
-    (error) => error?.code === 'BAD_MODEL_RESPONSE'
-  );
+  const relation = normalize(payload, 'Mia').analyses[0].derivationStages[0].relations[0];
+  assert.deepEqual(relation.relationContractFailure.raw.anchors.witness, { nodeId: 'mia' });
+  assert.deepEqual(relation.anchors, {});
+  assert.equal(relation.relationContractFailure.issues[0].fieldPath,
+    '$.derivationStages[0].relations[0].anchors["witness"]');
 });
 
 test('renderer expands authored lexical preterminals but never materializes an unauthored null', () => {

@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-09-23
+Status date: 2026-10-01
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -27,16 +27,1011 @@ and fresh unfamiliar records. The exit conditions are:
    pronunciation and one simultaneous moment for each authored relation.
 4. Plaques, connectors and domain graphics remain legible, stable and attached
    during playback, fitting, zoom and analysis switching.
-5. Unfamiliar holdout records pass without changes made to fit those records.
-   Show only the changed examples needing human judgment, with all analyses
-   available in the same review.
+5. Evaluate unfamiliar holdout records without changing the candidate to fit
+   those records. Separate model mistakes from demonstrated prompt, processing
+   or rendering defects; perfect model analyses are not the release criterion.
+   Set product acceptance criteria before the run. Show only questionable
+   examples for judgment, with every returned analysis available for inspection.
 6. The full offline gate passes. In the local bundled runtime at 1600px desktop,
    usable Replay should open within 2 seconds and ordinary frame changes should
    have a 95th percentile below 100ms. Measure rendered frames, not slider input.
 
+### Integrated contract and renderer pass
+
+The September 29 pass audited all 156 saved analyses and 69 new analyses,
+comprising 2,257 authored relations. It checked every declared drawing recipe
+and every retained neutral claim against the supplied evidence. Shared recovery
+and ownership rules resolve all supported misses found in this corpus. No
+language-specific syntax rule, model-facing prompt change or authored-record
+repair was introduced.
+
+The 48 new requests used GPT-6.1 Sol/high through Codex OAuth, with no retries,
+JSON repair or paid fallback. The first 32 requests produced 46 analyses; the
+16 independently preselected requests produced 23. All 69 preserve input-token
+accounting, occurrence IDs and raw authored stages. The independent candidate's
+initial failures remain preserved. Its later repaired drawings are adapted
+results, not independent success evidence or an estimate of 80% general quality.
+
+The complete drawing inventory now has production evidence for all 55 recipes,
+115 accepted family/outcome combinations and 89 witness/expiry controls. The
+browser pass checks 646 drawing views and 46 exact Tier-1/Tier-2 primary-drawing
+comparisons. Every new Replay and every changed older analysis is selectable.
+All 9,104 frames across 99 analyses rendered at desktop and narrow widths, with
+no invalid paths, visible tree errors, browser errors or generation requests.
+
+The earlier thirteen trees remain approved. Do not request another review of
+unchanged old analyses. The [current review](http://127.0.0.1:8453/closeout/full-pass/)
+opens only two changed items: stable stage boundaries and the completed-tree
+fit. Both are implemented and verified, awaiting visual acceptance. Previously
+answered questions and the Earlier fixes collection are absent from this view.
+Trees still contains all 69 newest analyses for optional inspection; their
+complete human review remains complete.
+Each changed view retains a short explanation and normal Replay controls.
+
+Francis has now inspected every Replay frame in all 69 newest analyses. The
+September 30 follow-up also read all 355 Stage Records and checked them against
+the authored forests and relations. It found no additional definite statement
+or Stage Record contradiction. The user review exposed two workspace placement
+defects and a binding-enclosure defect. The October 1 screen-motion recheck
+exposed remaining subtree jumps and historical camera bounds. R28 now includes
+their repairs and measured playback continuity; the earlier coordinate and SVG
+checks alone had not proved screen continuity at stage boundaries.
+
+The remaining work for this milestone is:
+
+1. The complex Turkish relative tree opens in 2.21 seconds in the latest desktop
+   check, exceeding the preselected 2-second local target. Its
+   allocation is faster and the final verified geometry is preserved. All other openings
+   in the full browser pass were below target; desktop frame-change p95 was 16.5ms.
+   This is a measured performance limit, not broken syntax or a missing drawing.
+   Keep Q3 open for that target. Do not distort geometry or prune candidates to
+   manufacture a pass.
+2. Obtain visual acceptance of the two current review items. Portuguese #35,
+   Korean #37 and Chinese #41/#43 retain existing subtree coordinates at the
+   reported boundaries; necessary camera changes interpolate over 360ms.
+   #66's final Stage Record releases earlier source-space reservations and
+   fits the present drawing, increasing its displayed size by 56% on desktop
+   and 50% on phone. Authored movement and all final tree coordinates remain
+   unchanged. The earlier Korean enclosure and Turkish workspace-clearance
+   repairs retain their regression coverage and are not another review request.
+   The full gate passes 2,755 tests. Across 225 analyses and 9,804 frames in four
+   width/direction configurations, no new stationary-node jumps, increased
+   workspace overlaps, malformed branches, final-coordinate changes or authored
+   record changes were found. Desktop/phone playback, zoom, Fit, reduced motion
+   and the temporary public review link pass their browser checks.
+
+
+3. Preserve the existing branch when a new adjunct parent is still hidden.
+   The new screenshot report reproduces this in #8, “Nora revised the article,
+   and Felix did too.” Frames 52–55 incorrectly omit IP → I′ while the future
+   outer I′ is hidden. Frame 56 attaches AdvP and restores the branch, appearing
+   to perform two merges. Both saved runtimes reproduce it, so it predates the
+   fitting repair. R29 records the exact reproduction.
+
+The six older Sol record errors remain inspectable model outputs. Four have
+final-order conflicts, one pronounces a lower copy, and Hindi duplicates an
+intermediate workspace while retaining correct final order. The audit found no
+demonstrated prompt cause. These errors do not justify speculative prompt rules
+or automatic linguistic repair. No equivalent accounting failure occurs in the
+69 new GPT-6.1 Sol analyses.
+
+The September 29 retained evidence ledger has 221 wholly neutral and 1,143 partly drawn
+relation records. Every retained field has an explicit evidence, depiction or
+context explanation. These counts include model claims without an existing
+drawing, absent or ambiguous required participants, and explanatory fields that
+do not assert another drawable dependency. They are not counts of supported
+drawings Babel failed to recover. One Arabic mood recipient remains ambiguous
+between T and V; the renderer keeps that claim neutral rather than guessing.
+
+The same-anchor changed-value mechanism passes deterministic Replay tests.
+None of the 69 new analyses naturally authors that exact continuation. This is
+an observational limit, not a defect or a reason to rerun until a preferred
+example appears. Likewise, the finite recipe inventory does not claim to cover
+all future open-ontology wording.
+
+### What remains before Babel can ship
+
+For the contract/renderer milestone, the current decision rests on the evidence
+above, the remaining local opening measurement, R28's reopened motion/fitting
+problems and the two visual changes awaiting recheck. The full human frame review is complete. Passing
+checks do not guarantee every unseen record.
+
+The larger application launch scope remains Programs 0–6 below. It is separate
+from this pass and does not supply the next contract/renderer task. No launch
+date or deployment is authorized by these receipts.
+
+| Remaining product work | Current evidence and required result |
+| --- | --- |
+| Generation policy and provider qualification | Codex OAuth generations qualify that development transport, not the hosted API routes. Choose the public model/settings, measure its actual route, and qualify each research provider that will be offered. Keep failures and model mistakes inspectable; do not require perfect linguistic analyses. |
+| Durable Personal Tree Bank, Program 2 | `App.tsx` still saves whole bundles through the version-1 IndexedDB store in `services/treeBankStore.ts`. The `derivationalDatabase/` record/export modules are persistence-free and are not integrated into that path. Implement immutable records, atomic wrappers, integrity checks, backup/import/export and the agreed legacy-data transition. |
+| Shared public/research application, Program 3 | The current `App.tsx` still exposes one workspace with model controls and a Notes tab. Build the shared `/` and `/research` flows, retain Replay explanations, and safely separate application responsibilities without redesigning the verified relation drawings. |
+| Product failure inspection, Program 3 | `FailurePanel.tsx` shows diagnostics and downloads. Diagnostic Replay exists in `contractQualification/`, but is not connected to that failed-request view. Integrate faithful inspection where an output can be reconstructed; preserve the raw result when it cannot. Settle public wording and retry behavior without changing the analysis. |
+| Syntactician workspace, Program 4 | Collections, user notes/judgments/citations, sibling-analysis work, query needs, interchange and research exports still require product design and integration. These planned capabilities are separate from the existing flat saved-tree library. |
+| Hosted operation, Program 5 | CI and basic local request controls exist. Hosting, supported runtime conditions, public request/spend limits, research access, deployed error handling, accessibility, privacy/security, backups, monitoring and rollback still need decisions or launch proof. The recorded production application is paused. |
+| Generation Archive and reviewed corpus, Program 6 | Request provenance and pure record schemas exist; the automatic hosted archive and review/promotion/correction workflow are not integrated. Define retention, deletion, access and licensing rules before implementation. A small working reviewed set is sufficient; a large corpus is not a launch gate. |
+| Reproducible release integration, Programs 0 and 5 | The current verified work includes modified and untracked source, fixtures and tests. Preserve it in reviewed changes and repeat the fresh-checkout gate on the resulting candidate. The earlier clean-clone receipt for `dd34c77` does not verify this newer checkout. |
+
+The benchmark in Programs 7–8 remains deferred and does not block launch.
+Model-authored mistakes, the explained Icelandic spacing, small full-tree mobile
+overviews and already-approved visual repairs must not be relabeled as new
+blocking renderer defects. New geometry work requires a reproducible example.
+
+### Current problem register and closure criteria
+
+This register governs the renderer/contract closeout. Earlier dated sections
+below are history; their open wording does not supersede this register. The
+audited candidate passes the recorded recognition, Replay and paint checks.
+R28 records the later visual defects, repairs and remaining motion/fitting
+problems. The measured opening target also remains open. This
+does not qualify the whole application. A rejected record is not proof that its
+linguistic analysis is invalid.
+Keep the original outputs unchanged throughout investigation. A model-authored
+contract mistake may remain a benchmark observation after its cause and faithful
+product handling are assessed. It does not by itself justify another prompt
+rule, automatic linguistic repair, or a demand for perfect model output.
+
+The September 26 review contains **28 requests / 36 analyses**, with the older
+**97 analyses in a separate archive**. The September 27 Astra qualification adds
+**8 requests / 10 analyses** in its own review. All new analyses must stay selectable,
+including rejected outputs. Each issue below has a concrete observation and a closure
+condition; investigate shared causes before adding special cases.
+
+The September 28 independent frozen holdout adds **8 requests / 13 analyses**.
+Its [review](http://127.0.0.1:8453/closeout/holdout/) separates five confirmed
+finding groups from all thirteen new trees. All returned records pass the input
+and stage-fidelity checks; R21–R22 record the frozen renderer failures and
+their verified repairs.
+
+Future tree generations use **GPT-6.1 Sol through Codex OAuth**, as requested
+September 29. The subscription runner now defaults to that model at high effort.
+This supersedes the September 27 Astra preference. Preserve the actual model in
+older generation provenance; this change does not relabel older records,
+authorize API-key fallback or change the public API generation defaults.
+
+#### September 27 review findings and repair order
+
+The user reviewed all 36 new entries and reported the cases below. This completes
+the first human pass through the available views, not approval of the unresolved
+defects. Hindi Stage 4 is drawable in inspection, but the user requires normal frame-by-frame
+Replay as well. Display identities must preserve both authored positions and leave
+ambiguous relation references neutral. Do not request
+another full review of unchanged entries. Use these exact records and transitions
+for the next before/after review; preserve their original authored outputs.
+Numbers refer to the current 36-entry selector; keys remain stable if it changes.
+
+| Review entry | Record and exact view | Finding | Work item |
+| --- | --- | --- | --- |
+| 4 | Hindi, `hindi-letter/0`, Replay 1–47 | Ordinary Replay now preserves both authored copies at frame 40 using display-only occurrence identities. | C2, R2 |
+| 8 | Portuguese, `portuguese-relative/0`, especially [Replay 28 → 29](http://127.0.0.1:8453/closeout/#new/portuguese-relative%2F0/replay/28), 31 → 32 and 33 → 34 | Frame 28→29 retains the selected heads exactly. Reinspection identifies 31→32 as PP movement adding CP and 33→34 as new construction with stage fitting; neither is a confirmed placement defect. | R6 |
+| 21 | Greek Analysis 2, `greek-embedding/1`, [Replay 36 → 37](http://127.0.0.1:8453/closeout/#new/greek-embedding%2F1/replay/36), Stage 2 → 3 | The existing VP changes its right daughter; a CP attaches beneath the old V′ in the same frame as the described adjunct merge. That CP attachment has no separate structural micro-step. | R7 |
+| 24 | English, `english-long/0`, [Replay 22–25](http://127.0.0.1:8453/closeout/#new/english-long%2F0/replay/24), Stage 3 | The displayed `The`→`the` change no longer splits D/N heights. Frames 22–25 are repaired; early frames retain their prior geometry. | R8 |
+| 25 | “Lena must to leave yesterday.”, `english-modal-mismatch/0`, [Replay 20 → 21](http://127.0.0.1:8453/closeout/#new/english-modal-mismatch%2F0/replay/20), Stage 3 → 4 | `must` starts on the left and stays there. The small stage-boundary adjustment is not the repaired side-switch and is not a confirmed remaining defect. | R6 |
+| 30 | Arabic Analysis 1, `arabic-letter-negative/0`, [Replay 16 → 17](http://127.0.0.1:8453/closeout/#new/arabic-letter-negative%2F0/replay/16), 19 → 20, 22 → 23 and 26 → 27 | The loose Neg was placed inside the clause before moving outside at 19→20. Repair its component side; 22→23 also includes whole-scene stage fitting. | R6 |
+
+The user rejected the analysis-wide layout/rank repair because it stretched early
+branches and changed the fit. It remains reverted. R8 now has a narrower display-
+casing correction. R6 has a detached-component ordering correction. Six tests
+that demanded identical coordinates across genuine stage growth or movement
+were too strict; retain exact stability within each stage and test the required
+component side across stages instead. Further
+corrections must preserve ordinary early-tree proportions, not reserve the
+complete final tree's dimensions at every earlier stage. Hindi needs ordinary Replay controls,
+and Greek must retain its already-built VP while the new V′ wrapper is introduced.
+No new generations or prompt rules are needed for these renderer corrections.
+
+#### Contract and generated records
+
+- [x] **C1 — Pronunciation inconsistency diagnosed.** In “Which recipe did
+  Nadia say that Tomas had forgotten?”, Analysis 1, Stage 3 declares the lower
+  object silent in prose but reuses `cprimeEmb` with that object still pronounced.
+  Stage 7 retains it. Raw reference expansion and inspection agree exactly. This
+  is a model inconsistency; do not infer silence from prose or suppress its copy.
+- [x] **C2 — Duplicate workspace diagnosed and inspectable.** Hindi “मीरा ने
+  अपने भाई को चिट्ठी भेजी।”, Analysis 1, Stage 4 keeps `ditransitiveV` independently
+  and within `lowerV`, duplicating nine IDs and five pronounced positions.
+  Stages 5–6 remove the duplication, and final input order is correct. Normal
+  47-frame Replay now shows both Stage-4 positions using display-only identities.
+  Canonical normalization still rejects the original record. No source correction
+  or extra prompt rule is justified by the saved evidence. Independent roots
+  remain valid; duplicating the same occurrence is a different condition.
+- [x] **C3 — Four final-order discrepancies diagnosed.** These are authored
+  record errors under the existing input-accounting contract:
+  - German “Den alten Schlüssel hat Emil seiner Nachbarin gestern
+    zurückgegeben.”, Analysis 1, Stages 5–6 puts `hat` after TP despite its
+    own clause-initial-C explanation.
+  - Turkish “Çocukların okuduğu kitapları öğretmen masaya koydu.”, Analysis 1,
+    Stage 5 puts `öğretmen` before the object. Its realization group accounts
+    only for `okuduğu`, not that reordering.
+  - Greek “Η Μαρία είπε ότι ο Νίκος θα φύγει αύριο.”, Analyses 1–2,
+    Stages 2–5 puts `θα` before `ο Νίκος`. Neither supplies a realization group.
+  Independent raw expansion reproduces all four; the renderer did not reorder
+  them. These dispositions do not reject the models' syntactic theories.
+  Preserve their outputs and do not sort syntax by token index.
+- [x] **C4 — Prompt-regression investigation completed with explicit limits.**
+  All 34 stages in the six affected analyses match independent raw expansion.
+  All five actual failing request payloads match the current canonical Sol/high
+  builder exactly. September 25–26 shared instructions also match, apart from
+  the selected framework opening. The exact-input, reference-rewrite and
+  consumed-root requirements were present. No demonstrated prompt contradiction
+  or ambiguity warrants another rule. Keep these as diagnosed benchmark outcomes.
+  All 97 archived analyses pass the independent final-order check, with raw
+  responses available for 74. That selected corpus comprises 69 Astra, 15 Sol
+  and 13 GPT-5.6 Sol analyses; all 36 September-26 analyses are Sol on different
+  inputs. This is not a controlled comparison or evidence of population error
+  rates. Why this sample has more mistakes remains unknown; no causal claim is
+  needed to close the bounded diagnosis. Canonical rejection and faithful
+  inspection remain distinct outcomes.
+- [x] **C5 — Preserve real relation updates.** Exact unchanged claims do not
+  receive another moment. A changed claim receives its own simultaneous moment;
+  previous values and exact anchor ownership persist until that moment. Tests
+  cover seeking, explicit predecessor replacement, collection updates without
+  prior anchors and retained provenance. All 69 newest analyses have no exact
+  unchanged relation duplicates. None naturally supplies the exact same-name,
+  same-anchor, same-value-key update, so that model observation remains absent.
+  Deterministic mechanism coverage closes this implementation requirement; the
+  observational limit does not justify extra model instructions or reruns.
+
+#### Renderer and inspection
+
+- [x] **R1 — Correct the deferred-projection review description.** In the
+  targeted German focus example, Replay shows C′, not the CP named by the review
+  card. The unchanged authored Stage 1 has a one-child CP above C′; Replay already
+  defers that parent until its second branch arrives. The earlier card confused
+  the record with the visible Replay and wrongly presented this as a new display
+  decision. Keep the existing construction rule and the authored-stage comparison.
+- [x] **R2 — Make Hindi available as ordinary Replay, including duplicate positions.**
+  Hindi now has 47 frames with Prev, Play, Next and seeking. Frame 40 preserves
+  both full copies; later relations occur at 42–43 and 46; frame 47 is final.
+  Display-only occurrence identities keep each position separate and preserve
+  ancestry continuity. Authored syntax, words, pronunciation and raw output remain
+  unchanged. Unique relation anchors follow their exact display occurrence;
+  ambiguous current/prior targets retain a neutral moment rather than selecting
+  a copy. Provenance retains the original IDs. All 47 frames rendered in the
+  browser; normal selector access, narrow Replay, zoom/Fit, and Next/Prev passed.
+  The actual in-app tab was also verified and left at frame 1.
+- [x] **R3 — Withdraw the Hindi overlap as a normal-Replay issue.** Reproduced
+  at 1166px width: the second line of `V[perfective,feminine,singular]` overlaps
+  `v[transitive]` in the authored Stage-1 separate-root view. Nearby `T[past]`
+  does not overlap in the current capture. This is distinct from the duplicated
+  Stage-4 workspace and is not a claim that ordinary Hindi Replay is missing.
+  The current browser check opens the equivalent normal Replay frame 17 at
+  1166px and finds no overlap; the earlier review also linked the wrong frame.
+  Remove the pending Replay decision. No tree or camera change is warranted.
+  The old authored-stage inspection capture is not evidence of a Replay defect.
+- [x] **R4 — Older authored relation-order conflicts have faithful handling.** Seven
+  distinct conflicts survive in four older analyses: “لم يكتب الطالب الرسالة.”
+  Stage 3; “Mér líkar þessi bók.” Stages 2–3; “No student has ever read this book.”
+  Stage 6; and “Mia seems to want to leave.” Stage 4. A claim names an occurrence
+  that a later authored relation introduces. Preserve authored order and inspect
+  the affected moments; never expose future syntax early to make them draw.
+  Browser captures verify readable authored text, available-anchor marks and no
+  premature future syntax. Drawings requiring the unavailable participant wait
+  until it exists; a moment-only neutral mark expires under its normal policy.
+  These individual old model choices are not automatically product blockers or
+  a requirement that the user review all old analyses again.
+- [x] **R5 — Complete the finite drawing-state inventory.** All 55 declared
+  recipes, 115 accepted family/outcome combinations and 89 witness/expiry
+  controls now have public-record-to-production-paint evidence. The atlas has
+  446 specimens; 646 desktop/narrow browser checks pass. All 46 Tier-1/Tier-2
+  primary-drawing comparisons pass. Transfer-access companion domains are
+  verified independently; PF comparisons use the same completed visibility.
+  Blocked carriers remain dashed and have no successful arrowhead. The narrow
+  idiom bracket defect found in this pass is fixed under R26. Original failed
+  receipts and the corrected readiness/paint checks remain preserved.
+  This closes the known finite inventory, not every possible future claim.
+  Earlier approved trees need no repeated review; R26's changed views remain
+  available for human judgment.
+- [x] **R6 — Arabic detached Neg placement corrected and verified.**
+  The modal side-switch and Portuguese 28→29 are already repaired. The user
+  questioned the remaining examples; reinspection found Portuguese 31→32 is
+  actual PP movement adding CP, 33→34 is new construction with stage fitting,
+  and the small modal adjustment is not a return of the side-switch. Withdraw
+  those as confirmed defects. No further change was made to those records.
+  Arabic's loose Neg genuinely started on the wrong side of the clause. Internal
+  head movement inside a reserved component blocked its outside-position lookup.
+  Component ordering now follows that component's unique first attachment while
+  requiring its current material to remain inside it before attachment. Splitting
+  or ambiguous components remain ineligible. Only synthetic workspace order
+  changes; authored children, branch heights, frame order and visible syntax do
+  not. The exact 36-analysis comparison changes horizontal positions only in
+  Arabic Analyses 1–2, frames 1–19; all coordinates in the other 34 analyses match.
+  Desktop/narrow and LTR/RTL tests pass. The user approved the Arabic result.
+  The rejected analysis-wide reservation
+  remains reverted; no whole-tree future dimensions are imposed on early frames.
+- [x] **R7 — Give complement attachment its moment without rebuilding existing VP.**
+  Greek entry 21, Analysis 2 attaches CP beneath the existing V′ at frame 37,
+  then introduces the adjunct wrapper at frame 38. The already-merged VP and its
+  left DP remain visible. Frame 39 is the Stage Record; Replay has 44 frames.
+  The attempted extra VP merge and temporary VP removal were explicitly rejected
+  by the user and reverted. The existing VP was built in Stage 1; changing its
+  right subtree does not require erasing and rebuilding it. Child-list growth
+  still receives its attachment moment, and movement-owned attachments remain
+  atomic. The rollback initially left frame 37’s right branch drooping: coordinate
+  reservation placed the inner V′ at its later depth beneath an unbuilt wrapper.
+  That earlier screenshot was not covered by the frame-38 presence check. The
+  reservation now keeps a currently direct daughter beside its unchanged sister
+  until the wrapper is built, translating its subtree without stretching it.
+  Exact frame-37 regressions cover desktop/narrow and LTR/RTL; browser checks cover
+  frames 36–39, rewind and zoom. The 44-frame sequence and authored records remain
+  unchanged. All coordinates in the four other reviewed construction fixtures
+  match the pre-fix runtime. The later R8 correction also preserves these Greek frames.
+- [x] **R8 — Align same-depth siblings without changing other branch heights.**
+  English entry 24's D retains authored `word: "the"`, but its generated display
+  child changes `The`→`the` at frame 24. Comparing that display spelling literally
+  incorrectly broke D's geometry continuity while N retained its earlier rank.
+  The retained-subtree comparison now recognizes first-letter display casing only
+  when the child is owned by that unchanged authored word. All other fields,
+  spelling changes, pronunciation, identity, ownership and attachment remain exact.
+  Only frames 22–25 change. Frame 12 and every other frame retain their coordinates;
+  source and displayed casing are untouched. Desktop/narrow and LTR/RTL tests cover
+  the same-rank result, and browser captures verify next/rewind. The authored lower
+  DP remains visible at movement frame 19; its absent words are the unchanged
+  model record, not this layout correction.
+- [x] **R9 — Resolve proven collection updates without obsolete plaques.**
+  A unique later feature collection on the same directed occurrences and exact
+  field names supersedes its earlier value at the new relation moment. Occurrence
+  identities must persist uniquely with unchanged lineage and compatible outcomes.
+  The old plaque and its owned connectors retire together; rewinding restores
+  them. Competing values, different fields, malformed prior witnesses and changed
+  outcomes remain distinct. No model prompt rule was added. Twelve focused
+  update/history tests and the browser example cover this boundary. Ordinary
+  Agree claims without recovered collection structure retain their existing policy.
+- [x] **R10 — Retain the failure cue on a recovered feature comparison.**
+  The new Astra English analysis “These pilot have arrived.”, Replay 9, correctly
+  produces two blocked feature paths, but the collection painter displays normal
+  dotted connectors. The Case/Agree geometry branch drops the outcome, and the
+  native plaque routes do not restore it. The frozen renderer reproduces this
+  defect; recognition exposed it rather than introducing it. Preserve the
+  existing plaque and dotted route and decorate only an already-derived blocked
+  path. Do not infer failure from raw native Agree metadata, invent a drawing
+  family, or mark successful sibling rows as failed. All three collection paint
+  routes now retain the existing failure cross with exact collector ownership.
+  The path and cross share local coordinates and the reveal mask; successful
+  sibling paths keep their own outcome. Canonical public-fixture tests cover
+  standalone, Case-composed and unpaired paths plus the native-status control.
+  Browser checks confirm both crosses in English Replay 9, correct active/quiet
+  ownership, Next/Prev, seeking, zoom, Fit and narrow layouts. Before/after images
+  and a short recording are retained outside the worktree. The final offline
+  gate passes all 2,432 tests with no skips or TODOs.
+- [x] **R11 — Keep the Greek role grid near its predicate.**
+  The user confirmed that Astra Greek Analysis 1, Replay 45, placed the grid too
+  low. Its longer role label exceeded the generic local width limit, bypassing
+  nearby placement. Compact-height role grids now search near their predicate
+  at their full measured width; the existing priority for smaller plaques stays
+  intact. Tall grids and other large plaques keep the below-subtree rule.
+  Replay 45 now places the grid beside `πιστεύει`. Forward/reverse playback,
+  seeking, zoom/Fit and narrow views pass. The 143-analysis comparison preserves
+  all tree coordinates and records; 492 changed visible placements have no new
+  syntax overlaps or failed connector clearance. Wide-grid placements change
+  in 24 analyses; two other plaques move to avoid the newly nearby grids.
+  All 2,456 offline tests pass. Captures and the recording remain outside the
+  worktree. Tree layout, camera algorithms and authored relations are unchanged.
+- [x] **R12 — Complete Turkish attachment at the owning relation moment.**
+  Astra entry 7, Turkish Analysis 2, Replay 47 now introduces the new local NP
+  with its existing object and temporal adjunct together. Frame 48 no longer
+  finishes a missing attachment. The compiler change affects only frame 47
+  across 143 saved analyses, with no frame-count changes. Desktop and 390px
+  browser checks confirm identical node coordinates and camera at 47 and 48,
+  including Next, Prev and rewind. The stage's reserved positions reflect the
+  corrected attachment; other analyses' construction is unchanged.
+- [x] **R13 — Preserve the Arabic plaque through selection.**
+  Astra entry 5, Arabic Replay 32→33 now keeps the Case/Agree plaque's position
+  relative to its assigning occurrence. Attachment changes use available parents
+  and each boundary's actual Replay visibility, not future parents or the union
+  of later reveals. The Case curve formula is unchanged. The final pocket clears
+  later syntax and produces a curved route in this example.
+  A regression audit also found a preliminary collection reservation replacing
+  an accepted pocket in saved German coordination frames 55–60. Accepted pockets
+  now persist until their actual geometry boundary. Browser checks confirm stable
+  Arabic 32→33 and German 56→57 at desktop and 390px widths. The last correction
+  changes only that German record across 143 analyses; connector clearance passes.
+- [x] **R14 — Separate binding indices from their paths.**
+  The `operator-binding` Tier 2 recipe uses the same path and optional scope-hull
+  painter as Orchard I1b, Operator / Variable Binding. The overlapping index
+  placement already exists in the August 17 checkpoint; the August 28 integration
+  preserved it. Measured index ink now clears the curve and arrowhead. Browser
+  comparisons confirm unchanged paths and hulls in Orchard frame 66 and unchanged
+  binding paths in fresh Turkish, Hindi and Japanese examples through zoom/Fit.
+  The correction changes only index placement, not scope or relation recognition.
+- [x] **R15 — Reserve Case plaques from the assigning occurrence only.**
+  The Arabic regression audit exposed an older Icelandic allocation defect in
+  `untouched2-icelandic/0`, Stage 3. Allocation no longer substitutes the recipient
+  for the unavailable assigning occurrence `tI`. Its reservations start at the
+  actual source reveal, Replay 29. Focused tests cover source-before-recipient,
+  unavailable source, neutral one-anchor plaques and the saved Icelandic record.
+  Browser checks at frames 28, 29 and 36 confirm that Case arrows clear the labels.
+
+- [x] **R16 — Restore context and distinguish review decisions from findings.**
+  The review wrapper now displays the saved explanations beside each tree. The
+  Astra page separates the one Greek placement choice, the user's five questions
+  with their answers and exact frame links, and optional browsing of all ten
+  analyses. The Turkish prose/tree mismatch remains a model observation rather
+  than an approval task. Existing deep links and browser-local notes persist.
+  The review exposes Replay only; redundant status, provenance and one-of-one
+  analysis subtitles are removed. Full-size frame links remain beside the
+  comparisons. Renderer runtime,
+  records and Replay are unchanged.
+
+- [x] **R17 — Recover the authored QR scope box.**
+  In “Every student read a book,” Analysis 2, Replay 26, `scopeHost` names the
+  finite clause containing the lower occurrence. Recovery now accepts that role
+  and checks containment of the lower occurrence, matching Orchard; the raised
+  occurrence can sit outside the box. The box remains optional when no domain
+  is authored. Rechecking all 143 analyses and 1,450 relations changes exactly
+  this one render plan; authored records and Replay moments are unchanged.
+- [x] **R18 — Clear neutral labels from their own phase-edge outlines.**
+  French Replay 14 and Japanese Replay 16 placed neutral role text over the
+  padding of the edge rectangle. Label placement now reserves that existing
+  outline. Browser comparisons confirm unchanged syntax and box geometry,
+  with clearance through zoom, Fit, rewind and 390px views. This bounded fix
+  does not claim general collision avoidance for every relation graphic.
+  Both repairs pass all 2,498 offline tests, production and Orchard builds, and
+  the integrated browser comparison against the existing Orchard recipes.
+- [x] **R19 — Compare complete Tier-1 and Tier-2 drawings, including indices.**
+  Compared the 55 recipe inventories against the shared drawing components and
+  added complete-plan tests for control, QR, phase arcs, intervention and the
+  modifier fork. Recovered control now supplies matching indices, including
+  authored literals, through the existing control painter. QR uses the shared
+  occurrence-based index allocator; recovered phase arcs share the curated
+  primary/secondary ordering. Intervention's own blocked outcome no longer
+  adds a second generic goal mark; independently anchored judgments survive.
+  Existing edge outlines remain intact. Partial evidence still earns only its
+  supported components: the saved “Mia seems to want to leave” record supplies
+  no control domain, so its missing box is not a renderer omission.
+  Across 143 saved analyses and 1,450 relations, twenty control claims gain
+  indices; thirty other plans only renumber generated dependency/theta letters
+  as those indices reserve their symbols. Authored records, stages and Replay
+  frame counts are unchanged. This is a bounded component audit, not proof of
+  every possible combination of authored claims.
+- [x] **R20 — Check neutral-label collisions with other relation graphics.**
+  The before/after browser comparison covers all 285 relation moments in the
+  28-analysis drawing review. Twenty-eight frames across fourteen analyses
+  contained collisions with binding, Case, movement, index text or plaque ink.
+  Neutral label placement now yields to the measured finished drawings;
+  open outlines reserve strokes rather than their empty interiors. It ignores
+  invisible hit targets and handles a review wrapper hidden until render commit.
+  No collisions remain in that desktop or 390px sweep. Syntax-node positions
+  are unchanged in every desktop comparison. Exact-link opening, zoom, Fit and
+  forward/reverse stepping pass on representative changed frames. Arbitrary
+  dense scenes can still exhaust placement space; this is not a universal
+  no-overlap guarantee.
+  The review starts with three changed examples: control Replay 25, Hindi
+  Replay 35/38/41, and Arabic Replay 41. All ten newest analyses and the previous
+  drawing catalog remain accessible. The full offline gate passes 2,509 tests;
+  all 114 production recipe browser cases and the hidden-host measurement
+  regression pass. Production/Orchard builds and release assets pass. No fresh
+  generations or model-facing prompt changes were made for this pass. The user
+  reviewed these three comparisons and approved them on September 28.
+
+- [x] **R21 — Stop descriptive chain claims from delaying movement traces.**
+  The saved English intermediate trace now appears with successive movement at
+  Replay 54, rather than the later government claim at 56. Icelandic subject
+  fronting likewise introduces its lower trace immediately. A new occurrence
+  occupying another member's proven preceding slot cannot claim a fresh landing.
+  An explicit preceding source selects the active hop while unchanged earlier
+  chain members remain separate evidence. Icelandic's extended-chain relation
+  now recovers its actual raising hop. Saved-record tests cover both directions
+  of the distinction without altering authored stages or pronunciation.
+- [x] **R22 — Recover supported claims exposed by the independent holdout.**
+  All five finding groups now use the existing drawings:
+  - Japanese readings 2–3 recover covert movement and its scope domain. The
+    contained operator does not compete with the explicit higher occurrence.
+  - Arabic head movement accepts equivalent optional witness roles through the
+    Tier-1 signature, registry version 24. Resumptive binding, relative
+    adjunction and the explicit object theta role recover their supported parts.
+  - English same-lineage chain members can occupy one `positions` list. French
+    coreference separates its two nominal referents from the declared discourse
+    head; neither rule invents movement or binding.
+  - The two English agreement conflicts retain both participant specifications
+    and show the existing failure marks. Conditional, contradictory, missing
+    and competing evidence remains guarded.
+  No prompt changes, new generations or edits to model records were required.
+  All 124 holdout relation/forest hashes remain unchanged. All 143 older
+  analyses retain identical Replay structure and frame order. Two older failed
+  comparisons now consume their explicit negative status as drawing evidence;
+  their trees and relation moments are unchanged.
+  The repaired holdout has 638 Replay frames. Thirty spurious construction
+  frames disappear because the two Japanese landings and Icelandic raising
+  landing now appear complete at their movement moments. Every authored
+  relation still receives exactly one moment. The frozen 668-frame version
+  remains separately available for comparison.
+  The full offline gate passes: 2,530 tests, typecheck and parse fixtures.
+  Chromium checks cover all 638 frames, all thirteen analysis selectors,
+  Next/Prev, rewind, zoom/Fit and 150 narrow frames, with no runtime errors,
+  invalid geometry or neutral-label/ink collisions. Exact-frame links and
+  close-up captures cover the five repairs. The source and before/after evidence
+  are archived outside the worktree; no shared layout or camera code changed.
+  Other neutral records still require their own evidence: a trace-only LF
+  interpretation does not provide two full copies, negative scope does not
+  imply QR, and batched Case assignment does not authorize guessed pairings.
+  Q3's deployment/browser checks and C5's coverage gap remain separate.
+- [x] **R23 — Keep successive movement arrows at their intermediate landings.**
+  A phrase retaining its occurrence ID at a higher landing no longer pulls an
+  earlier arrow up with it. The earlier endpoint transfers to the exact authored
+  lower witness at the next movement moment and reverses correctly on rewind.
+  Repeated descriptions retain one shared curve and both claims' ownership.
+  Across 156 saved analyses, only the two English question readings and one older
+  Swedish analysis change arrow endpoints; all trees and Replay frame sequences
+  remain identical. Five regression tests cover the saved case, renamed IDs,
+  ambiguous evidence, a third hop and shared-curve continuity. The full offline
+  gate passes 2,535 tests. Desktop and phone-sized browser checks cover the two
+  hops, rewind, zoom/Fit, final persistence and all thirteen embedded Replays with
+  workers blocked. Builds and release assets pass; evidence is archived outside
+  the worktree. No model records, prompt, tree layout or camera code changed.
+- [x] **R24 — Repair branch ranks, workspace continuity and connector marks.**
+  - Arabic readings 1–2, frames 19–22: all canvases in a stage now use one
+    vertical rank unit before coordinates are retained. Direct daughters stay
+    level when a movement changes the canvas depth. The earlier rejected global
+    branch-height rewrite remains absent.
+  - Arabic reading 2, frames 49–58: the unchanged independent books subtree
+    retains its completed coordinates while the next stage opens with a relation
+    elsewhere and later attaches it. Its topic merge remains frame 54. This does
+    not lock the camera across authored stages; the existing stage fit still runs.
+  - French Case plaque: nearly level side-entry connectors retain a bounded bow
+    and word/category clearance. Ordinary Orchard approach geometry is unchanged.
+  - English number conflict: both values and paths remain, with one X owned by
+    the exact failed comparison. Separate comparisons retain separate marks.
+  - **Corrected diagnosis — Icelandic frame 37:** the native single-frame layout
+    was an unsuitable spacing comparison. Replay reserves the incoming subject
+    and later head slots. Before that arrival, IP is unary over I′ and must stay
+    centered on it. Closing only the C–IP gap would create an overlap or bend that
+    unary branch. Its geometry is unchanged. A future compact-slot refinement
+    must handle all arriving contours together; it is not a safe local tightening.
+  Verification: all 156 saved records and Replay sequences are unchanged; 146
+  analyses retain exact coordinates. Ten have stage-rank corrections, including
+  the Arabic workspace repair. The coordinate audit finds no new reversed,
+  upward or increasingly tilted sibling branches. Reviewed Greek, Students,
+  modal English, Portuguese and earlier Arabic layouts remain exact. The full
+  offline gate passes 2,555 tests. All 638 frames in the thirteen current Replays
+  render at phone width with workers unavailable; desktop checks cover the
+  reported frames, rewind and zoom/Fit. Orchard and release assets pass. Captures
+  and a recording remain outside the worktree. No prompt changes or generations.
+- [x] **R24 follow-up — Preserve the retained workspace's RTL drawing origin.**
+  Arabic reading 2 widens its canvas from 6,060 to 7,140 units at frame 50.
+  Reflection previously added an unintended 1,080-unit shift to the unchanged
+  books subtree. The retained scene now carries its origin forward. Translate
+  the whole scene: pinning only the component introduced a label collision and
+  was rejected during visual verification. Every branch shape and inter-component
+  clearance remains unchanged. The books subtree retains its drawing coordinates
+  through frames 49–58 and its screen position with a manually positioned camera.
+  Automatic fitting remains unchanged; this is not a fix for the clause jump below.
+  Verification: all 156 saved records and Replay sequences remain exact; only
+  this reading's RTL frames 50–58 change coordinates, by one uniform translation.
+  Desktop and phone checks cover those frames, rewind, manual zoom, Fit, syntax
+  label collisions and representative Arabic, French, English and Icelandic
+  controls. The full offline gate passes 2,556 tests. Builds and release assets
+  pass. Captures, browser checks and a recording are retained outside the worktree.
+- [x] **R24 follow-up — Build the Arabic clause in its reserved attachment position.**
+  The approved prototype is integrated into the shared Replay coordinate planner.
+  A qualifying independent component starts in the space its later attachment
+  needs, using its own earlier branch geometry. The source's old place transfers
+  to its exact lower witness at movement; the landing, trajectory and later
+  parents retain their original reveal moments. Incompatible attachments and
+  ambiguous witnesses keep the ordinary layout. The clause stays put from its
+  selection through frames 49–58; the existing books-workspace repair is retained.
+  This replaces the rejected sliding animation and broad future-rank reservation.
+  Production matches the accepted prototype across 26,372 coordinate checks on
+  156 saved analyses. Only the same four analyses qualify. Browser checks cover
+  all 198 frames of those four analyses at desktop and phone widths, actual
+  production workers, Next/Prev, manual zoom and Fit, plus the normal Arabic
+  review at 49→50. Syntax and cameras match the prototype, with no new syntax-label
+  overlaps. The existing mobile full-tree readability limits remain; one English
+  phone view fits up to 6.72% smaller than before the prototype.
+  The full offline gate passes 2,566 tests, typecheck and both contract fixtures.
+  Before/after captures and recordings remain outside the worktree. No prompt
+  changes, regenerated analyses or authored-record edits were needed.
+- [x] **R24 follow-up — Center the shared agreement X.** Both feature rows
+  belong to one failed comparison. Its single X now sits between their connector
+  midpoints, retaining exact ownership and the existing paths. Desktop and phone
+  checks cover rewind, zoom, pan and Fit; tree coordinates, paths and camera
+  transforms match the preceding build. Single-route failures and independent
+  comparisons retain their own marks. All 2,555 offline tests pass. The updated
+  Replay, before/after captures and recording remain outside the worktree.
+- [x] **R25 — Recover explicit form, reference and participant properties.**
+  Named lexical allomorphs reuse the existing PF plaque without manufacturing a
+  prior occurrence or rewriting a conditional literal. Explicit topic/pronoun
+  dependencies receive coindices without being reclassified as binding or copy
+  identity. Qualified nominal roles and explicit clitic-role labels identify
+  independently authored feature properties. Default agreement receives no
+  invented dependency arrow. Ambiguous, denied, silent and missing evidence
+  remains guarded. Eight relation records change in the thirteen-record holdout;
+  all 143 older drawing dispositions and all 156 Replay structures, visibility
+  sequences and frame orders remain exact. Authored records are unchanged.
+  Seven regression tests cover exact item ownership, renamed IDs, a different
+  language, default agreement, denied outcomes and competing participants.
+  Browser comparison verifies identical node geometry and camera transforms at
+  all eight moments, seeking, zoom/Fit, four narrow views and all three review
+  cards. The offline gate passes 2,573 tests, typecheck and both parse fixtures;
+  the frontend build passes. Before/after images, a recording and the remaining
+  neutral-evidence audit stay outside the worktree. No prompt change or new
+  generation was needed. On September 29, Francis reviewed all thirteen latest
+  trees and approved them. This closes the current visual review, while the
+  remaining uncertain evidence associations retain the bounded work above.
+
+- [x] **R26 — Complete the full corpus repair and Replay audit.** Shared
+  evidence rules recover qualified Case and agreement, feature and form
+  properties, exact operator/binding pairs, relative predication/attachment,
+  focus, phase-edge, ellipsis correspondence, PF rewrites and grouped realization
+  ownership. Each recovered part stays bound to its asserted claim and exact
+  participant. Ambiguous or unsupported siblings remain neutral. No Tier-2
+  recovery repairs malformed exact Tier-1 evidence.
+  Replay now keeps unproven landings at their own moment, constructs retained
+  roots forward, preserves independent context around rewrites and retains the
+  prior authored source pronunciation until its actual owning event. The full
+  audit covers 9,804 frames, 459 movement transitions and 6,359 new edges in 225
+  analyses, with no early traces, late first appearances or topology discrepancy.
+  Comparing the original candidate yields 208 identical Replay sequences and
+  17 explained repairs. All authored records remain unchanged.
+  Positive Case paths retain exact native geometry; blocked Case uses the same
+  curve with a failure mark and no success arrowhead. The idiom bracket preserves
+  desktop geometry and reduces only its initial gutter/cap when a narrow viewport
+  lacks space. Before/after checks prove unchanged branches and camera transforms.
+  Root browser checks cover 9,104 Replay frames, all 19 changed older analyses,
+  seeking, actual Next clicks, zoom and analysis switching. The current offline
+  receipt passes 2,671 tests, typecheck and both contract fixtures. All 55 Orchard
+  cards and all 59 source images load. Screenshots, 19 short recordings, raw
+  first attempts and exact source receipts stay outside the worktree.
+  Evidence: [full-pass proof](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/full-pass-proof-20260929/summary.json).
+- [x] **R27 — Reduce immutable plaque-query overhead without changing drawings.**
+  Rectangle collision queries use a prepared left-first branch list with cached
+  exact bounds and subtree skip indices. Leaf collision rules, curved-query
+  recursion, predicate order, candidate selection and tolerances remain exact.
+  The captured browser-metrics job takes 13.95% less allocation time in Node.
+  All 2,684 schedules match across 225 analyses and 446 recipe/state controls
+  at desktop/narrow widths and both directions. Independent review passes 81
+  checks, including 8,892 differential queries and numeric-boundary cases.
+  Real Chromium preserves all 60 Turkish frames at both widths, including every
+  native shape and camera transform. Opening improves from 2.60 to 2.35 seconds
+  at desktop and 2.64 to 2.35 seconds narrow. This does not meet Q3's 2-second
+  target. The full offline gate and build pass against the final source freeze.
+
+- [ ] **R28 — Repairs verified; two changed views await visual acceptance.**
+  Francis inspected every frame in all 69 newest trees. All 355 authored Stage
+  Records were checked against their syntax and relations; no additional
+  definite record contradiction was found. Deliberately unconverged forests
+  remain inspectable. The prior casing, relation ownership, source attribution,
+  Korean binding enclosure and Turkish independent-workspace repairs remain in
+  place, with their evidence preserved below.
+
+  The October 1 motion recheck showed that retaining seven waiting heads had
+  not retained complete subtree shapes or camera continuity. The corrected
+  reservation now follows a component's complete attachment history, preserves
+  its pre-movement source ancestry, and validates branch order, independent ink
+  clearance and unchanged-node motion before accepting it. The reported #35
+  frames 36–37, #37 frames 41–42 and 54–55, #41 frames 30–31 and #43 frames 33–34
+  now retain exact existing-node coordinates. Portuguese 34–35 also retains its
+  stationary heads while the authored subject movement remains visible.
+
+  Adjacent Replay camera changes interpolate over 360ms from the painted pose;
+  manual zoom/pan cancels them immediately. Reduced-motion mode, direct seeking
+  and explicit Fit remain immediate. Construction keeps one fit per authored
+  stage. Only the final Stage Record releases historical source positions and
+  fits the completed drawing. #66 is 55.9% larger on desktop and 49.9% larger on
+  phone. #35's final syntax coordinates and all other final tree coordinates
+  remain unchanged; no fixture-specific centering rule was introduced.
+
+  The subsequent side-by-side review found a branch-proportion regression in
+  #66's earlier frames: backward reservation imports a future vertical level.
+  R30 repairs that defect by retaining the current root fork at its daughters'
+  normal height. The original checks below did not detect branch proportions;
+  the added tests and four-configuration corpus comparison cover this repair.
+
+  Verification compares all 225 retained analyses and 9,804 frames at desktop
+  and phone widths in both directions. It finds no new stationary-node jumps,
+  worse ordinary construction displacement, increased workspace ink overlap,
+  malformed branches, final-coordinate changes, prepared Replay changes or
+  authored-input changes. Pre-existing numeric ink intersections are not all
+  eliminated. The integrated browser pass measures the reported boundaries,
+  final fitting, playback/seek, manual zoom, owned relation geometry and reduced
+  motion at both widths. The temporary public review contains only the two
+  current changed items, with all 69 trees still available and no horizontal
+  page overflow. No provider was called.
+
+  Typecheck, all 2,755 offline tests, both parse-contract fixtures, frontend
+  build, Orchard build/verification and release-asset verification pass. Failed
+  prototypes and initial harness failures remain recorded with their successful
+  corrections. Temporary verification browsers exited; the local review server
+  and public phone link remain running for review.
+
+  Current source hashes, comparison receipts, before/after images and short
+  motion recordings: [motion and fitting proof](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/motion-fix-proof-20261001/summary.json).
+  Earlier evidence: [initial follow-up](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/review-followup-proof-20260930/summary.json),
+  [source correction](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/source-correction-proof-20260930/summary.json),
+  [workspace/enclosure repair](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/r28-renderer-proof-20261001/summary.json),
+  [screen-motion recheck](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/motion-recheck-proof-20261001/summary.json),
+  [enclosure width](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/binding-width-proof-20261001/summary.json).
+  Q3's previously measured 2.21-second desktop and 2.22-second narrow Turkish
+  opening remains a separate performance limit; this repair does not close it.
+
+
+- [ ] **R29 — Preserve existing syntax below an unrevealed adjunct parent.**
+  In #8, “Nora revised the article, and Felix did too.”, frame 51 retains the
+  authored `ipB → ibarB` branch. At frame 52, the stage canvas already changes
+  that child to `ibarBOuter`, which is hidden until frame 56. Frames 52–55 thus
+  disconnect the existing predicate from IP. Frame 55 only projects AdvP;
+  frame 56 should perform the one new `I′ + AdvP → I′` attachment. Its additional
+  visible IP reconnection is a Replay continuity defect, not another authored
+  Merge. Browser edge inspection confirms it in both the saved before runtime
+  and the current runtime. No renderer or Replay behavior changed during this
+  comparison request. The repair must retain the prior attachment until the
+  new parent is revealed, with regression coverage for other inserted parents.
+  The synchronized [fitting comparison](https://babel-fitting-preview-20261001.vercel.app/)
+  exposes all 69 trees, common playback and desktop/phone viewport choices.
+  [Frame evidence and comparison verification](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/fitting-comparison-proof-20261001/summary.json).
+
+- [x] **R30 — Reserve future space without stretching current branches.**
+  In #66, `holdout-mandarin-negative-relative/0`, the published comparison's
+  frame 15 has `rcTP → rcT` separated by 212 layout units before and 431.58
+  after. The new layout leaves an empty level for `rcTProjection`, which first
+  appears at frame 19. At that point the two visible branches each span 215.79
+  units. This is raw layout geometry, independent of camera scale. The older
+  runtime already reserves that level within stage 2 (frame 18); backward
+  attachment reservation now imports it into stage 1 as well. Existing checks
+  for branch order, intersections and stationary-node motion do not reject
+  this distortion. Stage and cross-stage reservation now keep a visible root
+  at the unseen successor fork with its identical ordered daughters. All
+  daughters stay fixed; internal parents and inconsistent offsets are excluded.
+  The repair changes only six earlier root heights across four of 225 analyses.
+  Across all 9,804 frames at desktop/phone widths in both directions, final
+  geometry and authored/compiled records remain identical, with no added
+  overlaps, malformed branches or stationary/construction jumps. Focused tests
+  include the Mandarin case, English infinitival growth and negative controls.
+  Typecheck, all 2,772 tests, both parse-contract fixtures and the frontend build
+  pass. Desktop/phone browser checks cover frames 14–20, the previously reported
+  stage-boundary jumps, shared stage fit, arrow keys, manual zoom and final Fit.
+  The corrected runtime is used in the local and shared fitting comparison.
+  [Repair evidence and recording](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/branch-fix-proof-20261001/summary.json).
+  [Original diagnosis](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/branch-spacing-proof-20261001/evidence.json).
+
+The follow-up pass rendered all 475 Replay frames in the ten fresh Astra analyses,
+checked selection from the review menu, forward/reverse playback, narrow views,
+zoom/Fit, and Orchard binding paths/hulls. Representative older plaque scenes
+were checked before and after. `npm run verify:all` passes 2,455 tests with no
+failures, skips or TODOs; build and release-asset verification pass. Captures and
+short recordings remain outside the worktree. R11 is now repaired as recorded
+above; the subsequent R3 recheck withdraws that Replay issue. These fixes do not close the entire
+renderer roadmap.
+
+Two further Astra observations are explained, not confirmed defects. Entry 4,
+Greek, authors both clauses in its first stage; Replay 1–51 therefore share that
+large stage's camera fit. Keep its current camera behavior. Entry 10, Japanese,
+Replay 24 is the authored “relative operator Internal Merge” from the v-edge to
+the C-edge; its nearly vertical arrow is the ordinary phrasal movement path.
+The category D does not turn that relation into head movement. No rendering or
+record change is justified by either observation.
+
+All 36 original analyses remain available. Their raw outputs are unchanged.
+The September 27 audit includes all 1,475 Replay frames at desktop and narrow
+widths. Recognition changes are separately enumerated under Q1. The integrated browser pass completed 57 checks, including Arabic forward/
+backward playback at desktop and narrow widths and unchanged English, Greek,
+Portuguese and modal views. All 2,411 offline tests pass with zero skips or TODOs;
+typecheck, contract fixtures, build and release assets pass. Evidence remains
+outside the worktree.
+
+#### Recognition boundaries and qualification
+
+- [x] **Q1 — Saved-record recognition and repaired paint verified.**
+  All 189 relations in the current 36 analyses were checked, including Hindi:
+  145 fully drawn, 30 partial and 14 wholly neutral. The 233 recovered claims
+  comprise 7 Tier 1, 182 Tier 2 and 44 neutral claims. The latter are 28 contextual
+  residues, 13 claims without a designed depiction and 3 missing-witness cases:
+  English ellipsis frame 45 has an ambiguous focus associate; Finnish frames 29
+  and 34 lack a selecting requirement and a directional Case assigner respectively.
+  Hindi frame 42 now recovers ergative Case from corroborated title, qualified
+  participants and the authored K feature. No extra linguistic fact is inferred.
+  Comparing all 97 older analyses exposed 13 real defects: ten lost theta grids,
+  degree-sign head notation, QR mistaken for head movement, and duplicate nominal
+  concord painting from identical evidence. Shared evidence/ownership fixes
+  recover those without changing other claims. Twenty other changed records
+  were supported recovery or ownership changes. Final archive totals are 443
+  fully drawn, 592 partial and 125 neutral records; no authored record changed.
+  The focused recognition gate passes 141 tests. Every current relation still
+  owns exactly one Replay moment. The later Q4 audit found further recoverable
+  components, so this earlier pass did not establish recognition completeness.
+  The integrated browser pass covers every changed older record,
+  the Hindi recovery and the seven old timing conflicts; no browser errors or
+  invalid SVG paths occurred. Representative restored marks were inspected.
+- [x] **Q2 — Astra holdout diagnosed and recognition misses repaired.**
+  Eight preselected unfamiliar inputs were sent once through Codex OAuth to
+  GPT-6 Astra/high, producing ten analyses. No retry or paid API fallback occurred.
+  Candidate `491af9256edf432cc46dd61afd7e0c5bc020045d` stayed unchanged. All ten
+  pass canonical processing, exact input accounting and independent raw-stage
+  fidelity. All 101 relation records retain their authored moments; no exact
+  duplicates or judgment-named relation records occur. The deviant input “These
+  pilot have arrived.” remains unchanged and receives explicit agreement-conflict
+  claims. Turkish Analysis 2, Stage 3 contradicts its own VP-adjunction explanation
+  by placing the adverb under NP; preserve this model error for review.
+  The frozen renderer draws 24 records fully and 58 partly, leaving 19 neutral.
+  Its 77 neutral claims comprise 40 contextual residues, ten missing-witness
+  cases, seven claims without designed drawings and twenty records with supported
+  components that recognition missed. These are qualification failures of that
+  version. Shared evidence repairs must preserve the frozen results and be
+  reported as repairs informed by this batch, not an independent holdout pass.
+  All ten analyses are selectable in normal Replay. All 475 frames rendered in
+  local Chromium; first/last frames, backward navigation, Fit and narrow views
+  passed. Maximum opening was 1,340ms; frame-change p95 was 18.18ms. This is a
+  purposive diagnostic sample, not evidence of an 80% population-quality rate.
+  Follow-up shared evidence repairs recover all twenty missed components.
+  The adapted renderer has 34 fully drawn, 55 partial and 12 neutral records;
+  its 182 claims comprise 8 Tier 1, 107 Tier 2 and 67 neutral claims. Every
+  remaining neutral claim was classified in that pass: 46 contextual residues, 14 missing
+  witnesses and 7 without a designed depiction. Examples include a Turkish
+  repositioning claim without prior-root identity, a Greek particle without
+  directed feature roles, and English interrogative scope without a specified
+  domain. Q4 supersedes that classification with further evidence-backed repairs.
+  No prompt, source record, recipe family or tree layout changed.
+  All 1,349 saved relation render plans across 133 analyses remain identical.
+  The 750 focused tests and an independent boundary review pass. The adapted
+  475-frame browser pass also passes. The final run after R10's repair reports
+  maximum opening 1,345ms, frame p95 19.76ms and zero browser errors. Visual
+  inspection of all twenty repaired moments exposed R10 (now repaired) and
+  raised R11 (subsequently confirmed and repaired). All ten new analyses start at frame 1 when
+  selected. The two new review cards open the Turkish authored mismatch and
+  Greek grid placement; they do not require another pass through older analyses.
+  The earlier review's 45 Replay views retain identical frame identities and
+  order after rebuilding against the final runtime. Recognition counts and
+  automated checks do not substitute for human visual approval.
+- [ ] **Q3 — One local opening target remains unmet.** The final bundled
+  Chromium pass renders all 9,104 Replay frames across 99 analyses at 1600px
+  desktop and 390px narrow widths. Actual Next clicks, analysis switching,
+  seeking, fixed relation ownership, zoom and mouse-focus behavior pass with
+  zero browser errors. Desktop frame-change p95 is 16.5ms, below the preselected
+  100ms limit. All other openings in that full browser pass were below 2 seconds;
+  R27's final targeted check remeasures the slow case and proves unchanged output.
+  The complex Turkish relative-subject tree opened in 2.35 seconds after R27;
+  R28's latest check measures 2.21 seconds desktop and 2.22 seconds narrow,
+  still above the 2-second target. The initial and final measurements are preserved;
+  this requirement is not silently closed. Its complete Replay renders correctly
+  and the latest verified placements are preserved. Further performance work must demonstrate
+  an actual bottleneck and preserve exact output, rather than change typography,
+  remove evidence, shorten searches or claim elapsed time is rendering proof.
+  Prior CPU-throttle captures remain bounded emulation evidence. Other engines,
+  physical minimum hardware and deployed proxy/worker behavior belong to their
+  eventual declared support conditions, not a substitute for this measured limit.
+- [x] **Q4 — Audit drawing variety against the actual records.**
+  Rechecked all 143 saved analyses and 1,450 authored relation records against
+  all 53 linguistic drawing recipes and two interface companions. Repetition
+  has two causes: the corpus contains many ordinary feature dependencies,
+  movements and theta assignments, and the recognizer missed supported parts
+  of 24 records. Shared evidence recovery now restores ten Case paths, seven
+  phase-edge outlines, two ellipsis correspondences, two stem rewrites, two
+  form properties and one relative-modifier fork. These use existing primitives;
+  exact Tier-1 failures are not repaired by Tier 2 and unsupported context stays
+  neutral. All eight saved Astra request payloads match the current prompt;
+  no prompt change or new generation is justified or performed.
+  The corpus reaches 25 recipe families, up from 23; the ten newest analyses
+  reach twelve, up from ten. Of the 28 unobserved linguistic recipes, sixteen
+  require claims absent from the records, eleven lack the details their drawing
+  needs, and one is already represented by ellipsis ghosting. For example, 21
+  order-related records provide no complete prior/current ordering columns for
+  the cyclic-linearization rail. Eleven exponent/allomorph/correspondence records
+  provide no complete paired inventories for the PF correspondence map. French
+  mediated concord retains its agreement plaque and neutral mediator context;
+  a direct connector would incorrectly skip the explicitly authored v mediator.
+  The latest 101 relation records now comprise 34 fully drawn, 56 partly drawn
+  and eleven wholly neutral records. Their 67 neutral claim components include
+  contextual residue; they are not 67 wholly failed relations.
+  Authored records, relation order and frame identities remain unchanged.
+  The minimal Drawings review links the six repair types, existing vines,
+  control, predication, scope, adjunction, intervention, idioms and parasitic
+  gaps to exact Replay frames. All ten latest Astra analyses remain selectable;
+  no repeat review of all 143 saved analyses is requested. The integrated visual
+  pass covers every card, representative before/after geometry, zoom/Fit at
+  desktop and 390px, and all 475 newest frames. Recognition coverage does not
+  establish a population-quality percentage or replace human drawing judgment.
+  Visual inspection caught a regression introduced by the new stem recovery:
+  the drawing consumed the exact lexical witnesses, delaying the terminal's
+  update until the Stage Record. Replay now keeps the recovered input/output
+  evidence for its owning transition. Japanese 書く→書い and 読む→読ん update
+  at frames 35 and 36 respectively. A generic PF row using the very same
+  original stem-value item is subsumed by the rewrite; independent whole-word
+  and sibling rows remain. Focused browser checks verify both moments, rewind,
+  seeking and narrow views. Across 143 analyses and 5,955 frames, final Replay
+  canvas geometry, visibility, order and relation moments match the pre-recovery
+  baseline. All 2,495 offline tests pass with no skips or TODOs; production build,
+  Orchard build and release-asset verification pass. Captures and short recordings
+  remain outside the worktree. This bounded audit is complete; Q3 and human
+  review of the changed drawings remain distinct qualification limits.
+  Subsequent user review found the additional missed QR component recorded in
+  R17; the audit's completion did not establish that every component was correct.
+- [x] **Q5 — Freeze the approved candidate and run an independent holdout.**
+  Candidate `bc1c099171ab9c56de437ecc2f918b3ba8da17ad` is archived with source
+  hashes and a recoverable Git bundle outside the worktree. Eight inputs were
+  selected and hashed before dispatch, with no exact repeats among the previous
+  143 analyses. GPT-6 Astra/high through Codex OAuth returned thirteen analyses
+  from eight first attempts, with no retries or paid fallback. Prompt, renderer,
+  runner configuration and archived responses stayed unchanged during the run.
+  All thirteen pass canonical processing, exact final input accounting and
+  independent raw-reference expansion. No JSON repair, identical repeated
+  relation record or raw/normalized stage mismatch occurred. The deviant English
+  input remains deviant. These checks do not certify the model's linguistics.
+  The frozen candidate's 124 relation records comprise 25 fully drawn, 58 partial
+  and 41 wholly neutral records; its 199 claims comprise 10 Tier 1, 90 Tier 2 and
+  99 neutral claims. Neutral claim totals include contextual residue and must
+  not be reported as the number of missing drawings or a failure percentage.
+  All 668 Replay frames rendered in local Chromium; all thirteen analyses are
+  selectable. Next/Prev, rewind, zoom/Fit and 150 representative narrow frames
+  passed. Desktop and narrow relation checks found no neutral-label/ink collision
+  or invalid geometry. Maximum opening was 930ms and frame-change p95 21.54ms
+  at 1600px. The unchanged candidate passes `npm run verify:all`: 2,509 tests
+  plus typecheck and fixtures. All five finding cards and fifteen exact-frame
+  links were also checked, including returning between different analyses.
+  R21–R22 recorded defects in this frozen candidate and are now repaired in
+  a separate review. The original review preserves the frozen defects for
+  comparison; it does not silently substitute the repaired runtime. No contract/prompt change is justified by these results. This is a
+  purposive diagnostic sample, not an estimate of 80% population quality. Q3's
+  browser/deployment limits and C5's changed-value coverage remain separate.
+
+#### Review access
+
+- [x] **Restore the local review after the server stopped.** Restart the HTTP
+  server independently of the command session and reload the existing in-app
+  page. Keep all 36 new analyses and the separate older archive accessible.
+  This fixes the refused connection, not the unresolved record or drawing issues
+  above. A temporary local review is not a production hosting solution.
+- [x] **Use hosted Orchard sources independently of the local server.** The
+  public Orchard already serves its source images through GitHub Pages: all 59
+  unique referenced image URLs returned HTTP 200, and its bundle contains no
+  localhost links. Replace the two local Chrome Orchard tabs and the broken
+  Norris image tab with their public equivalents. No public deployment change
+  was needed; the failed URL belonged to the stopped local server on port 8441.
+
+The known repaired regressions remain covered: atomic movement branches, stable
+stage coordinates, category/terminal casing, Case and feature ownership, shared
+plaques, connector timing, PF plaque continuity, pointer-induced blue outlines,
+analysis selection and first-frame reset. Reopen one only on concrete evidence.
+The reported two-root controls overlap was not reproduced and is withdrawn.
+Small fitted labels alone are not proof of missing syntax. The R3 authored-stage
+capture must not be presented as an unresolved normal-Replay collision.
+
+The September 26 generations are complete: 28 requests through GPT-6 Sol with
+Codex OAuth produced 36 analyses. Four initial confirmation requests returned
+HTTP 429 without model output; their receipts were preserved and only those
+transport failures were resubmitted. No model output was regenerated. All calls
+used the same frozen prompt and contract. None of the 189 authored relations is
+a judgment-named relation or an exact unchanged duplicate; normalization did not
+rewrite the expanded authored records that it accepted.
+
+The independent checks did **not** qualify the candidate. The first 20 requests
+produced five contract-failing analyses across four requests, plus recognizer
+misses and unsupported drawings. After repairs and a second renderer freeze,
+eight confirmation requests produced eleven analyses, including one further
+contract failure and additional recognition misses. Repairs based on either
+batch are diagnostic adaptation, not a passing holdout result. The six flagged
+analyses comprise surface-order conflicts in German, Turkish
+and both Greek alternatives, duplicated Hindi workspace identities, and a
+pronounced lower copy in the English embedded question. The register above
+separates demonstrated record contradictions from the ordering cases that need
+representation review. All original outputs remain reviewable.
+
+On the adapted renderer, the 189 relations comprise 144 fully drawn records,
+28 with a drawing plus neutral content, 14 wholly neutral records, and three
+Hindi relation records whose full timeline cannot be dispatched. Every remaining neutral
+or partial record has an evidence-based disposition. Thirteen wholly neutral
+claims lack a matching designed drawing; one additive association leaves its
+associate ambiguous. These are record counts, not linguistic-quality scores.
+Isolated later Hindi stages still recover binding and agreement without
+pretending the earlier duplicate identities are resolved.
+
+All 114 public drawing examples, spanning 55 recipes in both frameworks, pass
+production-painter checks. The full offline gate passes 2,300 tests, typecheck
+and parse-contract verification. Positive drawing fixtures do not cover every
+outcome variant. Shipping still requires closure of the current problem register,
+including
+faithful handling of record inconsistencies, inspection limitations, remaining
+visual defects and independent qualification. Model perfection is not required;
+original mistakes must remain inspectable without being silently repaired. No 80%
+population-quality claim is established by these purposive cases.
+
+The milestone is ready when these items are closed with no known blocking
+renderer/contract defect and the user has reviewed the remaining visual choices.
+Recipe reachability, a green test suite, or a successful prompt rerun alone cannot
+close it. The broader application launch still needs the later deployment,
+provider, storage and product work described below.
+
 The previous corpus contained 59 analyses and 806 authored relations. Its
 16 observed Tier-2 recipes did not establish renderer completeness. The current
-inventory contains 54 recipes and 69 drawing pieces. Recipe reachability and
+inventory contains 55 recipes and 69 drawing pieces. Recipe reachability and
 recognition of independently authored claims are separate checks; neither a
 high Tier-1 count nor eliminating every neutral relation is a release target.
 
@@ -44,16 +1039,87 @@ The September 22 qualification review combines those saved records with 19
 Codex-OAuth requests made under the then-current prompt contract. It exposes all
 82 analyses in one chooser, paused at Replay frame one. Across 1,076 authored
 relations and 3,502 Replay frames, the audit found no missing or duplicated
-relation moments. All 54 declared recipes are reachable through the public
-normalization-to-painter path in provider-free tests; 19 Tier-2 recipe families
-occur naturally in these records. Another 269 relations remain wholly neutral
-because their authored evidence does not establish a supported, legible
-drawing. This is retained content, not a claim that their linguistic
-interpretation is wrong.
+relation moments. Public-record tests reach all 54 declared recipe families through normalization,
+Replay and bound geometry; the current production atlas separately checks painting; 19 Tier-2 recipe families
+occur naturally in these records. The audit recorded another 269 wholly neutral relations under its then-current
+rules. That historical count does not prove each fallback was necessary. Recheck
+those records against current recognition and the complete authored evidence.
+Neutral presentation does not judge their linguistic interpretation.
 The last untouched Tamil and Polish records needed no renderer adaptation.
 Human visual and linguistic review of the complete chooser remains a release
 decision; passing structural checks does not certify either.
-The final 1600px bundled-runtime sweep rendered all 3,502 frames with no
+
+A preselected September 25 holdout used four GPT-6 Sol requests through Codex
+OAuth, producing eight analyses with 31 stages, 49 authored relations and 290
+Replay frames. All requests completed and all 49 relations retained one moment.
+Before the closeout recognition repair, nine relations drew completely; six
+more earned a Tier-2 drawing with neutral context, and 34 were wholly neutral.
+No Tier-1 relation occurred. Qualified occurrence roles now recover
+the previously missed head and wh paths through exact lineage and prior
+position. An anchored T/I/Infl head and subject also recover authored finite
+agreement features. Neither change declares relation names as identities. The
+holdout therefore found a real coverage gap, not a release pass. The audit of
+focus, argument-role, grouped Case and inflection claims produced the repairs
+recorded above. Remaining fallback dispositions and wider recognition coverage
+are still open. Browser inspection at
+1600 × 900 confirmed
+that the saved two-root analysis displays its detached D and finite IP as
+separate Canopy roots, and that its speech-repair claim appears as a neutral
+relation moment in a diagnostic Replay. The original request's failure receipt
+is preserved. Reprocessing the same saved output with the current parser accepts
+both roots and retains all six relations across 26 Replay frames; its acceptance
+is no longer blocked by the single-root rule. The earlier diagnostic capture
+alone did not qualify the normal application
+workflow. The subsequent closeout browser check covers the normal application
+and save/reopen. The earlier controls-overlap claim was not reproduced and is
+withdrawn. Small labels at full-stage Fit remain an overview-readability
+observation, with manual zoom verified; they are not evidence of missing syntax.
+The short English
+nominal fragment was incorrectly listed as a parse defect; it is a legitimate
+reading with a small tree. The German holdout exposed a separate Replay
+visibility defect. Its authored fourth stage has binary TP → DP + T′ and
+T′ → T + vP, but the old Replay hid T′ and the silent T head in frames 26–29.
+The current scheduler preserves TP → T + vP at the V-to-T moment, then reveals
+DP + T′ together at subject movement. The updated review shows the authored
+branches through frames 26–29. In the English wh holdout, the model authored
+T-to-C movement with C and TP in separate workspaces, then repeated that claim
+after attaching C to TP. The cross-workspace crest now yields to the head path
+at the later relation moment instead of remaining as a second curve. The model
+restates the same T-to-C relation again in the final stage; Replay retains that
+authored moment and shares its existing path. These repairs do not certify the
+linguistic analyses or complete visual sign-off.
+
+The relation field now asks for relations introduced or changed in the current
+stage. A matched check changed only that prompt line and used two GPT-6 Sol
+Codex-OAuth requests at high effort. The new outputs contain three analyses and
+13 relations with no repeated unchanged claim records. The wh example records
+T-to-C once instead of three times; the Omar example has no repeated claims,
+compared with ten repeated entries in its earlier output. Omar now has two
+analyses rather than four, so this is a small diagnostic result, not a controlled
+estimate of reliability. Neither new output contains a same-anchor value update;
+retention of such updates remains untested in fresh output. Existing saved
+analyses and the parser's acceptance behavior are unchanged. Exact request
+bodies, prompt hashes, raw outputs and the before/after Replay review are saved
+under `relation-timing-20260925` in the qualification evidence directory.
+
+Of the 34 neutral moments, 29 come from four readings of “Only Omar gave the red
+book to Lina”: six focus restrictions, six verbal argument inventories, six
+paired structural-Case claims, six past-inflection claims, four PP-modification
+claims and one goal-role claim. Those categories recur across stages and must
+be assessed as distinct authored moments, not 29 distinct drawing designs.
+The other five are in “These child laughs.”: three failed nominal agreements,
+one positive nominal agreement and one Case claim without a Case value. These records have now been inspected and reprocessed; the closeout checklist
+records the recoveries and the specific reasons for retained neutral moments.
+The September 25 closeout uses only saved outputs: 15 analyses, 84 authored
+relations and 501 Replay frames. Every relation keeps one moment, with no
+provider request. The current offline gate passes typecheck, 2,044 tests and
+both parse-contract fixtures. Additional browser checks pass the normal app's
+save/reopen workflow, exact review links, analysis reset, Next, zoom and Fit.
+Evidence is under `closeout-20260925`; the review is served alongside the earlier
+holdout under `closeout-current/review.html`. These checks do not replace the
+final bundled-runtime performance and release-asset qualification below.
+
+The earlier final 1600px bundled-runtime sweep rendered all 3,502 frames with no
 invalid SVG paths or browser errors. Replay frame changes had a 12.3ms 95th
 percentile; the slowest analysis opened in 1.86 seconds. The focused French
 transition that had paused for about 740ms after a late font load now takes

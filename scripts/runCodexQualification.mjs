@@ -14,16 +14,20 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({ options: {
   sentence: { type: 'string' }, framework: { type: 'string' }, model: { type: 'string' },
   effort: { type: 'string' }, out: { type: 'string' }, 'auth-file': { type: 'string' },
+  'working-tree': { type: 'boolean', default: false },
   run: { type: 'boolean', default: false }, help: { type: 'boolean', default: false }
 } });
 
 if (values.help) {
   console.log(`Babel-only generation through a ChatGPT Codex subscription.
-  --sentence TEXT --framework minimalism|xbar --model openai:gpt-6-sol|openai:gpt-6-astra
+  --sentence TEXT --framework minimalism|xbar
+  [--model openai:gpt-6.1-sol|openai:gpt-6-sol|openai:gpt-6-astra]
   --out NEW_DIRECTORY [--effort high] [--auth-file PATH] [--run]
 Without --run, only saves the exact request and contract fingerprint; no login or network access.
 Each invocation makes at most one request. No retries, API-key fallback, tools or agent context.
-Requires committed contract sources. Build Replay review with:
+The Codex OAuth default is GPT-6.1 Sol at high reasoning effort.
+Requires committed contract sources unless --working-tree explicitly fingerprints current sources.
+Build Replay review with:
   npm run qualification:review -- --run NEW_DIRECTORY`);
   process.exit(0);
 }
@@ -37,7 +41,8 @@ const writeJson = (name, value) => fs.writeFileSync(path.join(outputPath, name),
 const requestBytes = Buffer.from(JSON.stringify(body), 'utf8');
 fs.writeFileSync(path.join(outputPath, 'request.json'), requestBytes);
 execFileSync(process.execPath, [path.join(repoRoot, 'scripts/captureContractFingerprint.mjs'),
-  '--out', path.join(outputPath, 'contract.manifest.json'), '--label', 'codex-oauth-babel-only'
+  '--out', path.join(outputPath, 'contract.manifest.json'), '--label', 'codex-oauth-babel-only',
+  ...(values['working-tree'] ? ['--allow-working-tree'] : [])
 ], { cwd: repoRoot, stdio: ['ignore', 'ignore', 'inherit'] });
 const contract = JSON.parse(fs.readFileSync(path.join(outputPath, 'contract.manifest.json'), 'utf8'));
 const receipt = {

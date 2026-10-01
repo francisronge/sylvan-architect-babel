@@ -22,6 +22,7 @@ const setup = () => {
   const createBehavior = () => new Function('d3', 'useMemo', initializer('zoomBehavior'))(d3, useMemo);
   const listeners = new Map();
   const svg = { addEventListener: (name, listener) => listeners.set(name, listener), removeEventListener: name => listeners.delete(name),
+    setAttribute() {},
     getBoundingClientRect: () => ({ left: 0, top: 0 }), clientLeft: 0, clientTop: 0 };
   const camera = { current: null };
   const effects = { revealsFinished: 0, lightRefreshes: 0 };
@@ -29,6 +30,8 @@ const setup = () => {
     const behavior = createBehavior().extent([[0, 0], [1000, 800]]).touchable(false);
     return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', 'effects', `
       let applyingCameraTransform = false;
+      let cancelCameraAnimation;
+      const cameraAnimationRef = { current: null }, activeStepIndex = 0;
       let refreshTrajectoryClearance = null;
       const finishCollectionReveal = () => effects.revealsFinished++;
       const refreshIdentityForestLight = () => effects.lightRefreshes++;

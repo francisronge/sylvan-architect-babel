@@ -63,7 +63,6 @@ const {
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   buildCanonicalDerivationFromDerivationFrames,
-  sameTokenSequence,
   collectOvertTerminalNodes,
   authoredWord
 });

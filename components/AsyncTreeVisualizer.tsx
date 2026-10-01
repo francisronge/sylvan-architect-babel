@@ -27,8 +27,7 @@ const AsyncTreeVisualizer: React.FC<Omit<TreeVisualizerProps, 'preparedReplay' |
     {current?.error ? <>
       <p role="alert">Could not prepare this view. Your analysis is unchanged.</p>
       <button className="rounded-xl border border-emerald-500/30 px-4 py-2" onClick={() => setAttempt(value => value + 1)}>Retry</button>
-    </> : <div role="status">
-      <span className="sr-only">{props.animated ? 'Preparing Replay' : 'Preparing tree'}</span>
+    </> : <div role="status" aria-label="Loading">
       <div className="babel-preparation-mark"><LoadingMark compact /></div>
     </div>}
   </div>;

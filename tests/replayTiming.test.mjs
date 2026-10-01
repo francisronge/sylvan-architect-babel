@@ -205,6 +205,7 @@ for (const anchor of ['d_john_hi', 'higher_head']) {
     assert.equal(ordinary.operation, 'Nominal interpretation');
     assert.ok(visible(ordinary, anchor));
     assert.ok(!visible(ordinary, 't_did_hi'));
+    assert.ok(!visible(ordinary, 'cp1'), 'an unrelated earlier claim cannot release the atomic receiving attachment');
     assert.ok(!visible(ordinary, 'higher_phrase'));
     assert.ok(visible(movement, 't_did_hi'));
     assert.ok(!visible(movement, 'higher_phrase'));
@@ -213,7 +214,7 @@ for (const anchor of ['d_john_hi', 'higher_head']) {
   });
 }
 
-for (const anchor of ['t_did_hi', 'c_complex', 'higher_phrase']) {
+for (const anchor of ['t_did_hi', 'c_complex']) {
   test(`a future ${anchor} is diagnosed without reordering or revealing it`, () => {
     const steps = play(mixedHeadStage(anchor));
     const [ordinary, movement] = moments(steps, 3);
@@ -228,6 +229,17 @@ for (const anchor of ['t_did_hi', 'c_complex', 'higher_phrase']) {
     assert.ok(visible(steps.at(-1), anchor), 'the authored final state remains inspectable');
   });
 }
+
+test('an enclosing projection can be built for an earlier claim using the independently selected receiving head', () => {
+  const steps = play(mixedHeadStage('higher_phrase'));
+  const [ordinary, movement] = moments(steps, 3);
+  assert.deepEqual([ordinary, movement].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  for (const id of ['higher_phrase', 'higher_head', 'cp1', 'c_q', 'tp_full']) assert.ok(visible(ordinary, id), id);
+  for (const id of ['t_did_hi', 'c_complex']) assert.ok(!visible(ordinary, id), id);
+  assert.deepEqual(nodes(ordinary.replayCanvasData).find(node => node.id === 'cp1').children.map(node => node.id), ['c_q', 'tp_full']);
+  assert.ok(!ordinary.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT')));
+  assert.ok(visible(movement, 't_did_hi'));
+});
 
 test('a known relation does not run early merely because its anchors exist', () => {
   const record = copy('astra-minimalism');

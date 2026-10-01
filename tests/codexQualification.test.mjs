@@ -5,7 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { buildCodexQualificationRequest, CODEX_RESPONSES_URL,
-  readCodexCredentials, requestCodexQualification } from '../contractQualification/codexOAuth.js';
+  DEFAULT_CODEX_QUALIFICATION_MODEL, readCodexCredentials,
+  requestCodexQualification } from '../contractQualification/codexOAuth.js';
 import { writeQualificationAttempt } from '../contractQualification/artifacts.js';
 import { runQualificationAttempt } from '../contractQualification/run.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
@@ -44,7 +45,7 @@ test('subscription requests contain exactly Babel prompts, without agent instruc
   assert.equal(GENERATION_MODEL_IDS.includes('openai:gpt-6-sol'), true);
   assert.equal(GENERATION_MODEL_IDS.includes('openai:gpt-5.6-sol'), false);
   for (const framework of ['minimalism', 'xbar']) {
-    for (const model of ['openai:gpt-6-sol', 'openai:gpt-6-astra']) {
+    for (const model of ['openai:gpt-6.1-sol', 'openai:gpt-6-sol', 'openai:gpt-6-astra']) {
       const { body } = request({ framework, model });
       assert.deepEqual(body, {
         model: model.slice('openai:'.length),
@@ -58,6 +59,15 @@ test('subscription requests contain exactly Babel prompts, without agent instruc
   assert.throws(() => request({ model: 'xai:grok-4.6' }), /OpenAI/);
   assert.throws(() => request({ model: 'openai:gpt-5.6-sol' }), /GPT-6/);
   assert.throws(() => request({ effort: 'invented-effort' }), /must be one of/);
+});
+
+test('omitting the subscription model selects GPT-6.1 Sol and retains exact Babel prompts', () => {
+  const explicit = request({ model: DEFAULT_CODEX_QUALIFICATION_MODEL });
+  const implicit = request({ model: undefined, effort: undefined });
+  assert.deepEqual(implicit, explicit);
+  assert.equal(implicit.selection.catalogId, 'openai:gpt-6.1-sol');
+  assert.equal(implicit.body.model, 'gpt-6.1-sol');
+  assert.equal(GENERATION_MODEL_IDS.includes(implicit.selection.catalogId), false);
 });
 
 test('login loading accepts only an unexpired subscription token and leaves the credential file unchanged', t => {

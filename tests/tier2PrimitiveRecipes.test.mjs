@@ -83,10 +83,10 @@ test('the complete Tier-2 recipes cover 69 primitives with explicit shared drawi
   }, new Map());
 
   assert.equal(TIER2_VISUAL_PRIMITIVE_NAMES.length, 69);
-  assert.equal(ownedPieces.length, 73);
+  assert.equal(ownedPieces.length, 75);
   assert.equal(new Set(ownedPieces).size, 69);
-  const shared = ['Branch overlay', 'Variable-binding path', 'Nested association curves'];
-  for (const piece of shared) assert.equal(ownershipCounts.get(piece), piece === 'Nested association curves' ? 3 : 2);
+  const shared = ['Branch overlay', 'Variable-binding path', 'Nested association curves', 'Coindex'];
+  for (const piece of shared) assert.equal(ownershipCounts.get(piece), ['Nested association curves', 'Coindex'].includes(piece) ? 3 : 2);
   assert.deepEqual(
     [...ownershipCounts.entries()].filter(([piece]) => !shared.includes(piece)),
     [...ownershipCounts.entries()]
@@ -118,7 +118,7 @@ test('Pair Merge earns the shared branch overlay only for one native sibling for
   assert.ok(separateBranches.failures.includes('check:shared-native-parent'));
 });
 
-test('the reviewed ownership audit matches the 54 executable facet recipes', async () => {
+test('the reviewed ownership audit matches the 55 executable facet recipes', async () => {
   const auditedFacets = await readFacetOwnershipAudit();
   const kindLabel = {
     claim: 'claim',
@@ -126,9 +126,9 @@ test('the reviewed ownership audit matches the 54 executable facet recipes', asy
     'organizational-companion': 'organizational companion'
   };
 
-  assert.equal(TIER2_FACET_RECIPES.length, 54);
-  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, 54);
-  assert.equal(TIER2_FACET_RECIPES.filter((entry) => entry.kind === 'claim').length, 52);
+  assert.equal(TIER2_FACET_RECIPES.length, 55);
+  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, 55);
+  assert.equal(TIER2_FACET_RECIPES.filter((entry) => entry.kind === 'claim').length, 53);
   assert.deepEqual(
     auditedFacets,
     TIER2_FACET_RECIPES.map((entry) => ({
@@ -692,10 +692,10 @@ test('all six transition kinds require their authored stage difference', () => {
   }));
   assert.deepEqual(impoverishment.earnedTransitions, ['rewrite']);
 
-  const priorOrder = [node('root', 'XP', [node('group', 'YP', [leaf('a', 'A'), leaf('b', 'B')])])];
-  const currentOrder = [node('root', 'XP', [leaf('a', 'A'), node('group2', 'YP', [leaf('b', 'B')])])];
+  const priorOrder = [node('root', 'XP', [node('group', 'YP', [leaf('a', 'A'), leaf('b', 'B')]), leaf('c', 'C')])];
+  const currentOrder = [node('root', 'XP', [leaf('a', 'A'), node('group2', 'YP', [leaf('b', 'B'), leaf('c', 'C')])])];
   const rebracketing = evaluateTier2FacetRecipe(facet('pf.local-dislocation'), evidence({
-    currentAnchors: { sequence: ['a', 'b'] },
+    currentAnchors: { sequence: ['a', 'b', 'c'] },
     currentForest: currentOrder,
     priorForest: priorOrder,
     values: { 'order.rows': ['A B', '[A B]'] }

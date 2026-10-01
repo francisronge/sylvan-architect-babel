@@ -8,13 +8,18 @@ import { resolveResearchModelSelection } from '../server/babelParser/researchMod
 // Subscription transport only; this module is not part of Babel's public provider routes.
 export const CODEX_RESPONSES_URL = 'https://chatgpt.com/backend-api/codex/responses';
 
-const CODEX_QUALIFICATION_MODEL_IDS = new Set(['openai:gpt-6-astra', 'openai:gpt-6-sol']);
+export const DEFAULT_CODEX_QUALIFICATION_MODEL = 'openai:gpt-6.1-sol';
+const CODEX_QUALIFICATION_MODEL_IDS = new Set([
+  DEFAULT_CODEX_QUALIFICATION_MODEL, 'openai:gpt-6-astra', 'openai:gpt-6-sol'
+]);
 
-export const buildCodexQualificationRequest = ({ sentence, framework, model, effort }) => {
+export const buildCodexQualificationRequest = ({
+  sentence, framework, model = DEFAULT_CODEX_QUALIFICATION_MODEL, effort
+}) => {
   if (typeof sentence !== 'string' || !sentence.trim()) throw new Error('A sentence is required.');
   if (!['xbar', 'minimalism'].includes(framework)) throw new Error('Use xbar or minimalism.');
   if (!CODEX_QUALIFICATION_MODEL_IDS.has(model)) {
-    throw new Error('Codex OAuth requires a selected OpenAI model: GPT-6 Astra or GPT-6 Sol.');
+    throw new Error('Codex OAuth requires an OpenAI model: GPT-6.1 Sol, GPT-6 Astra or GPT-6 Sol.');
   }
   const selection = resolveResearchModelSelection(model, effort ? { 'reasoning.effort': effort } : {});
   if (selection.provider !== 'openai') throw new Error('Codex OAuth requires an OpenAI model.');

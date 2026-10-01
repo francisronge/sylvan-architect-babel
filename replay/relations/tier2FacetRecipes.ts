@@ -2,7 +2,8 @@
  * Complete Tier-2 facet recipes.
  *
  * Candidate role meanings must pass semantic and structural checks before
- * dispatch can consume their authored evidence. Relation names are not used.
+ * dispatch can consume their authored evidence. Complete claim-label clauses
+ * can supply literal content; they never replace missing participant evidence.
  */
 import type { SyntaxNode } from '../../types.ts';
 import { nominalConcordMembers } from './nominalConcord.ts';
@@ -10,10 +11,17 @@ import {
   resolveOutcomeLiteral,
   negativeClaimFailure,
   authoredOutcomeLiterals,
+  relationAssertionFailure,
+  relationLabelOutcome,
   type OutcomeConcept
 } from './outcomeResolver.ts';
-import { FEATURE_DIMENSION_KEYS, isExplicitTier2Role, normalizeTier2Synonym, thematicSlotQualifier } from './tier2Synonyms.ts';
+import { FEATURE_DIMENSION_KEYS, isExplicitTier2Role, normalizeTier2Synonym, thematicSlotQualifier, namedThematicRole, thematicRoleLabel, focusRestrictionRoles, isCovertMovementDescription, buildTier2SynonymIndex, relationRoleConcepts } from './tier2Synonyms.ts';
 import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
+import { prepareRewriteRows, pfRewriteLabelDenial, ownedPFRewriteOutcomes } from './rewriteLiterals.ts';
+import { prepareLocalDislocationContent } from './localDislocationContent.ts';
+import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
+import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
+import { establishesAssignment } from './assignmentContinuity.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
   'Movement curve',
@@ -94,6 +102,7 @@ export const TIER2_FACET_IDS = [
   'movement.carrier',
   'gap.notation',
   'identity.occurrences',
+  'coreference.coindex',
   'presentation.lens',
   'control.dependency',
   'binding.dependency',
@@ -195,6 +204,7 @@ export type Tier2ValueRequirement = {
 };
 
 export type Tier2StructuralCheck =
+  | { kind: 'explicit-coreference' }
   | { kind: 'explicit-role'; roles: readonly string[] }
   | { kind: 'distinct'; roles: readonly string[]; allowRepeatedWithinRole?: boolean }
   | { kind: 'contains'; containerRole: string; memberRole: string }
@@ -214,6 +224,7 @@ export type Tier2StructuralCheck =
   | { kind: 'feature-dependency' }
   | { kind: 'dependent-case-step' }
   | { kind: 'native-linearization' }
+  | { kind: 'native-rewrite' }
   /** The sequence is regrouped between the prior and current trees without changing terminal order. */
   | { kind: 'rebracketing-configuration' }
   | { kind: 'explicit-npi' }
@@ -297,17 +308,29 @@ export const INDEPENDENT_TIER2_VALUE_ROLES: ReadonlySet<string> = new Set(['plaq
 
 /** Distinct scalar dimensions form one bundle; alternative bundles do not. */
 export const independentFeatureDimensions = (entries: readonly Pick<Tier2AuthoredEvidenceEntry, 'key' | 'items'>[]) =>
-  entries.length > 0 && entries.every(entry => FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(entry.key)) && entry.items.length === 1)
-    && new Set(entries.map(entry => normalizeTier2Synonym(entry.key))).size === entries.length;
+  entries.length > 0 && entries.every(entry => (FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(entry.key).replace(/^shared /u, ''))
+    || /^(?:noun class|case|definiteness)$/u.test(normalizeTier2Synonym(entry.key).replace(/^shared /u, ''))) && entry.items.length === 1)
+    && new Set(entries.map(entry => normalizeTier2Synonym(entry.key).replace(/^shared /u, ''))).size === entries.length;
 
 export type Tier2FacetEvidence = {
+  /** Current authored surface groups corroborate a joint literal PF owner. */
+  currentRealizations?: readonly import('../../types.ts').SurfaceRealization[];
+  /** Authored fields explicitly associated by an evidence scope, rather than
+   * competing aliases for one role. Cardinality and structural checks still apply. */
+  associatedAnchorKeys?: Record<string, string[]>;
+  relationName?: string;
+  /** Qualified properties on both explicit endpoints of a failed comparison. */
+  comparedFeatureKeys?: readonly string[];
   movement?: import('./movementEvidence.ts').RecoveredMovement;
   movementDiagnostics?: string[];
   movementFailure?: string;
   /** Authored fields jointly attached by one exact current realization group. */
   realizationGroupAnchorKeys?: readonly string[];
+  priorRealizationGroupAnchorKeys?: readonly string[];
   /** Separately authored positions proven to belong to one exact lineage. */
   occurrenceGroupAnchorKeys?: readonly string[];
+  /** Literal role rows prove a remnant pairing but are not authored coindices. */
+  correspondenceRoleWitnesses?: readonly Tier2AuthoredEvidenceEntry[];
   currentAnchors: Readonly<Record<string, readonly string[]>>;
   priorAnchors?: Readonly<Record<string, readonly string[]>>;
   values: Readonly<Record<string, readonly string[]>>;
@@ -489,12 +512,18 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('identity.occurrences', {
     anchors: [current('occurrences', 2)],
-    values: [optionalValue('index', 1, 1)],
+    values: [{ ...optionalValue('index', 1, 1), nonBlank: true }],
     checks: [{ kind: 'distinct', roles: ['occurrences'] }],
     outputs: [
       output('Coindex'),
       output('Forest light')
     ]
+  }),
+  recipe('coreference.coindex', {
+    anchors: [current('coreference.participants', 2, 2)],
+    values: [{ ...optionalValue('index', 1, 1), nonBlank: true }],
+    checks: [{ kind: 'distinct', roles: ['coreference.participants'] }, { kind: 'explicit-coreference' }],
+    outputs: [output('Coindex')]
   }),
   recipe('presentation.lens', {
     kind: 'presentation-companion',
@@ -505,11 +534,11 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('control.dependency', {
     anchors: [current('controller', 1, 1), current('controllee', 1, 1), optionalCurrent('domain', 1, 1)],
-    values: [],
+    values: [optionalValue('index', 1, 1)],
     checks: [{ kind: 'explicit-role', roles: ['controller', 'controllee'] },
       { kind: 'distinct', roles: ['controller', 'controllee'] },
       { kind: 'contains', containerRole: 'domain', memberRole: 'controllee' }],
-    outputs: [output('Rectangular domain', { kind: 'anchor-present', role: 'domain' }), output('Control connector')]
+    outputs: [output('Rectangular domain', { kind: 'anchor-present', role: 'domain' }), output('Control connector'), output('Coindex')]
   }),
   recipe('binding.dependency', {
     anchors: [current('binder', 1, 1), current('dependent', 1, 1), optionalCurrent('domain', 1, 1)],
@@ -681,7 +710,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('judgment.verdict', {
     anchors: [current('analysis.anchor', 1, 1)],
     values: [value('verdict', 1, 1), optionalValue('label', 1, 1)],
-    checks: [{ kind: 'displayable-verdict', maxCharacters: 20 }],
+    checks: [{ kind: 'displayable-verdict', maxCharacters: 32 }],
     outputs: [
       output('Verdict glyph'),
       output('Verdict label', { kind: 'value-present', value: 'label' })
@@ -782,7 +811,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
       { kind: 'shared-root-lineage', roles: ['scope.source', 'scope.landing'] },
       { kind: 'separate-occurrences', roles: ['scope.source', 'scope.landing'] },
       { kind: 'prior-source-consistency', role: 'scope.source' },
-      { kind: 'contains', containerRole: 'scope.domain', memberRole: 'scope.landing' }
+      { kind: 'contains', containerRole: 'scope.domain', memberRole: 'scope.source' }
     ],
     outputs: [output('Covert path'), output('Scope domain', { kind: 'anchor-present', role: 'scope.domain' })],
     transitionRules: [{ kind: 'movement', evidence: 'covert-movement-stage-difference' }]
@@ -811,6 +840,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   recipe('pf.rewrite', {
     anchors: [either('rewrite.input', 1, 1), current('rewrite.output', 1, 1)],
     values: [value('rewrite.rows', 1)],
+    checks: [{ kind: 'native-rewrite' }],
     outputs: [output('Rewrite arrow')],
     transitionRules: [
       { kind: 'pronunciation', evidence: 'pronunciation-stage-difference' },
@@ -1008,6 +1038,17 @@ export const pairedLiteralsDetail = (
     return { status: 'unequal', literals: sameName.flatMap(entry => entry ? [...entry.items] : []) };
   }
   const literals = valueLiterals(evidence, valueConcept);
+  if (role === 'theta.arguments' && valueConcept === 'role.label' && literals.length === 0
+    && !evidence.authoredValues?.some(entry => entry.concepts.includes('role.label'))) {
+    if (namedThetaInventory(evidence))
+      return { status: 'paired', literals: anchorEntries.map(entry => namedThematicRole(entry.key)!) };
+    const label = thematicRoleLabel(evidence.relationName);
+    if (label.status === 'literal' && establishedThetaInventory(evidence)) {
+      const participants = (evidence.authoredCurrentAnchors ?? []).filter(entry =>
+        entry.concepts.includes(role) || namedThematicRole(entry.key));
+      return { status: ids.length === 1 && participants.length === 1 ? 'paired' : 'unpaired', literals: [label.literal] };
+    }
+  }
   if (literals.length === 0) return { status: 'none', literals };
   // With no anchors there is nothing to pair; the anchor requirement reports that.
   if (ids.length === 0 || (ids.length === 1 && literals.length === 1)) return { status: 'paired', literals };
@@ -1042,19 +1083,39 @@ export const sameNameValueEntries = (
     && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
     ? entries.filter(candidate => candidate.items.length === 1
       && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
-      && normalizeTier2Synonym(candidate.items[0]) === normalizeTier2Synonym(anchorEntry.key)) : [];
+      && [normalizeTier2Synonym(anchorEntry.key), namedThematicRole(anchorEntry.key)].includes(normalizeTier2Synonym(candidate.items[0]))) : [];
   return (matches.length ? matches : qualified.length ? qualified : named)
     .map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 
+const establishedThetaInventory = (evidence: Pick<Tier2FacetEvidence, 'authoredValues'>): boolean =>
+  authoredOutcomeLiterals(Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, [...entry.items]])))
+    .every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept));
+
 /** Separate argument fields form an inventory when each names its own role
  * literals. Unpaired aliases still compete for one binding. */
+const namedThetaInventory = (
+  evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'authoredValues' | 'relationName'>
+): boolean => {
+  const entries = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
+  // Recipient and goal also name assignment endpoints. Another thematic slot
+  // can establish an inventory; a lone direction word cannot name its role.
+  const hasNamedRole = entries.some(entry => !['recipient', 'goal'].includes(namedThematicRole(entry.key) ?? ''));
+  return thematicRoleLabel(evidence.relationName).status !== 'unresolved' && hasNamedRole
+    && entries.length >= 1 && entries.every(entry => entry.items.length === 1 && namedThematicRole(entry.key))
+    && establishedThetaInventory(evidence)
+    && new Set(entries.map(entry => namedThematicRole(entry.key))).size === entries.length
+    && new Set(entries.map(entry => entry.items[0])).size === entries.length
+    && !(evidence.authoredValues ?? []).some(entry => entry.concepts.includes('role.label')
+      || entries.some(anchor => sameNameValueEntries(evidence, anchor).some(value => value.key === entry.key)));
+};
+
 export const independentThetaArgumentFields = (
-  evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'authoredValues'>
+  evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'authoredValues' | 'relationName'>
 ): boolean => {
   const arguments_ = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
   const ids = arguments_.flatMap(entry => [...entry.items]);
-  return arguments_.length > 1
+  return namedThetaInventory(evidence) || arguments_.length > 1
     && new Set(arguments_.map(entry => normalizeTier2Synonym(entry.key))).size === arguments_.length
     && new Set(ids).size === ids.length
     && arguments_.every(entry => {
@@ -1109,7 +1170,12 @@ export const literalThetaRoles = (evidence: Tier2FacetEvidence): Array<{ nodeId:
 /** The exact ThetaAssignment contract also permits its open anchor names as role labels. */
 export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{ nodeId: string; label: string }>; error?: never } | { roles?: never; error: string } {
   const explicitArguments = evidence.currentAnchors['theta.arguments'];
-  const explicitRoles = explicitArguments?.length ? literalThetaRoles(evidence) : undefined;
+  const explicitRoles = explicitArguments?.length ? literalThetaRoles(evidence)?.map(role => {
+    if (!namedThetaInventory(evidence)) return role;
+    const entry = evidence.authoredCurrentAnchors?.find(entry =>
+      entry.concepts.includes('theta.arguments') && entry.items[0] === role.nodeId);
+    return entry ? { ...role, label: entry.key.charAt(0).toUpperCase() + entry.key.slice(1) } : role;
+  }) : undefined;
   if (explicitArguments?.length && !explicitRoles) return { error: 'Theta arguments require exactly one authored role label per argument' };
   const roles = [...(explicitRoles ?? [])];
   for (const entry of evidence.authoredCurrentAnchors ?? []) {
@@ -1256,10 +1322,31 @@ const requirementSatisfied = (
   });
 };
 
+const negativeClaimEvidence = (evidence: Tier2FacetEvidence, roles: readonly string[]) => {
+  const outcomes = evidence.authoredValues
+    ? authoredOutcomeLiterals(Object.fromEntries(evidence.authoredValues.map(entry => [entry.key, [...entry.items]])))
+    : valueLiterals(evidence, 'outcome');
+  const failure = negativeClaimFailure(outcomes,
+    (evidence.authoredCurrentAnchors ?? []).filter(entry => roles.some(role => entry.concepts.includes(role))).map(entry => entry.key),
+    (evidence.authoredCurrentAnchors ?? []).map(entry => entry.key));
+  return { outcomes, failure };
+};
+
 const outcomeFor = (recipeEntry: Tier2FacetRecipe, evidence: Tier2FacetEvidence): OutcomeConcept | null => {
   const literal = valueLiterals(evidence, 'outcome')[0];
-  if (!literal) return null;
-  const concept = resolveOutcomeLiteral(literal)?.concept ?? null;
+  let concept = literal ? resolveOutcomeLiteral(literal)?.concept : null;
+  if (!literal) {
+    if (['feature.dependency', 'agreement.cycle'].includes(recipeEntry.id))
+      concept = relationLabelOutcome(evidence.relationName,
+        valueLiterals(evidence, 'case.literal').length ? 'case' : 'agreement');
+    else if (recipeEntry.id === 'binding.dependency') concept = relationLabelOutcome(evidence.relationName, 'binding');
+    else if (recipeEntry.id === 'movement.path') concept = relationLabelOutcome(evidence.relationName, 'movement');
+  }
+  const check = recipeEntry.checks.find(check => check.kind === 'negative-claim');
+  if (!concept && check?.kind === 'negative-claim') {
+    const { outcomes, failure } = negativeClaimEvidence(evidence, check.roles);
+    if (outcomes.length && !failure) concept = 'blocked';
+  }
   return concept && recipeEntry.acceptedOutcomeConcepts.includes(concept) ? concept : null;
 };
 
@@ -1273,13 +1360,32 @@ const evaluateStructuralCheck = (
 ): boolean | string => {
   const ids = (role: string) => anchorIds(evidence, role, 'current');
   switch (check.kind) {
+    case 'explicit-coreference':
+      if (!establishesAssignment(evidence)) return 'coreference-outcome-not-established';
+      return explicitCoreferenceParticipants(evidence) ? true : 'coreference-not-explicit-or-participants-unresolved';
     case 'negative-claim':
-      return negativeClaimFailure(evidence.authoredValues
-        ? authoredOutcomeLiterals(Object.fromEntries(evidence.authoredValues.map(entry => [entry.key, [...entry.items]])))
-        : valueLiterals(evidence, 'outcome'),
-        (evidence.authoredCurrentAnchors ?? []).filter(entry =>
-          check.roles.some(role => entry.concepts.includes(role))).map(entry => entry.key)) ?? true;
+      return negativeClaimEvidence(evidence, check.roles).failure ?? true;
     case 'explicit-role':
+      if (recipeEntry.id === 'operator-binding' && evidence.associatedAnchorKeys?.operator?.length === 1
+        && evidence.associatedAnchorKeys?.variable?.length === 1) return true;
+      if (recipeEntry.id === 'focus.association' && evidence.associatedAnchorKeys?.['association.particle']?.length === 1
+        && evidence.associatedAnchorKeys?.['association.associate']?.length === 1) return true;
+      if (recipeEntry.id === 'control.dependency' && evidence.associatedAnchorKeys?.controller?.length === 1
+        && evidence.associatedAnchorKeys?.controllee?.length === 1) return true;
+      if (recipeEntry.id === 'ellipsis.site' && evidence.associatedAnchorKeys?.['ellipsis.site']?.length === 1) return true;
+      if (recipeEntry.id === 'binding.dependency' && evidence.associatedAnchorKeys?.binder?.length === 1
+        && evidence.associatedAnchorKeys?.dependent?.length === 1) return true;
+      if (recipeEntry.id === 'predication.dependency' && evidence.associatedAnchorKeys?.predicand?.length === 1)
+        return true;
+      if (recipeEntry.id === 'scope.movement' && evidence.movement?.trajectoryKind === 'phrasal'
+        && isCovertMovementDescription(evidence.relationName ?? '')) return true;
+      if (recipeEntry.id === 'ellipsis.site' && /\bellipsis antecedence$/u.test(normalizeTier2Synonym(evidence.relationName ?? ''))
+        && (evidence.authoredCurrentAnchors ?? []).some(entry => entry.concepts.includes('ellipsis.site') && normalizeTier2Synonym(entry.key) === 'target')) return true;
+      if (recipeEntry.id === 'focus.association' && focusRestrictionRoles({
+        relation: evidence.relationName,
+        anchors: Object.fromEntries((evidence.authoredCurrentAnchors ?? []).map(entry => [entry.key, [...entry.items]])),
+        values: Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, entry.items.length === 1 ? entry.items[0] : [...entry.items]]))
+      }).length === 2) return true;
       return check.roles.some(role => ids(role).length > 0 && (evidence.authoredCurrentAnchors
         ? evidence.authoredCurrentAnchors.some(entry => entry.concepts.includes(role) && isExplicitTier2Role(role, entry.key))
         : true));
@@ -1389,21 +1495,48 @@ const evaluateStructuralCheck = (
     }
     case 'feature-dependency': {
       const caseDetail = pairedLiteralsDetail(evidence, 'feature.target', 'case.literal');
+      const assertionFailure = relationAssertionFailure(evidence.relationName,
+        caseDetail.literals.length ? 'case' : 'agreement');
+      const outcomes = valueLiterals(evidence, 'outcome');
+      const labelOutcome = relationLabelOutcome(evidence.relationName, caseDetail.literals.length ? 'case' : 'agreement');
+      if (assertionFailure && !labelOutcome && !(outcomes.length && !negativeClaimFailure(outcomes, []))) return assertionFailure;
+      if (!outcomes.length && caseDetail.literals.length && valueLiterals(evidence, 'feature.rows').length
+        && relationLabelOutcome(evidence.relationName, 'case') !== relationLabelOutcome(evidence.relationName, 'agreement'))
+        return 'independent-feature-outcomes-require-scoped-claims';
       if (caseDetail.status === 'unequal' || caseDetail.status === 'unpaired' || caseDetail.status === 'ambiguous') return unpairedReason('feature.target', 'case.literal', caseDetail.status);
       const caseValues = caseDetail.literals;
+      if (caseValues.length && valueLiterals(evidence, 'feature.rows').length && !hasIndependentCaseEndpoints(evidence))
+        return 'case-direction-requires-independent-participant-evidence';
       if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
       if (valueLiterals(evidence, 'feature.rows').length) return true;
       const hasRole = (concept: string, specific: string, names: string[]) => (evidence.authoredCurrentAnchors ?? []).some(entry =>
-        entry.concepts.includes(concept) && (entry.concepts.includes(specific) && isExplicitTier2Role(specific, entry.key)
+        entry.concepts.includes(concept) && (entry.concepts.includes(specific) && (isExplicitTier2Role(specific, entry.key)
+          || evidence.associatedAnchorKeys?.[specific]?.includes(entry.key))
           || names.includes(normalizeTier2Synonym(entry.key))));
       return hasRole('feature.source', 'probe', ['feature source', 'collector'])
         && hasRole('feature.target', 'goal', ['feature target']);
     }
     case 'native-linearization':
       return Boolean(prepareNativeLinearizationContent(evidence));
+    case 'native-rewrite': {
+      if (pfRewriteLabelDenial(evidence.relationName)) return 'the authored mapping is denied or provisional';
+      if (ownedPFRewriteOutcomes(evidence).some(entry => entry.items.length === 0 || entry.items.some(literal =>
+        !POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)))) return 'the mapping outcome does not establish realization';
+      if (anchorIds(evidence, 'rewrite.output').some(id => currentIndex.nodes.get(id)?.length !== 1)
+        || anchorIds(evidence, 'rewrite.input', 'either').some(id =>
+          (currentIndex.nodes.get(id)?.length ?? 0) > 1 || (priorIndex.nodes.get(id)?.length ?? 0) > 1)) return 'rewrite endpoints are not unique occurrences';
+      const rows = evidence.authoredValues === undefined
+        ? valueLiterals(evidence, 'rewrite.rows').map(value => ({ label: 'rewrite.rows', value }))
+        : evidence.authoredValues.filter(entry => entry.concepts.includes('rewrite.rows'))
+          .flatMap(entry => entry.items.map(value => ({ label: entry.key, value })));
+      const prepared = prepareRewriteRows(evidence, rows);
+      return prepared.realizationRowKinds.length > 0 && prepared.realizationRowKinds.every(kind => kind === 'rewrite');
+    }
     case 'rebracketing-configuration':
-      return rebracketingTransition(evidence, currentIndex, priorIndex)
-        || 'the prior and current trees do not regroup the sequence with its order unchanged';
+      return Boolean(prepareLocalDislocationContent({
+        sequenceNodeIds: ids('sequence'), currentForest: evidence.currentForest, priorForest: evidence.priorForest,
+        values: Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, entry.items]))
+      })) || 'the authored evidence does not establish a drawable regrouping of the unchanged sequence';
     case 'dependent-case-step': {
       const entries = evidence.authoredValues?.filter(entry => normalizeTier2Synonym(entry.key) === 'step');
       const literals = entries?.length ? entries.flatMap(entry => entry.items) : evidence.values.step;
@@ -1411,10 +1544,16 @@ const evaluateStructuralCheck = (
     }
     case 'explicit-npi':
       return valueLiterals(evidence, 'feature.label').some(literal => normalizeTier2Synonym(literal) === 'strong npi');
-    case 'binding-domain-or-positive':
-      return ids('domain').length > 0 || ((!evidence.authoredCurrentAnchors || evidence.authoredCurrentAnchors.some(entry =>
+    case 'binding-domain-or-positive': {
+      const assertionFailure = relationAssertionFailure(evidence.relationName, 'binding');
+      const outcomes = valueLiterals(evidence, 'outcome');
+      if (assertionFailure && !relationLabelOutcome(evidence.relationName, 'binding')
+        && !(outcomes.length && !negativeClaimFailure(outcomes, []))) return assertionFailure;
+      return ids('domain').length > 0 || ((!evidence.authoredCurrentAnchors || evidence.associatedAnchorKeys?.dependent?.length === 1 || evidence.authoredCurrentAnchors.some(entry =>
         entry.concepts.includes('dependent') && isExplicitTier2Role('dependent', entry.key)))
-        && valueLiterals(evidence, 'outcome').every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
+        && !relationLabelOutcome(evidence.relationName, 'binding')
+        && outcomes.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
+    }
     case 'movement-carrier':
       return ['movement.source', 'movement.landing'].some(role =>
         nodeContainsAny(currentIndex, ids('movement.carrier'), ids(role)));
@@ -1597,7 +1736,9 @@ const rebracketingTransition = (
   return ids.length >= 2
     && ids.every(id => priorIndex.nodes.get(id)?.length === 1 && currentIndex.nodes.get(id)?.length === 1)
     && terminalOrder(evidence.priorForest, sequence).join('\u0000') === terminalOrder(evidence.currentForest, sequence).join('\u0000')
-    && parentSignature(priorIndex, ids) !== parentSignature(currentIndex, ids);
+    && Boolean(prepareLocalDislocationContent({ sequenceNodeIds: ids,
+      currentForest: evidence.currentForest, priorForest: evidence.priorForest,
+      values: Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, entry.items])) }));
 };
 
 const transitionEarned = (
@@ -1674,6 +1815,10 @@ export const evaluateTier2FacetRecipe = (
   const { currentIndex, priorIndex } = indexes;
   const failures: string[] = [];
   const ambiguousFields = new Set<string>();
+  if (recipeEntry.id === 'feature-sharing') {
+    const assertionFailure = relationAssertionFailure(evidence.relationName, 'feature-sharing');
+    if (assertionFailure) failures.push(`meaning:${assertionFailure}`);
+  }
 
   // Diagnose the original fields, including optional and prior evidence. An
   // ambiguous lookup must not masquerade as an absent optional field.
@@ -1685,14 +1830,26 @@ export const evaluateTier2FacetRecipe = (
     for (const concept of new Set(concepts)) {
       if ((field === 'values' ? INDEPENDENT_TIER2_VALUE_ROLES : INDEPENDENT_TIER2_ANCHOR_ROLES).has(concept)) continue;
       const groups = entries?.filter(entry => entry.concepts.includes(concept)) ?? [];
+      const associated = field === 'anchors' ? evidence.associatedAnchorKeys?.[concept] : undefined;
+      if (associated && associated.length === groups.length
+        && groups.every(entry => associated.includes(entry.key))) continue;
       if (field === 'anchors' && concept === 'occurrences' && groups.every(entry => evidence.occurrenceGroupAnchorKeys?.includes(entry.key))) continue;
       if (field === 'values' && concept === 'feature.rows' && independentFeatureDimensions(groups)) continue;
+      if (field === 'values' && concept === 'feature.rows' && groups.length > 1
+        && groups.every(entry => evidence.comparedFeatureKeys?.includes(entry.key))) continue;
       if (field === 'values' && concept === 'role.label' && independentThetaRoleValueFields(evidence)) continue;
+      if (field === 'values' && concept === 'rewrite.rows'
+        && groups.some(entry => entry.concepts.includes('rewrite.input.literal'))
+        && groups.some(entry => entry.concepts.includes('rewrite.output.literal'))
+        && prepareRewriteRows(evidence, groups.flatMap(entry => entry.items.map(value => ({ label: entry.key, value }))))
+          .realizationRowKinds.every(kind => kind === 'rewrite')) continue;
       if (field === 'anchors' && concept === 'theta.arguments' && independentThetaArgumentFields(evidence)) continue;
       if (field === 'anchors' && concept === 'feature.bearers' && nominalConcordMembers(evidence).length) continue;
       if (field === 'anchors' && concept === 'chunks' && independentIdiomMemberFields(evidence)) continue;
       if (field === 'anchors' && concept === 'rewrite.output' && groups.length
         && groups.every(entry => evidence.realizationGroupAnchorKeys?.includes(entry.key))) continue;
+      if (field === 'priorAnchors' && concept === 'rewrite.output' && groups.length
+        && groups.every(entry => evidence.priorRealizationGroupAnchorKeys?.includes(entry.key))) continue;
       const distinct = new Set(groups.map(entry => JSON.stringify(
         entry.conceptItemIndices?.[concept]?.map(index => entry.items[index]) ?? entry.items
       )));
@@ -1761,6 +1918,10 @@ export const evaluateTier2FacetRecipe = (
     ? [
         ...(['movement.path', 'movement.carrier'].includes(recipeEntry.id)
           ? (evidence.movement?.context || []).map(({ key }) => ({ field: 'anchors' as const, key })) : []),
+        ...(['movement.path', 'movement.carrier'].includes(recipeEntry.id)
+          ? (evidence.movement?.priorContextKeys || []).map(key => ({ field: 'priorAnchors' as const, key })) : []),
+        ...(recipeEntry.id === 'correspondence.alignment' ? (evidence.correspondenceRoleWitnesses ?? [])
+          .map(entry => ({ field: 'values' as const, key: entry.key, itemIndices: [0] })) : []),
         ...recipeEntry.anchors.flatMap((requirement) => {
           const entries = requirement.source === 'current'
             ? [
@@ -1784,6 +1945,11 @@ export const evaluateTier2FacetRecipe = (
               .map(entry => consumedReference(field, entry, requirement.role)));
         }),
         ...recipeEntry.checks.flatMap((check) => {
+          if (check.kind === 'native-rewrite') return ownedPFRewriteOutcomes(evidence)
+            .map(entry => ({ field: 'values' as const, key: entry.key }));
+          if (check.kind === 'rebracketing-configuration') return (evidence.authoredValues ?? [])
+            .filter(entry => ['beforeGroupSizes', 'afterGroupSizes'].includes(entry.key))
+            .map(entry => ({ field: 'values' as const, key: entry.key }));
           if (check.kind !== 'paired-values' && check.kind !== 'feature-dependency') return [];
           const [role, valueConcept] = check.kind === 'paired-values'
             ? [check.role, check.value] : ['feature.target', 'case.literal'];
@@ -1937,10 +2103,14 @@ const identityValueBlock = (
   evidence.authoredValues.forEach(({ key, concepts, items }) => {
     const matchingValues = concepts.filter((concept) => recipeValues.has(concept));
     const identityValues = matchingValues.length > 0
-      ? matchingValues.map(value => INDEPENDENT_TIER2_VALUE_ROLES.has(value) ? `literal:${key}` : value)
+      ? matchingValues.map(value => INDEPENDENT_TIER2_VALUE_ROLES.has(value) || value === 'feature.rows' && evidence.comparedFeatureKeys?.includes(key) ? `literal:${key}` : value)
       : (recipeEntry.kind === 'claim' ? [`literal:${key}`] : []);
     identityValues.forEach((value) => appendIdentityItems(normalized, value, items));
   });
+  if (recipeEntry.id === 'theta-grid' && (namedThetaInventory(evidence)
+    || thematicRoleLabel(evidence.relationName).status === 'literal')) {
+    normalized['role.label'] = literalThetaRoles(evidence)!.map(({ nodeId, label }) => JSON.stringify([nodeId, label]));
+  }
   return normalized;
 };
 

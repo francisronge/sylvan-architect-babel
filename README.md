@@ -5,10 +5,10 @@ Sylvan Architect Babel is a syntax tree generator built for research and learnin
 Production app: temporarily paused; deployment history and configuration are retained.
 Research site: [francisronge.github.io/sylvan-architect-babel/research](https://francisronge.github.io/sylvan-architect-babel/research/)
 
-Development status: the relation renderer is verified and closed. The active
-product, Tree Bank, derivational data, benchmark, and web-application work is organized
-in the single [Babel Master Roadmap](./ROADMAP.md). The documentation authority
-map is in [docs/README.md](./docs/README.md).
+Development status: the renderer and Replay have extensive local verification;
+remaining qualification and the unfinished application work are tracked in the
+[Babel Master Roadmap](./ROADMAP.md). Babel is not yet qualified for public launch.
+The documentation authority map is in [docs/README.md](./docs/README.md).
 
 Babel logo design by Lona Noury.
 
@@ -139,6 +139,23 @@ downloadable failure record.
 
 #### Subscription-funded development checks
 
+To enter sentences manually in Babel's normal app interface:
+
+```sh
+npm run qualification:codex:app
+```
+
+Open `http://127.0.0.1:8454/`. The sentence box, framework selector, Canopy,
+Replay, Notes and browser-local Tree Bank are the actual app components.
+GPT-6.1 Sol / high is selected initially; Astra and Sol are also available.
+Each Parse invokes the existing OAuth qualification runner once and saves its
+usual artifacts under `~/Library/Application Support/Babel/codex-qualification`.
+The app explicitly fingerprints the working tree, including uncommitted changes;
+the receipt records whether those sources match the named commit.
+Use `-- --out DIRECTORY --port NUMBER` to change the archive or local port.
+Closing the page cancels its unfinished request and retains received output.
+This local interface does not enable OAuth on Babel's public provider routes.
+
 `npm run qualification:codex` sends Babel's exact prompts directly to the Codex
 Responses endpoint using a ChatGPT subscription login. It does not launch an
 agent or load Codex instructions, history, tools, skills, project files or profile
@@ -149,12 +166,16 @@ From a checkout with committed contract sources:
 
 ```sh
 npm run qualification:codex -- --sentence 'Mia laughed.' --framework xbar \
-  --model openai:gpt-5.6-sol --effort high --out /tmp/babel-sol-check --run
+  --out /tmp/babel-sol-check --run
 npm run qualification:review -- --run /tmp/babel-sol-check
 ```
 
 Omit `--run` to save and inspect the request without authentication or network
-access. Each invocation requires a new output directory. Astra uses
+access. Add `--working-tree` to explicitly fingerprint current uncommitted sources;
+without it, the CLI still requires committed contract sources.
+Each invocation requires a new output directory. The subscription default
+is GPT-6.1 Sol at high reasoning effort. An explicit `--model` selects a retained
+alternative. Astra uses
 `--model openai:gpt-6-astra`. An explicit `--auth-file` can select a separate Codex
 login; the default is `$CODEX_HOME/auth.json` or `~/.codex/auth.json`. An expired
 token requires a fresh `codex login`; the runner does not manage the account.
@@ -207,7 +228,7 @@ The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Se
 
 ### 7) Canopy view
 
-`Canopy` is the clean final-tree view.
+`Canopy` is the clean final-workspace view. It shows each authored final root without adding a syntactic parent.
 
 It is optimized for readability of the resulting structure.
 
@@ -233,7 +254,7 @@ This view is designed to expose process, not just endpoint.
 
 The view also includes:
 
-- A labeled-bracketing block derived from the selected tree
+- Labeled bracketing derived from each final root
 - One-click copy for bracketed notation
 - Direct external link support for notation tooling
 - Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
@@ -249,7 +270,7 @@ The authored model output is exactly `derivationStages`. Every stage has four re
 
 An optional `realizations` field associates existing syntax nodes with input-token positions. For example, separate `walk` and `-ed` leaves may jointly correspond to the input token `walked`. The model supplies the association; Babel preserves the pieces and checks input coverage without deriving spelling or changing the tree. Ordinary whole-word analyses omit the field. See the [realization contract](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension).
 
-Babel validates those stages, replays them, and derives the committed tree, surface order, relation render plans, and replay steps. Relation names and anchor-role names remain open rather than being projected into a fixed ontology.
+Babel validates those stages, replays them, and derives the final forest, surface order, relation render plans, and replay steps. A single-root analysis also has a `tree` convenience field. Several final roots are allowed when their combined pronounced terminals account for the exact input; that structural check does not decide whether the analysis is linguistically convincing. A malformed relation stays attached to its stage as a neutral Replay moment with its original payload and field diagnostic, while intact sibling relations remain drawable. A malformed workspace or incomplete surface coverage still fails the analysis. Relation names and anchor-role names remain open rather than being projected into a fixed ontology.
 
 These outputs are intended for both human reading and downstream inspection workflows.
 

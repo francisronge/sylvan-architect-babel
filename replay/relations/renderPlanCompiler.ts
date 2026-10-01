@@ -1,5 +1,8 @@
 import { movementContextFailure } from './movementEvidence.ts';
+import { prepareLocalDislocationContent } from './localDislocationContent.ts';
 import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
+import { realizationPlatePredecessors } from './realizationContinuity.ts';
+import { featureCollectionSupersessions } from './featureCollectionContinuity.ts';
 import { composeThetaGrids, projectThetaGrid } from './thetaGridComposition.ts';
 import { nativeThetaAssignments } from './compoundAssignments.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
@@ -62,7 +65,7 @@ import {
 } from './outcomeResolver.ts';
 import { buildTier2FacetEvidence, dispatchStageRelations, recoveredClaimMovements, type RelationEvidenceCoverage } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs, featureDependencyRows } from './tier2RenderPlanCompiler.ts';
-import { collectionAssignment } from './featureComposition.ts';
+import { collectionAssignment, composeFeatureBundles } from './featureComposition.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
 import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
@@ -411,6 +414,8 @@ export type NodePlaquePlanItem = PlanItemBase & {
   /** This heading describes an anchored node; it is not an authored value. */
   anchorDerivedTitle?: true;
   rows: Array<{ label: string; value: string }>;
+  /** Same-moment feature bundles retain the claim identity of every contributing row. */
+  featureRowClaims?: string[][];
   thetaRoles?: Array<{ nodeId: string; label: string; index?: string; relationRefs?: PlanRelationRef[] }>;
   nativeContent?: NativePlaqueContent;
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
@@ -1001,6 +1006,7 @@ export const compileRelationRenderPlan = (
   const chainIndexFor = dependencyIndexFor;
   const qrIndexFor = dependencyIndexFor;
   let phaseArcOrdinal = 0;
+  const nextPhaseIsPrimary = () => phaseArcOrdinal++ === 0;
   /**
    * Chain identity, tightened to what authored data proves:
    * - Primary: the shared authored `lineageId` of the anchored occurrences.
@@ -1288,6 +1294,8 @@ export const compileRelationRenderPlan = (
       if (claimDispatch.facets.length > 0) {
         const tier2 = compileTier2RelationOutputs({
           dependencyIndexFor,
+          occurrenceIndexFor: (family, ids) => chainIndexFor(stableChainKey(family, nodes, ids)),
+          nextPhaseIsPrimary,
           identityIndexFor: ids => chainIndexFor(stableChainKey('identity', nodes, ids)),
           relationRef,
           dispatch: claimDispatch,
@@ -1378,6 +1386,11 @@ export const compileRelationRenderPlan = (
             : {})
         });
       };
+
+      if (relation.relationContractFailure) {
+        pushNeutralFallback(relation.anchors || {}, false, relationRef);
+        return;
+      }
 
       if (claimDispatch.residualRelation) {
         const residualClaim = claimDispatch.claims.find(claim => claim.kind === 'fallback-residual');
@@ -1732,11 +1745,21 @@ export const compileRelationRenderPlan = (
             .filter((nodeId, index, all) => all.indexOf(nodeId) === index)
             .filter((nodeId) => requireResolved('occurrences', nodeId));
           if (occurrenceIds.length < 2) return;
+          const indexFields = (claimDispatch.evidence.authoredValues || [])
+            .filter(field => field.concepts.includes('index'));
+          const authoredIndices = new Set(indexFields.flatMap(field => field.items));
+          if (indexFields.length && (indexFields.some(field => field.items.length !== 1)
+            || authoredIndices.size !== 1 || ![...authoredIndices][0].trim())) {
+            pushDiagnostic('signature-incomplete', 'Identity requires one nonempty index when an index is authored');
+            pushNeutralFallback(primaryRelation.anchors || {}, true);
+            return;
+          }
           items.push({
             ...base,
             kind: 'coindex',
             nodeIds: occurrenceIds,
-            index: chainIndexFor(stableChainKey('identity', nodes, occurrenceIds))
+            index: indexFields.length ? [...authoredIndices][0]
+              : chainIndexFor(stableChainKey('identity', nodes, occurrenceIds))
           });
           return;
         }
@@ -2371,8 +2394,7 @@ export const compileRelationRenderPlan = (
             });
             return;
           }
-          const phasePrimary = phaseArcOrdinal === 0;
-          phaseArcOrdinal += 1;
+          const phasePrimary = nextPhaseIsPrimary();
           items.push({
             ...base,
             kind: 'domain-mark',
@@ -2939,11 +2961,22 @@ export const compileRelationRenderPlan = (
         case 'local-dislocation': {
           const sequence = resolvedIds('sequence', anchors.sequence);
           if (sequence.length === 0) return;
+          const nativeContent = prepareLocalDislocationContent({
+            sequenceNodeIds: sequence,
+            currentForest: stage.workspaceForest || [],
+            priorForest: stageIndex > 0 ? stageList[stageIndex - 1].workspaceForest : undefined,
+            values
+          });
+          if (!nativeContent) {
+            pushDiagnostic('signature-incomplete', 'LocalDislocation requires distinct, complete before and after sequence groupings');
+            return;
+          }
           items.push({
             ...base,
             kind: 'node-plaque',
             anchorNodeIds: sequence,
             plaqueStyle: 'dislocation-lane',
+            nativeContent,
             rows: verbatimRows(authoredValues)
           });
           return;
@@ -3357,7 +3390,7 @@ export const compileRelationRenderPlan = (
     const forest = stageList[item.appearsAtStage].workspaceForest;
     const candidates = [...stageNodeMaps[item.appearsAtStage].values()].filter(node =>
       node.children?.some(child => child.id === item.targetNodeId)
-      && movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex') === undefined);
+      && movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex', stageList[item.appearsAtStage - 1]?.workspaceForest) === undefined);
     if (candidates.length === 1) headLandingSites.set(item, candidates[0].id);
   });
   const headLandingForFrame = (item: TrajectoryPlanItem, frameIndex: number): TrajectoryPlanItem['headLandingSite'] => {
@@ -3380,14 +3413,20 @@ export const compileRelationRenderPlan = (
   };
 
   /* Materialize into per-stage frames per persistence, before coalescing. */
+  for (const [item, predecessor] of realizationPlatePredecessors(items, stageList)) {
+    if (predecessor) item.replacementPredecessorGroup = predecessor;
+    else delete item.replacementPredecessorGroup;
+  }
+  const collectionSupersessions = featureCollectionSupersessions(items, stageList);
   const stageCount = stageList.length;
   const frames = Array.from({ length: stageCount }, (_unused, stageIndex) => ({
     stageIndex,
     items: [] as RelationPlanItem[]
   }));
-  /* A disappearing anchor stays at an explicitly authored lower witness when
-   * a later movement proves that exact slot replacement. Without that evidence
-   * it still fails closed; shared lineage alone never supplies a replacement. */
+  /* A disappearing anchor or earlier trajectory landing stays at an authored
+   * lower witness when later movement proves that exact slot replacement.
+   * A landing can retain its ID while moving again; other surviving anchors
+   * still follow their own occurrences. Shared lineage alone proves neither. */
   const stageNodeIdSets = stageNodeMaps.map((nodesById) => new Set(nodesById.keys()));
   const vanishedAnchorIds = (item: RelationPlanItem, frameIndex: number): string[] => {
     if (frameIndex === item.appearsAtStage) return [];
@@ -3399,8 +3438,9 @@ export const compileRelationRenderPlan = (
     let projected = item;
     const transfers: NonNullable<RelationPlanItem['occurrenceTransfers']> = [];
     for (let stageIndex = item.appearsAtStage + 1; stageIndex <= frameIndex; stageIndex++) {
-      const missing = planItemDependencyNodeIds(projected).filter(id => !stageNodeIdSets[stageIndex].has(id));
-      for (const fromNodeId of missing) {
+      const replaceable = planItemDependencyNodeIds(projected).filter(id => !stageNodeIdSets[stageIndex].has(id)
+        || (projected.kind === 'trajectory' && projected.targetNodeId === id));
+      for (const fromNodeId of replaceable) {
         const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) =>
           recoveredClaimMovements(dispatch).flatMap(movement => movement.transition
             && movement.priorSourceNodeId === fromNodeId && movement.witnessNodeId !== fromNodeId
@@ -3499,14 +3539,30 @@ export const compileRelationRenderPlan = (
       return;
     }
     if (item.persistence === 'replace-previous-instance') {
+      const collectionSupersession = collectionSupersessions.get(item);
       for (let frameIndex = item.appearsAtStage; frameIndex < stageCount; frameIndex += 1) {
+        const sameMovementAfterAttachment = (candidate: RelationPlanItem): boolean => {
+          if (item.kind !== 'trajectory' || candidate.kind !== 'trajectory'
+            || item.trajectoryKind !== 'sideward' || candidate.trajectoryKind !== 'head'
+            || item.sourceNodeId !== candidate.sourceNodeId
+            || item.targetNodeId !== candidate.targetNodeId
+            || item.witnessNodeId !== candidate.witnessNodeId) return false;
+          return [item.sourceNodeId, item.targetNodeId, item.witnessNodeId].filter(Boolean).every(id => {
+            const lineage = stageNodeMaps[item.appearsAtStage].get(id!)?.lineageId;
+            return Boolean(lineage) && stageNodeMaps.slice(item.appearsAtStage, candidate.appearsAtStage + 1)
+              .every(nodes => nodes.get(id!)?.lineageId === lineage);
+          });
+        };
         const replacement = items.find((candidate) =>
           candidate !== item
           && candidate.appearsAtStage > item.appearsAtStage
           && candidate.appearsAtStage <= frameIndex
           && (candidate.replacementGroup === item.replacementGroup
             || (Boolean(candidate.replacementPredecessorGroup)
-              && candidate.replacementPredecessorGroup === item.replacementGroup)));
+              && candidate.replacementPredecessorGroup === item.replacementGroup)
+            || (collectionSupersession?.stageIndex === candidate.relationRef.stageIndex
+              && collectionSupersession?.relationIndex === candidate.relationRef.relationIndex)
+            || sameMovementAfterAttachment(candidate)));
         if (replacement) {
           materializeIntoFrame(item, frameIndex, replacement.relationRef);
           break;
@@ -3594,11 +3650,15 @@ export const compileRelationRenderPlan = (
     return { kind: part.trajectoryKind, source: part.sourceNodeId, target: part.targetNodeId,
       witness: part.witnessNodeId, sourceAttachment: part.sourceAttachment, targetAttachment: part.targetAttachment,
       headLandingSite: part.headLandingSite, departures: part.orthogonalDepartureNodeIds,
-      outcome: part.outcome, supersededAt: part.supersededAt };
+      occurrenceTransfers: part.occurrenceTransfers, outcome: part.outcome, supersededAt: part.supersededAt };
   };
   const retainsMovementOccurrences = (earlier: RelationPlanItem, later: RelationPlanItem) => {
     if (earlier.kind !== 'trajectory' || later.kind !== 'trajectory') return false;
-    return [later.sourceNodeId, later.targetNodeId, later.witnessNodeId].filter(Boolean).every(id => {
+    // Establish identity at the later claim's authored stage, before subsequent
+    // hops replace either endpoint with a lower witness that did not exist yet.
+    const authored = resolveDisplayedTrajectoryAttachments(later, id => stageNodeMaps[later.appearsAtStage].get(id),
+      { stageIndex: later.appearsAtStage, playedRelationIndices: null }) as TrajectoryPlanItem;
+    return [authored.sourceNodeId, authored.targetNodeId, authored.witnessNodeId].filter(Boolean).every(id => {
       const lineage = stageNodeMaps[earlier.appearsAtStage].get(id!)?.lineageId;
       return Boolean(lineage) && stageNodeMaps.slice(earlier.appearsAtStage, later.appearsAtStage + 1)
         .every(nodes => nodes.get(id!)?.lineageId === lineage);
@@ -3718,8 +3778,8 @@ export const compileRelationRenderPlan = (
           && candidate.relationIndex === ref.relationIndex) === index);
       rest.forEach(item => { item.bindingPathSuppressed = true; });
     });
-    frame.items = composeThetaGrids(coalescedItems, grid =>
-      stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId);
+    frame.items = composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
+      stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId));
   });
 
   return {

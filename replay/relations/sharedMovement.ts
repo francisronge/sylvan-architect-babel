@@ -20,7 +20,7 @@ export function recoverSharedMovement(evidence: Tier2FacetEvidence) {
   const targets = current.filter(entry => endpointConcept(entry, 'movement.landing'));
   if (sources.length !== 1 || priorSources.length !== 1 || !targets.length) return [];
   const source = sources[0], previous = priorSources[0];
-  if (!source.items.length || targets.some(target => target.items.length !== 1) || previous.items.length !== source.items.length
+  if (source.items.length < 2 || targets.some(target => target.items.length !== 1) || previous.items.length !== source.items.length
     || new Set(source.items).size !== source.items.length || new Set(previous.items).size !== previous.items.length
     || targets.some(target => source.items.includes(target.items[0]))) return [];
   const pairs = source.items.map(sourceId => previous.items.flatMap((priorId, priorIndex) => {

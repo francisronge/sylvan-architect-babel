@@ -63,3 +63,28 @@ test('the production reveal masks the unchanged dashed path and releases all tem
     cleanup();
   } finally { globalThis.document = previousDocument; }
 });
+
+test('a failed collection reveals its same-owned cue through the existing path mask', () => {
+  const element = tag => ({ tag, attrs: {}, style: {}, children: [],
+    setAttribute(key, value) { this.attrs[key] = value; }, getAttribute(key) { return this.attrs[key] ?? null; },
+    hasAttribute(key) { return Object.hasOwn(this.attrs, key); }, removeAttribute(key) { delete this.attrs[key]; },
+    appendChild(child) { this.children.push(child); }, remove() { this.removed = true; },
+    animate(_keyframes, timing) { this.animation = { timing, cancel() {} }; return this.animation; }
+  });
+  const ink = element('g'), path = element('path'), cue = element('g'), svg = element('svg'), created = [];
+  ink.classList = { contains: value => value === 'babel-collection-ink' };
+  ink.appendChild(path); ink.appendChild(cue); path.parentElement = ink;
+  path.attrs = { d: 'M 0 0 C 0 40 100 60 100 100', 'data-vr-owner-refs': '2:4' };
+  path.getTotalLength = () => 140; path.getBBox = () => ({ x: 0, y: 0, width: 100, height: 100 });
+  path.getScreenCTM = () => ({ a: 1, b: 0 }); svg.querySelectorAll = () => [path];
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, tag) => { const el = element(tag); created.push(el); return el; } };
+  try {
+    const cleanup = revealPlaqueCollections(svg, moment, { elapsed: 0, reducedMotion: false, idPrefix: 'blocked' });
+    assert.equal(ink.attrs.mask, 'url(#blocked-0)');
+    assert.equal(path.attrs.mask, undefined, 'the route and cue must reveal together');
+    assert.deepEqual(created.find(el => el.tag === 'path').animation.timing,
+      { ...collectionRevealTiming([moment], moment, 0, false), fill: 'both', easing: 'ease-out' });
+    cleanup(); assert.equal(ink.attrs.mask, undefined);
+  } finally { globalThis.document = previousDocument; }
+});

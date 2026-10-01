@@ -231,6 +231,10 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       rawOutput: { ...rawOutputArtifact, encoding: 'base64', data: rawBytes.toString('base64') },
       repairDiagnostics: structuredClone(ingress.repairDiagnostics),
       payload: structuredClone(parsedPayload),
+      input: {
+        sentence: attempt.request.sentence,
+        tokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens)
+      },
       replayStatus: 'not-compiled',
       linguisticReviewStatus: 'unreviewed',
       visualReviewStatus: 'unreviewed',
@@ -246,10 +250,6 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
           })
         }))
     };
-    if (inspection.analyses.some(analysis => analysis.stages?.some(stage => Object.hasOwn(stage.authoredStage || {}, 'realizations')))) {
-      inspection.input = { sentence: attempt.request.sentence,
-        tokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens) };
-    }
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
     const normalized = stripVolatileProvenance(parserTest.normalizeParseBundle(

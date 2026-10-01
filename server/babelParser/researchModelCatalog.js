@@ -8,6 +8,29 @@ const EFFORT_LEVELS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
 export const RESEARCH_MODEL_CATALOG = deepFreeze([
   {
+    id: 'openai:gpt-6.1-sol',
+    label: 'GPT-6.1 Sol',
+    provider: 'openai',
+    providerRoute: 'gpt',
+    providerModel: 'gpt-6.1-sol',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'codex-responses',
+    controls: [
+      {
+        id: 'reasoning.effort',
+        label: 'Reasoning effort',
+        values: ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: { store: false, stream: true },
+    documentation: {
+      retrievedOn: '2026-09-29',
+      source: 'Codex host model catalog'
+    }
+  },
+  {
     id: 'openai:gpt-6-astra',
     label: 'GPT-6 Astra',
     provider: 'openai',

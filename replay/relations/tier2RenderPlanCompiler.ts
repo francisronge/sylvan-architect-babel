@@ -21,6 +21,8 @@ import type {
 import { literalThetaRoles, pairedLiterals, prepareNativeFissionContent, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
 import { nativeAncestorEdges, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
+import { prepareRewriteRows } from './rewriteLiterals.ts';
+import { prepareLocalDislocationContent } from './localDislocationContent.ts';
 
 type CompileTier2Input = {
   relationRef: PlanRelationRef;
@@ -29,6 +31,8 @@ type CompileTier2Input = {
   priorForest?: readonly SyntaxNode[];
   /** Shared generated-index allocator: one letter per dependency, never a list position. */
   dependencyIndexFor?: (key: string) => string;
+  occurrenceIndexFor?: (family: string, ids: string[]) => string;
+  nextPhaseIsPrimary?: () => boolean;
   identityIndexFor?: (ids: string[]) => string;
 };
 
@@ -208,6 +212,8 @@ export const compileTier2RelationOutputs = ({
   currentForest,
   priorForest,
   dependencyIndexFor = (key) => key,
+  occurrenceIndexFor = (family, ids) => dependencyIndexFor(`${family}:${[...ids].sort().join('|')}`),
+  nextPhaseIsPrimary = () => true,
   identityIndexFor
 }: CompileTier2Input): CompileTier2Result => {
   const dependencyKey = (tag: string, ids: readonly string[]) => `${tag}:${[...ids].sort().join('|')}`;
@@ -347,6 +353,15 @@ export const compileTier2RelationOutputs = ({
         });
         return;
       }
+      case 'coreference.coindex': {
+        push({
+          ...base(facet, ['Coindex'], 'coreference.coindex'),
+          kind: 'coindex',
+          nodeIds: many('coreference.participants'),
+          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('coreference', many('coreference.participants'))))
+        });
+        return;
+      }
       case 'presentation.lens': {
         push({
           ...base(facet, ['Lens emphasis'], 'identity.occurrences'),
@@ -372,6 +387,13 @@ export const compileTier2RelationOutputs = ({
           fromNodeId: one('controller'),
           toNodeId: one('controllee'),
           pathStyle: 'control'
+        });
+        const participants = [one('controller'), one('controllee')];
+        push({
+          ...base(facet, ['Coindex'], 'control.dependency', 'indices'),
+          kind: 'coindex',
+          nodeIds: participants,
+          index: singleValue(evidence, 'index') || occurrenceIndexFor('control', participants)
         });
         return;
       }
@@ -675,7 +697,8 @@ export const compileTier2RelationOutputs = ({
           rootNodeId: phase,
           memberNodeIds: collectSubtreeIds(nodes.get(phase)),
           subtreeDerived: [{ field: 'memberNodeIds', rootNodeId: phase, mode: 'all' }],
-          domainStyle: 'phase'
+          domainStyle: 'phase',
+          phasePrimary: nextPhaseIsPrimary()
         });
         return;
       }
@@ -943,7 +966,7 @@ export const compileTier2RelationOutputs = ({
           pronouncedNodeId: one('scope.source'),
           lfNodeId: one('scope.landing'),
           ...(one('scope.domain') ? { scopeDomainNodeId: one('scope.domain') } : {}),
-          index: singleValue(evidence, 'index', 'i')
+          index: singleValue(evidence, 'index') || occurrenceIndexFor('qr', [one('scope.source'), one('scope.landing')])
         });
         return;
       }
@@ -1008,8 +1031,13 @@ export const compileTier2RelationOutputs = ({
         };
         const nativeContent = config.style === 'linearization' ? prepareNativeLinearizationContent(evidence)
           : config.style === 'fission' ? prepareNativeFissionContent(evidence)
+          : config.style === 'dislocation-lane' ? prepareLocalDislocationContent({
+            sequenceNodeIds: many(config.role), currentForest: evidence.currentForest,
+            priorForest: evidence.priorForest, rows,
+            values: Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, entry.items]))
+          })
           : prepareNativePlaqueContent(config.style, tier2NativePlaqueRows(evidence), many(config.role));
-        if (['fission', 'impoverishment', 'correspondence', 'linearization'].includes(config.style) && !nativeContent) {
+        if (['fission', 'impoverishment', 'correspondence', 'linearization', 'dislocation-lane'].includes(config.style) && !nativeContent) {
           diagnostics.push({ stageIndex: relationRef.stageIndex, relationIndex: relationRef.relationIndex,
             relation: relationRef.relation, kind: 'illegal-configuration', detail: `Tier-2 ${facetId} has no complete prepared content` });
           return;
@@ -1020,7 +1048,8 @@ export const compileTier2RelationOutputs = ({
           anchorNodeIds: many(config.role),
           plaqueStyle: config.style,
           rows,
-          ...(config.style === 'realization' ? { realizationRowKinds: rows.map(() => 'literal' as const) } : {}),
+          ...(facetId === 'pf.rewrite' ? prepareRewriteRows(evidence, rows)
+            : config.style === 'realization' ? { realizationRowKinds: rows.map(() => 'literal' as const) } : {}),
           ...(nativeContent ? { nativeContent } : {})
         });
         return;

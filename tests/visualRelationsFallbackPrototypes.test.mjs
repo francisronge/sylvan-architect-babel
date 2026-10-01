@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { initialReplayStepIndex } from '../replay/initialReplayStep.ts';
 
 import {
   CONCORD_RELATION,
@@ -468,7 +469,7 @@ test('fallback transition moves an existing destination parent under its require
   assert.equal(findNode(relationStep.replayCanvasData, 'existing_parent_after')?.word, 'after');
 });
 
-test('fallback transition does not relocate an unrelated existing subtree', () => {
+test('ordinary context merge precedes a fallback transition without relocating its unrelated subtree', () => {
   const derivationStages = [
     {
       statement: 'Two workspaces exist.',
@@ -518,12 +519,24 @@ test('fallback transition does not relocate an unrelated existing subtree', () =
   const relationStep = steps.find((step) =>
     step.replayKind === 'relation' && step.operation === 'ScopedExistingFallbackTransition');
   const macroStep = steps.find((step) => step.visualFrameIndex === 1 && step.replayKind === 'macro');
+  const mergeStep = steps.find(step => step.replayKind === 'micro'
+    && step.operation === 'ExternalMerge' && step.targetNodeId === 'scoped_new_ancestor');
   assert.ok(relationStep);
   assert.ok(macroStep);
-  assert.equal(
-    findParent(relationStep.replayCanvasData, 'unrelated_existing_branch')?.id === 'scoped_new_ancestor',
-    false
-  );
+  assert.ok(mergeStep);
+  assert(steps.indexOf(mergeStep) < steps.indexOf(relationStep));
+  assert.deepEqual(mergeStep.sourceNodeIds, ['scoped_existing_parent', 'unrelated_existing_branch']);
+  const preceding = steps[steps.indexOf(mergeStep) - 1];
+  for (const id of mergeStep.sourceNodeIds) assert(preceding.replayVisibleNodeIds.includes(id));
+  assert.equal(findNode(mergeStep.replayCanvasData, 'scoped_existing_before')?.word, 'before');
+  assert.equal(findNode(mergeStep.replayCanvasData, 'scoped_existing_after'), null);
+  assert.equal(findNode(relationStep.replayCanvasData, 'scoped_existing_before'), null);
+  assert.equal(findNode(relationStep.replayCanvasData, 'scoped_existing_after')?.word, 'after');
+  for (const step of [mergeStep, relationStep, macroStep]) {
+    assert.equal(findParent(step.replayCanvasData, 'unrelated_existing_branch')?.id, 'scoped_new_ancestor');
+    assert.deepEqual(findNode(step.replayCanvasData, 'unrelated_existing_branch'),
+      findNode(mergeStep.replayCanvasData, 'unrelated_existing_branch'));
+  }
   assert.equal(findNode(relationStep.replayCanvasData, 'unrelated_existing_leaf')?.word, 'unrelated');
   assert.equal(
     findParent(macroStep.replayCanvasData, 'unrelated_existing_branch')?.id,
@@ -562,6 +575,26 @@ test('Orchard fallback cards use production drawing and timing, with no substitu
   assert.match(paint, /\.text\(primitive.text\)/);
   assert.match(paint, /data-authored-role/);
   assert.doesNotMatch(paint, /marker-end|vr-backward-cue|vr-fallback-frame/);
+});
+
+test('all six fallback cards open at their exact relation moment before Stage Record', async () => {
+  assert.equal(FALLBACK_PROTOTYPE_CARDS.length, 6);
+  for (const card of FALLBACK_PROTOTYPE_CARDS) {
+    const steps = playback(card);
+    const initial = initialReplayStepIndex(steps, {
+      stageIndex: card.pinnedStageIndex,
+      relationIndex: 0
+    });
+    assert.ok(initial > 0 && initial < steps.length - 1, card.id);
+    assert.equal(steps[initial].replayKind, 'relation', card.id);
+    assert.equal(steps[initial].operation,
+      card.derivationStages[card.relationStageIndex].relations[0].relation, card.id);
+    assert.equal(steps[initial + 1].replayKind, 'macro', card.id);
+  }
+  const source = await readSource('../docs/design/visual-relations-fallback-prototypes.tsx');
+  assert.match(source, /autoPlay=\{false\}/);
+  assert.match(source, /initialReplayMoment=\{\{ stageIndex: card\.pinnedStageIndex, relationIndex: 0 \}\}/);
+  assert.doesNotMatch(source, /\.click\(|setTimeout|advanceToPinnedFrame/);
 });
 
 test('prototypes stay outside the accepted set and coverage matrix while remaining visible in the Orchard', async () => {

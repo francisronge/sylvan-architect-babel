@@ -1,7 +1,8 @@
 # Tier-2 Shape Dispatch
 
-Status: verified implementation. The provider-free repository gate and the
-69-primitive Tier-1/Tier-2 visual audit passed on 2026-08-25.
+Status: the provider-free repository gate and the 69-primitive Tier-1/Tier-2
+visual audit passed on 2026-08-25. That establishes primitive availability, not
+complete recognition of model-authored claims.
 
 ## Purpose
 
@@ -18,14 +19,28 @@ The complete executable facet catalog is
 `replay/relations/tier2FacetRecipes.ts`. The deterministic vocabulary is
 `replay/relations/tier2Synonyms.ts`.
 
-The current catalog has 54 recipes and still uses the same 69 primitives. A
+The current catalog has 55 recipes and still uses the same 69 primitives. A
 passing primitive test does not establish recognition coverage on model output.
+
+Plain coreference uses the existing coindex subscript when an explicit reference
+or coindexation claim identifies two unique current nominal anchors. An authored
+index is preserved; otherwise the shared display-index allocator supplies one.
+This does not assert copy identity, binding, movement or a Forestlight chain.
+Explanatory category annotations remain visible but do not obscure the category.
+An explicitly named discourse head with category `Disc` can remain context;
+it does not become a third referent. Ambiguous or nominal context stays unresolved.
+An explicit anaphoric or resumption dependency can identify its nominal pair
+through a unique topic/antecedent and pronominal/resumptive participant. Additional
+quantifiers and topic heads remain context. This earns coindices, not a binding
+path; denied, competing and unresolved references remain neutral.
 
 ## Independently supported pieces
 
 - Separate named chains or occurrence lists remain separate identity groups.
   Every group requires distinct, uniquely resolved occurrences with the same
   nonempty root lineage. Shared descendants are insufficient.
+  One asserted chain may list its positions in one field; the number of fields
+  does not determine the number of occurrences.
 - Explicit nominal members with typed shared features can earn vines within
   one nominal domain. A competing directed source/controller, unresolved
   category or intervening clause blocks that reading.
@@ -35,6 +50,8 @@ passing primitive test does not establish recognition coverage on model output.
 - An explicit binder and anaphor can earn the existing binding connection
   without supplying a domain circle. A negative outcome blocks that smaller
   claim; a malformed exact registered Binding claim remains malformed.
+  A qualified resumptive argument can supply the dependent in an asserted
+  resumptive-binding claim. Its clitic exponent remains separate context.
 - An explicit polarity licensor and polarity item can earn the existing
   association curve without asserting strong-NPI features. Strong-NPI evidence
   retains its more specific recipe and does not produce a duplicate curve. In
@@ -44,8 +61,10 @@ passing primitive test does not establish recognition coverage on model output.
   uniquely anchored whole clause as its analysis target and its exact judgment
   or status literal as the verdict. A generic clause reference or several
   distinct candidate targets do not earn the verdict drawing. Long explanatory
-  judgments remain in the Stage Record instead of being clipped as large
-  single-line verdict glyphs.
+  judgments remain visible as authored text. A qualified verdict such as
+  `grammatical in standard Hindi` uses `grammatical` as the glyph and the verbatim
+  qualification as its attached label; arbitrary explanatory prose is not
+  shortened into a verdict.
 - In an explicit agreement claim, a unique `controller` and `target` with
   authored features identify one dependency even when a finite head is also
   named. The finite head remains context; a repeated or ambiguous endpoint
@@ -57,16 +76,143 @@ passing primitive test does not establish recognition coverage on model output.
   phrasal copies sharing the filler's root lineage. An overt phrase or unrelated
   silent occurrence cannot substitute for a gap.
 
-These rules interpret authored roles and structure, never the relation title or
-explanatory prose. They preserve unused fields and the original relation moment.
+These rules interpret authored roles, literal properties, explicit domain labels,
+and structure. A complete label such as `nominative Case licensing` supplies a
+Case literal when exact participants establish its assignment. A mention of
+Case inside arbitrary explanatory prose does not. Unused fields and the original
+relation moment remain intact.
 Ellipsis ghosting inherits silence through the entire authored silent subtree.
+
+## Recognition and neutral fallback
+
+Sufficient participants and labels must reach the existing Tier-1 or Tier-2
+recipe. A differently named field, a qualified participant, or a property
+spelled in an explicit relation label is not by itself a reason to fall back.
+The same rule applies to independently recoverable pieces of compound claims.
+Tier 3 retains claims with unresolved or genuinely ambiguous evidence, or claims
+for which the visual vocabulary has no suitable drawing. It does not invent a
+connection simply to remove a fallback.
+
+Recognition follows three boundaries. Role and label interpretation yields
+candidate meanings. Association recovery in `claimRecovery.ts` isolates proven
+claims with exact authored-item ownership through `evidenceScopes.ts`. Dispatch
+then checks every candidate against the existing recipe catalog before the
+render-plan compiler produces geometry. Recovery rules do not draw, select a
+tier, or mutate the authored record. Rules must apply to an evidence shape,
+never a sentence, language, fixture, node ID, or particular analysis.
+
+Participant qualification and item provenance are shared across property,
+agreement, and Case recovery. Independent claims may use the same recipe in one
+relation moment. Recipe identity alone cannot suppress a second claim. Drawing
+ownership also cannot consume Replay's evidence for an explicitly authored
+structural result; adding a drawing must not change the timing of its merge.
+An evidence scope records which authored fields it has associated. The recipe
+still checks their cardinality, exact nodes, values and structure; proven group
+membership is distinct from competing aliases that merely share a role name.
+
+Repeated references to one exact occurrence do not create competing hosts.
+Deduplicate references for participant resolution while retaining every
+authored value item and its provenance. Duplicate occurrences in the workspace
+remain ambiguous. Independently denied or pending sibling operations do not
+erase an asserted property or dependency in another clause.
+
+Case assignment requires its own proven giver and recipient. An Agree source
+does not automatically become a Case giver. Role-qualified values may still
+annotate their exact participant without an assignment arrow. Context roles
+retain context status unless the local claim establishes their operation.
+
+Participant-qualified properties bind to that exact participant. Properties on
+one host compose one plaque; a property already owned by an assignment or other
+drawing is not duplicated. A failed agreement with explicit endpoints and both
+participants' qualified values uses the existing blocked feature connection and
+preserves both property labels. A property annotation alone establishes neither
+an assignment nor successful agreement.
+The same failed-comparison path covers an explicit selection violation with a
+unique selector, selected item, required form and actual form. A requirement
+without an actual comparison remains neutral. An explicit role label or a
+participant-qualified dependency label can identify a property's unique owner;
+that association does not add an assignment arrow.
+Nominal qualifiers such as `quirkySubject` retain the subject's feature ownership;
+upper/lower occurrence qualifiers remain distinct. An explicit subject/object
+clitic-licensing claim can identify its unique pronominal argument as the owner
+of that role's features. Neither association asserts successful agreement.
+
+A named allomorphy claim can attach literal realization rows to its one current,
+overt lexical host. The host must be named by the claim, resolve uniquely, and
+have a realized word; a conditioner, silent projection or competing output host
+cannot substitute. Preserve conditional form descriptions verbatim. One current
+host does not supply a second rewrite occurrence, and failed or provisional
+realizations do not earn this plaque.
+
+Feature collections belonging to one authored moment and one exact host form
+one physical plaque. Each row retains its contributing claim identities and
+each connector retains its own endpoint. Different moments or replacement
+lifetimes do not merge. A combined bundle can join a Case plaque only when all
+its collections share that Case attachment.
+
+An explicit shared-feature property between two participants can earn the
+existing vine without asserting movement, coreference or directional agreement.
+Context anchors, larger ungrouped participant inventories and independently
+directed dependencies require their own associations.
+
+An explicit judgment field with one whole-clause anchor does not require a
+prescribed relation name. Local candidates still require evidence that they are
+judged targets. A local agreement verdict cannot turn a separately named root
+or clause context into a whole-clause judgment. For intervention, a direct authored statement that its named
+participant cannot be targeted can establish failure; conditional, quoted or
+contradictory statements cannot be shortened into that assertion.
+An exact positive `S licenses O` clause can supply directed endpoints when its
+role references resolve uniquely and typed values are independently supplied.
+One additive property clause may reuse the same subject through `has`, `bears`
+or `receives`, including their negative forms. Conditions, corrections, contrast,
+pronouns, competing subjects and renewed licensing/blocking claims are rejected.
+The entire status stays visible as neutral text; interpreting the first clause
+does not claim to draw the separate property statement.
+
+An inflection/realization label plus an unambiguous lexical host and literal form
+or tense values can earn the existing realization plate. Declared contributor
+groups still require the complete authored realization association. A competing
+host or partial group cannot select a convenient attachment.
+An explicitly named inflectional or morphological domain owns a whole-form row
+only when its exact node contains the anchored lexical contributors. The stem
+alone cannot absorb a whole word's row when a separately anchored exponent is
+present. An ordered surface sequence may use one exact realization group; its
+nonempty pieces must correspond in count to that group's token positions.
+
+Explicit absence and pending status remain distinct from a failed attempt.
+Agreement or binding that is not established cannot earn a successful-looking
+connection. A failed or blocked outcome may still earn its designed negative
+drawing, including a bounded failed/blocked label naming that exact claim.
+Case and agreement with different outcomes retain separate claim scopes even
+when they share endpoints. Such evidence applies to its named claim: absent agreement does not
+erase independent Case assignment, binding, or participant properties in the
+same authored envelope. Participant-qualified properties preserve their exact
+owners even when the surrounding dependency cannot be recovered.
+
+Continuity evidence may corroborate a subset of a complete current claim. When
+the same recipe already owns all those exact authored items, corroboration does
+not add a duplicate grid or connector. This does not merge authored moments or
+unrelated claims that happen to use the same recipe.
+Distinct authored fields and repeated list positions retain their evidence even
+when their literals match. A richer recovered dependency can replace a generic
+rowless connector only for the same exact endpoint fields and item positions.
+
+Separate Case-assigner and recipient lists require an independently unique
+structural pairing that agrees with their authored order. A single shared Case
+literal can label each proven pair. Sources contained within a recipient cannot
+assign to that ancestor; equally close competing sources remain ambiguous.
+
+A chain claim may recover the exact shared-lineage occurrences even when other
+contextual participants have no lineage. A preceding complex explicitly named
+as the movement source remains the moving unit when an additional anchor names
+one of its members; the member's position and lineage must both be verified.
 
 ## Public records and shared occurrences
 
 Every recipe must work on records accepted by the public derivation contract.
 The provider-free verification suite starts with those records, normalizes them,
 prepares Replay and binds the resulting drawings in both frameworks. It covers
-all 54 recipes and 69 drawing pieces, including presentation companions attached
+all 55 recipes and 69 drawing pieces, including presentation companions attached
 to a supported claim. Direct calls to a recipe alone do not satisfy this check.
 
 A shared constituent has one occurrence in a workspace tree. Explicit additional
@@ -83,10 +229,12 @@ happened is not restored to its earlier form by a later shared claim.
 
 ## Shared role interpretation
 
-Production registry version 23 binds recognized equivalent role wording before
+Production registry version 24 binds recognized equivalent role wording before
 checking a Tier-1 signature. `productionRoleConcepts.js` assigns the meaning of
 each declared role within its owning recipe; `roleBinding.js` uses the shared
 vocabulary, not a second alias list. Exact role spellings take precedence.
+Optional trajectory witness aliases share one role slot, including head movement;
+their optional status does not make synonymous witness names ambiguous.
 Ambiguous meanings and conflicting references produce explicit signature
 diagnostics, never a first-match choice. Cardinality, required groups and paired
 lengths still apply. Production recipes retain additional authored roles as
@@ -111,13 +259,26 @@ neutral. This bounded vocabulary does not interpret arbitrary natural language.
 A qualified directional role such as `accusativeGoal` supplies a Case endpoint
 only when its qualifier identifies Case or matches a separately authored Case
 literal. Conventional notation such as `ACC` and `accusative` compares equally;
-other labels compare literally, and displayed values remain unchanged. Typed
-Case alone cannot repurpose a semantic or spatial goal, override an independently
+other labels compare literally, and displayed values remain unchanged. The
+paired Case-qualified source/recipient rule below can independently establish
+a value from both endpoint names. Typed Case alone cannot repurpose a semantic or spatial goal, override an independently
 supported recipient, or turn an alternative or previous participant into a
 current assignment. Known relation domains retain their existing meanings.
 `abstractCase`, `structuralCase` and `inherentCase` identify Case values while
 preserving their authored labels. Overt Case marking and Case heads alone do not
 identify an assigner.
+
+A complete Case assignment, licensing or valuation clause can establish the
+direction of an otherwise contextual participant when its exact category
+corroborates the named role: an inflection or finite head must be I/T/Infl, a
+Case head K, and a localizer L. The recipient must resolve uniquely to a nominal
+occurrence in the same workspace. A selector requires an explicit selected-Case
+claim. A named governing position owns its exact occurrence; another chain head
+remains context only when both share the authored lineage. In an explicitly
+compound role-and-Case assignment, the independently recovered thematic pair
+can also own the Case dependency. Case properties alone, wrong categories,
+competing heads, ambiguous participants and nonasserted claims do not earn this
+recovery. These are scoped evidence rules, not global source-role aliases.
 
 For the registered theta-grid claim, an assigning head can fill the predicate
 slot. That single-occurrence slot counts distinct exact IDs, so repeating one
@@ -182,6 +343,45 @@ Different recipients, values, occurrence lineages and preceding-state witnesses
 remain distinct, even when their plaques would display identical text.
 
 ### Established assignment continuity
+
+An open inventory with one explicit predicate and named scalar thematic
+participants may use the participant names themselves as role labels. A generic
+verb requires independent thematic meaning from the claim or explicit role
+values; a verb and an agent mentioned in an unrelated claim are insufficient.
+For example, agent and theme explicitly identify their own roles. Known thematic
+names may carry a DP, NP, PP, argument, position or occurrence qualifier.
+Competing predicates, repeated participant IDs, missing endpoints, incompatible
+outcomes and partly supplied role-value lists prevent this recovery. Explicit
+role literals take precedence. The exact key-to-node associations participate in
+drawing identity, so swapping two roles cannot reuse the earlier grid.
+
+Matching Case-qualified source and recipient fields can identify an assignment
+without a separate values entry. A nominative assigner and nominative DP form
+one pair; an accusative pair is independent in the same authored moment. A known
+Case name or an explicit Case qualifier supplies the value. Both endpoints must
+agree on it. Competing, negated, unresolved and list-valued endpoints remain
+neutral, and a separately authored Case value must use the established literal
+pairing rules. Relation titles supply no values. This interpretation is derived
+from the original anchor fields and does not rewrite the record.
+
+An explicitly inflected verb, head or form is a PF output host for literal PF
+rows such as tense. A separately anchored inflection stays neutral context; it
+does not acquire an invented assignment arrow. A determiner and nominal head
+with shared feature values earn the same collection drawing as the nominal
+controller spelling. Distinct conflicting values do not imply successful Agree.
+An asserted agreement or concord conflict with separately qualified participant
+features earns the existing failed-comparison drawing. Probe/goal specifications
+retain both literals and their owners. The negative status must be explicit and
+unconditional; differing values alone, contradictory outcomes or competing
+participants do not establish failure.
+
+A restrictor and one restricted constituent with an explicit focus value earn
+the existing focus-association curve. Generic restriction or a scope value alone
+does not establish focus association. No lexical list or relation title is used.
+
+Single-participant record plaques also bind an exact same-name prior anchor.
+This lets a revised claim replace its preceding rows at the authored moment;
+unrelated prior fields remain neutral, and backward Replay retains the old rows.
 
 Ordered stage dispatch retains earlier complete theta and Case assignments.
 A later open relation can restate that assignment when it supplies the same
@@ -290,6 +490,40 @@ stay neutral. Binding does not require movement lineage, and a shared lineage
 does not establish binding. Additional claims and uninterpreted context retain
 their own ownership.
 
+A phrasal landing can establish a phase edge when the record explicitly names
+the phase head and edge location, and the exact landing lies on that head's
+projection spine. This adds the existing edge outline alongside movement. It
+does not establish Transfer or a whole phase domain. Transfer keeps ownership
+of an edge already included in its drawing.
+
+Recovered quantifier raising uses the same optional scope box as Orchard. An
+explicit scope domain or scope host must contain the lower/source occurrence;
+the raised occurrence may be outside that domain. Missing or unrelated domain
+evidence does not earn a box, but does not discard an independently established
+covert path.
+
+A relative modifier and its named nominal host can use the existing attachment
+overlay when those exact occurrences are sisters. A deep lexical head cannot
+replace the actual attachment host. An explicit ellipsis antecedent or overt
+identity source paired with one elided domain similarly establishes the existing
+correspondence curve. Silence is established separately; counterpart recovery
+does not invent deletion or pair unordered lists.
+
+An explicitly selected participial form can be printed on its exact current
+lexical head when that head's annotation confirms the form. Square brackets
+and parentheses carry the same annotation evidence. Whole-word auxiliary support
+can print its exact current form on its unique named host without asserting a
+rewrite. A stem rewrite instead requires an explicit prior/current carrier,
+preserved occurrence identity, source/result literals matching those words, and
+an actual word change. Token segmentation and joint realization do not establish
+that single-carrier transformation.
+The recovered input/output occurrences also own the terminal update at that
+relation's Replay moment; consuming their drawing evidence must not delay the
+update until the Stage Record. A containing PF host does not replace the exact
+rewritten occurrence. The rewrite subsumes a generic property row only for the
+same original value item and its exact carrier or containing PF host. Independent
+whole-word and sibling rows retain their own evidence and drawing.
+
 An explicit finite or inflectional head with a subject or one controller and
 literal feature values establishes the existing directed feature dependency.
 A participle with one controller uses the same collection drawing unless an
@@ -308,6 +542,22 @@ compiler and Replay use the same realization context. Independent PF claims
 may accompany registered relations, but cannot rescue a malformed primary
 claim whose declared anchors overlap that recovered evidence.
 
+When every member of an exact realization group is explicitly anchored, the
+complete group owns its surface row even if one participant is also recognized
+as a stem. A stem role cannot reduce that established group to one contributor.
+An exact prior contributor block can prove the corresponding previous group
+over the same input positions, regardless of its authored role spelling. Both
+groups must resolve uniquely and have no competing or overlapping association.
+
+An anchored rewrite earns native input/arrow/output columns only from an
+unambiguous typed arrow row, or explicit input/output scalar fields belonging
+to a named realization mapping. An incomplete or conflicting row stays
+neutral; independent valid array items keep their original order and item
+indices. Generic status fields qualify that mapping only when its label or
+participants establish their ownership. A blocked sibling claim cannot
+suppress a separate positive mapping, and an explicit denied or provisional
+mapping cannot borrow a sibling's success.
+
 Dispatch passes its interpreted evidence directly to the lowerer and Replay.
 An explicit feature or record-row block with exactly one current anchor can
 use the existing structured plaque regardless of that anchor's role wording.
@@ -320,6 +570,10 @@ in a feature plaque at its source. Each value row connects to the corresponding
 feature target using the shared dotted Orchard D6 connector. Case evidence is not
 required for the plaque; Case evidence independently earns a solid assignment
 arrow. No particular feature dimensions or languages are required.
+When the compiled Case dependency is explicitly blocked, its solid path retains
+the literal Case row but replaces the success arrowhead with the existing
+failed-dependency cue. Case and feature routes of the same failed claim share
+one cue; independent successful Case and failed agreement retain distinct states.
 
 Case and collection share a plaque when their exact current anchors meet at the
 same bearer, or describe the same assigner-recipient pair, in a shared authored
@@ -529,6 +783,19 @@ index on a proven movement identity may supply that argument's letter. Conflicti
 authored symbols remain unchanged and cannot select the generated notation.
 Neither similarly spelled words nor shared descendants establish identity.
 
+Recovered control emits the same matching indices as curated Control, alongside
+its connector and any explicitly supplied domain. Control and QR use the shared
+occurrence-based dependency-index allocator; a missing index does not restart
+each recovered claim at `i`. Explicit indices remain authored. Adding a generated
+dependency index may therefore renumber later generated letters in the same
+plan without changing occurrences, authored values or Replay moments.
+
+Recovered phase arcs share the curated primary/secondary arc allocation. An
+independently recovered edge outline remains a separate supported component.
+Intervention's blocked outcome belongs to its attempted path and intervener
+cross; the same evidence does not also add a generic blocking mark at the goal.
+A separately anchored judgment remains independent.
+
 When an exact movement endpoint is a wordless category leaf, attach to that
 category's shell bottom. Do not request an absent lexical child, invent a null
 or trace, or search for another nearby endpoint. Lexical endpoints still require
@@ -557,8 +824,9 @@ structural checks, outputs, and Replay transition evidence.
 | `movement.carrier` | claim | `Carrier arrow` |
 | `gap.notation` | claim | `Gap label` |
 | `identity.occurrences` | claim | `Coindex`, `Forest light` |
+| `coreference.coindex` | claim | `Coindex` |
 | `presentation.lens` | presentation companion | `Lens emphasis` |
-| `control.dependency` | claim | `Rectangular domain`, `Control connector` |
+| `control.dependency` | claim | `Rectangular domain`, `Control connector`, `Coindex` |
 | `binding.dependency` | claim | `Elliptic domain`, `Variable-binding path` |
 | `predication.dependency` | claim | `Predication connector` |
 | `parasitic-gap.paths` | claim | `Path-node rings` |
@@ -850,6 +1118,15 @@ authored judgment glyph, and optional authored explanatory label. The glyph
 and label are one plan item and cannot be attached to an unrelated verdict.
 `IllicitAnalysis` is the Tier-1 route; `judgment.verdict` is the Tier-2 route
 to the same pixels.
+Word verdicts use the tree's terminal type size; symbols retain the larger
+Orchard judgment glyph. Initial fitting may reduce their size but cannot
+enlarge them relative to the tree. Both parts then zoom as one compound.
+
+A local blocked or licensed judgment uses the existing native locality cross
+or check at its exact owning anchor. It uses the same geometry and stroke
+classes as the Orchard primitive, in tree coordinates, rather than a small
+font glyph. The mark and anchor zoom together; a local judgment does not become
+a whole-analysis verdict.
 
 Blocked Extraction owns only its diagnostic curve, the restyled native branch
 into its authored adjunct domain, and its local outcome. It owns no general
@@ -902,11 +1179,33 @@ one proved replacement at each intervening stage; matching lineage alone is
 insufficient. If a witness vanishes without that evidence, stop drawing the
 claim in the affected stage and retain its earlier Replay history.
 
-Replacement also fails closed. A later claim replaces an earlier claim only
-when its complete `priorAnchors` block resolves in the immediately preceding
-stage and names the earlier claim's participants. Same-looking later geometry
-is not enough. An unrelated claim coexists. Repeated authored entries remain
-independent claims and are handled by the visual coalescing rule below.
+Replacement also fails closed. Across changed participants, a later claim
+replaces an earlier claim only when its complete `priorAnchors` block resolves
+in the immediately preceding stage and names the earlier claim's participants.
+Same-looking later geometry is not enough. An unrelated claim coexists.
+Repeated authored entries remain independent claims and are handled by the
+visual coalescing rule below.
+
+A recovered feature collection can update its own feature fields without
+repeating `priorAnchors`. This requires one unique live collection state and
+one unique later state on the same directed participants, the same exact
+authored feature field names, and unchanged qualifiers and outcome. Every
+participant must remain a unique occurrence with unchanged lineage through
+the intervening stages. The previous plaque and its owned row connectors
+yield together at the later relation's moment; earlier frames retain their
+original content. Identical restatements still share ink and preserve all
+authored moments. Different feature fields, competing earlier or later states,
+changed outcomes, mixed Case/feature claims, and occurrence gaps do not prove
+an update. An explicit prior block that fails to resolve cannot fall back to
+this inference. This rule uses the completed collection claim, not its open
+relation name or the screen position of its plaque.
+
+A complete PF contributor transfer replaces its unique still-live earlier PF
+claim at the new relation moment. The earlier claim may have been authored
+several stages before, provided its exact contributor group and token positions
+remain established throughout the intervening stages. Earlier Replay history
+is preserved. Missing, partial, competing or unrelated prior witnesses do not
+retire a plate, and silence alone is never replacement evidence.
 
 Outputs inherit their facet's persistence unless they declare a narrower
 policy. Forest light and coindices both persist with the identity claim. During
@@ -1134,3 +1433,43 @@ The verified Tier-2 implementation proves that:
 10. extra authored values or prior anchors keep outputs separate;
 11. companions preserve their own evidence and every surviving parent claim;
 12. dispatch returns finished facet and output identities consumed by the renderer.
+
+Explicit thematic role values and role-named participants take precedence over
+role words inferred from a relation title. A predicate-context anchor does not
+compete with an explicitly supplied role introducer. Failed or pending claims
+still require the corresponding outcome handling.
+
+Corroborated Case recovery may read a conventional Case literal from an assignment
+title only when unique directed participants and an anchored Case head support
+that same literal. Additional qualifiers require their own authored witness.
+Unwitnessed qualifiers, mismatched Case features and ambiguous participants remain
+neutral; relation prose cannot supply missing structure.
+
+A nominal feature-sharing drawing owns an otherwise duplicate dependency only
+when both consume exactly the same original fields and items. Distinct Case rows,
+directed dependencies and incompatible outcomes remain independent. Head notation
+accepts the ordinary degree-sign suffix. A retained clause containing the lower
+occurrence is a phrasal landing context, not a complex head merely because its
+projection label is bare.
+
+Qualified role and property fields retain their exact participant and item
+ownership. A controller with several explicit agreement targets yields directed
+dependencies to those targets in the same relation moment; it does not become an
+undirected nominal-sharing vine. A category used as evidence for an inflectional
+head must actually be a head, not a projection whose label becomes identical
+after removing its prime.
+
+Operation recovery requires an asserted claim in its own clause. A denied,
+uncertain or merely mentioned operation cannot acquire positive dependency
+paint, and a failed sibling claim cannot suppress an independently supported
+claim. Participant-qualified form properties and PF inflection rows remain
+literal descriptions: they establish no unprovided licensing path, requirement,
+rewrite or successful outcome. An explicit Case target takes precedence over
+an additional contextual theta position when identifying that property's owner.
+
+A collection path with a compiled blocked outcome retains its dotted route and
+property plaque, with one failure cross centered between the row routes of the
+same exact comparison. A single route keeps its midpoint. Paths, cross and
+reveal masks share exact claim ownership and local coordinates. A
+successful sibling keeps its own outcome even when both routes coincide. Raw
+native Agree metadata does not by itself create an outcome graphic.

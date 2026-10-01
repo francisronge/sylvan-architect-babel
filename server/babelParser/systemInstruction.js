@@ -15,7 +15,7 @@ An occurrence moves only from a position that an earlier stage already shows. Se
 Each stage has these four required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
-- relations: an array of this stage's relations, as defined below.
+- relations: an array of relations introduced or changed in this stage.
 - workspaceForest: an array containing every currently active syntax tree or separate syntax object after these operations.
 It may then contain realizations, the optional input-association field defined below. No other stage fields are allowed.
 These fields describe the same analysis. Show the structure the stage record requires, including intermediate positions that matter. Higher structure must preserve or build its lower structure within the chronological derivation. After objects combine, show their combined structure rather than retaining their former independent roots.

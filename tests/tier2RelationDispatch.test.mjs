@@ -71,9 +71,8 @@ test('a thematic participant alone cannot earn a predication connector', () => {
   const relation = { relation: 'Passive properties', anchors: { predicate: 'p', theme: 'a' },
     values: { structuralAccusative: 'unavailable to the theme' } };
   const result = dispatch(relation, forest);
-  assert.deepEqual(facetIds(result), []);
-  assert.deepEqual(result.primaryRelation, relation);
-  assert.deepEqual(claimTiers(result), [3]);
+  assert.deepEqual(facetIds(result), ['theta-grid']);
+  assert(!facetIds(result).includes('predication.dependency'));
   for (const key of ['predicand', 'subject', 'predicateSubject']) {
     assert.deepEqual(facetIds(dispatch({ relation: 'Authored predication', anchors: { predicate: 'p', [key]: 'a' } }, forest)),
       ['predication.dependency']);
@@ -139,8 +138,11 @@ test('licensing equivalents do not establish Agree or supply missing direction, 
     { nonLicenser: 'a', recipient: 'b' }, { unlicensedHead: 'a', recipient: 'b' },
     { licenser: 'a', recipient: 'missing' }, { licenser: ['a', 'c'], recipient: 'b' },
     { licenser: 'a', licensor: 'c', recipient: 'b' }
-  ]) assert.deepEqual(facetIds(dispatch({ relation: 'Case licensing', anchors,
-    values: { case: 'nominative' } }, forest)), [], JSON.stringify(anchors));
+  ]) {
+    const result = dispatch({ relation: 'Case licensing', anchors, values: { case: 'nominative' } }, forest);
+    assert(!facetIds(result).includes('feature.dependency'), JSON.stringify(anchors));
+    assert.deepEqual(facetIds(result), anchors.recipient === 'missing' ? [] : ['plaque.structured']);
+  }
 });
 
 test('shared tree indices are discarded between evaluations of changing forests', () => {

@@ -46,3 +46,76 @@ test('different paths or exact endpoints remain separate, including the two D6 s
   assert.equal(coalesceCollectionPaths([paths[0]]).length + coalesceCollectionPaths([paths[0]]).length, 2,
     'separate plaques never share a drawing bucket');
 });
+
+test('identical collector curves preserve separate successful and blocked owners', () => {
+  const success = claim('plural', 0), blocked = { ...claim('plural', 1), outcome: 'blocked' };
+  const d = 'M 0 0 C 0 40 100 60 100 100';
+  const paths = coalesceCollectionPaths([{ d, item: success }, { d, item: blocked }]);
+  assert.equal(paths.length, 2);
+  assert.deepEqual(paths.map(p => [p.item.outcome, planItemRelationRefs(p.item).map(r => r.relationIndex)]),
+    [[undefined, [0]], ['blocked', [1]]]);
+  const repeated = coalesceCollectionPaths([{ d, item: blocked }, { d, item: { ...blocked, relationRef: { stageIndex: 0, relationIndex: 2 } } }]);
+  assert.equal(repeated.length, 1);
+  assert.equal(repeated[0].item.outcome, 'blocked');
+  assert.deepEqual(planItemRelationRefs(repeated[0].item).map(r => r.relationIndex), [1, 2]);
+});
+
+test('different feature rows of one exact failed comparison share a cue, not a path', () => {
+  const first = { ...claim('plural'), outcome: 'blocked', tier2ClaimIdentity: 'comparison-a' };
+  const second = { ...first, featureRow: { label: 'actual', value: 'singular' } };
+  const paths = [{ d: 'M 20 0 C 20 40 100 60 100 100', item: first },
+    { d: 'M 0 0 C 0 40 100 60 100 100', item: second }];
+  const original = structuredClone(paths);
+  const drawn = coalesceCollectionPaths(paths);
+  assert.equal(drawn.length, 2);
+  assert.deepEqual(drawn.map(path => path.item), paths.map(path => path.item));
+  assert.deepEqual(drawn.map(path => path.d), paths.map(path => path.d));
+  assert.equal(drawn.filter(path => path.failureCue !== false).length, 1);
+  assert.deepEqual(drawn[0].failureCue, paths.map(path => path.d),
+    'the shared cue must measure every row route in this exact comparison');
+  assert.deepEqual(coalesceCollectionPaths([...paths].reverse())[0].failureCue,
+    paths.map(path => path.d).reverse(), 'row order cannot choose which connector carries the comparison');
+  assert.deepEqual(paths, original);
+  assert.equal(coalesceCollectionPaths(paths.slice(1)).filter(path => path.failureCue !== false).length, 1,
+    'a newly rendered plaque must own its cue independently of a prior render');
+});
+
+test('failure cues stay separate without identical compiled claims, endpoints and visible owners', () => {
+  const item = { ...claim('plural'), outcome: 'blocked', tier2ClaimIdentity: 'comparison-a' };
+  for (const other of [
+    { ...item, tier2ClaimIdentity: 'comparison-b' },
+    { ...item, toNodeId: 'another-nominal' },
+    { ...item, fromNodeId: 'another-source' },
+    { ...item, relationRef: { stageIndex: 0, relationIndex: 1 } },
+    { ...item, composedRefs: [{ stageIndex: 1, relationIndex: 0 }] },
+    { ...item, tier2ClaimIdentity: undefined }
+  ]) {
+    const drawn = coalesceCollectionPaths([{ d: 'M 20 0 C 20 40 100 60 100 100', item },
+      { d: 'M 0 0 C 0 40 100 60 100 100', item: other }]);
+    assert.equal(drawn.filter(path => path.failureCue !== false).length, 2);
+    assert.deepEqual(drawn[0].failureCue, [drawn[0].d]);
+    assert.deepEqual(drawn[1].failureCue ?? [drawn[1].d], [drawn[1].d]);
+  }
+});
+
+test('a blocked Case and its feature rows share one failure cue while retaining their distinct native paths', () => {
+  const comparison = { ...claim('singular'), outcome: 'blocked', tier2ClaimIdentity: 'failed-dependency' };
+  const assignment = { ...comparison, pathStyle: 'case-assignment', label: 'nominative' };
+  const input = [{ d: 'M 0 0 C 10 20 80 20 100 40', item: assignment },
+    { d: 'M 0 50 C 10 60 80 60 100 70', item: comparison }];
+  const original = structuredClone(input);
+  const output = coalesceCollectionPaths(input);
+  assert.equal(output.length, 2);
+  assert.deepEqual(output.map(path => path.item.pathStyle), ['case-assignment', 'case-agree']);
+  assert.deepEqual(output[0].failureCue, input.map(path => path.d));
+  assert.equal(output[1].failureCue, false);
+  assert.deepEqual(input, original);
+  const sameInk = coalesceCollectionPaths(input.map(path => ({ ...path, d: input[0].d })));
+  assert.equal(sameInk.length, 2, 'a solid assignment and dotted collection cannot replace each other');
+  const independent = coalesceCollectionPaths([input[0], { ...input[1], item: {
+    ...comparison, tier2ClaimIdentity: 'another-comparison' } }]);
+  assert.equal(independent.filter(path => path.failureCue !== false).length, 2);
+  const successfulCase = coalesceCollectionPaths([{ ...input[0], item: { ...assignment, outcome: 'licensed' } }, input[1]]);
+  assert.equal(successfulCase[0].failureCue, undefined, 'independent successful Case acquires no failure cue');
+  assert.deepEqual(successfulCase[1].failureCue, [input[1].d]);
+});

@@ -1,0 +1,1050 @@
+{
+  "sentence": "Nora revised the article, and Felix did too.",
+  "inputTokens": [
+    "Nora",
+    "revised",
+    "the",
+    "article",
+    "and",
+    "Felix",
+    "did",
+    "too"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "objA",
+            "assigner": "vA"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "objA",
+            "governor": "vA"
+          },
+          "relation": "accusative Case under government",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "objB",
+            "assigner": "vB"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "objB",
+            "governor": "vB"
+          },
+          "relation": "accusative Case under government",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "stageRecord": "The analysis uses NP for nominal projections and IP for finite clauses. Each verb projects a V′ containing its direct-object NP, and that V′ projects VP. The first verb is the lexically inflected form revised. The second VP contains the reconstructed predicate revise the article: its terminals have not been associated with input tokens, and its eventual nonpronunciation has not yet been established. These are distinct syntactic occurrences, not movement copies. Each verb assigns its object the Theme theta-role and accusative Case under government. Nora and Felix are constructed as separate subject NPs, awaiting clausal positions.",
+      "statement": "Construct the subjects and the two transitive verb phrases.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "nora",
+                  "label": "N⁰",
+                  "tokenIndex": 0,
+                  "word": "Nora"
+                }
+              ],
+              "id": "subjNbarA",
+              "label": "N′"
+            }
+          ],
+          "id": "subjA",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "vA",
+                  "label": "V⁰",
+                  "tokenIndex": 1,
+                  "word": "revised"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "detA",
+                      "label": "D⁰",
+                      "tokenIndex": 2,
+                      "word": "the"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "articleA",
+                          "label": "N⁰",
+                          "tokenIndex": 3,
+                          "word": "article"
+                        }
+                      ],
+                      "id": "objNbarA",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "objA",
+                  "label": "NP"
+                }
+              ],
+              "id": "vbarA",
+              "label": "V′"
+            }
+          ],
+          "id": "vpA",
+          "label": "VP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "felix",
+                  "label": "N⁰",
+                  "tokenIndex": 5,
+                  "word": "Felix"
+                }
+              ],
+              "id": "subjNbarB",
+              "label": "N′"
+            }
+          ],
+          "id": "subjB",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "vB",
+                  "label": "V⁰",
+                  "word": "revise"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "detB",
+                      "label": "D⁰",
+                      "word": "the"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "articleB",
+                          "label": "N⁰",
+                          "word": "article"
+                        }
+                      ],
+                      "id": "objNbarB",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "objB",
+                  "label": "NP"
+                }
+              ],
+              "id": "vbarB",
+              "label": "V′"
+            }
+          ],
+          "id": "vpB",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "subjA",
+            "predicate": "vpA"
+          },
+          "relation": "external theta-role assignment through predication",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "subjA",
+            "finiteHead": "iA"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "inflectedVerb": "vA",
+            "subject": "subjA",
+            "tenseHead": "iA"
+          },
+          "relation": "local finite-inflection licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "implementation": "lexically inflected V licensed by abstract I",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "subjB",
+            "predicate": "vpB"
+          },
+          "relation": "external theta-role assignment through predication",
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "subjB",
+            "finiteHead": "iB"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "Each VP combines with an abstract past-tense I⁰ to form I′, and its subject occupies Spec-IP. This adopts the GB implementation in which external arguments are introduced in Spec-IP, rather than first occupying a VP-internal position; consequently, no subject movement or subject trace is required. The VP assigns the Agent role to its subject through predication, and finite I licenses nominative Case. For the first conjunct, a lexicalist treatment of inflection licenses the already inflected verb revised through its local tense relationship with abstract I; neither V-to-I movement nor affix lowering is posited. The second I carries past tense but still lacks an overt exponent. Its reconstructed verb remains in the base form because the eventual finite exponent will be auxiliary did.",
+      "statement": "Build finite IPs and license their subjects and tense.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "nora",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Nora"
+                    }
+                  ],
+                  "id": "subjNbarA",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjA",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iA",
+                  "label": "I⁰[past, finite]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vA",
+                          "label": "V⁰",
+                          "tokenIndex": 1,
+                          "word": "revised"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detA",
+                              "label": "D⁰",
+                              "tokenIndex": 2,
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleA",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarA",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objA",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbarA",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpA",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarA",
+              "label": "I′"
+            }
+          ],
+          "id": "ipA",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "felix",
+                      "label": "N⁰",
+                      "tokenIndex": 5,
+                      "word": "Felix"
+                    }
+                  ],
+                  "id": "subjNbarB",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjB",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iB",
+                  "label": "I⁰[past, finite]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vB",
+                          "label": "V⁰",
+                          "word": "revise"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detB",
+                              "label": "D⁰",
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleB",
+                                  "label": "N⁰",
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarB",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objB",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbarB",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpB",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarB",
+              "label": "I′"
+            }
+          ],
+          "id": "ipB",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedent": "vpA",
+            "ellipsisSite": "vpB"
+          },
+          "relation": "VP-ellipsis antecedence",
+          "values": {
+            "identityCondition": "matching lexical predicate and object interpretation, abstracting from finite realization",
+            "recoveredPredicate": "revise the article"
+          }
+        },
+        {
+          "anchors": {
+            "antecedentObject": "objA",
+            "reconstructedObject": "objB"
+          },
+          "relation": "referential identity of reconstructed object",
+          "values": {
+            "interpretation": "the same contextually identified article"
+          }
+        },
+        {
+          "anchors": {
+            "deletedDomain": "vpB",
+            "licensingAntecedent": "vpA",
+            "survivingFiniteHead": "iB"
+          },
+          "priorAnchors": {
+            "previouslyConstructedDomain": "vpB"
+          },
+          "relation": "PF deletion",
+          "values": {
+            "effect": "suppress pronunciation without removing syntactic structure"
+          }
+        }
+      ],
+      "stageRecord": "The first VP supplies the antecedent for the second VP. Their lexical predicate and object interpretation match: the second clause predicates revision of the same contextually identified article, now with Felix as its external argument. The difference between revised and revise concerns finite realization, not the identity of the recovered predicate. Antecedent identification licenses VP ellipsis, after which the entire second VP is marked unpronounced. This is a PF-deletion analysis, not an analysis of did as a transitive lexical verb or an unanalyzed substitute for the whole predicate. The deleted VP retains its internal structure, theta-role assignments, and object Case. Its subject and finite I lie outside the deletion domain.",
+      "statement": "License the second VP by the first and suppress its pronunciation.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "nora",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Nora"
+                    }
+                  ],
+                  "id": "subjNbarA",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjA",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iA",
+                  "label": "I⁰[past, finite]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vA",
+                          "label": "V⁰",
+                          "tokenIndex": 1,
+                          "word": "revised"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detA",
+                              "label": "D⁰",
+                              "tokenIndex": 2,
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleA",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarA",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objA",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbarA",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpA",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarA",
+              "label": "I′"
+            }
+          ],
+          "id": "ipA",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "felix",
+                      "label": "N⁰",
+                      "tokenIndex": 5,
+                      "word": "Felix"
+                    }
+                  ],
+                  "id": "subjNbarB",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjB",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iB",
+                  "label": "I⁰[past, finite]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vB",
+                          "label": "V⁰",
+                          "silent": true,
+                          "word": "revise"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detB",
+                              "label": "D⁰",
+                              "silent": true,
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleB",
+                                  "label": "N⁰",
+                                  "silent": true,
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarB",
+                              "label": "N′",
+                              "silent": true
+                            }
+                          ],
+                          "id": "objB",
+                          "label": "NP",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vbarB",
+                      "label": "V′",
+                      "silent": true
+                    }
+                  ],
+                  "id": "vpB",
+                  "label": "VP",
+                  "silent": true
+                }
+              ],
+              "id": "ibarB",
+              "label": "I′"
+            }
+          ],
+          "id": "ipB",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "deletedComplement": "vpB",
+            "realizedFiniteHead": "iB"
+          },
+          "priorAnchors": {
+            "abstractFiniteHead": "iB",
+            "alreadySilentComplement": "vpB"
+          },
+          "relation": "do-support under VP ellipsis",
+          "values": {
+            "exponent": "did",
+            "operation": "insert inflected auxiliary do in I",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "With the second VP committed to nonpronunciation, its lexical verb cannot provide an overt finite realization. Do-support therefore supplies did directly in the already constructed I⁰ position, expressing past tense outside the deleted VP. Did is treated as one inflected auxiliary terminal, so no separate stem–suffix realization group is needed. This is insertion into I, not movement of the reconstructed lexical verb; the deleted verb remains in its original V⁰ position. The abstract first-conjunct I remains unpronounced because revised already realizes that clause's finite verbal morphology.",
+      "statement": "Realize the surviving finite head as did.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "nora",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Nora"
+                    }
+                  ],
+                  "id": "subjNbarA",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjA",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iA",
+                  "label": "I⁰[past, finite]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vA",
+                          "label": "V⁰",
+                          "tokenIndex": 1,
+                          "word": "revised"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detA",
+                              "label": "D⁰",
+                              "tokenIndex": 2,
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleA",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarA",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "objA",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbarA",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpA",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarA",
+              "label": "I′"
+            }
+          ],
+          "id": "ipA",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "felix",
+                      "label": "N⁰",
+                      "tokenIndex": 5,
+                      "word": "Felix"
+                    }
+                  ],
+                  "id": "subjNbarB",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjB",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iB",
+                  "label": "I⁰[past, finite; auxiliary]",
+                  "silent": false,
+                  "tokenIndex": 6,
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vB",
+                          "label": "V⁰",
+                          "silent": true,
+                          "word": "revise"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "detB",
+                              "label": "D⁰",
+                              "silent": true,
+                              "word": "the"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "articleB",
+                                  "label": "N⁰",
+                                  "silent": true,
+                                  "word": "article"
+                                }
+                              ],
+                              "id": "objNbarB",
+                              "label": "N′",
+                              "silent": true
+                            }
+                          ],
+                          "id": "objB",
+                          "label": "NP",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vbarB",
+                      "label": "V′",
+                      "silent": true
+                    }
+                  ],
+                  "id": "vpB",
+                  "label": "VP",
+                  "silent": true
+                }
+              ],
+              "id": "ibarB",
+              "label": "I′"
+            }
+          ],
+          "id": "ipB",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "additiveOperator": "too",
+            "alternative": "subjA",
+            "antecedentClause": "ipA",
+            "associate": "subjB",
+            "modifiedPredication": "ibarBOuter"
+          },
+          "relation": "additive association",
+          "values": {
+            "interpretation": "Felix revised the article in addition to Nora"
+          }
+        }
+      ],
+      "stageRecord": "Too projects AdvP and right-adjoins to the second I′, outside the VP-deletion domain. This attachment lets too modify the surviving predication while remaining pronounced after did. Its additive interpretation associates Felix with the alternative subject Nora: the antecedent establishes that Nora revised the article, and the second clause asserts that Felix did so as well. The two finite IPs then form a binary X-bar coordination headed by and, with the first IP in the specifier position of ConjP and the second as the complement of Conj⁰. No CP layer, wh-movement, or A′-dependency is required for these coordinated declaratives. The completed structure pronounces exactly the supplied tokens; the reconstructed VP remains syntactically present but silent.",
+      "statement": "Complete additive modification and coordination.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nora",
+                          "label": "N⁰",
+                          "tokenIndex": 0,
+                          "word": "Nora"
+                        }
+                      ],
+                      "id": "subjNbarA",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjA",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "iA",
+                      "label": "I⁰[past, finite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vA",
+                              "label": "V⁰",
+                              "tokenIndex": 1,
+                              "word": "revised"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "detA",
+                                  "label": "D⁰",
+                                  "tokenIndex": 2,
+                                  "word": "the"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "articleA",
+                                      "label": "N⁰",
+                                      "tokenIndex": 3,
+                                      "word": "article"
+                                    }
+                                  ],
+                                  "id": "objNbarA",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "objA",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "vbarA",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vpA",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibarA",
+                  "label": "I′"
+                }
+              ],
+              "id": "ipA",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and",
+                  "label": "Conj⁰",
+                  "tokenIndex": 4,
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "felix",
+                              "label": "N⁰",
+                              "tokenIndex": 5,
+                              "word": "Felix"
+                            }
+                          ],
+                          "id": "subjNbarB",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "subjB",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iB",
+                              "label": "I⁰[past, finite; auxiliary]",
+                              "silent": false,
+                              "tokenIndex": 6,
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vB",
+                                      "label": "V⁰",
+                                      "silent": true,
+                                      "word": "revise"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "detB",
+                                          "label": "D⁰",
+                                          "silent": true,
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "articleB",
+                                              "label": "N⁰",
+                                              "silent": true,
+                                              "word": "article"
+                                            }
+                                          ],
+                                          "id": "objNbarB",
+                                          "label": "N′",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "objB",
+                                      "label": "NP",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vbarB",
+                                  "label": "V′",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "vpB",
+                              "label": "VP",
+                              "silent": true
+                            }
+                          ],
+                          "id": "ibarB",
+                          "label": "I′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "too",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 7,
+                                  "word": "too"
+                                }
+                              ],
+                              "id": "advbarToo",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "advpToo",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "ibarBOuter",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ipB",
+                  "label": "IP"
+                }
+              ],
+              "id": "conjbar",
+              "label": "Conj′"
+            }
+          ],
+          "id": "coord",
+          "label": "ConjP"
+        }
+      ]
+    }
+  ]
+}

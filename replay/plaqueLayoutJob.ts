@@ -1,4 +1,4 @@
-import { buildReplayPlaqueLayouts, measureStagePlaqueSpace, type StageLayoutInput } from './stageCamera.ts';
+import { buildReplayPlaqueSchedule, measureStagePlaqueSpace, type StageLayoutInput } from './stageCamera.ts';
 import { prepareStagePlaqueRequests } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMetrics, PlaqueTextStyle } from './relations/plaqueTextLayout.ts';
 
@@ -26,6 +26,9 @@ export function* measurePlaqueLayoutJob(input: StageLayoutInput): Generator<void
   for (let stageIndex = 0; stageIndex < (input.plan?.frames.length ?? 0); stageIndex++) {
     const space = measureStagePlaqueSpace({ ...input, stageIndex, measureCategoryText });
     prepareStagePlaqueRequests(input.plan!.frames[stageIndex].items, space.nodes, measurePlaqueText);
+    for (const scene of space.scenes) {
+      prepareStagePlaqueRequests(input.plan!.frames[stageIndex].items, scene.nodes, measurePlaqueText);
+    }
     yield;
   }
   const { measureCategoryText: _category, measurePlaqueText: _plaque, ...serializable } = input;
@@ -38,7 +41,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob) {
     if (!map.has(key)) throw new Error('Missing measured text in Replay layout.');
     return map.get(key)!;
   };
-  return buildReplayPlaqueLayouts({ ...job.input,
+  return buildReplayPlaqueSchedule({ ...job.input,
     measureCategoryText: job.categories.size ? text => required(job.categories, text) : undefined,
     measurePlaqueText: job.plaques.size ? (text, style) => required(job.plaques, textKey(text, style)) : undefined
   });

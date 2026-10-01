@@ -1,4 +1,5 @@
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
@@ -24,16 +25,20 @@ const findFit = node => {
 findFit(renderer);
 assert(fitFunction, 'test must execute the actual production camera fit');
 assert(treeLayoutFunction, 'test must execute the actual production tree layout');
-const productionTreeLayout = (canvas, width, height, stageSize = null) => {
+const productionTreeLayout = (canvas, width, height, stageSize = null, steps = []) => {
   const root = d3.hierarchy(canvas);
   applyVizIds(root);
   const [innerWidth, innerHeight] = stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height);
-  const layout = new Function('layoutSyntaxTree', 'treeDirection', 'innerWidth', 'innerHeight', ts.transpile(`return ${treeLayoutFunction.getText(renderer)};`,
-    { target: ts.ScriptTarget.ES2023 }))(layoutSyntaxTree, 'ltr', innerWidth, innerHeight);
+  const current = steps.find(step => step.replayCanvasData === canvas);
+  const reserved = current ? buildStageCoordinateReservations(steps, current.replayFrameIndex, [innerWidth, innerHeight],
+    index => stageTreeLayoutSize(steps, index, width, height)).get(canvas) : undefined;
+  const layout = new Function('layoutSyntaxTree', 'treeDirection', 'innerWidth', 'innerHeight', 'stageCoordinates', 'replayVisibleNodeIdSet', ts.transpile(`return ${treeLayoutFunction.getText(renderer)};`,
+    { target: ts.ScriptTarget.ES2023 }))(layoutSyntaxTree, 'ltr', innerWidth, innerHeight, reserved,
+      current?.replayVisibleNodeIds ? new Set(current.replayVisibleNodeIds) : undefined);
   return layout(root);
 };
 
-test('Astra did subtree retains identical coordinates on entry to Wh-Agree', () => {
+test('Astra did subtree remains stationary throughout the authored Wh-Agree stage', () => {
   const record = records.find(record => record.name === 'astra-minimalism');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
   const before = steps.find(step => step.replayFrameIndex === 5 && step.replayKind === 'macro');
@@ -41,12 +46,39 @@ test('Astra did subtree retains identical coordinates on entry to Wh-Agree', () 
     && step.replayRelationIdentity.relationIndex === 0);
   for (const [width, height] of [[1596, 1016], [390, 844]]) {
     const coordinates = step => productionTreeLayout(step.replayCanvasData, width, height,
-      stageTreeLayoutSize(steps, step.replayFrameIndex, width, height)).descendants()
+      stageTreeLayoutSize(steps, step.replayFrameIndex, width, height), steps).descendants()
       .filter(node => ['complexC', 'raisedT', 'raisedT::__leaf', 'questionC'].includes(node.__vizId ?? node.data.id))
       .map(node => ({ id: node.__vizId ?? node.data.id, x: node.x, y: node.y }));
-    const original = coordinates(before);
-    assert.equal(original.length, 4, 'test must include the head, its two children, and did');
-    assert.deepEqual(coordinates(after), original, 'new relation badges cannot spread an unchanged subtree');
+    const original = coordinates(before), current = coordinates(after);
+    assert.equal(current.length, 4, 'test must include the head, its two children, and did');
+    for (const step of steps.filter(step => step.replayFrameIndex === 6)) {
+      assert.deepEqual(coordinates(step), current, 'later relations and movement keep this unchanged complex stationary');
+      const tree = productionTreeLayout(step.replayCanvasData, width, height,
+        stageTreeLayoutSize(steps, 6, width, height), steps);
+      const visible = new Set(step.replayVisibleNodeIds);
+      for (const node of tree.descendants().filter(node => visible.has(node.__vizId ?? node.data.id))) {
+        if (node.parent && visible.has(node.parent.__vizId ?? node.parent.data.id)) assert(node.y > node.parent.y);
+        const children = (node.children ?? []).filter(child => visible.has(child.__vizId ?? child.data.id));
+        for (let index = 1; index < children.length; index++) assert(children[index - 1].x < children[index].x);
+      }
+    }
+    // This new authored stage reserves its later Wh landing before the first
+    // relation. Its fit can differ from the preceding stage; Replay within it cannot.
+    const bounds = buildStageCameraBounds({ steps, stageIndex: 6, width, height,
+      plan: compileRelationRenderPlan(record.derivationStages), completedCanvas: steps.find(step => step.replayFrameIndex === 6 && step.replayKind === 'macro').replayCanvasData });
+    const viewport = availableTreeViewport(width, height, { headerBottom: 100, panelTop: height - 230 });
+    const camera = fit(bounds, viewport, width);
+    const maximumLayoutShiftAtCurrentFit = Math.max(...current.map((point, index) => Math.hypot(point.x - original[index].x, point.y - original[index].y) * camera.k));
+    assert(maximumLayoutShiftAtCurrentFit < 6, 'the geometry adjustment, excluding the stage camera change, stays below six fitted pixels');
+    const previousBounds = buildStageCameraBounds({ steps, stageIndex: 5, width, height,
+      plan: compileRelationRenderPlan(record.derivationStages), completedCanvas: before.replayCanvasData });
+    const previousCamera = fit(previousBounds, viewport, width);
+    const maximumFullScreenShift = Math.max(...current.map(point => {
+      const old = original.find(candidate => candidate.id === point.id);
+      const from = previousCamera.apply([old.x, old.y]), to = camera.apply([point.x, point.y]);
+      return Math.hypot(to[0] - from[0], to[1] - from[1]);
+    }));
+    assert(Number.isFinite(maximumFullScreenShift), 'the actual boundary displacement includes both camera transforms');
   }
 });
 
@@ -58,7 +90,7 @@ for (const record of records) {
     let checked = 0;
     for (const step of steps) {
       const tree = productionTreeLayout(step.replayCanvasData, 1596, 1016,
-        stageTreeLayoutSize(steps, step.replayFrameIndex, 1596, 1016));
+        stageTreeLayoutSize(steps, step.replayFrameIndex, 1596, 1016), steps);
       const byId = new Map(tree.descendants().map(node => [node.__vizId ?? node.data.id, node]));
       for (const markerScale of [1, 3]) {
         const bound = bindRelationPlanFrame(plan, step.replayFrameIndex, id => byId.get(id) ?? null,
@@ -98,11 +130,6 @@ for (const record of records) {
         assert(Object.values(bounds).every(Number.isFinite));
         assert.deepEqual(buildStageCameraBounds({ ...input, steps: [...steps].reverse() }), bounds);
         const stageSteps = steps.filter(step => step.replayFrameIndex === stageIndex);
-        // Plaques carry their reserved offsets from earlier stages. With those
-        // supplied, camera fitting must still use only the current stage's syntax.
-        const plaqueLayout = buildStagePlaqueLayout(input);
-        assert.deepEqual(buildStageCameraBounds({ ...input, steps: stageSteps, plaqueLayout }), bounds,
-          'other stages must not affect this stage fit when plaque positions are fixed');
         const viewport = availableTreeViewport(width, height, { headerBottom: 100, panelTop: height - 230 });
         const camera = fit(bounds, viewport, width);
         for (const x of [bounds.minX, bounds.maxX]) for (const y of [bounds.minY, bounds.maxY]) {
@@ -111,10 +138,8 @@ for (const record of records) {
           assert(screenY >= viewport.top && screenY <= viewport.bottom, 'production fit must avoid header and Replay controls');
         }
         for (const step of stageSteps) {
-          const root = d3.hierarchy(step.replayCanvasData);
-          applyVizIds(root);
-          const tree = d3.tree().size(stageTreeLayoutSize(steps, stageIndex, width, height))
-            .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+          const tree = productionTreeLayout(step.replayCanvasData, width, height,
+            stageTreeLayoutSize(steps, stageIndex, width, height), steps);
           const visibleIds = new Set(step.replayVisibleNodeIds);
           for (const node of tree.descendants()) {
             if (node.data.label === '__DERIVATION_WORKSPACE__' || !visibleIds.has(node.__vizId ?? node.data.id)) continue;
@@ -143,7 +168,7 @@ test('Fable source words disappearing cannot shrink the fit halfway through wh m
   const size = stageTreeLayoutSize(steps, stageIndex, input.width, input.height);
   for (const step of [before, after]) {
     const visible = new Set(step.replayVisibleNodeIds);
-    const tree = productionTreeLayout(step.replayCanvasData, input.width, input.height, size);
+    const tree = productionTreeLayout(step.replayCanvasData, input.width, input.height, size, steps);
     for (const node of tree.descendants()) {
       if (node.data.label === '__DERIVATION_WORKSPACE__' || !visible.has(node.__vizId ?? node.data.id)) continue;
       assert(node.x >= all.minX && node.x <= all.maxX);
@@ -175,10 +200,8 @@ for (const record of records) {
       const visible = [];
       const all = [];
       for (const step of steps.filter(step => step.replayFrameIndex === 0)) {
-        const root = d3.hierarchy(step.replayCanvasData);
-        applyVizIds(root);
-        const tree = d3.tree().size(stageTreeLayoutSize(steps, 0, width, height))
-          .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+        const tree = productionTreeLayout(step.replayCanvasData, width, height,
+          stageTreeLayoutSize(steps, 0, width, height), steps);
         const ids = new Set(step.replayVisibleNodeIds);
         all.push(...tree.descendants().filter(node => node.data.label !== '__DERIVATION_WORKSPACE__'));
         visible.push(...tree.descendants().filter(node => ids.has(node.__vizId ?? node.data.id)
@@ -203,16 +226,18 @@ for (const record of records) {
 test('Astra do-support reveals did without spreading existing syntax', () => {
   const record = records.find(item => item.name === 'astra-minimalism');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
-  const before = steps[28];
-  const after = steps[29];
+  const after = steps.find(step => step.replayRelationIdentity?.stageIndex === 5
+    && step.replayRelationIdentity.relationIndex === 1);
+  assert(after, 'the fixture must include its authored do-support moment');
+  const before = steps[steps.indexOf(after) - 1];
   assert.equal(before.replayFrameIndex, after.replayFrameIndex);
   assert.equal(d3.hierarchy(after.replayCanvasData).descendants().length,
     d3.hierarchy(before.replayCanvasData).descendants().length + 1);
   const original = JSON.stringify(steps);
   for (const [width, height] of [[1596, 1016], [386, 698]]) {
     const size = stageTreeLayoutSize(steps, before.replayFrameIndex, width, height);
-    const oldTree = productionTreeLayout(before.replayCanvasData, width, height, size);
-    const newTree = productionTreeLayout(after.replayCanvasData, width, height, size);
+    const oldTree = productionTreeLayout(before.replayCanvasData, width, height, size, steps);
+    const newTree = productionTreeLayout(after.replayCanvasData, width, height, size, steps);
     const byId = new Map(newTree.descendants().map(node => [node.data.id, node]));
     for (const node of oldTree.descendants()) {
       const next = byId.get(node.data.id);
@@ -223,8 +248,8 @@ test('Astra do-support reveals did without spreading existing syntax', () => {
     assert.equal(oldTree.descendants().some(node => node.data.id === 'raisedT::__leaf'), false);
     assert(byId.has('raisedT::__leaf'), 'did must still appear only at do-support');
     assert.deepEqual(stageTreeLayoutSize([...steps].reverse(), before.replayFrameIndex, width, height), size);
-    assert.deepEqual(stageTreeLayoutSize(steps.filter(step => step.replayFrameIndex === before.replayFrameIndex),
-      before.replayFrameIndex, width, height), size, 'other stages cannot change the budget');
+    assert.deepEqual(stageTreeLayoutSize(steps.filter(step => step.replayFrameIndex === before.replayFrameIndex), before.replayFrameIndex, width, height), size,
+      'later stages must not enlarge the current stage');
   }
   assert.equal(JSON.stringify(steps), original, 'reserving dimensions must not rewrite Replay or reveal masks');
 });

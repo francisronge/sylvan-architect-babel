@@ -70,7 +70,7 @@ const OVERLAY_SELECTORS = {
 };
 
 const collectCards = (selectors) => Array.from(
-  document.querySelectorAll('#babel-current-renderer-lab .babel-render-card')
+  document.querySelectorAll('#babel-current-renderer-lab > .babel-render-grid:not(.babel-fbproto-lane) > .babel-render-card')
 ).map((card) => {
   const text = card.textContent || '';
   const replayMatch = text.match(/Replay\s+(\d+)\s*\/\s*(\d+)/);
@@ -102,6 +102,7 @@ const main = async () => {
   const browser = await chromium.launch(resolveChromiumLaunchOptions({ headless: true }));
   const consoleErrors = [];
   let cards = [];
+  let sourceImages = { entries: 0, illustratedEntries: 0, images: 0, broken: [] };
 
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1200 } });
@@ -111,13 +112,14 @@ const main = async () => {
     page.on('pageerror', (error) => consoleErrors.push(`pageerror: ${error.message}`));
 
     await page.goto(pathToFileURL(ORCHARD_PAGE).href, { waitUntil: 'load' });
-    await page.waitForSelector('.babel-render-card', { timeout: SETTLE_TIMEOUT_MS });
+    await page.waitForSelector('#babel-current-renderer-lab > .babel-render-grid:not(.babel-fbproto-lane) > .babel-render-card', { timeout: SETTLE_TIMEOUT_MS });
+    await page.waitForSelector('#babel-selected-sources .babel-source-figure-entry', { timeout: SETTLE_TIMEOUT_MS });
 
     // The lab walks each card to its final replay frame on a timer. Wait for
     // every card to stop advancing rather than guessing a fixed delay.
     await page.waitForFunction(() => {
       const counters = Array.from(
-        document.querySelectorAll('#babel-current-renderer-lab .babel-render-card')
+        document.querySelectorAll('#babel-current-renderer-lab > .babel-render-grid:not(.babel-fbproto-lane) > .babel-render-card')
       )
         .map((card) => (card.textContent || '').match(/Replay\s+(\d+)\s*\/\s*(\d+)/))
         .filter(Boolean);
@@ -131,7 +133,7 @@ const main = async () => {
      * stops changing, otherwise this harness reports false "nothing drawn".
      */
     const countOverlayElements = (selectors) => Array.from(
-      document.querySelectorAll('#babel-current-renderer-lab .babel-render-card')
+      document.querySelectorAll('#babel-current-renderer-lab > .babel-render-grid:not(.babel-fbproto-lane) > .babel-render-card')
     ).reduce((total, card) => total + Object.values(selectors)
       .reduce((cardTotal, selector) => cardTotal + card.querySelectorAll(selector).length, 0), 0);
 
@@ -147,6 +149,23 @@ const main = async () => {
     }
 
     cards = await page.evaluate(collectCards, OVERLAY_SELECTORS);
+    sourceImages = await page.evaluate(async () => {
+      const entries = Array.from(document.querySelectorAll('#babel-selected-sources .babel-source-figure-entry'));
+      const urls = [...new Set(entries.flatMap((entry) =>
+        Array.from(entry.querySelectorAll('img')).map((img) => img.src)))];
+      const broken = (await Promise.all(urls.map((url) => new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve(null);
+        image.onerror = () => resolve(url);
+        image.src = url;
+      })))).filter(Boolean);
+      return {
+        entries: entries.length,
+        illustratedEntries: entries.filter((entry) => entry.querySelector('img')).length,
+        images: urls.length,
+        broken
+      };
+    });
   } finally {
     await browser.close();
   }
@@ -165,10 +184,11 @@ const main = async () => {
   );
 
   if (asJson) {
-    console.log(JSON.stringify({ cards, consoleErrors }, null, 2));
+    console.log(JSON.stringify({ cards, sourceImages, consoleErrors }, null, 2));
   } else {
     console.log(`Orchard page: ${ORCHARD_PAGE}`);
     console.log(`Active cards: ${activeCards.length}   Inactive history: ${historyCards.length}\n`);
+    console.log(`Source images: ${sourceImages.images} loaded for ${sourceImages.illustratedEntries}/${sourceImages.entries} entries\n`);
     const pad = (value, width) => String(value).padEnd(width);
     console.log(`${pad('card', 44)}${pad('replay', 9)}${pad('labels', 8)}overlays`);
     cards.forEach((card) => {
@@ -197,12 +217,18 @@ const main = async () => {
       console.log(`\nConsole errors (${consoleErrors.length}):`);
       Array.from(new Set(consoleErrors)).slice(0, 20).forEach((line) => console.log(`  - ${line}`));
     }
+    if (sourceImages.broken.length > 0) {
+      console.log(`\nBroken source images (${sourceImages.broken.length}):`);
+      sourceImages.broken.forEach((url) => console.log(`  - ${url}`));
+    }
   }
 
   const failed = stranded.length > 0
     || cards.some(card => card.substitutePaint > 0)
     || empty.length > 0
     || unexpectedlyDark.length > 0
+    || sourceImages.entries !== activeCards.length
+    || sourceImages.broken.length > 0
     || consoleErrors.length > 0;
   process.exitCode = failed ? 1 : 0;
 };

@@ -42,12 +42,63 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
     return { bounds, left: build(boxes.slice(0, mid))!, right: build(boxes.slice(mid))! };
   };
   const root = build([...obstacles]);
+  type Entry = { branch: Branch; right: number; bottom: number; skip: number;
+    leaves?: { obstacle: T; right: number; bottom: number }[] };
+  const entries: Entry[] = [];
+  const ranges = new WeakMap<Branch, { start: number; end: number }>();
+  const flatten = (branch: Branch) => {
+    const start = entries.length;
+    const entry = { branch, right: branch.bounds.x + branch.bounds.width,
+      bottom: branch.bounds.y + branch.bounds.height, skip: 0,
+      leaves: branch.boxes?.map(obstacle => ({ obstacle,
+        right: obstacle.x + obstacle.width, bottom: obstacle.y + obstacle.height })) };
+    entries.push(entry);
+    if (branch.left) flatten(branch.left);
+    if (branch.right) flatten(branch.right);
+    entry.skip = entries.length;
+    ranges.set(branch, { start, end: entry.skip });
+  };
+  if (root) flatten(root);
+  // Rectangle queries share exact broad bounds and left-first traversal.
+  // Curved queries keep the branch-level cubic test in the recursive path.
+  const acceptsAny = () => true;
+  const scanRectangles = (box: ObstacleRect, gap: number, predicate: (obstacle: T) => boolean,
+    branch: Branch | null): boolean => {
+    if (!branch) return false;
+    const right = box.x + box.width + gap, bottom = box.y + box.height + gap;
+    const { start, end } = ranges.get(branch)!;
+    for (let index = start; index < end;) {
+      const entry = entries[index], bounds = entry.branch.bounds;
+      if (!(box.x < entry.right + gap && right > bounds.x
+        && (bounds.extendsDownward || box.y < entry.bottom + gap)
+        && (box.extendsDownward || bottom > bounds.y))) {
+        index = entry.skip;
+        continue;
+      }
+      if (entry.leaves) {
+        for (const leaf of entry.leaves) {
+          const obstacle = leaf.obstacle;
+          // These immutable edges retain plaquesOverlap's addition order. Curve
+          // and predicate checks still run only after the same strict bounds.
+          if (box.x < leaf.right + gap && right > obstacle.x
+            && (obstacle.extendsDownward || box.y < leaf.bottom + gap)
+            && (box.extendsDownward || bottom > obstacle.y)
+            && (!obstacle.curve || cubicIntersectsRect(obstacle.curve, box, obstacle.curvePadding ?? 0))
+            && predicate(obstacle)) return true;
+        }
+      }
+      index++;
+    }
+    return false;
+  };
   const overlaps = (box: ObstacleRect, gap = 24, branch = root): boolean => {
+    if (!box.curve) return scanRectangles(box, gap, acceptsAny, branch);
     if (!branch || !plaquesOverlap(box, branch.bounds, gap)) return false;
     return branch.boxes ? branch.boxes.some(obstacle => plaquesOverlap(box, obstacle, gap))
       : overlaps(box, gap, branch.left) || overlaps(box, gap, branch.right);
   };
   const some = (box: ObstacleRect, predicate: (obstacle: T) => boolean, branch = root): boolean => {
+    if (!box.curve) return scanRectangles(box, 0, predicate, branch);
     if (!branch || !plaquesOverlap(box, branch.bounds, 0)) return false;
     return branch.boxes ? branch.boxes.some(obstacle => plaquesOverlap(box, obstacle, 0) && predicate(obstacle))
       : some(box, predicate, branch.left) || some(box, predicate, branch.right);
@@ -82,4 +133,15 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
     }
     return merged;
   };
+}
+
+/** Intervals are sorted, disjoint and open: touching edges remain usable lanes. */
+export function plaqueColumnContains(intervals: readonly (readonly number[])[], y: number): boolean {
+  let low = 0, high = intervals.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (intervals[middle][0] < y) low = middle + 1;
+    else high = middle;
+  }
+  return low > 0 && y < intervals[low - 1][1];
 }

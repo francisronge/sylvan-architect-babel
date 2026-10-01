@@ -70,8 +70,6 @@ export const resolveRealizationChanges = (
 ): RealizationChange[] => {
   const changes = changedGroups(previous?.after?.realizations || [], current.after?.realizations || []);
   if (!changes.length) return [];
-  const previousIds = syntaxIds(previous?.workspaceForest || []);
-  const currentIds = syntaxIds(current.workspaceForest);
   const nodes = (forest: readonly SyntaxNode[]) => {
     const result = new Map<string, SyntaxNode[]>();
     const visit = (node: SyntaxNode) => { result.set(node.id, [...(result.get(node.id) ?? []), node]); node.children?.forEach(visit); };
@@ -102,13 +100,18 @@ export const resolveRealizationChanges = (
     });
   };
   return changes.map(change => {
-    const candidates = relations.flatMap((relation, index) => {
+    const directCandidates = relations.flatMap((relation, index) => {
       const currentCovered = change.after.every(group => group.nodeIds.every(id =>
-        currentIds.has(id) && relation.current.has(id)));
+        exactNode(newNodes, id) && relation.current.has(id)));
       const previousCovered = change.before.every(group => group.nodeIds.every(id =>
-        previousIds.has(id) && (relation.prior.has(id) || (currentIds.has(id) && relation.current.has(id)))));
-      return currentCovered && previousCovered || movementCovers(change, relation.movement) ? [index] : [];
+        exactNode(oldNodes, id) && (relation.prior.has(id) || (exactNode(newNodes, id) && relation.current.has(id)))));
+      return currentCovered && previousCovered ? [index] : [];
     });
+    // Explicit coverage owns the association even when movement also proves
+    // continuity of its containing phrase. Infer through those domains only
+    // when no relation names the complete change directly.
+    const candidates = directCandidates.length ? directCandidates
+      : relations.flatMap((relation, index) => movementCovers(change, relation.movement) ? [index] : []);
     if (candidates.length === 1) return { ...change, relationIndex: candidates[0] };
     const reason = candidates.length === 0 ? 'MISSING_OWNER' : 'AMBIGUOUS_OWNER';
     return { ...change, relationIndex: null, candidateRelationIndices: candidates,

@@ -104,6 +104,111 @@
           1
         ]
       },
+      "finalForest": [
+        {
+          "id": "tp_root",
+          "label": "TP",
+          "children": [
+            {
+              "id": "np_mia",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "n_mia",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "leaf_mia",
+                      "label": "Mia",
+                      "word": "Mia",
+                      "tokenIndex": 0,
+                      "children": [],
+                      "surfaceSpan": [
+                        0,
+                        0
+                      ]
+                    }
+                  ],
+                  "surfaceSpan": [
+                    0,
+                    0
+                  ]
+                }
+              ],
+              "surfaceSpan": [
+                0,
+                0
+              ]
+            },
+            {
+              "id": "tbar_1",
+              "label": "T'",
+              "children": [
+                {
+                  "id": "t_past",
+                  "label": "T",
+                  "children": [
+                    {
+                      "id": "leaf_t",
+                      "label": "∅",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "vp_laughed",
+                  "label": "VP",
+                  "children": [
+                    {
+                      "id": "vbar_laughed",
+                      "label": "V'",
+                      "children": [
+                        {
+                          "id": "v_laughed",
+                          "label": "V",
+                          "children": [
+                            {
+                              "id": "leaf_laughed",
+                              "label": "laughed",
+                              "word": "laughed",
+                              "tokenIndex": 1,
+                              "children": [],
+                              "surfaceSpan": [
+                                1,
+                                1
+                              ]
+                            }
+                          ],
+                          "surfaceSpan": [
+                            1,
+                            1
+                          ]
+                        }
+                      ],
+                      "surfaceSpan": [
+                        1,
+                        1
+                      ]
+                    }
+                  ],
+                  "surfaceSpan": [
+                    1,
+                    1
+                  ]
+                }
+              ],
+              "surfaceSpan": [
+                1,
+                1
+              ]
+            }
+          ],
+          "surfaceSpan": [
+            0,
+            1
+          ]
+        }
+      ],
       "derivationStages": [
         {
           "statement": "The noun Mia enters the derivation.",

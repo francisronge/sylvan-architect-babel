@@ -20,6 +20,7 @@ const CURRENT_PROVENANCE_FIELDS = [
 
 const CURRENT_ANALYSIS_FIELDS = [
   'tree',
+  'finalForest',
   'derivationStages',
   'provenance'
 ];

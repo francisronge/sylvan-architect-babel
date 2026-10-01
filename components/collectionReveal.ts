@@ -25,7 +25,8 @@ export function revealPlaqueCollections(svg: SVGSVGElement, moment: Moment | nul
         return match ? [{ stageIndex: Number(match[1]), relationIndex: Number(match[2]) }] : [];
       });
       const timing = collectionRevealTiming(owners, moment, options.elapsed, options.reducedMotion);
-      if (!timing || path.hasAttribute('mask')) return;
+      const ink = path.parentElement?.classList.contains('babel-collection-ink') ? path.parentElement : path;
+      if (!timing || ink.hasAttribute('mask')) return;
       const length = path.getTotalLength();
       if (!Number.isFinite(length) || length <= 0) return;
       const box = path.getBBox();
@@ -52,12 +53,12 @@ export function revealPlaqueCollections(svg: SVGSVGElement, moment: Moment | nul
       mask.appendChild(sweep);
       defs.appendChild(mask);
       svg.appendChild(defs);
-      path.setAttribute('mask', `url(#${id})`);
+      ink.setAttribute('mask', `url(#${id})`);
       const animation = sweep.animate([
         { strokeDashoffset: String(length) }, { strokeDashoffset: '0' }
       ], { ...timing, fill: 'both', easing: 'ease-out' });
       const restore = () => {
-        path.removeAttribute('mask');
+        ink.removeAttribute('mask');
         defs.remove();
       };
       animation.onfinish = restore;

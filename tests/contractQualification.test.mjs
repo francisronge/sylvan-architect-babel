@@ -115,6 +115,10 @@ test('a valid saved response preserves raw bytes and prepares every analysis for
 
   assert.equal(result.receipt.rawOutput.byteLength, Buffer.byteLength(rawText));
   assert.equal(result.receipt.rawOutput.sha256, sha256(rawText));
+  assert.deepEqual(result.inspection.input, {
+    sentence: fixture.sentence,
+    tokens: ['Mia', 'laughed']
+  });
   assert.deepEqual(result.receipt.outcome, {
     reviewDisposition: 'unreviewed',
     status: 'valid-pending-review'

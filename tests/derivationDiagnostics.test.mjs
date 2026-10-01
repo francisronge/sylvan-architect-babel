@@ -6,6 +6,9 @@ import { __test__, ParseApiError } from '../server/babelParser.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { formatApiError } from '../server/parseApi.js';
 import { runQualificationAttempt } from '../contractQualification/run.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 
 const node = (id) => ({ id, label: 'N', word: 'Mia', tokenIndex: 0, children: [] });
 const stage = (workspaceForest, relations = []) => ({
@@ -40,21 +43,16 @@ const payloadFor = ({ brokenIndex, relationIndex, sourceId, values }) => ({
 });
 
 for (const sample of fableCases) {
-  test(`Fable ${sample.name}: identify the original values field before resolving dependent references`, () => {
+  test(`Fable ${sample.name}: preserve a malformed relation and later references`, () => {
     const payload = payloadFor(sample);
     const original = structuredClone(payload);
-    assert.throws(() => normalize(payload), (error) => {
-      assert.ok(error instanceof ParseApiError);
-      assert.equal(error.failure.stageIndex, sample.brokenIndex);
-      assert.equal(error.failure.analysisIndex, 0);
-      assert.equal(error.failure.fieldPath, `$.derivationStages[${sample.brokenIndex}].relations[${sample.relationIndex}].values`);
-      assert.equal(error.failure.processingStep, 'stage-shape');
-      assert.equal(error.failure.expectedForm, 'a nonempty object with named entries');
-      assert.deepEqual(error.failure.offendingValue, sample.values);
-      assert.match(error.message, /expected a nonempty object with named entries; received an array/);
-      assert.equal(error.failure.message, error.message);
-      return true;
-    });
+    const accepted = normalize(payload).analyses[0];
+    const claim = accepted.derivationStages[sample.brokenIndex].relations[sample.relationIndex];
+    assert.equal(claim.relationContractFailure.issues[0].stageIndex, sample.brokenIndex);
+    assert.equal(claim.relationContractFailure.issues[0].fieldPath,
+      `$.derivationStages[${sample.brokenIndex}].relations[${sample.relationIndex}].values`);
+    assert.deepEqual(claim.relationContractFailure.raw.values, sample.values);
+    assert.equal(accepted.derivationStages[sample.brokenIndex + 1].workspaceForest[0].id, sample.sourceId);
     assert.deepEqual(payload, original);
 
     // Explicit inspection correction only. Normalization must never do this wrapping.
@@ -71,12 +69,11 @@ for (const sample of fableCases) {
     const raw = Buffer.from(sample.missingClosers ? complete.slice(0, -2) : complete);
     const originalBytes = Buffer.from(raw);
     const result = runQualificationAttempt({ attempt, rawOutputBytes: raw });
-    assert.equal(result.receipt.outcome.phase, 'normalization');
-    assert.equal(result.receipt.outcome.failure.stageIndex, sample.brokenIndex);
-    assert.match(result.receipt.outcome.failure.message, /\.values: expected/);
+    assert.equal(result.inspection.analyses[0].normalization.status, 'succeeded');
     assert.equal(result.receipt.rawOutput.sha256, createHash('sha256').update(originalBytes).digest('hex'));
-    assert.equal(result.bundle, null);
-    assert.deepEqual(result.replayProjections, []);
+    assert.equal(result.bundle.analyses.length, 1);
+    assert.deepEqual(result.bundle.analyses[0].derivationStages[sample.brokenIndex]
+      .relations[sample.relationIndex].relationContractFailure.raw.values, sample.values);
     assert.deepEqual(raw, originalBytes);
     assert.deepEqual(result.inspection.payload, payloadFor(sample));
     assert.equal(result.inspection.analyses[0].stages.length, 5);
@@ -105,7 +102,6 @@ test('a complete final tree cannot conceal a discarded earlier stage', () => {
     (entry) => ({ ...entry, statement: 1 }),
     (entry) => ({ ...entry, stageRecord: '' }),
     (entry) => ({ ...entry, relations: {} }),
-    (entry) => ({ ...entry, relations: [relation('middle', ['unwrapped'])] }),
     (entry) => ({ ...entry, workspaceForest: undefined })
   ];
   for (const mutate of mutations) {
@@ -122,16 +118,17 @@ test('a complete final tree cannot conceal a discarded earlier stage', () => {
   }
 });
 
-test('correcting the first malformed field exposes the next at its original stage', () => {
+test('separate malformed relations keep separate errors at their original stages', () => {
   const payload = payloadFor(fableCases[0]);
   payload.derivationStages[4].relations = [relation('d_john_hi', ['wh'])];
-  assert.throws(() => normalize(payload), (error) => error.failure.stageIndex === 2);
+  const first = normalize(payload).analyses[0];
+  assert.equal(first.derivationStages[2].relations[0].relationContractFailure.issues[0].stageIndex, 2);
+  assert.equal(first.derivationStages[4].relations[0].relationContractFailure.issues[0].stageIndex, 4);
   payload.derivationStages[2].relations[0].values = { notation: ['phi', 'Nom'] };
-  assert.throws(() => normalize(payload), (error) => {
-    assert.equal(error.failure.fieldPath, '$.derivationStages[4].relations[0].values');
-    assert.deepEqual(error.failure.offendingValue, ['wh']);
-    return true;
-  });
+  const corrected = normalize(payload).analyses[0];
+  assert.equal(corrected.derivationStages[2].relations[0].relationContractFailure, undefined);
+  assert.equal(corrected.derivationStages[4].relations[0].relationContractFailure.issues[0].fieldPath,
+    '$.derivationStages[4].relations[0].values');
   assert.equal(payload.derivationStages.length, 5);
 });
 
@@ -179,14 +176,51 @@ test('malformed relation entries identify their exact field, without changing op
   ];
   for (const [changes, path] of cases) {
     const payload = { derivationStages: [stage([node('n')], [{ ...relation('n', { text: 'value' }), ...changes }])] };
-    assert.throws(() => normalize(payload), (error) => {
-      assert.equal(error.failure.fieldPath, `$.derivationStages[0].relations[0]${path}`);
-      return true;
-    });
+    const claim = normalize(payload).analyses[0].derivationStages[0].relations[0];
+    assert.equal(claim.relationContractFailure.issues[0].fieldPath,
+      `$.derivationStages[0].relations[0]${path}`);
   }
   const values = { 'open name': '', notation: ['x_i', '', 'x_i'] };
   const payload = { derivationStages: [stage([node('n')], [relation('n', values)])] };
   assert.deepEqual(normalize(payload).analyses[0].derivationStages[0].relations[0].values, values);
+});
+
+test('an exact registered name cannot bypass a relation failure while a valid exact sibling still draws', () => {
+  const payload = { derivationStages: [stage([{ id: 'probe', label: 'T', silent: true, children: [] }, node('goal')], [
+    { relation: 'Agree', anchors: { probe: 'probe', goal: 'goal' }, values: ['plural'] },
+    { relation: 'Agree', anchors: { probe: 'probe', goal: 'goal' }, values: { features: 'plural' } }
+  ])] };
+  const analysis = normalize(payload).analyses[0];
+  const plan = compileRelationRenderPlan(analysis.derivationStages);
+  const malformed = plan.frames[0].items.filter(item => item.relationRef.relationIndex === 0);
+  const valid = plan.frames[0].items.filter(item => item.relationRef.relationIndex === 1);
+  assert.ok(malformed.length > 0);
+  assert.ok(malformed.every(item => item.kind === 'fallback' && item.claimTier === 3));
+  assert.ok(valid.some(item => item.kind === 'node-plaque' && item.claimTier === 1));
+});
+
+test('a malformed claim gets a neutral moment while a valid sibling remains independent', () => {
+  const payload = { derivationStages: [stage([node('n')], [
+    { relation: 'Nominal concord', anchors: { dependent: 'n' }, values: ['plural'] },
+    { relation: 'Independently authored relation', anchors: { witness: 'n' } }
+  ])] };
+  const analysis = normalize(payload).analyses[0];
+  const [malformed, sibling] = analysis.derivationStages[0].relations;
+  assert.deepEqual(malformed.relationContractFailure.raw.values, ['plural']);
+  assert.equal(sibling.relationContractFailure, undefined);
+  const dispatches = dispatchStageRelations(analysis.derivationStages);
+  assert.equal(dispatches[0][0].primaryClaim.tier, 3);
+  assert.equal(dispatches[0][0].primaryClaim.reason, 'malformed-authored-relation');
+  assert.notEqual(dispatches[0][1].primaryClaim?.reason, 'malformed-authored-relation');
+  const plan = compileRelationRenderPlan(analysis.derivationStages);
+  assert.equal(plan.frames[0].items.find(item => item.relationRef.relationIndex === 0)?.claimTier, 3);
+  const replay = prepareReplay({ derivationStages: analysis.derivationStages, sentence: 'Mia', includePlayback: true });
+  const moments = replay.playbackSteps.filter(step => step.replayKind === 'relation');
+  assert.deepEqual(moments.map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  assert.match(moments[0].movementDiagnostics[0], /values: expected a nonempty object/);
+  assert.equal(moments[0].detailBlocks.find(block => block.title === 'Relation diagnostic').lines[0],
+    moments[0].movementDiagnostics[0]);
+  assert.equal(moments[1].movementDiagnostics, undefined);
 });
 
 test('a genuine missing subtree reference reports the original node path', () => {
@@ -239,16 +273,14 @@ test('a duplicate inside a carried subtree points to the authored refId, not a s
   });
 });
 
-test('diagnostics include the original analysis index within an ambiguity envelope', () => {
+test('a malformed relation in an ambiguity envelope stays local to its analysis', () => {
   const payload = { analyses: [{ derivationStages: [stage([node('n')])] }, payloadFor(fableCases[0])] };
   const original = structuredClone(payload);
-  assert.throws(() => normalize(payload), (error) => {
-    assert.equal(error.failure.analysisIndex, 1);
-    assert.equal(error.failure.stageIndex, 2);
-    assert.equal(error.failure.fieldPath, '$.analyses[1].derivationStages[2].relations[0].values');
-    assert.match(error.message, /^Analysis 2: Stage 3,/);
-    return true;
-  });
+  const bundle = normalize(payload);
+  assert.equal(bundle.analyses.length, 2);
+  assert.equal(bundle.analyses[0].derivationStages[0].relations.length, 0);
+  assert.equal(bundle.analyses[1].derivationStages[2].relations[0]
+    .relationContractFailure.issues[0].fieldPath, '$.derivationStages[2].relations[0].values');
   assert.deepEqual(payload, original);
 });
 
@@ -267,18 +299,11 @@ test('the generation route preserves every raw stage and diagnostic without a re
         return { text: raw, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] };
       }
     });
-    await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
-      assert.equal(error.failure.fieldPath, '$.derivationStages[2].relations[0].values');
-      assert.equal(error.failure.expectedForm, 'a nonempty object with named entries');
-      assert.match(error.failure.message, /received an array/);
-      assert.equal(Buffer.from(error.rawOutput.data, 'base64').toString('utf8'), raw);
-      assert.equal(error.details.payloadRepairDiagnostics[0].kind, 'append_closers_at_end_of_output');
-      const formatted = formatApiError(error).body.error;
-      assert.deepEqual(formatted.failure, error.failure);
-      assert.equal(formatted.generationRecord.outcome.attempts.length, 1);
-      assert.equal(Buffer.from(formatted.rawOutput.data, 'base64').toString('utf8'), raw);
-      return true;
-    });
+    const result = await routes.parseSentenceWithOpenAI('Mia');
+    assert.equal(result.analyses[0].derivationStages[2].relations[0]
+      .relationContractFailure.issues[0].fieldPath, '$.derivationStages[2].relations[0].values');
+    assert.equal(result.analyses[0].provenance.payloadRepairDiagnostics[0].kind,
+      'append_closers_at_end_of_output');
     assert.equal(calls, 1);
   } finally {
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
@@ -367,9 +392,64 @@ test('duplicate IDs remain inspectable and anchor ambiguity points to direct and
     '$.derivationStages[1].workspaceForest[0].id', '$.derivationStages[1].workspaceForest[1].refId'
   ]);
   assert.equal(inspected[1].anchorChecks[1].status, 'resolved');
-  assert.equal(inspected[2].workspaceForest, null);
-  assert.equal(inspected[2].blockedByStageIndex, 1);
+  assert.deepEqual(inspected[2].workspaceForest, stages[0].workspaceForest);
+  assert.equal(inspected[2].transitionUnavailableSinceStageIndex, 1);
+  assert.equal(inspected[2].blockedByStageIndex, undefined);
   assert.throws(() => normalize({ derivationStages: stages }), (error) => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID');
+});
+
+test('identical duplicate bodies preserve later inspection without resolving earlier anchor ambiguity', () => {
+  const leaf = { id: 'leaf', label: 'N', word: 'Mia', tokenIndex: 0, children: [] };
+  const branch = { id: 'branch', label: 'NP', children: [leaf] };
+  const parent = { id: 'parent', label: 'VP', children: [branch] };
+  const finalRoot = { id: 'final', label: 'TP', children: [parent] };
+  const stages = [stage([leaf]), stage([
+    { id: 'branch', label: 'NP', children: [{ refId: 'leaf' }] },
+    { id: 'parent', label: 'VP', children: [{ children: [
+      { children: [], tokenIndex: 0, word: 'Mia', label: 'N', id: 'leaf' }
+    ], label: 'NP', id: 'branch' }] }
+  ], [{ relation: 'Open claim', anchors: { witness: 'branch' } }]),
+  stage([{ refId: 'parent' }], [{ relation: 'Open claim', anchors: { witness: 'branch' }, priorAnchors: { witness: 'branch' } }]),
+  stage([{ id: 'final', label: 'TP', children: [{ refId: 'parent' }] }])];
+  const original = structuredClone(stages);
+  const inspected = __test__.inspectDerivationWorkspaces(stages);
+  assert.deepEqual(inspected[1].workspaceForest, [branch, parent]);
+  assert.equal(inspected[1].diagnostics.filter(({ ruleId }) => ruleId === 'DERIVATION_WORKSPACE_VALID').length, 2);
+  assert.ok(inspected[1].diagnostics.some(({ ruleId }) => ruleId === 'DERIVATION_TOKEN_INDEX_UNIQUE'));
+  assert.equal(inspected[1].anchorChecks[0].status, 'duplicate');
+  assert.deepEqual(inspected[2].workspaceForest, [parent]);
+  assert.deepEqual(inspected[2].anchorChecks.map(({ status }) => status), ['resolved', 'duplicate']);
+  assert.deepEqual(inspected[3].workspaceForest, [finalRoot]);
+  assert.equal(inspected[3].transitionUnavailableSinceStageIndex, 1);
+  assert.equal(inspected[3].replayStatus, 'not-compiled');
+  assert.deepEqual(inspected.map(({ authoredStage }) => authoredStage), original);
+  assert.deepEqual(stages, original);
+  assert.throws(() => normalize({ derivationStages: stages }), (error) => (
+    error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID' && error.failure.stageIndex === 1
+  ));
+});
+
+test('conflicting duplicate bodies block later references instead of choosing a body or stale history', () => {
+  const leaf = node('leaf');
+  const branch = { id: 'branch', label: 'NP', children: [leaf] };
+  const variants = [
+    { ...branch, label: 'VP' },
+    { ...branch, children: [{ ...leaf, word: 'Noa' }] },
+    { ...branch, children: [{ ...leaf, silent: false }] },
+    { ...branch, metadata: { meaning: 'different' } }
+  ];
+  for (const conflicting of variants) {
+    const stages = [stage([branch]), stage([branch, conflicting]),
+      stage([{ refId: 'branch' }]), stage([{ refId: 'leaf' }])];
+    const original = structuredClone(stages);
+    const inspected = __test__.inspectDerivationWorkspaces(stages);
+    assert.deepEqual(inspected[1].workspaceForest, [branch, conflicting]);
+    assert.equal(inspected[2].workspaceForest, null);
+    assert.equal(inspected[2].blockedByStageIndex, 1);
+    assert.equal(inspected[3].workspaceForest, null);
+    assert.equal(inspected[3].blockedByStageIndex, 1);
+    assert.deepEqual(stages, original);
+  }
 });
 
 test('inspection collects independent malformed fields across all original stages and array items', () => {
@@ -414,21 +494,19 @@ test('final alignment reports the authored token or span item instead of an inco
   }
 });
 
-test('qualification keeps every analysis and independently records normalization after an earlier failure', () => {
+test('qualification keeps every analysis and records a later structural failure independently', () => {
   const payload = { analyses: [payloadFor(fableCases[0]), { derivationStages: [stage([node('good')])] },
     { derivationStages: [stage([{ ...node('bad'), tokenIndex: 99 }])] }] };
   const raw = Buffer.from(JSON.stringify(payload));
   const result = runQualificationAttempt({ attempt, rawOutputBytes: raw });
   assert.deepEqual(result.inspection.payload, payload);
   assert.deepEqual(Buffer.from(result.inspection.rawOutput.data, 'base64'), raw);
-  assert.deepEqual(result.inspection.analyses.map(({ normalization }) => normalization.status), ['failed', 'succeeded', 'failed']);
+  assert.deepEqual(result.inspection.analyses.map(({ normalization }) => normalization.status), ['succeeded', 'succeeded', 'failed']);
   assert.equal(result.inspection.analyses[0].stages[2].diagnostics[0].fieldPath, '$.analyses[0].derivationStages[2].relations[0].values');
   assert.equal(result.inspection.analyses[2].normalization.failure.fieldPath, '$.analyses[2].derivationStages[0].workspaceForest[0].tokenIndex');
   assert.equal(result.inspection.analyses[1].stages[0].workspaceForest[0].id, 'good');
   assert.equal(result.bundle, null);
   assert.deepEqual(result.analysisBundles, []);
-  assert.deepEqual(result.replayProjections, []);
-  assert.equal(result.inspection.replayStatus, 'not-compiled');
 });
 
 test('alignment provenance follows the carried subtree version, not a later standalone definition of its child', () => {
@@ -465,9 +543,9 @@ test('the full final forest is preserved for convergence review without enforcin
   assert.equal(normalized.analyses[0].derivationStages[0].workspaceForest.length, 2);
   const [inspection] = __test__.inspectDerivationWorkspaces(payload.derivationStages);
   const issue = inspection.diagnostics.find(({ ruleId }) => ruleId === 'DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS');
-  assert.equal(issue.processingStep, 'workspace-convergence');
+  assert.equal(issue.processingStep, 'workspace-interpretation');
   assert.deepEqual(issue.offendingValue, ['p', 'extra']);
-  assert.match(issue.message, /does not establish whole-workspace convergence/);
+  assert.match(issue.message, /linguistic relationship requires review/);
   assert.deepEqual(payload, original);
 });
 

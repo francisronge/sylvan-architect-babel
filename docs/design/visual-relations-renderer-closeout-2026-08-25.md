@@ -34,6 +34,61 @@ shared ink/halo class without replacing relation-moment opacity. See the
 [production restoration and verification](../implementation/contract-qualification/system-audit.md#repairs-and-verification)
 for the September integration corrections; the original review below is retained.
 
+### Construction geometry and attachment continuity
+
+Replay builds each authored stage's coordinate budget and branch proportions
+locally. Camera fitting includes revealed syntax and owned marks, with one fit
+across the stage's steps. The painter, plaque allocator and camera consume the
+same reservations.
+
+A separate placement pass may reserve the future root position of an independent
+workspace component when a relation opens its attachment stage. The component's
+child lists must survive that attachment, allowing an exact authored lower witness
+to replace its prior source. Its earlier completed geometry supplies every
+internal offset; future syntax supplies only the attachment position. Construction
+therefore starts in that reserved space without exposing future nodes or extending
+early branches. The reservation ends when the component disappears or its current
+parent/child attachments become incompatible. Ambiguous witnesses do not qualify.
+
+The attempted analysis-wide coordinate and sibling-rank reservation remains
+rejected. The bounded workspace placement in `replay/workspacePlacement.ts` does
+not lock moved occurrences to their final landing positions or import future
+branch heights. A source's reserved place transfers to its exact lower witness;
+the real landing still appears at the authored movement moment. Ordinary camera
+fitting continues to frame each stage, and manual zoom remains under user control.
+
+Independent workspace components may reserve their future left/right order after
+construction planning. This may look through a new intermediate projection only
+while the first attachment and sibling order persist uniquely. It cannot change
+selection timing, reorder a genuine syntax parent's children, or import future
+branch heights. Unknown or interleaving component slots keep their existing order.
+
+When an unchanged workspace component carries coordinates across stages, preserve
+its position after applying the writing direction. RTL reflection uses the current
+canvas width, so rebase the whole retained scene by the width difference before
+reflection. Rebasing only the carried component changes its clearance from other
+syntax and can introduce collisions. The reservation cache, painter and bounds
+calculation share that direction. This changes the drawing origin, not its internal
+spacing or automatic fit; a manually positioned camera retains the component.
+
+Generated sentence-initial casing does not change an authored subtree's identity.
+For geometry retention only, compare a generated word child's initial capitalization
+against its exact unchanged owner. Authored spelling, pronunciation, identity,
+ownership, attachment and all other display content remain exact. Rendered text
+keeps its current casing.
+
+Construction diffing includes child-list growth on existing occurrence IDs.
+Attaching a complement beneath a retained parent receives its own merge step.
+Replacing an existing child with a new wrapper around it belongs to the wrapper's
+construction; the existing parent and unaffected branches remain visible. Do not
+hide or rebuild a parent that was already merged. Attachments owned by an authored
+movement relation remain part of that atomic moment.
+A future wrapper must not deepen only one current daughter before it is built.
+When its sister retains the current attachment, use that sister’s reserved rank
+and translate the wrapped daughter’s current subtree as a unit. Retained entry
+coordinates must be accounted for before this translation. This changes neither
+construction timing nor the ordinary branch spacing inside the subtree.
+
 ### Plaque lifetime placement
 
 Compound Case/feature claims reveal the plaque immediately, then draw its new
@@ -42,6 +97,27 @@ the original dash pattern, width and path remain unchanged. Reduced motion,
 final views and already-visible collectors show the complete mark immediately.
 Font or viewport remounts continue the same reveal, and manual camera gestures
 finish it without replaying it.
+
+Orchard D6 authors CaseAssignment and two Agree claims. Production composes
+their three value rows into one plaque while Replay preserves three relation
+moments. Each dotted collection path appears at its own Agree moment. A single
+authored relation has one moment; if that one claim licenses both a plaque and
+a connector, the connector reveal runs within that moment. It does not imply
+that one claim can supply D6's distinct number and gender dependencies without
+their source and target evidence.
+
+Level Case-plaque side entries retain a bounded curve above the gap, keeping the
+word exit and plaque approach clear. Allocation and painting use the same curve.
+Several feature rows of one failed comparison retain their separate collectors
+but share one failure cue, identified by the exact compiled claim, endpoint pair
+and visible authored owners. Center that cue between the arc-length midpoints of
+its visible row routes in tree coordinates. A single route keeps its midpoint.
+Independent failed comparisons keep separate cues.
+An explicitly blocked Case dependency retains its solid curve and literal row,
+with the same failed-dependency cue and no successful arrowhead. If that Case
+curve and feature collectors belong to one exact failed claim, they share the
+cue across their routes. Independently successful Case keeps its arrow and
+does not join a failed agreement cue.
 
 Identity lighting uses one common source and one light per exact participating
 terminal, including authored wordless witnesses. Repeated claims retain their
@@ -53,6 +129,11 @@ authored domain. Replay reserves their extent across the stage before reveal;
 the existing containment correction pans or scales only when needed. Static
 painting measures the same ellipse before fitting. This prevents a whole-clause
 ellipse from being cut off without silently narrowing its scope.
+
+The idiom domain bracket keeps its 320-unit right gutter, 96-unit cap and
+80-unit vertical margins when they fit. At initial fitting, bound its gutter
+and cap to the remaining right viewport. The path then stays in the domain's
+tree coordinate group through zoom and pan.
 
 Shared-feature vine plaques measure the complete typed feature text and wrap it
 within a bounded width. The original short plaque keeps its 248-by-92 dimensions;
@@ -71,14 +152,20 @@ nearby placement search. Native rewrite and zero-realization columns retain
 their accepted dimensions. Allocation and painting use the same font metrics;
 all contributors and lifetime reservations remain unchanged.
 
-Replay reserves a plaque's content size and anchor-relative position against all
-remaining visible tree layouts, trajectories, neutral connector stems and already
-allocated claims in its lifetime. The nearest clear pocket search has no arbitrary
-radius cutoff that sends an otherwise local plaque beneath the tree. Later spelling
-changes reserve the largest required box at first appearance. Each frame projects
-that reservation with its exact attachment node. The planner is memoized across
-Replay steps; it does not move branches, reveal future syntax, alter relation timing
-or change the shared camera-fitting algorithm. Transparent hulls are not obstacles.
+Replay reserves a plaque's content size and anchor-relative position across
+compatible participant geometry, including ordinary structural reveals. When an
+authored relation changes an exact participant or effective Case source, allocation
+revalidates the previous pocket against the new geometry and may choose a nearer
+clear pocket. Valid equally near pockets remain stable. Each Replay step selects
+its scheduled placement, and the camera includes every placement in its authored
+stage. The worker, painter and camera consume the same stage and step maps.
+
+Reservations account for tree ink, trajectories, neutral connector stems and
+already allocated claims. The nearest clear pocket search has no arbitrary radius
+cutoff that sends an otherwise local plaque beneath the tree. Later spelling
+changes reserve the largest required box at first appearance. The planner is
+memoized across Replay steps; it does not move branches, reveal future syntax or
+alter relation timing. Transparent hulls are not obstacles.
 Collection clearance considers horizontal as well as vertical pockets. Candidate
 coordinates come from the existing curved path and opaque obstacles; each
 candidate is checked before acceptance. This does not reroute the Orchard
@@ -88,7 +175,13 @@ search rather than rebuilt for every candidate.
 The collision search removes repeated placement rectangles from future frames
 and uses an immutable spatial index to reject distant obstacles before exact
 intersection checks. Connector attachment exclusions retain their original ink
-metadata. Browser allocation waits for the category and plaque fonts, including
+metadata. Rectangle queries traverse a prepared left-first branch list with
+subtree skip indices. Cached branch bounds retain the exact original arithmetic;
+leaf overlap, curve checks and predicate order remain unchanged. Curved queries
+retain their recursive branch tests. This changes query overhead, not candidate
+order, clearances or chosen placements.
+
+Browser allocation waits for the category and plaque fonts, including
 the record's script subsets and the generated theta-grid heading. Font loading
 also includes generated chain-index glyphs before the first frame. It therefore
 does not repeat the initial allocation or stall a later relation frame.
@@ -216,6 +309,20 @@ reveal, and syntax and plaque obstacles remain reserved. Static inspection keeps
 the combined allocation because its claims can be displayed together. Vertical
 clearance uses label height rather than the width of the authored role name.
 
+When a neutral role annotates a witness already enclosed by a phase-edge
+outline, its placement reserves that outline's padding as well as the category
+text. After all deferred relation marks are drawn, neutral role placement also
+reserves measured relation text, filled plaques and the strokes of paths and
+outlines in tree coordinates. Open outlines reserve their strokes, not their
+empty interiors. Invisible hit targets and the neutral labels themselves do
+not become obstacles. A review host hidden until the first render commits still
+receives the same measurement as a visible host.
+
+Only neutral label positions and their attached fans yield to these obstacles.
+The tree, camera and established relation graphics remain fixed. Manual zoom
+scales the complete groups together. Clearance remains limited by the available
+space; this allocation is not a guarantee for every possible authored scene.
+
 Identity illumination targets each actual displayed leaf of an occurrence,
 including an authored wordless category witness. It never averages a phrase's
 terminal positions into a light target between words. Target measurements follow
@@ -229,6 +336,12 @@ yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations. The straight-connector revision was visually accepted on September 17; its
 bounded verification and remaining work are recorded in the roadmap.
+
+Role grids are horizontal tables: adding a longer role or another column must
+not send an otherwise compact grid beneath its entire argument subtree. Grids
+within the existing local height limit use the nearby predicate search at their
+full measured width. Tall grids and other large text plaques retain the
+below-subtree rule. Collision checks and lifetime reservations are unchanged.
 
 ## Extreme text overflow
 
@@ -288,9 +401,71 @@ workers; the app's Vite build emits worker assets. Orchard fixtures may still
 prepare Replay directly, but use the same worker for plaque allocation. Neither
 path has separate linguistic or scheduling rules.
 
+Stage coordinates reserve the full contour of a source subtree before movement,
+including branches that its later compact copy no longer contains. The reservation
+uses actual constituent order and one spacing transform for the stage. A hidden
+future parent may reserve ordered slots without becoming visible or changing a
+current branch. Independent workspace objects do not establish sibling-order
+constraints. Camera bounds, plaque allocation and painting use these same
+coordinates. A new authored stage can require a new reservation; its subsequent
+micro-steps keep unchanged syntax stationary.
+
+Canvases in one stage share a vertical rank unit before retaining coordinates.
+A movement that changes canvas depth must not mix two D3 height scales across
+current siblings. Ordinary equal-depth stages retain their existing geometry.
+When a stage starts with a relation elsewhere, an unchanged independent workspace
+awaiting a later attachment retains its completed component coordinates. Its new
+surrounding parents are centered at their actual construction steps. This applies
+only when every current branch remains valid, and does not change camera fitting.
+
+An ordinary construction boundary can also resize or reorder completed workspace
+objects. Reserve their first attachment positions through their earlier scenes.
+Compose that reservation backwards through prior movement, keeping the source
+inside its current parent until its authored movement. If the attachment's compact
+copies leave insufficient room for that earlier form, retain the component's own
+shape through its first attachment stage. Validate complete lifetimes against
+labels, words, native branches and adjacent-frame continuity. Reject new overlaps,
+invalid branches, increased construction displacement or a new displacement of
+previously stationary syntax. Preserve the established placement when neither
+reservation is valid. Future syntax remains invisible.
+
+When a root gains a specifier and an inserted parent takes over its complete
+ordered daughter list, the earlier root keeps that fork's height until insertion.
+Its daughters remain stationary. Apply this only to visible component roots,
+an unseen successor fork, and consistent retained daughter offsets. An internal
+parent must not borrow this position: doing so would change its incoming branch
+or its spacing from sisters. Stage and cross-stage reservations use the same rule.
+
+Automatic camera changes between adjacent Replay steps interpolate over 360 ms.
+They start at the currently painted transform, can be interrupted by another step,
+and yield immediately to manual pan or zoom. Reduced-motion preferences use an
+immediate fit. Structural micro-steps still share one authored-stage fit. Only the
+completed last Stage Record releases earlier source-position bounds and fits the
+finished drawing; Fit uses those same final bounds. This does not compact or
+recenter the tree's internal coordinates.
+
+After the stage contour pass, independent final workspace components receive
+one rigid translation each when their visible ink collides. The clearance
+constraint covers every scene in that stage. Membership must follow one unique
+final component; ambiguous earlier components retain their original layout.
+This does not change internal branches, syntax visibility or camera fitting.
+
+A binding ellipse must enclose its authored domain without capturing excluded
+syntax. Keep the accepted ellipse when its existing boundary is correct. If it
+includes outside node labels, fit the actual member ink and inside owned plaques
+and accept the tighter ellipse only if every excluded label remains outside.
+For a valid constrained enclosure, choose the horizontal center and radius
+together from the actual ink corners. The smallest feasible radius avoids
+compensating for the reduced height with empty side margins. Keep the existing
+constrained ellipse if shifting its center would include excluded syntax.
+Camera bounds and both renderer measurement phases use this same geometry.
+Include the normal font envelope alongside browser glyph bounds. At a tiny
+initial fit, a browser may report a shorter glyph box that grows after zoom;
+the enclosure must reserve that full height without changing its authored domain.
+
 After fonts are ready, browser text measurements are captured in chunks that yield
 between stages. A second worker receives these exact metrics and allocates plaques
-against their complete future lifetime. The serializable job uses the same
+across their compatible geometry phases. The serializable job uses the same
 allocator as the direct path, with no approximated replacement font metrics.
 Missing measurements fail visibly. Input changes, retries and unmounting cancel
 obsolete jobs; stale results cannot supply placements for another input.
@@ -309,6 +484,9 @@ Preparation reuses the parse animation's loading mark at a smaller size. It stay
 invisible for 200 ms, so quick preparations do not flash an indicator; completion
 never waits for the animation. Screen readers receive a status immediately, and
 reduced-motion preferences disable the spinning and pulsing decoration.
+Preparation and layout show no written loading messages. The existing loading
+mark supplies feedback; the layout cover remains blank until the tree is ready.
+Actual preparation failures retain their error message and Retry control.
 
 The workers remove compilation and plaque allocation from the app's UI thread,
 not their CPU cost. Message transfer, font measurement and D3 layout/painting still
@@ -342,12 +520,17 @@ long task. This is a local measurement, not a slower-device or remote-loading
 promise.
 
 Realization changes appear at a relation moment only when its exact current and
-prior references uniquely cover the change. If several relations cover it, Replay
-retains the earlier association through those moments and shows the completed
-association at the Stage Record. It does not choose from prose, relation names or
-linguistic expectations. Diagnostics list the candidate relation numbers. The
-Japanese stem/allomorph and orthographic-association regression exercises this
-case without changing the authored structure or pronunciation.
+prior references uniquely cover the change. Complete direct coverage takes
+precedence over continuity inferred through a movement's containing domains.
+Competing direct owners remain ambiguous; inferred owners are considered only
+when there is no direct owner. Replay retains the earlier association through
+ambiguous moments and shows the completed association at the Stage Record. It
+does not choose from prose, relation names or linguistic expectations.
+Diagnostics list the candidate relation numbers. A direct owner whose
+participants are not yet visible also defers to the Stage Record rather than
+handing ownership to a later movement. The Japanese stem/allomorph and
+orthographic-association regression exercises competing direct coverage without
+changing the authored structure or pronunciation.
 
 ## Review
 
@@ -397,13 +580,60 @@ bind to its lower witness, preserving the intermediate position and original
 claim ownership. A missing anchor without a unique explicit replacement still
 ends the mark's persistence.
 
+An earlier trajectory retains its landing position even when the moving phrase
+keeps the same occurrence ID at the next landing. Its endpoint transfers to the
+exact lower witness at that next movement moment; rewind restores the preceding
+endpoint. Other surviving marks continue to reference their own occurrences.
+Descriptions sharing one movement curve retain that sharing through the same
+endpoint transfer, with all contributing authored claims preserved.
+
 A movement can own a realization change on descendants of its exact source and
-landing. The complete old and new groups must cover the same input tokens,
+landing when no relation directly covers the complete change. The complete old and new groups must cover the same input tokens,
 and their members must pair uniquely by exact ID or explicit lineage within
 those two movement domains. Apply that group change at the movement moment.
-Competing owners still defer to the Stage Record. Neither silence nor relation
+Competing inferred owners still defer to the Stage Record. Neither silence nor relation
 prose establishes this association.
 
 An existing empty head position can receive newly introduced source-linked
 material. Keep the position's preceding authored content until that movement;
 an existing target ID alone does not mean the movement has already happened.
+
+At that moment, the proven receiving container takes its current own label and
+silence state. This does not transfer ownership of its other children or later
+realization claims. A later exact realization owner still controls that
+container's word and token metadata.
+
+Restoring a prior source also restores its effective pronunciation before its
+owning moment, including silence inherited from its preceding ancestors. A
+display-only boundary on that exact source prevents current ancestor silence
+from dimming it prematurely. Its descendants retain their own authored silence;
+current ancestors and sibling occurrences keep their current fields. The
+boundary ends when that source's relation becomes active.
+
+Ordinary construction applies to the complete workspace forest. Introducing a
+new root cannot skip ready selections, projections or binary merges inside a
+retained root. An unrelated pending rewrite cannot withhold ordinary merges
+whose preceding operands are already available. Pending relation-owned outputs
+and relocations retain their own timing.
+
+A new occurrence replacing another chain member in the same retained parent
+slot is that member's lower witness. A later chain description must not use it
+as a fresh landing and postpone its appearance. For an actual chain extension,
+the uniquely anchored replacement of the explicit preceding source identifies
+the active lower occurrence; unchanged earlier members remain separate evidence.
+An operator contained inside an explicitly identified higher occurrence does
+not compete with that occurrence as the movement endpoint.
+
+Detached workspace objects reserve their first attachment independently. A later
+wrapper around one object must not strand other, still-detached objects in
+temporary layout positions. Lookahead may contract that later wrapper in its
+invisible layout copy, preserving the first parent slot and sibling order.
+Relocation outside that slot ends lookahead. Authored syntax remains unchanged,
+and every future parent stays hidden until its own Replay step.
+
+A reserved component's outside slot is independent of head order inside it.
+Internal rearrangement must not put an unrelated detached root on the opposite
+side. This lookup requires unique component identities and retention of all
+current material within each component until its first attachment; a split or
+ambiguous component cannot supply an earlier slot. Reorder only synthetic
+workspace children, preserving authored syntax and current branch heights.

@@ -1,0 +1,560 @@
+{
+  "sentence": "Ada ordered tea, and Bruno coffee.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "bruno2",
+            "lowerOccurrence": "bruno1",
+            "thematicOccurrence": "bruno0",
+            "trigger": "topHead"
+          },
+          "priorAnchors": {
+            "source": "bruno1"
+          },
+          "relation": "contrastive subject Internal Merge",
+          "values": {
+            "interpretation": "Bruno contrasts with Ada",
+            "pronouncedOccurrence": "highest"
+          }
+        }
+      ],
+      "stageRecord": "A silent contrastive Top head merges above the second clause's Foc projection. Bruno internally merges at its edge from the T-subject position established in the preceding stage. Its T-position copy becomes silent, while its highest copy supplies the pronounced subject remnant. This ordering places Bruno before coffee and leaves both outside the second T projection. A silent declarative C then merges with each clause: directly with T in the first clause and with the extended left periphery in the second. Both conjuncts consequently have the same outer C label despite their different internal articulation. Subject and object interpretations remain connected to their original thematic positions through their copy chains.",
+      "statement": "Evacuate Bruno above coffee and complete the two clausal conjuncts.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "c1head",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "ada1",
+                  "label": "D",
+                  "lineageId": "Ada",
+                  "tokenIndex": 0,
+                  "word": "Ada"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "t1head",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ada0",
+                          "label": "D",
+                          "lineageId": "Ada",
+                          "silent": true,
+                          "word": "Ada"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1head",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "ordered1",
+                                  "label": "V",
+                                  "tokenIndex": 1,
+                                  "word": "ordered"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tea",
+                                  "label": "N",
+                                  "tokenIndex": 2,
+                                  "word": "tea"
+                                }
+                              ],
+                              "id": "vp1",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "v1low",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "v1max",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "t1low",
+                  "label": "T"
+                }
+              ],
+              "id": "t1max",
+              "label": "T"
+            }
+          ],
+          "id": "clause1",
+          "label": "C"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "c2head",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bruno2",
+                  "label": "D",
+                  "lineageId": "Bruno",
+                  "tokenIndex": 4,
+                  "word": "Bruno"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "topHead",
+                      "label": "Top",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "coffee1",
+                          "label": "N",
+                          "lineageId": "coffee",
+                          "tokenIndex": 5,
+                          "word": "coffee"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "focHead",
+                              "label": "Foc",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bruno1",
+                                  "label": "D",
+                                  "lineageId": "Bruno",
+                                  "silent": true,
+                                  "word": "Bruno"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "t2head",
+                                      "label": "T",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bruno0",
+                                          "label": "D",
+                                          "lineageId": "Bruno",
+                                          "silent": true,
+                                          "word": "Bruno"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "v2head",
+                                              "label": "v",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "ordered2",
+                                                  "label": "V",
+                                                  "word": "ordered"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "coffee0",
+                                                  "label": "N",
+                                                  "lineageId": "coffee",
+                                                  "silent": true,
+                                                  "word": "coffee"
+                                                }
+                                              ],
+                                              "id": "vp2",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "v2low",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "v2max",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "t2low",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "t2max",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "focLow",
+                          "label": "Foc"
+                        }
+                      ],
+                      "id": "focMax",
+                      "label": "Foc"
+                    }
+                  ],
+                  "id": "topLow",
+                  "label": "Top"
+                }
+              ],
+              "id": "topMax",
+              "label": "Top"
+            }
+          ],
+          "id": "clause2",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedentRemnants": [
+              "ada1",
+              "tea"
+            ],
+            "coordinator": "and",
+            "ellipsisRemnants": [
+              "bruno2",
+              "coffee1"
+            ]
+          },
+          "relation": "gapping contrast parallelism",
+          "values": {
+            "antecedentRemnants": [
+              "agent",
+              "theme"
+            ],
+            "ellipsisRemnants": [
+              "agent",
+              "theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "antecedentDomain": "t1max",
+            "licensingHead": "focHead",
+            "silentDomain": "t2max",
+            "survivingRemnants": [
+              "bruno2",
+              "coffee1"
+            ],
+            "unpronouncedPredicate": "ordered2"
+          },
+          "priorAnchors": {
+            "domainBeforeNonpronunciation": "t2max",
+            "predicateBeforeNonpronunciation": "ordered2"
+          },
+          "relation": "gapping ellipsis",
+          "values": {
+            "identityCondition": "matching past ordering predication modulo the contrasted arguments",
+            "operation": "PF nonpronunciation of the second T projection"
+          }
+        }
+      ],
+      "stageRecord": "And externally merges with the second C object, and the first C object merges at the coordinator's outer edge. Coordination establishes the antecedent clause and the two contrastive pairs: Ada with Bruno, and tea with coffee. These pairs license the second clause's T projection as an ellipsis domain. At phonological interpretation that domain is made silent, including ordered; its syntactic structure remains present for interpretation. The result is Ada ordered tea and Bruno coffee, with the second conjunct interpreted as Bruno ordered coffee. This is a movement-and-ellipsis implementation of gapping, not an analysis with an independently referential silent verb. The comma and period are punctuation, not additional syntactic terminals in the supplied token sequence.",
+      "statement": "Coordinate the clauses and license gapping by nonpronunciation of the second T domain.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c1head",
+                  "label": "C",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ada1",
+                      "label": "D",
+                      "lineageId": "Ada",
+                      "tokenIndex": 0,
+                      "word": "Ada"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "t1head",
+                          "label": "T",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "ada0",
+                              "label": "D",
+                              "lineageId": "Ada",
+                              "silent": true,
+                              "word": "Ada"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v1head",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "ordered1",
+                                      "label": "V",
+                                      "tokenIndex": 1,
+                                      "word": "ordered"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "tea",
+                                      "label": "N",
+                                      "tokenIndex": 2,
+                                      "word": "tea"
+                                    }
+                                  ],
+                                  "id": "vp1",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "v1low",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "v1max",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "t1low",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "t1max",
+                  "label": "T"
+                }
+              ],
+              "id": "clause1",
+              "label": "C"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and",
+                  "label": "&",
+                  "tokenIndex": 3,
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c2head",
+                      "label": "C",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bruno2",
+                          "label": "D",
+                          "lineageId": "Bruno",
+                          "tokenIndex": 4,
+                          "word": "Bruno"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "topHead",
+                              "label": "Top",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "coffee1",
+                                  "label": "N",
+                                  "lineageId": "coffee",
+                                  "tokenIndex": 5,
+                                  "word": "coffee"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "focHead",
+                                      "label": "Foc",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bruno1",
+                                          "label": "D",
+                                          "lineageId": "Bruno",
+                                          "silent": true,
+                                          "word": "Bruno"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "t2head",
+                                              "label": "T",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "bruno0",
+                                                  "label": "D",
+                                                  "lineageId": "Bruno",
+                                                  "silent": true,
+                                                  "word": "Bruno"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "v2head",
+                                                      "label": "v",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "ordered2",
+                                                          "label": "V",
+                                                          "silent": true,
+                                                          "word": "ordered"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "coffee0",
+                                                          "label": "N",
+                                                          "lineageId": "coffee",
+                                                          "silent": true,
+                                                          "word": "coffee"
+                                                        }
+                                                      ],
+                                                      "id": "vp2",
+                                                      "label": "V",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "v2low",
+                                                  "label": "v",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "v2max",
+                                              "label": "v",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "t2low",
+                                          "label": "T",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "t2max",
+                                      "label": "T",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "focLow",
+                                  "label": "Foc"
+                                }
+                              ],
+                              "id": "focMax",
+                              "label": "Foc"
+                            }
+                          ],
+                          "id": "topLow",
+                          "label": "Top"
+                        }
+                      ],
+                      "id": "topMax",
+                      "label": "Top"
+                    }
+                  ],
+                  "id": "clause2",
+                  "label": "C"
+                }
+              ],
+              "id": "coordLow",
+              "label": "&"
+            }
+          ],
+          "id": "coordMax",
+          "label": "&"
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "transport": "codex-oauth",
+    "sourceStages": [
+      4,
+      5
+    ],
+    "rawOutputSha256": "353b32a309d43ad7de1e48275cef118c4d8f8e9f27552bd3788bff8c0b66f7b9",
+    "requestSha256": "1365fc7dba852779fc1cfeef9cc8746ca30ec1f0a280aea8c48fb34b3e001e48",
+    "contractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d",
+    "repositoryCommit": "5130d835f4a1a3a4094087fd359414add45e352c"
+  }
+}

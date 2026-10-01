@@ -1,0 +1,2597 @@
+{
+  "cases": [
+    {
+      "key": "fresh/mandarin-topic/1",
+      "sentence": "这本书，小王已经看过了。",
+      "inputTokens": [
+        "这",
+        "本",
+        "书",
+        "小王",
+        "已经",
+        "看",
+        "过",
+        "了"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "result": "a2-vcomplex",
+                "stem": "a2-v",
+                "suffix": "a2-guo"
+              },
+              "relation": "lexical aspectual suffixation",
+              "values": {
+                "aspect": "experiential",
+                "formation": "lexical combination, not syntactic movement"
+              }
+            }
+          ],
+          "stageRecord": "This analysis generates 这本书 independently as a topic rather than as an overt argument inside VP. The demonstrative selects the classifier phrase 本书. 小王 is a proper-name NP and 已经 an AdvP. 看 combines lexically with experiential 过 to form the verbal head; no syntactic head movement is posited for this suffix. A silent finite I and a right-peripheral C head pronounced 了 are prepared for the clause. The later object position will contain a null pronoun, not a movement trace.",
+          "statement": "Prepare a base-generated topic with clause-final 了.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-dem",
+                      "label": "D⁰",
+                      "tokenIndex": 0,
+                      "word": "这"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a2-cl",
+                              "label": "Cl⁰",
+                              "tokenIndex": 1,
+                              "word": "本"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2-n",
+                                      "label": "N⁰",
+                                      "tokenIndex": 2,
+                                      "word": "书"
+                                    }
+                                  ],
+                                  "id": "a2-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a2-np",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a2-clbar",
+                          "label": "Cl′"
+                        }
+                      ],
+                      "id": "a2-clp",
+                      "label": "ClP"
+                    }
+                  ],
+                  "id": "a2-dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "a2-topic",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-name",
+                      "label": "N⁰",
+                      "tokenIndex": 3,
+                      "word": "小王"
+                    }
+                  ],
+                  "id": "a2-subjbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a2-subj",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-adv",
+                      "label": "Adv⁰",
+                      "tokenIndex": 4,
+                      "word": "已经"
+                    }
+                  ],
+                  "id": "a2-advbar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "a2-advp",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a2-v",
+                  "label": "V⁰",
+                  "tokenIndex": 5,
+                  "word": "看"
+                },
+                {
+                  "children": [],
+                  "id": "a2-guo",
+                  "label": "Asp⁰ (lexical suffix)",
+                  "tokenIndex": 6,
+                  "word": "过"
+                }
+              ],
+              "id": "a2-vcomplex",
+              "label": "V⁰"
+            },
+            {
+              "children": [],
+              "id": "a2-i",
+              "label": "I⁰ (finite)",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a2-c",
+              "label": "C⁰ (change-of-state particle)",
+              "tokenIndex": 7,
+              "word": "了"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "arguments": [
+                  "a2-subj",
+                  "a2-pro"
+                ],
+                "predicate": "a2-vcomplex"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "arguments": [
+                  "viewer",
+                  "Theme"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "licensors": [
+                  "a2-i",
+                  "a2-vcomplex"
+                ],
+                "nominals": [
+                  "a2-subj",
+                  "a2-pro"
+                ]
+              },
+              "relation": "abstract Case licensing",
+              "values": {
+                "nominals": [
+                  "subject Case",
+                  "object Case"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "particle": "a2-c",
+                "scope": "a2-ip"
+              },
+              "relation": "clause-level particle interpretation",
+              "values": {
+                "interpretation": "the viewing experience now holds as a relevant established state"
+              }
+            }
+          ],
+          "stageRecord": "A silent object pro is generated as the complement of the complex verb. It receives the Theme role and abstract object Case under verbal government; 小王 receives the viewer role and occupies Spec-IP, with abstract subject Case licensed by silent finite I. 已经 adjoins to I′. The clause combines with final 了, interpreted as a clause-level change-of-state particle. The overt book DP remains a separate object in the workspace: it has never occupied the verb’s complement position. This GB analysis assumes Mandarin permits a discourse-recoverable null object without overt agreement.",
+          "statement": "Build the clause with a pronominal empty object.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-dem",
+                      "label": "D⁰",
+                      "tokenIndex": 0,
+                      "word": "这"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a2-cl",
+                              "label": "Cl⁰",
+                              "tokenIndex": 1,
+                              "word": "本"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2-n",
+                                      "label": "N⁰",
+                                      "tokenIndex": 2,
+                                      "word": "书"
+                                    }
+                                  ],
+                                  "id": "a2-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a2-np",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a2-clbar",
+                          "label": "Cl′"
+                        }
+                      ],
+                      "id": "a2-clp",
+                      "label": "ClP"
+                    }
+                  ],
+                  "id": "a2-dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "a2-topic",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-name",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "小王"
+                                }
+                              ],
+                              "id": "a2-subjbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a2-subj",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2-adv",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 4,
+                                      "word": "已经"
+                                    }
+                                  ],
+                                  "id": "a2-advbar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "a2-advp",
+                              "label": "AdvP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-i",
+                                  "label": "I⁰ (finite)",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a2-v",
+                                              "label": "V⁰",
+                                              "tokenIndex": 5,
+                                              "word": "看"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "a2-guo",
+                                              "label": "Asp⁰ (lexical suffix)",
+                                              "tokenIndex": 6,
+                                              "word": "过"
+                                            }
+                                          ],
+                                          "id": "a2-vcomplex",
+                                          "label": "V⁰"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "a2-pro",
+                                          "label": "DP (pro)",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "a2-vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a2-vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "a2-ibar-inner",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "a2-ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "a2-ip",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "a2-c",
+                      "label": "C⁰ (change-of-state particle)",
+                      "tokenIndex": 7,
+                      "word": "了"
+                    }
+                  ],
+                  "id": "a2-cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "a2-cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "pronoun": "a2-pro",
+                "topic": "a2-topic"
+              },
+              "relation": "topic–pronoun referential dependency",
+              "values": {
+                "dependencyType": "base-generated topic with null resumptive object",
+                "reference": "the same contextually identified book"
+              }
+            },
+            {
+              "anchors": {
+                "antecedent": "a2-topic",
+                "localDomain": "a2-ip",
+                "pronoun": "a2-pro"
+              },
+              "relation": "pronominal binding-domain check",
+              "values": {
+                "principle": "B",
+                "result": "antecedent lies outside the local binding domain"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "a2-cp",
+                "topic": "a2-topic"
+              },
+              "relation": "topic licensing",
+              "values": {
+                "licensing": "clause-peripheral topic construction, not verbal argument licensing"
+              }
+            }
+          ],
+          "stageRecord": "The independently generated DP is placed in Spec-CP and linked referentially to object pro. This is external topic attachment, not movement from VP, so there is no trace or movement chain. The topic c-commands pro from outside its local IP binding domain; pro is locally free, as required for a pronominal empty category under Principle B. The topic is licensed by the topic construction rather than receiving a second verbal theta-role or object Case. Its reference identifies the book that 小王 has already had the experience of reading. The final particle remains outside the verbal head.",
+          "statement": "Complete the base-generated topic–pro analysis.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a2-dem",
+                          "label": "D⁰",
+                          "tokenIndex": 0,
+                          "word": "这"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-cl",
+                                  "label": "Cl⁰",
+                                  "tokenIndex": 1,
+                                  "word": "本"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a2-n",
+                                          "label": "N⁰",
+                                          "tokenIndex": 2,
+                                          "word": "书"
+                                        }
+                                      ],
+                                      "id": "a2-nbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "a2-np",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "a2-clbar",
+                              "label": "Cl′"
+                            }
+                          ],
+                          "id": "a2-clp",
+                          "label": "ClP"
+                        }
+                      ],
+                      "id": "a2-dbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "a2-topic",
+                  "label": "DP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-name",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "小王"
+                                }
+                              ],
+                              "id": "a2-subjbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a2-subj",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2-adv",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 4,
+                                      "word": "已经"
+                                    }
+                                  ],
+                                  "id": "a2-advbar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "a2-advp",
+                              "label": "AdvP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-i",
+                                  "label": "I⁰ (finite)",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a2-v",
+                                              "label": "V⁰",
+                                              "tokenIndex": 5,
+                                              "word": "看"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "a2-guo",
+                                              "label": "Asp⁰ (lexical suffix)",
+                                              "tokenIndex": 6,
+                                              "word": "过"
+                                            }
+                                          ],
+                                          "id": "a2-vcomplex",
+                                          "label": "V⁰"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "a2-pro",
+                                          "label": "DP (pro)",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "a2-vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a2-vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "a2-ibar-inner",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "a2-ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "a2-ip",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "a2-c",
+                      "label": "C⁰ (change-of-state particle)",
+                      "tokenIndex": 7,
+                      "word": "了"
+                    }
+                  ],
+                  "id": "a2-cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "a2-cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "fresh/mandarin-topic/3",
+      "sentence": "这本书，小王已经看过了。",
+      "inputTokens": [
+        "这",
+        "本",
+        "书",
+        "小王",
+        "已经",
+        "看",
+        "过",
+        "了"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "result": "a4-vinner",
+                "stem": "a4-v",
+                "suffix": "a4-guo"
+              },
+              "relation": "lexical experiential suffixation",
+              "values": {
+                "aspect": "experiential"
+              }
+            },
+            {
+              "anchors": {
+                "result": "a4-vcomplex",
+                "stem": "a4-vinner",
+                "suffix": "a4-le"
+              },
+              "relation": "lexical outer aspectual suffixation",
+              "values": {
+                "aspect": "perfective or actualized experience",
+                "formation": "verbal suffixation rather than a clause-final C particle"
+              }
+            }
+          ],
+          "stageRecord": "This analysis combines independent topic generation with the suffixal interpretation of 了. The book DP is assembled from demonstrative 这 and classifier phrase 本书 but is not generated as an overt verbal argument. In the lexical verbal head, 看 first combines with experiential 过; outer aspectual 了 then combines with that head, presenting the viewing experience as actualized or completed. These are ordered lexical morphological operations, not syntactic head movements. 小王 and 已经 project NP and AdvP. The finite I and declarative C heads are silent.",
+          "statement": "Prepare a base-generated topic with verbal aspectual 了.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a4-dem",
+                      "label": "D⁰",
+                      "tokenIndex": 0,
+                      "word": "这"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a4-cl",
+                              "label": "Cl⁰",
+                              "tokenIndex": 1,
+                              "word": "本"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a4-n",
+                                      "label": "N⁰",
+                                      "tokenIndex": 2,
+                                      "word": "书"
+                                    }
+                                  ],
+                                  "id": "a4-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a4-np",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a4-clbar",
+                          "label": "Cl′"
+                        }
+                      ],
+                      "id": "a4-clp",
+                      "label": "ClP"
+                    }
+                  ],
+                  "id": "a4-dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "a4-topic",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a4-name",
+                      "label": "N⁰",
+                      "tokenIndex": 3,
+                      "word": "小王"
+                    }
+                  ],
+                  "id": "a4-subjbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a4-subj",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a4-adv",
+                      "label": "Adv⁰",
+                      "tokenIndex": 4,
+                      "word": "已经"
+                    }
+                  ],
+                  "id": "a4-advbar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "a4-advp",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a4-v",
+                      "label": "V⁰",
+                      "tokenIndex": 5,
+                      "word": "看"
+                    },
+                    {
+                      "children": [],
+                      "id": "a4-guo",
+                      "label": "Asp⁰ (lexical suffix)",
+                      "tokenIndex": 6,
+                      "word": "过"
+                    }
+                  ],
+                  "id": "a4-vinner",
+                  "label": "V⁰"
+                },
+                {
+                  "children": [],
+                  "id": "a4-le",
+                  "label": "Asp⁰ (lexical suffix)",
+                  "tokenIndex": 7,
+                  "word": "了"
+                }
+              ],
+              "id": "a4-vcomplex",
+              "label": "V⁰"
+            },
+            {
+              "children": [],
+              "id": "a4-i",
+              "label": "I⁰ (finite)",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a4-c",
+              "label": "C⁰ (declarative)",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "arguments": [
+                  "a4-subj",
+                  "a4-pro"
+                ],
+                "predicate": "a4-vcomplex"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "arguments": [
+                  "viewer",
+                  "Theme"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "licensors": [
+                  "a4-i",
+                  "a4-vcomplex"
+                ],
+                "nominals": [
+                  "a4-subj",
+                  "a4-pro"
+                ]
+              },
+              "relation": "abstract Case licensing",
+              "values": {
+                "nominals": [
+                  "subject Case",
+                  "object Case"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "The verb projects V′ with silent object pro as its complement. Pro receives the Theme role and abstract object Case under verbal government. 小王 occupies Spec-IP and receives the viewer role and abstract subject Case; 已经 adjoins to I′. Silent declarative C closes the clause. The book DP remains separate and has not occupied any position in VP. The analysis assumes discourse licensing of Mandarin object pro, rather than agreement-based identification. Since both pro and C are silent, suffixal 了 is already the final pronounced element of the clause.",
+          "statement": "Build the suffixed predicate with an independently generated null object.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a4-dem",
+                      "label": "D⁰",
+                      "tokenIndex": 0,
+                      "word": "这"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a4-cl",
+                              "label": "Cl⁰",
+                              "tokenIndex": 1,
+                              "word": "本"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a4-n",
+                                      "label": "N⁰",
+                                      "tokenIndex": 2,
+                                      "word": "书"
+                                    }
+                                  ],
+                                  "id": "a4-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a4-np",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a4-clbar",
+                          "label": "Cl′"
+                        }
+                      ],
+                      "id": "a4-clp",
+                      "label": "ClP"
+                    }
+                  ],
+                  "id": "a4-dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "a4-topic",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a4-name",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "小王"
+                                }
+                              ],
+                              "id": "a4-subjbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a4-subj",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a4-adv",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 4,
+                                      "word": "已经"
+                                    }
+                                  ],
+                                  "id": "a4-advbar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "a4-advp",
+                              "label": "AdvP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a4-i",
+                                  "label": "I⁰ (finite)",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a4-v",
+                                                  "label": "V⁰",
+                                                  "tokenIndex": 5,
+                                                  "word": "看"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "a4-guo",
+                                                  "label": "Asp⁰ (lexical suffix)",
+                                                  "tokenIndex": 6,
+                                                  "word": "过"
+                                                }
+                                              ],
+                                              "id": "a4-vinner",
+                                              "label": "V⁰"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "a4-le",
+                                              "label": "Asp⁰ (lexical suffix)",
+                                              "tokenIndex": 7,
+                                              "word": "了"
+                                            }
+                                          ],
+                                          "id": "a4-vcomplex",
+                                          "label": "V⁰"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "a4-pro",
+                                          "label": "DP (pro)",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "a4-vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a4-vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "a4-ibar-inner",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "a4-ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "a4-ip",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "a4-c",
+                      "label": "C⁰ (declarative)",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a4-cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "a4-cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "pronoun": "a4-pro",
+                "topic": "a4-topic"
+              },
+              "relation": "topic–pronoun referential dependency",
+              "values": {
+                "dependencyType": "base-generated topic with null resumptive object",
+                "reference": "the same contextually identified book"
+              }
+            },
+            {
+              "anchors": {
+                "antecedent": "a4-topic",
+                "localDomain": "a4-ip",
+                "pronoun": "a4-pro"
+              },
+              "relation": "pronominal binding-domain check",
+              "values": {
+                "principle": "B",
+                "result": "antecedent lies outside the local binding domain"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "a4-cp",
+                "topic": "a4-topic"
+              },
+              "relation": "topic licensing",
+              "values": {
+                "licensing": "clause-peripheral topic construction, not verbal argument licensing"
+              }
+            }
+          ],
+          "stageRecord": "The independent book DP is attached in Spec-CP and establishes the reference of object pro. It does not move from the object position, and no movement trace is introduced. Pro retains its verbal theta-role and Case and is free within its local IP domain; its topic antecedent lies outside that domain, satisfying Principle B. The overt DP is licensed as a topic, not as an additional argument of 看. The final 了 remains inside the complex verbal head, distinguishing this structure from the base-generated-topic analysis with clause-final C.",
+          "statement": "Complete the base-generated topic analysis with suffixal 了.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a4-dem",
+                          "label": "D⁰",
+                          "tokenIndex": 0,
+                          "word": "这"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a4-cl",
+                                  "label": "Cl⁰",
+                                  "tokenIndex": 1,
+                                  "word": "本"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a4-n",
+                                          "label": "N⁰",
+                                          "tokenIndex": 2,
+                                          "word": "书"
+                                        }
+                                      ],
+                                      "id": "a4-nbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "a4-np",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "a4-clbar",
+                              "label": "Cl′"
+                            }
+                          ],
+                          "id": "a4-clp",
+                          "label": "ClP"
+                        }
+                      ],
+                      "id": "a4-dbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "a4-topic",
+                  "label": "DP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a4-name",
+                                  "label": "N⁰",
+                                  "tokenIndex": 3,
+                                  "word": "小王"
+                                }
+                              ],
+                              "id": "a4-subjbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a4-subj",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a4-adv",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 4,
+                                      "word": "已经"
+                                    }
+                                  ],
+                                  "id": "a4-advbar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "a4-advp",
+                              "label": "AdvP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a4-i",
+                                  "label": "I⁰ (finite)",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a4-v",
+                                                  "label": "V⁰",
+                                                  "tokenIndex": 5,
+                                                  "word": "看"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "a4-guo",
+                                                  "label": "Asp⁰ (lexical suffix)",
+                                                  "tokenIndex": 6,
+                                                  "word": "过"
+                                                }
+                                              ],
+                                              "id": "a4-vinner",
+                                              "label": "V⁰"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "a4-le",
+                                              "label": "Asp⁰ (lexical suffix)",
+                                              "tokenIndex": 7,
+                                              "word": "了"
+                                            }
+                                          ],
+                                          "id": "a4-vcomplex",
+                                          "label": "V⁰"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "a4-pro",
+                                          "label": "DP (pro)",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "a4-vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a4-vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "a4-ibar-inner",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "a4-ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "a4-ip",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "a4-c",
+                      "label": "C⁰ (declarative)",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a4-cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "a4-cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "holdout/mandarin-negative-relative/0",
+      "sentence": "昨天买的那本书，小李还没有看。",
+      "inputTokens": [
+        "昨天",
+        "买",
+        "的",
+        "那本书",
+        "小",
+        "李",
+        "还",
+        "没有",
+        "看"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "modifier": "yesterday",
+                "temporalHead": "rcT"
+              },
+              "relation": "temporal anchoring",
+              "values": {
+                "referenceTime": "yesterday"
+              }
+            }
+          ],
+          "stageRecord": "Merge 买 with an unpronounced nominal operator in its theme position. Merge a silent little-v head with this predicate and introduce a null agent in its specifier. Adjoin 昨天 to the resulting verbal constituent, then merge a silent temporal head. Labels identify the projecting lexical item or functional category; the binary structures are Bare Phrase Structure objects, not additional X-bar levels. The relative clause's null subject is contextually interpreted and is not yet identified with 小李.",
+          "statement": "Construct the relative clause with an unpronounced subject and an object operator.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rcT",
+                  "label": "T",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "yesterday",
+                      "label": "Adv",
+                      "tokenIndex": 0,
+                      "word": "昨天"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rcSubjectLow",
+                          "label": "D",
+                          "lineageId": "relativeSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rcLittleV",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "buy",
+                                  "label": "V",
+                                  "tokenIndex": 1,
+                                  "word": "买"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "operatorLow",
+                                  "label": "D",
+                                  "lineageId": "relativeOperator",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "rcLexicalV",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "rcVProjection",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "rcSubjectV",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "rcTemporalV",
+                  "label": "v"
+                }
+              ],
+              "id": "rcTP",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "rcSubjectLow",
+                "probe": "rcT"
+              },
+              "relation": "subject agreement",
+              "values": {
+                "nominalLicensing": "abstract nominative"
+              }
+            },
+            {
+              "anchors": {
+                "higherOccurrence": "rcSubjectHigh",
+                "lowerOccurrence": "rcSubjectLow"
+              },
+              "priorAnchors": {
+                "source": "rcSubjectLow"
+              },
+              "relation": "subject Internal Merge",
+              "values": {
+                "chainType": "A",
+                "pronunciation": "both occurrences silent"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "operatorLow",
+                "probe": "relativeC"
+              },
+              "relation": "relative-operator attraction",
+              "values": {
+                "feature": "relative"
+              }
+            },
+            {
+              "anchors": {
+                "higherOccurrence": "operatorHigh",
+                "licensingHead": "relativeC",
+                "lowerOccurrence": "operatorLow"
+              },
+              "priorAnchors": {
+                "source": "operatorLow"
+              },
+              "relation": "operator Internal Merge",
+              "values": {
+                "chainType": "A-bar",
+                "interpretation": "abstraction over the theme of buying"
+              }
+            }
+          ],
+          "stageRecord": "The relative temporal head agrees with the null subject, which undergoes Internal Merge to its specifier. Merge the head-final relativizing C pronounced 的 with that completed temporal constituent. C then attracts the object operator to its left edge. Both operator occurrences and both subject occurrences remain unpronounced. The operator chain makes this a relative clause about the thing bought, rather than an independent assertion that somebody bought something yesterday.",
+          "statement": "Complete the operator relative headed by 的.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "operatorHigh",
+                  "label": "D",
+                  "lineageId": "relativeOperator",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rcSubjectHigh",
+                          "label": "D",
+                          "lineageId": "relativeSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rcT",
+                              "label": "T",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "yesterday",
+                                  "label": "Adv",
+                                  "tokenIndex": 0,
+                                  "word": "昨天"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rcSubjectLow",
+                                      "label": "D",
+                                      "lineageId": "relativeSubject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rcLittleV",
+                                          "label": "v",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "buy",
+                                              "label": "V",
+                                              "tokenIndex": 1,
+                                              "word": "买"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "operatorLow",
+                                              "label": "D",
+                                              "lineageId": "relativeOperator",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "rcLexicalV",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "rcVProjection",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "rcSubjectV",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "rcTemporalV",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "rcTProjection",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "rcTP",
+                      "label": "T"
+                    },
+                    {
+                      "children": [],
+                      "id": "relativeC",
+                      "label": "C",
+                      "tokenIndex": 2,
+                      "word": "的"
+                    }
+                  ],
+                  "id": "relativeCProjection",
+                  "label": "C"
+                }
+              ],
+              "id": "relativeCP",
+              "label": "C"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "demonstrative",
+                "classifier",
+                "bookNoun"
+              ],
+              "tokenIndices": [
+                3
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "modifiedNominal": "bookDP",
+                "nominalHead": "bookNoun",
+                "relativeOperator": "operatorHigh"
+              },
+              "relation": "relative predication",
+              "values": {
+                "interpretation": "the book that a contextually supplied agent bought yesterday"
+              }
+            },
+            {
+              "anchors": {
+                "contributors": [
+                  "demonstrative",
+                  "classifier",
+                  "bookNoun"
+                ]
+              },
+              "relation": "demonstrative-classifier-noun realization",
+              "values": {
+                "surfaceForm": "那本书"
+              }
+            }
+          ],
+          "stageRecord": "Merge the classifier 本 with the noun 书 and merge the demonstrative 那 with that classifier constituent. Adjoin the completed relative clause to this demonstrative nominal. Attachment outside the demonstrative constituent is sentence-specific: the pronounced relative clause precedes 那本书, rather than following 那本. Interpret the operator abstraction as a restrictive property of the book. The three separate lexical heads jointly realize the single supplied token 那本书; the token boundary does not collapse their syntactic distinctions.",
+          "statement": "Build the demonstrative-classifier nominal and attach its preceding relative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "operatorHigh",
+                      "label": "D",
+                      "lineageId": "relativeOperator",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rcSubjectHigh",
+                              "label": "D",
+                              "lineageId": "relativeSubject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rcT",
+                                  "label": "T",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "yesterday",
+                                      "label": "Adv",
+                                      "tokenIndex": 0,
+                                      "word": "昨天"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rcSubjectLow",
+                                          "label": "D",
+                                          "lineageId": "relativeSubject",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rcLittleV",
+                                              "label": "v",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "buy",
+                                                  "label": "V",
+                                                  "tokenIndex": 1,
+                                                  "word": "买"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "operatorLow",
+                                                  "label": "D",
+                                                  "lineageId": "relativeOperator",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "rcLexicalV",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "rcVProjection",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "rcSubjectV",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "rcTemporalV",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "rcTProjection",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "rcTP",
+                          "label": "T"
+                        },
+                        {
+                          "children": [],
+                          "id": "relativeC",
+                          "label": "C",
+                          "tokenIndex": 2,
+                          "word": "的"
+                        }
+                      ],
+                      "id": "relativeCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relativeCP",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "demonstrative",
+                      "label": "D",
+                      "word": "那"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "classifier",
+                          "label": "Cl",
+                          "word": "本"
+                        },
+                        {
+                          "children": [],
+                          "id": "bookNoun",
+                          "label": "N",
+                          "word": "书"
+                        }
+                      ],
+                      "id": "classifierProjection",
+                      "label": "Cl"
+                    }
+                  ],
+                  "id": "demonstrativeDP",
+                  "label": "D"
+                }
+              ],
+              "id": "bookDP",
+              "label": "D",
+              "lineageId": "bookNominal"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "demonstrative",
+                "classifier",
+                "bookNoun"
+              ],
+              "tokenIndices": [
+                3
+              ]
+            },
+            {
+              "nodeIds": [
+                "nameLow"
+              ],
+              "tokenIndices": [
+                4,
+                5
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "externalArgument": "nameLow",
+                "internalArgument": "bookDP",
+                "licensingHead": "mainLittleV",
+                "predicate": "look"
+              },
+              "relation": "matrix argument licensing",
+              "values": {
+                "externalRole": "agent",
+                "internalRole": "theme",
+                "objectCase": "abstract accusative"
+              }
+            },
+            {
+              "anchors": {
+                "name": "nameLow"
+              },
+              "relation": "proper-name realization",
+              "values": {
+                "suppliedTokenSequence": [
+                  "小",
+                  "李"
+                ],
+                "surfaceForm": "小李"
+              }
+            }
+          ],
+          "stageRecord": "In this analysis the initial book nominal originates as the complement of 看. Merge that object with 看, introduce a silent little-v head, and merge the proper-name subject 小李 in the external-argument position. Merge preverbal 没有 as a negative auxiliary head, adjoin 还 above its projection, and merge a silent temporal head. This gives 还 scope over the negative proposition: the relevant reading or looking-at event has still not occurred. 没有 is retained as one lexical negative head; no independent pronounced 有 or perfect suffix is posited. The proper name is one nominal terminal, jointly associated with the supplied tokens 小 and 李.",
+          "statement": "Merge the book nominal as the matrix object and build the negative predicate.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mainT",
+                  "label": "T",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "still",
+                      "label": "Adv",
+                      "tokenIndex": 6,
+                      "word": "还"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "negative",
+                          "label": "Neg",
+                          "tokenIndex": 7,
+                          "word": "没有"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nameLow",
+                              "label": "D",
+                              "lineageId": "matrixSubject",
+                              "word": "小李"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mainLittleV",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "look",
+                                      "label": "V",
+                                      "tokenIndex": 8,
+                                      "word": "看"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "operatorHigh",
+                                              "label": "D",
+                                              "lineageId": "relativeOperator",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "rcSubjectHigh",
+                                                      "label": "D",
+                                                      "lineageId": "relativeSubject",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "rcT",
+                                                          "label": "T",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "yesterday",
+                                                              "label": "Adv",
+                                                              "tokenIndex": 0,
+                                                              "word": "昨天"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "rcSubjectLow",
+                                                                  "label": "D",
+                                                                  "lineageId": "relativeSubject",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "rcLittleV",
+                                                                      "label": "v",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "buy",
+                                                                          "label": "V",
+                                                                          "tokenIndex": 1,
+                                                                          "word": "买"
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "operatorLow",
+                                                                          "label": "D",
+                                                                          "lineageId": "relativeOperator",
+                                                                          "silent": true
+                                                                        }
+                                                                      ],
+                                                                      "id": "rcLexicalV",
+                                                                      "label": "V"
+                                                                    }
+                                                                  ],
+                                                                  "id": "rcVProjection",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "rcSubjectV",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "rcTemporalV",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "rcTProjection",
+                                                      "label": "T"
+                                                    }
+                                                  ],
+                                                  "id": "rcTP",
+                                                  "label": "T"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeC",
+                                                  "label": "C",
+                                                  "tokenIndex": 2,
+                                                  "word": "的"
+                                                }
+                                              ],
+                                              "id": "relativeCProjection",
+                                              "label": "C"
+                                            }
+                                          ],
+                                          "id": "relativeCP",
+                                          "label": "C"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "demonstrative",
+                                              "label": "D",
+                                              "word": "那"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "classifier",
+                                                  "label": "Cl",
+                                                  "word": "本"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "bookNoun",
+                                                  "label": "N",
+                                                  "word": "书"
+                                                }
+                                              ],
+                                              "id": "classifierProjection",
+                                              "label": "Cl"
+                                            }
+                                          ],
+                                          "id": "demonstrativeDP",
+                                          "label": "D"
+                                        }
+                                      ],
+                                      "id": "bookDP",
+                                      "label": "D",
+                                      "lineageId": "bookNominal"
+                                    }
+                                  ],
+                                  "id": "mainLexicalV",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "mainVProjection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mainSubjectV",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "negativeProjection",
+                      "label": "Neg"
+                    }
+                  ],
+                  "id": "stillNegative",
+                  "label": "Neg"
+                }
+              ],
+              "id": "mainTP",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "demonstrative",
+                "classifier",
+                "bookNoun"
+              ],
+              "tokenIndices": [
+                3
+              ]
+            },
+            {
+              "nodeIds": [
+                "nameHigh"
+              ],
+              "tokenIndices": [
+                4,
+                5
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "goal": "nameLow",
+                "probe": "mainT"
+              },
+              "relation": "subject agreement",
+              "values": {
+                "nominalLicensing": "abstract nominative"
+              }
+            },
+            {
+              "anchors": {
+                "higherOccurrence": "nameHigh",
+                "lowerOccurrence": "nameLow"
+              },
+              "priorAnchors": {
+                "source": "nameLow"
+              },
+              "relation": "subject Internal Merge and chain pronunciation",
+              "values": {
+                "chainType": "A",
+                "pronunciation": "higher copy only",
+                "surfaceForm": "小李"
+              }
+            }
+          ],
+          "stageRecord": "The matrix temporal head agrees with the subject already present in the external-argument position. Internal Merge places a second occurrence of that subject in the temporal specifier, above 还 and 没有. Pronounce only the higher occurrence; the lower copy retains its lexical content but is silent. Consequently, the two-token realization of the proper name is now associated only with the higher occurrence. The book nominal remains in the object position at this stage, providing the source required for subsequent topicalization.",
+          "statement": "Raise 小李 to the matrix subject position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "nameHigh",
+                  "label": "D",
+                  "lineageId": "matrixSubject",
+                  "word": "小李"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mainT",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "still",
+                          "label": "Adv",
+                          "tokenIndex": 6,
+                          "word": "还"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "negative",
+                              "label": "Neg",
+                              "tokenIndex": 7,
+                              "word": "没有"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nameLow",
+                                  "label": "D",
+                                  "lineageId": "matrixSubject",
+                                  "silent": true,
+                                  "word": "小李"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mainLittleV",
+                                      "label": "v",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "look",
+                                          "label": "V",
+                                          "tokenIndex": 8,
+                                          "word": "看"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "operatorHigh",
+                                                  "label": "D",
+                                                  "lineageId": "relativeOperator",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "rcSubjectHigh",
+                                                          "label": "D",
+                                                          "lineageId": "relativeSubject",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "rcT",
+                                                              "label": "T",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "yesterday",
+                                                                  "label": "Adv",
+                                                                  "tokenIndex": 0,
+                                                                  "word": "昨天"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "rcSubjectLow",
+                                                                      "label": "D",
+                                                                      "lineageId": "relativeSubject",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "rcLittleV",
+                                                                          "label": "v",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "buy",
+                                                                              "label": "V",
+                                                                              "tokenIndex": 1,
+                                                                              "word": "买"
+                                                                            },
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "operatorLow",
+                                                                              "label": "D",
+                                                                              "lineageId": "relativeOperator",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "rcLexicalV",
+                                                                          "label": "V"
+                                                                        }
+                                                                      ],
+                                                                      "id": "rcVProjection",
+                                                                      "label": "v"
+                                                                    }
+                                                                  ],
+                                                                  "id": "rcSubjectV",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "rcTemporalV",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "rcTProjection",
+                                                          "label": "T"
+                                                        }
+                                                      ],
+                                                      "id": "rcTP",
+                                                      "label": "T"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "relativeC",
+                                                      "label": "C",
+                                                      "tokenIndex": 2,
+                                                      "word": "的"
+                                                    }
+                                                  ],
+                                                  "id": "relativeCProjection",
+                                                  "label": "C"
+                                                }
+                                              ],
+                                              "id": "relativeCP",
+                                              "label": "C"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "demonstrative",
+                                                  "label": "D",
+                                                  "word": "那"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "classifier",
+                                                      "label": "Cl",
+                                                      "word": "本"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "bookNoun",
+                                                      "label": "N",
+                                                      "word": "书"
+                                                    }
+                                                  ],
+                                                  "id": "classifierProjection",
+                                                  "label": "Cl"
+                                                }
+                                              ],
+                                              "id": "demonstrativeDP",
+                                              "label": "D"
+                                            }
+                                          ],
+                                          "id": "bookDP",
+                                          "label": "D",
+                                          "lineageId": "bookNominal"
+                                        }
+                                      ],
+                                      "id": "mainLexicalV",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "mainVProjection",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "mainSubjectV",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "negativeProjection",
+                          "label": "Neg"
+                        }
+                      ],
+                      "id": "stillNegative",
+                      "label": "Neg"
+                    }
+                  ],
+                  "id": "mainTProjection",
+                  "label": "T"
+                }
+              ],
+              "id": "mainTP",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "demonstrative",
+                "classifier",
+                "bookNoun"
+              ],
+              "tokenIndices": [
+                3
+              ]
+            },
+            {
+              "nodeIds": [
+                "nameHigh"
+              ],
+              "tokenIndices": [
+                4,
+                5
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "higherOccurrence": "topicBookDP",
+                "licensingHead": "topicHead",
+                "lowerOccurrence": "bookDP"
+              },
+              "priorAnchors": {
+                "source": "bookDP"
+              },
+              "relation": "topic Internal Merge",
+              "values": {
+                "chainType": "A-bar",
+                "interpretation": "integrated object topic",
+                "lowerRepresentation": "silent trace abbreviating the lower copy",
+                "pronunciation": "higher occurrence only"
+              }
+            }
+          ],
+          "stageRecord": "Merge a silent topic head above the matrix temporal constituent, then internally merge the book nominal from the previously established object position into the topic specifier. The lower nominal occurrence is represented by an unpronounced trace, an abbreviation of the unpronounced copy; the higher occurrence retains the complete relative-clause and demonstrative-classifier structure. Their shared identity makes the initial nominal the syntactic theme of 看 despite its left-peripheral pronunciation. This yields the integrated reading 'That book bought yesterday, Xiaoli still has not read.' The relative clause's null agent may be Xiaoli or another contextual individual without changing this structure. The comma and final full stop indicate the written topic boundary and utterance boundary but are not additional tokens in the supplied list.",
+          "statement": "Complete the integrated object-topicalization analysis.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "operatorHigh",
+                          "label": "D",
+                          "lineageId": "relativeOperator",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rcSubjectHigh",
+                                  "label": "D",
+                                  "lineageId": "relativeSubject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rcT",
+                                      "label": "T",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "yesterday",
+                                          "label": "Adv",
+                                          "tokenIndex": 0,
+                                          "word": "昨天"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rcSubjectLow",
+                                              "label": "D",
+                                              "lineageId": "relativeSubject",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "rcLittleV",
+                                                  "label": "v",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "buy",
+                                                      "label": "V",
+                                                      "tokenIndex": 1,
+                                                      "word": "买"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "operatorLow",
+                                                      "label": "D",
+                                                      "lineageId": "relativeOperator",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "rcLexicalV",
+                                                  "label": "V"
+                                                }
+                                              ],
+                                              "id": "rcVProjection",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "rcSubjectV",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "rcTemporalV",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "rcTProjection",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "rcTP",
+                              "label": "T"
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeC",
+                              "label": "C",
+                              "tokenIndex": 2,
+                              "word": "的"
+                            }
+                          ],
+                          "id": "relativeCProjection",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "relativeCP",
+                      "label": "C"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrative",
+                          "label": "D",
+                          "word": "那"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "classifier",
+                              "label": "Cl",
+                              "word": "本"
+                            },
+                            {
+                              "children": [],
+                              "id": "bookNoun",
+                              "label": "N",
+                              "word": "书"
+                            }
+                          ],
+                          "id": "classifierProjection",
+                          "label": "Cl"
+                        }
+                      ],
+                      "id": "demonstrativeDP",
+                      "label": "D"
+                    }
+                  ],
+                  "id": "topicBookDP",
+                  "label": "D",
+                  "lineageId": "bookNominal"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "topicHead",
+                      "label": "Top",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nameHigh",
+                          "label": "D",
+                          "lineageId": "matrixSubject",
+                          "word": "小李"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mainT",
+                              "label": "T",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "still",
+                                  "label": "Adv",
+                                  "tokenIndex": 6,
+                                  "word": "还"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "negative",
+                                      "label": "Neg",
+                                      "tokenIndex": 7,
+                                      "word": "没有"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nameLow",
+                                          "label": "D",
+                                          "lineageId": "matrixSubject",
+                                          "silent": true,
+                                          "word": "小李"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "mainLittleV",
+                                              "label": "v",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "look",
+                                                  "label": "V",
+                                                  "tokenIndex": 8,
+                                                  "word": "看"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "bookDP",
+                                                  "label": "D",
+                                                  "lineageId": "bookNominal",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "mainLexicalV",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "mainVProjection",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "mainSubjectV",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "negativeProjection",
+                                  "label": "Neg"
+                                }
+                              ],
+                              "id": "stillNegative",
+                              "label": "Neg"
+                            }
+                          ],
+                          "id": "mainTProjection",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "mainTP",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "topicProjection",
+                  "label": "Top"
+                }
+              ],
+              "id": "topicClause",
+              "label": "Top"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

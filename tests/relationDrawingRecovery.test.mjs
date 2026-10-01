@@ -145,9 +145,10 @@ test('an authored whole-clause grammaticality judgment earns a verdict glyph', (
     assert.equal(verdict.analysisNodeId, 'clause');
     assert.equal(verdict.judgment, 'grammatical');
   }
-  assert.equal(inspect({ clause: 'clause' }, { judgment: 'grammatical' }, forest).has('judgment.verdict'), false);
+  assert.equal(inspect({ clause: 'clause' }, { judgment: 'grammatical' }, forest).has('judgment.verdict'), true,
+    'an explicit clause and judgment do not require a prescribed relation name');
   assert.equal(inspect({ clause: 'clause' }, { status: 'grammatical' }, forest).has('judgment.verdict'), false);
-  assert.equal(inspect({ clause: 'clause' }, { judgment: 'illicit under the adopted locality theory' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
+  assert.equal(inspect({ clause: 'clause' }, { judgment: 'illicit under the adopted locality theory' }, forest, 'grammaticality judgment').has('judgment.verdict'), true);
   assert.equal(inspect({ clause: 'missing' }, { judgment: 'grammatical' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
   assert.equal(inspect({ root: 'word', clause: 'clause' }, { judgment: 'grammatical' }, forest, 'grammaticality judgment').has('judgment.verdict'), false);
 });

@@ -34,6 +34,25 @@ test('near-aligned Case arrows retain a visible turn into either side of the pla
   }
 });
 
+test('level side attachments keep a bounded bow instead of collapsing to a straight line', () => {
+  // The French auxiliary and Case row differ by only nine tree units.
+  const word = { x: 2976.1, y: 1773.7, width: 64, height: 69 };
+  for (const direction of [-1, 1]) {
+    const plaque = { x: direction < 0 ? 1792.1 : 3732.1, y: 1724.3, width: 480, height: 238 };
+    const curve = caseAssignmentPlaqueCurve(word, plaque, 1817.3);
+    const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
+    const bow = Math.max(...points.map((point, index) => {
+      const fraction = index / (points.length - 1);
+      return curve.source.y + fraction * (curve.target.y - curve.source.y) - point.y;
+    }));
+    assert(bow >= 45 && bow <= 76, `the long level connector needs a visible bounded bow: ${bow}`);
+    assert(!cubicIntersectsRect(curve, word, 6));
+    assert(!cubicIntersectsRect(curve, plaque, 6));
+    assert.equal(curve.source.y, word.y + word.height / 2);
+    assert.equal(curve.target.y, 1817.3);
+  }
+});
+
 test('ordinary Orchard side approaches and vertically aligned arrows retain their geometry', () => {
   const source = { x: 225, y: 0, width: 150, height: 60 };
   assert.deepEqual(caseAssignmentPlaqueCurve(source, { x: -200, y: 80, width: 300, height: 200 }, 173), {

@@ -11,6 +11,8 @@ import {
 import { SourceGallery } from './visual-relations-source-gallery.tsx';
 import { VisualVocabulary } from './visual-relations-vocabulary.tsx';
 import { FallbackPrototypesSection } from './visual-relations-fallback-prototypes.tsx';
+import { orchardSourceCitations, type OrchardSourceCitation } from '../research/relation-orchard/source-citations.ts';
+import { orchardResearchImages, orchardSourcePreviewPath } from '../research/relation-orchard/source-research-images.ts';
 
 type LabCase = {
   archetype: string;
@@ -4990,45 +4992,84 @@ const acdTree = node('tp_acd', 'TP', [
   acdSurfaceTree
 ]);
 
-const orderedCaseStackingBaseTree = node('tp_case_stacking', 'TP', [
-  node('dp_mina_low_case_stacking', 'DP', [
-    node('np_mina_low_case_stacking', 'NP', [
-      leaf('n_mina_low_case_stacking', 'N', 'Mina', { lineageId: 'case-stack-mia' })
-    ], { lineageId: 'case-stack-mia-np' })
-  ], { lineageId: 'case-stack-chain' }),
-  node('tbar_case_stacking', "T'", [
-    leaf('t_past_case_stacking', 'T', '[past]', { silent: true }),
-    node('vp_case_stacking', 'VP', [
-      leaf('v_arrived_case_stacking', 'V', 'arrived')
+// Jou (2026), (124)–(126): the two focus positions keep the subject above
+// the dative recipient at CP case evaluation. Lexical terminals show (124)'s
+// surface words; this schematic does not add a separate PF derivation.
+const orderedCaseStackingTree = node('cp_case_stacking', 'CP', [
+  node('focp_teacher_case_stacking', 'FocP', [
+    node('np_teacher_high_case_stacking', 'NP', [
+      leaf('n_teacher_high_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+        lineageId: 'case-stack-teacher-n'
+      })
+    ], { lineageId: 'case-stack-teacher-np' }),
+    node('focbar_teacher_case_stacking', "Foc'", [
+      node('focp_mina_case_stacking', 'FocP', [
+        node('np_mina_high_case_stacking', 'NP', [
+          leaf('n_mina_high_case_stacking', 'N', 'Mina-eykey-lul', { lineageId: 'case-stack-mina-n' })
+        ], { lineageId: 'case-stack-mina-np' }),
+        node('focbar_mina_case_stacking', "Foc'", [
+          node('tp_case_stacking', 'TP', [
+            node('np_teacher_tp_case_stacking', 'NP', [
+              leaf('n_teacher_tp_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+                lineageId: 'case-stack-teacher-n', silent: true
+              })
+            ], { lineageId: 'case-stack-teacher-np', silent: true }),
+            node('tbar_case_stacking', "T'", [
+              node('voicep_case_stacking', 'VoiceP', [
+                node('np_teacher_low_case_stacking', 'NP', [
+                  leaf('n_teacher_low_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+                    lineageId: 'case-stack-teacher-n', silent: true
+                  })
+                ], { lineageId: 'case-stack-teacher-np', silent: true }),
+                node('voicebar_case_stacking', "Voice'", [
+                  node('applp_case_stacking', 'ApplP', [
+                    node('np_mina_low_case_stacking', 'NP', [
+                      leaf('n_mina_low_case_stacking', 'N', 'Mina-eykey-lul', {
+                        lineageId: 'case-stack-mina-n', silent: true
+                      })
+                    ], { lineageId: 'case-stack-mina-np', silent: true }),
+                    node('applbar_case_stacking', "Appl'", [
+                      node('vp_case_stacking', 'vP', [
+                        node('rootp_case_stacking', '√P', [
+                          node('np_money_case_stacking', 'NP', [
+                            leaf('n_money_case_stacking', 'N', 'ton-ul')
+                          ]),
+                          leaf('root_send_case_stacking', '√', 'ponay-si-ess-ta')
+                        ]),
+                        nullHead('v_case_stacking', 'v')
+                      ]),
+                      nullHead('appl_case_stacking', 'Appl')
+                    ])
+                  ]),
+                  nullHead('voice_case_stacking', 'Voice')
+                ])
+              ]),
+              nullHead('t_case_stacking', 'T')
+            ])
+          ]),
+          nullHead('foc_mina_case_stacking', 'Foc')
+        ])
+      ]),
+      nullHead('foc_teacher_case_stacking', 'Foc')
     ])
-  ])
+  ]),
+  nullHead('c_case_stacking', 'C')
 ]);
 
-const orderedCaseStackingTree = node('kp_case_stacking', 'KP', [
-  node('dp_mina_high_case_stacking', 'DP', [
-    node('np_mina_high_case_stacking', 'NP', [
-      leaf('n_mina_high_case_stacking', 'N', 'Mina', { lineageId: 'case-stack-mia' })
-    ], { lineageId: 'case-stack-mia-np' })
-  ], { lineageId: 'case-stack-chain' }),
-  node('kbar_case_stacking', "K'", [
-    nullHead('k_case_stacking', 'K'),
-    node('tp_case_stacking', 'TP', [
-      node('dp_mina_low_case_stacking', 'DP', [
-        node('np_mina_low_case_stacking', 'NP', [
-          silentLexicalNode('n_mina_low_case_stacking', 'N', 't₁', {
-            lineageId: 'case-stack-mia'
-          })
-        ], { silent: true, lineageId: 'case-stack-mia-np' })
-      ], { silent: true, lineageId: 'case-stack-chain' }),
-      node('tbar_case_stacking', "T'", [
-        leaf('t_past_case_stacking', 'T', '[past]', { silent: true }),
-        node('vp_case_stacking', 'VP', [
-          leaf('v_arrived_case_stacking', 'V', 'arrived')
-        ])
-      ])
-    ])
-  ])
-]);
+const orderedCaseStackingBaseTree = revealPronouncedDomain(
+  revealPronouncedDomain(requiredSyntaxSubtree(orderedCaseStackingTree, 'voicep_case_stacking'),
+    'np_teacher_low_case_stacking'),
+  'np_mina_low_case_stacking'
+);
+const orderedCaseStackingRaisedSubjectTree = revealPronouncedDomain(
+  revealPronouncedDomain(requiredSyntaxSubtree(orderedCaseStackingTree, 'tp_case_stacking'),
+    'np_teacher_tp_case_stacking'),
+  'np_mina_low_case_stacking'
+);
+const orderedCaseStackingMinaFocusTree = revealPronouncedDomain(
+  requiredSyntaxSubtree(orderedCaseStackingTree, 'focp_mina_case_stacking'),
+  'np_teacher_tp_case_stacking'
+);
 
 const splitAntecedenceTree = node('tp_split_antecedence', 'TP', [
   node('dp_kyle_split_antecedence', 'DP', [leaf('d_kyle_split_antecedence', 'D', 'Kyle')]),
@@ -5862,7 +5903,7 @@ export const rawCases: LabCase[] = [
       stage(
         'D6',
         'P assigns dative Case while K collects number and gender.',
-        'CaseAssignment targets the Case row on K. Two Agree relations connect the same K plaque to the authored number and gender sources with dotted paths.',
+        'CaseAssignment supplies the Case row on K. Two Agree relations supply the number and gender rows and connect the same plaque to their authored sources with dotted paths. Production composes one plaque from these three claims; Replay gives each claim its own moment.',
         [
           {
             relation: 'CaseAssignment',
@@ -5887,11 +5928,6 @@ export const rawCases: LabCase[] = [
               goal: 'n_gender_case_assignment'
             },
             values: { feature: 'Gender', value: 'MASC' }
-          },
-          {
-            relation: 'FeatureBundle',
-            anchors: { bearer: 'k_case_assignment' },
-            values: { Case: 'DAT', Number: 'PL', Gender: 'MASC' }
           }
         ],
         caseAssignmentTree
@@ -5942,11 +5978,6 @@ export const rawCases: LabCase[] = [
               goal: 'n_gender_case_assignment_embedded'
             },
             values: { feature: 'Gender', value: 'MASC' }
-          },
-          {
-            relation: 'FeatureBundle',
-            anchors: { bearer: 'k_case_assignment_embedded' },
-            values: { Case: 'DAT', Number: 'PL', Gender: 'MASC' }
           }
         ],
         embeddedCaseAssignmentTree
@@ -8280,7 +8311,7 @@ export const rawCases: LabCase[] = [
   {
     archetype: 'M3. Multi-workspace / sideward',
     title: 'Sideward Movement',
-    status: 'Candidate Babel translation of Barnickel (2017), figure 155: the subject leaves the additional workspace on the right and is remerged in the primary predicate on the left. The arch is a cross-workspace path, not an ordinary within-tree movement curve.',
+    status: 'Barnickel (2017), example (155), shows the subject moving from an additional workspace into the primary predicate. Babel adapts that derivation to two complete trees; its cross-workspace arc is not a copied source mark.',
     sentence: 'Hinter jedem Löwen steht eine Dompteuse und krault ihm den Rücken',
     wide: true,
 
@@ -8785,48 +8816,83 @@ export const rawCases: LabCase[] = [
   {
     archetype: 'O5. Case / ordered stacking',
     title: 'Ordered Case Stacking',
-    status: 'The source supplies two ordered CASE slots on one DP occurrence. Replay first shows DAT plus one open slot, then fills the second slot with NOM; the ordinary phrasal path persists because the DP has already A-moved into the higher Case projection.',
-    sentence: 'Mina arrived',
-
-
+    status: 'Jou’s (2026) multiple-focus parse in (126), for Only the teacher sent Mina money in (124). Mina retains lexical DAT and receives outer ACC in the CP domain; the higher teacher receives NOM in both slots. Babel keeps the source’s ordered Case rows and three movement dependencies on a fully expanded schematic tree.',
+    sentence: 'Sensayngnim-kkeyse-man-i Mina-eykey-lul ton-ul ponay-si-ess-ta',
+    wide: true,
     data: orderedCaseStackingTree,
     derivationStages: [
       stage(
         'O5a',
-        'The DP is first merged in the lower subject position.',
-        'The complete DP Mina is present in its lower position before A-movement or Case stacking applies.',
+        'VoiceP contains the teacher, the dative recipient Mina, and the money theme.',
+        'The head-final VoiceP follows Jou’s (125). Mina occupies Spec,ApplP and receives lexical dative from Appl. The caseless teacher in Spec,VoiceP c-commands ton, so ton receives dependent accusative. The teacher remains caseless at this phase.',
         [],
         orderedCaseStackingBaseTree
       ),
       stage(
         'O5b',
-        'The DP A-moves into the higher Case position carrying DAT and an unvalued outer Case slot.',
-        'AMove creates the higher occurrence and leaves the complete lower silent copy. FeatureBundle records the first ordered Case state beside the higher DP.',
+        'The teacher raises from Spec,VoiceP to Spec,TP.',
+        'This is the lower subject-movement arrow in Jou’s (126). AMove relates the complete lower NP copy to its pronounced TP occurrence. Mina remains in Spec,ApplP.',
+        [{
+          relation: 'AMove',
+          anchors: {
+            lowerCopy: 'np_teacher_low_case_stacking',
+            traceWitness: 'n_teacher_low_case_stacking',
+            pronouncedCopy: 'np_teacher_tp_case_stacking'
+          }
+        }],
+        orderedCaseStackingRaisedSubjectTree
+      ),
+      stage(
+        'O5c',
+        'Mina moves into the lower Spec,FocP with DAT and a new unvalued Case slot.',
+        'AbarMove takes the recipient from Spec,ApplP into the CP domain. The earlier dative value is retained, and movement to the higher phase introduces a second Case slot. The higher focus position for the teacher is not yet present.',
         [
           {
-            relation: 'AMove',
+            relation: 'AbarMove',
             anchors: {
-              lowerCopy: 'dp_mina_low_case_stacking',
+              lowerCopy: 'np_mina_low_case_stacking',
               traceWitness: 'n_mina_low_case_stacking',
-              pronouncedCopy: 'dp_mina_high_case_stacking'
+              pronouncedCopy: 'np_mina_high_case_stacking'
             }
           },
           {
             relation: 'FeatureBundle',
-            anchors: { bearer: 'dp_mina_high_case_stacking' },
+            anchors: { bearer: 'np_mina_high_case_stacking' },
             values: { 'CASE 1': 'DAT', 'CASE 2': '--' }
           }
         ],
+        orderedCaseStackingMinaFocusTree
+      ),
+      stage(
+        'O5d',
+        'The teacher moves to the higher Spec,FocP and c-commands Mina.',
+        'This completes the multiple-focus parse in Jou’s (126). The subject moves from Spec,TP to the higher focus position, retaining its earlier unvalued Case slot and acquiring a second one. Both nominals are now in the CP case domain in the source’s order.',
+        [{
+          relation: 'AbarMove',
+          anchors: {
+            lowerCopy: 'np_teacher_tp_case_stacking',
+            traceWitness: 'n_teacher_tp_case_stacking',
+            pronouncedCopy: 'np_teacher_high_case_stacking'
+          }
+        }, {
+          relation: 'FeatureBundle',
+          anchors: { bearer: 'np_teacher_high_case_stacking' },
+          values: { 'CASE 1': '--', 'CASE 2': '--' }
+        }],
         orderedCaseStackingTree
       ),
       stage(
-        'O5c',
-        'The outer Case slot is valued while the inner DAT value persists.',
-        'FeatureBundle records the final ordered stack: DAT first, NOM second. No new movement is invented.',
+        'O5e',
+        'CP case evaluation yields DAT–ACC on Mina and NOM–NOM on the teacher.',
+        'The still-caseless teacher c-commands Mina, so Mina’s outer Case slot receives dependent accusative while its lexical dative persists. Unmarked-case evaluation then values both remaining subject slots as nominative. These separate FeatureBundle moments follow Jou’s stated evaluation order; no additional movement occurs.',
         [{
           relation: 'FeatureBundle',
-          anchors: { bearer: 'dp_mina_high_case_stacking' },
-          values: { 'CASE 1': 'DAT', 'CASE 2': 'NOM' }
+          anchors: { bearer: 'np_mina_high_case_stacking' },
+          values: { 'CASE 1': 'DAT', 'CASE 2': 'ACC' }
+        }, {
+          relation: 'FeatureBundle',
+          anchors: { bearer: 'np_teacher_high_case_stacking' },
+          values: { 'CASE 1': 'NOM', 'CASE 2': 'NOM' }
         }],
         orderedCaseStackingTree
       )
@@ -8907,6 +8973,55 @@ export const archivedExampleArchetypes = new Set([
 
 const archetypeCode = (item: LabCaseView) => item.archetype.split('.')[0];
 
+function sourceImageUrl(path: string): string {
+  const orchardStylesheet = document.querySelector<HTMLLinkElement>('link[href*="relation-visuals.css"]')?.href;
+  return new URL(path, orchardStylesheet ?? window.location.href).href;
+}
+
+function OrchardSourcePanel({ code, source, card }: { code: string; source: OrchardSourceCitation; card?: LabCaseView }) {
+  const imageUrl = source.image ? sourceImageUrl(source.image.path) : null;
+  const researchImages = source.image ? [] : orchardResearchImages[code] ?? [];
+  return (
+    <div className="babel-source-panel">
+      <p className="babel-source-kind">{source.kind}</p>
+      {source.image && imageUrl ? (
+        <figure>
+          <a href={imageUrl} target="_blank" rel="noreferrer">
+            <img src={imageUrl} alt={source.image.alt} loading="lazy" />
+          </a>
+          <figcaption>
+            {source.image.credit} Select the image to see it at full size.{' '}
+            <a href={source.image.licenseUrl} target="_blank" rel="noreferrer">License ↗</a>
+          </figcaption>
+        </figure>
+      ) : null}
+      {researchImages.map((researchImage) => {
+        const url = sourceImageUrl(orchardSourcePreviewPath(researchImage.path));
+        return (
+          <figure key={researchImage.path}>
+            <a href={url} target="_blank" rel="noreferrer">
+              <img src={url} alt={researchImage.label} loading="lazy" />
+            </a>
+            <figcaption>{researchImage.role === 'visual precedent' ? 'Related visual precedent' : 'Cited source figure'}: {researchImage.label}. Small source preview; open the cited work below for the full figure.</figcaption>
+          </figure>
+        );
+      })}
+      {!source.image && researchImages.length === 0 && source.url ? (
+        <p>No image is hosted here for this entry. Open the cited work to inspect the source.</p>
+      ) : null}
+      <p className="babel-source-citation">{source.citation}</p>
+      <p>{source.location ? `${source.location}. ` : ''}{source.note}</p>
+      {source.url ? <a href={source.url} target="_blank" rel="noreferrer">Open cited work ↗</a> : null}
+      {source.related?.map((related) => (
+        <p key={related.url} className="babel-source-related">
+          Related evidence: <a href={related.url} target="_blank" rel="noreferrer">{related.citation} ↗</a> ({related.location})
+        </p>
+      ))}
+      {card ? <>{source.url ? ' · ' : ''}<a href={`#${relationAnchor(card)}`}>Orchard drawing ↗</a></> : null}
+    </div>
+  );
+}
+
 export const canonicalCases = allCases.filter(
   (item) => !archivedExampleArchetypes.has(archetypeCode(item))
 );
@@ -8926,6 +9041,7 @@ function relationAnchor(item: LabCaseView) {
 
 function RendererCard({ item }: { item: LabCaseView }) {
   const cardRef = useRef<HTMLElement | null>(null);
+  const source = orchardSourceCitations[archetypeCode(item)];
   const hasAuthoredRelation = item.derivationStages.some((stage) => stage.relations.length > 0);
   const [lensActive, setLensActive] = useState(hasAuthoredRelation);
   const [layoutPass, setLayoutPass] = useState(0);
@@ -9019,15 +9135,25 @@ function RendererCard({ item }: { item: LabCaseView }) {
         <div>
           <span className="babel-render-archetype">{item.archetype}</span>
           <h3>{item.title}</h3>
-          {item.lensLabel ? (
-            <button
-              type="button"
-              className="babel-lens-toggle"
-              aria-pressed={lensActive}
-              onClick={() => setLensActive((value) => !value)}
-            >
-              {item.lensLabel}
-            </button>
+          {item.lensLabel || source ? (
+            <div className="babel-card-actions">
+              {item.lensLabel ? (
+                <button
+                  type="button"
+                  className="babel-lens-toggle"
+                  aria-pressed={lensActive}
+                  onClick={() => setLensActive((value) => !value)}
+                >
+                  {item.lensLabel}
+                </button>
+              ) : null}
+              {source ? (
+                <details className="babel-source-detail">
+                  <summary>{source.image || orchardResearchImages[archetypeCode(item)]?.length ? source.kind === 'source figure' ? 'View source figure' : 'View visual evidence' : 'Drawing provenance'}</summary>
+                  <OrchardSourcePanel code={archetypeCode(item)} source={source} />
+                </details>
+              ) : null}
+            </div>
           ) : null}
         </div>
         {contractNotes.length > 0 ? (
@@ -9046,6 +9172,32 @@ function RendererCard({ item }: { item: LabCaseView }) {
         />
       </div>
     </article>
+  );
+}
+
+function OrchardSourceIndex() {
+  const imageCount = Object.entries(orchardSourceCitations)
+    .filter(([code, source]) => source.image || orchardResearchImages[code]?.length).length;
+  return (
+    <>
+      <div className="babel-source-preview-intro">
+        <h4>Sources for all 55 drawings</h4>
+        <p>Open an entry to compare its Orchard drawing with the cited visual evidence. {imageCount} entries have source previews. The others link to the cited work or identify a drawing made for Babel.</p>
+      </div>
+      <div className="babel-selected-sources">
+        {Object.entries(orchardSourceCitations).map(([code, source]) => {
+          const card = cases.find((item) => archetypeCode(item) === code);
+          if (!card) return null;
+          const hasImage = source.image || orchardResearchImages[code]?.length;
+          return (
+            <details id={`source-${code.toLowerCase()}`} className="babel-source-detail babel-source-figure-entry" name="babel-orchard-source" key={code}>
+              <summary><span>{code} · {card.title}</span><small>{hasImage ? source.kind === 'source figure' ? 'source figure' : 'visual evidence' : source.url ? 'source link' : source.kind}</small></summary>
+              <OrchardSourcePanel code={code} source={source} card={card} />
+            </details>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -9108,20 +9260,30 @@ if (typeof document !== 'undefined') {
     createRoot(sourceGalleryMount).render(<SourceGallery />);
   }
 
+  const selectedSourcesMount = document.getElementById('babel-selected-sources');
+  if (selectedSourcesMount) {
+    createRoot(selectedSourcesMount).render(<OrchardSourceIndex />);
+  }
+
   let atlasReadyFrames = 0;
   const revealAtlasWhenReady = () => {
     const cardsReady = !mount || Boolean(mount.querySelector('.babel-render-card'));
     const sidebarReady = !sidebarMount || Boolean(sidebarMount.querySelector('a'));
     const vocabularyReady = !vocabularyMount
       || Boolean(vocabularyMount.querySelector('.babel-vocabulary-specimen'));
+    const sourcesReady = !selectedSourcesMount
+      || Boolean(selectedSourcesMount.querySelector('.babel-source-figure-entry'));
 
-    if (cardsReady && sidebarReady && vocabularyReady) {
+    if (cardsReady && sidebarReady && vocabularyReady && sourcesReady) {
       document.documentElement.classList.remove('atlas-loading');
       document.documentElement.classList.add('atlas-ready');
       document.documentElement.dataset.atlasReady = 'true';
       mount?.setAttribute('aria-busy', 'false');
       sidebarMount?.setAttribute('aria-busy', 'false');
       vocabularyMount?.setAttribute('aria-busy', 'false');
+      if (window.location.hash === '#sources') {
+        document.getElementById('sources')?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+      }
       return;
     }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows } from '../replay/relations/plaqueTextLayout.ts';
 import { dottedCollectionPath } from '../replay/relations/markGeometry.ts';
@@ -12,6 +12,45 @@ const compile = relations => compileRelationRenderPlan([{ statement: 'Features.'
   workspaceForest: [tree], relations }]).frames[0].items;
 const dependency = (values, goal = 'num') => ({ relation: 'An open dependency', anchors: { probe: 'k', goal }, values });
 const assignment = { relation: 'CaseAssignment', anchors: { assigner: 'p', bearer: 'k' }, values: { feature: 'Case', value: 'DAT' } };
+
+test('independent agreement rows in one moment share one host plaque and retain exact connectors', () => {
+  const agreement = { relation: 'polypersonal agreement',
+    anchors: { auxiliary: 'k', ergativeArgument: 'num', absolutiveArgument: 'n' },
+    values: { ergativeFeatures: 'third person singular', absolutiveFeatures: 'third person plural' } };
+  const cases = [
+    { relation: 'Case assignment', anchors: { assigner: 'k', recipient: 'num' }, values: { case: 'ergative' } },
+    { relation: 'Case assignment', anchors: { assigner: 'p', recipient: 'n' }, values: { case: 'absolutive' } }
+  ];
+  const original = structuredClone(agreement);
+  const stages = [{ statement: 'Agreement', stageRecord: '', workspaceForest: [tree], relations: [...cases, agreement] }];
+  const plan = compileRelationRenderPlan(stages), items = plan.frames[0].items;
+  const plaques = items.filter(item => item.plaqueStyle === 'feature');
+  assert.equal(plaques.length, 1);
+  assert.deepEqual(plaques[0].rows, Object.entries(agreement.values).map(([label, value]) => ({ label, value })));
+  const paths = items.filter(item => item.pathStyle === 'case-agree');
+  assert.equal(paths.length, 2);
+  for (const path of paths) {
+    assert.equal(collectionPlaque(items, path)?.item, plaques[0]);
+    const row = plaques[0].rows.findIndex(row => featureRowKey(row) === featureRowKey(path.featureRow));
+    assert(plaques[0].featureRowClaims[row].includes(path.tier2ClaimIdentity));
+    assert.equal(path.toNodeId, path.featureRow.label === 'ergativeFeatures' ? 'num' : 'n');
+  }
+  assert.equal(featurePlaqueAssignment(items, items.indexOf(plaques[0])), undefined);
+  items.forEach((item, index) => {
+    if (item.pathStyle === 'case-assignment') assert.equal(caseFeatureComposition(items, index).collections.length, 0);
+  });
+  assert(!visiblePlanFrameItems(plan, 0, new Set([0, 1])).some(item => item.plaqueStyle === 'feature'));
+  assert.equal(visiblePlanFrameItems(plan, 0, new Set([0, 1, 2])).filter(item => item.plaqueStyle === 'feature').length, 1);
+  assert.deepEqual(agreement, original);
+});
+
+test('separate agreement moments keep separate claim ownership even on the same host', () => {
+  const items = compile([dependency({ number: 'plural' }), dependency({ gender: 'feminine' }, 'n')]);
+  const plaques = items.filter(item => item.plaqueStyle === 'feature');
+  assert.equal(plaques.length, 2);
+  items.filter(item => item.pathStyle === 'case-agree').forEach(path =>
+    assert.equal(collectionPlaque(items, path)?.item.relationRef.relationIndex, path.relationRef.relationIndex));
+});
 
 test('Tier 2 puts agreement-only values in a plaque and connects each exact row without inventing Case', () => {
   for (const values of [{ agreement: 'third-person singular' }, { features: ['尊敬', 'inclusive', 'inclusive'] }, { features: ['animacy: animate', 'clusivity: inclusive'] }]) {

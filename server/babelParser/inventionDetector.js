@@ -124,6 +124,7 @@ export const detectDeterministicLinguisticInvention = ({
   };
 
   inspectCompiledNodes('analysis.tree', analysis?.tree);
+  if (Array.isArray(analysis?.finalForest)) inspectCompiledNodes('analysis.finalForest', analysis.finalForest);
   asArray(analysis?.derivationStages).forEach((stage, stageIndex) => {
     inspectCompiledNodes(
       `analysis.derivationStages[${stageIndex}].workspaceForest`,
