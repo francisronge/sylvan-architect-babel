@@ -59,14 +59,12 @@ comparisons. Every new Replay and every changed older analysis is selectable.
 All 9,104 frames across 99 analyses rendered at desktop and narrow widths, with
 no invalid paths, visible tree errors, browser errors or generation requests.
 
-The earlier thirteen trees remain approved. Do not request another review of
-unchanged old analyses. The [current review](http://127.0.0.1:8453/closeout/full-pass/)
-opens only two changed items: stable stage boundaries and the completed-tree
-fit. Both are implemented and verified, awaiting visual acceptance. Previously
-answered questions and the Earlier fixes collection are absent from this view.
-Trees still contains all 69 newest analyses for optional inspection; their
-complete human review remains complete.
-Each changed view retains a short explanation and normal Replay controls.
+The earlier thirteen trees remain approved, and Francis has inspected every
+frame of all 69 newest analyses. The [fitting comparison](https://babel-fitting-preview-20261001.vercel.app/comparison/)
+retains the original Before runtime and the corrected current runtime, with
+shared playback, arrow keys, zoom and desktop/phone views. Do not request another
+review of unchanged analyses. [Overlap close-ups](https://babel-fitting-preview-20261001.vercel.app/overlaps/gallery.html)
+show the five representative warnings and link to all 39 flagged analyses.
 
 Francis has now inspected every Replay frame in all 69 newest analyses. The
 September 30 follow-up also read all 355 Stage Records and checked them against
@@ -77,36 +75,31 @@ exposed remaining subtree jumps and historical camera bounds. R28 now includes
 their repairs and measured playback continuity; the earlier coordinate and SVG
 checks alone had not proved screen continuity at stage boundaries.
 
-The remaining work for this milestone is:
+The October 1 end-to-end pass closes R29's disappearing adjunct branch and
+preserves R28/R30's motion, fitting and unstretched-branch repairs. Across 225
+analyses and 9,804 frames in four width/direction configurations, every final
+drawing and stage budget is unchanged. All 222 unaffected analyses retain every
+coordinate. The three affected analyses retain their existing branch until the
+new adjunct parent appears. Focused controls cover nested wrappers, asymmetric
+sisters, real workspace forests and forward/reverse playback.
 
-1. The complex Turkish relative tree opens in 2.21 seconds in the latest desktop
-   check, exceeding the preselected 2-second local target. Its
-   allocation is faster and the final verified geometry is preserved. All other openings
-   in the full browser pass were below target; desktop frame-change p95 was 16.5ms.
-   This is a measured performance limit, not broken syntax or a missing drawing.
-   Keep Q3 open for that target. Do not distort geometry or prune candidates to
-   manufacture a pass.
-2. Obtain visual acceptance of the two current review items. Portuguese #35,
-   Korean #37 and Chinese #41/#43 retain existing subtree coordinates at the
-   reported boundaries; necessary camera changes interpolate over 360ms.
-   #66's final Stage Record releases earlier source-space reservations and
-   fits the present drawing, increasing its displayed size by 56% on desktop
-   and 50% on phone. Authored movement and all final tree coordinates remain
-   unchanged. The earlier Korean enclosure and Turkish workspace-clearance
-   repairs retain their regression coverage and are not another review request.
-   The full gate passes 2,755 tests. Across 225 analyses and 9,804 frames in four
-   width/direction configurations, no new stationary-node jumps, increased
-   workspace overlaps, malformed branches, final-coordinate changes or authored
-   record changes were found. Desktop/phone playback, zoom, Fit, reduced motion
-   and the temporary public review link pass their browser checks.
+The old overlap counts measured reserved clearance rectangles. Twelve warning
+frames also counted the same descendants twice through a hidden parent. The
+narrower text/branch check found no colored-glyph intersections. Browser
+close-ups show tight but separate French labels, separate Arabic phone labels,
+and the repaired English branch. No additional shared layout change follows
+from those warnings. The gallery keeps these examples available for judgment.
 
+The Orchard restores the original Babel Reborn sources: Moortgat, Sadrzadeh and
+Wijnholds Figures 7 and 12 for M1's copy fork; Jou examples 125 and 126 for O5's
+ordered Case rows; and PDT Figure 3.1 for O6's reference overlay. O5 now follows
+the cited Korean example. Unrelated previews are removed. All six neutral
+fallback cards open paused on their relation moment, and all 55 source pills
+align their title, badge and disclosure control vertically.
 
-3. Preserve the existing branch when a new adjunct parent is still hidden.
-   The new screenshot report reproduces this in #8, “Nora revised the article,
-   and Felix did too.” Frames 52–55 incorrectly omit IP → I′ while the future
-   outer I′ is hidden. Frame 56 attaches AdvP and restores the branch, appearing
-   to perform two merges. Both saved runtimes reproduce it, so it predates the
-   fitting repair. R29 records the exact reproduction.
+The remaining measured target is Q3's two-second local opening. The current
+controlled browser result is recorded below. Final publication requires the
+release CI receipt and public asset checks; a local rebuild alone is insufficient.
 
 The six older Sol record errors remain inspectable model outputs. Four have
 final-order conflicts, one pronounces a lower copy, and Hindi duplicates an
@@ -131,10 +124,11 @@ all future open-ontology wording.
 
 ### What remains before Babel can ship
 
-For the contract/renderer milestone, the current decision rests on the evidence
-above, the remaining local opening measurement, R28's reopened motion/fitting
-problems and the two visual changes awaiting recheck. The full human frame review is complete. Passing
-checks do not guarantee every unseen record.
+For the contract/renderer milestone, the remaining checks are Q3's local
+opening target and release publication. R28, R29 and R30 have regression and
+browser evidence. The full human frame review is complete; the comparison
+remains available for judgments about fitting. Passing checks do not guarantee
+every unseen record.
 
 The larger application launch scope remains Programs 0–6 below. It is separate
 from this pass and does not supply the next contract/renderer task. No launch
@@ -149,7 +143,7 @@ date or deployment is authorized by these receipts.
 | Syntactician workspace, Program 4 | Collections, user notes/judgments/citations, sibling-analysis work, query needs, interchange and research exports still require product design and integration. These planned capabilities are separate from the existing flat saved-tree library. |
 | Hosted operation, Program 5 | CI and basic local request controls exist. Hosting, supported runtime conditions, public request/spend limits, research access, deployed error handling, accessibility, privacy/security, backups, monitoring and rollback still need decisions or launch proof. The recorded production application is paused. |
 | Generation Archive and reviewed corpus, Program 6 | Request provenance and pure record schemas exist; the automatic hosted archive and review/promotion/correction workflow are not integrated. Define retention, deletion, access and licensing rules before implementation. A small working reviewed set is sufficient; a large corpus is not a launch gate. |
-| Reproducible release integration, Programs 0 and 5 | The current verified work includes modified and untracked source, fixtures and tests. Preserve it in reviewed changes and repeat the fresh-checkout gate on the resulting candidate. The earlier clean-clone receipt for `dd34c77` does not verify this newer checkout. |
+| Reproducible release integration, Programs 0 and 5 | The renderer work is preserved in commits. A fresh checkout passes all 2,802 tests, typecheck, parse-contract checks, build and asset verification; rebuilding both Orchard bundles produces identical files. Repeat affected gates after any later code change and require release CI and deployed-asset receipts. |
 
 The benchmark in Programs 7–8 remains deferred and does not block launch.
 Model-authored mistakes, the explained Icelandic spacing, small full-tree mobile
@@ -161,8 +155,8 @@ blocking renderer defects. New geometry work requires a reproducible example.
 This register governs the renderer/contract closeout. Earlier dated sections
 below are history; their open wording does not supersede this register. The
 audited candidate passes the recorded recognition, Replay and paint checks.
-R28 records the later visual defects, repairs and remaining motion/fitting
-problems. The measured opening target also remains open. This
+R28–R30 record the later visual defects and verified repairs. Q3 records the
+remaining measured opening target. This
 does not qualify the whole application. A rejected record is not proof that its
 linguistic analysis is invalid.
 Keep the original outputs unchanged throughout investigation. A model-authored
@@ -744,20 +738,20 @@ No new generations or prompt rules are needed for these renderer corrections.
   opening remains a separate performance limit; this repair does not close it.
 
 
-- [ ] **R29 — Preserve existing syntax below an unrevealed adjunct parent.**
-  In #8, “Nora revised the article, and Felix did too.”, frame 51 retains the
-  authored `ipB → ibarB` branch. At frame 52, the stage canvas already changes
-  that child to `ibarBOuter`, which is hidden until frame 56. Frames 52–55 thus
-  disconnect the existing predicate from IP. Frame 55 only projects AdvP;
-  frame 56 should perform the one new `I′ + AdvP → I′` attachment. Its additional
-  visible IP reconnection is a Replay continuity defect, not another authored
-  Merge. Browser edge inspection confirms it in both the saved before runtime
-  and the current runtime. No renderer or Replay behavior changed during this
-  comparison request. The repair must retain the prior attachment until the
-  new parent is revealed, with regression coverage for other inserted parents.
-  The synchronized [fitting comparison](https://babel-fitting-preview-20261001.vercel.app/)
-  exposes all 69 trees, common playback and desktop/phone viewport choices.
-  [Frame evidence and comparison verification](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/fitting-comparison-proof-20261001/summary.json).
+- [x] **R29 — Preserve existing syntax below an unrevealed adjunct parent.**
+  English ellipsis frames 52–55 now retain `ipB → ibarB` while the future outer
+  I′ is hidden. Frame 56 performs the one new adjunct attachment. The same
+  shared fix restores Arabic frames 48–52 and Turkish frames 44–46. Current
+  sibling order comes from the visible attachment, and temporary construction
+  containers do not distort the real tree's layout budget. Real authored
+  workspace forests retain their prior sizing. Nested-wrapper and asymmetric
+  sister regressions pass. The 225-analysis, four-configuration audit preserves
+  all final coordinates and every coordinate in the 222 unaffected analyses,
+  with no new overlap or malformed-branch warnings. Chromium, WebKit and Firefox
+  pass the affected frames at desktop and phone widths. The real app also
+  preserves multiple roots, revised feature values and malformed-relation
+  evidence through Tree Bank save/reopen.
+  [Before/after pictures and live frames](https://babel-fitting-preview-20261001.vercel.app/overlaps/gallery.html).
 
 - [x] **R30 — Reserve future space without stretching current branches.**
   In #66, `holdout-mandarin-negative-relative/0`, the published comparison's
@@ -879,8 +873,11 @@ outside the worktree.
   100ms limit. All other openings in that full browser pass were below 2 seconds;
   R27's final targeted check remeasures the slow case and proves unchanged output.
   The complex Turkish relative-subject tree opened in 2.35 seconds after R27;
-  R28's latest check measures 2.21 seconds desktop and 2.22 seconds narrow,
-  still above the 2-second target. The initial and final measurements are preserved;
+  R28 measured 2.21 seconds desktop and 2.22 seconds narrow. The October 1
+  controlled run measures 2.37 seconds desktop and 2.34 seconds narrow after
+  exact-output allocation improvements, versus 2.50 seconds before those
+  improvements on the same current geometry. Ordinary frame-change p95 is
+  8.5ms. The opening remains above the 2-second target. The initial and final measurements are preserved;
   this requirement is not silently closed. Its complete Replay renders correctly
   and the latest verified placements are preserved. Further performance work must demonstrate
   an actual bottleneck and preserve exact output, rather than change typography,
