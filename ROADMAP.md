@@ -97,9 +97,20 @@ the cited Korean example. Unrelated previews are removed. All six neutral
 fallback cards open paused on their relation moment, and all 55 source pills
 align their title, badge and disclosure control vertically.
 
-The remaining measured target is Q3's two-second local opening. The current
-controlled browser result is recorded below. Final publication requires the
-release CI receipt and public asset checks; a local rebuild alone is insufficient.
+Q3 now passes the preselected local opening target. Across three fresh browser
+contexts per width, the complex Turkish tree opens in 1.70–1.72 seconds at 1600px
+and 1.71–1.77 seconds at 390px, versus 2.34–2.38 seconds before the final
+optimization. Desktop frame-change p95 is 8.5ms. Every one of 2,684 placement
+schedules and 671 complete Replay outputs remains equal to the prior version.
+
+The final fresh-checkout gate passes typecheck, all 2,806 tests, both
+parse-contract fixtures, build and release-asset verification. Both published
+Orchard bundles and their content-versioned asset links rebuild exactly. The
+production dependency audit passes after compatible transitive lockfile fixes.
+The source/replay release is merged in PR #16, and the live Orchard's corrected
+sources and six initial relation frames have been checked. The fitting and
+picture reviews are publicly available. Release receipts, captures and the
+controlled timings are retained in [end-to-end verification](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/end-to-end-proof-20261001/summary.json).
 
 The six older Sol record errors remain inspectable model outputs. Four have
 final-order conflicts, one pronounces a lower copy, and Hindi duplicates an
@@ -124,15 +135,15 @@ all future open-ontology wording.
 
 ### What remains before Babel can ship
 
-For the contract/renderer milestone, the remaining checks are Q3's local
-opening target and release publication. R28, R29 and R30 have regression and
-browser evidence. The full human frame review is complete; the comparison
-remains available for judgments about fitting. Passing checks do not guarantee
-every unseen record.
+The requested contract/renderer closeout has no remaining measured defect in
+this corpus. R28, R29, R30 and Q3 have regression and browser evidence. The full
+human frame review is complete; the comparison and close-ups remain available
+for judgments about fitting and tight spacing. This evidence does not guarantee
+every unseen record or qualify the larger application launch.
 
 The larger application launch scope remains Programs 0–6 below. It is separate
-from this pass and does not supply the next contract/renderer task. No launch
-date or deployment is authorized by these receipts.
+from this pass and does not supply the next contract/renderer task. No larger application launch
+date is authorized by these receipts.
 
 | Remaining product work | Current evidence and required result |
 | --- | --- |
@@ -143,7 +154,6 @@ date or deployment is authorized by these receipts.
 | Syntactician workspace, Program 4 | Collections, user notes/judgments/citations, sibling-analysis work, query needs, interchange and research exports still require product design and integration. These planned capabilities are separate from the existing flat saved-tree library. |
 | Hosted operation, Program 5 | CI and basic local request controls exist. Hosting, supported runtime conditions, public request/spend limits, research access, deployed error handling, accessibility, privacy/security, backups, monitoring and rollback still need decisions or launch proof. The recorded production application is paused. |
 | Generation Archive and reviewed corpus, Program 6 | Request provenance and pure record schemas exist; the automatic hosted archive and review/promotion/correction workflow are not integrated. Define retention, deletion, access and licensing rules before implementation. A small working reviewed set is sufficient; a large corpus is not a launch gate. |
-| Reproducible release integration, Programs 0 and 5 | The renderer work is preserved in commits. A fresh checkout passes all 2,802 tests, typecheck, parse-contract checks, build and asset verification; rebuilding both Orchard bundles produces identical files. Repeat affected gates after any later code change and require release CI and deployed-asset receipts. |
 
 The benchmark in Programs 7–8 remains deferred and does not block launch.
 Model-authored mistakes, the explained Icelandic spacing, small full-tree mobile
@@ -156,7 +166,7 @@ This register governs the renderer/contract closeout. Earlier dated sections
 below are history; their open wording does not supersede this register. The
 audited candidate passes the recorded recognition, Replay and paint checks.
 R28–R30 record the later visual defects and verified repairs. Q3 records the
-remaining measured opening target. This
+now-passing local opening target. This
 does not qualify the whole application. A rejected record is not proof that its
 linguistic analysis is invalid.
 Keep the original outputs unchanged throughout investigation. A model-authored
@@ -865,26 +875,25 @@ outside the worktree.
   The earlier review's 45 Replay views retain identical frame identities and
   order after rebuilding against the final runtime. Recognition counts and
   automated checks do not substitute for human visual approval.
-- [ ] **Q3 — One local opening target remains unmet.** The final bundled
-  Chromium pass renders all 9,104 Replay frames across 99 analyses at 1600px
-  desktop and 390px narrow widths. Actual Next clicks, analysis switching,
-  seeking, fixed relation ownership, zoom and mouse-focus behavior pass with
-  zero browser errors. Desktop frame-change p95 is 16.5ms, below the preselected
-  100ms limit. All other openings in that full browser pass were below 2 seconds;
-  R27's final targeted check remeasures the slow case and proves unchanged output.
-  The complex Turkish relative-subject tree opened in 2.35 seconds after R27;
-  R28 measured 2.21 seconds desktop and 2.22 seconds narrow. The October 1
-  controlled run measures 2.37 seconds desktop and 2.34 seconds narrow after
-  exact-output allocation improvements, versus 2.50 seconds before those
-  improvements on the same current geometry. Ordinary frame-change p95 is
-  8.5ms. The opening remains above the 2-second target. The initial and final measurements are preserved;
-  this requirement is not silently closed. Its complete Replay renders correctly
-  and the latest verified placements are preserved. Further performance work must demonstrate
-  an actual bottleneck and preserve exact output, rather than change typography,
-  remove evidence, shorten searches or claim elapsed time is rendering proof.
-  Prior CPU-throttle captures remain bounded emulation evidence. Other engines,
-  physical minimum hardware and deployed proxy/worker behavior belong to their
-  eventual declared support conditions, not a substitute for this measured limit.
+- [x] **Q3 — Meet the two-second local opening target with identical output.**
+  The complex Turkish relative-subject tree previously exceeded the target.
+  Fixed crossing bounds and sample weights are now prepared once, a known
+  blocker can reject a nearby connector candidate before the complete query,
+  and exact string normalization has a bounded cache. A miss still runs the
+  complete collision query. Candidate order, collision rules, typography and
+  drawing geometry are unchanged. The cache retains at most 2,048 strings and
+  bypasses keys or results over 4,096 characters; input coercion still occurs
+  on every call.
+  In three fresh Chromium contexts per width, desktop openings are
+  1,705 / 1,703 / 1,723ms and phone-width openings are 1,772 / 1,750 / 1,710ms.
+  The matched previous runtime takes 2,342–2,376ms. Frame-change p95 is 8.5ms
+  desktop and 8.4ms narrow, below the preselected 100ms limit. These are local
+  desktop-browser measurements at two viewport widths, not physical-phone or
+  universal hardware guarantees. All 2,684 schedule comparisons across the 225
+  corpus analyses and 446 controls in four configurations are exact; all 671
+  complete Replay outputs match. The 63 focused tests and final 2,806-test
+  fresh-checkout gate pass. Original slower measurements remain in the evidence.
+  [Controlled browser timings and verification](/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/end-to-end-proof-20261001/performance.json).
 - [x] **Q4 — Audit drawing variety against the actual records.**
   Rechecked all 143 saved analyses and 1,450 authored relation records against
   all 53 linguistic drawing recipes and two interface companions. Repetition
