@@ -1,3 +1,4 @@
+import { boundedStringTransform } from '../boundedStringTransform.ts';
 import type { SyntaxNode } from '../../types.ts';
 import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
 
@@ -30,14 +31,16 @@ const group = (
   contextualAliases: readonly string[] = []
 ): Tier2SynonymGroup => ({ scope, concept, aliases: [concept, ...aliases, ...contextualAliases], contextualAliases });
 
-export const normalizeTier2Synonym = (value: unknown): string => String(value ?? '')
+const normalizeSynonymText = boundedStringTransform((value: string) => value
   .normalize('NFKC')
   .trim()
   .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
   .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
   .toLocaleLowerCase('en-US')
   .replace(/[\s_-]+/gu, ' ')
-  .replace(/\s+/gu, ' ');
+  .replace(/\s+/gu, ' '), 2048);
+
+export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
 /** Independent authored claim clauses; words inside a clause are not claims. */
 export const relationLabelClauses = (label: string | undefined): string[] =>
