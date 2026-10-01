@@ -7,6 +7,42 @@ export const featureRowKey = (row: FeatureRow) => JSON.stringify([row.label, row
 export const pathFeatureRow = (item: DirectedPathPlanItem): FeatureRow =>
   item.featureRow ?? { label: '', value: item.label ?? '' };
 
+/** One relation moment can describe several collections on one host. Combine
+ * their physical plaque while keeping each row's exact claim-to-path binding.
+ * Different moments and replacement lifetimes remain separate. */
+export function composeFeatureBundles(items: RelationPlanItem[]): RelationPlanItem[] {
+  const groups = new Map<string, NodePlaquePlanItem[]>();
+  for (const item of items) {
+    if (item.kind !== 'node-plaque' || item.plaqueStyle !== 'feature' || !item.tier2ClaimIdentity
+      || item.backward || item.rowRefs || item.anchorNodeIds.length !== 1) continue;
+    const moments = [...new Set(planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`))].sort();
+    const key = JSON.stringify([item.anchorNodeIds, moments, item.supersededAt, item.title, item.positionNodeIds]);
+    const group = groups.get(key) ?? [];
+    group.push(item);
+    groups.set(key, group);
+  }
+  const replacements = new Map<RelationPlanItem, NodePlaquePlanItem>();
+  const removed = new Set<RelationPlanItem>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const rows = new Map<string, { row: FeatureRow; claims: Set<string> }>();
+    for (const item of group) item.rows.forEach((row, index) => {
+      const key = featureRowKey(row), entry = rows.get(key) ?? { row, claims: new Set<string>() };
+      (item.featureRowClaims?.[index] ?? [item.tier2ClaimIdentity!]).forEach(claim => entry.claims.add(claim));
+      rows.set(key, entry);
+    });
+    const [first, ...rest] = group;
+    replacements.set(first, { ...first,
+      rows: [...rows.values()].map(entry => entry.row),
+      featureRowClaims: [...rows.values()].map(entry => [...entry.claims]),
+      tier2WitnessNodeIds: [...new Set(group.flatMap(item => item.tier2WitnessNodeIds ?? []))],
+      tier2OutputIdentities: [...new Set(group.flatMap(item => item.tier2OutputIdentities ?? []))]
+    });
+    rest.forEach(item => removed.add(item));
+  }
+  return items.filter(item => !removed.has(item)).map(item => replacements.get(item) ?? item);
+}
+
 /** Exact claim ownership wins over a coincidentally nearby bundle. */
 export function collectionPlaque(items: RelationPlanItem[], path: DirectedPathPlanItem) {
   const row = pathFeatureRow(path);
@@ -14,7 +50,10 @@ export function collectionPlaque(items: RelationPlanItem[], path: DirectedPathPl
     item.kind === 'node-plaque' && item.plaqueStyle === 'feature'
       && item.anchorNodeIds[0] === path.fromNodeId && planItemsShareAuthoredStage(item, path)
       && item.rows.some(candidate => featureRowKey(candidate) === featureRowKey(row)) ? [{ item, index }] : []);
-  const owned = bundles.filter(({ item }) => item.tier2ClaimIdentity === path.tier2ClaimIdentity
+  const owned = bundles.filter(({ item }) => (item.featureRowClaims
+    ? item.rows.some((candidate, index) => featureRowKey(candidate) === featureRowKey(row)
+      && Boolean(path.tier2ClaimIdentity && item.featureRowClaims![index].includes(path.tier2ClaimIdentity)))
+    : item.tier2ClaimIdentity === path.tier2ClaimIdentity)
     && planItemRelationRefs(item).some(a => planItemRelationRefs(path)
       .some(b => a.stageIndex === b.stageIndex && a.relationIndex === b.relationIndex)));
   return owned.length === 1 ? owned[0] : bundles.length === 1 ? bundles[0] : undefined;
@@ -22,6 +61,18 @@ export function collectionPlaque(items: RelationPlanItem[], path: DirectedPathPl
 
 /** A collection can share Case's bearer, or describe the same assigner–recipient pair. */
 export function collectionAssignment(items: RelationPlanItem[], path: DirectedPathPlanItem): number | undefined {
+  const assignment = uniqueCollectionAssignment(items, path);
+  if (assignment === undefined) return undefined;
+  const bundle = collectionPlaque(items, path);
+  // A physical bundle cannot be split between Case plaques and a standalone
+  // plaque. All its rows must share the same Case attachment to join it.
+  if (bundle && items.some(candidate => candidate.kind === 'directed-path' && candidate.pathStyle === 'case-agree'
+    && collectionPlaque(items, candidate)?.index === bundle.index
+    && uniqueCollectionAssignment(items, candidate) !== assignment)) return undefined;
+  return assignment;
+}
+
+function uniqueCollectionAssignment(items: RelationPlanItem[], path: DirectedPathPlanItem): number | undefined {
   const candidates = items.flatMap((item, index) => item.kind === 'directed-path'
     && item.pathStyle === 'case-assignment' && planItemsShareAuthoredStage(item, path)
     && (item.toNodeId === path.fromNodeId

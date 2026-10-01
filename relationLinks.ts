@@ -11,6 +11,10 @@ export interface ResolvedRelationAnchor {
 }
 
 export interface ResolvedRelationLink {
+  /** Exact stage/relation owner supplied by the Replay compiler. */
+  authoredRelationKey?: string;
+  /** Source occurrence in the preceding completed stage, before replacement. */
+  priorSourceNodeId?: string;
   relationIndex?: string;
   relation?: string;
   anchors?: ResolvedRelationAnchor[];

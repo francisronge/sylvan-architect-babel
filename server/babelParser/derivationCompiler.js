@@ -83,6 +83,7 @@ export const createDerivationCompilerHelpers = ({
     for (let relationIndex = 0; relationIndex < value.length; relationIndex += 1) {
       const relation = value[relationIndex];
       const fieldPath = `$.derivationStages[${stageIndex}].relations[${relationIndex}]`;
+      const relationIssues = [];
       if (
         !relation
         || typeof relation !== 'object'
@@ -92,43 +93,63 @@ export const createDerivationCompilerHelpers = ({
         || !Object.hasOwn(relation, 'anchors')
       ) {
         invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, fieldPath, relation,
-          'an object containing relation and anchors, with only values and priorAnchors optional', diagnostics);
+          'an object containing relation and anchors, with only values and priorAnchors optional', relationIssues);
+      } else {
+        if (typeof relation.relation !== 'string' || !relation.relation.trim()) {
+          invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, `${fieldPath}.relation`,
+            relation.relation, 'a nonblank string', relationIssues);
+        }
+        for (const field of ['anchors', 'priorAnchors', 'values']) {
+          if (field !== 'anchors' && !Object.hasOwn(relation, field)) continue;
+          const block = relation[field];
+          if (!block || typeof block !== 'object' || Array.isArray(block) || Object.keys(block).length === 0) {
+            invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, `${fieldPath}.${field}`,
+              block, 'a nonempty object with named entries', relationIssues);
+            continue;
+          }
+          for (const [key, entry] of Object.entries(block)) {
+            const entryPath = `${fieldPath}.${field}[${JSON.stringify(key)}]`;
+            if (!key.trim()) {
+              invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, entryPath, key, 'a nonblank entry name', relationIssues);
+            }
+            const entries = Array.isArray(entry) && entry.length > 0 ? entry : [entry];
+            entries.forEach((item, itemIndex) => {
+              const valid = Array.isArray(entry) && entry.length > 0
+                ? typeof item === 'string' && (field === 'values' || Boolean(item.trim()))
+                : (field === 'values' ? isValuesValue(item) : isAnchorValue(item));
+              if (valid) return;
+              const isArrayItem = Array.isArray(entry) && entry.length > 0;
+              invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex,
+                isArrayItem ? `${entryPath}[${itemIndex}]` : entryPath, item,
+                isArrayItem ? (field === 'values' ? 'a string' : 'a nonblank node ID')
+                  : field === 'values' ? 'a string or a nonempty list of strings'
+                    : 'a nonblank node ID or a nonempty list of nonblank node IDs', relationIssues);
+            });
+          }
+        }
+      }
+      if (relationIssues.length === 0) {
         normalized.push(cloneJson(relation));
         continue;
       }
-      if (typeof relation.relation !== 'string' || !relation.relation.trim()) {
-        invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, `${fieldPath}.relation`,
-          relation.relation, 'a nonblank string', diagnostics);
-      }
-      for (const field of ['anchors', 'priorAnchors', 'values']) {
-        if (field !== 'anchors' && !Object.hasOwn(relation, field)) continue;
-        const block = relation[field];
-        if (!block || typeof block !== 'object' || Array.isArray(block) || Object.keys(block).length === 0) {
-          invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, `${fieldPath}.${field}`,
-            block, 'a nonempty object with named entries', diagnostics);
-          continue;
-        }
-        for (const [key, entry] of Object.entries(block)) {
-          const entryPath = `${fieldPath}.${field}[${JSON.stringify(key)}]`;
-          if (!key.trim()) {
-            invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, entryPath, key, 'a nonblank entry name', diagnostics);
-          }
-          const entries = Array.isArray(entry) && entry.length > 0 ? entry : [entry];
-          entries.forEach((item, itemIndex) => {
-            const valid = Array.isArray(entry) && entry.length > 0
-              ? typeof item === 'string' && (field === 'values' || Boolean(item.trim()))
-              : (field === 'values' ? isValuesValue(item) : isAnchorValue(item));
-            if (valid) return;
-            const isArrayItem = Array.isArray(entry) && entry.length > 0;
-            invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex,
-              isArrayItem ? `${entryPath}[${itemIndex}]` : entryPath, item,
-              isArrayItem ? (field === 'values' ? 'a string' : 'a nonblank node ID')
-                : field === 'values' ? 'a string or a nonempty list of strings'
-                  : 'a nonblank node ID or a nonempty list of nonblank node IDs', diagnostics);
-          });
-        }
-      }
-      normalized.push(cloneJson(relation));
+      // A malformed claim cannot license a designed drawing. Preserve its raw
+      // evidence and exact errors on a derived neutral relation moment.
+      const safeBlock = (field, validValue) => {
+        const block = relation?.[field];
+        if (!block || typeof block !== 'object' || Array.isArray(block)) return {};
+        return Object.fromEntries(Object.entries(block).filter(([key, entry]) => key.trim() && validValue(entry)));
+      };
+      normalized.push({
+        relation: typeof relation?.relation === 'string' && relation.relation.trim()
+          ? relation.relation : 'Unrenderable authored relation',
+        anchors: safeBlock('anchors', isAnchorValue),
+        ...(Object.hasOwn(relation || {}, 'priorAnchors')
+          ? { priorAnchors: safeBlock('priorAnchors', isAnchorValue) } : {}),
+        ...(Object.hasOwn(relation || {}, 'values')
+          ? { values: safeBlock('values', isValuesValue) } : {}),
+        relationContractFailure: { raw: cloneJson(relation), issues: relationIssues }
+      });
+      if (diagnostics) diagnostics.push(...relationIssues);
     }
     return normalized;
   };
@@ -328,6 +349,18 @@ export const createDerivationCompilerHelpers = ({
     ));
   };
 
+  const sameExpandedBody = (left, right) => {
+    if (left === right) return true;
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+    if (Array.isArray(left) || Array.isArray(right)) {
+      return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+        && left.every((item, index) => sameExpandedBody(item, right[index]));
+    }
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length
+      && keys.every((key) => Object.hasOwn(right, key) && sameExpandedBody(left[key], right[key]));
+  };
+
   // Inspection reports defects without making malformed records eligible for Replay.
   const inspectDerivationWorkspaces = (stages, options = {}) => {
     if (!Array.isArray(stages)) return null;
@@ -423,11 +456,17 @@ export const createDerivationCompilerHelpers = ({
           diagnostics.push(...surface.diagnostics.filter((issue) => issue.ruleId !== 'DERIVATION_REALIZATION_SHAPE'));
         }
         stageNodes[stageIndex] = nodes;
-        if (workspaceDiagnostics.length === 0) {
+        if (workspaceDiagnostics.length > 0) blockedByStageIndex ??= stageIndex;
+        // Complete expansion tolerates duplicate IDs only for inspection. Equal
+        // bodies can supply later references, but their current anchors remain
+        // ambiguous. Conflicting bodies cannot establish reference history.
+        const unambiguousBodies = [...nodes.values()].every(([first, ...rest]) => (
+          rest.every(({ node }) => sameExpandedBody(first.node, node))
+        ));
+        if (unambiguousBodies) {
           nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, cloneJson(node)));
         } else {
           priorNodes.clear();
-          blockedByStageIndex ??= stageIndex;
         }
       } catch (error) {
         if (!(error instanceof ParseApiError) || !error.failure) throw error;
@@ -499,8 +538,8 @@ export const createDerivationCompilerHelpers = ({
         entry.diagnostics.push(createFailure({
           failureClass: 'valid_but_unexpected', ruleId: 'DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS',
           stageIndex, fieldPath, offendingValue: entry.workspaceForest.map((root) => root.id),
-          expectedForm: 'a convergence review of the complete final workspace', processingStep: 'workspace-convergence',
-          message: `Stage ${stageIndex + 1}, ${fieldPath}: the final workspace contains ${entry.workspaceForest.length} roots. Selecting a sentence-matching root does not establish whole-workspace convergence.`
+          expectedForm: 'review of the authored relationship between final roots', processingStep: 'workspace-interpretation',
+          message: `Stage ${stageIndex + 1}, ${fieldPath}: the final workspace contains ${entry.workspaceForest.length} roots. Surface coverage can be checked across them; their linguistic relationship requires review.`
         }));
       }
       const prefix = options.fieldPath || '$';
@@ -573,6 +612,8 @@ export const createDerivationCompilerHelpers = ({
       return null;
     }
     const candidate = cloneJson(root);
+    const roots = Array.isArray(candidate) ? candidate : [candidate];
+    if (roots.length === 0) return null;
     const fieldPathsById = new Map(Array.from(collectNodeReferencesById(root), ([nodeId, node]) => [
       nodeId, options.nodeFieldPaths?.get(node)
     ]));
@@ -599,7 +640,7 @@ export const createDerivationCompilerHelpers = ({
           }
         ])
       );
-      const overtTerminals = collectOvertTerminalNodes(candidate);
+      const overtTerminals = roots.flatMap(collectOvertTerminalNodes);
       const overtTerminalIds = new Set(
         overtTerminals.map((node) => String(node.id || ''))
       );
@@ -613,11 +654,11 @@ export const createDerivationCompilerHelpers = ({
       let realizedTokenIndices;
       if (hasRealizations) {
         const exactNodes = new Map(Array.from(nodesById.values(), (node) => [node.id, node]));
-        // A final root must contain every declared source; groups in another
-        // workspace cannot be discarded merely because this root matches words.
+        // The candidate must contain every declared source. A single-root
+        // candidate cannot discard a realization in another workspace.
         if (options.realizations.some((group) => group.nodeIds.some((id) => !exactNodes.has(id)))) return null;
         const fieldPath = `$.derivationStages[${options.stageIndex}]`;
-        const surface = resolveRealizations([candidate], options.realizations, sentenceTokens,
+        const surface = resolveRealizations(roots, options.realizations, sentenceTokens,
           { stageIndex: options.stageIndex, fieldPath, complete: true });
         if (surface.diagnostics.length) {
           const failure = surface.diagnostics[0];
@@ -639,7 +680,7 @@ export const createDerivationCompilerHelpers = ({
           node.tokenIndex = tokenIndex;
         });
       }
-      deriveCanonicalSurfaceSpans(candidate, realizedTokenIndices);
+      roots.forEach((item) => deriveCanonicalSurfaceSpans(item, realizedTokenIndices));
       collectNodeReferencesById(candidate).forEach((node, nodeId) => {
         const authored = authoredTechnicalFields.get(nodeId);
         if (!authored) return;
@@ -671,7 +712,7 @@ export const createDerivationCompilerHelpers = ({
       }
       return null;
     }
-    const overtTerminals = collectOvertTerminalNodes(candidate)
+    const overtTerminals = roots.flatMap(collectOvertTerminalNodes)
       .map((node) => authoredWord(node))
       .map((token) => String(token || '').trim())
       .filter(Boolean);
@@ -705,19 +746,25 @@ export const createDerivationCompilerHelpers = ({
     sentenceTokens = [],
     options = {}
   ) => {
-    const committedFrame = findCommittedFinalDerivationFrame(
-      derivationFrames,
-      sentenceTokens,
-      options
+    if (!Array.isArray(derivationFrames) || derivationFrames.length === 0) return null;
+    const frameIndex = derivationFrames.length - 1;
+    const frame = derivationFrames[frameIndex];
+    const finalForest = canonicalizeDerivationRootCandidateForSentence(
+      getFrameWorkspaceForest(frame), sentenceTokens,
+      { ...options, realizations: frame?.after?.realizations, stageIndex: frameIndex,
+        fieldPath: `$.derivationStages[${frameIndex}].workspaceForest` }
     );
-    if (!committedFrame?.root) return null;
-    const pronouncedTerminals = collectOvertTerminalNodes(committedFrame.root)
-      .map((node) => authoredWord(node))
-      .map((token) => String(token || '').trim())
-      .filter(Boolean);
-    if (!committedFrame.frame?.after?.realizations?.length && !sameTokenSequence(pronouncedTerminals, sentenceTokens)) return null;
-
-    return { tree: committedFrame.root };
+    if (!finalForest) return null;
+    const rootCandidates = finalForest.filter((root) => {
+      const overtTerminals = collectOvertTerminalNodes(root).map((node) => authoredWord(node)).filter(Boolean);
+      return sameTokenSequence(overtTerminals, sentenceTokens);
+    });
+    const realizationSources = new Set((frame?.after?.realizations || []).flatMap((group) => group.nodeIds));
+    const tree = finalForest.length === 1 ? finalForest[0]
+      : rootCandidates.length === 1
+        && [...realizationSources].every((id) => collectNodeReferencesById(rootCandidates[0]).has(id))
+        ? rootCandidates[0] : undefined;
+    return { finalForest, ...(tree ? { tree } : {}) };
   };
 
   return {

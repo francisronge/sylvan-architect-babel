@@ -28,6 +28,48 @@ const tree = n => n && ({ ...n, children: (n.children || []).map(tree) });
 const playback = new Map(saved.map(c => [c.name, buildReplayPlayback({ sentence: c.sentence, analyses: [c] }).steps]));
 const plans = new Map(saved.map(c => [c.name, compileRelationRenderPlan(c.derivationStages)]));
 
+test('qualified occurrence roles recover exact head and phrasal paths without fixing relation names', () => {
+  const headBefore = [{ id: 'tp', label: 'TP', children: [
+    { id: 'lowT', label: 'T', word: 'did', lineageId: 'tense' },
+    { id: 'vp', label: 'VP', children: [] }
+  ] }, { id: 'c', label: 'C', silent: true }];
+  const headAfter = [{ id: 'tp', label: 'TP', children: [
+    { id: 'lowT', label: 'T', word: 'did', silent: true, lineageId: 'tense' },
+    { id: 'vp', label: 'VP', children: [] }
+  ] }, { id: 'complexC', label: 'C', children: [
+    { id: 'highT', label: 'T', word: 'did', lineageId: 'tense' },
+    { id: 'c', label: 'C', silent: true }
+  ] }];
+  const head = { relation: 'An authored dependency',
+    anchors: { higherTOccurrence: 'highT', lowerTOccurrence: 'lowT' },
+    priorAnchors: { pronouncedT: 'lowT' } };
+  const recoveredHead = recoverMovementEvidence(head, headAfter, headBefore).movement;
+  assert.deepEqual([recoveredHead?.sourceNodeId, recoveredHead?.targetNodeId,
+    recoveredHead?.trajectoryKind], ['lowT', 'highT', 'head']);
+
+  const phrasalBefore = [{ id: 'vp', label: 'VP', children: [
+    { id: 'v', label: 'V', word: 'read' },
+    { id: 'object', label: 'DP', word: 'which book', lineageId: 'object-chain' }
+  ] }];
+  const phrasalAfter = [{ id: 'cp', label: 'CP', children: [
+    { id: 'fronted', label: 'DP', word: 'which book', lineageId: 'object-chain' },
+    { id: 'cbar', label: 'C′', children: [{ id: 'c', label: 'C', silent: true },
+      { id: 'vp', label: 'VP', children: [
+        { id: 'v', label: 'V', word: 'read' },
+        { id: 'object', label: 'DP', word: 'which book', silent: true, lineageId: 'object-chain' }
+      ] }
+    ] }
+  ] }];
+  const phrase = { relation: 'Another authored dependency',
+    anchors: { higherWhOccurrence: 'fronted', objectCopy: 'object' },
+    priorAnchors: { pronouncedObject: 'object' } };
+  const recoveredPhrase = recoverMovementEvidence(phrase, phrasalAfter, phrasalBefore).movement;
+  assert.deepEqual([recoveredPhrase?.sourceNodeId, recoveredPhrase?.targetNodeId,
+    recoveredPhrase?.trajectoryKind], ['object', 'fronted', 'phrasal']);
+  assert.equal(recoverMovementEvidence({ relation: 'Agreement',
+    anchors: { controller: 'lowT', target: 'highT' } }, headAfter, headBefore).movement, undefined);
+});
+
 test('future layout keeps the source attached until a retained-ID movement occurs', () => {
   const source = { id: 'person', label: 'DP', word: 'Lee', lineageId: 'person-chain' };
   const verb = { id: 'verb', label: 'V', word: 'left' };
@@ -129,9 +171,9 @@ test('a new sibling built around existing syntax is ready before the movement at
   }
 });
 
-for (const [name, attachment, higherProjection] of [
-  ['fable-minimalism', 'cp1'],
-  ['astra-xbar', 'questionCbar', 'questionCP']
+for (const [name, attachment, complex, complement, landing, higherProjection] of [
+  ['fable-minimalism', 'cp1', 'c_complex', 'tp_full', 't_did_hi'],
+  ['astra-xbar', 'questionCbar', 'complexC', 'clauseIP', 'raisedI', 'questionCP']
 ]) {
   test(`${name}: head movement attaches its new host to existing syntax in the same frame`, () => {
     const steps = playback.get(name);
@@ -140,6 +182,10 @@ for (const [name, attachment, higherProjection] of [
     assert.ok(moment > 0);
     assert.ok(steps[moment].replayVisibleNodeIds.includes(attachment), 'the landing cannot float separately from its authored attachment');
     assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(attachment)), 'the attachment must not precede the landing');
+    assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(complex) || s.replayVisibleNodeIds.includes(landing)),
+      'constructing the receiving head cannot reveal the future complex or landed occurrence');
+    assert.deepEqual(find([steps[moment].replayCanvasData], attachment).children.map(n => n.id), [complex, complement]);
+    assert.ok(find([steps[moment].replayCanvasData], complex).children.every(child => steps[moment].replayVisibleNodeIds.includes(child.id)));
     assert.ok(!steps.slice(moment + 1).some(s => s.replayKind === 'micro' && s.targetNodeId === attachment), 'the attachment must not be built a second time');
     if (higherProjection) assert.ok(!steps[moment].replayVisibleNodeIds.includes(higherProjection), 'head movement does not expose the projection reserved for later phrasal movement');
   });

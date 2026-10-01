@@ -245,19 +245,22 @@ test('two organizational roles sharing nodes join their own badges', () => {
   assert.deepEqual(rails.map(rail => rail.anchors.map(anchor => anchor.nodeId)), [ids, [...ids].reverse()]);
   assert.ok(rails[0].anchors.every(anchor => !rails[1].anchors.includes(anchor)), 'a shared node does not merge distinct role marks');
 });
-test('Astra wh licensing draws C at F32 and adds its future operator only at F33', () => {
+test('Astra wh licensing draws C and adds its future operator only at the following movement moment', () => {
   const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
   const record = records.find(r => r.name === 'astra-xbar');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
   const p = compileRelationRenderPlan(record.derivationStages);
   p.frames[4].items = p.frames[4].items.filter(i => i.kind === 'fallback' && i.relationRef.stageIndex === 4 && i.relationRef.relationIndex === 0);
   assert.equal(p.frames[4].items.length, 1);
-  for (const [frame, expected] of [[31, ['questionC']], [32, ['frontedNP', 'questionC']]]) {
-    const visible = new Set(steps[frame].replayVisibleNodeIds);
+  for (const [relationIndex, expected] of [[0, ['questionC']], [1, ['frontedNP', 'questionC']]]) {
+    const step = steps.find(step => step.replayRelationIdentity?.stageIndex === 4
+      && step.replayRelationIdentity.relationIndex === relationIndex);
+    assert.ok(step);
+    const visible = new Set(step.replayVisibleNodeIds);
     const bound = bindRelationPlanFrame(p, 4, id => visible.has(id) ? { x: 100, y: 100 } : null);
     assert.deepEqual(bound.primitives.filter(p => p.type === 'fallback-mark').map(p => p.nodeId), expected);
-    assert.equal(bound.primitives.some(p => p.type === 'segment'), frame === 32);
-    assert.match(steps[frame].movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT/);
+    assert.equal(bound.primitives.some(p => p.type === 'segment'), relationIndex === 1);
+    assert.match(step.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT/);
   }
 });
 

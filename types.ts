@@ -49,6 +49,11 @@ export interface DerivationStageRelation {
    * never node ids, and never affect neutral-fallback geometry.
    */
   values?: Record<string, string | string[]>;
+  /** Normalizer-derived evidence for an unrenderable authored claim; never model-authored. */
+  relationContractFailure?: {
+    raw: unknown;
+    issues: Array<{ fieldPath: string; message: string }>;
+  };
 }
 
 export interface GenerationPromptContract {
@@ -191,7 +196,10 @@ export interface Provenance {
 }
 
 export interface ParseResult {
-  tree: SyntaxNode;
+  /** Present when one authored root covers every pronounced input token. */
+  tree?: SyntaxNode;
+  /** The complete, expanded final workspace; roots are not syntactically merged. */
+  finalForest?: SyntaxNode[];
   derivationStages?: DerivationStage[];
   provenance?: Provenance;
 }

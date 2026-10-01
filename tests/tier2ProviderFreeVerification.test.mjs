@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import {
+  leaf,
+  node,
+  buildFacetFixture,
+  buildPublicFacetFixture
+} from './helpers/tier2PublicFixtures.mjs';
 
+import { __test__ } from '../server/babelParser.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import {
   compileRelationRenderPlan
@@ -25,252 +33,6 @@ import {
   lookupTier2SynonymCandidates,
   normalizeTier2Synonym
 } from '../replay/relations/tier2Synonyms.ts';
-
-const leaf = (id, extras = {}) => ({
-  id,
-  label: 'X',
-  word: id,
-  children: [],
-  ...extras
-});
-
-const node = (id, children = [], extras = {}) => ({
-  id,
-  label: 'XP',
-  children,
-  ...extras
-});
-
-const scalarOrArray = (items) => items.length === 1 ? items[0] : items;
-
-const idsFor = (role, count) => Array.from(
-  { length: count },
-  (_, index) => `${role.replace(/[^a-z0-9]+/giu, '_')}_${index + 1}`
-);
-
-const valueLiteral = (recipe, valueName, index) => {
-  if (valueName === 'outcome') return recipe.acceptedOutcomeConcepts[0] ?? 'licensed';
-  if (valueName === 'movement.route') return 'curve';
-  if (valueName === 'verdict') return '*';
-  if (valueName === 'index') return String(index + 1);
-  if (valueName === 'label') return 'label';
-  if (valueName === 'role.label') return ['Agent', 'Theme', 'Goal'][index] ?? `Role ${index + 1}`;
-  if (valueName === 'feature.label') return recipe.id === 'strong-npi' ? 'strong NPI' : 'F';
-  if (valueName === 'accent.label') return 'H*';
-  if (valueName === 'cycle') return 'C1';
-  if (valueName === 'step') return '1';
-  if (valueName === 'plaque.rows') return `row ${index + 1}`;
-  if (valueName === 'pf.rows') return `PF row ${index + 1}`;
-  if (valueName === 'rewrite.rows') return `input ${index + 1} -> output ${index + 1}`;
-  if (valueName === 'correspondence.rows') return `pf.sources ${index + 1} => pf.exponents ${index + 1}`;
-  if (valueName === 'order.rows') return recipe.id === 'pf.local-dislocation'
-    ? index === 0 ? 'a b' : '[a b]' : index === 0 ? 'a < b' : 'b < c';
-  if (valueName === 'delink.position') return 'feature.hierarchy 1';
-
-  const tokenCheck = recipe.checks.find((check) => (
-    check.kind === 'value-token' && check.value === valueName
-  ));
-  if (tokenCheck) return tokenCheck.tokens[0];
-  return `${valueName} ${index + 1}`;
-};
-
-// Task 4 locks the reviewed recipe declarations independently. This generator
-// verifies that each declared contract is executable through the real evaluator.
-const buildFacetFixture = (recipe, options = {}) => {
-  const counts = new Map();
-  recipe.anchors.forEach((requirement) => {
-    const largeMinimum = recipe.checks
-      .filter((check) => check.kind === 'large-array' && check.role === requirement.role)
-      .reduce((maximum, check) => Math.max(maximum, check.min), 0);
-    counts.set(requirement.role, Math.max(requirement.min, largeMinimum));
-  });
-  recipe.checks
-    .filter((check) => check.kind === 'paired-cardinality')
-    .forEach((check) => {
-      const count = Math.max(...check.roles.map((role) => counts.get(role) ?? 1));
-      check.roles.forEach((role) => counts.set(role, count));
-    });
-
-  const currentAnchors = {};
-  const priorAnchors = {};
-  recipe.anchors.forEach((requirement) => {
-    const target = requirement.source === 'prior' ? priorAnchors : currentAnchors;
-    target[requirement.role] = idsFor(requirement.role, counts.get(requirement.role) ?? 1);
-  });
-
-  const values = {};
-  recipe.values.forEach((requirement) => {
-    const count = Math.max(requirement.min, 1);
-    values[requirement.value] = Array.from(
-      { length: count },
-      (_, index) => valueLiteral(recipe, requirement.value, index)
-    );
-  });
-  if (options.movementRoute) values['movement.route'] = [options.movementRoute];
-  // Orders are node lists: the current order in anchors, the prior order in
-  // priorAnchors, both resolvable in their stage.
-  if (recipe.id === 'pf.linearization') {
-    currentAnchors.order = idsFor('order', 2);
-    priorAnchors.order = [...currentAnchors.order].reverse();
-  }
-  // Per-item literals pair with an anchor list through a same-name entry.
-  recipe.checks
-    .filter((check) => check.kind === 'paired-values')
-    .forEach((check) => {
-      if ((counts.get(check.role) ?? 1) > 1 && values[check.value]) {
-        values[check.role] = values[check.value];
-        delete values[check.value];
-      }
-    });
-
-  const currentNodes = new Map(
-    Object.values(currentAnchors).flat().map((id) => [id, leaf(id)])
-  );
-  const priorNodes = new Map(
-    Object.values(priorAnchors).flat().map((id) => [id, leaf(id)])
-  );
-  const attached = new Set();
-  let syntheticIndex = 0;
-
-  const attach = (parent, child) => {
-    if (!parent.children.some((candidate) => candidate.id === child.id)) {
-      parent.children.push(child);
-    }
-    attached.add(child.id);
-  };
-
-  recipe.checks.forEach((check) => {
-    const current = (role) => (currentAnchors[role] ?? []).map((id) => currentNodes.get(id));
-    switch (check.kind) {
-      case 'movement-evidence':
-        current('movement.landing').forEach(member => { member.label = 'DP'; });
-        break;
-      case 'contains': {
-        current(check.containerRole).forEach(container =>
-          current(check.memberRole).forEach((member) => attach(container, member)));
-        break;
-      }
-      case 'contains-authored-silent':
-      case 'authored-trace-or-gap':
-        current(check.role).forEach((member) => {
-          member.silent = true;
-          member.label = 't';
-          delete member.word;
-        });
-        break;
-      case 'shared-lineage':
-      case 'shared-root-lineage':
-        check.roles.flatMap(current).forEach((member) => {
-          member.lineageId = `lineage_${recipe.id}`;
-        });
-        break;
-      case 'multiple-parents': {
-        const parents = current('parents');
-        current(check.role).forEach((member) => {
-          parents.slice(0, check.minParents).forEach((parent) => attach(parent, member));
-        });
-        break;
-      }
-      case 'shared-native-parent': {
-        const sharedParent = node(`synthetic_shared_parent_${syntheticIndex += 1}`);
-        check.roles.flatMap(current).forEach((member) => attach(sharedParent, member));
-        currentNodes.set(sharedParent.id, sharedParent);
-        break;
-      }
-      case 'siblings-within-domain': {
-        const siblingParent = node(`synthetic_siblings_${syntheticIndex += 1}`);
-        current(check.leftRole).forEach((member) => attach(siblingParent, member));
-        current(check.rightRole).forEach((member) => attach(siblingParent, member));
-        attach(current(check.domainRole)[0], siblingParent);
-        break;
-      }
-      case 'native-parent-branch': {
-        current(check.role).forEach((member) => {
-          const parent = node(`synthetic_parent_${syntheticIndex += 1}`);
-          attach(parent, member);
-          currentNodes.set(parent.id, parent);
-        });
-        break;
-      }
-      case 'projection-chain': {
-        const chain = [...current('accent.bearer'), ...current('projection.nodes')];
-        chain.slice(1).forEach((parent, index) => attach(parent, chain[index]));
-        break;
-      }
-      case 'transfer-configuration': {
-        const [phase] = current('phase');
-        [...current('phase.head'), ...current('phase.edge'), ...current('transfer.domain')].forEach(member => attach(phase, member));
-        break;
-      }
-      case 'movement-carrier': {
-        attach(current('movement.carrier')[0], current('movement.source')[0]);
-        break;
-      }
-      case 'rebracketing-configuration': {
-        // The prior tree groups the sequence differently; terminal order is unchanged.
-        const members = current('sequence');
-        const group = node(`synthetic_prior_group_${syntheticIndex += 1}`, members.map((member) => structuredClone(member)));
-        priorNodes.set(group.id, group);
-        break;
-      }
-      case 'distinct':
-      case 'paired-cardinality':
-      case 'value-token':
-      case 'accepted-outcome':
-      case 'active-lens':
-      case 'parent-facet-complete':
-      case 'large-array':
-        break;
-    }
-  });
-
-  const topLevel = [...currentNodes.values()].filter((member) => !attached.has(member.id));
-  let currentForest;
-  if (options.crossWorkspace) {
-    const [sourceId] = currentAnchors['movement.source'];
-    const [landingId] = currentAnchors['movement.landing'];
-    const source = currentNodes.get(sourceId);
-    const landing = currentNodes.get(landingId);
-    const remainder = topLevel.filter((member) => member !== source && member !== landing);
-    currentForest = [
-      node('workspace_source', [source]),
-      node('workspace_landing', [landing, ...remainder])
-    ];
-  } else {
-    currentForest = [node(`root_${recipe.id}`, topLevel)];
-  }
-  const priorForest = priorNodes.size > 0
-    ? [node(`prior_root_${recipe.id}`, [...priorNodes.values()])]
-    : [];
-
-  const relation = {
-    relation: `UnknownFacet:${recipe.id}`,
-    anchors: Object.fromEntries(
-      Object.entries(currentAnchors).map(([role, ids]) => [role, scalarOrArray(ids)])
-    ),
-    ...(Object.keys(priorAnchors).length > 0
-      ? {
-          priorAnchors: Object.fromEntries(
-            Object.entries(priorAnchors).map(([role, ids]) => [role, scalarOrArray(ids)])
-          )
-        }
-      : {}),
-    ...(Object.keys(values).length > 0
-      ? {
-          values: Object.fromEntries(
-            Object.entries(values).map(([name, literals]) => [name, scalarOrArray(literals)])
-          )
-        }
-      : {})
-  };
-
-  return {
-    relation,
-    currentForest,
-    priorForest,
-    activeLens: true
-  };
-};
 
 const evaluateFixture = (recipe, fixture) => {
   const evidence = buildTier2FacetEvidence({
@@ -376,7 +138,7 @@ test('every declared Tier-2 alias resolves to the complete deterministic candida
 });
 
 test('every Tier-2 facet has a provider-free complete and incomplete form', () => {
-  assert.equal(TIER2_FACET_RECIPES.length, 52, 'the reviewed facet inventory changed');
+  assert.equal(TIER2_FACET_RECIPES.length, 55, 'the candidate facet inventory changed');
   TIER2_FACET_RECIPES.forEach((recipe) => {
     const fixture = buildFacetFixture(recipe);
     const complete = evaluateFixture(recipe, fixture).evaluation;
@@ -774,7 +536,7 @@ test('cross-family combinations preserve claims or expose a specific ambiguity w
     return copy;
   };
   const claims = TIER2_FACET_RECIPES.filter(recipe => recipe.kind === 'claim');
-  const counts = { complete: 0, competingRoles: 0, competingStages: 0, includedByLargerDrawing: 0 };
+  const counts = { complete: 0, competingRoles: 0, competingStages: 0, unownedOutcome: 0, includedByLargerDrawing: 0 };
   for (let a = 0; a < claims.length; a++) for (let b = a + 1; b < claims.length; b++) {
     const left = prefix(buildFacetFixture(claims[a]), 'left:');
     const right = prefix(buildFacetFixture(claims[b]), 'right:');
@@ -794,6 +556,13 @@ test('cross-family combinations preserve claims or expose a specific ambiguity w
     if (!missing.length) counts.complete++;
     else if (failures.length && failures.every(failure => failure.startsWith('ambiguous-group:'))) counts.competingRoles++;
     else if (failures.length === 1 && failures[0] === 'anchor:either:rewrite.input:cardinality:2,expected:1..1') counts.competingStages++;
+    else if (failures.length === 1 && failures[0] === 'check:explicit-coreference:coreference-outcome-not-established') {
+      assert.deepEqual(missing.map(recipe => recipe.id), ['coreference.coindex'], context);
+      // A negative outcome in an otherwise unqualified compound record does
+      // not establish a positive coreference assertion. Its fields remain neutral.
+      assert(result.claims.some(claim => claim.tier === 3), context);
+      counts.unownedOutcome++;
+    }
     else {
       assert.deepEqual(missing.map(recipe => recipe.id), ['phase.edge'], context);
       assert.ok(result.facets.some(facet => facet.recipe.id === 'transfer.domain'), context);
@@ -811,16 +580,25 @@ test('cross-family combinations preserve claims or expose a specific ambiguity w
     assert.deepEqual(dispatchRelationClaims(reversed).facets.map(f => f.recipe.id).sort(), result.facets.map(f => f.recipe.id).sort(), context);
     assert.deepEqual(fixture, original, context);
   }
-  // These are interpreter controls. In particular, the legacy sharing fixtures
-  // do not establish admission under the public single-position ID contract.
-  assert.deepEqual(counts, { complete: 1070, competingRoles: 37, competingStages: 1, includedByLargerDrawing: 1 });
+  // These combined claims exercise the interpreter; public normalization has
+  // separate controls for unique occurrence positions and surface coverage.
+  // Plain coreference adds 45 field-disjoint combinations: 39 complete and
+  // six with an unqualified negative outcome that cannot assert coreference.
+  // Control's optional index and Phase's optional edge now share fields with
+  // eight other fixtures; those pairs are excluded by the field-disjoint rule.
+  assert.deepEqual(counts, { complete: 1177, competingRoles: 38, competingStages: 1, unownedOutcome: 6, includedByLargerDrawing: 1 });
 });
 
-test('legacy sharing topology controls are not valid public single-position trees', async () => {
-  const { __test__ } = await import('../server/babelParser.js');
+test('repeated occurrence IDs remain invalid even when a relation explicitly claims sharing', () => {
   for (const id of ['multidominance', 'argument-sharing']) {
-    const fixture = buildFacetFixture(TIER2_FACET_RECIPES.find(recipe => recipe.id === id));
-    const stages = [{ statement: 'Sharing control.', stageRecord: 'Topology-only control.',
+    const shared = leaf('repeated-occurrence');
+    const fixture = {
+      relation: { relation: 'An explicit sharing claim', anchors: id === 'multidominance'
+        ? { parents: ['first-parent', 'second-parent'], shared: shared.id }
+        : { predicateDomains: ['first-parent', 'second-parent'], sharedArgument: shared.id } },
+      currentForest: [node('root', [node('first-parent', [shared]), node('second-parent', [structuredClone(shared)])])]
+    };
+    const stages = [{ statement: 'Sharing control.', stageRecord: 'Duplicate topology is invalid.',
       relations: [fixture.relation], workspaceForest: fixture.currentForest }];
     const inspected = __test__.inspectDerivationWorkspaces(stages);
     assert.ok(inspected[0].anchorChecks.some(check => check.status === 'duplicate'), id);
@@ -828,3 +606,61 @@ test('legacy sharing topology controls are not valid public single-position tree
       error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID', id);
   }
 });
+
+for (const framework of ['xbar', 'minimalism']) {
+  test(`${framework}: all 55 families and 69 pieces are reachable through public normalization and Replay`, () => {
+    const movement = TIER2_FACET_RECIPES.find(recipe => recipe.id === 'movement.path');
+    const examples = [
+      ...TIER2_FACET_RECIPES.map(recipe => ({ recipe })),
+      { recipe: movement, options: { movementRoute: 'orthogonal' } },
+      { recipe: movement, options: { crossWorkspace: true } }
+    ];
+    const seenFamilies = new Set();
+    const seenPieces = new Set();
+    for (const { recipe, options } of examples) {
+      const { fixture, sentence, derivationStages, relationStageIndex: stageIndex } = buildPublicFacetFixture(recipe, options);
+      const authored = { derivationStages };
+      const original = structuredClone(authored);
+      let bundle;
+      assert.doesNotThrow(() => {
+        bundle = __test__.normalizeParseBundle(authored, framework, sentence, 'grok', true);
+      }, `${recipe.id} ${JSON.stringify(options ?? {})}: invalid public record`);
+      const analysis = bundle.analyses[0];
+      assert.deepEqual(authored, original, `${recipe.id}: normalization mutated authored evidence`);
+      assert.deepEqual(analysis.derivationStages.map(stage => stage.relations),
+        derivationStages.map(stage => stage.relations), `${recipe.id}: public relation content changed`);
+      const replay = prepareReplay({ sentence, inputTokens: bundle.inputTokens,
+        derivationStages: analysis.derivationStages, includePlayback: true });
+      // The lens is a presentation context, not an authored stage field.
+      const plan = recipe.id === 'presentation.lens'
+        ? compileRelationRenderPlan(analysis.derivationStages, { activeLens: true })
+        : replay.relationRenderPlan;
+      const moment = replay.playbackSteps.find(step => step.replayRelationIdentity?.stageIndex === stageIndex
+        && step.replayRelationIdentity.relationIndex === 0);
+      assert.ok(moment, `${recipe.id}: no owning relation moment`);
+      const visible = new Set(moment.replayVisibleNodeIds);
+      const currentIds = new Set();
+      const visit = tree => { currentIds.add(tree.id); tree.children?.forEach(visit); };
+      analysis.derivationStages[stageIndex].workspaceForest.forEach(visit);
+      const binding = bindRelationPlanFrame(plan, stageIndex, (id, attachment) => (
+        currentIds.has(id) && visible.has(id) ? pointFor(id, attachment) : null
+      ));
+      assert.deepEqual(binding.failed, [], `${recipe.id}: a drawing needs an unavailable occurrence`);
+      const items = plan.frames[stageIndex].items;
+      const owned = items.flatMap((item, index) => item.tier2FacetId === recipe.id ? [index] : []);
+      assert.ok(owned.length > 0, `${recipe.id}: normalization made the family unreachable`);
+      assert.ok(binding.primitives.some(primitive => owned.includes(primitive.itemIndex)),
+        `${recipe.id}: the recovered family bound no drawing`);
+      const pieces = new Set(owned.flatMap(index => items[index].tier2OutputPieces ?? []));
+      const expected = evaluateFixture(recipe, fixture).evaluation;
+      assert.equal(expected.complete, true, `${recipe.id}: public fixture lost required evidence`);
+      for (const piece of expected.outputs) {
+        assert.ok(pieces.has(piece), `${recipe.id}: public record cannot reach ${piece}`);
+        seenPieces.add(piece);
+      }
+      seenFamilies.add(recipe.id);
+    }
+    assert.deepEqual([...seenFamilies].sort(), TIER2_FACET_RECIPES.map(recipe => recipe.id).sort());
+    assert.deepEqual([...seenPieces].sort(), [...TIER2_VISUAL_PRIMITIVE_NAMES].sort());
+  });
+}

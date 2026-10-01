@@ -5,6 +5,7 @@ import {
   fallbackPlaqueTextMeasure,
   wrapPlaqueText,
   preparePlaqueTextLayout,
+  preparePfPlaqueTextLayout,
   prepareThetaGridTextLayout
 } from '../replay/relations/plaqueTextLayout.ts';
 import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
@@ -20,6 +21,36 @@ const measureText = (text, style) => ({
 const content = (count = 12) => ({
   title: 'Authored feature details',
   rows: Array.from({ length: count }, (_, index) => ({ label: `row${index + 1}`, value: `literal${index + 1}` }))
+});
+
+test('short literal PF plates fit their measured heading and intact multilingual rows', () => {
+  for (const value of ['샀다', 'read', 'يقرأن', 'e\u0301']) {
+    const rows = [{ label: 'surfaceForm', value, kind: 'literal', rowIndex: 3, isFinal: true }];
+    const before = structuredClone(rows);
+    const layout = preparePfPlaqueTextLayout(rows, { measureText });
+    assert(layout.width < 480, 'short text must be eligible for existing nearby placement');
+    assert.equal(layout.height, 132);
+    assert.equal(layout.rows[0].rowIndex, 3);
+    assert.equal(layout.rows[0].parts[0].block.lines.map(line => line.text).join(''), `surfaceForm: ${value}`);
+    for (const block of [layout.title, ...layout.rows.flatMap(row => row.parts.map(part => part.block))]) {
+      for (const line of block.lines) assert(line.x + line.width <= layout.width - 26);
+    }
+    assert.deepEqual(rows, before);
+  }
+});
+
+test('long literal PF content wraps completely and rewrite columns retain their accepted sizes', () => {
+  const literal = 'Long literal morphology content '.repeat(12);
+  const rows = [{ label: 'form', value: literal, kind: 'literal', rowIndex: 0, isFinal: true }];
+  const layout = preparePfPlaqueTextLayout(rows, { measureText });
+  assert.equal(layout.width, 590);
+  assert.equal(layout.rows[0].parts[0].block.lines.map(line => line.text).join(''), `form: ${literal}`);
+  for (const [value, zero, width, positions] of [['form', false, 590, [26, 314, 370]], ['∅', true, 360, [26, 190, 246]]]) {
+    const rewrite = preparePfPlaqueTextLayout([{ label: 'stem', value, kind: 'rewrite', rowIndex: 0, isFinal: true }],
+      { measureText, isZeroRealization: zero });
+    assert.equal(rewrite.width, width);
+    assert.deepEqual(rewrite.rows[0].parts.map(part => part.block.lines[0].x), positions);
+  }
 });
 
 test('theta grids retain short geometry and give longer predicates their own column', () => {

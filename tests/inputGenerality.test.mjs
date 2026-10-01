@@ -207,6 +207,6 @@ test('symbol alignment still rejects a different authored surface', () => {
       true,
       { payloadIntegrityFlags: [] }
     ),
-    /overt terminals match the input sentence/
+    /overt terminals do not match the input sentence order/
   );
 });

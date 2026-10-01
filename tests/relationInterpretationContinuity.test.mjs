@@ -119,18 +119,32 @@ test('distinct enclosure claims survive; two readings of the same participant st
 });
 
 test('local rebracketing checks the named sequence, including its identity and surface order', () => {
-  const relation = { relation: 'Authored rebracketing', anchors: { sequence: ['a', 'b'] } };
-  const prior = [{ id: 'root', label: 'XP', children: [{ id: 'group', label: 'XP', children: [leaf('a'), leaf('b')] }] }];
-  const current = [{ id: 'root', label: 'XP', children: [leaf('a'), leaf('b')] }];
+  const relation = { relation: 'Authored rebracketing', anchors: { sequence: ['a', 'b', 'c'] } };
+  const prior = [{ id: 'root', label: 'XP', children: [
+    { id: 'ab', label: 'XP', children: [leaf('a'), leaf('b')] }, leaf('c')
+  ] }];
+  const current = [{ id: 'root', label: 'XP', children: [leaf('a'),
+    { id: 'bc', label: 'XP', children: [leaf('b'), leaf('c')] }
+  ] }];
   const earned = (now, before = prior) => dispatch(relation, now, before).facets.some(f => f.recipe.id === 'pf.local-dislocation');
   assert.ok(earned(current));
   assert.ok(earned([...current, leaf('unrelated')]));
   assert.ok(earned(current, [...prior, leaf('unrelated')]));
-  assert.equal(earned([{ ...current[0], children: [leaf('b'), leaf('a')] }]), false);
-  assert.equal(earned([{ ...current[0], children: [leaf('a')] }]), false);
+  const reordered = [{ ...current[0], children: [leaf('b'),
+    { id: 'ac', label: 'XP', children: [leaf('a'), leaf('c')] }
+  ] }];
+  assert.equal(earned(reordered), false);
+  assert.equal(earned([{ ...current[0], children: [leaf('a'), leaf('b')] }]), false);
   const sameWord = roots => roots.map(root => ({ ...root, ...(root.word ? { word: 'same' } : {}),
     ...(root.children ? { children: sameWord(root.children) } : {}) }));
-  assert.equal(earned(sameWord([{ ...current[0], children: [leaf('b'), leaf('a')] }]), sameWord(prior)), false);
+  assert.equal(earned(sameWord(reordered), sameWord(prior)), false);
+
+  const unchanged = [{ id: 'root', label: 'XP', children: [leaf('a'), leaf('b')] }];
+  const unaryWrapper = [{ id: 'root', label: 'XP', children: [
+    { id: 'group', label: 'XP', children: [leaf('a'), leaf('b')] }
+  ] }];
+  assert.ok(!dispatch({ ...relation, anchors: { sequence: ['a', 'b'] } }, unchanged, unaryWrapper)
+    .facets.some(f => f.recipe.id === 'pf.local-dislocation'), 'a unary wrapper alone supplies no grouping change');
 });
 
 test('central role specificity keeps weak ellipsis and generic PF context neutral', () => {

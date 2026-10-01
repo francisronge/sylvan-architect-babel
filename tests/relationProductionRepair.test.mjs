@@ -1095,7 +1095,7 @@ test('a lineage-keyed chain keeps its index as it grows from two to four occurre
   assert.notEqual(independent.index, original.index, 'independent chains keep distinct indices');
 });
 
-test('Identity binds one occurrence lens and never invents numeric badges or camera bounds', () => {
+test('Identity binds its coindex to one occurrence lens without free-standing badges or camera bounds', () => {
   const occurrence = (id, silent = false) => node(
     id,
     'DP',
@@ -1120,6 +1120,7 @@ test('Identity binds one occurrence lens and never invents numeric badges or cam
   assert.deepEqual(bound.primitives, [{
     type: 'identity-lens',
     nodeIds: ['identity_high', 'identity_low'],
+    index: 'i',
     itemIndex: 0
   }]);
   assert.equal(boundOverlayBounds(bound), null);

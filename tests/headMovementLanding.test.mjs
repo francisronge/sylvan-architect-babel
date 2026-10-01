@@ -69,3 +69,54 @@ test('the saved sequence introduces each lower witness at its own movement frame
     assert(steps[moment].replayVisibleNodeIds.includes(witness));
   }
 });
+
+
+test('persistent movement and Case keep exact intermediate positions across projected-head and subject movement', () => {
+  const input = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/projected-head-landing.json', import.meta.url)));
+  const stages = input.analyses[0].derivationStages, original = structuredClone(stages);
+  const plan = compileRelationRenderPlan(stages);
+  const final = plan.frames[2].items;
+  const first = final.find(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1 && item.relationRef.relationIndex === 4);
+  const assignment = final.find(item => item.pathStyle === 'case-assignment' && item.relationRef.stageIndex === 1 && item.relationRef.relationIndex === 5);
+  assert(first); assert(assignment);
+  assert.equal(first.sourceNodeId, 'bookObjectTrace'); assert.equal(first.targetNodeId, 'bookSubjectTrace');
+  assert.equal(assignment.fromNodeId, 'auxITrace'); assert.equal(assignment.toNodeId, 'bookSubjectTrace');
+  const at = (item, played) => resolveDisplayedTrajectoryAttachments(item, id => index(stages[2].workspaceForest).get(id),
+    { stageIndex: 2, playedRelationIndices: new Set(played) });
+  assert.equal(at(first, []).targetNodeId, 'bookSubject');
+  assert.equal(at(first, [4]).targetNodeId, 'bookSubject');
+  assert.equal(at(first, [4, 5]).targetNodeId, 'bookSubjectTrace');
+  assert.equal(at(assignment, []).fromNodeId, 'auxI');
+  assert.equal(at(assignment, []).toNodeId, 'bookSubject');
+  assert.equal(at(assignment, [4]).fromNodeId, 'auxITrace');
+  assert.equal(at(assignment, [4]).toNodeId, 'bookSubject');
+  assert.equal(at(assignment, [4, 5]).toNodeId, 'bookSubjectTrace');
+  assert.equal(first.relationRef.anchors.landingOccurrence, 'bookSubject');
+  assert.equal(plan.frames[1].items.find(item => item.kind === 'trajectory').occurrenceTransfers, undefined);
+  assert(!plan.diagnostics.some(d => d.kind === 'anchor-vanished' && /bookSubject|auxI/.test(d.detail)));
+  assert.deepEqual(stages, original);
+  const steps = buildReplayPlayback(input).steps;
+  for (const step of steps.filter(step => step.replayRelationIdentity?.stageIndex === 2)) {
+    const played = new Set(Array.from({ length: step.replayRelationIdentity.relationIndex + 1 }, (_, i) => i));
+    for (const item of [first, assignment]) {
+      const displayed = resolveDisplayedTrajectoryAttachments(item, id => index(step.workspaceForest ?? []).get(id), { stageIndex: 2, playedRelationIndices: played });
+      for (const key of item.kind === 'trajectory' ? ['sourceNodeId', 'targetNodeId'] : ['fromNodeId', 'toNodeId']) {
+        assert(step.replayVisibleNodeIds.includes(displayed[key]), `${step.replayRelationIdentity.relationIndex}: ${key}=${displayed[key]}`);
+      }
+    }
+  }
+});
+
+test('persistent marks do not transfer to a same-lineage substitute without a unique movement witness', () => {
+  const input = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/projected-head-landing.json', import.meta.url)));
+  for (const mutate of [
+    stages => { stages[2].relations.splice(5, 1); },
+    stages => { stages[2].relations[5].priorAnchors.sourceOccurrence = 'unresolved'; },
+    stages => { stages[2].relations.push(structuredClone(stages[2].relations[5])); }
+  ]) {
+    const stages = structuredClone(input.analyses[0].derivationStages); mutate(stages);
+    const plan = compileRelationRenderPlan(stages);
+    assert(!plan.frames[2].items.some(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1));
+    assert(plan.diagnostics.some(d => d.kind === 'anchor-vanished' && /bookSubject/.test(d.detail)));
+  }
+});

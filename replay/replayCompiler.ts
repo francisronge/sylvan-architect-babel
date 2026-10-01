@@ -1,8 +1,9 @@
 import * as d3 from 'd3';
 import { categoryLabel } from './categoryLabel.ts';
+import { constructionAttachmentUpdates, hasConstructionWrapperInsertions, preserveConstructionAttachments } from './constructionAttachments.ts';
 import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
-import { dispatchRelationClaims, dispatchStageRelations, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
+import { dispatchRelationClaims, dispatchStageRelations, recoveredClaimMovements, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
 import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
@@ -43,6 +44,14 @@ import {
 export type HierNode = d3.HierarchyNode<SyntaxNode>;
 export type VisibleLink = d3.HierarchyLink<SyntaxNode>;
 
+type PendingSourceSyntaxNode = SyntaxNode & { replayPriorInheritedSilence?: boolean };
+
+/** A protected prior source inherits its preceding context, while keeping its own authored fields. */
+const replayEffectiveSilence = (node: SyntaxNode, inherited: boolean): boolean =>
+  (node as any).replayLayoutOnly ? inherited
+    : ((node as PendingSourceSyntaxNode).replayPriorInheritedSilence ?? inherited)
+      || node.silent === true || (node as any).ghost === true;
+
 export interface PlaybackStep {
   operation: DerivationOperation;
   sourceKind?: 'microstep' | 'derivation-effect' | 'derived';
@@ -53,6 +62,8 @@ export interface PlaybackStep {
   visualFrameIndex?: number;
   replayFrameIndex?: number;
   replayKind?: 'micro' | 'relation' | 'macro';
+  /** Zero-based order within one authored stage, independent of display labels. */
+  replayStageStepIndex?: number;
   /**
    * Exact authored identity of the relation this Replay moment plays.
    * Placement interleaves relation moments with structural construction,
@@ -76,6 +87,8 @@ export interface PlaybackStep {
   replayVisibleNodeIds?: string[];
   replayRelationLinks?: ResolvedRelationLink[];
   replayUsesFutureLayoutScaffold?: boolean;
+  /** Retained occurrences whose new child attachment has not yet played. */
+  replayPendingAttachmentNodeIds?: string[];
   preserveReplayStep?: boolean;
   replaySuppressAutoRevealNodeIds?: string[];
   replayRealizations?: SurfaceRealization[];
@@ -192,6 +205,11 @@ interface DerivationReplayPlanStep {
   /** Exact evidence owned by the neutral primary, excluding recovered sibling claims. */
   neutralTransitionEvidence?: Pick<DerivationStageRelation, 'anchors' | 'priorAnchors'>;
   recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
+  /** Several proved sources may converge on one landing in this single moment. */
+  recoveredMovements?: Array<RecoveredMovement & { drawTrajectory: boolean }>;
+  /** Exact new landing owned by a claim whose preceding source state is unavailable. */
+  unprovenNewLandingNodeId?: string;
+  preserveMovementLanding?: boolean;
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
   kind?: 'micro' | 'relation' | 'macro';
@@ -206,6 +224,7 @@ interface DerivationReplayPlanStep {
   priorAnchors?: Record<string, string | string[]>;
   /** Authored literal payload, verbatim when authored. */
   values?: Record<string, string | string[]>;
+  relationContractFailure?: DerivationStageRelation['relationContractFailure'];
   authoredRelationIndex?: number;
   resolvedAnchors?: ReplayResolvedRelationAnchor[];
   /** Authored anchors whose exact id is absent from this stage's workspace; reported, never repaired. */
@@ -367,6 +386,9 @@ export const buildRenderableCommittedCanvasData = (
   tree: SyntaxNode,
   _resolvedRelationLinks?: ResolvedRelationLink[]
 ): SyntaxNode => {
+  if (tree.replayOrigin?.kind === 'workspace') {
+    return buildRenderableDerivationCanvasData(tree.children || []) || tree;
+  }
   return materializeReplayPreterminals(projectAuthoredSyntaxNode(tree));
 };
 
@@ -1296,6 +1318,35 @@ const buildCurrentMaterialLayoutScaffold = (
   return forestCanUseCurrentMaterialLayoutScaffold(currentRoots, scaffold) ? scaffold : null;
 };
 
+/** Preserve a detached object's first parent slot through later head wrappers.
+ * A relocation outside that slot or a changed sibling order ends lookahead. */
+const retainFirstAttachmentSlots = (
+  forest: SyntaxNode[],
+  attachments: ReadonlyMap<string, SyntaxNode>
+): SyntaxNode[] | null => {
+  if (!attachments.size) return forest;
+  let layout = forest;
+  for (const [id, originalParent] of attachments) {
+    const byId = collectExactNodesByIdInForest(layout);
+    const parents = byId.get(String(originalParent.id || '')) || [];
+    const matches = byId.get(id) || [];
+    if (parents.length !== 1 || matches.length !== 1) return null;
+    const parent = parents[0];
+    const slot = (parent.children || []).findIndex(child =>
+      collectExactNodesByIdInForest([child]).has(id));
+    if (slot < 0) return null;
+    const children = [...(parent.children || [])];
+    children[slot] = matches[0];
+    if (!preservesRelativeSiblingOrder(originalParent.children || [], children)) return null;
+    if (parent.children?.[slot] === matches[0]) continue;
+    const replace = (node: SyntaxNode): SyntaxNode => node === parent
+      ? { ...node, children }
+      : { ...node, ...(node.children ? { children: node.children.map(replace) } : {}) };
+    layout = layout.map(replace);
+  }
+  return layout;
+};
+
 /**
  * Reserve the next unambiguous parent layout. Exact retained subtrees use it
  * directly. Detached workspace objects may also borrow a later wrapper after
@@ -1311,7 +1362,7 @@ const inferFutureLayoutScaffold = (
   const candidates: Array<{ forest: SyntaxNode[]; allowedOccurrenceIds: Set<string> }> = [];
   const allowedFutureOccurrenceIds = new Set<string>();
   const currentRootIds = new Set(collectWorkspaceRootIds(workspaceRoots));
-  let previousParents = new Map<string, SyntaxNode | null>();
+  const firstAttachments = new Map<string, SyntaxNode>();
   const currentRootSignatures = new Map(workspaceRoots.map(root => [root, replayLayoutContinuitySignature(root)]));
   const currentForestSignature = JSON.stringify(
     workspaceRoots.map(root => currentRootSignatures.get(root))
@@ -1320,18 +1371,21 @@ const inferFutureLayoutScaffold = (
 
   for (let futureFrameIndex = currentFrameIndex + 1; futureFrameIndex < frames.length; futureFrameIndex += 1) {
     const futureFrame = frames[futureFrameIndex];
-    const futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
+    let futureRoots = Array.isArray(frames[futureFrameIndex]?.workspaceForest)
       ? frames[futureFrameIndex].workspaceForest
       : [];
+    // Each detached object reserves its first attachment independently. A
+    // later wrapper around one head must not stop looking ahead for other
+    // objects that are still detached. Contract those later wrappers in the
+    // layout copy only; current material is grafted back below.
+    const attachmentLayout = retainFirstAttachmentSlots(futureRoots, firstAttachments);
+    if (!attachmentLayout) break;
+    futureRoots = attachmentLayout;
     const futureNodesById = collectExactNodesByIdInForest(futureRoots);
     const futureParents = collectWorkspaceRootParents(futureRoots, currentRootIds);
-    // Reserve a detached object's first attachment, never a later relocation.
-    // Otherwise an early selection can start at a movement landing and jump
-    // back to its base position when the containing subtree is constructed.
-    if ([...previousParents].some(([id, parent]) => parent !== null
-      && (futureParents.get(id)?.id !== parent.id
-        || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
-    previousParents = futureParents;
+    futureParents.forEach((parent, id) => {
+      if (parent && !firstAttachments.has(id)) firstAttachments.set(id, parent);
+    });
     const preservesCurrentSubtrees = workspaceRoots.every(root => {
       const matches = futureNodesById.get(String(root.id || '')) || [];
       return matches.length === 1 && replayLayoutContinuitySignature(matches[0]) === currentRootSignatures.get(root);
@@ -1410,6 +1464,76 @@ const inferFutureLayoutScaffold = (
   return null;
 };
 
+
+/** The outside position of a reserved component depends on its attachment,
+ * not on the later order of heads inside it. A component that splits before
+ * that attachment cannot supply a reliable earlier placement. */
+const inferReservedComponentOrder = (
+  components: SyntaxNode[], frames: ReplayDerivationFrame[], stage: number
+): string[] | null => {
+  if (!components.some(component => 'replayLayoutOnly' in component && component.replayLayoutOnly === true)) return null;
+  const ids = components.map(component => component.id);
+  const candidates = frames.map((frame, index) => index < stage ? null
+    : collectExactNodesByIdInForest(frame.workspaceForest || []));
+  const first = candidates.findIndex(nodes => nodes && ids.every(id => nodes.get(id)?.length === 1));
+  if (first < 0) return null;
+  for (const component of components) {
+    const material = [...collectExactNodesByIdInForest([component])]
+      .filter(([, nodes]) => nodes.some(node => !('replayLayoutOnly' in node && node.replayLayoutOnly === true) && !node.replayOrigin))
+      .map(([id]) => id);
+    for (let index = first; index < frames.length; index++) {
+      const matches = candidates[index]?.get(component.id);
+      if (matches?.length !== 1) return null;
+      if (!frames[index].workspaceForest?.some(root => root.id === component.id)) break;
+      const contents = collectExactNodesByIdInForest(matches);
+      if (material.some(id => contents.get(id)?.length !== 1)) return null;
+    }
+  }
+  return inferFutureWorkspaceRootOrder(components, frames, Math.max(stage, first - 1), true);
+};
+
+/** Independent workspace components can reserve their future side without
+ * changing selection order or borrowing future parents and branch heights. */
+const orderDetachedReplayWorkspaces = (
+  steps: PlaybackStep[],
+  frames: ReplayDerivationFrame[]
+): PlaybackStep[] => {
+  const orders = new Map<number, Map<string, number> | null>();
+  const canvases = new Map<number, Map<SyntaxNode, SyntaxNode>>();
+  return steps.map(step => {
+    const canvas = step.replayCanvasData, stage = step.replayFrameIndex;
+    if (!canvas || canvas.replayOrigin?.kind !== 'workspace' || stage == null
+      || (canvas.children?.length || 0) < 2) return step;
+    if (!orders.has(stage)) {
+      const order = inferFutureWorkspaceRootOrder(frames[stage]?.workspaceForest || [], frames, stage, true);
+      orders.set(stage, order ? new Map(order.map((id, index) => [id, index])) : null);
+    }
+    const order = orders.get(stage);
+    if (!order) return step;
+    const cache = canvases.get(stage) || new Map<SyntaxNode, SyntaxNode>();
+    canvases.set(stage, cache);
+    if (!cache.has(canvas)) {
+      // A reserved component may already contain several detached roots. Use
+      // its outer attachment to place that component; internal head movement
+      // cannot put an unrelated loose root on the opposite side of it.
+      const componentOrder = inferReservedComponentOrder(canvas.children!, frames, stage);
+      const componentSlots = componentOrder && new Map(componentOrder.map((id, index) => [id, index]));
+      const components = canvas.children!.map(child => {
+        const slots = componentSlots ? [componentSlots.get(child.id)!]
+          : [...collectExactNodesByIdInForest([child]).keys()].flatMap(id => order.has(id) ? [order.get(id)!] : []);
+        return { child, first: Math.min(...slots), last: Math.max(...slots) };
+      }).sort((a, b) => a.first - b.first);
+      const distinct = components.every((item, index) => Number.isFinite(item.first)
+        && (!index || components[index - 1].last < item.first));
+      const children = distinct ? components.map(item => item.child) : canvas.children!;
+      cache.set(canvas, children.every((child, index) => child === canvas.children![index])
+        ? canvas : { ...canvas, children });
+    }
+    const ordered = cache.get(canvas)!;
+    return ordered === canvas ? step : { ...step, replayCanvasData: ordered };
+  });
+};
+
 const buildWorkspaceRootSideHints = (
   workspaceRoots: SyntaxNode[],
   preferredRootIds?: string[] | null
@@ -1428,10 +1552,31 @@ const buildWorkspaceRootSideHints = (
   return hints;
 };
 
+/** Outer projections can change a root's immediate parent without changing
+ * its first attachment or its order beside roots already merged with it. */
+const preservesFirstRootAttachments = (
+  forest: SyntaxNode[],
+  attachments: ReadonlyMap<string, SyntaxNode>
+): boolean => {
+  const nodes = collectExactNodesByIdInForest(forest);
+  for (const [id, originalParent] of attachments) {
+    const parents = nodes.get(String(originalParent.id || ''));
+    if (parents?.length !== 1 || nodes.get(id)?.length !== 1) return false;
+    const descendants = collectSubtreeNodeIds(parents[0]);
+    if (!descendants.includes(id)) return false;
+    const sisters = (originalParent.children || []).map(child => String(child.id || ''))
+      .filter(childId => attachments.get(childId)?.id === originalParent.id);
+    const sisterIds = new Set(sisters);
+    if (JSON.stringify(descendants.filter(childId => sisterIds.has(childId))) !== JSON.stringify(sisters)) return false;
+  }
+  return true;
+};
+
 const inferFutureWorkspaceRootOrder = (
   workspaceRoots: SyntaxNode[],
   frames: ReplayDerivationFrame[],
-  currentFrameIndex: number
+  currentFrameIndex: number,
+  allowInterveningProjections = false
 ): string[] | null => {
   if (!Array.isArray(workspaceRoots) || workspaceRoots.length <= 1) return null;
   const currentRoots = workspaceRoots
@@ -1454,6 +1599,7 @@ const inferFutureWorkspaceRootOrder = (
   let bestPreferredOrder: string[] | null = null;
   let bestMergedRoots = -1;
   let bestDepthScore = -1;
+  const firstAttachments = new Map<string, SyntaxNode>();
   let previousParents = new Map<string, SyntaxNode | null>();
 
   for (let futureFrameIndex = currentFrameIndex + 1; futureFrameIndex < frames.length; futureFrameIndex += 1) {
@@ -1465,12 +1611,21 @@ const inferFutureWorkspaceRootOrder = (
       break;
     }
     const futureParents = collectWorkspaceRootParents(futureRoots, currentRootIds);
-    if ([...previousParents].some(([id, parent]) => parent !== null
-      && (futureParents.get(id)?.id !== parent.id
-        || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
-    previousParents = futureParents;
+    if (allowInterveningProjections) {
+      const exactNodes = collectExactNodesByIdInForest(futureRoots);
+      if (currentRoots.some(({ id }) => exactNodes.get(id)?.length !== 1)
+        || !preservesFirstRootAttachments(futureRoots, firstAttachments)) break;
+      futureParents.forEach((parent, id) => {
+        if (parent && !firstAttachments.has(id)) firstAttachments.set(id, parent);
+      });
+    } else {
+      if ([...previousParents].some(([id, parent]) => parent !== null
+        && (futureParents.get(id)?.id !== parent.id
+          || !preservesRelativeSiblingOrder(parent.children || [], futureParents.get(id)?.children || [])))) break;
+      previousParents = futureParents;
+    }
 
-    const rootMembership = currentRoots.map(({ id, originalIndex }) => {
+    const rootMembership = currentRoots.map(({ id, originalIndex, root: currentRoot }) => {
       let futureRootIndex = -1;
       let localPath: number[] | null = null;
       futureRoots.some((futureRoot, index) => {
@@ -1478,6 +1633,18 @@ const inferFutureWorkspaceRootOrder = (
         if (!pathWithinRoot) return false;
         futureRootIndex = index;
         localPath = pathWithinRoot;
+        // A unary workspace can keep its ID while gaining an outside sister.
+        // Its current material occupies the retained child's side, rather than
+        // the future parent slot that contains both independent components.
+        const child = currentRoot.children?.length === 1 ? currentRoot.children[0] : undefined;
+        const future = child && collectExactNodesByIdInForest([futureRoot]).get(id);
+        const retainedChild = child && future?.length === 1 && future[0].children?.some(node => node.id === child.id);
+        const containsOutsideRoot = retainedChild && currentRoots.some(entry => {
+          if (entry.id === id) return false;
+          const path = findNodePathInForest([futureRoot], entry.id);
+          return path && path.length > pathWithinRoot.length && pathWithinRoot.every((part, i) => path[i] === part);
+        });
+        if (child && containsOutsideRoot) localPath = findNodePathInForest([futureRoot], child.id);
         return true;
       });
       return { id, originalIndex, futureRootIndex, localPath };
@@ -1684,7 +1851,21 @@ const buildPreMovementStructuralForest = (
     // and creates a differently shaped lower silent copy. Reusing the complete
     // prior occurrence keeps every lexical/structural change inside the movement
     // mesostep instead of leaking it into a fake construction microstep.
-    return cloneSyntaxTree(previousSource);
+    const restored = cloneSyntaxTree(previousSource)!;
+    const inheritedSilence = (nodeId: string, preceding: boolean): boolean => {
+      const path: SyntaxNode[] = [];
+      let parent = preceding ? previousLocations.get(nodeId)?.parent : findParent(nodeId);
+      while (parent) {
+        path.push(parent);
+        parent = preceding ? previousLocations.get(parent.id)?.parent : findParent(parent.id);
+      }
+      return path.reverse().reduce((silent, node) => replayEffectiveSilence(node, silent), false);
+    };
+    const priorInherited = inheritedSilence(previousSource.id, true);
+    if (priorInherited !== inheritedSilence(currentSource.id, false)) {
+      (restored as PendingSourceSyntaxNode).replayPriorInheritedSilence = priorInherited;
+    }
+    return restored;
   };
   const findParent = (nodeId: string): SyntaxNode | null => {
     const normalizedNodeId = String(nodeId || '');
@@ -1706,15 +1887,23 @@ const buildPreMovementStructuralForest = (
   };
   const previousLocations = indexExactForestNodeLocations(previousForest);
   const restoreHeadHost = (parent: SyntaxNode | null): void => {
-    if (!parent || previousLocations.has(parent.id) || parent.children?.length !== 1) return;
+    if (!parent || parent.children?.length !== 1) return;
+    const precedingParent = previousLocations.get(parent.id)?.node;
+    if (precedingParent) {
+      if (!precedingParent.children?.length) replaceStructuralNode(parent.id, cloneSyntaxTree(precedingParent)!);
+      return;
+    }
     const host = parent.children[0];
     const prior = previousLocations.get(host.id);
     const grandparent = findParent(parent.id);
     const siblings = grandparent?.children || structuralForest;
-    // Undo only the new shell around an existing head in its preceding slot.
-    // Keeping that shell hidden would sever the old parent's visible branch.
-    if (prior && prior.parentId === (grandparent?.id || '')
-      && (grandparent ? prior.childIndex : prior.rootIndex) === siblings.indexOf(parent)) {
+    // Before adjunction, the receiving head is independently selected, whether
+    // it came from the preceding stage or this stage's ordinary construction.
+    const newReceivingHead = !prior && isHeadShellLabel(parent.label)
+      && isHeadShellLabel(host.label)
+      && normalizeStructuralLabel(parent.label) === normalizeStructuralLabel(host.label);
+    if (newReceivingHead || (prior && prior.parentId === (grandparent?.id || '')
+      && (grandparent ? prior.childIndex : prior.rootIndex) === siblings.indexOf(parent))) {
       replaceStructuralNode(parent.id, host);
     }
   };
@@ -1761,9 +1950,10 @@ const buildPreMovementStructuralForest = (
     const sourceRoles = relationOwnedPhrasalSourceRoles(relation);
     const targetRoles = relationOwnedPhrasalTargetRoles(relation);
     const sourceIds = Array.from(new Set([
-      ...getRelationSourceNodeIds(relation),
-      ...findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
-        .map((anchor) => String(anchor.nodeId || ''))
+      ...(relation.recoveredMovements ? relation.recoveredMovements.filter(movement => movement.transition).map(movement => movement.sourceNodeId)
+        : getRelationSourceNodeIds(relation)),
+      ...(!relation.recoveredMovement ? findResolvedReplayAnchorsByRoles(anchors, sourceRoles)
+        .map((anchor) => String(anchor.nodeId || '')) : [])
     ].filter(Boolean)));
     const targetId = String(
       getRelationTargetNodeId(relation)
@@ -1780,23 +1970,27 @@ const buildPreMovementStructuralForest = (
       && !relationOwnsPhrasalTreeTransition(relation)
     ) return;
     const movement = relation.recoveredMovement;
-    if (movement && movement.priorSourceNodeId !== movement.sourceNodeId) {
-      const before = findNodeInForest(previousForest, movement.priorSourceNodeId);
-      const lower = findNode(movement.sourceNodeId);
+    const movements = relation.recoveredMovements?.filter(item => item.transition) ?? (movement ? [movement] : []);
+    if (movement && movements.some(item => item.priorSourceNodeId !== item.sourceNodeId)) {
       const landing = findNode(movement.targetNodeId);
-      if (!before || !lower || !landing) return;
-      const restored = restoreCurrentSourceState(lower, before);
-      if (!restored) return;
+      const restoredSources = movements.map(item => {
+        const before = findNodeInForest(previousForest, item.priorSourceNodeId);
+        const lower = findNode(item.sourceNodeId);
+        return before && lower ? restoreCurrentSourceState(lower, before) : null;
+      });
+      if (!landing || restoredSources.some(restored => !restored)) return;
       // The retained ID may currently be at the landing. Remove that occurrence
       // before restoring the complete prior object at its proven lower slot.
       const parent = findParent(movement.targetNodeId);
       const priorSlot = precedingLandingSlot(relation, landing);
-      if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
-      else if (parent) parent.children = parent.children?.filter(child => child !== landing);
-      else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      if (!relation.preserveMovementLanding) {
+        if (priorSlot) replaceStructuralNode(landing.id, priorSlot);
+        else if (parent) parent.children = parent.children?.filter(child => child !== landing);
+        else structuralForest.splice(structuralForest.indexOf(landing), 1);
+      }
       if (movement.trajectoryKind === 'head') restoreHeadHost(parent);
-      replaceStructuralNode(movement.sourceNodeId, restored);
-      restorePrecedingContainers(restored.id);
+      movements.forEach((item, index) => replaceStructuralNode(item.sourceNodeId, restoredSources[index]!));
+      restoredSources.forEach(restored => restorePrecedingContainers(restored!.id));
       return;
     }
     const restoredFromPreviousStage = new Set<string>();
@@ -1815,6 +2009,7 @@ const buildPreMovementStructuralForest = (
     // and the movement check reports the unproven source. Nothing is
     // reconstructed from the landing.
     if (sourceIds.some((sourceId) => !restoredFromPreviousStage.has(sourceId))) return;
+    if (relation.preserveMovementLanding) return;
     const sources = sourceIds
       .map((sourceId) => findNode(sourceId))
       .filter((source): source is SyntaxNode => Boolean(source));
@@ -1832,7 +2027,10 @@ const buildPreMovementStructuralForest = (
     const targetParent = findParent(targetId);
     const targetRootIndex = structuralForest.findIndex((root) => String(root.id || '') === targetId);
     if (!targetParent && targetRootIndex < 0) return;
-    const priorSlot = precedingLandingSlot(relation, target);
+    const priorTarget = previousLocations.get(targetId)?.node;
+    const priorSlot = precedingLandingSlot(relation, target)
+      ?? (trajectoryDisplayKind === 'head' && relation.recoveredMovement && priorTarget && !sourceIds.includes(targetId)
+        ? cloneSyntaxTree(priorTarget) : null);
 
     if (trajectoryDisplayKind === 'head' && !relation.recoveredMovement) {
       const targetChildren = Array.isArray(target.children) ? target.children : [];
@@ -1892,7 +2090,7 @@ const collectExactSubtreeNodeIds = (node: SyntaxNode): Set<string> => {
   return nodeIds;
 };
 
-const resolveFallbackTreeTransitionOwnership = (
+const resolvePriorWitnessTreeTransitionOwnership = (
   relation: DerivationReplayPlanStep,
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
@@ -1905,8 +2103,19 @@ const resolveFallbackTreeTransitionOwnership = (
   )) return null;
 
   const evidence = relation.neutralTransitionEvidence ?? relation;
-  const currentAnchorIds = relationAnchorNodeIds(evidence.anchors);
   const priorAnchorIds = relationAnchorNodeIds(evidence.priorAnchors);
+  // Drawing the realization does not consume its ownership of the newly
+  // pronounced word. Keep that proven output even when no neutral anchor remains.
+  const residualCurrentIds = [...relationAnchorNodeIds(evidence.anchors),
+    ...(relation.pronunciationNodeIds || [])];
+  if (residualCurrentIds.length === 0) return null;
+  const authoredCurrentIds = relationAnchorNodeIds(relation.anchors);
+  const currentAnchorIds = Array.from(new Set([
+    ...residualCurrentIds,
+    // A recovered sibling drawing may consume the updated witness while
+    // leaving its context neutral. That cannot turn the context into output.
+    ...priorAnchorIds.filter(id => authoredCurrentIds.includes(id))
+  ]));
   if (currentAnchorIds.length === 0 || priorAnchorIds.length === 0) return null;
 
   const currentAnchors = currentAnchorIds.map((nodeId) =>
@@ -1918,14 +2127,56 @@ const resolveFallbackTreeTransitionOwnership = (
     || priorAnchors.some((matches) => matches.length !== 1)
   ) return null;
 
+  const retainedPriorAnchors = priorAnchorIds.every(nodeId =>
+    findExactNodesByIdInForest(currentForest, nodeId).length === 1);
+  const repeatsPriorWitness = currentAnchors.some(([node]) => priorAnchorIds.includes(String(node.id || '')));
+  const previousLocations = indexExactForestNodeLocations(previousForest);
+  const currentLocations = indexExactForestNodeLocations(currentForest);
+  // When the preceding witnesses still exist, they identify the material
+  // being updated. Other current anchors can supply its newly built context
+  // (for example a licensing clause), rather than additional transition output.
+  const ownedCurrentAnchors = retainedPriorAnchors && repeatsPriorWitness
+      ? currentAnchors.filter(([node]) => {
+        if (priorAnchorIds.includes(String(node.id || ''))) return true;
+        const currentLocation = currentLocations.get(node.id);
+        if (currentLocation && priorAnchorIds.some(id => {
+          const previousLocation = previousLocations.get(id);
+          // A new witness occupying a departed input's exact slot is part of
+          // the same rewrite, even when that input survives elsewhere.
+          return previousLocation && currentLocation.parentId === previousLocation.parentId
+            && currentLocation.childIndex === previousLocation.childIndex
+            && currentLocation.rootIndex === previousLocation.rootIndex;
+        })) return true;
+        const containsInputs = (candidate: SyntaxNode) => priorAnchorIds.every(id =>
+          collectExactSubtreeNodeIds(candidate).has(id));
+        return priorAnchorIds.length > 1 && containsInputs(node)
+          && !(node.children || []).some(containsInputs);
+      })
+    : currentAnchors;
+  if (ownedCurrentAnchors.length === 0) return null;
+
   return {
     currentNodeIds: new Set(
-      currentAnchors.flatMap(([node]) => Array.from(collectExactSubtreeNodeIds(node)))
+      ownedCurrentAnchors.flatMap(([node]) => Array.from(collectExactSubtreeNodeIds(node)))
     ),
     priorNodeIds: new Set(
       priorAnchors.flatMap(([node]) => Array.from(collectExactSubtreeNodeIds(node)))
     )
   };
+};
+
+const resolveFallbackTreeTransitionOwnership = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): FallbackTreeTransitionOwnership | null => {
+  const witnessed = resolvePriorWitnessTreeTransitionOwnership(relation, previousForest, currentForest);
+  if (witnessed || relation.recoveredMovement || !relation.unprovenNewLandingNodeId) return witnessed;
+  const landing = findExactNodesByIdInForest(currentForest, relation.unprovenNewLandingNodeId);
+  if (landing.length !== 1 || findExactNodesByIdInForest(previousForest, relation.unprovenNewLandingNodeId).length) return null;
+  // The authored new occurrence has a moment even when the missing earlier
+  // state prevents movement recovery. Do not restore or modify its source.
+  return { currentNodeIds: collectExactSubtreeNodeIds(landing[0]), priorNodeIds: new Set() };
 };
 
 type ExactForestNodeLocation = {
@@ -1974,41 +2225,91 @@ const syntaxNodeMaterialSignature = (node: SyntaxNode): string => {
   return JSON.stringify(material);
 };
 
+const newReceivingHeadNodeIds = (
+  movement: RecoveredMovement | undefined,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): string[] => {
+  if (!movement?.transition || movement.trajectoryKind !== 'head') return [];
+  const parentId = findParentNodeIdInForest(currentForest, movement.targetNodeId);
+  const before = findExactNodeByIdInForest(previousForest, parentId);
+  const after = findExactNodeByIdInForest(currentForest, parentId);
+  // A retained head may become the complex's container in the completed
+  // stage. Its new inner head is part of that same atomic landing.
+  if (!before || before.children?.length || !after?.children?.length) return [];
+  return after.children.filter(child => child.id !== movement.targetNodeId)
+    .flatMap(child => collectSyntaxSubtreeNodeIds(child))
+    .filter(id => !findExactNodeByIdInForest(previousForest, id));
+};
+
+const receivingHeadMaterialNodeId = (
+  movement: RecoveredMovement | undefined,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): string | undefined => {
+  if (!movement?.transition || movement.trajectoryKind !== 'head') return undefined;
+  const parentId = findParentNodeIdInForest(currentForest, movement.targetNodeId);
+  const before = findExactNodeByIdInForest(previousForest, parentId);
+  const after = findExactNodeByIdInForest(currentForest, parentId);
+  return before && !before.children?.length && after?.children?.length ? parentId : undefined;
+};
+
 /**
  * Apply only the raw tree deltas witnessed by active relations.
  * A relation owns its current/prior anchor subtrees, never the whole
  * stage forest. It may add the minimum current ancestor chain needed to keep
  * those subtrees attached and retire removed prior containers exhausted by
- * those edits; unrelated current-stage additions remain hidden.
+ * those edits. Independently scheduled construction may supply additional
+ * nodes, without applying another relation's pending output.
  */
 const buildAnchoredTreeTransitionForest = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[],
-  activeRelations: DerivationReplayPlanStep[]
+  activeRelations: DerivationReplayPlanStep[],
+  constructedNodeIds: Set<string> = new Set(),
+  withheldNodeIds: Set<string> = new Set(),
+  pendingTransitionNodeIds: Set<string> = new Set()
 ): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
       const movement = relation.recoveredMovement;
       if (movement?.transition) {
         return {
-          currentNodeIds: new Set([movement.sourceNodeId, movement.targetNodeId].flatMap(id => {
+          currentNodeIds: new Set((relation.recoveredMovements ?? [movement]).flatMap(item => [item.sourceNodeId, item.targetNodeId,
+            ...newReceivingHeadNodeIds(item, previousForest, currentForest)]).flatMap(id => {
             const node = findExactNodeByIdInForest(currentForest, id);
             return node ? [...collectExactSubtreeNodeIds(node)] : [];
           })),
-          priorNodeIds: collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement.priorSourceNodeId)!)
+          priorNodeIds: new Set((relation.recoveredMovements ?? [movement]).flatMap(item =>
+            [...collectExactSubtreeNodeIds(findExactNodeByIdInForest(previousForest, item.priorSourceNodeId)!)]))
         };
       }
       return resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
     })
-    .filter((ownership): ownership is FallbackTreeTransitionOwnership => Boolean(ownership));
-  if (ownerships.length === 0) return cloneSyntaxForest(previousForest);
+    .filter((ownership): ownership is FallbackTreeTransitionOwnership => Boolean(ownership))
+    .map(ownership => {
+      if (withheldNodeIds.size === 0) return ownership;
+      const available = (ids: Set<string>, forest: SyntaxNode[]) => new Set([...ids].filter(nodeId =>
+        !withheldNodeIds.has(nodeId) && !collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(forest, nodeId))
+          .some(descendantId => withheldNodeIds.has(descendantId))));
+      return { currentNodeIds: available(ownership.currentNodeIds, currentForest),
+        priorNodeIds: available(ownership.priorNodeIds, previousForest) };
+    });
+  if (ownerships.length === 0 && constructedNodeIds.size === 0) return cloneSyntaxForest(previousForest);
 
   const activeCurrentNodeIds = new Set(
-    ownerships.flatMap((ownership) => Array.from(ownership.currentNodeIds))
+    [...ownerships.flatMap((ownership) => Array.from(ownership.currentNodeIds)),
+      ...Array.from(constructedNodeIds).filter(nodeId => !findExactNodeByIdInForest(previousForest, nodeId))]
   );
   const activePriorNodeIds = new Set(
     ownerships.flatMap((ownership) => Array.from(ownership.priorNodeIds))
   );
+  const activeMaterialNodeIds = new Set([
+    ...activeCurrentNodeIds,
+    ...activeRelations.flatMap(relation => (relation.recoveredMovements ?? [relation.recoveredMovement])
+      .map(movement => receivingHeadMaterialNodeId(movement, previousForest, currentForest))
+      .filter((id): id is string => Boolean(id)))
+  ]);
   const previousLocations = indexExactForestNodeLocations(previousForest);
   const currentLocations = indexExactForestNodeLocations(currentForest);
   const attachmentNodeIds = new Set<string>();
@@ -2022,7 +2323,7 @@ const buildAnchoredTreeTransitionForest = (
     parent.children?.filter(child => child.id !== movement.targetNodeId
       && previousLocations.get(child.id)).forEach(child => attachmentNodeIds.add(child.id));
   });
-  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds]);
+  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds, ...constructedNodeIds]);
   let result = cloneSyntaxForest(previousForest);
 
   const exactLocation = (
@@ -2126,12 +2427,29 @@ const buildAnchoredTreeTransitionForest = (
     const currentChildren = Array.isArray(currentLocation.node.children)
       ? currentLocation.node.children
       : [];
+    // Inserting a parent around an existing sibling occupies that sibling's
+    // old slot. Attach its preceding contents with the relation's output;
+    // otherwise the old child remains beside the new parent until Stage Record.
+    // Separate workspaces and another relation's pending inputs are not part
+    // of this local attachment.
+    const retainedChildren = previousLocations.has(nodeId) ? [] : currentChildren.filter(child => {
+      const previous = exactLocation(previousLocations, child.id);
+      return currentLocation.parentId && previous?.parentId === currentLocation.parentId;
+    });
+    const replacesConsecutiveChildren = retainedChildren.every((child, offset) =>
+      exactLocation(previousLocations, child.id)?.childIndex === currentLocation.childIndex + offset);
+    const retainedChildIds = new Set(replacesConsecutiveChildren ? retainedChildren
+      .filter(child => ![...collectExactSubtreeNodeIds(child),
+        ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id =>
+        withheldNodeIds.has(id) || pendingTransitionNodeIds.has(id)))
+      .map(child => child.id) : []);
     for (const [childIndex, child] of currentChildren.entries()) {
       const childId = String(child.id || '');
       if (!childId) continue;
       if (
         !structuralNodeIds.has(childId)
         && !activeCurrentAncestorNodeIds.has(childId)
+        && !retainedChildIds.has(childId)
       ) continue;
       const existingChild = exactLocation(indexExactForestNodeLocations(result), childId);
       if (!existingChild) continue;
@@ -2193,10 +2511,16 @@ const buildAnchoredTreeTransitionForest = (
       (exactLocation(currentLocations, left)?.depth || 0)
       - (exactLocation(currentLocations, right)?.depth || 0)
     ));
+  // A newly constructed ancestor may contain an existing subtree whose owned
+  // output is also new. Complete those outputs before copying the ancestor.
+  const addedCompletionNodeIds = constructedNodeIds.size > 0
+    ? [...addedNodeIds].sort((left, right) => (exactLocation(currentLocations, right)?.depth || 0)
+      - (exactLocation(currentLocations, left)?.depth || 0))
+    : topLevelAddedNodeIds;
 
   const destinationParentIds = Array.from(new Set([
     ...topLevelMovedNodeIds,
-    ...topLevelAddedNodeIds
+    ...addedCompletionNodeIds
   ].map((nodeId) => exactLocation(currentLocations, nodeId)?.parentId || '')
     .filter(Boolean)));
   if (destinationParentIds.some((parentId) => !ensureCurrentNodeShell(parentId))) {
@@ -2236,27 +2560,34 @@ const buildAnchoredTreeTransitionForest = (
       );
     });
 
-  topLevelAddedNodeIds
+  const cloneAvailableSubtree = (node: SyntaxNode): SyntaxNode | null => {
+    if (!activeCurrentNodeIds.has(node.id)) {
+      return cloneSyntaxTree(exactLocation(indexExactForestNodeLocations(result), node.id)?.node);
+    }
+    return { ...structuredClone(node), ...(node.children ? {
+      children: node.children.map(cloneAvailableSubtree).filter((child): child is SyntaxNode => Boolean(child))
+    } : {}) };
+  };
+  addedCompletionNodeIds
     .forEach((nodeId) => {
       const destination = exactLocation(currentLocations, nodeId);
       if (!destination) return;
       const shell = exactLocation(indexExactForestNodeLocations(result), nodeId);
       if (shell) {
         // Ancestor construction may already have attached existing children.
-        // This added subtree is wholly owned by the active relation, so finish
-        // its authored contents rather than mistaking the shell for completion.
-        Object.assign(shell.node, cloneSyntaxTree(destination.node));
+        // Finish only the available contents of the added subtree.
+        Object.assign(shell.node, cloneAvailableSubtree(destination.node));
         return;
       }
       insertExactNode(
-        cloneSyntaxTree(destination.node) || destination.node,
+        cloneAvailableSubtree(destination.node) || destination.node,
         destination.parentId,
         destination.childIndex,
         destination.rootIndex
       );
     });
 
-  Array.from(activeCurrentNodeIds).forEach((nodeId) => {
+  Array.from(activeMaterialNodeIds).forEach((nodeId) => {
     const previous = exactLocation(previousLocations, nodeId);
     const current = exactLocation(currentLocations, nodeId);
     if (!previous || !current) return;
@@ -2317,6 +2648,23 @@ const relationOwnsNonMovementTreeTransition = (
   if (nonMovementKinds.length === 0) return false;
 
   return true;
+};
+
+const movementLandingWrapper = (
+  currentForest: SyntaxNode[],
+  previousForest: SyntaxNode[],
+  landingNodeId: string
+): { parentId: string; wrapperId: string } | null => {
+  const parentId = findParentNodeIdInForest(currentForest, landingNodeId);
+  const currentParent = findNodeByIdInForest(currentForest, parentId);
+  const previousParent = findNodeByIdInForest(previousForest, parentId);
+  const previousChildren = previousParent?.children || [];
+  const currentChildren = currentParent?.children || [];
+  if (previousChildren.length < 2 || currentChildren.length !== 2) return null;
+  const wrapper = currentChildren.find(child => child.id !== landingNodeId);
+  if (!wrapper || wrapper.children?.length !== previousChildren.length) return null;
+  if (!wrapper.children.every((child, index) => child.id === previousChildren[index].id)) return null;
+  return { parentId, wrapperId: wrapper.id };
 };
 
 export const buildPlaybackStepsFromDerivationFrames = (
@@ -2474,7 +2822,6 @@ export const buildPlaybackStepsFromDerivationFrames = (
       || String(frame.chainId || '')
       || plannedStageRelocatesPriorLandingOccurrence
     );
-    const frameHasRecoveredMovement = plannedFrameRelations.some(relation => relation.recoveredMovement?.transition);
     const frameCarriesAuthoredEffect =
       Boolean(String(getDerivationFrameChange(frame)?.statement || '').trim());
     const movementRecipe = pickPreferredReplayText(
@@ -2524,6 +2871,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
       index > 0
       && nonMovementTreeTransitionRelationIndexes.size > 0
       && JSON.stringify(previousFrameWorkspaceRoots) !== JSON.stringify(workspaceRoots);
+    const nonMovementTransitionNodeIds = new Map<number, Set<string>>();
+    nonMovementTreeTransitionRelationIndexes.forEach(relationIndex => {
+      nonMovementTransitionNodeIds.set(relationIndex,
+        fallbackTransitionOwnership.get(relationIndex)?.currentNodeIds || new Set(
+          getRelationAllAnchorNodeIds(frameRelationSteps[relationIndex]).flatMap(nodeId =>
+            collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
+    });
     const frameIsPureVisualTrajectoryStage =
       frameHasMovementPayload
       && collectReplayOvertTokenMultisetKey(previousFrameWorkspaceRoots) === collectReplayOvertTokenMultisetKey(workspaceRoots)
@@ -2631,11 +2985,6 @@ export const buildPlaybackStepsFromDerivationFrames = (
         .map((node) => String(node?.id || ''))
         .filter(Boolean)
     );
-    const newlyIntroducedRootIds = new Set(
-      workspaceRoots
-        .map((node) => String(node?.id || ''))
-        .filter((nodeId) => Boolean(nodeId) && !previousWorkspaceRootIds.has(nodeId))
-    );
     const nextFramePendingRootSubtreeIds = collectNextFramePendingRootSubtreeIds(structuralWorkspaceRoots, nextFrame);
     const moveSourceNodeIds = frameEncodesMovement
       ? Array.from(new Set([
@@ -2717,11 +3066,35 @@ export const buildPlaybackStepsFromDerivationFrames = (
     const finalizeStructuralReplayForFrame = (steps: PlaybackStep[]): PlaybackStep[] => {
       let structuralSteps = steps.map(stripSemanticPayloadFromMicrostep);
       if (plannedStage) {
-        // PF, deletion, and rewrite relations own their serialized tree-state
-        // change at their exact authored relation index. Structural frames may
-        // not reveal that completed output first.
-        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload && !frameHasRecoveredMovement) {
-          structuralSteps = [];
+        if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
+          && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
+          const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
+          const prerequisiteIds = new Set(frameRelationSteps.flatMap(relation =>
+            getRelationAllAnchorNodeIds(relation)
+              .filter(nodeId => !transitionNodeIds.has(nodeId))
+              .flatMap(nodeId => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
+          const priorLocations = indexExactForestNodeLocations(previousFrameWorkspaceRoots);
+          const currentLocations = indexExactForestNodeLocations(workspaceRoots);
+          const availableContextIds = new Set(previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
+            .filter(nodeId => {
+              if (!transitionNodeIds.has(nodeId)) return true;
+              const before = priorLocations.get(nodeId), after = currentLocations.get(nodeId);
+              return Boolean(before && after && before.parentId === after.parentId
+                && (!before.parentId || before.childIndex === after.childIndex));
+            }));
+          // A later rewrite can change an existing operand's fields without
+          // owning new ordinary merges around it. Keep that construction, but
+          // do not merge a new relation-owned output before its own moment.
+          structuralSteps = structuralSteps.filter(step => {
+            const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
+            if (transitionNodeIds.has(nodeId)) return false;
+            const sources = (step.sourceNodeIds || []).map(id => replayOwnerId(step.replayCanvasData, id));
+            const buildsAvailableContext = sources.length > 0
+              && sources.every(id => availableContextIds.has(id));
+            if (!prerequisiteIds.has(nodeId) && !buildsAvailableContext) return false;
+            availableContextIds.add(nodeId);
+            return true;
+          });
         }
         const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
           const relationLabel = String(relation?.relation || '').trim() || 'Visual Relation';
@@ -2788,7 +3161,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           // moment: the diagnostics on the step say what is missing. Only a
           // relation that authored no anchors at all has nothing to place.
           const authoredUnresolved = Array.isArray(relation.unresolvedAnchors) && relation.unresolvedAnchors.length > 0;
-          if (relationAnchorNodeIds.length === 0 && !authoredUnresolved) return null;
+          if (relationAnchorNodeIds.length === 0 && !authoredUnresolved && !relation.relationContractFailure) return null;
           return {
             relation,
             relationIndex,
@@ -2819,9 +3192,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
             workspaceRoots,
             placement.authoredTargetNodeId
           );
-          if (!landingHostNodeId || findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)) return [];
+          if (!landingHostNodeId) return [];
+          const landingWrapper = movementLandingWrapper(workspaceRoots,
+            previousFrameWorkspaceRoots, placement.authoredTargetNodeId);
+          if (landingWrapper) return [landingWrapper.wrapperId];
+          if (findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId)) return [];
           const priorSourceIds = placement.relation.recoveredMovement
-            ? [placement.relation.recoveredMovement.priorSourceNodeId]
+            ? (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).map(movement => movement.priorSourceNodeId)
             : placement.sourceNodeIds;
           const sourceWorkspaceIds = new Set(previousFrameWorkspaceRoots
             .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
@@ -2829,11 +3206,27 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const hostIds: string[] = [];
           let branchNodeId = placement.authoredTargetNodeId;
           let parentNodeId = landingHostNodeId;
+          const earlierRelationNeedsContext = (contextId: string): boolean => relationPlacements
+            .filter(candidate => candidate.relationIndex < placement.relationIndex)
+            .some(candidate => {
+              const landingParent = candidate.renderableTrajectory || candidate.ownsPhrasalTreeTransition
+                ? findNodeByIdInForest(workspaceRoots, findParentNodeIdInForest(workspaceRoots, candidate.authoredTargetNodeId))
+                : undefined;
+              const prerequisites = [...candidate.relationAnchorNodeIds,
+                ...(landingParent?.children || []).filter(child => child.id !== candidate.authoredTargetNodeId).map(child => child.id)];
+              return prerequisites.some(id => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, id)).includes(contextId));
+            });
           // Include only the new ancestor path needed to join the landing to
           // the source workspace. An old, separately selected head in the
           // landing complex does not yet attach it to that workspace.
           // Higher projections retain their own micro-steps.
           while (parentNodeId && !findNodeByIdInForest(previousFrameWorkspaceRoots, parentNodeId)) {
+            const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
+            // Keep the attachment atomic by default. An earlier authored claim
+            // can require this independently buildable receiving context first.
+            if (trajectoryDisplayKind === 'head' && hostIds.length > 0 && structuralParent
+              && !(structuralParent.children || []).some(child => child.id === branchNodeId)
+              && earlierRelationNeedsContext(parentNodeId)) return hostIds;
             hostIds.push(parentNodeId);
             const parent = findNodeByIdInForest(workspaceRoots, parentNodeId);
             const attachesToExistingSyntax = (parent?.children || []).some(child =>
@@ -2899,6 +3292,14 @@ export const buildPlaybackStepsFromDerivationFrames = (
             workspaceRoots,
             placement.authoredTargetNodeId
           );
+          const targetParent = findNodeByIdInForest(workspaceRoots, targetParentNodeId);
+          const trajectoryKind = placement.relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(
+            placement.relationLabel,
+            placement.relation.resolvedAnchors
+          );
+          const landingWrapper = trajectoryKind === 'phrasal'
+            ? movementLandingWrapper(workspaceRoots, previousFrameWorkspaceRoots, placement.authoredTargetNodeId)
+            : null;
           const sourceSubtreeNodeIds = placement.sourceNodeIds.flatMap((nodeId) =>
             collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId))
           );
@@ -2921,6 +3322,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
             placement.relationIndex,
             Array.from(new Set([
               targetParentNodeId,
+              landingWrapper?.wrapperId,
+              ...(trajectoryKind === 'head' && isHeadShellLabel(targetParent?.label)
+                ? collectSyntaxSubtreeNodeIds(targetParent)
+                : []),
               ...getMovementCreatedLandingHostNodeIds(placement),
               ...targetSubtreeNodeIds,
               ...targetSyntheticLeafNodeIds,
@@ -2937,6 +3342,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
           Array.from(singleRelationLinksByIndex.values()).some((links) => links.some(isResolvedMovementLink))
           || relationPlacements.some((placement) => placement.ownsPhrasalTreeTransition)
           || frameHasNonMovementTreeTransition;
+        const ordinaryStructuralNodeIds = new Set<string>();
         const collectInactiveTrajectoryTargetNodeIds = (
           activeRelationIndexes: Set<number>,
           preservedForest: SyntaxNode[] = []
@@ -2956,10 +3362,10 @@ export const buildPlaybackStepsFromDerivationFrames = (
             const normalizedTargetNodeId = String(targetNodeId || '');
             if (!normalizedTargetNodeId) return;
             const retainedSource = relationPlacements.some(placement => {
-              const movement = placement.relation.recoveredMovement;
+              const movements = placement.relation.recoveredMovements ?? (placement.relation.recoveredMovement ? [placement.relation.recoveredMovement] : []);
               return !activeRelationIndexes.has(placement.relationIndex)
-                && movement?.priorSourceNodeId === normalizedTargetNodeId
-                && movement.sourceNodeId !== normalizedTargetNodeId
+                && movements.some(movement => movement.priorSourceNodeId === normalizedTargetNodeId
+                  && movement.sourceNodeId !== normalizedTargetNodeId)
                 && Boolean(findNodeByIdInForest(preservedForest, normalizedTargetNodeId))
                 && findParentNodeIdInForest(preservedForest, normalizedTargetNodeId)
                   === findParentNodeIdInForest(previousFrameWorkspaceRoots, normalizedTargetNodeId);
@@ -3062,47 +3468,88 @@ export const buildPlaybackStepsFromDerivationFrames = (
               .map((placement) => String(placement.authoredTargetNodeId || ''))
               .filter(Boolean)
           );
+          const pendingMovementNodeIds = new Set(frameRelationSteps.flatMap((relation, relationIndex) => {
+            if (activeRelationIndexes.has(relationIndex) || !relation.recoveredMovement?.transition) return [];
+            return (relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => [
+              ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.priorSourceNodeId)),
+              ...[movement.sourceNodeId, movement.targetNodeId].flatMap(nodeId =>
+                collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))
+            ]);
+          }));
           const nonMovementTransitionForest = !frameHasNonMovementTreeTransition
             || registeredNonMovementTreeTransitionIsActive
             ? workspaceRoots
-            : activeFallbackTransitionRelations.length > 0 || activeMovementRelations.length > 0
-              ? buildAnchoredTreeTransitionForest(
+            : buildAnchoredTreeTransitionForest(
                   previousFrameWorkspaceRoots,
                   workspaceRoots,
-                  [...activeFallbackTransitionRelations, ...activeMovementRelations]
-                )
-              : cloneSyntaxForest(previousFrameWorkspaceRoots);
-          const snapshotWorkspaceRoots = buildPreMovementStructuralForest(
+                  [...activeFallbackTransitionRelations, ...activeMovementRelations],
+                  new Set((baseStep?.replayVisibleNodeIds || [])
+                    .map(nodeId => replayOwnerId(baseStep?.replayCanvasData, nodeId))
+                    .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
+                  pendingMovementNodeIds,
+                  new Set(Array.from(fallbackTransitionOwnership).flatMap(([relationIndex, ownership]) =>
+                    activeRelationIndexes.has(relationIndex) ? []
+                      : [...ownership.priorNodeIds, ...ownership.currentNodeIds]))
+                );
+          let snapshotWorkspaceRoots = buildPreMovementStructuralForest(
             nonMovementTransitionForest,
-            frameRelationSteps.filter((_relation, relationIndex) =>
-              !activeRelationIndexes.has(relationIndex)
-              && !activeTreeTransitionTargetNodeIds.has(
-                String(
-                  relationPlacements.find((placement) => placement.relationIndex === relationIndex)
-                    ?.authoredTargetNodeId || ''
-                )
-              )
-            ),
+            frameRelationSteps.flatMap((relation, relationIndex) => {
+              if (activeRelationIndexes.has(relationIndex)) return [];
+              const landingActive = activeTreeTransitionTargetNodeIds.has(String(relationPlacements
+                .find(placement => placement.relationIndex === relationIndex)?.authoredTargetNodeId || ''));
+              if (!landingActive) return [relation];
+              return relation.recoveredMovement?.transition ? [{ ...relation, preserveMovementLanding: true }] : [];
+            }),
             previousFrameWorkspaceRoots
           );
+          relationPlacements
+            .filter(placement => !activeRelationIndexes.has(placement.relationIndex))
+            .filter(placement => (placement.relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(
+              placement.relationLabel,
+              placement.relation.resolvedAnchors
+            )) === 'phrasal')
+            .forEach(placement => {
+              const wrapper = movementLandingWrapper(
+                workspaceRoots,
+                previousFrameWorkspaceRoots,
+                placement.authoredTargetNodeId
+              );
+              if (!wrapper) return;
+              const parent = findNodeByIdInForest(snapshotWorkspaceRoots, wrapper.parentId);
+              const wrappedChild = parent?.children?.find(child => child.id === wrapper.wrapperId);
+              if (parent && wrappedChild) parent.children = wrappedChild.children || [];
+            });
           // Movement and realization may share a completed stage. Preserve the
           // prior head's word until the later authored realization owns it.
           frameRelationSteps.forEach((movementRelation, movementIndex) => {
             const movement = movementRelation.recoveredMovement;
             if (!movement?.transition || movement.trajectoryKind !== 'head'
               || !activeRelationIndexes.has(movementIndex)) return;
-            const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) =>
-              relationIndex > movementIndex && relation.pronunciationNodeIds?.includes(movement.targetNodeId));
-            if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex)) return;
-            const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.priorSourceNodeId);
-            const landing = findExactNodeByIdInForest(snapshotWorkspaceRoots, movement.targetNodeId);
-            if (!prior || !landing || prior.children?.length || landing.children?.length) return;
-            if (prior.word === landing.word) return;
-            if (prior.word === undefined) delete landing.word;
-            else landing.word = prior.word;
-            if (prior.tokenIndex === undefined) delete landing.tokenIndex;
-            else landing.tokenIndex = prior.tokenIndex;
+            const receivingId = receivingHeadMaterialNodeId(movement, previousFrameWorkspaceRoots, workspaceRoots);
+            [movement.targetNodeId, ...(receivingId ? [receivingId] : [])].forEach(nodeId => {
+              const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) =>
+                relationIndex > movementIndex && relation.pronunciationNodeIds?.includes(nodeId));
+              if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex)) return;
+              const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots,
+                nodeId === receivingId ? nodeId : movement.priorSourceNodeId);
+              const current = findExactNodeByIdInForest(snapshotWorkspaceRoots, nodeId);
+              if (!prior || !current || prior.children?.length
+                || nodeId !== receivingId && current.children?.length) return;
+              if (prior.word === current.word
+                && (nodeId !== receivingId || prior.tokenIndex === current.tokenIndex)) return;
+              if (prior.word === undefined) delete current.word;
+              else current.word = prior.word;
+              if (prior.tokenIndex === undefined) delete current.tokenIndex;
+              else current.tokenIndex = prior.tokenIndex;
+            });
           });
+          if (baseStep?.replayPendingAttachmentNodeIds) {
+            snapshotWorkspaceRoots = preserveConstructionAttachments(
+              snapshotWorkspaceRoots, previousFrameWorkspaceRoots,
+              new Set(baseStep.replayPendingAttachmentNodeIds),
+              new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds])
+            );
+          }
           const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);
           const baseVisibleNodeIds = Array.isArray(baseStep?.replayVisibleNodeIds)
             ? baseStep.replayVisibleNodeIds
@@ -3270,11 +3717,18 @@ export const buildPlaybackStepsFromDerivationFrames = (
             note: undefined,
             preserveReplayStep: true,
             stageRecord: getFrameStageRecordText(frame, plannedStage),
-            detailBlocks: buildRelationReplayBlocks([placement.relation], relationReplaySnapshot.canvasData),
+            detailBlocks: mergeReplayDetailBlocks(
+              buildRelationReplayBlocks([placement.relation], relationReplaySnapshot.canvasData),
+              placement.relation.relationContractFailure ? [{
+                title: 'Relation diagnostic',
+                lines: placement.relation.relationContractFailure.issues.map(issue => issue.message)
+              }] : undefined
+            ),
             replayCanvasData: relationReplaySnapshot.canvasData,
             replayVisibleNodeIds: relationReplaySnapshot.visibleNodeIds,
             replayRelationLinks: relationReplaySnapshot.relationLinks,
-            replayUsesFutureLayoutScaffold: relationReplaySnapshot.usesFutureLayoutScaffold
+            replayUsesFutureLayoutScaffold: relationReplaySnapshot.usesFutureLayoutScaffold,
+            replayPendingAttachmentNodeIds: baseStep?.replayPendingAttachmentNodeIds
           } satisfies PlaybackStep;
         };
         const shouldFoldStructuralStepIntoRelationFrame = (
@@ -3288,11 +3742,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
           return relationPlacements.some((placement) => {
             // Neutral transitions own their new structure just as recovered
             // movements do; emitting it separately can leave an empty step.
-            if (!priorVisibleNodeIds.has(stepTargetNodeId)
-              && fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds.has(stepTargetNodeId)) {
+            if (!priorVisibleNodeIds.has(String(step.targetNodeId || ''))
+              && nonMovementTransitionNodeIds.get(placement.relationIndex)?.has(stepTargetNodeId)) {
               return true;
             }
             if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) return false;
+            if (newReceivingHeadNodeIds(placement.relation.recoveredMovement,
+              previousFrameWorkspaceRoots, workspaceRoots).includes(stepTargetNodeId)) return true;
             const relationTargetNode = findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId);
             const relationTargetSubtreeIds = new Set(collectSyntaxSubtreeNodeIds(relationTargetNode));
             if (relationTargetSubtreeIds.has(stepTargetNodeId)) return true;
@@ -3447,6 +3903,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
           ];
         }
         const pendingStructuralSteps = pendingStructuralStepEntries.map((entry) => entry.step);
+        pendingStructuralSteps.forEach(step => {
+          const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
+          ordinaryStructuralNodeIds.add(nodeId);
+          (findExactNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
+            .filter(child => findExactNodeByIdInForest(previousFrameWorkspaceRoots, child.id))
+            .forEach(child => ordinaryStructuralNodeIds.add(child.id));
+        });
         const relationInsertionIndex = (
           placement: NonNullable<ReturnType<typeof resolveRelationPlacement>>
         ): number => {
@@ -3494,13 +3957,21 @@ export const buildPlaybackStepsFromDerivationFrames = (
         relationPlacements.forEach((placement) => {
           const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
             ? [
-                ...collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, placement.authoredTargetNodeId))
+                ...[placement.authoredTargetNodeId, ...placement.sourceNodeIds].flatMap(nodeId =>
+                  collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
                   .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
-                ...getMovementCreatedLandingHostNodeIds(placement)
+                ...getMovementCreatedLandingHostNodeIds(placement),
+                ...newReceivingHeadNodeIds(placement.relation.recoveredMovement, previousFrameWorkspaceRoots, workspaceRoots)
               ]
-            : [...(fallbackTransitionOwnership.get(placement.relationIndex)?.currentNodeIds || [])];
+            : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || [])];
           ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
-            if (!relationProducers.has(nodeId)) relationProducers.set(nodeId, placement.relationIndex);
+            const existingOwner = relationProducers.get(nodeId);
+            // Proven movement owns both new occurrences. A contextual claim
+            // may mention either copy, but cannot steal its construction.
+            if (existingOwner === undefined || (placement.relation.recoveredMovement?.transition
+              && !frameRelationSteps[existingOwner].recoveredMovement?.transition)) {
+              relationProducers.set(nodeId, placement.relationIndex);
+            }
           });
         });
         const emittedStructuralSteps = new Set<number>();
@@ -3525,14 +3996,16 @@ export const buildPlaybackStepsFromDerivationFrames = (
         // relation order. A prerequisite may pull independent tree-building
         // forward, but may not activate a later relation to satisfy an earlier one.
         const ensureNodeAvailable = (nodeId: string, forRelation?: number): string[] => {
-          if (availableNodeIds.has(nodeId)) return [];
+          const structuralProducer = structuralProducers.get(nodeId);
+          // Retaining an occurrence does not establish its new child attachment.
+          if (availableNodeIds.has(nodeId)
+            && (structuralProducer === undefined || emittedStructuralSteps.has(structuralProducer))) return [];
           const relationProducer = relationProducers.get(nodeId);
           if (relationProducer !== undefined) {
             if (forRelation !== undefined && relationProducer >= forRelation) return [nodeId];
             emitRelationsThrough(relationProducer);
             return availableNodeIds.has(nodeId) ? [] : [nodeId];
           }
-          const structuralProducer = structuralProducers.get(nodeId);
           return structuralProducer === undefined ? [] : emitStructuralStep(structuralProducer, forRelation);
         };
         const emitStructuralStep = (stepIndex: number, forRelation?: number): string[] => {
@@ -3564,7 +4037,22 @@ export const buildPlaybackStepsFromDerivationFrames = (
           while (nextRelation < relationPlacements.length
             && relationPlacements[nextRelation].relationIndex <= relationIndex) {
             const placement = relationPlacements[nextRelation++];
-            const requiredIds = placement.relationAnchorNodeIds.filter(nodeId =>
+            const landingHostIds = new Set(getMovementCreatedLandingHostNodeIds(placement));
+            const attachmentPrerequisites = [...landingHostIds].flatMap(nodeId =>
+              findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
+              .map(node => node.id)
+              .filter(nodeId => nodeId !== placement.authoredTargetNodeId && !landingHostIds.has(nodeId));
+            const outerLandingHost = getMovementCreatedLandingHostNodeId(placement);
+            const attachmentParentId = findParentNodeIdInForest(workspaceRoots, outerLandingHost);
+            const attachmentParent = findNodeByIdInForest(workspaceRoots, attachmentParentId);
+            const structuralAttachment = findNodeByIdInForest(structuralWorkspaceRoots, attachmentParentId);
+            if (structuralProducers.has(attachmentParentId)
+              && !structuralAttachment?.children?.some(child => child.id === outerLandingHost)
+              && attachmentParent?.children?.some(child =>
+              child.id !== outerLandingHost && collectSyntaxSubtreeNodeIds(child).some(id => availableNodeIds.has(id)))) {
+              attachmentPrerequisites.push(attachmentParentId);
+            }
+            const requiredIds = [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId =>
               relationProducers.get(nodeId) !== placement.relationIndex);
             const missing = Array.from(new Set(requiredIds.flatMap(nodeId =>
               ensureNodeAvailable(nodeId, placement.relationIndex))));
@@ -3592,7 +4080,9 @@ export const buildPlaybackStepsFromDerivationFrames = (
             });
             const baseStep = stagePlaybackSteps.at(-1) ?? {
               ...frameSemanticStep,
-              replayVisibleNodeIds: Array.from(availableNodeIds)
+              replayVisibleNodeIds: Array.from(availableNodeIds),
+              replayPendingAttachmentNodeIds: structuralSteps.some(step => step.replayPendingAttachmentNodeIds)
+                ? Array.from(constructionAttachmentUpdates(previousFrameWorkspaceRoots, structuralWorkspaceRoots)) : undefined
             };
             const relationStep = withPendingStructureHidden(
               buildRelationPlaybackStep(placement, activeRelationIndexes, baseStep)
@@ -3671,29 +4161,6 @@ export const buildPlaybackStepsFromDerivationFrames = (
       }
       return structuralSteps;
     };
-
-    const rootIntroductionMicrosteps =
-      !frameHasMovementPayload &&
-      !isMoveLikeOperation(fallbackOperation) &&
-      structuralWorkspaceRoots.length > 1 &&
-      newlyIntroducedRootIds.size > 0
-        ? buildStructuralDerivationPlaybackSteps(
-            structuralWorkspaceRoots,
-            index,
-            priorVisibleNodeIds,
-            authoredPreviousRelationRelationLinks,
-            newlyIntroducedRootIds,
-            frames,
-            sentence,
-            [],
-            structuralLayoutScaffold || undefined, identity, inputTokens
-          )
-        : [];
-    if (rootIntroductionMicrosteps.length > 1) {
-      previousWorkspaceRootIds = currentWorkspaceRootIds;
-      previousVisibleNodeIds = currentFrameVisibleNodeIds;
-      return finalizeStructuralReplayForFrame(rootIntroductionMicrosteps);
-    }
 
     const structuralMicrosteps = !frameHasMovementPayload && !isMoveLikeOperation(fallbackOperation)
       ? buildStructuralDerivationPlaybackSteps(
@@ -3889,7 +4356,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const landingMergeExpandedSteps = insertPreMovementLandingMergeSteps(zeroDeltaCollapsedSteps);
   const projectionSteps = deferPendingMovementProjections(landingMergeExpandedSteps, pendingProjectionReveals);
   const countedSteps = recountReplayProgress(projectionSteps, replayPlan);
-  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(countedSteps, sentenceInitialSurface), frames);
+  const positionedSteps = orderDetachedReplayWorkspaces(countedSteps, frames);
+  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(positionedSteps, sentenceInitialSurface), frames);
 };
 
 const deferPendingMovementProjections = (
@@ -3929,7 +4397,11 @@ const recountReplayProgress = (
     if (!stage || index === undefined) return step;
     const position = (positions.get(index) || 0) + 1;
     positions.set(index, position);
-    return { ...step, replayProgressLabel: buildReplayProgressLabel(stage, replayPlan!.stages.length, position, counts.get(index)!) };
+    return {
+      ...step,
+      replayStageStepIndex: position - 1,
+      replayProgressLabel: buildReplayProgressLabel(stage, replayPlan!.stages.length, position, counts.get(index)!)
+    };
   });
 };
 
@@ -4559,9 +5031,14 @@ const normalizeReplaySentenceInitialCasing = (
     const exactNodes = new Map<string, { parent: SyntaxNode | null; silent: boolean; layout: boolean }>();
     const nodesByName = new Map<string, SyntaxNode>();
     const leafIds: string[] = [];
+    const visibleNodeIds = Array.isArray(step.replayVisibleNodeIds)
+      ? getReplayVisibleNodeIdSet(step)
+      : null;
     const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean) => {
-      silent ||= node.silent === true;
-      layout ||= node.replayOrigin?.kind === 'layout';
+      silent = replayEffectiveSilence(node, silent);
+      // Invisible scaffolding may contain current visible syntax grafted beneath it.
+      layout = (!visibleNodeIds && layout)
+        || node.replayOrigin?.kind === 'layout' || Boolean((node as any).replayLayoutOnly);
       const id = String(node.id || '');
       if (!exactNodes.has(id)) exactNodes.set(id, { parent, silent, layout });
       for (const name of [id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
@@ -4576,7 +5053,9 @@ const normalizeReplaySentenceInitialCasing = (
     const currentLeaves = leafIds.map(leafId => {
         const info = exactNodes.get(leafId)!;
         const leaf = nodesByName.get(leafId);
-        return !info.layout && leaf && !(leaf as any).replayLayoutOnly ? { leaf, silent: info.silent } : null;
+        const visible = !visibleNodeIds || visibleNodeIds.has(leafId)
+          || leaf?.aliasIds?.some(id => visibleNodeIds.has(String(id)));
+        return !info.layout && visible && leaf ? { leaf, silent: info.silent } : null;
       })
       .filter((entry): entry is { leaf: SyntaxNode; silent: boolean } => Boolean(entry));
     const firstPronouncedLeafId = String(
@@ -4590,8 +5069,18 @@ const normalizeReplaySentenceInitialCasing = (
       const leafId = String(leaf.id || '');
       const parent = exactNodes.get(leafId)?.parent;
       if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label)) return;
+      const authoredSurface = leaf.replayOrigin?.kind === 'word'
+        ? String(nodesByName.get(String(leaf.replayOrigin.ownerId || ''))?.word || '').trim()
+        : '';
+      // Selecting a source before its governor must not recase an authored lowercase form.
+      const authoredLowercaseSource = authoredSurface === lowercaseInitial;
+      const surfacedLanding = authoredLowercaseSource && (step.replayRelationLinks || []).some(link => {
+        if (!isResolvedMovementLink(link)) return false;
+        const landing = nodesByName.get(String(link.targetNodeId || ''));
+        return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
+      });
       const nextSurface = leafId && leafId === firstPronouncedLeafId
-        ? uppercaseInitial
+        ? (authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
         : maybeLowercaseSentenceInitialFunctionSurface({
             surface,
             sentenceInitialSurface,
@@ -4808,19 +5297,25 @@ const collectReplayRootStructuralKey = (forest: SyntaxNode[] = []): string =>
     .filter(Boolean)
     .join('||');
 
-const collectReplayContinuitySubtreeSignatures = (forest: SyntaxNode[]): Map<SyntaxNode, string> => {
+const collectReplayContinuitySubtreeSignatures = (
+  forest: SyntaxNode[], minimumOvertTokens = 2
+): Map<SyntaxNode, string> => {
   const signatures = new Map<SyntaxNode, string>();
-  // Each immutable canvas is inspected more than once for continuity. Gather
-  // tokens bottom-up so each leaf is normalized once, rather than at every ancestor.
-  const visit = (node: SyntaxNode): string[] => {
+  // Continuity carries already-built structure, not merely its spoken yield.
+  // Display words duplicate their owner's material and do not add syntax.
+  const visit = (node: SyntaxNode): { tokens: string[]; shape: unknown } => {
     const children = Array.isArray(node.children) ? node.children : [];
+    const descendants = children.map(child => ({ node: child, ...visit(child) }));
     const tokens = children.length > 0
-      ? children.flatMap(visit)
+      ? descendants.flatMap(child => child.tokens)
       : (node as any).replayLayoutOnly !== true && isLexicalLeaf(node)
         ? [normalizeToken(authoredWord(node))].filter(Boolean) : [];
     const label = String(node.label || '').trim().toUpperCase();
-    signatures.set(node, label && tokens.length >= 2 ? `${label}|${tokens.join(' ')}` : '');
-    return tokens;
+    const shape = [label, normalizeToken(authoredWord(node)), node.silent === true,
+      descendants.filter(child => !(child.node as any).replayLayoutOnly && !isReplayDisplayChild(child.node, node.id))
+        .map(child => child.shape)];
+    signatures.set(node, label && tokens.length >= minimumOvertTokens ? JSON.stringify(shape) : '');
+    return { tokens, shape };
   };
   forest.forEach(visit);
   return signatures;
@@ -5294,6 +5789,12 @@ export const normalizeToken = (value: string): string => {
 export const tokenizeReplaySentenceSurface = (sentence: string, inputTokens?: string[]): string[] =>
   resolveSavedInputTokens(sentence, inputTokens);
 
+/** Only a visible subscript proves notation is already present in painted text. */
+export const extractDisplayedSubscriptIndex = (label: string): string | null => {
+  const suffix = label.trim().match(/([₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜᵥ]+)$/)?.[1];
+  return suffix ? [...suffix].map(ch => SUBSCRIPT_MAP[ch] || ch).join('').toLowerCase() : null;
+};
+
 export const extractMovementIndex = (label: string): string | null => {
   const text = [...label.trim()].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
   const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
@@ -5302,10 +5803,7 @@ export const extractMovementIndex = (label: string): string | null => {
   if (plain?.[1]) return plain[1].toLowerCase();
   const traceDigits = text.match(/^t(\d+)$/i);
   if (traceDigits?.[1]) return traceDigits[1];
-  const danglingSubscript = label.trim().match(/([₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜᵥ]+)$/);
-  return danglingSubscript?.[1]
-    ? [...danglingSubscript[1]].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('').toLowerCase()
-    : null;
+  return extractDisplayedSubscriptIndex(label);
 };
 
 const toSubscriptDigits = (value: string): string =>
@@ -5420,13 +5918,13 @@ const isLexicalLeaf = (node?: SyntaxNode | null): boolean =>
   isPronouncedLeaf(node) || (isSilentWordLeaf(node) && !isNotationSurface(authoredWord(node)));
 
 export const hasSilentOrGhostAncestor = (node: HierNode | null): boolean => {
+  const path: SyntaxNode[] = [];
   let current: HierNode | null = node;
   while (current) {
-    if (!(current.data as any)?.replayLayoutOnly
-      && (current.data?.silent === true || (current.data as any)?.ghost === true)) return true;
+    path.push(current.data);
     current = current.parent;
   }
-  return false;
+  return path.reverse().reduce((silent, data) => replayEffectiveSilence(data, silent), false);
 };
 
 export const isPronouncedHierLeaf = (node: HierNode): boolean =>
@@ -5463,7 +5961,7 @@ export const collectPronouncedLeafNodeIdsInOrder = (root?: SyntaxNode | null): s
   if (!root || typeof root !== 'object') return [];
   const pronouncedIds: string[] = [];
   const visit = (node: SyntaxNode, silentAncestor: boolean) => {
-    const silent = silentAncestor || node?.silent === true || (node as any)?.ghost === true;
+    const silent = replayEffectiveSilence(node, silentAncestor);
     const children = Array.isArray(node?.children) ? node.children : [];
     if (children.length === 0) {
       const nodeId = String(node?.id || '');
@@ -5522,9 +6020,10 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
     return trimmed;
   }
 
-  // A bare D can also be a pronoun or proper name. An input-token index gives
-  // position, not evidence that its capital belongs only to sentence casing.
-  if (normalizedParentLabel === 'D' && !hasNominalComplement) return trimmed;
+  // A bare D can also be a pronoun or proper name. A nominal complement or
+  // explicit wh feature supplies lexical evidence; token position alone does not.
+  const hasWhFeature = /\[[^\]]*\bwh\b[^\]]*\]/iu.test(String(parentLabel || ''));
+  if (normalizedParentLabel === 'D' && !hasNominalComplement && !hasWhFeature) return trimmed;
 
   const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '')).filter(Boolean) : [];
   const firstVisibleOvertLeafId = visibleIds[0] || '';
@@ -5988,6 +6487,11 @@ export const buildStructuralDerivationPlaybackSteps = (
   const visibleNodeById = new Map<string, HierNode>(visibleNodes.map((node) => [getNodeId(node), node] as const));
   const visibleIds = new Set<string>(visibleNodes.map((node) => getNodeId(node)));
   const rawNodeById = collectForestNodesById(forest);
+  const previousConstructionForest = frameIndex > 0 ? derivationFrames?.[frameIndex - 1]?.workspaceForest || [] : [];
+  const pendingAttachmentNodeIds = constructionAttachmentUpdates(previousConstructionForest, forest);
+  const hasAttachmentUpdates = pendingAttachmentNodeIds.size > 0;
+  const hasAttachmentContinuity = hasAttachmentUpdates
+    || hasConstructionWrapperInsertions(previousConstructionForest, forest);
   const continuityVisibleNodeIds = (() => {
     const seeded = new Set(previousVisibleNodeIds);
     const hasOvertReplayDescendant = (node: HierNode): boolean =>
@@ -6000,11 +6504,15 @@ export const buildStructuralDerivationPlaybackSteps = (
     // Lineage continuity is lineage-to-lineage: an occurrence continues a
     // previously visible object when some previously visible occurrence
     // carried the same authored lineageId. Node ids are a different concept.
-    const previousVisibleLineageIds = new Set<string>();
+    const previousVisibleLineageShapes = new Map<string, Set<string>>();
+    const previousShapes = collectReplayContinuitySubtreeSignatures(previousFrameForest, 0);
+    const currentShapes = collectReplayContinuitySubtreeSignatures([cloned], 0);
     collectForestNodesById(previousFrameForest).forEach((previousNode, previousNodeId) => {
       const previousLineageId = String(previousNode?.lineageId || '');
       if (previousLineageId && previousVisibleNodeIds.has(previousNodeId)) {
-        previousVisibleLineageIds.add(previousLineageId);
+        const shapes = previousVisibleLineageShapes.get(previousLineageId) || new Set<string>();
+        shapes.add(previousShapes.get(previousNode) || '');
+        previousVisibleLineageShapes.set(previousLineageId, shapes);
       }
     });
 
@@ -6015,7 +6523,7 @@ export const buildStructuralDerivationPlaybackSteps = (
         || rawNodeById.get(nodeId)?.lineageId
         || ''
       );
-      if (!lineageId || !previousVisibleLineageIds.has(lineageId)) return;
+      if (!lineageId || !previousVisibleLineageShapes.get(lineageId)?.has(currentShapes.get(node.data) || '')) return;
       if (!hasOvertReplayDescendant(node)) return;
       node.descendants().forEach((descendant) => {
         if (!isSyntheticWorkspaceRootNode(descendant)) {
@@ -6068,8 +6576,9 @@ export const buildStructuralDerivationPlaybackSteps = (
   const sequence = buildBottomUpSequence(hierarchy, visibleIds)
     .filter((node) => !isSyntheticWorkspaceRootNode(node));
   const nodesToReveal = sequence.filter((node) =>
-    (frameIndex === 0 || !continuityVisibleNodeIds.has(getNodeId(node)))
+    (frameIndex === 0 || !continuityVisibleNodeIds.has(getNodeId(node)) || pendingAttachmentNodeIds.has(getNodeId(node)))
     && (
+      hasAttachmentUpdates ||
       !revealRootIds ||
       revealRootIds.size === 0 ||
       (() => {
@@ -6146,6 +6655,7 @@ export const buildStructuralDerivationPlaybackSteps = (
   const playbackSteps: PlaybackStep[] = nodesToReveal.flatMap((node) => {
     const nodeId = getNodeId(node);
     cumulativeVisibleNodeIds.add(nodeId);
+    const updatesAttachment = pendingAttachmentNodeIds.delete(nodeId);
     const surface = resolveLeafSurface(node);
     const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
     const expandedLayoutRoots = new Set<HierNode>();
@@ -6167,16 +6677,15 @@ export const buildStructuralDerivationPlaybackSteps = (
       : (childNodes.length === 1 ? 'Project' : 'ExternalMerge');
     const snapshotVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
 
-    const visibleWorkspaceSnapshot = buildVisibleSyntaxSnapshotFromHierarchy(
-      hierarchy,
-      snapshotVisibleNodeIds, undefined, undefined, identity
-    );
+    const constructionForest = hasAttachmentContinuity
+      ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
+      : forest;
     const activeLayoutScaffold = layoutScaffoldForest
-      && forestCanUseCurrentMaterialLayoutScaffold(forest, layoutScaffoldForest)
+      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest)
         ? layoutScaffoldForest
         : undefined;
     const frameReplaySnapshot = buildDerivationReplaySnapshot(
-      forest,
+      constructionForest,
       frameIndex,
       snapshotResolvedRelationLinks,
       snapshotVisibleNodeIds,
@@ -6185,6 +6694,13 @@ export const buildStructuralDerivationPlaybackSteps = (
       undefined,
       undefined,
       activeLayoutScaffold, identity
+    );
+    const constructionHierarchy = hasAttachmentContinuity && frameReplaySnapshot.canvasData
+      ? d3.hierarchy(frameReplaySnapshot.canvasData) : hierarchy;
+    if (constructionHierarchy !== hierarchy) applyVizIds(constructionHierarchy);
+    const visibleWorkspaceSnapshot = buildVisibleSyntaxSnapshotFromHierarchy(
+      constructionHierarchy,
+      new Set(frameReplaySnapshot.visibleNodeIds), undefined, undefined, identity
     );
     const workspaceAfter = extractReplayWorkspaceLabels(visibleWorkspaceSnapshot);
     const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(visibleWorkspaceSnapshot);
@@ -6233,7 +6749,8 @@ export const buildStructuralDerivationPlaybackSteps = (
       replayVisibleNodeIds: frameReplaySnapshot.visibleNodeIds,
       replayRelationLinks: frameReplaySnapshot.relationLinks,
       replayUsesFutureLayoutScaffold: Boolean(activeLayoutScaffold),
-      preserveReplayStep: undefined
+      replayPendingAttachmentNodeIds: hasAttachmentContinuity ? Array.from(pendingAttachmentNodeIds) : undefined,
+      preserveReplayStep: updatesAttachment || undefined
     }];
   });
 
@@ -6616,15 +7133,14 @@ export const buildMovementCopyTraceIndexByTerminalId = (
     const lexicalLeaves = sourceOccurrence.descendants().filter((candidate) => isLexicalLeaf(candidate.data));
     if (lexicalLeaves.length === 0) return;
     const whollySilentLexicalCopy = lexicalLeaves.every((leaf) => {
+      const path: SyntaxNode[] = [];
       let current: HierNode | null = leaf;
       while (current) {
-        if ((current.data as SyntaxNode)?.silent === true || (current.data as any)?.ghost === true) {
-          return true;
-        }
+        path.push(current.data);
         if (current === sourceOccurrence) break;
         current = current.parent;
       }
-      return false;
+      return path.reverse().reduce((silent, data) => replayEffectiveSilence(data, silent), false);
     });
     if (!whollySilentLexicalCopy) return;
 
@@ -6957,18 +7473,19 @@ const getReplayNodeDisplayFromCanvas = (
   const label = formatReplaySupportValue(String(node.label || '').trim());
   if (isTraceOrNullLikeNode(node)) return label;
   const overtYield: string[] = [];
-  const collectSurfaceLeaves = (candidate?: SyntaxNode | null) => {
+  const collectSurfaceLeaves = (candidate?: SyntaxNode | null, inherited = false) => {
     if (!candidate || typeof candidate !== 'object') return;
-    if ((candidate as any).silent === true) return;
+    const silent = replayEffectiveSilence(candidate, inherited);
     const children = Array.isArray(candidate.children) ? candidate.children : [];
     if (children.length === 0) {
+      if (silent) return;
       if (isTraceOrNullLikeNode(candidate)) return;
       const fallbackLeafSurface = authoredWord(candidate);
       const surface = formatReplaySupportValue(fallbackLeafSurface);
       if (surface) overtYield.push(surface);
       return;
     }
-    children.forEach((child) => collectSurfaceLeaves(child));
+    children.forEach((child) => collectSurfaceLeaves(child, silent));
   };
   collectSurfaceLeaves(node);
   const uniqueYield = Array.from(new Set(overtYield));
@@ -6987,18 +7504,19 @@ const getReplayNodeOvertYieldFromCanvas = (
   const node = findNodeByIdInForest([root], normalizedNodeId);
   if (!node || isTraceOrNullLikeNode(node)) return '';
   const overtYield: string[] = [];
-  const collectSurfaceLeaves = (candidate?: SyntaxNode | null) => {
+  const collectSurfaceLeaves = (candidate?: SyntaxNode | null, inherited = false) => {
     if (!candidate || typeof candidate !== 'object') return;
-    if ((candidate as any).silent === true) return;
+    const silent = replayEffectiveSilence(candidate, inherited);
     const children = Array.isArray(candidate.children) ? candidate.children : [];
     if (children.length === 0) {
+      if (silent) return;
       if (isTraceOrNullLikeNode(candidate)) return;
       const fallbackLeafSurface = authoredWord(candidate);
       const surface = formatReplaySupportValue(fallbackLeafSurface);
       if (surface) overtYield.push(surface);
       return;
     }
-    children.forEach((child) => collectSurfaceLeaves(child));
+    children.forEach((child) => collectSurfaceLeaves(child, silent));
   };
   collectSurfaceLeaves(node);
   return overtYield.join(' ').trim();
@@ -7099,6 +7617,10 @@ const getAuthoredFrameRelations = (
         anchors,
         ...(priorAnchors ? { priorAnchors } : {}),
         ...(values ? { values } : {}),
+        ...(relationRecord.relationContractFailure && typeof relationRecord.relationContractFailure === 'object'
+          ? { relationContractFailure: relationRecord.relationContractFailure as DerivationStageRelation['relationContractFailure'],
+            movementDiagnostics: (relationRecord.relationContractFailure as { issues?: Array<{ message: string }> })
+              .issues?.map(issue => issue.message) ?? [] } : {}),
         authoredRelationIndex,
         ...(() => {
           const { resolved, unresolved } = classifyRelationAnchors(anchors, workspaceForest);
@@ -7142,8 +7664,9 @@ export const getFrameRelations = (
     const relationNumber = (authoredStep.authoredRelationIndex ?? relationIndex) + 1;
     return {
       ...authoredStep,
-      movementDiagnostics: unresolved.map((anchor) =>
+      movementDiagnostics: [...(authoredStep.movementDiagnostics ?? []), ...unresolved.map((anchor) =>
         `RELATION_ANCHOR_UNRESOLVED: Stage ${stageNumber}, relation ${relationNumber} (${authoredStep.relation}) ${anchor.fieldPath} names ${JSON.stringify(anchor.nodeId)}, which is not in this stage's expanded workspace. The anchor was not replaced; the relation is shown without it.`)
+      ]
     };
   });
   const ownedMovements = new Set<string>();
@@ -7157,11 +7680,38 @@ export const getFrameRelations = (
     const dispatch = claimDispatches?.[relationIndex] ?? dispatchRelationClaims(input);
     const evidence = dispatch.evidence;
     const transitionAnchors = { ...dispatch.primaryRelation.anchors };
+    const transitionPriorAnchors = { ...dispatch.primaryRelation.priorAnchors };
+    // A recovered rewrite consumes its lexical witnesses as drawing evidence.
+    // They still own the corresponding word change in this Replay moment.
+    // The envelope's PF host may instead be a containing head complex.
+    dispatch.facets.filter(facet => facet.recipe.id === 'pf.rewrite' && facet.evidence).forEach(facet => {
+      const scoped = facet.evidence!;
+      for (const [entries, concept, destination] of [
+        [scoped.authoredCurrentAnchors, 'rewrite.output', transitionAnchors],
+        [scoped.authoredPriorAnchors, 'rewrite.input', transitionPriorAnchors]
+      ] as const) entries?.filter(entry => entry.concepts.includes(concept)).forEach(entry => {
+        destination[entry.key] = entry.items.length === 1 ? entry.items[0] : [...entry.items];
+      });
+    });
     if (dispatch.primaryClaim?.tier === 3 && relationAnchorNodeIds(authoredStep.priorAnchors).length) {
       const priorLocations = indexExactForestNodeLocations(previousForest);
       const currentLocations = indexExactForestNodeLocations(currentForest);
       const priorParticipants = relationAnchorNodeIds(authoredStep.priorAnchors)
         .map(id => priorLocations.get(id)).filter(location => location != null);
+      // Drawing ownership does not erase a structural witness. An explicit
+      // new result can still own the merge of its authored prior participants,
+      // even when a sibling drawing has consumed their role associations.
+      const resultDescendants = new Set(relationAnchorNodeIds(transitionAnchors).flatMap(id => {
+        const current = currentLocations.get(id);
+        return current && !priorLocations.has(id) ? [...collectExactSubtreeNodeIds(current.node)] : [];
+      }));
+      Object.entries(authoredStep.priorAnchors ?? {}).forEach(([key, value]) => {
+        if (key in transitionPriorAnchors) return;
+        const ids = Array.isArray(value) ? value : [value];
+        if (ids.length && ids.every(id => resultDescendants.has(id) && priorLocations.get(id))) {
+          transitionPriorAnchors[key] = value;
+        }
+      });
       // A drawing can consume an authored replacement witness. Keep that
       // exact slot replacement in the transition, without absorbing independent
       // sibling claims merely because they share this relation moment.
@@ -7180,7 +7730,7 @@ export const getFrameRelations = (
       ...authoredStep,
       neutralTransitionEvidence: {
         anchors: transitionAnchors,
-        priorAnchors: dispatch.primaryRelation.priorAnchors
+        priorAnchors: transitionPriorAnchors
       }
     } : authoredStep;
     const boundStep = dispatch.primaryClaim?.tier === 1 ? {
@@ -7196,12 +7746,38 @@ export const getFrameRelations = (
     const pronunciationNodeIds = dispatch.primaryClaim?.tier === 1
       && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.transitionKinds?.includes('pronunciation')
       ? relationAnchorNodeIds(dispatch.boundPrimaryRelation.anchors)
-      : dispatch.facets.some(f => f.recipe.id === 'pf.structured' || f.recipe.id === 'pf.rewrite')
-        ? [...(evidence.currentAnchors['rewrite.output'] || [])] : [];
-    const step = pronunciationNodeIds.length ? { ...boundStep, pronunciationNodeIds } : boundStep;
+      : [...new Set(dispatch.facets.filter(f => f.recipe.id === 'pf.structured' || f.recipe.id === 'pf.rewrite')
+          .flatMap(f => (f.evidence ?? evidence).currentAnchors['rewrite.output'] || []))];
+    const landingIds = evidence.currentAnchors['movement.landing'] ?? [];
+    const unprovenNewLandingNodeId = evidence.movementFailure === 'MOVEMENT_PRIOR_SOURCE_UNPROVEN'
+      && landingIds.length === 1
+      && findExactNodesByIdInForest(currentForest, landingIds[0]).length === 1
+      && !findExactNodesByIdInForest(previousForest, landingIds[0]).length
+      ? landingIds[0] : undefined;
+    const step = {
+      ...boundStep,
+      ...(pronunciationNodeIds.length ? { pronunciationNodeIds } : {}),
+      ...(unprovenNewLandingNodeId ? { unprovenNewLandingNodeId } : {})
+    };
     const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
     const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
     const covert = facet?.recipe.id === 'scope.movement';
+    const sharedMovements = recoveredClaimMovements(dispatch);
+    if (!registeredEntry && sharedMovements.length > 1 && sharedMovements.every(movement =>
+      movement.targetNodeId === sharedMovements[0].targetNodeId && movement.trajectoryKind === sharedMovements[0].trajectoryKind)) {
+      const movements = sharedMovements.map(movement => {
+        const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
+          && item.evidence?.movement === movement);
+        const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+        const transition = !ownedMovements.has(key) && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
+        if (transition) ownedMovements.add(key);
+        return { ...movement, transition, drawTrajectory: Boolean(owner) };
+      });
+      const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
+      return { ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
+        ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
+        sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId };
+    }
     if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
     const { movementDiagnostics } = evidence;
     const movement: RecoveredMovement | undefined = covert ? {
@@ -7372,7 +7948,9 @@ export const buildAuthoredRelationLinksForFrames = (
       ? currentFrameRelationLimit
       : Number.POSITIVE_INFINITY;
 
-    relations.forEach((relation, relationIndex) => {
+    relations.flatMap((relation, relationIndex) => relation.recoveredMovements?.length
+      ? relation.recoveredMovements.map(movement => ({ relation: { ...relation, recoveredMovement: movement }, relationIndex }))
+      : [{ relation, relationIndex }]).forEach(({ relation, relationIndex }) => {
       const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
         ? Number(relation.authoredRelationIndex)
         : relationIndex;

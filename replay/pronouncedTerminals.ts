@@ -8,5 +8,7 @@ import { authoredWord, collectPronouncedLeaves } from '../server/babelParser/nod
  * token alignment, not silently corrected here.
  */
 export const collectPronouncedTerminalSequence = (
-  root?: SyntaxNode | null
-): string[] => collectPronouncedLeaves(root).map((leaf: SyntaxNode) => authoredWord(leaf)).filter(Boolean);
+  root?: SyntaxNode | SyntaxNode[] | null
+): string[] => (Array.isArray(root) ? root : [root])
+  .flatMap((item) => collectPronouncedLeaves(item))
+  .map((leaf: SyntaxNode) => authoredWord(leaf)).filter(Boolean);

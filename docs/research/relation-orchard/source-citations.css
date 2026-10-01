@@ -147,27 +147,32 @@
 }
 
 .babel-source-figure-entry summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 0.7em;
   width: 100%;
-  min-height: 38px;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  min-height: 48px;
   font-size: 11px;
+  line-height: 1.35;
   letter-spacing: 0.04em;
   text-transform: none;
 }
 
+.babel-source-figure-entry summary > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.babel-source-figure-entry summary::after {
+  line-height: 1;
+  text-align: center;
+}
+
 .babel-source-figure-entry summary small {
-  margin-left: auto;
+  margin: 0;
   color: rgba(236, 253, 245, 0.52);
   font: 700 9px/1.2 "JetBrains Mono", monospace;
   letter-spacing: 0;
   white-space: nowrap;
-}
-
-@media (max-width: 520px) {
-  .babel-source-figure-entry summary small {
-    margin-left: 0;
-  }
 }
 
 .babel-source-figure-entry .babel-source-panel {

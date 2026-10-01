@@ -1,0 +1,896 @@
+{
+  "sentence": "मीरा ने अपने भाई को चिट्ठी भेजी।",
+  "inputTokens": [
+    "मीरा",
+    "ने",
+    "अपने",
+    "भाई",
+    "को",
+    "चिट्ठी",
+    "भेजी"
+  ],
+  "rawOutputSha256": "6e633de4bd392b829d4d89e6463aa28d513303b916c15f7e1b928644bd137b41",
+  "stages": [
+    {
+      "authoredStage": {
+        "statement": "The lexical items and silent functional heads enter the workspace.",
+        "stageRecord": "मीरा is the prospective external argument; ने and को are case heads. अपने is a possessive anaphor, भाई is the recipient noun, and चिट्ठी is the theme noun. भेजी enters as a whole-word perfective verb with feminine singular form. The light verb and tense head are unpronounced; no movement or morphological decomposition is assumed.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "meera",
+            "label": "N",
+            "children": [],
+            "word": "मीरा",
+            "tokenIndex": 0
+          },
+          {
+            "id": "ne",
+            "label": "K[erg]",
+            "children": [],
+            "word": "ने",
+            "tokenIndex": 1
+          },
+          {
+            "id": "apne",
+            "label": "Poss[anaphoric]",
+            "children": [],
+            "word": "अपने",
+            "tokenIndex": 2
+          },
+          {
+            "id": "bhai",
+            "label": "N",
+            "children": [],
+            "word": "भाई",
+            "tokenIndex": 3
+          },
+          {
+            "id": "ko",
+            "label": "K[dat]",
+            "children": [],
+            "word": "को",
+            "tokenIndex": 4
+          },
+          {
+            "id": "chitthi",
+            "label": "N",
+            "children": [],
+            "word": "चिट्ठी",
+            "tokenIndex": 5
+          },
+          {
+            "id": "bheji",
+            "label": "V[perfective,feminine,singular]",
+            "children": [],
+            "word": "भेजी",
+            "tokenIndex": 6
+          },
+          {
+            "id": "vhead",
+            "label": "v[transitive]",
+            "children": [],
+            "silent": true
+          },
+          {
+            "id": "thead",
+            "label": "T[past]",
+            "children": [],
+            "silent": true
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "meera",
+          "label": "N",
+          "children": [],
+          "word": "मीरा",
+          "tokenIndex": 0
+        },
+        {
+          "id": "ne",
+          "label": "K[erg]",
+          "children": [],
+          "word": "ने",
+          "tokenIndex": 1
+        },
+        {
+          "id": "apne",
+          "label": "Poss[anaphoric]",
+          "children": [],
+          "word": "अपने",
+          "tokenIndex": 2
+        },
+        {
+          "id": "bhai",
+          "label": "N",
+          "children": [],
+          "word": "भाई",
+          "tokenIndex": 3
+        },
+        {
+          "id": "ko",
+          "label": "K[dat]",
+          "children": [],
+          "word": "को",
+          "tokenIndex": 4
+        },
+        {
+          "id": "chitthi",
+          "label": "N",
+          "children": [],
+          "word": "चिट्ठी",
+          "tokenIndex": 5
+        },
+        {
+          "id": "bheji",
+          "label": "V[perfective,feminine,singular]",
+          "children": [],
+          "word": "भेजी",
+          "tokenIndex": 6
+        },
+        {
+          "id": "vhead",
+          "label": "v[transitive]",
+          "children": [],
+          "silent": true
+        },
+        {
+          "id": "thead",
+          "label": "T[past]",
+          "children": [],
+          "silent": true
+        }
+      ]
+    },
+    {
+      "authoredStage": {
+        "statement": "The subject case phrase and possessed noun phrase are formed.",
+        "stageRecord": "Merge मीरा with the following ergative case head, projecting K. Independently, merge अपने with भाई, projecting N. The anaphor has not yet acquired a local structural binder.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "id": "subjectK",
+            "label": "K",
+            "children": [
+              {
+                "refId": "meera"
+              },
+              {
+                "refId": "ne"
+              }
+            ]
+          },
+          {
+            "id": "brotherN",
+            "label": "N",
+            "children": [
+              {
+                "refId": "apne"
+              },
+              {
+                "refId": "bhai"
+              }
+            ]
+          },
+          {
+            "refId": "ko"
+          },
+          {
+            "refId": "chitthi"
+          },
+          {
+            "refId": "bheji"
+          },
+          {
+            "refId": "vhead"
+          },
+          {
+            "refId": "thead"
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "subjectK",
+          "label": "K",
+          "children": [
+            {
+              "id": "meera",
+              "label": "N",
+              "children": [],
+              "word": "मीरा",
+              "tokenIndex": 0
+            },
+            {
+              "id": "ne",
+              "label": "K[erg]",
+              "children": [],
+              "word": "ने",
+              "tokenIndex": 1
+            }
+          ]
+        },
+        {
+          "id": "brotherN",
+          "label": "N",
+          "children": [
+            {
+              "id": "apne",
+              "label": "Poss[anaphoric]",
+              "children": [],
+              "word": "अपने",
+              "tokenIndex": 2
+            },
+            {
+              "id": "bhai",
+              "label": "N",
+              "children": [],
+              "word": "भाई",
+              "tokenIndex": 3
+            }
+          ]
+        },
+        {
+          "id": "ko",
+          "label": "K[dat]",
+          "children": [],
+          "word": "को",
+          "tokenIndex": 4
+        },
+        {
+          "id": "chitthi",
+          "label": "N",
+          "children": [],
+          "word": "चिट्ठी",
+          "tokenIndex": 5
+        },
+        {
+          "id": "bheji",
+          "label": "V[perfective,feminine,singular]",
+          "children": [],
+          "word": "भेजी",
+          "tokenIndex": 6
+        },
+        {
+          "id": "vhead",
+          "label": "v[transitive]",
+          "children": [],
+          "silent": true
+        },
+        {
+          "id": "thead",
+          "label": "T[past]",
+          "children": [],
+          "silent": true
+        }
+      ]
+    },
+    {
+      "authoredStage": {
+        "statement": "The recipient phrase and theme–verb constituent are formed.",
+        "stageRecord": "Merge the possessed noun phrase with को to form a dative K projection. Separately, Merge चिट्ठी as the internal theme of भेजी. The head-final order in both constituents preserves the input order.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "refId": "subjectK"
+          },
+          {
+            "id": "recipientK",
+            "label": "K",
+            "children": [
+              {
+                "refId": "brotherN"
+              },
+              {
+                "refId": "ko"
+              }
+            ]
+          },
+          {
+            "id": "themeV",
+            "label": "V",
+            "children": [
+              {
+                "refId": "chitthi"
+              },
+              {
+                "refId": "bheji"
+              }
+            ]
+          },
+          {
+            "refId": "vhead"
+          },
+          {
+            "refId": "thead"
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "subjectK",
+          "label": "K",
+          "children": [
+            {
+              "id": "meera",
+              "label": "N",
+              "children": [],
+              "word": "मीरा",
+              "tokenIndex": 0
+            },
+            {
+              "id": "ne",
+              "label": "K[erg]",
+              "children": [],
+              "word": "ने",
+              "tokenIndex": 1
+            }
+          ]
+        },
+        {
+          "id": "recipientK",
+          "label": "K",
+          "children": [
+            {
+              "id": "brotherN",
+              "label": "N",
+              "children": [
+                {
+                  "id": "apne",
+                  "label": "Poss[anaphoric]",
+                  "children": [],
+                  "word": "अपने",
+                  "tokenIndex": 2
+                },
+                {
+                  "id": "bhai",
+                  "label": "N",
+                  "children": [],
+                  "word": "भाई",
+                  "tokenIndex": 3
+                }
+              ]
+            },
+            {
+              "id": "ko",
+              "label": "K[dat]",
+              "children": [],
+              "word": "को",
+              "tokenIndex": 4
+            }
+          ]
+        },
+        {
+          "id": "themeV",
+          "label": "V",
+          "children": [
+            {
+              "id": "chitthi",
+              "label": "N",
+              "children": [],
+              "word": "चिट्ठी",
+              "tokenIndex": 5
+            },
+            {
+              "id": "bheji",
+              "label": "V[perfective,feminine,singular]",
+              "children": [],
+              "word": "भेजी",
+              "tokenIndex": 6
+            }
+          ]
+        },
+        {
+          "id": "vhead",
+          "label": "v[transitive]",
+          "children": [],
+          "silent": true
+        },
+        {
+          "id": "thead",
+          "label": "T[past]",
+          "children": [],
+          "silent": true
+        }
+      ]
+    },
+    {
+      "authoredStage": {
+        "statement": "The recipient joins the verbal predicate, which combines with light v.",
+        "stageRecord": "Merge the dative recipient with the existing theme–verb constituent, projecting V; भेजी thus has a theme and a recipient without making the recipient the agreeing object. Merge the resulting verbal projection with silent transitive v.",
+        "relations": [],
+        "workspaceForest": [
+          {
+            "refId": "subjectK"
+          },
+          {
+            "id": "ditransitiveV",
+            "label": "V",
+            "children": [
+              {
+                "refId": "recipientK"
+              },
+              {
+                "refId": "themeV"
+              }
+            ]
+          },
+          {
+            "id": "lowerV",
+            "label": "v",
+            "children": [
+              {
+                "id": "ditransitiveV",
+                "label": "V",
+                "children": [
+                  {
+                    "refId": "recipientK"
+                  },
+                  {
+                    "refId": "themeV"
+                  }
+                ]
+              },
+              {
+                "refId": "vhead"
+              }
+            ]
+          },
+          {
+            "refId": "thead"
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "subjectK",
+          "label": "K",
+          "children": [
+            {
+              "id": "meera",
+              "label": "N",
+              "children": [],
+              "word": "मीरा",
+              "tokenIndex": 0
+            },
+            {
+              "id": "ne",
+              "label": "K[erg]",
+              "children": [],
+              "word": "ने",
+              "tokenIndex": 1
+            }
+          ]
+        },
+        {
+          "id": "ditransitiveV",
+          "label": "V",
+          "children": [
+            {
+              "id": "recipientK",
+              "label": "K",
+              "children": [
+                {
+                  "id": "brotherN",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "apne",
+                      "label": "Poss[anaphoric]",
+                      "children": [],
+                      "word": "अपने",
+                      "tokenIndex": 2
+                    },
+                    {
+                      "id": "bhai",
+                      "label": "N",
+                      "children": [],
+                      "word": "भाई",
+                      "tokenIndex": 3
+                    }
+                  ]
+                },
+                {
+                  "id": "ko",
+                  "label": "K[dat]",
+                  "children": [],
+                  "word": "को",
+                  "tokenIndex": 4
+                }
+              ]
+            },
+            {
+              "id": "themeV",
+              "label": "V",
+              "children": [
+                {
+                  "id": "chitthi",
+                  "label": "N",
+                  "children": [],
+                  "word": "चिट्ठी",
+                  "tokenIndex": 5
+                },
+                {
+                  "id": "bheji",
+                  "label": "V[perfective,feminine,singular]",
+                  "children": [],
+                  "word": "भेजी",
+                  "tokenIndex": 6
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "lowerV",
+          "label": "v",
+          "children": [
+            {
+              "id": "ditransitiveV",
+              "label": "V",
+              "children": [
+                {
+                  "id": "recipientK",
+                  "label": "K",
+                  "children": [
+                    {
+                      "id": "brotherN",
+                      "label": "N",
+                      "children": [
+                        {
+                          "id": "apne",
+                          "label": "Poss[anaphoric]",
+                          "children": [],
+                          "word": "अपने",
+                          "tokenIndex": 2
+                        },
+                        {
+                          "id": "bhai",
+                          "label": "N",
+                          "children": [],
+                          "word": "भाई",
+                          "tokenIndex": 3
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ko",
+                      "label": "K[dat]",
+                      "children": [],
+                      "word": "को",
+                      "tokenIndex": 4
+                    }
+                  ]
+                },
+                {
+                  "id": "themeV",
+                  "label": "V",
+                  "children": [
+                    {
+                      "id": "chitthi",
+                      "label": "N",
+                      "children": [],
+                      "word": "चिट्ठी",
+                      "tokenIndex": 5
+                    },
+                    {
+                      "id": "bheji",
+                      "label": "V[perfective,feminine,singular]",
+                      "children": [],
+                      "word": "भेजी",
+                      "tokenIndex": 6
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "vhead",
+              "label": "v[transitive]",
+              "children": [],
+              "silent": true
+            }
+          ]
+        },
+        {
+          "id": "thead",
+          "label": "T[past]",
+          "children": [],
+          "silent": true
+        }
+      ]
+    },
+    {
+      "authoredStage": {
+        "statement": "The external argument merges and binds the possessive anaphor.",
+        "stageRecord": "Merge the ergative subject with the lower v projection. In this position मीरा c-commands अपने inside the recipient phrase and supplies its possessive antecedent. The perfective transitive predicate licenses the subject's overt ergative marking.",
+        "relations": [
+          {
+            "relation": "perfective ergative licensing",
+            "anchors": {
+              "licenser": "vhead",
+              "perfectiveVerb": "bheji",
+              "caseHead": "ne",
+              "subject": "subjectK"
+            }
+          },
+          {
+            "relation": "anaphoric possessive binding",
+            "anchors": {
+              "antecedent": "meera",
+              "anaphor": "apne"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "upperV",
+            "label": "v",
+            "children": [
+              {
+                "refId": "subjectK"
+              },
+              {
+                "refId": "lowerV"
+              }
+            ]
+          },
+          {
+            "refId": "thead"
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "upperV",
+          "label": "v",
+          "children": [
+            {
+              "id": "subjectK",
+              "label": "K",
+              "children": [
+                {
+                  "id": "meera",
+                  "label": "N",
+                  "children": [],
+                  "word": "मीरा",
+                  "tokenIndex": 0
+                },
+                {
+                  "id": "ne",
+                  "label": "K[erg]",
+                  "children": [],
+                  "word": "ने",
+                  "tokenIndex": 1
+                }
+              ]
+            },
+            {
+              "id": "lowerV",
+              "label": "v",
+              "children": [
+                {
+                  "id": "ditransitiveV",
+                  "label": "V",
+                  "children": [
+                    {
+                      "id": "recipientK",
+                      "label": "K",
+                      "children": [
+                        {
+                          "id": "brotherN",
+                          "label": "N",
+                          "children": [
+                            {
+                              "id": "apne",
+                              "label": "Poss[anaphoric]",
+                              "children": [],
+                              "word": "अपने",
+                              "tokenIndex": 2
+                            },
+                            {
+                              "id": "bhai",
+                              "label": "N",
+                              "children": [],
+                              "word": "भाई",
+                              "tokenIndex": 3
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ko",
+                          "label": "K[dat]",
+                          "children": [],
+                          "word": "को",
+                          "tokenIndex": 4
+                        }
+                      ]
+                    },
+                    {
+                      "id": "themeV",
+                      "label": "V",
+                      "children": [
+                        {
+                          "id": "chitthi",
+                          "label": "N",
+                          "children": [],
+                          "word": "चिट्ठी",
+                          "tokenIndex": 5
+                        },
+                        {
+                          "id": "bheji",
+                          "label": "V[perfective,feminine,singular]",
+                          "children": [],
+                          "word": "भेजी",
+                          "tokenIndex": 6
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "vhead",
+                  "label": "v[transitive]",
+                  "children": [],
+                  "silent": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "thead",
+          "label": "T[past]",
+          "children": [],
+          "silent": true
+        }
+      ]
+    },
+    {
+      "authoredStage": {
+        "statement": "Silent tense completes the clause and the verb agrees with the theme.",
+        "stageRecord": "Merge the completed v projection with silent T. The ergative subject and dative recipient do not control the verb's feminine singular form; the unmarked theme चिट्ठी does. भेजी remains a single pronounced terminal in clause-final position, so neither head movement nor a separate overt agreement suffix is posited.",
+        "relations": [
+          {
+            "relation": "theme-controlled verbal agreement",
+            "anchors": {
+              "tense": "thead",
+              "controller": "chitthi",
+              "agreeingVerb": "bheji"
+            },
+            "values": {
+              "features": "feminine singular"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "clauseT",
+            "label": "T",
+            "children": [
+              {
+                "refId": "upperV"
+              },
+              {
+                "refId": "thead"
+              }
+            ]
+          }
+        ]
+      },
+      "workspaceForest": [
+        {
+          "id": "clauseT",
+          "label": "T",
+          "children": [
+            {
+              "id": "upperV",
+              "label": "v",
+              "children": [
+                {
+                  "id": "subjectK",
+                  "label": "K",
+                  "children": [
+                    {
+                      "id": "meera",
+                      "label": "N",
+                      "children": [],
+                      "word": "मीरा",
+                      "tokenIndex": 0
+                    },
+                    {
+                      "id": "ne",
+                      "label": "K[erg]",
+                      "children": [],
+                      "word": "ने",
+                      "tokenIndex": 1
+                    }
+                  ]
+                },
+                {
+                  "id": "lowerV",
+                  "label": "v",
+                  "children": [
+                    {
+                      "id": "ditransitiveV",
+                      "label": "V",
+                      "children": [
+                        {
+                          "id": "recipientK",
+                          "label": "K",
+                          "children": [
+                            {
+                              "id": "brotherN",
+                              "label": "N",
+                              "children": [
+                                {
+                                  "id": "apne",
+                                  "label": "Poss[anaphoric]",
+                                  "children": [],
+                                  "word": "अपने",
+                                  "tokenIndex": 2
+                                },
+                                {
+                                  "id": "bhai",
+                                  "label": "N",
+                                  "children": [],
+                                  "word": "भाई",
+                                  "tokenIndex": 3
+                                }
+                              ]
+                            },
+                            {
+                              "id": "ko",
+                              "label": "K[dat]",
+                              "children": [],
+                              "word": "को",
+                              "tokenIndex": 4
+                            }
+                          ]
+                        },
+                        {
+                          "id": "themeV",
+                          "label": "V",
+                          "children": [
+                            {
+                              "id": "chitthi",
+                              "label": "N",
+                              "children": [],
+                              "word": "चिट्ठी",
+                              "tokenIndex": 5
+                            },
+                            {
+                              "id": "bheji",
+                              "label": "V[perfective,feminine,singular]",
+                              "children": [],
+                              "word": "भेजी",
+                              "tokenIndex": 6
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "vhead",
+                      "label": "v[transitive]",
+                      "children": [],
+                      "silent": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "thead",
+              "label": "T[past]",
+              "children": [],
+              "silent": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

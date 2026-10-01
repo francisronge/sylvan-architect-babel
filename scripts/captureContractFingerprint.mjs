@@ -36,6 +36,7 @@ const explicitSections = {
   qualificationTools: [
     'scripts/buildContractQualificationDryRun.mjs',
     'scripts/runCodexQualification.mjs',
+    'scripts/serveCodexQualification.mjs',
     'scripts/buildContractQualificationReview.mjs',
     'scripts/captureReplayArtifact.mjs'
   ],
@@ -66,19 +67,20 @@ const recursiveSections = {
   },
   providerFreeFixtures: {
     root: 'fixtures',
-    include: (relativePath) => /^(?:raw|normalized|replay-snapshots)\//.test(relativePath)
+    include: () => true
   },
   providerFreeTests: {
     root: 'tests',
     include: (relativePath) => (
-      /\.test\.mjs$/.test(relativePath)
+      (/\.test\.mjs$/.test(relativePath)
+        || /^helpers\/.*\.(?:mjs|js|ts|tsx|json)$/.test(relativePath))
       && !relativePath.startsWith('benchmark')
       && !relativePath.startsWith('derivationalDatabase')
     )
   },
   qualificationHarness: {
     root: 'contractQualification',
-    include: (relativePath) => /\.(?:js|json)$/.test(relativePath)
+    include: (relativePath) => /\.(?:js|json|ts|tsx|css)$/.test(relativePath)
   }
 };
 
@@ -89,6 +91,7 @@ const argumentValue = (name, fallback = '') => {
 
 const outputPath = path.resolve(repoRoot, argumentValue('out', defaultOutput));
 const label = argumentValue('label', 'program-1-incumbent-contract').trim();
+const allowWorkingTree = process.argv.includes('--allow-working-tree');
 if (!label) throw new Error('--label must be a non-empty string.');
 const qualificationItemSetStatus = argumentValue('item-set-status', 'unselected').trim();
 if (!['unselected', 'selected-draft', 'frozen'].includes(qualificationItemSetStatus)) {
@@ -170,13 +173,15 @@ const auditedSourcePaths = Object.entries(sectionPaths)
   .filter(([name]) => name !== 'captureTool')
   .flatMap(([, paths]) => paths);
 
+let auditedSourcesMatchCommit = true;
 try {
   execFileSync('git', ['diff', '--quiet', 'HEAD', '--', ...auditedSourcePaths], {
     cwd: repoRoot,
     stdio: 'ignore'
   });
 } catch {
-  throw new Error('Contract fingerprint refused: an audited source differs from HEAD.');
+  auditedSourcesMatchCommit = false;
+  if (!allowWorkingTree) throw new Error('Contract fingerprint refused: an audited source differs from HEAD.');
 }
 
 const untrackedAuditedPaths = execFileSync(
@@ -185,7 +190,8 @@ const untrackedAuditedPaths = execFileSync(
   { cwd: repoRoot, encoding: 'utf8' }
 ).trim();
 if (untrackedAuditedPaths) {
-  throw new Error(
+  auditedSourcesMatchCommit = false;
+  if (!allowWorkingTree) throw new Error(
     `Contract fingerprint refused: audited sources are untracked:\n${untrackedAuditedPaths}`
   );
 }
@@ -208,7 +214,8 @@ const manifest = {
   schemaVersion: 2,
   label,
   repositoryCommit: gitCommit,
-  auditedSourcesMatchCommit: true,
+  auditedSourcesMatchCommit,
+  ...(allowWorkingTree ? { sourceState: 'working-tree' } : {}),
   qualificationItemSet: {
     status: qualificationItemSetStatus,
     ...(qualificationItemSetManifest

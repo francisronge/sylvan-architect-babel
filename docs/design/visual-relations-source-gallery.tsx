@@ -201,6 +201,12 @@ export const visualSourceImagePaths = [
   'visual-relations-assets/source-recovery-2026-09-24/quantifier-raising-wang-example14.png',
   'visual-relations-assets/source-recovery-2026-09-24/remnant-movement-hunter-figure1.png',
   'visual-relations-assets/source-recovery-2026-09-24/remnant-wiland-example62.png',
+  'visual-relations-assets/source-recovery-2026-09-30/moortgat-sadrzadeh-wijnholds-figure7.png',
+  'visual-relations-assets/source-recovery-2026-09-30/moortgat-sadrzadeh-wijnholds-figure12.png',
+  'visual-relations-assets/source-recovery-2026-10-01/jou-2026-case-stacking-example124.png',
+  'visual-relations-assets/source-recovery-2026-10-01/jou-2026-case-stacking-example125.png',
+  'visual-relations-assets/source-recovery-2026-10-01/jou-2026-case-stacking-example126.png',
+  'visual-relations-assets/source-recovery-2026-10-01/pdt-coreference-overlay-cmpr9413-006.png',
   'visual-relations-assets/umass-syntax-workshop.jpg',
   'visual-relations-assets/villata-relativized-minimality-schemas.png',
   'visual-relations-assets/vp-ellipsis-shaded.jpg',
@@ -226,7 +232,7 @@ const sourceGroups: SourceGroup[] = [
   { key: 'sharing', label: 'Sharing, coordination and non-tree structures', matches: (path) => path.includes('/sharing-coordination-non-tree/') },
   { key: 'final-stretch', label: 'Final relation studies', matches: (path) => path.includes('/final-stretch/') },
   { key: 'generality-audit', label: 'Generality audit', matches: (path) => path.includes('/fable-audit/') },
-  { key: 'source-figure-corrections', label: 'Source figure corrections', matches: (path) => path.includes('/source-recovery-2026-09-24/') }
+  { key: 'source-figure-corrections', label: 'Source figure corrections', matches: (path) => /\/source-recovery-(?:2026-09-24|2026-09-30|2026-10-01)\//.test(path) }
 ];
 
 const sourceAcronyms = new Set([

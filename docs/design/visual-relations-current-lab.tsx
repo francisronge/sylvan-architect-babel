@@ -4992,45 +4992,84 @@ const acdTree = node('tp_acd', 'TP', [
   acdSurfaceTree
 ]);
 
-const orderedCaseStackingBaseTree = node('tp_case_stacking', 'TP', [
-  node('dp_mina_low_case_stacking', 'DP', [
-    node('np_mina_low_case_stacking', 'NP', [
-      leaf('n_mina_low_case_stacking', 'N', 'Mina', { lineageId: 'case-stack-mia' })
-    ], { lineageId: 'case-stack-mia-np' })
-  ], { lineageId: 'case-stack-chain' }),
-  node('tbar_case_stacking', "T'", [
-    leaf('t_past_case_stacking', 'T', '[past]', { silent: true }),
-    node('vp_case_stacking', 'VP', [
-      leaf('v_arrived_case_stacking', 'V', 'arrived')
+// Jou (2026), (124)–(126): the two focus positions keep the subject above
+// the dative recipient at CP case evaluation. Lexical terminals show (124)'s
+// surface words; this schematic does not add a separate PF derivation.
+const orderedCaseStackingTree = node('cp_case_stacking', 'CP', [
+  node('focp_teacher_case_stacking', 'FocP', [
+    node('np_teacher_high_case_stacking', 'NP', [
+      leaf('n_teacher_high_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+        lineageId: 'case-stack-teacher-n'
+      })
+    ], { lineageId: 'case-stack-teacher-np' }),
+    node('focbar_teacher_case_stacking', "Foc'", [
+      node('focp_mina_case_stacking', 'FocP', [
+        node('np_mina_high_case_stacking', 'NP', [
+          leaf('n_mina_high_case_stacking', 'N', 'Mina-eykey-lul', { lineageId: 'case-stack-mina-n' })
+        ], { lineageId: 'case-stack-mina-np' }),
+        node('focbar_mina_case_stacking', "Foc'", [
+          node('tp_case_stacking', 'TP', [
+            node('np_teacher_tp_case_stacking', 'NP', [
+              leaf('n_teacher_tp_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+                lineageId: 'case-stack-teacher-n', silent: true
+              })
+            ], { lineageId: 'case-stack-teacher-np', silent: true }),
+            node('tbar_case_stacking', "T'", [
+              node('voicep_case_stacking', 'VoiceP', [
+                node('np_teacher_low_case_stacking', 'NP', [
+                  leaf('n_teacher_low_case_stacking', 'N', 'Sensayngnim-kkeyse-man-i', {
+                    lineageId: 'case-stack-teacher-n', silent: true
+                  })
+                ], { lineageId: 'case-stack-teacher-np', silent: true }),
+                node('voicebar_case_stacking', "Voice'", [
+                  node('applp_case_stacking', 'ApplP', [
+                    node('np_mina_low_case_stacking', 'NP', [
+                      leaf('n_mina_low_case_stacking', 'N', 'Mina-eykey-lul', {
+                        lineageId: 'case-stack-mina-n', silent: true
+                      })
+                    ], { lineageId: 'case-stack-mina-np', silent: true }),
+                    node('applbar_case_stacking', "Appl'", [
+                      node('vp_case_stacking', 'vP', [
+                        node('rootp_case_stacking', '√P', [
+                          node('np_money_case_stacking', 'NP', [
+                            leaf('n_money_case_stacking', 'N', 'ton-ul')
+                          ]),
+                          leaf('root_send_case_stacking', '√', 'ponay-si-ess-ta')
+                        ]),
+                        nullHead('v_case_stacking', 'v')
+                      ]),
+                      nullHead('appl_case_stacking', 'Appl')
+                    ])
+                  ]),
+                  nullHead('voice_case_stacking', 'Voice')
+                ])
+              ]),
+              nullHead('t_case_stacking', 'T')
+            ])
+          ]),
+          nullHead('foc_mina_case_stacking', 'Foc')
+        ])
+      ]),
+      nullHead('foc_teacher_case_stacking', 'Foc')
     ])
-  ])
+  ]),
+  nullHead('c_case_stacking', 'C')
 ]);
 
-const orderedCaseStackingTree = node('kp_case_stacking', 'KP', [
-  node('dp_mina_high_case_stacking', 'DP', [
-    node('np_mina_high_case_stacking', 'NP', [
-      leaf('n_mina_high_case_stacking', 'N', 'Mina', { lineageId: 'case-stack-mia' })
-    ], { lineageId: 'case-stack-mia-np' })
-  ], { lineageId: 'case-stack-chain' }),
-  node('kbar_case_stacking', "K'", [
-    nullHead('k_case_stacking', 'K'),
-    node('tp_case_stacking', 'TP', [
-      node('dp_mina_low_case_stacking', 'DP', [
-        node('np_mina_low_case_stacking', 'NP', [
-          silentLexicalNode('n_mina_low_case_stacking', 'N', 't₁', {
-            lineageId: 'case-stack-mia'
-          })
-        ], { silent: true, lineageId: 'case-stack-mia-np' })
-      ], { silent: true, lineageId: 'case-stack-chain' }),
-      node('tbar_case_stacking', "T'", [
-        leaf('t_past_case_stacking', 'T', '[past]', { silent: true }),
-        node('vp_case_stacking', 'VP', [
-          leaf('v_arrived_case_stacking', 'V', 'arrived')
-        ])
-      ])
-    ])
-  ])
-]);
+const orderedCaseStackingBaseTree = revealPronouncedDomain(
+  revealPronouncedDomain(requiredSyntaxSubtree(orderedCaseStackingTree, 'voicep_case_stacking'),
+    'np_teacher_low_case_stacking'),
+  'np_mina_low_case_stacking'
+);
+const orderedCaseStackingRaisedSubjectTree = revealPronouncedDomain(
+  revealPronouncedDomain(requiredSyntaxSubtree(orderedCaseStackingTree, 'tp_case_stacking'),
+    'np_teacher_tp_case_stacking'),
+  'np_mina_low_case_stacking'
+);
+const orderedCaseStackingMinaFocusTree = revealPronouncedDomain(
+  requiredSyntaxSubtree(orderedCaseStackingTree, 'focp_mina_case_stacking'),
+  'np_teacher_tp_case_stacking'
+);
 
 const splitAntecedenceTree = node('tp_split_antecedence', 'TP', [
   node('dp_kyle_split_antecedence', 'DP', [leaf('d_kyle_split_antecedence', 'D', 'Kyle')]),
@@ -8777,48 +8816,83 @@ export const rawCases: LabCase[] = [
   {
     archetype: 'O5. Case / ordered stacking',
     title: 'Ordered Case Stacking',
-    status: 'Babel’s case-stacking fixture shows two ordered CASE slots on one DP occurrence. Replay first shows DAT plus one open slot, then fills the second slot with NOM; no matching source overlay has been verified.',
-    sentence: 'Mina arrived',
-
-
+    status: 'Jou’s (2026) multiple-focus parse in (126), for Only the teacher sent Mina money in (124). Mina retains lexical DAT and receives outer ACC in the CP domain; the higher teacher receives NOM in both slots. Babel keeps the source’s ordered Case rows and three movement dependencies on a fully expanded schematic tree.',
+    sentence: 'Sensayngnim-kkeyse-man-i Mina-eykey-lul ton-ul ponay-si-ess-ta',
+    wide: true,
     data: orderedCaseStackingTree,
     derivationStages: [
       stage(
         'O5a',
-        'The DP is first merged in the lower subject position.',
-        'The complete DP Mina is present in its lower position before A-movement or Case stacking applies.',
+        'VoiceP contains the teacher, the dative recipient Mina, and the money theme.',
+        'The head-final VoiceP follows Jou’s (125). Mina occupies Spec,ApplP and receives lexical dative from Appl. The caseless teacher in Spec,VoiceP c-commands ton, so ton receives dependent accusative. The teacher remains caseless at this phase.',
         [],
         orderedCaseStackingBaseTree
       ),
       stage(
         'O5b',
-        'The DP A-moves into the higher Case position carrying DAT and an unvalued outer Case slot.',
-        'AMove creates the higher occurrence and leaves the complete lower silent copy. FeatureBundle records the first ordered Case state beside the higher DP.',
+        'The teacher raises from Spec,VoiceP to Spec,TP.',
+        'This is the lower subject-movement arrow in Jou’s (126). AMove relates the complete lower NP copy to its pronounced TP occurrence. Mina remains in Spec,ApplP.',
+        [{
+          relation: 'AMove',
+          anchors: {
+            lowerCopy: 'np_teacher_low_case_stacking',
+            traceWitness: 'n_teacher_low_case_stacking',
+            pronouncedCopy: 'np_teacher_tp_case_stacking'
+          }
+        }],
+        orderedCaseStackingRaisedSubjectTree
+      ),
+      stage(
+        'O5c',
+        'Mina moves into the lower Spec,FocP with DAT and a new unvalued Case slot.',
+        'AbarMove takes the recipient from Spec,ApplP into the CP domain. The earlier dative value is retained, and movement to the higher phase introduces a second Case slot. The higher focus position for the teacher is not yet present.',
         [
           {
-            relation: 'AMove',
+            relation: 'AbarMove',
             anchors: {
-              lowerCopy: 'dp_mina_low_case_stacking',
+              lowerCopy: 'np_mina_low_case_stacking',
               traceWitness: 'n_mina_low_case_stacking',
-              pronouncedCopy: 'dp_mina_high_case_stacking'
+              pronouncedCopy: 'np_mina_high_case_stacking'
             }
           },
           {
             relation: 'FeatureBundle',
-            anchors: { bearer: 'dp_mina_high_case_stacking' },
+            anchors: { bearer: 'np_mina_high_case_stacking' },
             values: { 'CASE 1': 'DAT', 'CASE 2': '--' }
           }
         ],
+        orderedCaseStackingMinaFocusTree
+      ),
+      stage(
+        'O5d',
+        'The teacher moves to the higher Spec,FocP and c-commands Mina.',
+        'This completes the multiple-focus parse in Jou’s (126). The subject moves from Spec,TP to the higher focus position, retaining its earlier unvalued Case slot and acquiring a second one. Both nominals are now in the CP case domain in the source’s order.',
+        [{
+          relation: 'AbarMove',
+          anchors: {
+            lowerCopy: 'np_teacher_tp_case_stacking',
+            traceWitness: 'n_teacher_tp_case_stacking',
+            pronouncedCopy: 'np_teacher_high_case_stacking'
+          }
+        }, {
+          relation: 'FeatureBundle',
+          anchors: { bearer: 'np_teacher_high_case_stacking' },
+          values: { 'CASE 1': '--', 'CASE 2': '--' }
+        }],
         orderedCaseStackingTree
       ),
       stage(
-        'O5c',
-        'The outer Case slot is valued while the inner DAT value persists.',
-        'FeatureBundle records the final ordered stack: DAT first, NOM second. No new movement is invented.',
+        'O5e',
+        'CP case evaluation yields DAT–ACC on Mina and NOM–NOM on the teacher.',
+        'The still-caseless teacher c-commands Mina, so Mina’s outer Case slot receives dependent accusative while its lexical dative persists. Unmarked-case evaluation then values both remaining subject slots as nominative. These separate FeatureBundle moments follow Jou’s stated evaluation order; no additional movement occurs.',
         [{
           relation: 'FeatureBundle',
-          anchors: { bearer: 'dp_mina_high_case_stacking' },
-          values: { 'CASE 1': 'DAT', 'CASE 2': 'NOM' }
+          anchors: { bearer: 'np_mina_high_case_stacking' },
+          values: { 'CASE 1': 'DAT', 'CASE 2': 'ACC' }
+        }, {
+          relation: 'FeatureBundle',
+          anchors: { bearer: 'np_teacher_high_case_stacking' },
+          values: { 'CASE 1': 'NOM', 'CASE 2': 'NOM' }
         }],
         orderedCaseStackingTree
       )

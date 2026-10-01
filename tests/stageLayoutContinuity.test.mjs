@@ -11,12 +11,14 @@ const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-q
 const astra = records.find(record => record.name === 'astra-xbar');
 const steps = buildReplayPlayback({ sentence: astra.sentence, analyses: [astra] }).steps;
 const layoutGroups = buildStageLayoutGroups(steps, astra.derivationStages);
+const beforeDoSupport = steps.find(step => step.replayFrameIndex === 4 && step.replayKind === 'macro');
+const doSupport = steps.find(step => step.replayFrameIndex === 5 && step.replayKind === 'relation');
 const tree = (step, size) => d3.tree().size(size).separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(d3.hierarchy(step.replayCanvasData));
 
 test('saved do-support keeps every existing node at its exact preceding coordinates', () => {
   assert.deepEqual(layoutGroups, [[0], [1], [2], [3], [4, 5]]);
   const original = JSON.stringify(steps);
-  const before = steps[34], after = steps[35];
+  const before = beforeDoSupport, after = doSupport;
   for (const [width, height] of [[1596, 1016], [1100, 800], [386, 698]]) {
     const oldSize = stageTreeLayoutSize(steps, 4, width, height);
     assert.deepEqual(stageTreeLayoutSize(steps, 4, width, height, layoutGroups), oldSize, 'keep accepted preceding dimensions');
@@ -38,7 +40,7 @@ test('do-support preserves the preceding fit with either overlay policy and in e
   const plan = compileRelationRenderPlan(astra.derivationStages);
   for (const includeOverlays of [false, true]) {
     const input = { steps, stageIndex: 4, width: 1596, height: 1016, plan, includeOverlays,
-      completedCanvas: steps[34].replayCanvasData };
+      completedCanvas: beforeDoSupport.replayCanvasData };
     const original = buildStageCameraBounds(input);
     assert.deepEqual(buildStageCameraBounds({ ...input, layoutGroups }), original);
     assert.deepEqual(buildStageCameraBounds({ ...input, stageIndex: 5, layoutGroups }), original);
@@ -51,7 +53,7 @@ test('extreme plaques reserve their scroll viewport before their relation moment
   const pf = plan.frames[5].items.find(item => item.kind === 'node-plaque' && item.familyId === 'pf.realization');
   pf.rows = Array.from({ length: 60 }, (_, index) => ({ label: `Row ${index}`, value: 'A long authored explanation remains available in full.' }));
   const input = { steps, stageIndex: 4, layoutGroups, width: 1596, height: 1016, plan,
-    completedCanvas: steps[34].replayCanvasData };
+    completedCanvas: beforeDoSupport.replayCanvasData };
   const before = buildStageCameraBounds(input);
   const after = buildStageCameraBounds({ ...input, stageIndex: 5 });
   assert.deepEqual(after, before, 'future content must not trigger a refit at reveal');
@@ -81,12 +83,12 @@ test('the rule depends on exact structure and geometry, never relation names or 
     'surface wording cannot resize unchanged syntax');
 });
 
-test('a compatible added word leaf cannot inflate the preceding layout budget', () => {
-  const pair = [steps[34], steps[35]].map((step, replayFrameIndex) => ({ ...step, replayFrameIndex }));
+test('compatible stages retain their original layout dimensions', () => {
+  const pair = [beforeDoSupport, doSupport].map((step, replayFrameIndex) => ({ ...step, replayFrameIndex }));
   const groups = buildStageLayoutGroups(pair, astra.derivationStages.slice(4));
   assert.deepEqual(groups, [[0, 1]]);
   const original = stageTreeLayoutSize(pair, 0, 1596, 1016);
-  assert.notDeepEqual(stageTreeLayoutSize(pair, 1, 1596, 1016), original, 'the old per-stage budget would grow');
+  assert.notDeepEqual(stageTreeLayoutSize(pair, 1, 1596, 1016), original, 'the new leaf increases the independent stage size');
   assert.deepEqual(stageTreeLayoutSize(pair, 1, 1596, 1016, groups), original);
 });
 

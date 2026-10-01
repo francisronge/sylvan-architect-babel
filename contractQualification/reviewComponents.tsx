@@ -2,6 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TreeVisualizer from '../components/AsyncTreeVisualizer';
 import { buildDerivationCanvasData } from '../replay/replayCompiler';
+import { displayTreeForAnalysis } from '../replay/finalForest';
+import { duplicateStageNodeIds, inspectionStageDisplay } from './diagnosticReplay';
+import { InspectionIdentityNotice } from './InspectionIdentityNotice';
 import {
   changeReviewSelection, initialReviewSelection, reviewAnalyses, reviewStatus, reviewViews
 } from './reviewModel.js';
@@ -31,15 +34,18 @@ export function ReviewTree({ choice, stage, mode, source = 'original' }: {
   const analysis = useMemo(() => source === 'copy'
     ? choice?.canInspectReplay ? structuredClone(choice.copyAnalysis) : null
     : choice?.canReplay ? structuredClone(choice.analysis) : null, [choice, source]);
-  const forest = useMemo(() => Array.isArray(stage?.workspaceForest)
-    ? structuredClone(stage.workspaceForest) : [], [stage]);
-  if (mode === 'replay') return analysis
-    ? <TreeVisualizer data={analysis.tree} animated derivationStages={analysis.derivationStages}
+  const display = useMemo(() => inspectionStageDisplay(stage?.workspaceForest), [stage]);
+  const replayTree = displayTreeForAnalysis(analysis);
+  if (mode === 'replay') return analysis && replayTree
+    ? <TreeVisualizer data={replayTree} animated autoPlay={false} derivationStages={analysis.derivationStages}
       sentence={source === 'copy' ? choice.copySentence : choice.sentence}
       inputTokens={source === 'copy' ? choice.copyInputTokens : choice.inputTokens} />
     : <p className="review-empty">No complete Replay was compiled for this analysis.</p>;
-  const tree = buildDerivationCanvasData(forest);
-  return tree ? <TreeVisualizer data={tree} sentence={choice?.sentence} /> : <p className="review-empty">{
+  const tree = buildDerivationCanvasData(display.forest);
+  return tree ? <div className="inspection-stage-layout">
+    <InspectionIdentityNotice display={display} />
+    <div className="inspection-stage-canvas"><TreeVisualizer data={tree} sentence={choice?.sentence} /></div>
+  </div> : <p className="review-empty">{
     stage?.blockedByStageIndex !== undefined ? `Expansion blocked by stage ${stage.blockedByStageIndex + 1}.`
       : stage?.diagnostic ? 'Workspace could not be expanded.'
         : stage?.workspaceForest ? 'Empty workspace.' : 'No readable stages.'
@@ -65,6 +71,7 @@ export function ReviewEvidence({ attempt, choice, view, runtime, runReceipt }: {
   </>;
   if (view === 'Diagnostics') return <JsonEvidence value={{
     ingress: attempt.receipt.ingress, outcome: attempt.outcome, inspection: attempt.inspection ?? null,
+    ...(attempt.originalInspection ? { originalInspection: attempt.originalInspection } : {}),
     renderer: choice?.archive?.evidence?.renderer ? {
       diagnostics: choice.archive.evidence.renderer.diagnostics,
       unregistered: choice.archive.evidence.renderer.unregistered
@@ -115,7 +122,9 @@ export function QualificationReview({ data }: { data: Record<string, any> }) {
       </select>
       <select className="review-select" aria-label="View" value={selection.view}
         onChange={(event) => change({ type: 'view', view: event.target.value })}>
-        {reviewViews.map((view) => <option key={view} value={view}>{view}</option>)}
+        {reviewViews.map((view) => <option key={view} value={view}
+          disabled={view === 'Replay' && !choice?.canReplay && !choice?.canInspectReplay
+            || view === 'Stage inspection' && !stages.length}>{view}</option>)}
       </select>
       {selection.view === 'Replay' && choice?.copyAnalysis && <select className="review-select"
         aria-label="Replay record" value={selection.source}
@@ -136,7 +145,7 @@ export function QualificationReview({ data }: { data: Record<string, any> }) {
             onClick={() => change({ type: 'stage', index: selection.stage - 1 })}><ArrowLeft size={16} /></button>
           <select className="review-select" aria-label="Stage" value={selection.stage} disabled={!stages.length}
             onChange={(event) => change({ type: 'stage', index: Number(event.target.value) })}>
-            {stages.length ? stages.map((entry, index) => <option key={entry.stageIndex} value={index}>Stage {entry.stageIndex + 1} / {stages.length}</option>)
+            {stages.length ? stages.map((entry, index) => <option key={entry.stageIndex} value={index}>Stage {entry.stageIndex + 1} / {stages.length}{duplicateStageNodeIds(entry.workspaceForest).length ? ' · duplicate IDs' : ''}</option>)
               : <option value={0}>No stage</option>}
           </select>
           <button title="Next stage" aria-label="Next stage" disabled={selection.stage >= stages.length - 1}

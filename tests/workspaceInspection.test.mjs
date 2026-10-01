@@ -5,6 +5,33 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { __test__ } from '../server/babelParser.js';
+import { diagnosticReplayStages } from '../contractQualification/diagnosticReplay.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+
+test('diagnostic Replay expands references and plays a relation from an uncommitted final forest', () => {
+  const first = { id: 'first', label: 'D', word: 'The', tokenIndex: 0, children: [] };
+  const second = { id: 'second', label: 'D', word: 'the', tokenIndex: 1, children: [] };
+  const verb = { id: 'verb', label: 'V', word: 'slept', tokenIndex: 2, children: [] };
+  const authored = [
+    { statement: 'First word', stageRecord: 'The first determiner remains separate.', relations: [], workspaceForest: [first] },
+    { statement: 'Two roots', stageRecord: 'The second determiner begins a clause.',
+      relations: [{ relation: 'speech-repair replacement', anchors: { abandoned: 'first', replacement: 'second' } }],
+      workspaceForest: [{ refId: 'first' }, { id: 'ip', label: 'IP', children: [second, verb] }] }
+  ];
+  const inspected = [
+    { authoredStage: authored[0], workspaceForest: [first] },
+    { authoredStage: authored[1], workspaceForest: [first, authored[1].workspaceForest[1]] }
+  ];
+  const replayStages = diagnosticReplayStages(inspected);
+  assert.deepEqual(replayStages[1].workspaceForest, inspected[1].workspaceForest);
+  assert.equal(replayStages[1].workspaceForest[0].id, 'first');
+  const replay = prepareReplay({ derivationStages: replayStages, sentence: 'The the slept.',
+    inputTokens: ['The', 'the', 'slept'], includePlayback: true });
+  assert.ok(replay.playbackSteps.length > authored.length);
+  assert.ok(replay.playbackSteps.some((step) => step.replayRelationIdentity?.stageIndex === 1
+    && step.replayRelationIdentity.relationIndex === 0));
+  assert.equal(replay.playbackSteps.at(-1).replayCanvasData.children.length, 2);
+});
 
 test('self-contained workspaces restart inspection after a break without resurrecting stale references or Replay', () => {
   const node = (id, word) => ({ id, label: 'N', word, children: [] });
@@ -43,6 +70,7 @@ test('workspace inspection builds a self-contained page without altering authore
     const output = path.join(directory, 'index.html');
     const record = {
       kind: 'authored-workspace-inspection', rawOutput: { sha256: 'test' }, repairDiagnostics: [],
+      input: { sentence: 'Mia laughed.', tokens: ['Mia', 'laughed'] },
       payload: { text: '</script><script>untrusted()</script>' },
       analyses: [{ analysisIndex: 0, stages: [{ stageIndex: 0,
         authoredStage: { statement: 'Authored stage', relations: [{ values: ['unwrapped'] }] },
@@ -58,6 +86,7 @@ test('workspace inspection builds a self-contained page without altering authore
     const html = fs.readFileSync(output, 'utf8');
     const embedded = html.match(/<script id="inspection-data" type="application\/json">([\s\S]*?)<\/script>/);
     assert.deepEqual(JSON.parse(embedded[1])[0].record, record);
+    assert.equal(JSON.parse(embedded[1])[0].title, 'Mia laughed.');
     assert.equal(fs.readFileSync(input, 'utf8'), original);
     assert.ok(!html.includes('<script>untrusted()'));
     assert.ok(!/<script[^>]+src=/.test(html));

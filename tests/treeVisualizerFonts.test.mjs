@@ -21,8 +21,8 @@ test('initial font events produce one layout invalidation after all requested fa
   let calls = 0;
   const dispose = watchTreeVisualizerFonts(fonts.set, () => calls++, 'עבריתあğφ');
   assert.equal(fonts.loads.length, 3);
-  fonts.loads.forEach(load => assert('θעבריתあğφ'.split('').every(character => load.text.includes(character)),
-    'load each recorded script and the renderer heading before layout'));
+  fonts.loads.forEach(load => assert('θᵢⱼעבריתあğφ'.split('').every(character => load.text.includes(character)),
+    'load each recorded script, renderer heading, and chain index before layout'));
   fonts.loads.forEach(load => load.resolve([]));
   fonts.emit('Quicksand');
   fonts.emit('JetBrains Mono');

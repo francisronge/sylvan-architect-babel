@@ -539,7 +539,7 @@ The existing 22 cards, 29 relation records, and 17 sidecar lenses are not "22 so
 | Existing case | Visual verdict | Payload/fixture verdict |
 | --- | --- | --- |
 | Phrasal/head/lowering movement | attested trajectory topology with Babel styling | current-stage occurrence anchors are valid; complex-head results and syntax/PF provenance still need review |
-| Identity forest glow | faithful Babel styling of a sourced occurrence-identity topology | occurrence family is derived from anchored nodes and lineage; the light itself remains non-semantic |
+| Identity forest glow | original Forest light presentation designed by Francis Ronge for Babel; published copy-identity trees support only the linguistic distinction | occurrence family is derived from anchored nodes and lineage; the light itself remains non-semantic |
 | Control | controller-PRO coindexation/domain sourced; exact curve/box is Babel styling | PRO is a genuinely silent structured subject; display coindex is renderer-derived |
 | Binding | coindices/domain highlighting sourced | V' is accurately described as John's c-commanded sister domain; display coindex is renderer-derived |
 | Coreference | shared index sourced | current-contract anchors and lineage are sufficient for the lab; production renderer/lens is still absent |

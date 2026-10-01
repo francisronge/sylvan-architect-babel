@@ -1,0 +1,436 @@
+{
+  "sentence": "Which violinist did no critic praise?",
+  "framework": "minimalism",
+  "model": "openai:gpt-6.1-sol",
+  "effort": "high",
+  "captureContractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "invertedHead",
+            "lowerOccurrence": "tenseLow",
+            "target": "questionC",
+            "upperOccurrence": "tenseHigh"
+          },
+          "priorAnchors": {
+            "source": "tenseLow"
+          },
+          "relation": "T-to-C head movement",
+          "values": {
+            "pronunciation": "upper auxiliary pronounced; lower auxiliary unpronounced",
+            "trigger": "matrix interrogative inversion"
+          }
+        }
+      ],
+      "stageRecord": "Merge interrogative C with the finite clause. C's inversion requirement attracts the auxiliary from the T position shown in the preceding stage. Head Internal Merge forms a complex C head containing an upper occurrence of did and the unpronounced interrogative head. The upper auxiliary is pronounced, while the lower T occurrence is unpronounced. This head-movement implementation preserves the subject's previously established position and places did before no critic. The interrogative object has not yet moved and remains pronounced in its original complement position in this intermediate workspace.",
+      "statement": "Merge interrogative C and derive subject–auxiliary inversion.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "tenseHigh",
+                  "label": "T[past]",
+                  "lineageId": "finiteAuxiliary",
+                  "tokenIndex": 2,
+                  "word": "did"
+                },
+                {
+                  "children": [],
+                  "id": "questionC",
+                  "label": "C[interrogative]",
+                  "silent": true
+                }
+              ],
+              "id": "invertedHead",
+              "label": "C"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "noHigh",
+                      "label": "D[negative]",
+                      "lineageId": "negativeDeterminer",
+                      "tokenIndex": 3,
+                      "word": "no"
+                    },
+                    {
+                      "children": [],
+                      "id": "criticHigh",
+                      "label": "N",
+                      "lineageId": "criticNoun",
+                      "tokenIndex": 4,
+                      "word": "critic"
+                    }
+                  ],
+                  "id": "subjectHigh",
+                  "label": "D",
+                  "lineageId": "subjectNominal"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tenseLow",
+                      "label": "T[past]",
+                      "lineageId": "finiteAuxiliary",
+                      "silent": true,
+                      "word": "did"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "noLow",
+                              "label": "D[negative]",
+                              "lineageId": "negativeDeterminer",
+                              "silent": true,
+                              "word": "no"
+                            },
+                            {
+                              "children": [],
+                              "id": "criticLow",
+                              "label": "N",
+                              "lineageId": "criticNoun",
+                              "silent": true,
+                              "word": "critic"
+                            }
+                          ],
+                          "id": "subjectLow",
+                          "label": "D",
+                          "lineageId": "subjectNominal",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "littleV",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "praise",
+                                  "label": "V",
+                                  "tokenIndex": 5,
+                                  "word": "praise"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whichLow",
+                                      "label": "D[wh]",
+                                      "lineageId": "whichDeterminer",
+                                      "tokenIndex": 0,
+                                      "word": "Which"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "violinistLow",
+                                      "label": "N",
+                                      "lineageId": "violinistNoun",
+                                      "tokenIndex": 1,
+                                      "word": "violinist"
+                                    }
+                                  ],
+                                  "id": "whLow",
+                                  "label": "D",
+                                  "lineageId": "interrogativeNominal"
+                                }
+                              ],
+                              "id": "verbObject",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "verbalDomain",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "externalArgument",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "tenseDomain",
+                  "label": "T"
+                }
+              ],
+              "id": "finiteClause",
+              "label": "T"
+            }
+          ],
+          "id": "questionDomain",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "edgeOccurrence": "whEdge",
+            "phaseHead": "littleV",
+            "sourceOccurrence": "whLow"
+          },
+          "priorAnchors": {
+            "source": "whLow"
+          },
+          "relation": "wh movement through the phase edge",
+          "values": {
+            "dependency": "object wh dependency",
+            "edgeRequirement": "escape from the transitive little-v phase"
+          }
+        },
+        {
+          "anchors": {
+            "interrogativeHead": "questionC",
+            "sourceOccurrence": "whEdge",
+            "upperOccurrence": "whHigh"
+          },
+          "relation": "wh movement to the interrogative edge",
+          "values": {
+            "feature": "wh",
+            "pronunciation": "highest nominal copy pronounced; intermediate and lowest copies unpronounced"
+          }
+        },
+        {
+          "anchors": {
+            "argumentPosition": "whLow",
+            "clauseTypeHead": "questionC",
+            "negativeSubject": "subjectHigh",
+            "operator": "whHigh",
+            "predicate": "praise"
+          },
+          "relation": "interrogative interpretation",
+          "values": {
+            "interpretation": "For which violinist x is it the case that no critic praised x?",
+            "scope": "interrogative operator above the negative subject"
+          }
+        }
+      ],
+      "stageRecord": "Interrogative C attracts the wh-bearing object. Internal Merge first places a copy of Which violinist at the edge of the little-v domain, providing the escape position required by the assumed phase-based derivation, and then places another copy at the edge of the C object. These connected movements proceed from the object occurrence already shown in the preceding workspace, through the newly formed little-v edge, to the interrogative clause edge. Only the highest nominal occurrence is pronounced; the original object and intermediate edge copies are unpronounced. The final C-labeled object is therefore ordered Which violinist, did, no critic, praise. Its interrogative operator asks for violinists x such that no critic praised x. The lower object copy supplies the thematic interpretation of x; no critic is the negative subject quantifier, not a separate sentential negation constituent. No additional quantifier raising is needed for this reading.",
+      "statement": "Front the interrogative nominal and complete the negative-subject question.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whichHigh",
+                  "label": "D[wh]",
+                  "lineageId": "whichDeterminer",
+                  "tokenIndex": 0,
+                  "word": "Which"
+                },
+                {
+                  "children": [],
+                  "id": "violinistHigh",
+                  "label": "N",
+                  "lineageId": "violinistNoun",
+                  "tokenIndex": 1,
+                  "word": "violinist"
+                }
+              ],
+              "id": "whHigh",
+              "label": "D",
+              "lineageId": "interrogativeNominal"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tenseHigh",
+                      "label": "T[past]",
+                      "lineageId": "finiteAuxiliary",
+                      "tokenIndex": 2,
+                      "word": "did"
+                    },
+                    {
+                      "children": [],
+                      "id": "questionC",
+                      "label": "C[interrogative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "invertedHead",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "noHigh",
+                          "label": "D[negative]",
+                          "lineageId": "negativeDeterminer",
+                          "tokenIndex": 3,
+                          "word": "no"
+                        },
+                        {
+                          "children": [],
+                          "id": "criticHigh",
+                          "label": "N",
+                          "lineageId": "criticNoun",
+                          "tokenIndex": 4,
+                          "word": "critic"
+                        }
+                      ],
+                      "id": "subjectHigh",
+                      "label": "D",
+                      "lineageId": "subjectNominal"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tenseLow",
+                          "label": "T[past]",
+                          "lineageId": "finiteAuxiliary",
+                          "silent": true,
+                          "word": "did"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whichEdge",
+                                  "label": "D[wh]",
+                                  "lineageId": "whichDeterminer",
+                                  "silent": true,
+                                  "word": "Which"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "violinistEdge",
+                                  "label": "N",
+                                  "lineageId": "violinistNoun",
+                                  "silent": true,
+                                  "word": "violinist"
+                                }
+                              ],
+                              "id": "whEdge",
+                              "label": "D",
+                              "lineageId": "interrogativeNominal",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "noLow",
+                                      "label": "D[negative]",
+                                      "lineageId": "negativeDeterminer",
+                                      "silent": true,
+                                      "word": "no"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "criticLow",
+                                      "label": "N",
+                                      "lineageId": "criticNoun",
+                                      "silent": true,
+                                      "word": "critic"
+                                    }
+                                  ],
+                                  "id": "subjectLow",
+                                  "label": "D",
+                                  "lineageId": "subjectNominal",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "littleV",
+                                      "label": "v[transitive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "praise",
+                                          "label": "V",
+                                          "tokenIndex": 5,
+                                          "word": "praise"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "whichLow",
+                                              "label": "D[wh]",
+                                              "lineageId": "whichDeterminer",
+                                              "silent": true,
+                                              "word": "Which"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "violinistLow",
+                                              "label": "N",
+                                              "lineageId": "violinistNoun",
+                                              "silent": true,
+                                              "word": "violinist"
+                                            }
+                                          ],
+                                          "id": "whLow",
+                                          "label": "D",
+                                          "lineageId": "interrogativeNominal",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "verbObject",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "verbalDomain",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "externalArgument",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "phaseEdge",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "tenseDomain",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "finiteClause",
+                  "label": "T"
+                }
+              ],
+              "id": "questionDomain",
+              "label": "C"
+            }
+          ],
+          "id": "completedQuestion",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

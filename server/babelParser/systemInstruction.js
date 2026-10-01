@@ -2,7 +2,7 @@ const XBAR_INSTRUCTION = "Analyze the input within X-bar Theory and Government a
 
 const MINIMALISM_INSTRUCTION = "Analyze the input within the Minimalist Program using Bare Phrase Structure. Explain the sentence-specific structural choices and derivational commitments in the stage records.";
 
-export const DERIVATION_STAGES_BASE_INSTRUCTION = `Analyze the exact input, including an ungrammatical input. Explain any judgment within the selected framework rather than changing the sentence.
+export const DERIVATION_STAGES_BASE_INSTRUCTION = `Analyze the exact input within the selected framework.
 
 Response
 Return only a single valid JSON object.
@@ -10,12 +10,12 @@ For one analysis, its only field is derivationStages, a nonempty array of stages
 For structural ambiguity, the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages. Include every distinct structurally supported reading, without duplicate analyses or an arbitrary count limit.
 
 Stages
-Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input. A completed analysis may establish that the input is illicit.
+Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input.
 An occurrence moves only from a position that an earlier stage already shows. Several connected operations may share a stage when their order is recoverable from the workspace changes and any relations independently required by the definition below. Replay derives its construction steps from workspace changes; do not add relations solely to narrate those steps. If the required order depends on an intermediate workspace, record that workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these four required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
-- relations: an array of this stage's relations, as defined below.
+- relations: an array of relations introduced or changed in this stage.
 - workspaceForest: an array containing every currently active syntax tree or separate syntax object after these operations.
 It may then contain realizations, the optional input-association field defined below. No other stage fields are allowed.
 These fields describe the same analysis. Show the structure the stage record requires, including intermediate positions that matter. Higher structure must preserve or build its lower structure within the chronological derivation. After objects combine, show their combined structure rather than retaining their former independent roots.
@@ -67,7 +67,7 @@ List relations in the derivational order explained in stageRecord, with prerequi
 Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation. Do not substitute a different occurrence introduced only by a later relation merely because it shares lineage.
 
 Input words
-In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization. Exact input coverage is required even for an ungrammatical input; it is not a grammaticality judgment.`;
+In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
 
 export const buildSystemInstruction = (framework = 'xbar', modelRoute = 'gemini') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +

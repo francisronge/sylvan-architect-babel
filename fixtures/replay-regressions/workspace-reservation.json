@@ -1,0 +1,3401 @@
+{
+  "cases": [
+    {
+      "key": "arabic-relative-predicate/0",
+      "sentence": "الكتب التي اشتراها سامر ليست هنا.",
+      "inputTokens": [
+        "الكتب",
+        "التي",
+        "اشتراها",
+        "سامر",
+        "ليست",
+        "هنا"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "inflectedVerb": "verb",
+                "pronominalArgument": "object"
+              },
+              "relation": "Object-clitic licensing",
+              "values": {
+                "implementation": "The overt object suffix licenses a silent doubled pronoun.",
+                "objectFeatures": "third person feminine singular",
+                "thetaRole": "theme"
+              }
+            }
+          ],
+          "stageRecord": "The relative clause means ‘which Samer bought’. Merge the verb with a silent pronominal internal argument, and construct سامر as a definite nominal in a separate workspace object. This analysis adopts a clitic-doubling implementation of Arabic object suffixes: اشتراها is an opaque, inflected verbal terminal, including the feminine singular object clitic, while a silent pronominal argument occupies its complement position. Thus the suffix is not independently tokenized or subsequently assembled by a realization group. The silent object will support resumption rather than an extraction gap. Labels identify the heads that project under Bare Phrase Structure; repeated labels do not introduce an X-bar template.",
+          "statement": "Construct the relative predicate and select its external argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "verb",
+                  "label": "V [past; object clitic 3fsg]",
+                  "lineageId": "verb-chain",
+                  "tokenIndex": 2,
+                  "word": "اشتراها"
+                },
+                {
+                  "children": [],
+                  "id": "object",
+                  "label": "D [pro; 3fsg]",
+                  "silent": true
+                }
+              ],
+              "id": "vp",
+              "label": "V"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "samer-d",
+                  "label": "D [definite]",
+                  "silent": true
+                },
+                {
+                  "children": [],
+                  "id": "samer-n",
+                  "label": "N [proper name; masculine singular]",
+                  "tokenIndex": 3,
+                  "word": "سامر"
+                }
+              ],
+              "id": "samer",
+              "label": "D"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "samer",
+                "assigner": "v"
+              },
+              "relation": "External theta-role assignment",
+              "values": {
+                "thetaRole": "agent"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "object",
+                "licenser": "v"
+              },
+              "relation": "Object Case licensing",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "Merge transitive v with the verbal object, then externally merge سامر as its specifier. Samer receives the agent role here, below the position that will host the finite verb. The silent object remains the verb's complement. The resulting subject-before-verb workspace is an intermediate structure, not the relative clause's final pronunciation order.",
+          "statement": "Introduce Samer as the relative clause's agent.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "samer-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "samer-n",
+                      "label": "N [proper name; masculine singular]",
+                      "tokenIndex": 3,
+                      "word": "سامر"
+                    }
+                  ],
+                  "id": "samer",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "v [transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "object",
+                          "label": "D [pro; 3fsg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement",
+                  "label": "v"
+                }
+              ],
+              "id": "vp-agent",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHost": "v",
+                "lowerTrace": "verb-trace",
+                "movedHead": "verb"
+              },
+              "priorAnchors": {
+                "source": "verb"
+              },
+              "relation": "Head movement",
+              "values": {
+                "operation": "V-to-v",
+                "representation": "overt moved head and silent lower trace"
+              }
+            }
+          ],
+          "stageRecord": "The verbal head raises from the complement structure established previously and adjoins to v. Its inflected lexical form, including the object suffix, moves as one opaque head. A silent head trace records the vacated position. This intermediate workspace is retained because the resulting complex v head must exist before it can raise to T.",
+          "statement": "Raise the relative verb to transitive v.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "samer-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "samer-n",
+                      "label": "N [proper name; masculine singular]",
+                      "tokenIndex": 3,
+                      "word": "سامر"
+                    }
+                  ],
+                  "id": "samer",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "v [transitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "complex-v",
+                      "label": "v [complex head]",
+                      "lineageId": "complex-v-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb-trace",
+                          "label": "V [trace]",
+                          "lineageId": "verb-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "object",
+                          "label": "D [pro; 3fsg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement",
+                  "label": "v"
+                }
+              ],
+              "id": "vp-agent",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHost": "relative-t",
+                "lowerTrace": "complex-v-trace",
+                "movedHead": "complex-v"
+              },
+              "priorAnchors": {
+                "source": "complex-v"
+              },
+              "relation": "Head movement",
+              "values": {
+                "operation": "v-to-T"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "samer",
+                "probe": "relative-t",
+                "verbalExponent": "verb"
+              },
+              "relation": "Finite agreement and Case licensing",
+              "values": {
+                "case": "nominative",
+                "subjectFeatures": "third person masculine singular",
+                "tense": "past"
+              }
+            }
+          ],
+          "stageRecord": "Merge past T above the agent-containing structure, then raise the previously constructed complex v head to T. The finite verb consequently precedes سامر, which remains in its external-argument position. T agrees with the postverbal subject and licenses nominative Case; no subject-raising requirement is imposed on this Arabic verb-initial clause. Past morphology is already contained in the overt verbal word, so abstract T introduces no additional pronounced material.",
+          "statement": "Establish finite verb–subject order inside the relative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "v [transitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "complex-v",
+                      "label": "v [complex head]",
+                      "lineageId": "complex-v-chain"
+                    },
+                    {
+                      "children": [],
+                      "id": "relative-t",
+                      "label": "T [past; finite]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relative-finite-head",
+                  "label": "T [complex head]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "samer-d",
+                          "label": "D [definite]",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "samer-n",
+                          "label": "N [proper name; masculine singular]",
+                          "tokenIndex": 3,
+                          "word": "سامر"
+                        }
+                      ],
+                      "id": "samer",
+                      "label": "D"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "complex-v-trace",
+                          "label": "v [head trace]",
+                          "lineageId": "complex-v-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verb-trace",
+                              "label": "V [trace]",
+                              "lineageId": "verb-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "object",
+                              "label": "D [pro; 3fsg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "v-complement",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "vp-agent",
+                  "label": "v"
+                }
+              ],
+              "id": "relative-tp",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "binder": "relative-op",
+                "cliticExponent": "verb",
+                "resumptiveArgument": "object"
+              },
+              "relation": "Resumptive operator binding",
+              "values": {
+                "dependency": "base-generated operator binds a pronominal object; no object extraction"
+              }
+            },
+            {
+              "anchors": {
+                "nominalHost": "books-dp",
+                "operator": "relative-op",
+                "relativeAdjunct": "relative-cp"
+              },
+              "relation": "Restrictive relative adjunction",
+              "values": {
+                "interpretation": "books x such that Samer bought x",
+                "mergeType": "pair-Merge"
+              }
+            },
+            {
+              "anchors": {
+                "antecedent": "books-n",
+                "relativeMarker": "relative-c",
+                "resumptive": "object"
+              },
+              "relation": "Relative concord",
+              "values": {
+                "antecedentClass": "nonhuman plural",
+                "concord": "feminine singular"
+              }
+            }
+          ],
+          "stageRecord": "Merge التي as relative C with the finite clause and externally merge a silent relative operator at its edge. The operator binds the pronominal object; it is not moved out of the object position. Construct الكتب as a definite nominal and attach the relative as its restrictive adjunct, using pair-Merge represented by a D-labeled adjunction node. The pronounced noun retains its definite article as part of its whole-word form; a silent D supplies the nominal's syntactic definiteness without a second article exponent. Nonhuman plural الكتب licenses feminine singular relative concord, explaining التي and the resumptive suffix ها.",
+          "statement": "Build the resumptive relative and the definite nominal it modifies.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "books-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "books-n",
+                      "label": "N [definite; nonhuman plural]",
+                      "tokenIndex": 0,
+                      "word": "الكتب"
+                    }
+                  ],
+                  "id": "books-dp",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative-op",
+                      "label": "D [relative operator]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative-c",
+                          "label": "C [relative; feminine singular]",
+                          "tokenIndex": 1,
+                          "word": "التي"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verb",
+                                      "label": "V [past; object clitic 3fsg]",
+                                      "lineageId": "verb-chain",
+                                      "tokenIndex": 2,
+                                      "word": "اشتراها"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "v [transitive]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "complex-v",
+                                  "label": "v [complex head]",
+                                  "lineageId": "complex-v-chain"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "relative-t",
+                                  "label": "T [past; finite]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "relative-finite-head",
+                              "label": "T [complex head]"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "samer-d",
+                                      "label": "D [definite]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "samer-n",
+                                      "label": "N [proper name; masculine singular]",
+                                      "tokenIndex": 3,
+                                      "word": "سامر"
+                                    }
+                                  ],
+                                  "id": "samer",
+                                  "label": "D"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "complex-v-trace",
+                                      "label": "v [head trace]",
+                                      "lineageId": "complex-v-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb-trace",
+                                          "label": "V [trace]",
+                                          "lineageId": "verb-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "object",
+                                          "label": "D [pro; 3fsg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vp",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "v-complement",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "vp-agent",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "relative-tp",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relative-c-complement",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relative-cp",
+                  "label": "C [relative]"
+                }
+              ],
+              "id": "restricted-books",
+              "label": "D [relative-adjoined]",
+              "lineageId": "books-chain"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "predicate": "here",
+                "predicationHead": "pred",
+                "subject": "restricted-books"
+              },
+              "relation": "Locative predication",
+              "values": {
+                "interpretation": "the books Samer bought are located here"
+              }
+            }
+          ],
+          "stageRecord": "Merge the deictic locative هنا with a silent predication head, then externally merge the complete modified nominal as the predication's subject. This reading therefore gives الكتب التي اشتراها سامر an argument position inside the matrix predication before any movement to the clause edge. هنا is the locative predicate, not an adjunct to ‘bought’.",
+          "statement": "Merge the modified nominal as the subject of locative predication.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "books-d",
+                          "label": "D [definite]",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "books-n",
+                          "label": "N [definite; nonhuman plural]",
+                          "tokenIndex": 0,
+                          "word": "الكتب"
+                        }
+                      ],
+                      "id": "books-dp",
+                      "label": "D"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative-op",
+                          "label": "D [relative operator]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relative-c",
+                              "label": "C [relative; feminine singular]",
+                              "tokenIndex": 1,
+                              "word": "التي"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb",
+                                          "label": "V [past; object clitic 3fsg]",
+                                          "lineageId": "verb-chain",
+                                          "tokenIndex": 2,
+                                          "word": "اشتراها"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "v",
+                                          "label": "v [transitive]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "complex-v",
+                                      "label": "v [complex head]",
+                                      "lineageId": "complex-v-chain"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "relative-t",
+                                      "label": "T [past; finite]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "relative-finite-head",
+                                  "label": "T [complex head]"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "samer-d",
+                                          "label": "D [definite]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "samer-n",
+                                          "label": "N [proper name; masculine singular]",
+                                          "tokenIndex": 3,
+                                          "word": "سامر"
+                                        }
+                                      ],
+                                      "id": "samer",
+                                      "label": "D"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "complex-v-trace",
+                                          "label": "v [head trace]",
+                                          "lineageId": "complex-v-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "verb-trace",
+                                              "label": "V [trace]",
+                                              "lineageId": "verb-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "object",
+                                              "label": "D [pro; 3fsg]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "vp",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "v-complement",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "vp-agent",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "relative-tp",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "relative-c-complement",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "relative-cp",
+                      "label": "C [relative]"
+                    }
+                  ],
+                  "id": "restricted-books",
+                  "label": "D [relative-adjoined]",
+                  "lineageId": "books-chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "pred",
+                      "label": "Pred [locative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "here",
+                      "label": "Adv [deictic locative]",
+                      "tokenIndex": 5,
+                      "word": "هنا"
+                    }
+                  ],
+                  "id": "pred-complement",
+                  "label": "Pred"
+                }
+              ],
+              "id": "matrix-predication",
+              "label": "Pred"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "restricted-books",
+                "probe": "negative-copula"
+              },
+              "relation": "Matrix agreement and Case licensing",
+              "values": {
+                "agreement": "feminine singular with a nonhuman plural subject",
+                "case": "nominative",
+                "polarity": "negative",
+                "temporalInterpretation": "present"
+              }
+            }
+          ],
+          "stageRecord": "Merge ليست above the locative predication as a finite negative copular head bearing bundled T and negation features. This implementation does not posit an additional silent negative projection or derive ليست by head movement. It is an opaque whole-word terminal, including its feminine singular inflection. The head agrees with the nonhuman plural nominal, whose Arabic agreement realization is feminine singular, and licenses nominative Case. Although ليس belongs morphologically to the perfect-like copular paradigm, this sentence expresses present locative negation, not past non-location.",
+          "statement": "Introduce the negative finite copula and license the matrix subject.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "negative-copula",
+                  "label": "T/Neg [finite negative copula; feminine singular]",
+                  "tokenIndex": 4,
+                  "word": "ليست"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "books-d",
+                              "label": "D [definite]",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "books-n",
+                              "label": "N [definite; nonhuman plural]",
+                              "tokenIndex": 0,
+                              "word": "الكتب"
+                            }
+                          ],
+                          "id": "books-dp",
+                          "label": "D"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relative-op",
+                              "label": "D [relative operator]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relative-c",
+                                  "label": "C [relative; feminine singular]",
+                                  "tokenIndex": 1,
+                                  "word": "التي"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "verb",
+                                              "label": "V [past; object clitic 3fsg]",
+                                              "lineageId": "verb-chain",
+                                              "tokenIndex": 2,
+                                              "word": "اشتراها"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "v",
+                                              "label": "v [transitive]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "complex-v",
+                                          "label": "v [complex head]",
+                                          "lineageId": "complex-v-chain"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relative-t",
+                                          "label": "T [past; finite]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "relative-finite-head",
+                                      "label": "T [complex head]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "samer-d",
+                                              "label": "D [definite]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "samer-n",
+                                              "label": "N [proper name; masculine singular]",
+                                              "tokenIndex": 3,
+                                              "word": "سامر"
+                                            }
+                                          ],
+                                          "id": "samer",
+                                          "label": "D"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "complex-v-trace",
+                                              "label": "v [head trace]",
+                                              "lineageId": "complex-v-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "verb-trace",
+                                                  "label": "V [trace]",
+                                                  "lineageId": "verb-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "object",
+                                                  "label": "D [pro; 3fsg]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "vp",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "v-complement",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "vp-agent",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "relative-tp",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relative-c-complement",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relative-cp",
+                          "label": "C [relative]"
+                        }
+                      ],
+                      "id": "restricted-books",
+                      "label": "D [relative-adjoined]",
+                      "lineageId": "books-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "pred",
+                          "label": "Pred [locative]",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "here",
+                          "label": "Adv [deictic locative]",
+                          "tokenIndex": 5,
+                          "word": "هنا"
+                        }
+                      ],
+                      "id": "pred-complement",
+                      "label": "Pred"
+                    }
+                  ],
+                  "id": "matrix-predication",
+                  "label": "Pred"
+                }
+              ],
+              "id": "matrix-t-complement",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "licensingHead": "negative-copula",
+                "lowerTrace": "books-trace",
+                "raisedSubject": "restricted-books"
+              },
+              "priorAnchors": {
+                "source": "restricted-books"
+              },
+              "relation": "Subject A-movement",
+              "values": {
+                "operation": "Internal Merge to the matrix T edge",
+                "representation": "pronounced upper occurrence and silent lower trace"
+              }
+            },
+            {
+              "anchors": {
+                "negativeHead": "negative-copula",
+                "scope": "matrix-predication"
+              },
+              "relation": "Negative scope",
+              "values": {
+                "interpretation": "negation of the books' being here, not of Samer's buying them"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the complete modified nominal from its established predication-subject position into the matrix T edge, satisfying the subject-edge requirement of this subject-initial analysis. Use a silent trace rather than a fully articulated lower copy; the moved nominal and that trace share syntactic identity. Its relative clause moves with it. Finally merge a silent declarative C. The pronounced order is الكتب التي اشتراها سامر ليست هنا, interpreted as ‘The books that Samer bought are not here’. The supplied final punctuation is not a separate input token.",
+          "statement": "Complete the raised-subject analysis.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrix-c",
+                  "label": "C [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "books-d",
+                              "label": "D [definite]",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "books-n",
+                              "label": "N [definite; nonhuman plural]",
+                              "tokenIndex": 0,
+                              "word": "الكتب"
+                            }
+                          ],
+                          "id": "books-dp",
+                          "label": "D"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relative-op",
+                              "label": "D [relative operator]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relative-c",
+                                  "label": "C [relative; feminine singular]",
+                                  "tokenIndex": 1,
+                                  "word": "التي"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "verb",
+                                              "label": "V [past; object clitic 3fsg]",
+                                              "lineageId": "verb-chain",
+                                              "tokenIndex": 2,
+                                              "word": "اشتراها"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "v",
+                                              "label": "v [transitive]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "complex-v",
+                                          "label": "v [complex head]",
+                                          "lineageId": "complex-v-chain"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relative-t",
+                                          "label": "T [past; finite]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "relative-finite-head",
+                                      "label": "T [complex head]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "samer-d",
+                                              "label": "D [definite]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "samer-n",
+                                              "label": "N [proper name; masculine singular]",
+                                              "tokenIndex": 3,
+                                              "word": "سامر"
+                                            }
+                                          ],
+                                          "id": "samer",
+                                          "label": "D"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "complex-v-trace",
+                                              "label": "v [head trace]",
+                                              "lineageId": "complex-v-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "verb-trace",
+                                                  "label": "V [trace]",
+                                                  "lineageId": "verb-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "object",
+                                                  "label": "D [pro; 3fsg]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "vp",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "v-complement",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "vp-agent",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "relative-tp",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relative-c-complement",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relative-cp",
+                          "label": "C [relative]"
+                        }
+                      ],
+                      "id": "restricted-books",
+                      "label": "D [relative-adjoined]",
+                      "lineageId": "books-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "negative-copula",
+                          "label": "T/Neg [finite negative copula; feminine singular]",
+                          "tokenIndex": 4,
+                          "word": "ليست"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "books-trace",
+                              "label": "D [subject trace]",
+                              "lineageId": "books-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "pred",
+                                  "label": "Pred [locative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "here",
+                                  "label": "Adv [deictic locative]",
+                                  "tokenIndex": 5,
+                                  "word": "هنا"
+                                }
+                              ],
+                              "id": "pred-complement",
+                              "label": "Pred"
+                            }
+                          ],
+                          "id": "matrix-predication",
+                          "label": "Pred"
+                        }
+                      ],
+                      "id": "matrix-t-complement",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "matrix-tp",
+                  "label": "T"
+                }
+              ],
+              "id": "matrix-cp",
+              "label": "C [declarative]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "arabic-relative-predicate/1",
+      "sentence": "الكتب التي اشتراها سامر ليست هنا.",
+      "inputTokens": [
+        "الكتب",
+        "التي",
+        "اشتراها",
+        "سامر",
+        "ليست",
+        "هنا"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "inflectedVerb": "verb",
+                "pronominalArgument": "object"
+              },
+              "relation": "Object-clitic licensing",
+              "values": {
+                "implementation": "The overt object suffix licenses a silent doubled pronoun.",
+                "objectFeatures": "third person feminine singular",
+                "thetaRole": "theme"
+              }
+            }
+          ],
+          "stageRecord": "The second analysis shares the relative clause structure with the first but will base-generate the initial nominal as a topic. Begin by merging the verb with a silent pronominal object and constructing سامر separately. Adopt a clitic-doubling implementation: اشتراها is an opaque inflected verbal terminal containing the object suffix, and a silent doubled pronoun occupies its complement position. The feminine singular suffix therefore requires no separate realization group. Bare Phrase Structure labels name projecting heads rather than stipulated phrase-level templates.",
+          "statement": "Construct the relative predicate and select its external argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "verb",
+                  "label": "V [past; object clitic 3fsg]",
+                  "lineageId": "verb-chain",
+                  "tokenIndex": 2,
+                  "word": "اشتراها"
+                },
+                {
+                  "children": [],
+                  "id": "object",
+                  "label": "D [pro; 3fsg]",
+                  "silent": true
+                }
+              ],
+              "id": "vp",
+              "label": "V"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "samer-d",
+                  "label": "D [definite]",
+                  "silent": true
+                },
+                {
+                  "children": [],
+                  "id": "samer-n",
+                  "label": "N [proper name; masculine singular]",
+                  "tokenIndex": 3,
+                  "word": "سامر"
+                }
+              ],
+              "id": "samer",
+              "label": "D"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "samer",
+                "assigner": "v"
+              },
+              "relation": "External theta-role assignment",
+              "values": {
+                "thetaRole": "agent"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "object",
+                "licenser": "v"
+              },
+              "relation": "Object Case licensing",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "Merge transitive v with the verbal structure, then merge سامر as its specifier and agent. The pronominal object receives accusative licensing from transitive v. Samer is initially higher than the lexical verb but will remain below the finite head reached by verb movement.",
+          "statement": "Introduce the relative clause's external argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "samer-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "samer-n",
+                      "label": "N [proper name; masculine singular]",
+                      "tokenIndex": 3,
+                      "word": "سامر"
+                    }
+                  ],
+                  "id": "samer",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "v [transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "object",
+                          "label": "D [pro; 3fsg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement",
+                  "label": "v"
+                }
+              ],
+              "id": "vp-agent",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHost": "v",
+                "lowerTrace": "verb-trace",
+                "movedHead": "verb"
+              },
+              "priorAnchors": {
+                "source": "verb"
+              },
+              "relation": "Head movement",
+              "values": {
+                "operation": "V-to-v",
+                "representation": "overt moved head and silent lower trace"
+              }
+            }
+          ],
+          "stageRecord": "Raise the overt verbal head to v from the complement position already present in the workspace. Its object-clitic morphology accompanies it because the word is syntactically opaque in this implementation. Leave a silent V trace. Recording this complex head now provides the independently established source for the next movement step.",
+          "statement": "Form the intermediate raised verbal head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "samer-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "samer-n",
+                      "label": "N [proper name; masculine singular]",
+                      "tokenIndex": 3,
+                      "word": "سامر"
+                    }
+                  ],
+                  "id": "samer",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "v [transitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "complex-v",
+                      "label": "v [complex head]",
+                      "lineageId": "complex-v-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb-trace",
+                          "label": "V [trace]",
+                          "lineageId": "verb-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "object",
+                          "label": "D [pro; 3fsg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement",
+                  "label": "v"
+                }
+              ],
+              "id": "vp-agent",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHost": "relative-t",
+                "lowerTrace": "complex-v-trace",
+                "movedHead": "complex-v"
+              },
+              "priorAnchors": {
+                "source": "complex-v"
+              },
+              "relation": "Head movement",
+              "values": {
+                "operation": "v-to-T"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "samer",
+                "probe": "relative-t",
+                "verbalExponent": "verb"
+              },
+              "relation": "Finite agreement and Case licensing",
+              "values": {
+                "case": "nominative",
+                "subjectFeatures": "third person masculine singular",
+                "tense": "past"
+              }
+            }
+          ],
+          "stageRecord": "Merge past T and raise the existing complex v head to it, leaving a silent head trace. T agrees with سامر and licenses its nominative Case without requiring movement of the subject. The result places اشتراها before سامر. The inflected verbal word already contains the past-tense realization; T itself remains silent.",
+          "statement": "Complete the finite verb-initial relative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V [past; object clitic 3fsg]",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "اشتراها"
+                        },
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "v [transitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "complex-v",
+                      "label": "v [complex head]",
+                      "lineageId": "complex-v-chain"
+                    },
+                    {
+                      "children": [],
+                      "id": "relative-t",
+                      "label": "T [past; finite]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relative-finite-head",
+                  "label": "T [complex head]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "samer-d",
+                          "label": "D [definite]",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "samer-n",
+                          "label": "N [proper name; masculine singular]",
+                          "tokenIndex": 3,
+                          "word": "سامر"
+                        }
+                      ],
+                      "id": "samer",
+                      "label": "D"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "complex-v-trace",
+                          "label": "v [head trace]",
+                          "lineageId": "complex-v-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verb-trace",
+                              "label": "V [trace]",
+                              "lineageId": "verb-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "object",
+                              "label": "D [pro; 3fsg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "v-complement",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "vp-agent",
+                  "label": "v"
+                }
+              ],
+              "id": "relative-tp",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "binder": "relative-op",
+                "cliticExponent": "verb",
+                "resumptiveArgument": "object"
+              },
+              "relation": "Resumptive operator binding",
+              "values": {
+                "dependency": "base-generated operator binds a pronominal object; no object extraction"
+              }
+            },
+            {
+              "anchors": {
+                "nominalHost": "books-dp",
+                "operator": "relative-op",
+                "relativeAdjunct": "relative-cp"
+              },
+              "relation": "Restrictive relative adjunction",
+              "values": {
+                "interpretation": "books x such that Samer bought x",
+                "mergeType": "pair-Merge"
+              }
+            },
+            {
+              "anchors": {
+                "antecedent": "books-n",
+                "relativeMarker": "relative-c",
+                "resumptive": "object"
+              },
+              "relation": "Relative concord",
+              "values": {
+                "antecedentClass": "nonhuman plural",
+                "concord": "feminine singular"
+              }
+            }
+          ],
+          "stageRecord": "Merge relative C التي with the finite clause and externally merge a silent operator at its edge. The operator binds the silent object doubled by ها; there is no movement from the object position. Construct definite الكتب, retaining the article within the pronounced noun and using a silent syntactic D, then pair-merge the relative as a restrictive adjunct. Nonhuman plural reference supports feminine singular concord on التي and the resumptive object. At this point the modified nominal has not been merged into any matrix argument position.",
+          "statement": "Construct the relative-modified nominal that will serve as topic.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "books-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "books-n",
+                      "label": "N [definite; nonhuman plural]",
+                      "tokenIndex": 0,
+                      "word": "الكتب"
+                    }
+                  ],
+                  "id": "books-dp",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative-op",
+                      "label": "D [relative operator]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative-c",
+                          "label": "C [relative; feminine singular]",
+                          "tokenIndex": 1,
+                          "word": "التي"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verb",
+                                      "label": "V [past; object clitic 3fsg]",
+                                      "lineageId": "verb-chain",
+                                      "tokenIndex": 2,
+                                      "word": "اشتراها"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "v [transitive]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "complex-v",
+                                  "label": "v [complex head]",
+                                  "lineageId": "complex-v-chain"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "relative-t",
+                                  "label": "T [past; finite]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "relative-finite-head",
+                              "label": "T [complex head]"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "samer-d",
+                                      "label": "D [definite]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "samer-n",
+                                      "label": "N [proper name; masculine singular]",
+                                      "tokenIndex": 3,
+                                      "word": "سامر"
+                                    }
+                                  ],
+                                  "id": "samer",
+                                  "label": "D"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "complex-v-trace",
+                                      "label": "v [head trace]",
+                                      "lineageId": "complex-v-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb-trace",
+                                          "label": "V [trace]",
+                                          "lineageId": "verb-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "object",
+                                          "label": "D [pro; 3fsg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vp",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "v-complement",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "vp-agent",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "relative-tp",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relative-c-complement",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relative-cp",
+                  "label": "C [relative]"
+                }
+              ],
+              "id": "restricted-books",
+              "label": "D [relative-adjoined]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "predicate": "here",
+                "predicationHead": "pred",
+                "subject": "matrix-pro"
+              },
+              "relation": "Locative predication",
+              "values": {
+                "interpretation": "the referent of the null subject is located here"
+              }
+            }
+          ],
+          "stageRecord": "Keep the modified nominal separate. Independently merge هنا with silent Pred and merge a referential null pronoun as the predication's subject. Arabic permits a null subject licensed by finite copular agreement. This creates the structural alternative to subject raising of the overt nominal: the books expression will be an external topic, while a distinct pronominal argument receives the locative subject role. The topic–pronoun dependency is not yet established.",
+          "statement": "Build a separate locative predication with a null pronominal subject.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "books-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "books-n",
+                      "label": "N [definite; nonhuman plural]",
+                      "tokenIndex": 0,
+                      "word": "الكتب"
+                    }
+                  ],
+                  "id": "books-dp",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative-op",
+                      "label": "D [relative operator]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative-c",
+                          "label": "C [relative; feminine singular]",
+                          "tokenIndex": 1,
+                          "word": "التي"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verb",
+                                      "label": "V [past; object clitic 3fsg]",
+                                      "lineageId": "verb-chain",
+                                      "tokenIndex": 2,
+                                      "word": "اشتراها"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "v [transitive]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "complex-v",
+                                  "label": "v [complex head]",
+                                  "lineageId": "complex-v-chain"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "relative-t",
+                                  "label": "T [past; finite]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "relative-finite-head",
+                              "label": "T [complex head]"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "samer-d",
+                                      "label": "D [definite]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "samer-n",
+                                      "label": "N [proper name; masculine singular]",
+                                      "tokenIndex": 3,
+                                      "word": "سامر"
+                                    }
+                                  ],
+                                  "id": "samer",
+                                  "label": "D"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "complex-v-trace",
+                                      "label": "v [head trace]",
+                                      "lineageId": "complex-v-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb-trace",
+                                          "label": "V [trace]",
+                                          "lineageId": "verb-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "object",
+                                          "label": "D [pro; 3fsg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vp",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "v-complement",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "vp-agent",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "relative-tp",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relative-c-complement",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relative-cp",
+                  "label": "C [relative]"
+                }
+              ],
+              "id": "restricted-books",
+              "label": "D [relative-adjoined]"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrix-pro",
+                  "label": "D [referential pro; 3fsg agreement]",
+                  "lineageId": "matrix-pro-chain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "pred",
+                      "label": "Pred [locative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "here",
+                      "label": "Adv [deictic locative]",
+                      "tokenIndex": 5,
+                      "word": "هنا"
+                    }
+                  ],
+                  "id": "pred-complement",
+                  "label": "Pred"
+                }
+              ],
+              "id": "matrix-predication",
+              "label": "Pred"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "finiteHead": "negative-copula",
+                "subject": "matrix-pro"
+              },
+              "relation": "Null-subject licensing and agreement",
+              "values": {
+                "agreement": "third person feminine singular",
+                "case": "nominative",
+                "polarity": "negative",
+                "temporalInterpretation": "present"
+              }
+            }
+          ],
+          "stageRecord": "Merge ليست with the locative predication as a bundled finite T/Neg copular head. Its feminine singular agreement licenses the null pronominal subject and nominative Case. The copula is a whole-word lexical terminal, not a sequence assembled by syntactic head movement. Its interpretation here is present negation despite its perfect-like inflectional paradigm. The overt books nominal remains outside this finite structure.",
+          "statement": "License the null subject with the finite negative copula.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "books-d",
+                      "label": "D [definite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "books-n",
+                      "label": "N [definite; nonhuman plural]",
+                      "tokenIndex": 0,
+                      "word": "الكتب"
+                    }
+                  ],
+                  "id": "books-dp",
+                  "label": "D"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative-op",
+                      "label": "D [relative operator]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative-c",
+                          "label": "C [relative; feminine singular]",
+                          "tokenIndex": 1,
+                          "word": "التي"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verb",
+                                      "label": "V [past; object clitic 3fsg]",
+                                      "lineageId": "verb-chain",
+                                      "tokenIndex": 2,
+                                      "word": "اشتراها"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "v [transitive]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "complex-v",
+                                  "label": "v [complex head]",
+                                  "lineageId": "complex-v-chain"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "relative-t",
+                                  "label": "T [past; finite]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "relative-finite-head",
+                              "label": "T [complex head]"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "samer-d",
+                                      "label": "D [definite]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "samer-n",
+                                      "label": "N [proper name; masculine singular]",
+                                      "tokenIndex": 3,
+                                      "word": "سامر"
+                                    }
+                                  ],
+                                  "id": "samer",
+                                  "label": "D"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "complex-v-trace",
+                                      "label": "v [head trace]",
+                                      "lineageId": "complex-v-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb-trace",
+                                          "label": "V [trace]",
+                                          "lineageId": "verb-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "object",
+                                          "label": "D [pro; 3fsg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vp",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "v-complement",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "vp-agent",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "relative-tp",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relative-c-complement",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relative-cp",
+                  "label": "C [relative]"
+                }
+              ],
+              "id": "restricted-books",
+              "label": "D [relative-adjoined]"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "negative-copula",
+                  "label": "T/Neg [finite negative copula; feminine singular]",
+                  "tokenIndex": 4,
+                  "word": "ليست"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrix-pro",
+                      "label": "D [referential pro; 3fsg agreement]",
+                      "lineageId": "matrix-pro-chain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "pred",
+                          "label": "Pred [locative]",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "here",
+                          "label": "Adv [deictic locative]",
+                          "tokenIndex": 5,
+                          "word": "هنا"
+                        }
+                      ],
+                      "id": "pred-complement",
+                      "label": "Pred"
+                    }
+                  ],
+                  "id": "matrix-predication",
+                  "label": "Pred"
+                }
+              ],
+              "id": "matrix-t-complement",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "licensingHead": "negative-copula",
+                "lowerTrace": "matrix-pro-trace",
+                "raisedSubject": "matrix-pro"
+              },
+              "priorAnchors": {
+                "source": "matrix-pro"
+              },
+              "relation": "Null-subject A-movement",
+              "values": {
+                "operation": "Internal Merge to the matrix T edge",
+                "representation": "silent pronoun and silent lower trace"
+              }
+            },
+            {
+              "anchors": {
+                "pronominalSubject": "matrix-pro",
+                "topic": "restricted-books",
+                "topicHead": "topic-head"
+              },
+              "relation": "Topic–subject anaphoric dependency",
+              "values": {
+                "agreementCompatibility": "feminine singular",
+                "dependency": "base-generated topic identifies a distinct null subject",
+                "reference": "the nonhuman plural books that Samer bought",
+                "topicLicensing": "nominative topic"
+              }
+            },
+            {
+              "anchors": {
+                "negativeHead": "negative-copula",
+                "scope": "matrix-predication"
+              },
+              "relation": "Negative scope",
+              "values": {
+                "interpretation": "negation of the topic referent's being here, not of Samer's buying the books"
+              }
+            }
+          ],
+          "stageRecord": "First internally merge the null subject from its established predication position to the T edge, leaving a silent trace. Then merge a silent Topic head with that finite clause and externally merge the independently constructed books nominal as its topic. The topic identifies the null subject's referent; this is an anaphoric dependency between distinct syntactic objects, not a movement chain connecting the overt nominal to the predication. Nonhuman plural reference is compatible with the pronoun's feminine singular agreement. A silent declarative C closes the clause. The resulting topic–comment interpretation is ‘As for the books that Samer bought, they are not here’. It has the same overt token sequence and essentially the same truth conditions as the raised-subject analysis, but a different argument structure and discourse articulation; no comma is required to license the Arabic topic construction.",
+          "statement": "Complete the base-generated topic analysis.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrix-c",
+                  "label": "C [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "books-d",
+                              "label": "D [definite]",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "books-n",
+                              "label": "N [definite; nonhuman plural]",
+                              "tokenIndex": 0,
+                              "word": "الكتب"
+                            }
+                          ],
+                          "id": "books-dp",
+                          "label": "D"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relative-op",
+                              "label": "D [relative operator]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relative-c",
+                                  "label": "C [relative; feminine singular]",
+                                  "tokenIndex": 1,
+                                  "word": "التي"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "verb",
+                                              "label": "V [past; object clitic 3fsg]",
+                                              "lineageId": "verb-chain",
+                                              "tokenIndex": 2,
+                                              "word": "اشتراها"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "v",
+                                              "label": "v [transitive]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "complex-v",
+                                          "label": "v [complex head]",
+                                          "lineageId": "complex-v-chain"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relative-t",
+                                          "label": "T [past; finite]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "relative-finite-head",
+                                      "label": "T [complex head]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "samer-d",
+                                              "label": "D [definite]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "samer-n",
+                                              "label": "N [proper name; masculine singular]",
+                                              "tokenIndex": 3,
+                                              "word": "سامر"
+                                            }
+                                          ],
+                                          "id": "samer",
+                                          "label": "D"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "complex-v-trace",
+                                              "label": "v [head trace]",
+                                              "lineageId": "complex-v-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "verb-trace",
+                                                  "label": "V [trace]",
+                                                  "lineageId": "verb-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "object",
+                                                  "label": "D [pro; 3fsg]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "vp",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "v-complement",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "vp-agent",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "relative-tp",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relative-c-complement",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relative-cp",
+                          "label": "C [relative]"
+                        }
+                      ],
+                      "id": "restricted-books",
+                      "label": "D [relative-adjoined]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "topic-head",
+                          "label": "Top [aboutness]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrix-pro",
+                              "label": "D [referential pro; 3fsg agreement]",
+                              "lineageId": "matrix-pro-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "negative-copula",
+                                  "label": "T/Neg [finite negative copula; feminine singular]",
+                                  "tokenIndex": 4,
+                                  "word": "ليست"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrix-pro-trace",
+                                      "label": "D [subject trace]",
+                                      "lineageId": "matrix-pro-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "pred",
+                                          "label": "Pred [locative]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "here",
+                                          "label": "Adv [deictic locative]",
+                                          "tokenIndex": 5,
+                                          "word": "هنا"
+                                        }
+                                      ],
+                                      "id": "pred-complement",
+                                      "label": "Pred"
+                                    }
+                                  ],
+                                  "id": "matrix-predication",
+                                  "label": "Pred"
+                                }
+                              ],
+                              "id": "matrix-t-complement",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "matrix-tp",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "topic-complement",
+                      "label": "Top"
+                    }
+                  ],
+                  "id": "topic-projection",
+                  "label": "Top"
+                }
+              ],
+              "id": "matrix-cp",
+              "label": "C [declarative]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "icelandic-raising-passive/0",
+      "sentence": "Þessum börnum virðist hafa verið hjálpað.",
+      "inputTokens": [
+        "Þessum",
+        "börnum",
+        "virðist",
+        "hafa",
+        "verið",
+        "hjálpað"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "objectDP",
+                "predicate": "helpV"
+              },
+              "relation": "Lexical Case and theta-role assignment",
+              "values": {
+                "case": "dative",
+                "thetaRole": "beneficiary or help-recipient"
+              }
+            },
+            {
+              "anchors": {
+                "internalArgument": "objectDP",
+                "participle": "helpV",
+                "passiveAuxiliary": "beenV"
+              },
+              "relation": "Passive argument realization",
+              "values": {
+                "externalArgument": "implicit helper; no overt external theta-position is filled",
+                "lexicalCase": "dative is retained under passivization",
+                "participialForm": "default neuter singular, not agreement with the dative plural DP"
+              }
+            }
+          ],
+          "stageRecord": "The embedded predicate is built from hjálpað and its internal argument Þessum börnum. The demonstrative heads a DP containing the nominal projection börnum; both words bear dative plural morphology. Hjálpa assigns lexical dative to its help-recipient argument, and passive formation preserves that Case rather than replacing it with nominative. The passive auxiliary verið selects the participial VP. In the auxiliary-in-I implementation adopted here, infinitival perfect hafa is generated as the embedded I head and selects the passive auxiliary's VP. This is a bare infinitival IP, without an að-complementizer or an intervening CP boundary. Its subject position has not yet been filled. Passive morphology suppresses an overt external argument, leaving an implicit helper; no syntactic agent DP or null expletive is introduced. The whole-word participles are retained without a separate morphological decomposition.",
+          "statement": "Construct the infinitival perfect passive with a lexically dative internal argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "haveI",
+                      "label": "I⁰ [−finite, perfect]",
+                      "tokenIndex": 3,
+                      "word": "hafa"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "beenV",
+                              "label": "V⁰ [passive auxiliary, participle]",
+                              "tokenIndex": 4,
+                              "word": "verið"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "helpV",
+                                      "label": "V⁰ [passive participle]",
+                                      "tokenIndex": 5,
+                                      "word": "hjálpað"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "demonstrativeD",
+                                              "label": "D⁰ [demonstrative, dative plural]",
+                                              "tokenIndex": 0,
+                                              "word": "Þessum"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "childrenN",
+                                                      "label": "N⁰ [dative plural]",
+                                                      "tokenIndex": 1,
+                                                      "word": "börnum"
+                                                    }
+                                                  ],
+                                                  "id": "childrenNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "childrenNP",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "argumentDbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "objectDP",
+                                      "label": "DP [dative plural]",
+                                      "lineageId": "childrenArgument"
+                                    }
+                                  ],
+                                  "id": "lexicalVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "lexicalVP",
+                              "label": "VP [passive participle]"
+                            }
+                          ],
+                          "id": "passiveVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "passiveVP",
+                      "label": "VP [passive auxiliary]"
+                    }
+                  ],
+                  "id": "embeddedIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "embeddedIP",
+              "label": "IP [infinitival perfect passive]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "foot": "objectTrace",
+                "head": "embeddedSubjectDP",
+                "thetaGovernor": "helpV"
+              },
+              "priorAnchors": {
+                "source": "objectDP"
+              },
+              "relation": "Passive A-chain",
+              "values": {
+                "case": "lexical dative throughout the chain",
+                "thetaRole": "help-recipient, assigned only at the object position",
+                "trigger": "embedded subject requirement"
+              }
+            }
+          ],
+          "stageRecord": "The internal DP moves from the complement of hjálpað to Spec-IP of the infinitival perfect passive, leaving an A-trace in its theta-position. This establishes the embedded quirky subject. Movement satisfies the embedded subject requirement; it is not movement to obtain nominative Case, because the DP already has lexical dative. The auxiliaries introduce no intervening subject-bearing IP, so their VP projections do not require additional subject landing sites. The raised DP c-commands its trace, and the chain receives only the help-recipient theta-role assigned at its foot.",
+          "statement": "Promote the dative argument to the embedded subject position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrativeD",
+                          "label": "D⁰ [demonstrative, dative plural]",
+                          "tokenIndex": 0,
+                          "word": "Þessum"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "childrenN",
+                                  "label": "N⁰ [dative plural]",
+                                  "tokenIndex": 1,
+                                  "word": "börnum"
+                                }
+                              ],
+                              "id": "childrenNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "childrenNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "argumentDbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "embeddedSubjectDP",
+                  "label": "DP [dative plural, embedded subject]",
+                  "lineageId": "childrenArgument"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "haveI",
+                      "label": "I⁰ [−finite, perfect]",
+                      "tokenIndex": 3,
+                      "word": "hafa"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "beenV",
+                              "label": "V⁰ [passive auxiliary, participle]",
+                              "tokenIndex": 4,
+                              "word": "verið"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "helpV",
+                                      "label": "V⁰ [passive participle]",
+                                      "tokenIndex": 5,
+                                      "word": "hjálpað"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "objectTrace",
+                                      "label": "DP [A-trace, dative]",
+                                      "lineageId": "childrenArgument",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "lexicalVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "lexicalVP",
+                              "label": "VP [passive participle]"
+                            }
+                          ],
+                          "id": "passiveVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "passiveVP",
+                      "label": "VP [passive auxiliary]"
+                    }
+                  ],
+                  "id": "embeddedIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "embeddedIP",
+              "label": "IP [infinitival perfect passive]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complement": "embeddedIP",
+                "predicate": "matrixV"
+              },
+              "relation": "Raising-predicate argument structure",
+              "values": {
+                "complementType": "bare infinitival IP",
+                "dependencyType": "raising, not control",
+                "externalThetaRole": "none"
+              }
+            }
+          ],
+          "stageRecord": "Virðist is introduced as a V head selecting the already constructed infinitival IP, and the resulting VP is placed under matrix finite I. Its lexical -st form is treated as part of the raising predicate, not as another passive operation. In this use, virðist assigns no external theta-role, leaving matrix Spec-IP available for raising rather than introducing a thematic subject or a controller. Matrix I carries present-tense and default third-person singular features. The inflected word virðist is represented as a whole lexical terminal before head movement; movement will establish its syntactic relation to finite I without splitting or respelling the word.",
+          "statement": "Embed the passive IP under the finite raising predicate.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "finiteFeatures",
+                          "label": "I⁰ [present, default 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixI",
+                      "label": "I⁰ [finite]",
+                      "lineageId": "finiteInflection"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixV",
+                              "label": "V⁰ [raising predicate]",
+                              "lineageId": "seemVerb",
+                              "tokenIndex": 2,
+                              "word": "virðist"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "demonstrativeD",
+                                          "label": "D⁰ [demonstrative, dative plural]",
+                                          "tokenIndex": 0,
+                                          "word": "Þessum"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "childrenN",
+                                                  "label": "N⁰ [dative plural]",
+                                                  "tokenIndex": 1,
+                                                  "word": "börnum"
+                                                }
+                                              ],
+                                              "id": "childrenNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "childrenNP",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "argumentDbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "embeddedSubjectDP",
+                                  "label": "DP [dative plural, embedded subject]",
+                                  "lineageId": "childrenArgument"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "haveI",
+                                      "label": "I⁰ [−finite, perfect]",
+                                      "tokenIndex": 3,
+                                      "word": "hafa"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "beenV",
+                                              "label": "V⁰ [passive auxiliary, participle]",
+                                              "tokenIndex": 4,
+                                              "word": "verið"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "helpV",
+                                                      "label": "V⁰ [passive participle]",
+                                                      "tokenIndex": 5,
+                                                      "word": "hjálpað"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "objectTrace",
+                                                      "label": "DP [A-trace, dative]",
+                                                      "lineageId": "childrenArgument",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "lexicalVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "lexicalVP",
+                                              "label": "VP [passive participle]"
+                                            }
+                                          ],
+                                          "id": "passiveVbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "passiveVP",
+                                      "label": "VP [passive auxiliary]"
+                                    }
+                                  ],
+                                  "id": "embeddedIbar",
+                                  "label": "I′"
+                                }
+                              ],
+                              "id": "embeddedIP",
+                              "label": "IP [infinitival perfect passive]"
+                            }
+                          ],
+                          "id": "matrixVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "VP [raising]"
+                    }
+                  ],
+                  "id": "matrixIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP [finite]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "foot": "objectTrace",
+                "head": "matrixSubjectDP",
+                "intermediate": "embeddedSubjectTrace",
+                "raisingPredicate": "matrixVTrace"
+              },
+              "priorAnchors": {
+                "source": "embeddedSubjectDP"
+              },
+              "relation": "Extended raising A-chain",
+              "values": {
+                "case": "lexical dative",
+                "thetaRole": "one help-recipient role at the object foot",
+                "trigger": "matrix subject requirement"
+              }
+            },
+            {
+              "anchors": {
+                "host": "matrixI",
+                "movedHead": "finiteV",
+                "trace": "matrixVTrace"
+              },
+              "priorAnchors": {
+                "source": "matrixV"
+              },
+              "relation": "V-to-I head movement"
+            },
+            {
+              "anchors": {
+                "finiteHead": "matrixI",
+                "quirkySubject": "matrixSubjectDP"
+              },
+              "relation": "Default finite agreement",
+              "values": {
+                "agreementStatus": "default; the dative DP is not a nominative agreement controller",
+                "finiteFeatures": "present, third-person singular",
+                "subjectFeatures": "dative plural"
+              }
+            }
+          ],
+          "stageRecord": "The dative DP raises from embedded Spec-IP to matrix Spec-IP, leaving an intermediate A-trace. Its movement is licensed by the non-thematic matrix subject position and the transparent infinitival IP complement. The resulting A-chain retains lexical dative and a single theta-role at its object foot; matrix I does not assign a second Case or theta-role to the DP. Independently, virðist moves from V to finite I, leaving a head trace in V. Its singular form is default agreement in the absence of a nominative agreement controller, not agreement with dative plural börnum. A declarative CP shell is then projected over the completed matrix IP. This analysis adopts a uniform CP account of Icelandic root V2: the overt subject will occupy Spec-CP and the finite head C. Both the matrix A-position and the intermediate I-position are therefore represented before those final movements.",
+          "statement": "Establish the matrix quirky subject and finite verb position, then project the root CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "declarativeFeatures",
+                          "label": "C⁰ [declarative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rootC",
+                      "label": "C⁰ [declarative, V2]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "demonstrativeD",
+                                  "label": "D⁰ [demonstrative, dative plural]",
+                                  "tokenIndex": 0,
+                                  "word": "Þessum"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "childrenN",
+                                          "label": "N⁰ [dative plural]",
+                                          "tokenIndex": 1,
+                                          "word": "börnum"
+                                        }
+                                      ],
+                                      "id": "childrenNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "childrenNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "argumentDbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "matrixSubjectDP",
+                          "label": "DP [dative plural, matrix subject]",
+                          "lineageId": "childrenArgument"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "finiteV",
+                                  "label": "V⁰ [raising predicate]",
+                                  "lineageId": "seemVerb",
+                                  "tokenIndex": 2,
+                                  "word": "virðist"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "finiteFeatures",
+                                  "label": "I⁰ [present, default 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixI",
+                              "label": "I⁰ [finite, V-adjoined]",
+                              "lineageId": "finiteInflection"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrixVTrace",
+                                      "label": "V⁰ [head trace]",
+                                      "lineageId": "seemVerb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedSubjectTrace",
+                                          "label": "DP [intermediate A-trace, dative]",
+                                          "lineageId": "childrenArgument",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "haveI",
+                                              "label": "I⁰ [−finite, perfect]",
+                                              "tokenIndex": 3,
+                                              "word": "hafa"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "beenV",
+                                                      "label": "V⁰ [passive auxiliary, participle]",
+                                                      "tokenIndex": 4,
+                                                      "word": "verið"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "helpV",
+                                                              "label": "V⁰ [passive participle]",
+                                                              "tokenIndex": 5,
+                                                              "word": "hjálpað"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "objectTrace",
+                                                              "label": "DP [A-trace, dative]",
+                                                              "lineageId": "childrenArgument",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "lexicalVbar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "lexicalVP",
+                                                      "label": "VP [passive participle]"
+                                                    }
+                                                  ],
+                                                  "id": "passiveVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "passiveVP",
+                                              "label": "VP [passive auxiliary]"
+                                            }
+                                          ],
+                                          "id": "embeddedIbar",
+                                          "label": "I′"
+                                        }
+                                      ],
+                                      "id": "embeddedIP",
+                                      "label": "IP [infinitival perfect passive]"
+                                    }
+                                  ],
+                                  "id": "matrixVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "matrixVP",
+                              "label": "VP [raising]"
+                            }
+                          ],
+                          "id": "matrixIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "matrixIP",
+                      "label": "IP [finite]"
+                    }
+                  ],
+                  "id": "rootCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "rootCP",
+              "label": "CP [root declarative]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "host": "rootC",
+                "lexicalHead": "finiteV",
+                "movedHead": "frontedI",
+                "trace": "matrixITrace"
+              },
+              "priorAnchors": {
+                "source": "matrixI"
+              },
+              "relation": "I-to-C head movement",
+              "values": {
+                "licensing": "root declarative V2"
+              }
+            },
+            {
+              "anchors": {
+                "foot": "matrixSubjectTrace",
+                "head": "frontedSubjectDP"
+              },
+              "priorAnchors": {
+                "source": "matrixSubjectDP"
+              },
+              "relation": "Subject-fronting A-prime chain",
+              "values": {
+                "interpretation": "subject-initial V2; contrastive focus is not required",
+                "landingSite": "Spec-CP"
+              }
+            },
+            {
+              "anchors": {
+                "foot": "objectTrace",
+                "head": "matrixSubjectTrace",
+                "intermediate": "embeddedSubjectTrace",
+                "thetaGovernor": "helpV"
+              },
+              "relation": "Completed raising A-chain",
+              "values": {
+                "case": "lexical dative",
+                "chainStatus": "A-chain headed by the matrix subject position, itself linked to the pronounced DP by A-prime movement",
+                "thetaRole": "help-recipient, assigned at the object foot"
+              }
+            }
+          ],
+          "stageRecord": "The finite I head containing virðist moves to root C, leaving an I-trace. The dative subject then moves from matrix Spec-IP to Spec-CP, leaving an A′-trace in its grammatical subject position. This final subject fronting implements root V2 and need not carry contrastive focus. It follows, rather than replaces, the A-raising derivation: the matrix subject trace heads the A-chain through embedded Spec-IP to the complement of hjálpað, while the pronounced DP binds that subject position through the A′ dependency. Each link is c-commanded by the next higher link; the lexical object trace is governed by the participle, and the intermediate subject dependencies are licensed by successive raising. No PRO, reflexive binding, or additional thematic subject is required. The final pronounced sequence is exactly Þessum börnum virðist hafa verið hjálpað, interpreted as ‘These children seem to have been helped.’ The perfect is embedded under seeming; the fronted DP remains the help-recipient rather than an experiencer selected by virðist.",
+          "statement": "Complete subject-initial V2 and the raising-passive analysis.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrativeD",
+                          "label": "D⁰ [demonstrative, dative plural]",
+                          "tokenIndex": 0,
+                          "word": "Þessum"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "childrenN",
+                                  "label": "N⁰ [dative plural]",
+                                  "tokenIndex": 1,
+                                  "word": "börnum"
+                                }
+                              ],
+                              "id": "childrenNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "childrenNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "argumentDbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "frontedSubjectDP",
+                  "label": "DP [dative plural, Spec-CP]",
+                  "lineageId": "childrenArgument"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "finiteV",
+                              "label": "V⁰ [raising predicate]",
+                              "lineageId": "seemVerb",
+                              "tokenIndex": 2,
+                              "word": "virðist"
+                            },
+                            {
+                              "children": [],
+                              "id": "finiteFeatures",
+                              "label": "I⁰ [present, default 3sg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "frontedI",
+                          "label": "I⁰ [finite, V-adjoined]",
+                          "lineageId": "finiteInflection"
+                        },
+                        {
+                          "children": [],
+                          "id": "declarativeFeatures",
+                          "label": "C⁰ [declarative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rootC",
+                      "label": "C⁰ [declarative, I-adjoined]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixSubjectTrace",
+                          "label": "DP [A′-trace, matrix subject, dative]",
+                          "lineageId": "childrenArgument",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixITrace",
+                              "label": "I⁰ [head trace]",
+                              "lineageId": "finiteInflection",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrixVTrace",
+                                      "label": "V⁰ [head trace]",
+                                      "lineageId": "seemVerb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedSubjectTrace",
+                                          "label": "DP [intermediate A-trace, dative]",
+                                          "lineageId": "childrenArgument",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "haveI",
+                                              "label": "I⁰ [−finite, perfect]",
+                                              "tokenIndex": 3,
+                                              "word": "hafa"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "beenV",
+                                                      "label": "V⁰ [passive auxiliary, participle]",
+                                                      "tokenIndex": 4,
+                                                      "word": "verið"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "helpV",
+                                                              "label": "V⁰ [passive participle]",
+                                                              "tokenIndex": 5,
+                                                              "word": "hjálpað"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "objectTrace",
+                                                              "label": "DP [A-trace, dative]",
+                                                              "lineageId": "childrenArgument",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "lexicalVbar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "lexicalVP",
+                                                      "label": "VP [passive participle]"
+                                                    }
+                                                  ],
+                                                  "id": "passiveVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "passiveVP",
+                                              "label": "VP [passive auxiliary]"
+                                            }
+                                          ],
+                                          "id": "embeddedIbar",
+                                          "label": "I′"
+                                        }
+                                      ],
+                                      "id": "embeddedIP",
+                                      "label": "IP [infinitival perfect passive]"
+                                    }
+                                  ],
+                                  "id": "matrixVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "matrixVP",
+                              "label": "VP [raising]"
+                            }
+                          ],
+                          "id": "matrixIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "matrixIP",
+                      "label": "IP [finite]"
+                    }
+                  ],
+                  "id": "rootCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "rootCP",
+              "label": "CP [root declarative, V2]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

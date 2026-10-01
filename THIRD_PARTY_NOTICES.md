@@ -60,6 +60,22 @@ from Ethan Poole and Stefan Keine, “Not all reconstruction effects are syntact
 (2024). The [original article](https://link.springer.com/article/10.1007/s11049-023-09603-3)
 is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
+The source previews `source-recovery-2026-10-01--jou-2026-case-stacking-example125.jpg`
+and `source-recovery-2026-10-01--jou-2026-case-stacking-example126.jpg` reproduce
+examples (125) and (126) from Eunsun Jou, "A successive-cyclic dependent case
+account of Korean case-marked adverbials" (2026). They are resized previews of
+the publisher's figures. The [original article](https://link.springer.com/article/10.1007/s11049-026-09717-4)
+and its figures are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+`source-recovery-2026-10-01--pdt-coreference-overlay-cmpr9413-006.jpg` reproduces the
+Prague Dependency Treebank reference overlay for tree `t-cmpr9413-006-p23s2`,
+shown as Figure 3.1 in the [PDT 3.0 documentation](https://ufal.mff.cuni.cz/node/780).
+The [original SVG](https://ufal.mff.cuni.cz/discourse/pics/cmpr9413_006.svg) was
+rasterized on a white background and resized. Copyright 2013 Charles University
+in Prague, Institute of Formal and Applied Linguistics. The source and this
+preview are licensed [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/),
+as specified by the [PDT licence](https://ufal.mff.cuni.cz/pdt3.0/licence).
+
 ## Model and Provider Outputs
 
 Files under `docs/research/assets/` may depict outputs produced by third-party

@@ -224,7 +224,7 @@ test('repair diagnostics and original bytes survive the new generation path', as
   assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
 });
 
-test('all active routes keep malformed-stage evidence inspectable without replacing the generation', async (t) => {
+test('all active routes keep a malformed relation neutral without replacing the generation', async (t) => {
   isolate(t);
   const payload = structuredClone(fixture.payload);
   payload.derivationStages[3].relations[1].values = ['literal content'];
@@ -233,30 +233,27 @@ test('all active routes keep malformed-stage evidence inspectable without replac
     const model = getResearchModel(modelId);
     const responseText = JSON.stringify(envelopeFor(model, damaged));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
-    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
-      const result = formatApiError(error).body.error;
-      const record = result.generationRecord;
-      assert.equal(result.failure.fieldPath, '$.derivationStages[3].relations[1].values');
-      assert.equal(result.failure.processingStep, 'stage-shape');
-      assert.deepEqual(result.failure.offendingValue, ['literal content']);
-      assert.equal(decode(result.rawOutput), damaged);
-      assert.equal(decode(record.rawProviderResponse), responseText);
+    const result = await parseFromBody({ sentence: fixture.sentence, modelId });
+    const record = result.generationRecord;
+    const claim = result.analyses[0].derivationStages[3].relations[1];
+    assert.equal(claim.relationContractFailure.issues[0].fieldPath,
+      '$.derivationStages[3].relations[1].values');
+    assert.deepEqual(claim.relationContractFailure.raw.values, ['literal content']);
+    assert.equal(decode(result.rawModelOutput), damaged);
+    assert.equal(decode(record.rawProviderResponse), responseText);
       assert.equal(record.outcome.attempts.length, 1);
-      assert.deepEqual(record.processing.normalization.failure, result.failure);
       assert.equal(record.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damaged));
       assert.deepEqual(record.processing.json.repairDiagnostics.map(({ insertedText }) => insertedText), [']}']);
       const inspection = runQualificationAttempt({
         attempt: { id: modelId, request: { sentence: fixture.sentence, framework: 'xbar' },
           model: { providerRoute: model.providerRoute, providerModel: model.providerModel, nativeSettings: {} },
           source: { kind: 'raw-text-file', path: 'in-memory-stub' } },
-        rawOutputBytes: Buffer.from(decode(result.rawOutput))
+        rawOutputBytes: Buffer.from(decode(result.rawModelOutput))
       });
       assert.deepEqual(inspection.inspection.payload, payload);
       assert.equal(inspection.inspection.analyses[0].stages.length, payload.derivationStages.length);
       assert.deepEqual(inspection.receipt.ingress.jsonDiagnostic, record.processing.json.diagnostic);
-      assert.equal(inspection.bundle, null);
-      return true;
-    });
+      assert.equal(inspection.bundle.analyses.length, 1);
     assert.equal(fetch.mock.callCount(), 1);
     fetch.mock.restore();
   }

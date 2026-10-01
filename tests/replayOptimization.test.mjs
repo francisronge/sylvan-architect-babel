@@ -81,6 +81,27 @@ test('a standalone nominal preserves authored capitals before and after movement
   }
 });
 
+test('an explicitly wh-marked nominal loses sentence casing in its lower position', () => {
+  const nominal = { id: 'nominal', label: 'D[wh, Q]', children: [leaf('word', 'What')] };
+  const verb = { id: 'verb', label: 'V', children: [leaf('v', 'repaired')] };
+  const input = freeze([
+    { operation: 'LexicalSelect', targetNodeId: 'word', targetLabel: 'What', sourceLabels: ['What'],
+      replayCanvasData: { id: 'root', label: 'V', children: [verb, nominal] } },
+    { operation: 'Move', targetNodeId: 'word', targetLabel: 'What',
+      replayCanvasData: { id: 'root', label: 'C', children: [nominal, verb] } }
+  ]);
+  const [before, after] = applyPreFrontingSentenceInitialCasing(input, 'What was repaired?');
+  assert.equal(before.targetLabel, 'what');
+  assert.equal(before.replayCanvasData.children[1].children[0].word, 'what');
+  assert.deepEqual(before.sourceLabels, ['what']);
+  assert.equal(after.targetLabel, 'What');
+  assert.equal(nominal.children[0].word, 'What');
+  assert.equal(maybeLowercaseSentenceInitialFunctionSurface({
+    surface: 'What', sentenceInitialSurface: 'What', parentLabel: nominal.label,
+    visibleOvertLeafIds: ['v', 'word'], nodeId: 'word'
+  }), 'what');
+});
+
 test('a determiner with a nominal complement still loses sentence casing before fronting in either notation', () => {
   for (const label of ['D', 'DP', "D'"]) {
     const determiner = { id: 'd', label: 'D[wh]', children: [leaf('w', 'Which')] };

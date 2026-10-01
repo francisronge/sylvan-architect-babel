@@ -203,21 +203,16 @@ test('stage contract errors are reported before later reference expansion can ma
   );
 });
 
-expectTypedFailure({
-  name: 'typed probe: malformed relation reaches the current exact-relation rule',
-  mutate: (payload) => {
-    payload.derivationStages[0].relations = [{
-      relation: 'UnknownRelation',
-      anchors: { witness: 'mia_root' },
-      rendererHint: 'forbidden'
-    }];
-    return payload;
-  },
-  expectedClass: FAILURE_CLASSES.CONTRACT_MISUNDERSTANDING,
-  ruleId: 'DERIVATION_STAGE_RELATION_EXACT',
-  stageIndex: 0,
-  fieldPath: '$.derivationStages[0].relations[0]',
-  checkOffending: (value) => assert.equal(value.rendererHint, 'forbidden')
+test('a malformed relation is neutral and retains its exact authored payload', () => {
+  const payload = buildMinimalPayload();
+  payload.derivationStages[0].relations = [{
+    relation: 'UnknownRelation', anchors: { witness: 'mia_root' }, rendererHint: 'forbidden'
+  }];
+  const analysis = normalize(payload).analyses[0];
+  const claim = analysis.derivationStages[0].relations[0];
+  assert.equal(claim.relationContractFailure.issues[0].fieldPath,
+    '$.derivationStages[0].relations[0]');
+  assert.equal(claim.relationContractFailure.raw.rendererHint, 'forbidden');
 });
 
 expectTypedFailure({

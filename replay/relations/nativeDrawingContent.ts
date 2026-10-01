@@ -1,8 +1,10 @@
 import type { SyntaxNode } from '../../types.ts';
 import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import type { LocalDislocationContent } from './localDislocationContent.ts';
 
 
 export type NativePlaqueContent =
+  | LocalDislocationContent
   | { kind: 'correspondence'; sources: string[]; exponents: string[];
       links: Array<{ sourceIndex: number; exponentIndex: number }> }
   | { kind: 'fission'; inputFeatures: string[]; outputFeatures: [string[], string[]] }

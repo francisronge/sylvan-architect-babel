@@ -14,7 +14,7 @@ for (const input of inputs) {
   if (record.kind !== 'authored-workspace-inspection' || !Array.isArray(record.analyses)) {
     throw new Error(`Not a workspace inspection record: ${input}`);
   }
-  records.push({ title: path.basename(input, '.json'), record });
+  records.push({ title: record.input?.sentence?.trim() || path.basename(input, '.json'), record });
 }
 const result = await build({
   absWorkingDir: repoRoot,

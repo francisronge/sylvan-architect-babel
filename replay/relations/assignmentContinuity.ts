@@ -2,9 +2,10 @@ import type { SyntaxNode } from '../../types.ts';
 import { literalThetaRoles, pairedLiterals, POSITIVE_OUTCOMES, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import type { RecoveredMovement } from './movementEvidence.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
-import { resolveOutcomeLiteral } from './outcomeResolver.ts';
+import { resolveOutcomeLiteral, relationAssertionFailure, negativeClaimFailure } from './outcomeResolver.ts';
+import { categoryLabel } from '../categoryLabel.ts';
 
-type Occurrence = { id: string; parent: string | null; lineage?: string };
+type Occurrence = { id: string; parent: string | null; lineage?: string; headCategory?: string; children: string[] };
 type RelationMoment = { stageIndex: number; relationIndex: number };
 type Assignment = { kind: 'theta-grid' | 'feature.dependency'; source: Occurrence; target: Occurrence; literal: string; moment: RelationMoment };
 export type AssignmentContext = { assignments: Assignment[]; continuations: Map<string, Set<string>> };
@@ -18,8 +19,12 @@ export const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmen
 function occurrences(forest: readonly SyntaxNode[]) {
   const nodes = new Map<string, Occurrence[]>();
   const visit = (node: SyntaxNode, parent: string | null) => {
+    const category = categoryLabel(node.label).replace(/(?:\^?0|⁰)$/u, '');
+    const headCategory = category && !/[′’']/u.test(node.label) && !/P$/u.test(category)
+      && /^[\p{L}]+$/u.test(category) ? category : undefined;
     if (node.id) nodes.set(node.id, [...(nodes.get(node.id) ?? []), {
-      id: node.id, parent, ...(node.lineageId ? { lineage: node.lineageId } : {})
+      id: node.id, parent, ...(node.lineageId ? { lineage: node.lineageId } : {}),
+      ...(headCategory ? { headCategory } : {}), children: (node.children ?? []).map(child => child.id)
     }]);
     node.children?.forEach(child => visit(child, node.id || null));
   };
@@ -40,6 +45,7 @@ export function rememberAssignments(context: AssignmentContext, kind: string, ev
   nativeRoles?: Array<{ nodeId: string; label: string }>) {
   if (kind !== 'theta-grid' && kind !== 'feature.dependency') return;
   if (!establishesAssignment(evidence)) return;
+  if (kind === 'feature.dependency' && relationAssertionFailure(evidence.relationName, 'case')) return;
   const nodes = occurrences(evidence.currentForest);
   const sourceIds = evidence.currentAnchors[kind === 'theta-grid' ? 'predicate' : 'feature.source'] ?? [];
   if (sourceIds.length !== 1) return;
@@ -71,6 +77,36 @@ export function recoverAssignmentContinuity(evidence: Tier2FacetEvidence, contex
   const nodes = occurrences(evidence.currentForest);
   const anchors = evidence.authoredCurrentAnchors ?? [];
   const allIds = [...new Set(anchors.flatMap(entry => [...entry.items]))];
+  const onlyHeads = (id: string, seen = new Set<string>()): boolean => {
+    const node = nodes.get(id);
+    if (!node?.headCategory || seen.has(id)) return false;
+    seen.add(id);
+    return node.children.every(child => onlyHeads(child, seen));
+  };
+  // Adjunction can retain the exact assigning head inside a new head complex
+  // occupying its old slot. The host must remain the unique same-category
+  // branch at every wrapper; sharing lineage or containing it in a phrase does
+  // not establish this continuation. A target never inherits this exception.
+  const retainedHeadSlot = (prior: Occurrence, id: string): boolean => {
+    let current = nodes.get(prior.id);
+    if (!current || !prior.headCategory || current.headCategory !== prior.headCategory
+      || prior.lineage && prior.lineage !== current.lineage) return false;
+    let matched = current.id === id;
+    const seen = new Set<string>();
+    while (current.parent !== prior.parent) {
+      if (!current.parent || seen.has(current.id)) return false;
+      seen.add(current.id);
+      const wrapper = nodes.get(current.parent);
+      if (!wrapper || wrapper.headCategory !== prior.headCategory || wrapper.children.length !== 2
+        || wrapper.children.filter(child => nodes.get(child)?.headCategory === wrapper.headCategory).length !== 1
+        || !wrapper.children.includes(current.id)) return false;
+      const adjunct = wrapper.children.find(child => child !== current.id);
+      if (!adjunct || !onlyHeads(adjunct)) return false;
+      current = wrapper;
+      matched ||= current.id === id;
+    }
+    return matched;
+  };
   const continues = (prior: Occurrence, id: string) => {
     const current = nodes.get(id);
     if (!current || current.parent !== prior.parent) return false;
@@ -93,6 +129,8 @@ export function recoverAssignmentContinuity(evidence: Tier2FacetEvidence, contex
     for (const kind of ['theta-grid', 'feature.dependency'] as const) {
       // A role grid has no failed-assignment visual state; leave such claims neutral.
       if (kind === 'theta-grid' && !establishesAssignment(evidence)) continue;
+      if (kind === 'feature.dependency' && relationAssertionFailure(evidence.relationName, 'case')
+        && (!outcomes.length || negativeClaimFailure(outcomes.flatMap(entry => [...entry.items]), []))) continue;
       const sourceRole = kind === 'theta-grid' ? 'predicate' : 'feature.source';
       const targetRole = kind === 'theta-grid' ? 'theta.arguments' : 'feature.target';
       const valueRole = kind === 'theta-grid' ? 'role.label' : 'case.literal';
@@ -104,7 +142,7 @@ export function recoverAssignmentContinuity(evidence: Tier2FacetEvidence, contex
       const pairs = new Map<string, { source: string; target: string; prior: Assignment }>();
       for (const prior of context.assignments) {
         if (prior.kind !== kind || prior.literal !== literal) continue;
-        for (const source of sourceIds.filter(id => continues(prior.source, id))) {
+        for (const source of sourceIds.filter(id => continues(prior.source, id) || retainedHeadSlot(prior.source, id))) {
           for (const target of targetIds.filter(id => continues(prior.target, id))) {
             if (source !== target) pairs.set(JSON.stringify([source, target]), { source, target, prior });
           }

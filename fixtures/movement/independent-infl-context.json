@@ -1,0 +1,356 @@
+{
+  "sourceAttemptId": "expansion-german-concord",
+  "sourceAnalysisIndex": 0,
+  "sourceRecordSha256": "d75fe600cd597f5cd32f7cf8f1fc40b41d73e487716e259f0e42f270c247c622",
+  "sentence": "Diese alten Bücher gefallen mir.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "adjective": "adjective",
+            "demonstrative": "demonstrative",
+            "noun": "noun"
+          },
+          "relation": "Nominal concord",
+          "values": {
+            "adjectiveInflection": "weak -en after an inflected demonstrative",
+            "number": "plural"
+          }
+        },
+        {
+          "anchors": {
+            "experiencer": "experiencer",
+            "predicate": "verbBase",
+            "theme": "themeBase"
+          },
+          "relation": "Theta-role assignment",
+          "values": {
+            "experiencer": "experiencer",
+            "theme": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "experiencer",
+            "licensor": "verbBase"
+          },
+          "relation": "Inherent Case licensing",
+          "values": {
+            "case": "dative"
+          }
+        }
+      ],
+      "stageRecord": "The demonstrative Diese heads a DP whose NP contains Bücher and an attributive AP headed by alten. The AP adjoins to N′, rather than serving as a complement of Bücher. The demonstrative, adjective, and noun have compatible plural inflection; alten has the weak adjective ending expected after this demonstrative. For gefallen, this analysis adopts a head-final VP with the experiencer mir in its specifier and the theme Diese alten Bücher in its complement domain. The theme is therefore initially VP-internal, not an external agent. The predicate assigns its theme and experiencer roles and licenses inherent dative on mir. Nominative licensing of the theme awaits finite clause structure. The words are represented as whole inflected terminals, without a separate derivation of their morphology.",
+      "statement": "Construct the head-final predicate and its two arguments.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "pronoun",
+                      "label": "D",
+                      "tokenIndex": 4,
+                      "word": "mir"
+                    }
+                  ],
+                  "id": "experiencerDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "experiencer",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrative",
+                          "label": "D",
+                          "tokenIndex": 0,
+                          "word": "Diese"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "adjective",
+                                          "label": "A",
+                                          "tokenIndex": 1,
+                                          "word": "alten"
+                                        }
+                                      ],
+                                      "id": "abar",
+                                      "label": "A′"
+                                    }
+                                  ],
+                                  "id": "ap",
+                                  "label": "AP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "noun",
+                                      "label": "N",
+                                      "tokenIndex": 2,
+                                      "word": "Bücher"
+                                    }
+                                  ],
+                                  "id": "nbarInner",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "nbarOuter",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "np",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "themeDbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "themeBase",
+                  "label": "DP",
+                  "lineageId": "themeChain"
+                },
+                {
+                  "children": [],
+                  "id": "verbBase",
+                  "label": "V",
+                  "lineageId": "verbChain",
+                  "tokenIndex": 3,
+                  "word": "gefallen"
+                }
+              ],
+              "id": "vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "subjectIP",
+            "trace": "themeTrace"
+          },
+          "priorAnchors": {
+            "source": "themeBase"
+          },
+          "relation": "A-movement",
+          "values": {
+            "dependency": "VP-internal theme to Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "inflFeatures",
+            "subject": "subjectIP"
+          },
+          "relation": "Nominative Case and agreement",
+          "values": {
+            "agreement": "third-person plural",
+            "case": "nominative",
+            "mood": "indicative",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "landingHead": "inflComplex",
+            "movedHead": "verbI",
+            "trace": "verbTrace"
+          },
+          "priorAnchors": {
+            "source": "verbBase"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "path": "V to I"
+          }
+        },
+        {
+          "anchors": {
+            "experiencer": "experiencer",
+            "predicate": "verbTrace",
+            "themeArgument": "subjectIP",
+            "themePosition": "themeTrace"
+          },
+          "relation": "Theta-role interpretation through chains",
+          "values": {
+            "experiencer": "experiencer",
+            "themeArgument": "theme"
+          }
+        }
+      ],
+      "stageRecord": "A head-final IP is projected above the VP. The theme moves from the previously represented complement position to Spec-IP, leaving an A-trace. Finite I licenses nominative on the raised DP and agrees with its third-person plural features. The inherently dative experiencer does not compete for nominative licensing. This is A-movement into a non-thematic subject position: the theme receives no second theta-role, and its chain retains the role assigned inside VP. In the selected GB implementation, the verb then raises from V to the adjacent I head, leaving a head trace. The complex I contains the overt, already inflected verb gefallen and an unpronounced abstract inflectional head. The ending of gefallen is compatible with the plural subject; mir does not control this agreement. Both movements have their sources in the preceding VP, and no movement to the clause's left periphery has yet occurred.",
+      "statement": "Build finite IP, establish the nominative subject chain, and raise the verb to I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "demonstrative",
+                      "label": "D",
+                      "tokenIndex": 0,
+                      "word": "Diese"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "adjective",
+                                      "label": "A",
+                                      "tokenIndex": 1,
+                                      "word": "alten"
+                                    }
+                                  ],
+                                  "id": "abar",
+                                  "label": "A′"
+                                }
+                              ],
+                              "id": "ap",
+                              "label": "AP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "noun",
+                                  "label": "N",
+                                  "tokenIndex": 2,
+                                  "word": "Bücher"
+                                }
+                              ],
+                              "id": "nbarInner",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "nbarOuter",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "np",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "themeDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "subjectIP",
+              "label": "DP",
+              "lineageId": "themeChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pronoun",
+                              "label": "D",
+                              "tokenIndex": 4,
+                              "word": "mir"
+                            }
+                          ],
+                          "id": "experiencerDbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "experiencer",
+                      "label": "DP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "themeTrace",
+                          "label": "DP (A-trace)",
+                          "lineageId": "themeChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "verbTrace",
+                          "label": "V (head trace)",
+                          "lineageId": "verbChain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "verbI",
+                      "label": "V",
+                      "lineageId": "verbChain",
+                      "tokenIndex": 3,
+                      "word": "gefallen"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflFeatures",
+                      "label": "I [finite, present, indicative, 3PL]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "inflComplex",
+                  "label": "I",
+                  "lineageId": "inflChain"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

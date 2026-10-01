@@ -28,12 +28,12 @@ test('new token addresses do not classify apostrophe-s as English morphology', (
     }
   }
   const request = { sentence: 'Mia’s book', framework: 'xbar' };
-  const codex = buildCodexQualificationRequest({ ...request, model: 'openai:gpt-5.6-sol', effort: 'high' });
+  const codex = buildCodexQualificationRequest({ ...request, model: 'openai:gpt-6-sol', effort: 'high' });
   assert.deepEqual(codex.inputTokens, ['Mia’s', 'book']);
   const plan = validateQualificationPlan({ schemaVersion: 1, label: 'token-address-test',
     purpose: 'Saved input addresses only.', itemSetStatus: 'unselected', contractManifest: 'unused.json',
     attempts: [{ id: 'saved', request: { ...request, inputTokens: codex.inputTokens },
-      model: { catalogId: 'openai:gpt-5.6-sol', nativeSettings: { 'reasoning.effort': 'high' } },
+      model: { catalogId: 'openai:gpt-6-sol', nativeSettings: { 'reasoning.effort': 'high' } },
       source: { kind: 'raw-text-file', path: 'unused.txt' } }] });
   const result = runQualificationAttempt({ attempt: plan.attempts[0],
     rawOutputBytes: Buffer.from(JSON.stringify(payloadFor(codex.inputTokens))) });

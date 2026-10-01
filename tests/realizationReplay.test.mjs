@@ -226,3 +226,152 @@ test('multiple descriptions of one stem do not fabricate a unique realization mo
   assert.deepEqual(completion(steps, 1).replayRealizations, [association]);
   assert.deepEqual(stages, original);
 });
+
+
+const movedRealizationStages = () => {
+  const lower = { id: 'lower', label: 'DP', lineageId: 'phrase-chain', children: [
+    { id: 'articleLow', label: 'D', lineageId: 'article-chain', word: 'a' },
+    { id: 'nounLow', label: 'N', lineageId: 'noun-chain', word: 'b' }
+  ] };
+  const prior = [{ id: 'predicate', label: 'VP', children: [lower, { id: 'verb', label: 'V', word: 'c' }] }];
+  const upper = structuredClone(lower); upper.id = 'upper'; upper.children.forEach(n => { n.id = n.id.replace('Low', 'High'); });
+  const current = [{ id: 'clause', label: 'TP', children: [upper, { id: 'bar', label: 'T′', children: [{ id: 'head', label: 'T' }, structuredClone(prior[0])] }] }];
+  current[0].children[1].children[1].children[0].children.forEach(n => { n.silent = true; });
+  const r = { relation: 'An open label', anchors: { higherOccurrence: 'upper', lowerOccurrence: 'lower' }, priorAnchors: { sourceOccurrence: 'lower' } };
+  return [stage([group(['articleLow', 'nounLow'])], [], prior), stage([group(['nounHigh', 'articleHigh'])], [r], current)];
+};
+
+test('one proven movement owns the complete realization transfer through exact descendant identities', () => {
+  for (const rename of [false, true]) {
+    const stages = movedRealizationStages();
+    if (rename) {
+      const ids = x => `opaque-${x}`;
+      for (const s of stages) {
+        const visit = n => { n.id = ids(n.id); if(n.lineageId)n.lineageId=ids(n.lineageId); n.children?.forEach(visit); };
+        s.workspaceForest.forEach(visit); s.realizations.forEach(g => { g.nodeIds=g.nodeIds.map(ids).reverse(); });
+        s.relations.forEach(r => { r.relation='Another completely unrelated name'; for(const field of ['anchors','priorAnchors'])r[field]=Object.fromEntries(Object.entries(r[field]).reverse().map(([k,v])=>[k,ids(v)])); });
+      }
+    }
+    const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, 0);
+    const steps = play(stages), index = steps.findIndex(s=>s.replayRelationIdentity?.stageIndex===1);
+    assert.deepEqual(steps[index-1].replayRealizations, stages[0].realizations);
+    assert.deepEqual(steps[index].replayRealizations, stages[1].realizations);
+    assert(!steps[index].replayRealizationDiagnostics?.length);
+    assert.deepEqual(stages, original);
+  }
+});
+
+test('descendant realization ownership rejects competing moments, unmatched members, and unrelated outputs', () => {
+  for (const change of [
+    ss => { ss[1].relations.push(structuredClone(ss[1].relations[0])); },
+    ss => { delete ss[1].workspaceForest[0].children[0].children[0].lineageId; },
+    ss => { ss[1].workspaceForest[0].children[0].children[0].lineageId = 'noun-chain'; },
+    ss => { ss[1].realizations[0].nodeIds = ['nounHigh']; },
+    ss => { ss[1].realizations[0].nodeIds = ['nounHigh', 'verb']; },
+    ss => { ss[1].realizations[0].tokenIndices = [1]; }
+  ]) {
+    const stages = movedRealizationStages(); change(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    assert(resolveRealizationChanges(frames[0], frames[1], 1).every(change=>change.relationIndex===null));
+    assert.deepEqual(moments(play(stages),1)[0].replayRealizations,stages[0].realizations);
+  }
+});
+
+const directMovedAssociation = () => ({
+  relation: 'An independently authored association',
+  anchors: { currentContributors: ['nounHigh', 'articleHigh'] },
+  priorAnchors: { earlierContributors: ['articleLow', 'nounLow'] }
+});
+
+test('complete direct realization evidence takes precedence over inferred movement continuity', () => {
+  for (const renamed of [false, true]) {
+    const stages = movedRealizationStages();
+    stages[1].relations.push(directMovedAssociation());
+    if (renamed) {
+      const rename = id => `opaque/${id}`;
+      for (const s of stages) {
+        const visit = n => { n.id = rename(n.id); if (n.lineageId) n.lineageId = rename(n.lineageId); n.children?.forEach(visit); };
+        s.workspaceForest.forEach(visit);
+        s.realizations.forEach(g => { g.nodeIds = g.nodeIds.map(rename).reverse(); });
+        s.relations.forEach((r, index) => {
+          r.relation = index ? 'Unfamiliar description B' : 'Unfamiliar description A';
+          for (const field of ['anchors', 'priorAnchors']) {
+            r[field] = Object.fromEntries(Object.entries(r[field]).reverse().map(([key, value]) => [
+              index ? `opaque ${field}` : key,
+              Array.isArray(value) ? value.map(rename).reverse() : rename(value)
+            ]));
+          }
+        });
+      }
+    }
+    const original = structuredClone(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
+    assert.equal(change.relationIndex, 1);
+    assert.equal(change.diagnostic, undefined);
+    const steps = play(stages), [movement, explicit] = moments(steps, 1);
+    assert.deepEqual(movement.replayRealizations, stages[0].realizations);
+    assert.deepEqual(explicit.replayRealizations, stages[1].realizations);
+    assert.equal(explicit.replayRealizationDiagnostics, undefined);
+    assert.deepEqual(geometry(steps), play(stages.map(({ realizations, ...s }) => s)));
+    assert.deepEqual(stages, original);
+  }
+});
+
+test('competing direct owners stay ambiguous without including weaker movement candidates', () => {
+  const stages = movedRealizationStages();
+  stages[1].relations.push(directMovedAssociation(), {
+    ...directMovedAssociation(), relation: 'Another directly covering claim'
+  });
+  const frames = adaptDerivationStagesForReplay(stages);
+  const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
+  assert.equal(change.relationIndex, null);
+  assert.deepEqual(change.candidateRelationIndices, [1, 2]);
+  assert.match(change.diagnostic, /Relations 2, 3 cover the same change/);
+  const steps = play(stages);
+  for (const moment of moments(steps, 1)) assert.deepEqual(moment.replayRealizations, stages[0].realizations);
+  assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
+});
+
+test('inferred movement owners compete only when no complete direct coverage exists', () => {
+  const stages = movedRealizationStages();
+  stages[1].relations.push(structuredClone(stages[1].relations[0]));
+  const partial = directMovedAssociation();
+  partial.anchors.currentContributors = ['nounHigh'];
+  stages[1].relations.push(partial);
+  const frames = adaptDerivationStagesForReplay(stages);
+  const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
+  assert.equal(change.relationIndex, null);
+  assert.deepEqual(change.candidateRelationIndices, [0, 1]);
+  assert.match(change.diagnostic, /Relations 1, 2 cover the same change/);
+  stages[1].relations.pop();
+  stages[1].relations.push(directMovedAssociation());
+  const completeFrames = adaptDerivationStagesForReplay(stages);
+  assert.equal(resolveRealizationChanges(completeFrames[0], completeFrames[1], 1)[0].relationIndex, 2);
+});
+
+test('a direct owner before its participants become available defers instead of falling back to movement', () => {
+  const stages = movedRealizationStages();
+  stages[1].relations.unshift(directMovedAssociation());
+  const frames = adaptDerivationStagesForReplay(stages);
+  assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, 0);
+  const steps = play(stages), [early, movement] = moments(steps, 1);
+  assert.deepEqual(early.replayRealizations, stages[0].realizations);
+  assert.match(early.replayRealizationDiagnostics.join('\n'), /REALIZATION_PARTICIPANT_UNAVAILABLE/);
+  assert.deepEqual(movement.replayRealizations, stages[0].realizations);
+  assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
+});
+
+test('direct ownership requires uniquely resolving current and prior occurrence IDs', () => {
+  for (const duplicatePrior of [false, true]) {
+    const stages = movedRealizationStages();
+    stages[1].relations.push(directMovedAssociation());
+    const s = stages[duplicatePrior ? 0 : 1];
+    s.workspaceForest.push({ id: duplicatePrior ? 'articleLow' : 'articleHigh', label: 'D', word: 'a' });
+    const frames = adaptDerivationStagesForReplay(stages);
+    const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
+    assert.equal(change.relationIndex, null);
+    assert.match(change.diagnostic, /REALIZATION_MISSING_OWNER/);
+  }
+});

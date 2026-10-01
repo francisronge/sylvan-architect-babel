@@ -76,7 +76,7 @@ const sentence = String(
   request.sentence
   || rawBundleWrapper.sentence
   || parseBundle.sentence
-  || collectPronouncedTerminalSequence(firstAnalysis?.tree).join(' ')
+  || collectPronouncedTerminalSequence(firstAnalysis?.finalForest || firstAnalysis?.tree).join(' ')
   || ''
 ).trim();
 const framework = request.framework === 'minimalism' || firstAnalysis?.provenance?.framework === 'minimalism'

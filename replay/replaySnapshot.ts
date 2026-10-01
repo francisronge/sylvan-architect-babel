@@ -2,6 +2,7 @@ import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import type { ParseBundle, SurfaceRealization } from '../types.ts';
 import { cloneRealizations } from './realizationReplay.ts';
 import { collectPronouncedTerminalSequence } from './pronouncedTerminals.ts';
+import { finalForestForAnalysis } from './finalForest.ts';
 import {
   adaptDerivationStagesForReplay,
   buildPlaybackStepsFromDerivationFrames,
@@ -56,7 +57,7 @@ export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
     throw new Error('Replay with realization groups requires the original input sentence.');
   }
   const sentence = suppliedSentence
-    || collectPronouncedTerminalSequence(analysis.tree).join(' ');
+    || collectPronouncedTerminalSequence(finalForestForAnalysis(analysis)).join(' ');
   const frames = adaptDerivationStagesForReplay(derivationStages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan;
   const steps = buildPlaybackStepsFromDerivationFrames(

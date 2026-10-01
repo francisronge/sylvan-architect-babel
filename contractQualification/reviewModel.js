@@ -31,17 +31,23 @@ export const reviewAnalyses = (attempt) => {
       inputTokens: bundle?.inputTokens,
       copySentence: copy?.sentence ?? attempt.sentence ?? '',
       copyInputTokens: copy?.inputTokens,
-      canInspectReplay: Boolean(copyAnalysis?.tree && copyAnalysis?.derivationStages?.length),
+      canInspectReplay: Boolean((copyAnalysis?.tree || copyAnalysis?.finalForest?.length) && copyAnalysis?.derivationStages?.length),
       canReplay: attempt.outcome?.status !== 'failed'
-        && Boolean(archive?.replay && analysis?.tree && analysis?.derivationStages?.length)
+        && Boolean(archive?.replay && (analysis?.tree || analysis?.finalForest?.length) && analysis?.derivationStages?.length)
     };
   });
 };
 
-const initialView = (attempt) => {
-  const first = reviewAnalyses(attempt)[0];
-  return first?.canReplay || first?.canInspectReplay ? 'Replay' : first?.inspection?.stages?.length ? 'Stage inspection' : 'Diagnostics';
+const initialChoiceView = (choice) => choice?.canReplay || choice?.canInspectReplay
+  ? 'Replay' : choice?.inspection?.stages?.length ? 'Stage inspection' : 'Diagnostics';
+
+const availableView = (view, choice) => {
+  const unavailable = view === 'Replay' && !choice?.canReplay && !choice?.canInspectReplay
+    || view === 'Stage inspection' && !choice?.inspection?.stages?.length;
+  return unavailable ? initialChoiceView(choice) : view;
 };
+
+const initialView = (attempt) => initialChoiceView(reviewAnalyses(attempt)[0]);
 
 const initialSource = (choice) => !choice?.canReplay && choice?.canInspectReplay ? 'copy' : 'original';
 
@@ -55,10 +61,14 @@ export const changeReviewSelection = (selection, action, attempts) => {
     attempt: action.index, analysis: 0, stage: 0, view: initialView(attempts[action.index]),
     source: initialSource(reviewAnalyses(attempts[action.index])[0])
   };
-  if (action.type === 'analysis') return { ...selection, analysis: action.index, stage: 0,
-    source: initialSource(reviewAnalyses(attempts[selection.attempt])[action.index]) };
+  if (action.type === 'analysis') {
+    const choice = reviewAnalyses(attempts[selection.attempt])[action.index];
+    return { ...selection, analysis: action.index, stage: 0,
+      view: availableView(selection.view, choice), source: initialSource(choice) };
+  }
   if (action.type === 'stage') return { ...selection, stage: action.index };
-  if (action.type === 'view') return { ...selection, view: action.view };
+  if (action.type === 'view') return { ...selection,
+    view: availableView(action.view, reviewAnalyses(attempts[selection.attempt])[selection.analysis]) };
   if (action.type === 'source') return { ...selection, source: action.source };
   return selection;
 };

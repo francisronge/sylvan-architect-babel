@@ -35,6 +35,7 @@ const OPEN_BLOCK = { allowAdditional: true };
 
 /** The endpoint role vocabulary trajectory relations author. */
 const TRAJECTORY_ANCHOR_ROLES = {
+  equivalentRoles: [['traceWitness', 'lowerWitness']],
   optional: {
     lowerCopy: scalar,
     source: scalar,
@@ -90,7 +91,7 @@ const trajectoryEntry = (id, identities, { requireWitness = true } = {}) => entr
 
 export const productionRelationRegistry = createRelationRegistry({
   registryId: 'babel.semantic-visual-grammar',
-  version: '23',
+  version: '24',
   entries: [
     /* ------------------------------------------------- trajectories */
     trajectoryEntry('trajectory.phrasal', [

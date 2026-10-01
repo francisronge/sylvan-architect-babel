@@ -152,12 +152,12 @@ test('candidate outcomes cannot mark the same host licensed and rejected', () =>
   assert.deepEqual(good.items.filter(item => item.pathStyle === 'improper-candidate').map(item => [item.toNodeId, item.outcome]), [['b', 'licensed'], ['c', 'blocked']]);
 });
 
-test('multidominance verifies the exact named parents', () => {
-  const shared = leaf('shared');
-  const tree = [node('root', 'TP', [leaf('a'), leaf('b'), node('p1', 'XP', [shared]), node('p2', 'XP', [structuredClone(shared)])])];
-  assert(!has(inspect(relation({ parents: ['a', 'b'], shared: 'shared' }), tree), 'multidominance'));
+test('multidominance uses the declared extra parents without duplicating a tree occurrence', () => {
+  const tree = [node('root', 'TP', [node('p1', 'XP', [leaf('shared')]), node('p2', 'XP', [leaf('b')])])];
   const good = inspect(relation({ parents: ['p1', 'p2'], shared: 'shared' }), tree);
   assert.deepEqual(good.items.find(item => item.kind === 'shared-node').parentNodeIds, ['p1', 'p2']);
+  for (const parents of [['p1', 'missing'], ['p1', 'p1'], ['p1', 'shared']])
+    assert(!has(inspect(relation({ parents, shared: 'shared' }), tree), 'multidominance'));
 });
 
 test('focus carries its witnessed native branch parent rather than the domain root', () => {
@@ -349,10 +349,12 @@ test('linear precedence and rebracketing do not compete for the same ordinary ro
   assert(!has(precedence, 'pf.local-dislocation'));
   assert(!has(inspect(relation({ order: ['a', 'b', 'c'] }, { orderRows: ['a < b', 'b < c'] })), 'pf.linearization'));
   // Local dislocation is claimed only when the trees regroup the sequence.
-  const regrouped = [node('root', 'CP', [leaf('a'), leaf('b'), leaf('c')])];
+  const regrouped = [node('root', 'CP', [leaf('a'), node('other-group', 'XP', [leaf('b'), leaf('c')])])];
   const grouped = [node('root', 'CP', [node('group', 'XP', [leaf('a'), leaf('b')]), leaf('c')])];
-  const dislocation = inspect(relation({ sequence: ['a', 'b'] }, { note: 'regrouped at PF' }), regrouped, grouped);
+  const dislocation = inspect(relation({ sequence: ['a', 'b', 'c'] }, { note: 'regrouped at PF' }), regrouped, grouped);
   assert(has(dislocation, 'pf.local-dislocation'));
+  assert.deepEqual(dislocation.items.find(item => item.plaqueStyle === 'dislocation-lane').nativeContent,
+    { kind: 'local-dislocation', beforeGroupSizes: [2, 1], afterGroupSizes: [1, 2] });
   assert(!has(dislocation, 'pf.linearization'));
   assert(!has(inspect(relation({ sequence: ['a', 'b'] }, { orderRows: ['a b', '[a b]'] })), 'pf.local-dislocation'), 'bracket text proves nothing');
   assert(!has(inspect(relation({ order: ['a', 'b'] }, { orderRows: ['ordinary prose', 'more prose'] })), 'pf.linearization'));

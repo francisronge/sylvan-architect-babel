@@ -12,6 +12,7 @@
  * agreement curves.
  */
 import type { Point, Rect } from './overlayGeometry.ts';
+import { prepareSharedFeatureTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
 
 const fixed = (value: number): string => value.toFixed(1);
 
@@ -121,11 +122,44 @@ export const splitAntecedenceLinkPath = (
 
 export const ELBOW_ENDPOINT_RADIUS = 9;
 
+/** Keep the index beside its label unless the binding path uses that side.
+ * The cubic's y coordinates stay between its endpoints, so the upper index
+ * clears above that interval and the lower index clears below. Glyph bounds
+ * are baseline-relative in the same SVG space. Padding includes the existing
+ * marker and index outlines; paths and node positions are not adjusted. */
+export const operatorBindingIndexPoint = (
+  label: Rect,
+  glyph: Pick<Rect, 'y' | 'height'>,
+  role: 'operator' | 'variable',
+  direction: number,
+  otherEndpointY: number
+): Point => {
+  const point = { x: label.x + label.width + 10, y: label.y + label.height * 0.72 };
+  if (direction <= 0 || !Number.isFinite(glyph.y) || !(glyph.height > 0)) return point;
+  const endpointY = label.y + label.height * (role === 'operator' ? 0.62 : 0.58);
+  const arrowPaintHalfHeight = (4 + 1.15 / 2) * 11 / 10;
+  const indexStrokeHalfWidth = 7 / 2;
+  const clearance = arrowPaintHalfHeight + indexStrokeHalfWidth + 4;
+  return { x: point.x, y: endpointY < otherEndpointY
+    ? Math.min(point.y, endpointY - clearance - glyph.y - glyph.height)
+    : Math.max(point.y, endpointY + clearance - glyph.y) };
+};
+
 /** Anti-locality's blocked bar cap: a horizontal stop at the endpoint. */
 export const barCapPath = (endpoint: Point, halfWidth = 14): string => [
   `M ${fixed(endpoint.x - halfWidth)} ${fixed(endpoint.y)}`,
   `L ${fixed(endpoint.x + halfWidth)} ${fixed(endpoint.y)}`
 ].join(' ');
+
+/** The native locality cross occupies a 34-unit square in tree coordinates. */
+export const blockingCrossSegments = (point: Point, halfSize = 17): Array<{
+  x1: number; y1: number; x2: number; y2: number;
+}> => [-1, 1].map(direction => ({
+  x1: point.x + direction * halfSize,
+  y1: point.y - halfSize,
+  x2: point.x - direction * halfSize,
+  y2: point.y + halfSize
+}));
 
 /** The licensed check mark used opposite the bar cap. */
 export const checkMarkPath = (point: Point, size = 12): string => [
@@ -138,19 +172,72 @@ export const checkMarkPath = (point: Point, size = 12): string => [
  * A feature-sharing vine: the accepted cubic from a bearer's terminal down to
  * the shared convergence point.
  */
-export const featureSharingVinePath = (start: Point, convergence: Point): string => {
+const featureSharingVineControls = (start: Point, convergence: Point): [Point, Point] => {
   const spanY = convergence.y - start.y;
   const c1 = { x: start.x, y: start.y + spanY * 0.64 };
   const c2 = {
     x: convergence.x + (start.x - convergence.x) * 0.16,
     y: convergence.y - Math.max(22, spanY * 0.08)
   };
+  return [c1, c2];
+};
+
+export const featureSharingVinePath = (start: Point, convergence: Point): string => {
+  const [c1, c2] = featureSharingVineControls(start, convergence);
   return [
     `M ${fixed(start.x)} ${fixed(start.y)}`,
     `C ${fixed(c1.x)} ${fixed(c1.y)},`,
     `${fixed(c2.x)} ${fixed(c2.y)},`,
     `${fixed(convergence.x)} ${fixed(convergence.y)}`
   ].join(' ');
+};
+
+/** Keep accepted curves unless staggered bearer heights make them cross.
+ * Delay their inward bend together, preserving endpoints and the shared plaque.
+ * At full delay the curves share a starting level and retain horizontal order. */
+export const featureSharingVinePaths = (starts: Point[], convergence: Point): string[] => {
+  const lowestY = Math.max(...starts.map(start => start.y));
+  const ordered = [...starts].sort((a, b) => a.x - b.x);
+  const delayed = (start: Point, delay: number): Point => ({ x: start.x, y: start.y + (lowestY - start.y) * delay });
+  const xAtY = (start: Point, y: number): number => {
+    if (y <= start.y) return start.x;
+    const [c1, c2] = featureSharingVineControls(start, convergence);
+    let low = 0, high = 1;
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const t = (low + high) / 2, u = 1 - t;
+      const curveY = u ** 3 * start.y + 3 * u ** 2 * t * c1.y
+        + 3 * u * t ** 2 * c2.y + t ** 3 * convergence.y;
+      if (curveY < y) low = t; else high = t;
+    }
+    const t = (low + high) / 2, u = 1 - t;
+    return u ** 3 * start.x + 3 * u ** 2 * t * c1.x
+      + 3 * u * t ** 2 * c2.x + t ** 3 * convergence.x;
+  };
+  const crosses = (delay: number): boolean => ordered.some((left, index) => {
+    const right = ordered[index + 1];
+    if (!right || left.x === right.x) return false;
+    const fromY = Math.max(left.y, right.y);
+    const a = delayed(left, delay), b = delayed(right, delay);
+    for (let sample = 0; sample < 64; sample += 1) {
+      const y = fromY + (convergence.y - fromY) * sample / 64;
+      if (xAtY(a, y) > xAtY(b, y) + 0.01) return true;
+    }
+    return false;
+  });
+  if (!crosses(0)) return starts.map(start => featureSharingVinePath(start, convergence));
+  let low = 0, high = 1;
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    const delay = (low + high) / 2;
+    if (crosses(delay)) low = delay; else high = delay;
+  }
+  // A small margin avoids a near-tangent double stroke after coordinate rounding.
+  const delay = Math.min(1, high + 0.08);
+  return starts.map(start => {
+    const bend = delayed(start, delay);
+    const curve = featureSharingVinePath(bend, convergence);
+    return bend.y === start.y ? curve
+      : `M ${fixed(start.x)} ${fixed(start.y)} L ${fixed(bend.x)} ${fixed(bend.y)} ${curve.slice(curve.indexOf('C'))}`;
+  });
 };
 
 /** The convergence point of a vine set: mean bearer x, below the lowest. */
@@ -160,9 +247,10 @@ export const vineConvergence = (bearerRects: Rect[]): Point => ({
 });
 
 /** Native plaque footprints are shared by painting and the stage camera reservation. */
-export const featureSharingPlaqueRect = (bearerRects: Rect[]): Rect => {
+export const featureSharingPlaqueRect = (bearerRects: Rect[], label = '', measureText?: PlaqueTextMeasure): Rect => {
   const convergence = vineConvergence(bearerRects);
-  return { x: convergence.x - 124, y: convergence.y + 10, width: 248, height: 92 };
+  const { width, height } = prepareSharedFeatureTextLayout(label, measureText);
+  return { x: convergence.x - width / 2, y: convergence.y + 10, width, height };
 };
 
 export const dependentCaseStatePlaques = (
@@ -316,8 +404,13 @@ export const nestedUnderArcPath = (
   startX: number,
   endX: number,
   baseY: number,
-  depth: number
-): string => openArcPath(startX, endX, baseY, -depth);
+  depth: number,
+  endY = baseY
+): string => [
+  `M ${fixed(startX)} ${fixed(baseY)}`,
+  `Q ${fixed((startX + endX) / 2)} ${fixed(Math.max(baseY, endY) + depth)}`,
+  `${fixed(endX)} ${fixed(endY)}`
+].join(' ');
 
 /** The idiom interpretation bracket beneath the domain. */
 export const domainBracketPath = (x1: number, x2: number, y: number, lip = 12): string => [
@@ -326,6 +419,26 @@ export const domainBracketPath = (x1: number, x2: number, y: number, lip = 12): 
   `L ${fixed(x2)} ${fixed(y)}`,
   `L ${fixed(x2)} ${fixed(y - lip)}`
 ].join(' ');
+
+/** Fit the idiom's right bracket once, then keep it in its domain's SVG space. */
+export const idiomDomainBracketPath = (domain: Rect, viewportRight = Infinity): string | null => {
+  if (![domain.x, domain.y, domain.width, domain.height].every(Number.isFinite)
+    || domain.width < 0 || domain.height < 0) return null;
+  const domainRight = domain.x + domain.width;
+  const top = domain.y - 80;
+  const bottom = domain.y + domain.height + 80;
+  const available = Number.isFinite(viewportRight) ? Math.max(0, viewportRight - domainRight) : 320;
+  const gutter = Math.min(320, available);
+  const bracketX = domainRight + gutter;
+  const cap = Math.min(96, gutter);
+  if (![bracketX, top, bottom].every(Number.isFinite)) return null;
+  return [
+    `M ${fixed(bracketX - cap)} ${fixed(top)}`,
+    `H ${fixed(bracketX)}`,
+    `V ${fixed(bottom)}`,
+    `H ${fixed(bracketX - cap)}`
+  ].join(' ');
+};
 
 /**
  * Fong's Transfer/PIC tilted component arc: the cubic that sweeps up and

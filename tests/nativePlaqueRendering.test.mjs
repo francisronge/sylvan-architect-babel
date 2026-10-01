@@ -7,14 +7,16 @@ import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource, collectionPlaqueEdge, collectionPlaquePortX } from '../replay/relations/plaquePlacement.ts';
+import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
+import { collectionPathAttachment, coalesceCollectionPaths } from '../components/collectionPaths.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
-import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
+import { caseFeatureComposition, collectionAssignment, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
 import { appendPlaqueContent } from '../components/plaqueViewport.ts';
 import { featureCollectionPlaquePath, caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
 import { bindRelationPlanFrame, FALLBACK_ROLE_STYLE } from '../replay/relations/geometryBinding.ts';
 import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
+import { blockedCollectionCases, blockedCollectionStage } from './helpers/blockedCollectionFixtures.mjs';
 
 const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -53,7 +55,12 @@ class Element {
     this.text = '';
   }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
+  get tagName() { return this.tag; }
+  get classList() { return { contains: value => (this.attrs.class ?? '').split(' ').includes(value) }; }
   getAttribute(name) { return this.attrs[name] ?? null; }
+  setAttribute(name, value) { this.attrs[name] = String(value); }
+  cloneNode() { return new Element(this.tag, { ...this.attrs }); }
+  hasAttribute(name) { return Object.hasOwn(this.attrs, name); }
   get dataset() { return Object.fromEntries(Object.entries(this.attrs)
     .filter(([name]) => name.startsWith('data-'))
     .map(([name, value]) => [name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value])); }
@@ -72,10 +79,17 @@ class Element {
     return { x: 0, y: -ascent, width, height: ascent + descent };
   }
   getComputedTextLength() { return this.metrics().width; }
+  getTotalLength() { return 100; }
+  getPointAtLength(length) {
+    const points = this.attrs.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+    const t = length / 100, u = 1 - t;
+    return { x: u ** 3 * points[0] + 3 * u ** 2 * t * points[2] + 3 * u * t ** 2 * points[4] + t ** 3 * points[6],
+      y: u ** 3 * points[1] + 3 * u ** 2 * t * points[3] + 3 * u * t ** 2 * points[5] + t ** 3 * points[7] };
+  }
 }
 const descendants = node => node.children.flatMap(child => [child, ...descendants(child)]);
-const matches = (node, selector) => selector.split(',').some(part =>
-  (node.attrs.class || '').split(' ').includes(part.trim().replace(/^\./, '')));
+const matches = (node, selector) => selector.split(',').some(part => part.trim() === '*'
+  || (node.attrs.class || '').split(' ').includes(part.trim().replace(/^\./, '')));
 class Selection {
   constructor(nodes) { this.items = nodes; }
   node() { return this.items[0] || null; }
@@ -155,6 +169,35 @@ test('the production idiom underlines belong to their chunks, not to the optiona
 
 const drawPlaqueText = productionFunction('drawPlaqueText');
 const withPlaqueTextMeasure = productionFunction('withPlaqueTextMeasure');
+const drawPlaqueDependencyPath = productionFunction('drawPlaqueDependencyPath', {
+  d3, markerScale: 1, activeDerivationFrameIndex: 0, relationEmphasisForItem: () => null,
+  decorateRelationElement(element, item) {
+    element.attrs['data-vr-stage-index'] = String(item.relationRef.stageIndex);
+    element.attrs['data-vr-relation-index'] = String(item.relationRef.relationIndex);
+    element.attrs['data-vr-owner-refs'] = planItemRelationRefs(item).map(r => `${r.stageIndex}:${r.relationIndex}`).join(' ');
+  }
+});
+
+test('deferred Case composition cannot give its owner to a blocked collector group', () => {
+  const root = new Element('g'), deferred = [];
+  const collector = { kind: 'directed-path', pathStyle: 'case-agree', outcome: 'blocked',
+    fromNodeId: 'head', toNodeId: 'goal', relationRef: { stageIndex: 0, relationIndex: 2 } };
+  const caseOwner = { ...collector, pathStyle: 'case-assignment', relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const queue = productionFunction('queueAcceptedRelationDraw', {
+    g: select(root), deferredAcceptedRelationDraws: deferred,
+    decorateRelationElement(element, item) { element.attrs['data-vr-owner-refs'] = `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`; }
+  });
+  const previous = globalThis.SVGElement; globalThis.SVGElement = Element;
+  try {
+    queue(caseOwner, 'quiet', () => drawPlaqueDependencyPath(select(root), collector, 'M 0 0 C 0 40 100 60 100 100', true));
+    deferred.forEach(draw => draw());
+    const group = descendants(root).find(n => matches(n, '.babel-collection-ink'));
+    assert.equal(group.attrs['data-vr-owner-refs'], '0:2');
+    assert.equal(group.attrs['data-vr-stage-index'], '0');
+    assert.equal(group.attrs['data-vr-relation-index'], '2');
+    assert(group.children.every(n => n.attrs['data-vr-owner-refs'] === '0:2'));
+  } finally { globalThis.SVGElement = previous; }
+});
 
 const plaqueBranch = findNode(node => ts.isIfStatement(node)
   && node.expression.getText(parsed) === "primitive.type === 'plaque'");
@@ -169,7 +212,8 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   const dependencies = {
     primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
     planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    drawPlaqueDependencyPath,
     replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
@@ -208,7 +252,8 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   const root = new Element('g');
   const dependencies = {
     frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPlaqueEdge, collectionPlaquePortX,
+    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths,
+    drawPlaqueDependencyPath,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
@@ -222,6 +267,96 @@ function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed
   return root;
 }
 
+test('derived failed collection cues survive binding and every native collection paint route', () => {
+  const unpairedBranch = findNode(node => ts.isIfStatement(node)
+    && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-assignment'")
+    && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-agree'"));
+  for (const fixture of blockedCollectionCases) {
+    const stage = blockedCollectionStage(fixture.relations), plan = compileRelationRenderPlan([stage]), items = plan.frames[0].items;
+    const tree = d3.tree().size([1200, 900])(d3.hierarchy(stage.workspaceForest[0]));
+    const nodes = new Map(tree.descendants().map(node => [node.data.id, node]));
+    const bound = bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null, { plaqueTextLayout: { measureText } });
+    const unblocked = structuredClone(plan);
+    unblocked.frames[0].items.forEach(item => { if (item.pathStyle === 'case-agree') delete item.outcome; });
+    const originalRoutes = bindRelationPlanFrame(unblocked, 0, id => nodes.get(id) ?? null, { plaqueTextLayout: { measureText } });
+    const paths = items.filter(item => item.pathStyle === 'case-agree');
+    assert(paths.length, fixture.id);
+    for (const item of paths) {
+      const geometry = bound.primitives.find(p => p.type === 'shape-path' && p.itemIndex === items.indexOf(item));
+      assert(geometry, fixture.id);
+      assert.equal(geometry.blocked === true, item.outcome === 'blocked');
+      assert.equal(geometry.tip?.kind, item.outcome === 'blocked' ? 'cross' : undefined);
+      assert.equal(geometry.stroke, 'dotted');
+      const prior = originalRoutes.primitives.find(p => p.type === 'shape-path' && p.itemIndex === geometry.itemIndex);
+      const { blocked, tip, ...route } = geometry;
+      assert.deepEqual(route, prior, 'failure cue must not reroute or restyle the collector');
+    }
+    const request = prepareStagePlaqueRequests(items, tree.descendants())[0];
+    let painted;
+    if (fixture.id === 'unpaired') {
+      assert.equal(request, undefined);
+      const root = new Element('g'), primitive = bound.primitives.find(p => p.type === 'shape-path');
+      const dependencies = { primitive, planItem: items[primitive.itemIndex], emphasis: null, frameItems: items,
+        collectionAssignment, collectionPlaque, drawPlaqueDependencyPath, drawCaseFeatureComposition() { throw Error('Unpaired path acquired Case'); },
+        queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(), ensureAgreementCaseRelationLayer: () => select(root), acceptedAnchorRect: () => null };
+      new Function(...Object.keys(dependencies), ts.transpile(unpairedBranch.getText(parsed), { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+      painted = root;
+    } else {
+      const placement = prepareCollectionPlaqueSpace(tree.descendants()).attach({ ...request, x: 0, y: 0 });
+      if (fixture.id === 'standalone') {
+        const primitive = bound.primitives.find(p => p.type === 'plaque' && p.itemIndex === request.index);
+        painted = drawSavedPlaque(primitive, items[request.index], items, new Map([[request.index, placement]]), nodes, new Set([0]), 0);
+      } else painted = drawCasePlaque(items[0], placement, { x: 1000, y: 100, width: 80, height: 60 }, items);
+    }
+    const cues = descendants(painted).filter(n => matches(n, '.babel-collection-failure'));
+    const expectedOwners = paths.filter(p => p.outcome === 'blocked').map(p => planItemRelationRefs(p).map(r => `${r.stageIndex}:${r.relationIndex}`).join(' '));
+    assert.deepEqual(cues.map(c => c.attrs['data-vr-owner-refs']), expectedOwners, fixture.id);
+    for (const cue of cues) {
+      assert.equal(cue.children[0].text, '✗');
+      assert.equal(cue.children[0].attrs.fill, 'var(--babel-relation-ink, #34d399)');
+      const path = cue.parent.children.find(n => n.tag === 'path');
+      assert.equal(path.attrs['data-vr-owner-refs'], cue.attrs['data-vr-owner-refs']);
+      assert.equal(cue.parent.attrs['data-vr-owner-refs'], cue.attrs['data-vr-owner-refs'],
+        'the shared group belongs to the collector, never its enclosing Case or plaque claim');
+      assert(!path.attrs.d.includes('NaN'));
+    }
+  }
+});
+
+test('saved failed comparisons paint both feature rows and paths with one owned failure cue', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/failed-agreement-holdout.json', import.meta.url)));
+  for (const record of fixture.cases) {
+    const stage = { statement: '', stageRecord: '', workspaceForest: record.workspaceForest, relations: [record.relation] };
+    const plan = compileRelationRenderPlan([stage]), items = plan.frames[0].items;
+    const tree = d3.tree().size([1200, 900])(d3.hierarchy(stage.workspaceForest[0]));
+    const nodes = new Map(tree.descendants().map(node => [node.data.id, node]));
+    const bound = bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null, { plaqueTextLayout: { measureText } });
+    const request = prepareStagePlaqueRequests(items, tree.descendants())[0];
+    const placement = prepareCollectionPlaqueSpace(tree.descendants()).attach({ ...request, x: 0, y: 0 });
+    const primitive = bound.primitives.find(p => p.type === 'plaque' && p.itemIndex === request.index);
+    const paint = () => drawSavedPlaque(primitive, items[request.index], items,
+      new Map([[request.index, placement]]), nodes, new Set([0]), 0);
+    const painted = paint(), all = descendants(painted);
+    const paths = all.filter(n => matches(n, '.babel-case-collection-path'));
+    const cues = all.filter(n => matches(n, '.babel-collection-failure'));
+    assert.equal(paths.length, 2, record.relation.relation);
+    assert.equal(all.filter(n => matches(n, '.babel-feature-row')).length, 2);
+    assert.equal(cues.length, 1);
+    assert(paths.every(n => n.attrs['data-vr-owner-refs'] === '0:0'));
+    assert.equal(cues[0].attrs['data-vr-owner-refs'], '0:0');
+    assert.equal(cues[0].parent.attrs['data-vr-owner-refs'], '0:0');
+    const midpoints = paths.map(path => path.getPointAtLength(path.getTotalLength() / 2));
+    const expected = { x: (midpoints[0].x + midpoints[1].x) / 2,
+      y: (midpoints[0].y + midpoints[1].y) / 2 };
+    assert.equal(Number(cues[0].attrs['data-vr-x']), expected.x,
+      'the comparison cross belongs between both routes, not on the first row');
+    assert.equal(Number(cues[0].attrs['data-vr-y']), expected.y);
+    assert(Math.hypot(expected.x - midpoints[0].x, expected.y - midpoints[0].y) > 0,
+      'the saved conflict must exercise separate collector routes');
+    assert.deepEqual(svgSnapshot(paint()), svgSnapshot(painted), 'redrawing cannot lose the shared cue');
+  }
+});
+
 test('a shared plaque paints the collector at its reserved edge and keeps its owning relation moment', () => {
   const items = compileRelationRenderPlan([{ statement: 'Values.', stageRecord: 'Two claims.', workspaceForest: [
     { id: 'root', label: 'TP', children: [{ id: 't', label: 'T' }, { id: 'd', label: 'D' }] }
@@ -234,7 +369,8 @@ test('a shared plaque paints the collector at its reserved edge and keeps its ow
   const composition = caseFeatureComposition(items, 0);
   const layout = prepareCasePlaqueRows(composition.rows);
   const rowY = layout.rows[1].y;
-  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd', y: rowY, edge: 'bottom', portX: 70 }] };
+  const placement = { x: 0, y: 0, ...layout, collectionRows: [{ sourceNodeId: 'd',
+    featureKey: featureRowKey(pathFeatureRow(items.find(item => item.pathStyle === 'case-agree'))), y: rowY, edge: 'bottom', portX: 70 }] };
   const source = { x: 1000, y: 100, width: 100, height: 60 };
   const painted = drawCasePlaque(assignment, placement, source, items);
   const path = descendants(painted).find(node => matches(node, '.babel-case-collection-path'));
@@ -250,7 +386,7 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   for (const node of nodes.values()) { node.x = 200; node.y = node.data.id === 'd' ? 1000 : -300; }
   const plan = compileRelationRenderPlan([{ statement: 'Values.', stageRecord: 'Exact features.', workspaceForest: [root.data], relations: [
     ...(shared ? [{ relation: 'CaseAssignment', anchors: { assigner: 't', bearer: 'd' }, values: { Case: 'nominative' } }] : []),
-    { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { number: 'plural', gender: 'feminine' } }
+    { relation: 'Phi Agree', anchors: { probe: 't', goal: 'd' }, values: { features: ['feminine', 'singular'] } }
   ] }]);
   const items = plan.frames[0].items;
   const request = prepareStagePlaqueRequests(items, [...nodes.values()])[0];
@@ -258,7 +394,8 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   const placement = prepareCollectionPlaqueSpace([...nodes.values()]).attach({ ...request, x: 0, y: 0 });
   assert(placement.collectionRows.every(row => row.edge === 'bottom'));
   const item = items[request.index];
-  const primitive = !shared && bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null).primitives
+  const primitive = !shared && bindRelationPlanFrame(plan, 0, id => nodes.get(id) ?? null,
+    { plaqueTextLayout: { measureText: (text, style) => ({ width: text.length * style.fontSize * .6, ascent: 28, descent: 9 }) } }).primitives
     .find(primitive => primitive.type === 'plaque' && primitive.itemIndex === request.index);
   const painted = shared ? drawCasePlaque(item, placement, { x: 160, y: 970, width: 80, height: 60 }, items)
     : drawSavedPlaque(primitive, item, items, new Map([[request.index, placement]]), nodes, new Set([0]), 0);
@@ -268,6 +405,14 @@ for (const shared of [false, true]) test(`${shared ? 'shared Case' : 'standalone
   const starts = paths.map(path => path.attrs.d.match(/^M (-?[\d.]+) (-?[\d.]+)/).slice(1).map(Number));
   assert(Math.abs(starts[0][0] - starts[1][0]) >= 24);
   assert.equal(starts[0][1], starts[1][1], 'both collectors leave the bottom edge');
+  const coincident = { ...placement, collectionRows: placement.collectionRows.map(row => ({ ...row, portX: 200 })) };
+  const nearby = new Map([...nodes].map(([id, node]) => [id, id === 'd' ? { ...node, y: placement.height + 90 } : node]));
+  const combined = shared ? drawCasePlaque(item, coincident, { x: 160, y: placement.height + 60, width: 80, height: 60 }, items)
+    : drawSavedPlaque(primitive, item, items, new Map([[request.index, coincident]]), nearby, new Set([0]), 0);
+  const combinedPaths = descendants(combined).filter(node => matches(node, '.babel-case-collection-path'));
+  assert.equal(combinedPaths.length, 1, 'truly identical collector ink paints once');
+  const text = combined.textContent;
+  assert(text.includes('feminine') && text.includes('singular'), 'both feature rows stay visible');
 });
 
 test('a coalesced Case path still composes with a later-stage feature plaque in layout and painting', () => {
@@ -503,8 +648,9 @@ test('native zero realization retains its compact rewrite columns; a literal nul
   assert.deepEqual(row.children.map(text => text.textContent), ['C', '\u2192', '\u2205']);
   assertContained(compact);
   const literal = drawPf({ rows, kinds: ['literal'] });
-  assert.equal(Number(literal.shell.attrs.width), 590);
+  assert.equal(Number(literal.shell.attrs.width), 308, 'the literal plate fits its heading rather than reserving rewrite columns');
   assert.equal(literal.elements.filter(node => matches(node, '.babel-pf-plate-arrow')).length, 0);
+  assertContained(literal);
 });
 
 test('PF font size and local text positions do not change with camera scale', () => {
@@ -643,6 +789,8 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
   let camera;
   const fit = productionFunction('applyFittedCamera', {
     autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
+    cameraAnimationRef: { current: null }, svg: { attr() {} },
+    animateFittedCamera: transform => { camera = transform; },
     g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
     d3, fitFallbackOverlays: undefined, applyCameraTransform: transform => { camera = transform; }
@@ -692,6 +840,8 @@ test('fallback role and authored array position share one tree coordinate group'
   let camera;
   const fit = productionFunction('applyFittedCamera', {
     autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
+    cameraAnimationRef: { current: null }, svg: { attr() {} },
+    animateFittedCamera: transform => { camera = transform; },
     g: select(new Element('g')), manualCameraRef, data, derivationStagesSignature: 'stage',
     containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
     fitLeft: 40, fitRight: 1560, fitTop: 100, fitBottom: 700,

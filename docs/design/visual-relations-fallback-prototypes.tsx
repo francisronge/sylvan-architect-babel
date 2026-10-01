@@ -24,10 +24,6 @@ import {
   type FallbackPrototypeCard
 } from './visual-relations-fallback-prototypes-data.ts';
 
-const FBPROTO_MAX_REPLAY_CLICKS = 80;
-const FBPROTO_MAX_REPLAY_WAITS = 150;
-const FBPROTO_DISABLED_GRACE_POLLS = 6;
-
 function FallbackPrototypeCardView({ card }: { card: FallbackPrototypeCard }) {
   const cardRef = useRef<HTMLElement | null>(null);
   const [archetype, title] = card.title.split(' · ');
@@ -40,70 +36,17 @@ function FallbackPrototypeCardView({ card }: { card: FallbackPrototypeCard }) {
     const host = cardRef.current;
     if (!host) return;
 
-    let cancelled = false;
-    let clicks = 0;
-    let waits = 0;
-
     const fixStandaloneLogoPath = () => {
       host.querySelectorAll<HTMLImageElement>('img[src="/babellogo.png"]').forEach((image) => {
         image.src = '../../public/babellogo.png';
       });
     };
 
-    /** Which authored stage the card is currently showing, 0-based. */
-    const displayedStageIndex = (): number | null => {
-      const match = (host.textContent || '').match(/Derivation Step stage-(\d+)/);
-      if (match) return Number(match[1]) - 1;
-      const counter = (host.textContent || '').match(/Stage\s+(\d+)\s*\/\s*\d+/);
-      return counter ? Number(counter[1]) - 1 : null;
-    };
-
-    /** Walk Replay to the deterministic frame this card demonstrates. */
-    const advanceToPinnedFrame = () => {
-      if (cancelled) return;
-      fixStandaloneLogoPath();
-      const buttonByLabel = (label: string) =>
-        Array.from<HTMLButtonElement>(host.querySelectorAll<HTMLButtonElement>('button'))
-          .find((button) => button.textContent?.trim() === label);
-      const nextButton = buttonByLabel('Next');
-      const stageIndex = displayedStageIndex();
-
-      if (stageIndex !== null && stageIndex > card.pinnedStageIndex) {
-        const prevButton = buttonByLabel('Prev');
-        if (prevButton && !prevButton.disabled && clicks < FBPROTO_MAX_REPLAY_CLICKS) {
-          clicks += 1;
-          prevButton.click();
-          window.setTimeout(advanceToPinnedFrame, 45);
-        }
-        return;
-      }
-
-      if (nextButton && !nextButton.disabled) {
-        if (clicks >= FBPROTO_MAX_REPLAY_CLICKS) return;
-        clicks += 1;
-        waits = 0;
-        nextButton.click();
-        window.setTimeout(advanceToPinnedFrame, 45);
-        return;
-      }
-
-      if (nextButton) {
-        if (clicks > 0 || waits >= FBPROTO_DISABLED_GRACE_POLLS) return;
-      }
-
-      waits += 1;
-      if (waits < FBPROTO_MAX_REPLAY_WAITS) {
-        window.setTimeout(advanceToPinnedFrame, 80);
-      }
-    };
-
     const observer = new MutationObserver(fixStandaloneLogoPath);
     observer.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
-    const timer = window.setTimeout(advanceToPinnedFrame, 220);
+    fixStandaloneLogoPath();
     return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      observer?.disconnect();
+      observer.disconnect();
     };
   }, [card]);
 
@@ -125,6 +68,8 @@ function FallbackPrototypeCardView({ card }: { card: FallbackPrototypeCard }) {
         <TreeVisualizer
           data={card.data}
           animated
+          autoPlay={false}
+          initialReplayMoment={{ stageIndex: card.pinnedStageIndex, relationIndex: 0 }}
           derivationStages={rendererStages}
           sentence={card.sentence}
         />

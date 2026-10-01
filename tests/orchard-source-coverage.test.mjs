@@ -63,8 +63,9 @@ test('corrected visual precedents expose the actual relation', () => {
     I1: 'quantifier-raising-wang-example14.png',
     I1b: 'operator-variable-baumann-figure2-32.png',
     L1: 'remnant-wiland-example62.png',
-    M1: 'phillips-2006-figure4-subject-island-paths.png',
-    O6: 'split-antecedence-pdtc-2026-figure2.png'
+    M1: 'moortgat-sadrzadeh-wijnholds-figure7.png',
+    O5: 'jou-2026-case-stacking-example125.png',
+    O6: 'pdt-coreference-overlay-cmpr9413-006.png'
   })) {
     assert.ok(firstImage(code).path.endsWith(path), `${code}: first image must show the claimed visual mechanism`);
   }
@@ -80,10 +81,23 @@ test('corrected visual precedents expose the actual relation', () => {
   assert.match(orchardResearchImages.H6[0].path, /fox-pesetsky-cyclic-linearization-example2\.png$/);
   assert.match(orchardSourceCitations.I1.note, /exact QR tree selected in Babel Reborn/);
   assert.match(orchardSourceCitations.I1b.note, /hulls/);
-  assert.equal(orchardSourceCitations.O6.kind, 'source unverified');
-  assert.match(orchardSourceCitations.O5.note, /no two-row plaque/);
-  assert.match(orchardSourceCitations.M1.note, /not a mark present in Figure 4/);
+  assert.equal(orchardSourceCitations.O6.kind, 'adapted convention');
+  assert.match(orchardSourceCitations.O5.note, /Mina retains DAT and receives ACC/);
   assert.match(orchardSourceCitations.F.note, /no source shows the exact opacity/);
+});
+
+test('parasitic-gap fork credits the published Frobenius copy drawing separately from Phillips paths', () => {
+  const source = orchardSourceCitations.M1;
+  assert.equal(source.kind, 'adapted convention');
+  assert.match(source.citation, /Moortgat.*Sadrzadeh.*Wijnholds.*Frobenius/);
+  assert.equal(source.url, 'https://arxiv.org/pdf/2005.05639#page=18');
+  assert.match(source.location, /Figure 7, page 18.*Figure 12, page 22/);
+  assert.match(source.note, /sourced, unheaded fork/);
+  assert.equal(source.related, undefined, 'the fork source panel must not substitute the separate Phillips path drawing');
+  assert.ok(orchardResearchImages.M1.every((image) => image.role === 'cited figure'));
+  assert.equal(orchardResearchImages.M1.length, 2);
+  assert.match(orchardResearchImages.M1[1].path, /moortgat-sadrzadeh-wijnholds-figure12\.png$/);
+  assert.equal(orchardSourceCitations.O2.citation, 'Colin Phillips, The Real-Time Status of Island Phenomena');
 });
 
 test('identity-source diagrams are conceptual precedents, not credited with Forest light', () => {
@@ -92,4 +106,24 @@ test('identity-source diagrams are conceptual precedents, not credited with Fore
   assert.match(source.citation, /Forest light.*Francis Ronge/);
   assert.match(source.note, /tree diagrams do not contain Forest light/);
   assert.ok(orchardResearchImages.B.every((image) => image.role === 'visual precedent'));
+});
+
+test('case stacking and split antecedence retain their recovered original source drawings', () => {
+  const stacking = orchardSourceCitations.O5;
+  assert.match(stacking.citation, /Eunsun Jou.*successive-cyclic dependent case/);
+  assert.equal(stacking.url, 'https://link.springer.com/article/10.1007/s11049-026-09717-4');
+  assert.match(stacking.location, /examples \(124\)–\(126\)/);
+  assert.equal(stacking.related, undefined);
+  assert.deepEqual(orchardResearchImages.O5.map((image) => image.path.split('/').at(-1)), [
+    'jou-2026-case-stacking-example125.png', 'jou-2026-case-stacking-example126.png'
+  ]);
+
+  const split = orchardSourceCitations.O6;
+  assert.equal(split.kind, 'adapted convention');
+  assert.match(split.location, /Figure 3\.1; tree cmpr9413-006-p23s2/);
+  assert.equal(split.url, 'https://ufal.mff.cuni.cz/node/780');
+  assert.match(split.note, /hollow square/);
+  assert.equal(split.related, undefined);
+  assert.equal(orchardResearchImages.O6.length, 1);
+  assert.ok(orchardResearchImages.O6[0].path.endsWith('pdt-coreference-overlay-cmpr9413-006.png'));
 });

@@ -135,10 +135,12 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       for (const role of contextRoles) {
         const ids = items(anchors[role]);
         if (ids.length !== 1 || landings.length !== 1) continue;
+        const authoredRole = bindings.find(binding => binding.field === 'anchors' && binding.role === role)?.authoredRole || role;
+        const landingContext = ['landing head', 'receiving head'].includes(normalizeTier2Synonym(authoredRole));
         const reason = currentForest ? movementContextFailure(currentForest, landings[0], ids[0],
-          role === 'complexHead' ? 'head-complex' : 'head-host') : 'workspace-required';
+          role === 'complexHead' ? 'head-complex' : landingContext ? 'head-landing' : 'head-host', priorForest) : 'workspace-required';
         if (reason) issues.push({ kind: 'head-context-unproven', field: 'anchors',
-          role: bindings.find(binding => binding.field === 'anchors' && binding.role === role)?.authoredRole || role,
+          role: authoredRole,
           nodeId: ids[0], landing: landings[0],
           reason });
       }

@@ -8,6 +8,29 @@ const EFFORT_LEVELS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
 export const RESEARCH_MODEL_CATALOG = deepFreeze([
   {
+    id: 'openai:gpt-6.1-sol',
+    label: 'GPT-6.1 Sol',
+    provider: 'openai',
+    providerRoute: 'gpt',
+    providerModel: 'gpt-6.1-sol',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'codex-responses',
+    controls: [
+      {
+        id: 'reasoning.effort',
+        label: 'Reasoning effort',
+        values: ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: { store: false, stream: true },
+    documentation: {
+      retrievedOn: '2026-09-29',
+      source: 'Codex host model catalog'
+    }
+  },
+  {
     id: 'openai:gpt-6-astra',
     label: 'GPT-6 Astra',
     provider: 'openai',
@@ -32,6 +55,33 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     documentation: {
       retrievedOn: '2026-09-05',
       url: 'https://developers.openai.com/api/docs/models/gpt-6-astra'
+    }
+  },
+  {
+    id: 'openai:gpt-6-sol',
+    label: 'GPT-6 Sol',
+    provider: 'openai',
+    providerRoute: 'gpt',
+    providerModel: 'gpt-6-sol',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'responses',
+    controls: [
+      {
+        id: 'reasoning.effort',
+        label: 'Reasoning effort',
+        values: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: {
+      maxOutputTokens: 128000,
+      background: true,
+      store: true
+    },
+    documentation: {
+      retrievedOn: '2026-09-23',
+      url: 'https://developers.openai.com/api/docs/models/gpt-6-sol'
     }
   },
   {
@@ -231,7 +281,7 @@ const MODEL_BY_ID = new Map(RESEARCH_MODEL_CATALOG.map((entry) => [entry.id, ent
 // Available for local integration testing, not yet qualified for public release.
 export const GENERATION_MODEL_IDS = Object.freeze([
   'openai:gpt-6-astra',
-  'openai:gpt-5.6-sol',
+  'openai:gpt-6-sol',
   'anthropic:claude-opus-5',
   'anthropic:claude-fable-5-1',
   'moonshot:kimi-k3',

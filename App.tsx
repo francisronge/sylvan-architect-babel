@@ -16,6 +16,7 @@ import FailurePanel from './components/FailurePanel';
 import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { collectPronouncedTerminalSequence } from './replay/pronouncedTerminals.ts';
+import { displayTreeForAnalysis, finalForestForAnalysis } from './replay/finalForest.ts';
 import {
   createTreeBankBundleSnapshot,
   loadTreeBankBundleSnapshot
@@ -94,10 +95,10 @@ const resolveUiError = (err: unknown): {
   };
 };
 
-const formatModelLabel = (modelUsed?: string): string => {
+const formatModelLabel = (modelUsed: string | undefined, models = GENERATION_MODEL_IDS.map(id => getResearchModel(id)!)): string => {
   const model = String(modelUsed || '').trim();
   if (!model) return 'Model unavailable';
-  const catalogModel = MODEL_OPTIONS.find((entry) => entry.providerModel === model);
+  const catalogModel = models.find((entry) => entry.providerModel === model);
   if (catalogModel) return catalogModel.label;
   if (/^gpt/i.test(model)) return model.toUpperCase();
   if (/^claude/i.test(model)) return model.replace(/^claude/i, 'Claude');
@@ -107,13 +108,12 @@ const formatModelLabel = (modelUsed?: string): string => {
 };
 
 type ModelMode = string;
-type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-const MODEL_OPTIONS = GENERATION_MODEL_IDS.map((id) => getResearchModel(id)!);
-const DEFAULT_MODEL_ID = GENERATION_MODEL_IDS[0];
+type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';
 
 const MODEL_ACCENT_COLORS: Record<string, string> = {
+  'openai:gpt-6.1-sol': '#f6bf69',
   'openai:gpt-6-astra': '#eef59a',
-  'openai:gpt-5.6-sol': '#f6bf69',
+  'openai:gpt-6-sol': '#f6bf69',
   'anthropic:claude-opus-5': '#d8ac86',
   'anthropic:claude-fable-5-1': '#93baf3',
   'moonshot:kimi-k3': '#8ebfba',
@@ -127,7 +127,8 @@ const REASONING_EFFORT_LABELS: Record<ReasoningEffort, string> = {
   medium: 'Medium',
   high: 'High',
   xhigh: 'XHigh',
-  max: 'Max'
+  max: 'Max',
+  ultra: 'Ultra'
 };
 
 const REASONING_PILL_STYLES: Record<ReasoningEffort, string> = {
@@ -137,20 +138,13 @@ const REASONING_PILL_STYLES: Record<ReasoningEffort, string> = {
   medium: 'border-teal-500/45 bg-teal-500/15 text-teal-200 shadow-[0_0_16px_rgba(20,184,166,0.16)]',
   high: 'border-[#b7791f]/55 bg-[#b7791f]/24 text-[#f3c777] shadow-[0_0_18px_rgba(183,121,31,0.22)]',
   xhigh: 'border-orange-500/60 bg-orange-500/20 text-orange-200 shadow-[0_0_20px_rgba(249,115,22,0.22)]',
-  max: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]'
+  max: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]',
+  ultra: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]'
 };
 
 const coerceReasoningEffortForRoute = (route: ModelMode, value?: string): ReasoningEffort => {
   const control = getResearchModel(route)!.controls[0];
   return (control.values.includes(value || '') ? value : control.qualificationDefault) as ReasoningEffort;
-};
-
-const coerceModelRoute = (value?: string): ModelMode => {
-  return GENERATION_MODEL_IDS.includes(value || '') ? value! : DEFAULT_MODEL_ID;
-};
-
-const inferModelRouteFromModel = (modelUsed?: string): ModelMode => {
-  return MODEL_OPTIONS.find((model) => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
 };
 
 type MilesMode = 'canopy' | 'derivation';
@@ -426,14 +420,24 @@ const serializeMilesNode = (node: SyntaxNode): string => {
 };
 
 const buildMilesNotation = (
-  tree: SyntaxNode,
+  forest: SyntaxNode[],
   _mode: MilesMode
 ): string => {
-  if (!tree || typeof tree !== 'object') return '';
-  return serializeMilesNode(tree).trim();
+  return forest.map((root) => serializeMilesNode(root).trim()).filter(Boolean).join('\n');
 };
 
-const App: React.FC = () => {
+interface AppProps {
+  /** Local harnesses can offer their own catalog subset without changing public provider routes. */
+  modelIds?: readonly string[];
+}
+
+const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
+  const MODEL_OPTIONS = useMemo(() => modelIds.map(id => getResearchModel(id)!), [modelIds]);
+  const DEFAULT_MODEL_ID = modelIds[0];
+  const coerceModelRoute = (value?: string): ModelMode =>
+    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID;
+  const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
+    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
   const appContainerRef = useRef<HTMLDivElement>(null);
   const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
@@ -496,10 +500,12 @@ const App: React.FC = () => {
   const [treeBankSaving, setTreeBankSaving] = useState(false);
   const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
+  const activeFinalForest = useMemo(() => finalForestForAnalysis(activeParse), [activeParse]);
+  const activeDisplayTree = useMemo(() => displayTreeForAnalysis(activeParse), [activeParse]);
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
   const selectedModel = getResearchModel(modelRoute)!;
   const selectedModelLabel = selectedModel.label;
-  const modelLabel = formatModelLabel(analysisBundle?.modelUsed);
+  const modelLabel = formatModelLabel(analysisBundle?.modelUsed, MODEL_OPTIONS);
   const activeReasoningEffort = coerceReasoningEffortForRoute(modelRoute, reasoningEffort);
   const activeReasoningOptions = selectedModel.controls[0].values as ReasoningEffort[];
   const reasoningControlLabel = selectedModel.controls[0].label;
@@ -507,12 +513,12 @@ const App: React.FC = () => {
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeParse.tree, 'canopy');
-  }, [activeParse]);
+    return buildMilesNotation(activeFinalForest, 'canopy');
+  }, [activeParse, activeFinalForest]);
   const derivationMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeParse.tree, 'derivation');
-  }, [activeParse]);
+    return buildMilesNotation(activeFinalForest, 'derivation');
+  }, [activeParse, activeFinalForest]);
   const derivationalNoteParagraphs = useMemo(() => {
     if (!activeParse) return [];
     return collectDerivationStageRecords(activeParse.derivationStages);
@@ -601,7 +607,8 @@ const App: React.FC = () => {
           analysis.derivationStages?.some(stage => stage.realizations?.length));
         const suppliedSentence = String(requestRecord.sentence || savedRecord.sentence || bundle.sentence || '').trim();
         if (hasRealizations && !suppliedSentence) throw new Error('Saved realization analyses require their original input sentence.');
-        const pronouncedTerminalSentence = hasRealizations ? '' : collectPronouncedTerminalSequence(firstAnalysis?.tree).join(' ');
+        const pronouncedTerminalSentence = hasRealizations ? ''
+          : collectPronouncedTerminalSequence(finalForestForAnalysis(firstAnalysis)).join(' ');
         const nextSentence =
           suppliedSentence
           || pronouncedTerminalSentence
@@ -1212,9 +1219,9 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {!loading && activeParse && (activeTab === 'tree' || activeTab === 'derivation') ? (
+          {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
             <TreeVisualizer 
-              data={activeParse.tree} 
+              data={activeDisplayTree}
               animated={activeTab === 'derivation'}
               derivationStages={activeParse.derivationStages}
               abstractionMode={abstractionMode}

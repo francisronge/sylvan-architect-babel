@@ -89,7 +89,9 @@ const normalizeRelations = (value) => asArray(value)
         : {}),
       ...(isPlainRecord(relation?.values)
         ? { values: cloneJson(relation.values) }
-        : {})
+        : {}),
+      ...(isPlainRecord(relation?.relationContractFailure)
+        ? { relationContractFailure: cloneJson(relation.relationContractFailure) } : {})
     };
   })
   .filter(Boolean);
@@ -180,6 +182,11 @@ const buildRelationSteps = (stage) => stage.relations.map((relation) => (
     anchors: cloneJson(relation.anchors),
     ...(relation.priorAnchors ? { priorAnchors: cloneJson(relation.priorAnchors) } : {}),
     ...(relation.values ? { values: cloneJson(relation.values) } : {}),
+    ...(relation.relationContractFailure ? {
+      relationContractFailure: cloneJson(relation.relationContractFailure),
+      movementDiagnostics: asArray(relation.relationContractFailure.issues)
+        .map(issue => asText(issue?.message)).filter(Boolean)
+    } : {}),
     authoredRelationIndex: relation.authoredRelationIndex,
     ...(() => {
       const { resolved, unresolved } = classifyRelationAnchors(relation.anchors, stage.workspaceForest);

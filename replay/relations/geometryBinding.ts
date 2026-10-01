@@ -26,7 +26,7 @@ import {
   domainBracketPath,
   dottedCollectionControls,
   dottedCollectionPath,
-  featureSharingVinePath,
+  featureSharingVinePaths,
   fongComponentArcPath,
   fongComponentLabelPoint,
   fongEdgeOutlineRect,
@@ -107,12 +107,13 @@ export type BoundIndexBadge = {
 };
 
 /**
- * Identity is shown by lighting the rendered occurrence terminals. It owns
- * no free-standing numeral and therefore contributes no camera bounds.
+ * Identity lights the occurrence terminals and indexes their exact labels.
+ * Its notation stays attached to those labels and adds no camera bounds.
  */
 export type BoundIdentityLens = {
   type: 'identity-lens';
   nodeIds: string[];
+  index: string;
   itemIndex: number;
 };
 
@@ -139,7 +140,7 @@ export type BoundFallbackMark = {
   role: string;
   text: string;
   textWidth: number;
-  /** Measured witness label; immutable across a stage's reveal steps. */
+  /** Measured witness label including its local outline, when present. */
   labelRect: Rect;
   allocationOrder: number;
   nodeId: string;
@@ -638,7 +639,7 @@ const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidt
 export const fitFallbackGeometry = (
   frame: BoundFrame,
   options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments'>
-    & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect }
+    & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect; relationInkObstacles?: Rect[] }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   if (options.separateFallbackMoments) {
     // Replay shows one neutral relation at a time. Invisible relations must
@@ -659,7 +660,8 @@ export const fitFallbackGeometry = (
   }
   const scale = options.fittedMarkerScale;
   const anchorScale = options.fittedAnchorScale ?? scale;
-  const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])];
+  const occupied = [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? []),
+    ...(options.relationInkObstacles ?? [])];
   const segments = frame.primitives.filter((p): p is BoundSegment => p.type === 'segment');
   const routed = routeFallbackSegments(segments.filter(segment => segment.route === 'counter-lane'), {
     ...options, markerScale: scale, obstacles: options.fallbackMeasurements?.obstacles
@@ -1100,6 +1102,10 @@ export const bindRelationPlanFrame = (
    */
   const policyFailed: BoundFrame['failed'] = [];
   if (!frame) return { stageIndex, primitives, failed };
+  const outlinedLabels = new Set(frame.items.flatMap(item =>
+    item.kind === 'domain-mark' && item.domainStyle === 'transfer-edge'
+      ? item.memberNodeIds.length ? item.memberNodeIds : item.rootNodeId ? [item.rootNodeId] : []
+      : []));
 
   const rectFor = (nodeId: string): Rect | null => {
     const point = positionFor(nodeId);
@@ -1292,6 +1298,7 @@ export const bindRelationPlanFrame = (
         primitives.push({
           type: 'identity-lens',
           nodeIds: item.nodeIds,
+          index: item.index,
           itemIndex
         });
         return;
@@ -1547,7 +1554,9 @@ export const bindRelationPlanFrame = (
             fitPolicy: 'tree-first',
             d: caseAssignmentPath(below(from, 8), to),
             stroke: 'solid',
-            arrowhead: true,
+            arrowhead: item.outcome !== 'blocked',
+            ...(item.outcome === 'blocked' ? { blocked: true,
+              tip: { kind: 'cross' as const, at: midpoint } } : {}),
             ...(item.label ? { label: item.label, labelAt: below(midpoint, 26) } : {})
           });
           return;
@@ -1568,6 +1577,8 @@ export const bindRelationPlanFrame = (
               d: dottedCollectionPath(start, end, ordinal),
               stroke: 'dotted',
               arrowhead: false,
+              ...(item.outcome === 'blocked' ? { blocked: true,
+                tip: { kind: 'cross' as const, at: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 } } } : {}),
               ...(item.label ? { label: item.label, labelAt: below(midpoint, 46 + ordinal * 22) } : {})
             })
           );
@@ -1693,16 +1704,16 @@ export const bindRelationPlanFrame = (
           });
         if (bearerRects.length < 2) return;
         const convergence = vineConvergence(bearerRects.map((entry) => entry.rect));
-        bearerRects.forEach((entry) => {
-          const start = {
+        const vinePaths = featureSharingVinePaths(bearerRects.map(entry => ({
             x: entry.rect.x + entry.rect.width / 2,
             y: entry.rect.y + entry.rect.height + 22
-          };
+          })), convergence);
+        vinePaths.forEach(path => {
           primitives.push({
             type: 'shape-path',
             shapeStyle: 'feature-sharing-vine',
             fitPolicy: 'tree-first',
-            d: featureSharingVinePath(start, convergence),
+            d: path,
             stroke: 'solid',
             arrowhead: false,
             itemIndex
@@ -1730,15 +1741,16 @@ export const bindRelationPlanFrame = (
           const from = requirePoint(itemIndex, pair.fromNodeId);
           const to = requirePoint(itemIndex, pair.toNodeId);
           if (!from || !to) return;
-          const baseY = Math.max(from.y, to.y) + labelHeight + 12;
+          const startY = from.y + labelHeight + 12;
+          const endY = to.y + labelHeight + 12;
           primitives.push({
             type: 'shape-path',
             shapeStyle: 'strong-npi',
-            d: nestedUnderArcPath(from.x, to.x, baseY, 44 + pairIndex * 30),
+            d: nestedUnderArcPath(from.x, to.x, startY, 44 + pairIndex * 30, endY),
             stroke: 'solid',
             arrowhead: false,
             ...(pairIndex === 0 && item.label
-              ? { label: item.label, labelAt: { x: (from.x + to.x) / 2, y: baseY + 60 } }
+              ? { label: item.label, labelAt: { x: (from.x + to.x) / 2, y: Math.max(startY, endY) + 60 } }
               : {}),
             itemIndex
           });
@@ -2253,7 +2265,10 @@ export const bindRelationPlanFrame = (
       item.drawing.marks.forEach((mark) => {
         const point = requirePoint(itemIndex, mark.witness);
         if (!point) return;
-        const labelRect = options.fallbackMeasurements?.labelFor(mark.witness) ?? rectFor(mark.witness)!;
+        const measuredLabel = options.fallbackMeasurements?.labelFor(mark.witness) ?? rectFor(mark.witness)!;
+        // The neutral role belongs outside the existing label's edge outline.
+        // Reserve that outline without moving the syntax or enlarging the box.
+        const labelRect = outlinedLabels.has(mark.witness) ? fongEdgeOutlineRect(measuredLabel) : measuredLabel;
         const text = spaceAuthoredName(mark.role) + (mark.position === null ? '' : `[${mark.position}]`);
         const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
         const textWidth = measure(text, FALLBACK_ROLE_STYLE).width;

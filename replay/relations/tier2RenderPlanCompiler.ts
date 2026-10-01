@@ -4,6 +4,7 @@
  * name and never reconstructs facet/output identities.
  */
 import type { SyntaxNode } from '../../types.ts';
+import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import type {
   PlanDiagnostic,
   PlanRelationRef,
@@ -20,6 +21,8 @@ import type {
 import { literalThetaRoles, pairedLiterals, prepareNativeFissionContent, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
 import { nativeAncestorEdges, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
+import { prepareRewriteRows } from './rewriteLiterals.ts';
+import { prepareLocalDislocationContent } from './localDislocationContent.ts';
 
 type CompileTier2Input = {
   relationRef: PlanRelationRef;
@@ -28,6 +31,9 @@ type CompileTier2Input = {
   priorForest?: readonly SyntaxNode[];
   /** Shared generated-index allocator: one letter per dependency, never a list position. */
   dependencyIndexFor?: (key: string) => string;
+  occurrenceIndexFor?: (family: string, ids: string[]) => string;
+  nextPhaseIsPrimary?: () => boolean;
+  identityIndexFor?: (ids: string[]) => string;
 };
 
 export type CompileTier2Result = {
@@ -57,18 +63,6 @@ const collectSubtreeIds = (node?: SyntaxNode): string[] => {
   const walk = (current: SyntaxNode) => {
     const id = String(current.id || '');
     if (id) ids.push(id);
-    (current.children || []).forEach(walk);
-  };
-  walk(node);
-  return ids;
-};
-
-const collectSilentSubtreeIds = (node?: SyntaxNode): string[] => {
-  if (!node) return [];
-  const ids: string[] = [];
-  const walk = (current: SyntaxNode) => {
-    const id = String(current.id || '');
-    if (id && current.silent === true) ids.push(id);
     (current.children || []).forEach(walk);
   };
   walk(node);
@@ -217,7 +211,10 @@ export const compileTier2RelationOutputs = ({
   dispatch,
   currentForest,
   priorForest,
-  dependencyIndexFor = (key) => key
+  dependencyIndexFor = (key) => key,
+  occurrenceIndexFor = (family, ids) => dependencyIndexFor(`${family}:${[...ids].sort().join('|')}`),
+  nextPhaseIsPrimary = () => true,
+  identityIndexFor
 }: CompileTier2Input): CompileTier2Result => {
   const dependencyKey = (tag: string, ids: readonly string[]) => `${tag}:${[...ids].sort().join('|')}`;
   const nodes = collectForest(currentForest);
@@ -351,7 +348,17 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Coindex', 'Forest light'], 'identity.occurrences'),
           kind: 'coindex',
           nodeIds: many('occurrences'),
-          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('identity', many('occurrences'))))
+          index: singleValue(evidence, 'index', identityIndexFor?.(many('occurrences'))
+            ?? dependencyIndexFor(dependencyKey('identity', many('occurrences'))))
+        });
+        return;
+      }
+      case 'coreference.coindex': {
+        push({
+          ...base(facet, ['Coindex'], 'coreference.coindex'),
+          kind: 'coindex',
+          nodeIds: many('coreference.participants'),
+          index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('coreference', many('coreference.participants'))))
         });
         return;
       }
@@ -381,10 +388,27 @@ export const compileTier2RelationOutputs = ({
           toNodeId: one('controllee'),
           pathStyle: 'control'
         });
+        const participants = [one('controller'), one('controllee')];
+        push({
+          ...base(facet, ['Coindex'], 'control.dependency', 'indices'),
+          kind: 'coindex',
+          nodeIds: participants,
+          index: singleValue(evidence, 'index') || occurrenceIndexFor('control', participants)
+        });
         return;
       }
       case 'binding.dependency': {
         const domain = one('domain');
+        if (!domain) {
+          push({
+            ...base(facet, ['Variable-binding path'], 'binding.dependency'),
+            kind: 'operator-variable-binding',
+            operatorNodeId: one('binder'),
+            variableNodeId: one('dependent'),
+            index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')])))
+          });
+          return;
+        }
         push({
           ...base(facet, ['Elliptic domain'], 'binding.domain'),
           kind: 'binding-domain',
@@ -445,7 +469,7 @@ export const compileTier2RelationOutputs = ({
           ...base(facet, ['Ghosting'], 'ellipsis.ghosting'),
           kind: 'ellipsis-site',
           siteNodeId: site,
-          ghostNodeIds: collectSilentSubtreeIds(nodes.get(site)),
+          ghostNodeIds: collectAuthoredSilentSubtreeIds(nodes.get(site)),
           siteSubtreeNodeIds: collectSubtreeIds(nodes.get(site)),
           subtreeDerived: [
             { field: 'ghostNodeIds', rootNodeId: site, mode: 'authored-silent' },
@@ -575,6 +599,10 @@ export const compileTier2RelationOutputs = ({
       }
       case 'feature-sharing': {
         const bearers = many('feature.bearers');
+        const featureEntries = evidence.authoredValues?.filter(entry => entry.concepts.includes('feature.rows')) ?? [];
+        const label = featureEntries.length
+          ? featureEntries.map(entry => `${entry.key}: ${entry.items.join(', ')}`).join('; ')
+          : valueItems(evidence, 'feature.rows').join(', ');
         push({
           ...base(facet, ['Feature vine'], 'feature-sharing.vines'),
           kind: 'undirected-link',
@@ -583,9 +611,7 @@ export const compileTier2RelationOutputs = ({
             toNodeId: bearers[index + 1]
           })),
           linkStyle: 'feature-sharing',
-          ...(valueItems(evidence, 'feature.rows').length > 0
-            ? { label: valueItems(evidence, 'feature.rows').join(', ') }
-            : {})
+          ...(label ? { label } : {})
         });
         return;
       }
@@ -671,7 +697,8 @@ export const compileTier2RelationOutputs = ({
           rootNodeId: phase,
           memberNodeIds: collectSubtreeIds(nodes.get(phase)),
           subtreeDerived: [{ field: 'memberNodeIds', rootNodeId: phase, mode: 'all' }],
-          domainStyle: 'phase'
+          domainStyle: 'phase',
+          phasePrimary: nextPhaseIsPrimary()
         });
         return;
       }
@@ -897,13 +924,25 @@ export const compileTier2RelationOutputs = ({
         }
         return;
       }
-      case 'strong-npi': {
+      case 'focus.association': {
         push({
-          ...base(facet, ['Nested association curves', 'Feature notation'], 'accord.strong-npi'),
+          ...base(facet, ['Nested association curves'], 'focus.association'),
           kind: 'undirected-link',
-          pairs: [{ fromNodeId: one('licensor'), toNodeId: one('licensee') }],
+          pairs: [{ fromNodeId: one('association.particle'), toNodeId: one('association.associate') }],
+          linkStyle: 'strong-npi'
+        });
+        return;
+      }
+      case 'polarity.licensing':
+      case 'strong-npi': {
+        const polarityOnly = facet.recipe.id === 'polarity.licensing';
+        push({
+          ...base(facet, polarityOnly ? ['Nested association curves'] : ['Nested association curves', 'Feature notation'],
+            polarityOnly ? 'polarity.licensing' : 'accord.strong-npi'),
+          kind: 'undirected-link',
+          pairs: [{ fromNodeId: one('licensor'), toNodeId: one(polarityOnly ? 'polarity.item' : 'licensee') }],
           linkStyle: 'strong-npi',
-          ...(singleValue(evidence, 'feature.label')
+          ...(!polarityOnly && singleValue(evidence, 'feature.label')
             ? { label: singleValue(evidence, 'feature.label') }
             : {})
         });
@@ -927,7 +966,7 @@ export const compileTier2RelationOutputs = ({
           pronouncedNodeId: one('scope.source'),
           lfNodeId: one('scope.landing'),
           ...(one('scope.domain') ? { scopeDomainNodeId: one('scope.domain') } : {}),
-          index: singleValue(evidence, 'index', 'i')
+          index: singleValue(evidence, 'index') || occurrenceIndexFor('qr', [one('scope.source'), one('scope.landing')])
         });
         return;
       }
@@ -992,8 +1031,13 @@ export const compileTier2RelationOutputs = ({
         };
         const nativeContent = config.style === 'linearization' ? prepareNativeLinearizationContent(evidence)
           : config.style === 'fission' ? prepareNativeFissionContent(evidence)
+          : config.style === 'dislocation-lane' ? prepareLocalDislocationContent({
+            sequenceNodeIds: many(config.role), currentForest: evidence.currentForest,
+            priorForest: evidence.priorForest, rows,
+            values: Object.fromEntries((evidence.authoredValues ?? []).map(entry => [entry.key, entry.items]))
+          })
           : prepareNativePlaqueContent(config.style, tier2NativePlaqueRows(evidence), many(config.role));
-        if (['fission', 'impoverishment', 'correspondence', 'linearization'].includes(config.style) && !nativeContent) {
+        if (['fission', 'impoverishment', 'correspondence', 'linearization', 'dislocation-lane'].includes(config.style) && !nativeContent) {
           diagnostics.push({ stageIndex: relationRef.stageIndex, relationIndex: relationRef.relationIndex,
             relation: relationRef.relation, kind: 'illegal-configuration', detail: `Tier-2 ${facetId} has no complete prepared content` });
           return;
@@ -1004,7 +1048,8 @@ export const compileTier2RelationOutputs = ({
           anchorNodeIds: many(config.role),
           plaqueStyle: config.style,
           rows,
-          ...(config.style === 'realization' ? { realizationRowKinds: rows.map(() => 'literal' as const) } : {}),
+          ...(facetId === 'pf.rewrite' ? prepareRewriteRows(evidence, rows)
+            : config.style === 'realization' ? { realizationRowKinds: rows.map(() => 'literal' as const) } : {}),
           ...(nativeContent ? { nativeContent } : {})
         });
         return;

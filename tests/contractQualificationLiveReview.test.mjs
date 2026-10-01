@@ -20,6 +20,7 @@ const require = createRequire(import.meta.url);
 const compiled = await build({
   absWorkingDir: repoRoot, entryPoints: ['contractQualification/reviewComponents.tsx'],
   bundle: true, write: false, platform: 'node', format: 'esm', jsx: 'automatic',
+  loader: { '.css': 'empty' },
   plugins: [{ name: 'local-test-dependencies', setup(builder) {
     builder.onResolve({ filter: /^[^./]/ }, ({ path: specifier }) => ({
       path: pathToFileURL(require.resolve(specifier)).href, external: true
@@ -63,7 +64,8 @@ test('the live view prepares production Replay asynchronously without displaying
   const before = structuredClone(record);
   const html = render(QualificationReview, { data: { attempts: [record] } });
   assert.match(html, /role="status"/);
-  assert.match(html, /Preparing Replay/);
+  assert.match(html, /babel-preparation-mark/);
+  assert.doesNotMatch(html, /Preparing (?:Replay|tree)/);
   assert.doesNotMatch(html, /Replay 1\/999|replay-\d+\.png|capture has not|data-babel-replay-panel/);
   assert.match(html, /Live Replay \/ archived normalized derivative/);
   assert.match(html, /Linguistic: unreviewed; visual: unreviewed/);
@@ -94,7 +96,8 @@ test('failed originals retain all analyses and later inspection stages without i
   const props = { choice: choices[0], mode: 'inspection' };
   assert.match(render(ReviewTree, { ...props, stage: choices[0].inspection.stages[1] }), /Expansion blocked by stage 1/);
   const later = render(ReviewTree, { ...props, stage: choices[0].inspection.stages[2] });
-  assert.match(later, /Preparing tree/);
+  assert.match(later, /babel-preparation-mark/);
+  assert.doesNotMatch(later, /Preparing (?:Replay|tree)/);
   assert.doesNotMatch(later, /data-babel-replay-panel/);
   assert.match(render(ReviewTree, { choice: choices[0], mode: 'replay' }), /No complete Replay/);
 });
@@ -118,6 +121,50 @@ test('review navigation resets attempt and stage selection without editing evide
   first.receipt.ingress.repairDiagnostics = [{ kind: 'append_closers_at_end_of_output' }];
   assert.equal(reviewStatus(first).label, 'Normalized after repair');
   assert.equal(reviewStatus(failure).label, 'Failed');
+});
+
+test('switching from a replayable analysis to an ambiguous record opens its inspectable stages', () => {
+  const record = attempt();
+  record.inspection.analyses.push({ analysisIndex: 1, stages: [{
+    stageIndex: 0, authoredStage: stage([node('duplicate', 'one'), node('duplicate', 'two')]),
+    workspaceForest: [node('duplicate', 'one'), node('duplicate', 'two')]
+  }] });
+  const original = structuredClone(record);
+  const selected = changeReviewSelection(initialReviewSelection([record]), { type: 'analysis', index: 1 }, [record]);
+  assert.equal(selected.view, 'Stage inspection');
+  assert.equal(selected.stage, 0);
+  assert.equal(changeReviewSelection(selected, { type: 'view', view: 'Replay' }, [record]).view, 'Stage inspection');
+  assert.equal(changeReviewSelection(selected, { type: 'view', view: 'Raw response' }, [record]).view, 'Raw response');
+  assert.deepEqual(record, original);
+});
+
+test('stage inspection exposes duplicate positions without resolving ambiguous identities or hiding later stages', () => {
+  const record = attempt();
+  record.outcome = { status: 'failed', phase: 'normalization' };
+  record.analyses = [];
+  record.normalizedRecord = null;
+  const repeated = node('duplicate', 'Mia');
+  record.inspection.analyses[0].stages = [
+    { stageIndex: 0, authoredStage: stage([repeated, repeated]), workspaceForest: [repeated, structuredClone(repeated)] },
+    { stageIndex: 1, authoredStage: stage([repeated]), workspaceForest: [repeated] }
+  ];
+  const original = structuredClone(record);
+  const choice = reviewAnalyses(record)[0];
+  const first = render(ReviewTree, { choice, stage: choice.inspection.stages[0], mode: 'inspection' });
+  assert.match(first, /authored IDs occur in multiple positions/);
+  assert.match(first, /All positions are shown/);
+  assert.match(first, /original record is unchanged/);
+  assert.match(first, /duplicate/);
+  assert.match(first, /positions 1, 2/);
+  assert.match(first, /babel-preparation-mark/);
+  assert.doesNotMatch(first, /role="alert"/);
+  const later = render(ReviewTree, { choice, stage: choice.inspection.stages[1], mode: 'inspection' });
+  assert.match(later, /babel-preparation-mark/);
+  assert.doesNotMatch(later, /ambiguous node identities/);
+  const page = render(QualificationReview, { data: { attempts: [record] } });
+  assert.match(page, /Stage 1 \/ 2 · duplicate IDs/);
+  assert.match(page, /Stage 2 \/ 2/);
+  assert.deepEqual(record, original);
 });
 
 test('all evidence views retain original bytes, unknown fields, archived frames and nonfatal diagnostics', () => {
@@ -164,7 +211,8 @@ test('explicit copy Replay is separate from the failed original and its recorded
   assert.equal(initialReviewSelection([record]).source, 'copy');
   const page = render(QualificationReview, { data: { attempts: [record] } });
   assert.match(page, /Inspection copy \/ recorded corrections/);
-  assert.match(page, /Preparing Replay/);
+  assert.match(page, /babel-preparation-mark/);
+  assert.doesNotMatch(page, /Preparing (?:Replay|tree)/);
   assert.match(page, /aria-label="Replay record"/);
   assert.match(page, />Failed<\/span>/);
   assert.doesNotMatch(page, /Live Replay \/ archived normalized derivative/);

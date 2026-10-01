@@ -1,0 +1,471 @@
+{
+  "sentence": "Vitabu hivi vimesomwa na watoto.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "head": "booksDP",
+            "licensingHead": "i",
+            "trace": "booksTrace"
+          },
+          "priorAnchors": {
+            "source": "booksDP"
+          },
+          "relation": "Passive A-movement chain",
+          "values": {
+            "chainThetaRole": "Theme",
+            "movement": "V-complement to Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i",
+            "subject": "booksDP"
+          },
+          "relation": "Finite subject licensing",
+          "values": {
+            "agreement": "noun class 8",
+            "case": "nominative",
+            "subjectRequirement": "satisfied"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "v",
+            "trace": "booksTrace"
+          },
+          "relation": "Government of the passive object trace",
+          "values": {
+            "dependency": "governed lower member of the passive A-chain"
+          }
+        }
+      ],
+      "stageRecord": "The books DP moves from the previously established complement of V to Spec-IP, leaving a silent DP trace rather than an unpronounced full copy. The resulting A-chain receives its single Theme role through the lower position and nominative Case through the upper position. Finite I licenses nominative, its subject requirement is satisfied, and its class-8 agreement is checked against Vitabu hivi. The agent DP remains inside the PP, with its independently licensed oblique Case. This derives a passive subject without assigning that subject an Agent role.",
+      "statement": "Raise the books DP to the finite subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "booksD",
+                      "label": "D⁰",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bookN",
+                                  "label": "N⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Vitabu"
+                                }
+                              ],
+                              "id": "booksNbarInner",
+                              "label": "N′"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "dem",
+                                      "label": "Dem⁰",
+                                      "tokenIndex": 1,
+                                      "word": "hivi"
+                                    }
+                                  ],
+                                  "id": "demBar",
+                                  "label": "Dem′"
+                                }
+                              ],
+                              "id": "demP",
+                              "label": "DemP"
+                            }
+                          ],
+                          "id": "booksNbarOuter",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "booksNP",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "booksDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "booksDP",
+              "label": "DP",
+              "lineageId": "books-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i",
+                  "label": "I⁰[finite, perfect, class 8]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v",
+                              "label": "V⁰[passive, perfect, class 8]",
+                              "lineageId": "verb-chain",
+                              "tokenIndex": 2,
+                              "word": "vimesomwa"
+                            },
+                            {
+                              "children": [],
+                              "id": "booksTrace",
+                              "label": "DP trace",
+                              "lineageId": "books-chain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vbarCore",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "na",
+                                  "label": "P⁰",
+                                  "tokenIndex": 3,
+                                  "word": "na"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "childrenD",
+                                          "label": "D⁰",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "childrenN",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 4,
+                                                  "word": "watoto"
+                                                }
+                                              ],
+                                              "id": "childrenNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "childrenNP",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "childrenDbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "childrenDP",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "pbar",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "agentPP",
+                          "label": "PP"
+                        }
+                      ],
+                      "id": "vbarOuter",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "inflectionalFeatures": "iFeatures",
+            "landingHead": "i",
+            "movedHead": "v",
+            "trace": "verbTrace"
+          },
+          "priorAnchors": {
+            "source": "v",
+            "target": "i"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "morphologicalCommitment": "lexically inflected verb; no syntactic affix fusion",
+            "movement": "V-to-I"
+          }
+        },
+        {
+          "anchors": {
+            "lexicalGovernor": "v",
+            "lowerHead": "verbTrace",
+            "objectTrace": "booksTrace"
+          },
+          "priorAnchors": {
+            "governor": "v",
+            "objectTrace": "booksTrace"
+          },
+          "relation": "Government through the verbal head chain",
+          "values": {
+            "dependency": "government preserved through the V-to-I chain"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "ip",
+            "complementizer": "c"
+          },
+          "relation": "Declarative clause typing",
+          "values": {
+            "force": "declarative"
+          }
+        }
+      ],
+      "stageRecord": "The inflected verb raises from its established V position and adjoins to I, leaving a silent head trace. This analysis adopts overt V-to-I movement for the Swahili finite verb; movement positions the already inflected lexical word and does not manufacture its morphological spelling. The resulting complex I head contains the pronounced verb and an unpronounced inflectional feature head. The lower V trace remains connected to the moved lexical governor, preserving the government dependency of the passive object trace. A silent declarative C projects CP over the completed IP. The pronounced yield is exactly Vitabu hivi vimesomwa na watoto, with watoto interpreted as the readers.",
+      "statement": "Complete the finite declarative clause by V-to-I movement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c",
+                  "label": "C⁰[declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "booksD",
+                              "label": "D⁰",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bookN",
+                                          "label": "N⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Vitabu"
+                                        }
+                                      ],
+                                      "id": "booksNbarInner",
+                                      "label": "N′"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "dem",
+                                              "label": "Dem⁰",
+                                              "tokenIndex": 1,
+                                              "word": "hivi"
+                                            }
+                                          ],
+                                          "id": "demBar",
+                                          "label": "Dem′"
+                                        }
+                                      ],
+                                      "id": "demP",
+                                      "label": "DemP"
+                                    }
+                                  ],
+                                  "id": "booksNbarOuter",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "booksNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "booksDbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "booksDP",
+                      "label": "DP",
+                      "lineageId": "books-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v",
+                              "label": "V⁰[passive, perfect, class 8]",
+                              "lineageId": "verb-chain",
+                              "tokenIndex": 2,
+                              "word": "vimesomwa"
+                            },
+                            {
+                              "children": [],
+                              "id": "iFeatures",
+                              "label": "I⁰[finite, perfect, class 8]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "i",
+                          "label": "I⁰"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verbTrace",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "booksTrace",
+                                      "label": "DP trace",
+                                      "lineageId": "books-chain",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vbarCore",
+                                  "label": "V′"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "na",
+                                          "label": "P⁰",
+                                          "tokenIndex": 3,
+                                          "word": "na"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "childrenD",
+                                                  "label": "D⁰",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "childrenN",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 4,
+                                                          "word": "watoto"
+                                                        }
+                                                      ],
+                                                      "id": "childrenNbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "childrenNP",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "childrenDbar",
+                                              "label": "D′"
+                                            }
+                                          ],
+                                          "id": "childrenDP",
+                                          "label": "DP"
+                                        }
+                                      ],
+                                      "id": "pbar",
+                                      "label": "P′"
+                                    }
+                                  ],
+                                  "id": "agentPP",
+                                  "label": "PP"
+                                }
+                              ],
+                              "id": "vbarOuter",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

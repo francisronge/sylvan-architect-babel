@@ -4,6 +4,7 @@ import { dependentCaseStatePlaques, featureSharingPlaqueRect } from '../replay/r
 import { nativeRelationPlaqueRects } from '../replay/relations/plaquePlacement.ts';
 import { buildStageCameraBounds } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { prepareSharedFeatureTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 
 const probe = { x: 100, y: 200, width: 80, height: 60 };
 const goal = { x: 500, y: 200, width: 80, height: 60 };
@@ -34,6 +35,24 @@ test('stage reservations include both boxes of a compound and require its witnes
   assert.deepEqual(boxes.slice(1), Object.values(dependentCaseStatePlaques(probe, goal, 'unvalued', 'accusative', '1', true)));
   assert.deepEqual(nativeRelationPlaqueRects(items, () => null), []);
   assert.deepEqual(nativeRelationPlaqueRects(items, id => id === 'a' ? probe : null), []);
+});
+
+test('shared feature boxes fit typed values and reserve their wrapped height', () => {
+  for (const label of ['number: plural', 'gender: feminine; number: plural; person: third', '値: 複数形の名詞と形容詞の一致']) {
+    const measure = text => ({ width: [...text].length * 24, ascent: 25, descent: 7 });
+    const layout = prepareSharedFeatureTextLayout(label, measure);
+    const box = featureSharingPlaqueRect([probe, goal], label, measure);
+    assert.equal(box.width, layout.width); assert.equal(box.height, layout.height);
+    assert.equal(box.x + box.width / 2, 340);
+    assert.equal(layout.row.lines.map(line => line.text).join(''), `[${label}]`);
+    for (const line of layout.row.lines) {
+      assert(line.x + line.width <= box.width - 18);
+      assert(line.y + line.descent <= box.height - 14);
+    }
+    const reserved = nativeRelationPlaqueRects([{ ...items[0], label }], id => id === 'a' ? probe : goal, measure);
+    assert.deepEqual(reserved, [box]);
+  }
+  assert.deepEqual(featureSharingPlaqueRect([probe, goal], 'φ: uφ'), { x: 216, y: 426, width: 248, height: 92 });
 });
 
 for (const item of items) test(`${item.linkStyle || item.pathStyle}: native plaque space is reserved before reveal`, () => {

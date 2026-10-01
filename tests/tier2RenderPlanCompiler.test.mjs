@@ -72,7 +72,7 @@ test('open feature dependencies preserve both Case and agreement literals in the
 test('Task 8 lowers ghosting, plaques, and judgments through production primitives', () => {
   const ghostForest = [node('ghost_root', 'TP', [
     node('ghost_site', 'VP', [
-      leaf('ghost_v', 'V', 'read', { silent: true })
+      leaf('ghost_v', 'V', 'read')
     ], { silent: true })
   ])];
   const ghostPlan = compileRelationRenderPlan([

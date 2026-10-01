@@ -28,20 +28,58 @@ const mount = () => {
     effects: () => { while (effects.length) effects.shift()(); },
     timers: () => { for (const [id, callback] of timers) { timers.delete(id); callback(); } } };
 };
-test('a new viewport or analysis hides old placements immediately and ignores stale workers', () => {
-  const app = mount(), first = {}, next = {};
-  assert(!app.render(first).ready); app.effects(); app.timers();
-  app.jobs[0].ready([new Map([[0, 'first']])]); assert(app.render(first).ready);
-  assert(!app.render(next).ready, 'input identity rejects stale layouts before cleanup');
-  app.effects(); app.timers(); assert(app.jobs[0].cancelled);
-  app.jobs[0].ready([new Map([[0, 'late']])]); assert(!app.render(next).ready);
-  app.jobs[1].ready([new Map([[0, 'next']])]); assert.equal(app.render(next).layouts[0].get(0), 'next');
-});
-test('unmount cancels queued measurements and a failed worker can be retried', () => {
+const schedule = (name, x) => {
+  const box = { x, y: 80, width: 240, height: 120, location: 'local', domainId: name,
+    attachmentNodeId: 'head', attachmentX: 0, attachmentY: 0 };
+  return { stages: [new Map([[0, box]])],
+    steps: new Map([[12, new Map([[0, { ...box, x: x + 100 }]])]]) };
+};
+const assertPending = view => {
+  assert(!view.ready);
+  assert.equal(view.schedule.stages.length, 0, 'old completed-stage placements are hidden');
+  assert.equal(view.schedule.steps.size, 0, 'old movement-phase placements are hidden');
+  assert.equal(view.error, undefined);
+};
+for (const change of ['viewport', 'analysis']) {
+  test(`a new ${change} hides every old placement and ignores stale worker completions`, () => {
+    const app = mount(), first = { width: 1200, steps: ['analysis-one'] };
+    const next = change === 'viewport' ? { ...first, width: 390 } : { ...first, steps: ['analysis-two'] };
+    const initial = schedule('first', 100), stale = schedule('late', 900), expected = schedule('next', 300);
+    assertPending(app.render(first)); app.effects(); app.timers();
+    app.jobs[0].ready(initial);
+    assert.strictEqual(app.render(first).schedule, initial);
+    assert(app.render(first).ready);
+    assertPending(app.render(next));
+    // React has rendered the new input, but the preceding effect can still finish.
+    app.jobs[0].ready(stale);
+    assertPending(app.render(next));
+    app.effects(); app.timers(); assert(app.jobs[0].cancelled);
+    app.jobs[0].ready(stale); app.jobs[0].error(new Error('late old worker failure'));
+    assertPending(app.render(next));
+    app.jobs.at(-1).ready(expected);
+    const current = app.render(next);
+    assert(current.ready);
+    assert.strictEqual(current.schedule, expected);
+    assert.equal(current.schedule.stages[0].get(0).x, 300);
+    assert.equal(current.schedule.steps.get(12).get(0).x, 400,
+      'the active movement phase is distinct from the completed-stage placement');
+    app.jobs[0].ready(stale); app.jobs[0].error(new Error('late failure after the new result'));
+    assert.strictEqual(app.render(next).schedule, expected);
+    assert.equal(app.render(next).error, undefined);
+  });
+}
+test('disabling layout cancels queued measurements and a failed worker can be retried', () => {
   const app = mount(), input = {};
   app.render(input); app.effects(); app.render(null); app.effects(); app.timers(); assert.equal(app.jobs.length, 0);
   app.render(input); app.effects(); app.timers(); app.jobs[0].error(new Error('worker failed'));
   const failed = app.render(input); assert.equal(failed.error, 'worker failed'); assert(!failed.ready);
-  failed.retry(); assert(!app.render(input).ready); app.effects(); app.timers();
-  app.jobs[1].ready([]); assert(app.render(input).ready);
+  failed.retry(); assertPending(app.render(input));
+  app.jobs[0].ready(schedule('failed attempt completed late', 900));
+  assertPending(app.render(input)); app.effects(); app.timers();
+  assert(app.jobs[0].cancelled);
+  const expected = schedule('retried', 400);
+  app.jobs.at(-1).ready(expected); assert(app.render(input).ready);
+  app.jobs[0].error(new Error('old attempt failed again'));
+  assert.strictEqual(app.render(input).schedule, expected);
+  assert.equal(app.render(input).error, undefined);
 });

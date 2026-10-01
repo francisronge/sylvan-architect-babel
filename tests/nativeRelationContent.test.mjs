@@ -293,6 +293,67 @@ test('native curated argument-sharing carries its shared anchor on each domain',
   assert.deepEqual(svg('babel-argument-sharing-object-label').map((node) => node.textContent), ['OBJ']);
 });
 
+test('native multidominance adds every non-native parent regardless of authored parent order', () => {
+  const workspace = [{ id: 'root', label: 'XP', children: [
+    { id: 'parent', label: 'XP', children: [{ id: 'shared', label: 'X', word: 'shared', children: [] }] },
+    { id: 'parent-other', label: 'XP', word: 'other', children: [] },
+    { id: 'third', label: 'XP', word: 'third', children: [] }
+  ] }];
+  const rects = {
+    parent: { x: 100, y: 100, width: 50, height: 30 },
+    'parent-other': { x: 500, y: 100, width: 50, height: 30 },
+    third: { x: 700, y: 100, width: 50, height: 30 },
+    shared: { x: 300, y: 250, width: 50, height: 30 }
+  };
+  for (const relation of ['Multidominance', 'An independently authored shared occurrence']) {
+    for (const parents of [
+      ['parent', 'parent-other', 'third'],
+      ['third', 'parent', 'parent-other'],
+      ['parent-other', 'third', 'parent']
+    ]) {
+      const items = compile({ relation, anchors: { parents, shared: 'shared' } }, workspace).frames[0].items;
+      assert.equal(items.find(item => item.kind === 'shared-node')?.claimTier,
+        relation === 'Multidominance' ? 1 : 2);
+      const svg = drawNative('scheduleAcceptedSharingRelation', items, workspace, items,
+        { exactScreenTreeLabelRectNow: id => rects[id] });
+      assert.deepEqual(svg('babel-multidominance-branch').map(node => node.attrs.d).sort(), [
+        'M 525.0 115.0 L 325.0 265.0',
+        'M 725.0 115.0 L 325.0 265.0'
+      ], `${relation}: ${parents.join(', ')}`);
+    }
+  }
+});
+
+test('native multidominance excludes only the shared occurrence’s exact structural parent', () => {
+  const workspace = [{ id: 'root', label: 'XP', children: [
+    { id: 'parent', label: 'XP', children: [
+      { id: 'shared-other', label: 'X', word: 'other', children: [] }
+    ] },
+    { id: 'parent-other', label: 'XP', children: [
+      { id: 'shared', label: 'X', word: 'shared', children: [] }
+    ] }
+  ] }];
+  const rects = {
+    parent: { x: 100, y: 100, width: 50, height: 30 },
+    'parent-other': { x: 500, y: 100, width: 50, height: 30 },
+    shared: { x: 300, y: 250, width: 50, height: 30 },
+    'shared-other': { x: 700, y: 250, width: 50, height: 30 }
+  };
+  for (const parents of [['parent', 'parent-other'], ['parent-other', 'parent']]) {
+    const items = compile({ relation: 'Multidominance', anchors: { parents, shared: 'shared' } }, workspace).frames[0].items;
+    const svg = drawNative('scheduleAcceptedSharingRelation', items, workspace, items,
+      { exactScreenTreeLabelRectNow: id => rects[id] });
+    assert.deepEqual(svg('babel-multidominance-branch').map(node => node.attrs.d), [
+      'M 125.0 115.0 L 325.0 265.0'
+    ]);
+    const nativeOnly = items.map(item => item.kind === 'shared-node'
+      ? { ...item, parentNodeIds: ['parent-other'] } : item);
+    const noExtraBranch = drawNative('scheduleAcceptedSharingRelation', nativeOnly, workspace, nativeOnly,
+      { exactScreenTreeLabelRectNow: id => rects[id] });
+    assert.deepEqual(noExtraBranch('babel-multidominance-branch'), []);
+  }
+});
+
 test('native cyclic comparison and height use prepared columns for canonical and equivalent order roles', () => {
   const ids = ['one', 'two', 'three', 'four', 'five'];
   const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
@@ -492,6 +553,106 @@ test('native morphology consumes verified bundles and delinking position', () =>
   const impoverishmentSvg = drawNative('scheduleAcceptedPfMorphologyRelation', impoverishment.frames[0].items);
   assert.equal(impoverishmentSvg('babel-impoverishment-cross').length, 2);
   assert.deepEqual(impoverishmentSvg('babel-impoverishment-output').map((node) => node.textContent), ['person', 'number']);
+});
+
+test('native local dislocation paints the same changed partitions from either public tier', () => {
+  const a = { id: 'a', label: 'X', word: 'a', children: [] };
+  const b = { id: 'b', label: 'X', word: 'b', children: [] };
+  const c = { id: 'c', label: 'X', word: 'c', children: [] };
+  const prior = [{ id: 'root', label: 'XP', children: [a, { id: 'bc', label: 'X', children: [b, c] }] }];
+  const current = [{ id: 'root', label: 'XP', children: [{ id: 'ab', label: 'X', children: [a, b] }, c] }];
+  for (const relation of ['LocalDislocation', 'An independently authored grouping change']) {
+    const plan = compileRelationRenderPlan([
+      stage([], prior),
+      stage([{ relation, anchors: { sequence: ['a', 'b', 'c'] } }], current)
+    ]);
+    const items = plan.frames[1].items;
+    const plate = items.find(item => item.plaqueStyle === 'dislocation-lane');
+    assert.ok(plate, relation);
+    assert.equal(plate.claimTier, relation === 'LocalDislocation' ? 1 : 2);
+    assert.deepEqual(plate.nativeContent, {
+      kind: 'local-dislocation', beforeGroupSizes: [1, 2], afterGroupSizes: [2, 1]
+    });
+    const svg = drawNative('scheduleAcceptedPfMorphologyRelation', items, current);
+    assert.deepEqual(svg('babel-pf-lane-expression').map(node => node.textContent), [
+      'a · [ b · c ]', '[ a · b ] · c'
+    ]);
+  }
+});
+
+test('native local-dislocation lanes use prepared authored grouping and reject incomplete groups', () => {
+  const workspace = [{ id: 'root', label: 'XP', children: [
+    { id: 'a', label: 'X', word: 'a', children: [] },
+    { id: 'b', label: 'X', word: 'b', children: [] }
+  ] }];
+  const record = { relation: 'LocalDislocation', anchors: { sequence: ['a', 'b'] },
+    values: { beforeGroupSizes: ['1', '1'], afterGroupSizes: ['2'] } };
+  const items = compile(record, workspace).frames[0].items;
+  const svg = drawNative('scheduleAcceptedPfMorphologyRelation', items, workspace);
+  assert.deepEqual(svg('babel-pf-lane-expression').map(node => node.textContent), ['a · b', '[ a · b ]']);
+  for (const values of [{ beforeGroupSizes: [] }, { beforeGroupSizes: [], afterGroupSizes: [] },
+    { beforeGroupSizes: ['1'], afterGroupSizes: ['2'] }]) {
+    const bad = compile({ ...record, values }, workspace);
+    assert.equal(bad.frames[0].items.some(item => item.plaqueStyle === 'dislocation-lane'), false);
+    assert.ok(bad.diagnostics.some(diagnostic => diagnostic.kind === 'signature-incomplete'));
+  }
+});
+
+test('native Tier2 PF regrouping draws authored partitions while syntax stays unchanged', () => {
+  const workspace = [{ id: 'root', label: 'XP', children: [
+    { id: 'a', label: 'X', word: 'a', children: [] },
+    { id: 'b', label: 'X', word: 'b', children: [] }
+  ] }];
+  const record = { relation: 'Independent phonological regrouping', anchors: { sequence: ['a', 'b'] },
+    values: { beforeGroupSizes: ['1', '1'], afterGroupSizes: ['2'] } };
+  for (const withPrior of [false, true]) {
+    const stages = [...(withPrior ? [stage([], workspace)] : []), stage([record], workspace)];
+    const items = compileRelationRenderPlan(stages).frames.at(-1).items;
+    const plate = items.find(item => item.plaqueStyle === 'dislocation-lane');
+    assert.equal(plate?.claimTier, 2, `with prior stage: ${withPrior}`);
+    assert.deepEqual(plate.nativeContent, {
+      kind: 'local-dislocation', beforeGroupSizes: [1, 1], afterGroupSizes: [2]
+    });
+    const svg = drawNative('scheduleAcceptedPfMorphologyRelation', items, workspace);
+    assert.deepEqual(svg('babel-pf-lane-expression').map(node => node.textContent), ['a · b', '[ a · b ]']);
+  }
+  for (const values of [{ beforeGroupSizes: [] }, { beforeGroupSizes: [], afterGroupSizes: [] },
+    { beforeGroupSizes: ['1'], afterGroupSizes: ['2'] },
+    { beforeGroupSizes: ['1', '1'], afterGroupSizes: ['1', '1'] }]) {
+    const items = compileRelationRenderPlan([
+      stage([], workspace), stage([{ ...record, values }], workspace)
+    ]).frames.at(-1).items;
+    assert.equal(items.some(item => item.plaqueStyle === 'dislocation-lane'), false);
+  }
+});
+
+test('native cyclic badges preserve authored labels without doubling the cycle prefix', () => {
+  let branch;
+  const visit = node => {
+    if (!branch && ts.isIfStatement(node)
+      && node.expression.getText(parsed).includes("primitive.shapeStyle === 'agree-multiple'")) branch = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(parsed);
+  assert.ok(branch);
+  const code = ts.transpile(branch.getText(parsed), { target: ts.ScriptTarget.ES2023 });
+  for (const [cycle, expected] of [['1', 'C1'], ['C1', 'C1'], ['first pass', 'first pass']]) {
+    const root = new Element('g');
+    const layer = new Selection([root]);
+    const item = { kind: 'directed-path', fromNodeId: 'probe', toNodeId: 'goal', label: cycle,
+      secondaryLabel: 'licensed' };
+    const dependencies = {
+      primitive: { type: 'shape-path', shapeStyle: 'agree-cyclic', itemIndex: 0, badge: { text: cycle } },
+      planItem: item, queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
+      emphasis: null, opacity: null, activeDerivationFrameIndex: 0, refValue: () => cycle, frameItems: [item],
+      acceptedAnchorRect: id => id === 'probe'
+        ? { x: 0, y: 0, width: 50, height: 30 } : { x: 200, y: 100, width: 50, height: 30 },
+      ensureAgreementCaseRelationLayer: () => layer
+    };
+    new Function(...Object.keys(dependencies), code)(...Object.values(dependencies));
+    assert.deepEqual(descendants(root).filter(node => matches(node, '.babel-relation-index'))
+      .map(node => node.textContent), [expected]);
+  }
 });
 
 test('native Cooper ledger preserves repeated values without reading the authored record', () => {

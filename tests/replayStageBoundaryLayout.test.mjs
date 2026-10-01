@@ -768,3 +768,43 @@ test('future silent parents do not mute selected words before their phrase exist
   assert.ok(lower.leaves().every(leaf => !isPronouncedHierLeaf(leaf)), 'authored phrase silence still applies');
   assert.deepEqual(stages, original);
 });
+
+test('a later wrapper around one selected head does not strand other heads in temporary workspace slots', () => {
+  const select = (id, label) => node(id, label, [], { silent: true });
+  const v = select('light', 'v'), t = select('tense', 'T'), c = select('clause', 'C');
+  const verb = leaf('verb', 'V', 'read', { lineageId: 'read' });
+  const object = leaf('object', 'D', 'it');
+  const vp = node('vp', 'VP', [verb, object]);
+  const voice = head => node('voice', 'vP', [head, vp]);
+  const tense = head => node('tp', 'TP', [t, voice(head)]);
+  const complex = node('complex', 'v', [leaf('raised', 'V', 'read', { lineageId: 'read' }), v]);
+  const stage = workspaceForest => ({ statement: 'The workspace advances.', stageRecord: 'The selected heads join in order.',
+    relations: [], workspaceForest });
+  for (const reverse of [false, true]) {
+    const forests = [[verb, object, v, t, c], [vp, v, t, c], [voice(v), t, c],
+      [voice(complex), t, c], [tense(complex), c], [node('cp', 'CP', [c, tense(complex)])]];
+    const stages = forests.map(f => stage(reverse ? [...f].reverse() : f));
+    const original = structuredClone(stages);
+    const steps = compile(stages, 'read it');
+    const records = steps.filter(step => step.replayKind === 'macro');
+    const reference = layoutPositions(records[2].replayCanvasData);
+    for (const step of steps.filter(step => step.replayFrameIndex < 3)) {
+      const layout = layoutPositions(step.replayCanvasData);
+      for (const id of ['light', 'tense', 'clause', 'verb', 'object']) {
+        if (step.replayVisibleNodeIds.includes(id)) assert.deepEqual(layout.get(id), reference.get(id), id);
+      }
+      for (const id of ['cp', 'tp', 'complex', 'raised']) {
+        assert.ok(!step.replayVisibleNodeIds.includes(id), `${id} remains future-only`);
+      }
+      assert.equal(findNode(step.replayCanvasData, 'tp')?.children[0].id, 'tense',
+        'T reserves its first merge slot, not an arbitrary detached position');
+      assert.equal(findNode(step.replayCanvasData, 'cp')?.children[0].id, 'clause');
+      assert.equal(findNode(step.replayCanvasData, 'light')?.children?.length || 0, 0,
+        'a future complex cannot change the selected head before its own stage');
+    }
+    for (const size of [[1600, 1000], [1100, 800], [390, 844]]) {
+      assert.deepEqual(stageTreeLayoutSize(steps, 0, ...size), stageTreeLayoutSize(steps, 2, ...size));
+    }
+    assert.deepEqual(stages, original);
+  }
+});

@@ -1,0 +1,551 @@
+{
+  "sentence": "花子が読んだ本を太郎が買った。",
+  "inputTokens": [
+    "花子",
+    "が",
+    "読",
+    "ん",
+    "だ",
+    "本",
+    "を",
+    "太郎",
+    "が",
+    "買",
+    "っ",
+    "た"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingHead": "readInflectedHead",
+            "raisedHead": "readRaised",
+            "tense": "readPast",
+            "trace": "readHeadTrace"
+          },
+          "priorAnchors": {
+            "sourceHead": "readBase",
+            "targetHead": "readPast"
+          },
+          "relation": "V-to-I head-movement chain",
+          "values": {
+            "movement": "Head adjunction to I"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "readCP",
+            "operator": "operatorHigh",
+            "trace": "operatorTrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "operatorBase"
+          },
+          "relation": "relative-operator movement chain",
+          "values": {
+            "chainType": "A′",
+            "index": "i"
+          }
+        },
+        {
+          "anchors": {
+            "binder": "operatorHigh",
+            "boundTrace": "operatorTrace",
+            "localVerbalHead": "readHeadTrace",
+            "raisedVerbalHead": "readRaised"
+          },
+          "relation": "operator binding and trace licensing",
+          "values": {
+            "binding": "The operator c-commands and binds the object trace.",
+            "government": "The object trace is locally governed through the verbal head chain."
+          }
+        }
+      ],
+      "stageRecord": "The embedded verb raises from the previously established V position to the adjacent head-final I, leaving a silent head trace. This analysis adopts V-to-I adjunction for Japanese finite predicates; it does not treat the surface past form as an unanalyzed V terminal. A relative C projection is then constructed, and the silent object operator moves from its established complement position to Spec-CP, leaving an NP trace. The operator binds that trace under c-command, and the trace remains locally governed by the verbal projection containing the verb's head chain. The operator movement is entirely within the embedded clause. The resulting CP denotes a predicate of the missing object, not a clause in which 本 itself has raised. Both the relative C and the operator are unpronounced.",
+      "statement": "Form the finite relative CP through verb raising and silent-operator movement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "operatorHighN",
+                      "label": "N⁰ (OP)",
+                      "silent": true
+                    }
+                  ],
+                  "id": "operatorHighNbar",
+                  "label": "N′",
+                  "silent": true
+                }
+              ],
+              "id": "operatorHigh",
+              "label": "NP",
+              "lineageId": "relativeObject",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "hanakoN",
+                                      "label": "N⁰",
+                                      "tokenIndex": 0,
+                                      "word": "花子"
+                                    }
+                                  ],
+                                  "id": "hanakoNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "hanakoNP",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [],
+                              "id": "hanakoGa",
+                              "label": "K⁰",
+                              "tokenIndex": 1,
+                              "word": "が"
+                            }
+                          ],
+                          "id": "hanakoKbar",
+                          "label": "K′"
+                        }
+                      ],
+                      "id": "hanakoKP",
+                      "label": "KP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "operatorTrace",
+                                  "label": "NP (tᵢ)",
+                                  "lineageId": "relativeObject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "readHeadTrace",
+                                  "label": "V⁰ (t)",
+                                  "lineageId": "readVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "readVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "readVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "readRaised",
+                              "label": "V⁰",
+                              "lineageId": "readVerb",
+                              "word": "読む"
+                            },
+                            {
+                              "children": [],
+                              "id": "readPast",
+                              "label": "I⁰ [past]"
+                            }
+                          ],
+                          "id": "readInflectedHead",
+                          "label": "I⁰"
+                        }
+                      ],
+                      "id": "readIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "readIP",
+                  "label": "IP"
+                },
+                {
+                  "children": [],
+                  "id": "relativeC",
+                  "label": "C⁰ [relative]",
+                  "silent": true
+                }
+              ],
+              "id": "readCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "readCP",
+          "label": "CP [relative]"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "readRaised",
+            "readPast"
+          ],
+          "tokenIndices": [
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "nominalHead": "bookN",
+            "operator": "operatorHigh",
+            "relativeClause": "readCP"
+          },
+          "relation": "relative predication",
+          "values": {
+            "index": "i",
+            "interpretation": "book x such that Hanako read x"
+          }
+        },
+        {
+          "anchors": {
+            "agent": "taroKP",
+            "predicate": "buyBase",
+            "theme": "objectBase"
+          },
+          "relation": "matrix theta-role assignment",
+          "values": {
+            "predicateMeaning": "buy"
+          }
+        },
+        {
+          "anchors": {
+            "caseParticle": "objectWo",
+            "governor": "buyBase",
+            "nominal": "bookNP"
+          },
+          "relation": "matrix accusative Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "caseParticle": "taroGa",
+            "licenser": "buyPast",
+            "nominal": "taroNP"
+          },
+          "relation": "matrix nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "complex": "readInflectedHead",
+            "tense": "readPast",
+            "verb": "readRaised"
+          },
+          "priorAnchors": {
+            "tense": "readPast",
+            "verb": "readRaised"
+          },
+          "relation": "embedded past-predicate realization",
+          "values": {
+            "morphophonology": "The past form of 読む has a nasal stem alternation and voiced past allomorph.",
+            "surfaceForm": "読んだ"
+          }
+        }
+      ],
+      "stageRecord": "The relative CP is adjoined to N′ on the left of the nominal projection headed by 本, giving the externally headed interpretation ‘the book that Hanako read.’ The nominal head is identified with the variable bound by the relative operator; it is not another occurrence in the operator's movement chain. The resulting NP combines with accusative を to form the matrix object KP. This object is first placed in the complement position of 買う, following the underlying matrix subject 太郎が. Matrix past I is introduced above VP and licenses the subject's nominative Case. The completed embedded verb–tense complex now receives the collective realization 読んだ. The three supplied tokens 読, ん, and だ are orthographic portions of that inflected predicate, not three independently selected syntactic words. The lexical dictionary form and abstract tense remain in the tree, with their realization recorded collectively.",
+      "statement": "Attach the relative clause to 本 and establish the matrix clause before scrambling.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "taroN",
+                              "label": "N⁰",
+                              "tokenIndex": 7,
+                              "word": "太郎"
+                            }
+                          ],
+                          "id": "taroNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "taroNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [],
+                      "id": "taroGa",
+                      "label": "K⁰",
+                      "tokenIndex": 8,
+                      "word": "が"
+                    }
+                  ],
+                  "id": "taroKbar",
+                  "label": "K′"
+                }
+              ],
+              "id": "taroKP",
+              "label": "KP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "operatorHighN",
+                                                      "label": "N⁰ (OP)",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "operatorHighNbar",
+                                                  "label": "N′",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "operatorHigh",
+                                              "label": "NP",
+                                              "lineageId": "relativeObject",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "hanakoN",
+                                                                      "label": "N⁰",
+                                                                      "tokenIndex": 0,
+                                                                      "word": "花子"
+                                                                    }
+                                                                  ],
+                                                                  "id": "hanakoNbar",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "hanakoNP",
+                                                              "label": "NP"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "hanakoGa",
+                                                              "label": "K⁰",
+                                                              "tokenIndex": 1,
+                                                              "word": "が"
+                                                            }
+                                                          ],
+                                                          "id": "hanakoKbar",
+                                                          "label": "K′"
+                                                        }
+                                                      ],
+                                                      "id": "hanakoKP",
+                                                      "label": "KP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "operatorTrace",
+                                                                  "label": "NP (tᵢ)",
+                                                                  "lineageId": "relativeObject",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "readHeadTrace",
+                                                                  "label": "V⁰ (t)",
+                                                                  "lineageId": "readVerb",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "readVbar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "readVP",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "readRaised",
+                                                              "label": "V⁰",
+                                                              "lineageId": "readVerb",
+                                                              "word": "読む"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "readPast",
+                                                              "label": "I⁰ [past]"
+                                                            }
+                                                          ],
+                                                          "id": "readInflectedHead",
+                                                          "label": "I⁰"
+                                                        }
+                                                      ],
+                                                      "id": "readIbar",
+                                                      "label": "I′"
+                                                    }
+                                                  ],
+                                                  "id": "readIP",
+                                                  "label": "IP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeC",
+                                                  "label": "C⁰ [relative]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "readCbar",
+                                              "label": "C′"
+                                            }
+                                          ],
+                                          "id": "readCP",
+                                          "label": "CP [relative]"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bookN",
+                                              "label": "N⁰",
+                                              "tokenIndex": 5,
+                                              "word": "本"
+                                            }
+                                          ],
+                                          "id": "bookNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "bookModifiedNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "bookNP",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "objectWo",
+                                  "label": "K⁰",
+                                  "tokenIndex": 6,
+                                  "word": "を"
+                                }
+                              ],
+                              "id": "objectKbar",
+                              "label": "K′"
+                            }
+                          ],
+                          "id": "objectBase",
+                          "label": "KP",
+                          "lineageId": "matrixObject"
+                        },
+                        {
+                          "children": [],
+                          "id": "buyBase",
+                          "label": "V⁰",
+                          "lineageId": "buyVerb",
+                          "word": "買う"
+                        }
+                      ],
+                      "id": "buyVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "buyVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "buyPast",
+                  "label": "I⁰ [past]"
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "transport": "codex-oauth",
+    "sourceStages": [
+      2,
+      3
+    ],
+    "rawOutputSha256": "8f7449a37dee99414dcd8184e78f07963eadf927bcd217eabdb825e266b01c53",
+    "requestSha256": "ccc2cff87e691a08bdf5c153fa39ada8e94edd3848d0bb87fd3fe19ab9c4ddc3",
+    "repositoryCommit": "5130d835f4a1a3a4094087fd359414add45e352c",
+    "contractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d"
+  }
+}

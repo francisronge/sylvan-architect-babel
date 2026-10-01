@@ -171,6 +171,16 @@ const prepareTextBlock = (
   };
 };
 
+/** Keep the compact Orchard vine box; grow and wrap authored feature text. */
+export const prepareSharedFeatureTextLayout = (label = '', measureText?: PlaqueTextMeasure) => {
+  const text = `[${label.trim()}]`, style = styles.feature.row;
+  const measure = createTextMeasure(measureText);
+  const width = Math.max(248, Math.min(460, Math.ceil(measure(text, style).width) + 36));
+  const row = prepareTextBlock(text, style,
+    { x: 18, top: 42, width: width - 36, baseline: 27, lineHeight: 36 }, measure);
+  return { width, height: Math.max(92, row.bottom + 14), row: row.block };
+};
+
 export const preparePlaqueTextLayout = (
   content: { title?: string; rows: readonly { label: string; value: string }[] },
   options: PlaqueTextLayoutOptions & { variant?: 'generic' | 'feature' } = {}
@@ -296,7 +306,7 @@ const pfRowStyle: PlaqueTextStyle = {
   fontFamily: "'JetBrains Mono', monospace", fontSize: 28, fontWeight: 800, letterSpacing: 0
 };
 
-/** Native PF keeps its rewrite columns; literal rows use the full plaque width. */
+/** Native PF keeps its rewrite columns; literal-only plates size to their measured content. */
 export const preparePfPlaqueTextLayout = (
   rows: readonly { label: string; value: string; kind?: 'rewrite' | 'literal'; rowIndex: number; isFinal: boolean }[],
   options: { isZeroRealization?: boolean; measureText?: PlaqueTextMeasure } = {}
@@ -304,6 +314,13 @@ export const preparePfPlaqueTextLayout = (
   const measure = createTextMeasure(options.measureText);
   const paddingX = 26;
   let width = options.isZeroRealization ? 360 : 590;
+  if (rows.length && rows.every(row => row.kind !== 'rewrite')) {
+    const literals = rows.map(row => row.label ? `${row.label}: ${row.value}` : row.value);
+    const rowWidth = Math.max(...literals.flatMap(text => text.split(/\r\n|\r|\n/u)
+      .map(line => measure(line, pfRowStyle).width)));
+    width = Math.ceil(Math.min(width, Math.max(measure('PF REALIZATION', pfTitleStyle).width,
+      rowWidth) + paddingX * 2));
+  }
   const title = prepareTextBlock('PF REALIZATION', pfTitleStyle, {
     x: paddingX, top: 0, width: width - paddingX * 2, baseline: 34, lineHeight: 54
   }, measure);
