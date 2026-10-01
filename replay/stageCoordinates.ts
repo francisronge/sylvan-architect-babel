@@ -14,6 +14,7 @@ type Scene = {
   nodes: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
   visible: Set<string>;
   coordinates: TreeCoordinateReservation;
+  constructionForest?: boolean;
 };
 type StageReservation = { size: [number, number]; direction: TreeDirection; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
 const cache = new WeakMap<readonly PlaybackStep[], Map<number, StageReservation>>();
@@ -151,9 +152,10 @@ function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffs
  * Independent workspace objects do not impose an ordering on each other. */
 function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] {
   const leaves = scenes.map(scene => [...scene.nodes.values()][0].leaves().filter(node => !node.data.replayLayoutOnly));
-  const completesSingleTree = scenes[0]?.canvas.replayOrigin?.kind !== 'workspace';
+  // The container created by retained attachments is not a syntactic sibling
+  // layout. Derive spacing from the completed tree and genuine forest scenes.
   const nativePitches = leaves.flatMap((nodes, sceneIndex) =>
-    completesSingleTree && scenes[sceneIndex].canvas.replayOrigin?.kind === 'workspace' ? [] : nodes.slice(1).flatMap((node, index) => {
+    scenes[sceneIndex].constructionForest ? [] : nodes.slice(1).flatMap((node, index) => {
     const prior = nodes[index];
     return node.depth === prior.depth && node.x > prior.x
       ? [(node.x - prior.x) / (node.parent === prior.parent ? 2.5 : 3.5)] : [];
@@ -256,6 +258,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * (size[1] / stageDepth); });
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
     return { canvas, nodes, visible: new Set(step.replayVisibleNodeIds ?? nodes.keys()),
+      constructionForest: Boolean(temporaryRootDepth(canvas) && step.replayPendingAttachmentNodeIds),
       coordinates: new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y }])) };
   });
   const entry = scenes[0];

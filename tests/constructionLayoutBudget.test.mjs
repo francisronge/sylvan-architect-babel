@@ -70,6 +70,24 @@ test('a shallow pending wrapper cannot compress an unchanged deeper sister in th
   }
 });
 
+test('a detached hidden wrapper cannot alter the completed clause horizontal spacing', () => {
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/wrapper-contour-reservation.json', import.meta.url)));
+  const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
+  const final = steps.at(-1);
+  assert(steps.some(step => step.replayFrameIndex === 1 && step.replayPendingAttachmentNodeIds
+    && step.replayCanvasData.replayOrigin?.kind === 'workspace'));
+  for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+    const sizeFor = stage => stageTreeLayoutSize(steps, stage, width, height);
+    const size = sizeFor(1);
+    const actual = buildStageCoordinateReservations(steps, 1, size, sizeFor, direction).get(final.replayCanvasData);
+    const expected = buildStageCoordinateReservations([final], 1, size).get(final.replayCanvasData);
+    for (const [id, point] of actual) {
+      assert(Math.abs(point.x - expected.get(id).x) < 1e-8,
+        `${id}: the temporary construction container must not change completed horizontal spacing`);
+    }
+  }
+});
+
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   test(`review #8, ${width}px ${direction}: a pending adjunct wrapper adds no early branch rank`, () => {
     const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/adjunct-attachment-continuity.json', import.meta.url)));
