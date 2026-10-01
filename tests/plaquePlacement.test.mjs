@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { caseAssignmentSource, caseAssignmentClears, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout, projectPlaqueContent } from '../replay/relations/plaquePlacement.ts';
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
+import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildReplayPlaqueSchedule, selectReplayPlaqueLayout, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
@@ -718,3 +719,43 @@ for (const [width, height] of [[1600, 1016], [390, 844]]) {
     assert.equal(JSON.stringify(record), original);
   });
 }
+
+
+test('collection rejection reuse preserves clearance across pockets, ports and source attachments', () => {
+  const nodes = ['left', 'right'].map((id, i) => {
+    const node = d3.hierarchy({ id, label: 'D' });
+    node.x = 100 + i * 800; node.y = 900;
+    return node;
+  });
+  const obstacles = [...plaqueTreeObstacles(nodes),
+    ...[150, 450, 750].map(x => ({ x, y: 420, width: 75, height: 100, blocksConnectors: true }))];
+  const space = prepareCollectionPlaqueSpace(nodes, obstacles);
+  const sourceRects = new Map(nodes.map(node => [node.data.id,
+    obstacles.find(rect => rect.connectorAttachment === `${node.data.id}:category`)]));
+  const clearFromScratch = box => {
+    const drawn = { ...box, width: box.drawnWidth ?? box.width, height: box.drawnHeight ?? box.height };
+    return box.collectionRows.every(row => {
+      const attachment = sourceRects.get(row.sourceNodeId);
+      const curve = featureCollectionPlaqueCurve(drawn, box.y + row.y, attachment.connectorInk ?? attachment,
+        row.lane ?? 0, row.edge, row.portX);
+      if (cubicIntersectsRect(curve, drawn, 6)) return false;
+      const points = [curve.source, curve.control1, curve.control2, curve.target];
+      const x = Math.min(...points.map(point => point.x)) - 6;
+      const y = Math.min(...points.map(point => point.y)) - 6;
+      const bounds = { x, y, width: Math.max(...points.map(point => point.x)) + 6 - x,
+        height: Math.max(...points.map(point => point.y)) + 6 - y };
+      return !obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment.connectorAttachment)
+        .map(rect => rect.connectorInk ?? rect)
+        .some(rect => plaquesOverlap(bounds, rect, 0) && cubicIntersectsRect(curve, rect, 6));
+    });
+  };
+  const queries = [];
+  for (const sourceNodeId of ['left', 'right']) for (const edge of ['top', 'bottom', 'side'])
+    for (const x of [-400, 0, 200, 500, 1000]) for (const y of [-300, 0, 300, 700, 1100])
+      queries.push({ x, y, width: 380, height: 240, drawnWidth: 220, drawnHeight: 180,
+        collectionRows: [{ sourceNodeId, y: 100, edge, portX: 60 }] });
+  const expected = queries.map(clearFromScratch);
+  assert(expected.some(Boolean) && expected.some(value => !value), 'exercise both accepted and rejected pockets');
+  for (const order of [queries.keys(), [...queries.keys()].reverse(), queries.keys()]) for (const i of order)
+    assert.equal(space.clears(queries[i]), expected[i], `query ${i} must not inherit an earlier rejection`);
+});

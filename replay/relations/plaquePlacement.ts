@@ -37,6 +37,11 @@ export function plaqueIdentity(item: RelationPlanItem): string {
 const idOf = (node: Node): string => String((node as Node & { __vizId?: string }).__vizId ?? node.data.id ?? '');
 const visible = (node: Node) => node.data.replayOrigin?.kind !== 'workspace';
 const localPlaqueSize = 480;
+// The crossing hints use these same 64 samples in both axes and every scene.
+const candidateWeights = Array.from({ length: 65 }, (_, index) => {
+  const t = index / 64, u = 1 - t;
+  return u ** 3 + 3 * u * u * t;
+});
 const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= localPlaqueSize;
 export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'children'>): string {
   let node = anchor;
@@ -260,9 +265,19 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     return attachment ? [{ row, attachment,
       ...featureCollectionPlaqueCurve(drawnPlaque(box), box.y + row.y, attachment.connectorInk ?? attachment, row.lane ?? 0, edge, row.portX) }] : [];
   });
-  const routeClears = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, box: PlaqueRect, attachment: PlaqueRect) =>
-    !cubicIntersectsRect(curve, drawnPlaque(box), 6)
-      && !inkIndex(attachment).some(curveBounds(curve, 6), blocker => cubicIntersectsRect(curve, blocker, 6));
+  // Nearby candidates commonly hit the same ink. A known blocker proves
+  // rejection; a miss still runs the complete immutable spatial query.
+  const previousBlockers = new WeakMap<object, PlaqueRect>();
+  const routeClears = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, box: PlaqueRect, attachment: PlaqueRect) => {
+    if (cubicIntersectsRect(curve, drawnPlaque(box), 6)) return false;
+    const index = inkIndex(attachment), bounds = curveBounds(curve, 6), previous = previousBlockers.get(index);
+    if (previous && plaquesOverlap(bounds, previous, 0) && cubicIntersectsRect(curve, previous, 6)) return false;
+    return !index.some(bounds, blocker => {
+      if (!cubicIntersectsRect(curve, blocker, 6)) return false;
+      previousBlockers.set(index, blocker);
+      return true;
+    });
+  };
   const portGap = 24;
   const lastPort = (box: PlaqueRect) => Math.min(box.width, box.collectionWidth ?? box.width) - 24;
   const portAvailable = (x: number, occupied: number[]) => occupied.every(port => Math.abs(x - port) >= portGap - 1e-6);
@@ -345,6 +360,16 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
   // A fixed curve can need horizontal clearance as well as a different height.
   // Solve both coordinates from sampled crossings; the allocator validates every
   // proposed pocket with the exact curve, including orientation/handle changes.
+  const crossingBounds = (axis: 'x' | 'y') => blockers.map(obstacle => {
+    const rect = obstacle.connectorInk ?? obstacle;
+    const other = axis === 'x' ? 'y' : 'x';
+    const extent = axis === 'x' ? 'width' : 'height';
+    const otherExtent = axis === 'x' ? 'height' : 'width';
+    return { attachment: obstacle.connectorAttachment,
+      low: rect[other] - 8, high: rect[other] + rect[otherExtent] + 8,
+      first: rect[axis] - 8, last: rect[axis] + rect[extent] + 8 };
+  });
+  const candidateBlockers = { x: crossingBounds('x'), y: crossingBounds('y') };
   const candidateCoordinates = (box: PlaqueRect, axis: 'x' | 'y'): number[] => {
     const routes = curves(box);
     if (box.collectionRows?.some(row => !row.edge)) curves(box, true).forEach(route => {
@@ -353,8 +378,6 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     });
     const candidates: number[] = [];
     const other = axis === 'x' ? 'y' : 'x';
-    const extent = axis === 'x' ? 'width' : 'height';
-    const otherExtent = axis === 'x' ? 'height' : 'width';
     for (const curve of routes) {
       const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
       let minOther = Infinity, maxOther = -Infinity;
@@ -379,10 +402,9 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
         }
         return low;
       };
-      for (const obstacle of blockers) {
-        if (obstacle.connectorAttachment === curve.attachment.connectorAttachment) continue;
-        const rect = obstacle.connectorInk ?? obstacle;
-        const low = rect[other] - 8, high = rect[other] + rect[otherExtent] + 8;
+      for (const obstacle of candidateBlockers[axis]) {
+        if (obstacle.attachment === curve.attachment.connectorAttachment) continue;
+        const { low, high } = obstacle;
         if (maxOther < low || minOther > high) continue;
         let first = -1, last = -1;
         if (increasing || decreasing) {
@@ -397,9 +419,9 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
         }
         if (first < 0) continue;
         for (const i of [first, last]) {
-          const t = i / 64, u = 1 - t, sourceWeight = u ** 3 + 3 * u * u * t;
-          for (const edge of [rect[axis] - 8, rect[axis] + rect[extent] + 8])
-            candidates.push(box[axis] + (edge - samples[i][axis]) / sourceWeight);
+          const sourceWeight = candidateWeights[i], sample = samples[i][axis];
+          candidates.push(box[axis] + (obstacle.first - sample) / sourceWeight);
+          candidates.push(box[axis] + (obstacle.last - sample) / sourceWeight);
         }
       }
     }
