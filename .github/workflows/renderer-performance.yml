@@ -1,0 +1,63 @@
+name: Renderer performance
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Revision to compare with the selected candidate
+        required: true
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renderer-performance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  renderer-performance:
+    name: Renderer performance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: candidate
+          persist-credentials: false
+
+      - name: Check out PR base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+
+      - name: Install both locked dependency sets
+        run: |
+          npm ci --prefix baseline
+          npm ci --prefix candidate
+
+      - name: Install the pinned Chromium runtime
+        working-directory: candidate
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Compare actual browser opening times
+        working-directory: candidate
+        run: npm run verify:renderer-performance -- --baseline-root ../baseline --report "$RUNNER_TEMP/renderer-performance.json"
+
+      - name: Preserve the compact timing report in the job log
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/renderer-performance.json" ]; then
+            cat "$RUNNER_TEMP/renderer-performance.json"
+          fi

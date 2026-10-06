@@ -17,6 +17,7 @@
     "verify:parse-contract": "node scripts/verifyParseContract.mjs",
     "verify:offline": "npm test && npm run verify:parse-contract",
     "verify:all": "npm run typecheck && npm run verify:offline",
+    "verify:renderer-performance": "node scripts/checkRendererPerformance.mjs",
     "qualification:smoke": "node scripts/buildContractQualificationDryRun.mjs",
     "qualification:review": "node scripts/buildContractQualificationReview.mjs",
     "qualification:codex": "node scripts/runCodexQualification.mjs",
