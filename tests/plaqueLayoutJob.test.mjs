@@ -50,7 +50,7 @@ test('serialized allocation preserves measured text, all future reservations and
   const iterator = measurePlaqueLayoutJob(input);
   let next = iterator.next(), stages = 0;
   while (!next.done) { stages++; next = iterator.next(); }
-  assert.equal(stages, replay.relationRenderPlan.frames.length, 'measurement can yield between stages');
+  assert(stages >= replay.relationRenderPlan.frames.length, 'measurement yields between nodes and canvases');
   const job = structuredClone(next.value);
   assert(job.categories.size > 0 && job.plaques.size > 0);
   const expected = buildReplayPlaqueSchedule(input);
@@ -64,22 +64,23 @@ test('serialized allocation preserves measured text, all future reservations and
   }
   assert([...stagePlacements.values()].some(placements => placements.size > 1),
     'the round-trip fixture exercises different movement placements within one authored stage');
-  assert.deepEqual(runPlaqueLayoutJob(job), expected);
+  assert.deepEqual(runPlaqueLayoutJob(job).schedule, expected);
   const worker = new Worker(new URL('./support/plaqueLayoutWorkerBridge.mjs', import.meta.url));
   try {
     const response = once(worker, 'message');
     worker.postMessage(job);
     const actual = (await response)[0];
-    assert.deepEqual(actual, { result: expected });
+    assert.deepEqual(actual.result.schedule, expected);
+    assert(actual.result.coordinates instanceof Map);
     expected.stages.forEach((layout, stageIndex) => {
-      assert.deepEqual(selectReplayPlaqueLayout(actual.result, stageIndex, replay.playbackSteps.length), layout,
+      assert.deepEqual(selectReplayPlaqueLayout(actual.result.schedule, stageIndex, replay.playbackSteps.length), layout,
         'a missing Replay step falls back to its completed stage placement');
     });
     for (const [index, step] of replay.playbackSteps.entries()) {
-      assert.deepEqual(selectReplayPlaqueLayout(actual.result, step.replayFrameIndex, index),
+      assert.deepEqual(selectReplayPlaqueLayout(actual.result.schedule, step.replayFrameIndex, index),
         selectReplayPlaqueLayout(expected, step.replayFrameIndex, index), 'worker cloning preserves the selected placement for every step');
     }
   } finally { await worker.terminate(); }
   job.categories.delete(job.categories.keys().next().value);
-  assert.throws(() => runPlaqueLayoutJob(job), /Missing measured text/);
+  assert.throws(() => runPlaqueLayoutJob(job).schedule, /Missing measured text/);
 });

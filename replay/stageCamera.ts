@@ -1,6 +1,8 @@
-import { layoutSyntaxTree, type TreeDirection } from './treeLayout.ts';
+import { layoutSyntaxTree, type TreeDirection, type TreeCoordinateReservation } from './treeLayout.ts';
 import { buildStageCoordinateReservations } from './stageCoordinates.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
+import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import {
@@ -14,7 +16,7 @@ import { planItemRelationRefs, resolveDisplayedTrajectoryAttachments, type Relat
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { caseAssignmentSource, placeStagePlaques, prepareStagePlaqueRequests, nativeRelationPlaqueRects, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles, prepareCasePlaqueSpace, prepareCollectionPlaqueSpace, projectPlaqueLayout, projectPlaqueContent, uniquePlaqueObstacles, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
-import { translateObstacle } from './relations/plaqueObstacleIndex.ts';
+import { translateObstacle, prepareImmutableObstacleTranslations } from './relations/plaqueObstacleIndex.ts';
 import { bindingDomainEllipse, bindingDomainTreeRect, bindingEllipseBounds, bindingDomainPlaques } from './relations/bindingDomainGeometry.ts';
 
 export type StageLayoutInput = {
@@ -25,6 +27,16 @@ export type StageLayoutInput = {
   layoutGroups?: readonly (readonly number[])[];
   measurePlaqueText?: PlaqueTextMeasure;
   measureCategoryText?: CategoryTextMeasure;
+  measureTreeInk?: TreeInkTextMeasure;
+  treeLabelRuns?: PreparedTreeLabelRuns;
+  measureTreeLabel?: TreeLabelMeasure;
+};
+
+export type StageCoordinateReservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
+export type MeasuredStageCoordinates = ReadonlyMap<number, StageCoordinateReservations>;
+/** Internal handoff for measured worker jobs; supplied coordinates must match the input. */
+type StageGeometry = {
+  reservations?: StageCoordinateReservations;
 };
 
 /** Shared geometric endpoint estimates for reservation and camera bounds. */
@@ -115,10 +127,10 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
 }
 
 function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
-  abstractionMode = false, protectedNodeIds = new Set<string>() }: StageLayoutInput) {
+  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
-  const reservations = stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
-    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction) : null;
+  const reservations = geometry?.reservations ?? (stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
+    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel) : null);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -195,9 +207,11 @@ export function selectReplayPlaqueLayout(schedule: ReplayPlaqueSchedule, stageIn
 
 /** A pocket persists until one of its exact participants moves. Reserve all
  * compatible scenes; an authored relocation may revalidate the previous pocket. */
-export function buildReplayPlaqueSchedule(input: StageLayoutInput): ReplayPlaqueSchedule {
+export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?: MeasuredStageCoordinates,
+  stageReady?: (schedule: ReplayPlaqueSchedule, stageIndex: number) => void): ReplayPlaqueSchedule {
+  const translateScene = prepareImmutableObstacleTranslations();
   const frames = input.plan?.frames ?? [];
-  const spaces = frames.map((_, stageIndex) => measureStagePlaqueSpace({ ...input, stageIndex }));
+  const spaces = frames.map((_, stageIndex) => measureStagePlaqueSpace({ ...input, stageIndex }, { reservations: coordinates?.get(stageIndex) }));
   const phases = spaces.flatMap((space, stageIndex) => {
     const groups = new Map<number, typeof space.scenes>();
     space.scenes.forEach(scene => groups.set(scene.phase, [...(groups.get(scene.phase) ?? []), scene]));
@@ -309,8 +323,9 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput): ReplayPlaque
             }));
             const projected = projectPlaqueLayout(otherPlacements, id => byId.get(id) ?? null);
             const plaques = [...projected.values()].map(box => ({ ...box, blocksConnectors: true }));
-            const obstacles = [...scene.obstacles, ...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected),
+            const addedObstacles = [...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected),
               ...plaqueCollectionConnectorObstacles(scene.nodes, projected)];
+            const obstacles = [...scene.obstacles, ...addedObstacles];
             const visibleRows = new WeakMap<string[], boolean>();
             const rowVisible = (owners: string[] | undefined): boolean => {
               if (!scene.playedRelations || !owners) return true;
@@ -324,15 +339,19 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput): ReplayPlaque
               }
               return visible;
             };
+            let collectionSpace: ReturnType<typeof prepareCollectionPlaqueSpace> | undefined;
+            let caseClears: ReturnType<typeof prepareCasePlaqueSpace> | undefined;
             return [{ anchor: futureAnchor, request: futureRequest,
               caseVisible: rowVisible(planItemRelationRefs(items[futureIndex]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`)),
-              caseClears: prepareCasePlaqueSpace(futureAnchor, obstacles), collectionSpace: prepareCollectionPlaqueSpace(scene.nodes, obstacles), rowVisible, dx, dy,
-              obstacles }];
+              get caseClears() { return caseClears ??= prepareCasePlaqueSpace(futureAnchor, obstacles); },
+              get collectionSpace() { return collectionSpace ??= prepareCollectionPlaqueSpace(scene.nodes, obstacles); }, rowVisible, dx, dy,
+              obstacles, staticObstacles: scene.obstacles, addedObstacles }];
           });
         });
         return {
-          obstacles: uniquePlaqueObstacles(futureScenes.flatMap(scene => scene.obstacles.map(box =>
-            translateObstacle(box, scene.dx, scene.dy)))),
+          obstacles: uniquePlaqueObstacles(futureScenes.flatMap(scene => [
+            ...translateScene(scene.staticObstacles, scene.dx, scene.dy),
+            ...scene.addedObstacles.map(box => translateObstacle(box, scene.dx, scene.dy))])),
           connectorCandidateXs: box => futureScenes.flatMap(scene =>
             scene.collectionSpace.candidateXs({ ...box, x: box.x - scene.dx, y: box.y - scene.dy })
               .map(x => x + scene.dx)),
@@ -343,7 +362,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput): ReplayPlaque
             const projected = projectPlaqueContent({ ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.request);
             projected.collectionRows = projected.collectionRows?.filter(row => scene.rowVisible(row.ownerKeys));
             return (box.caseRowY === undefined || !scene.caseVisible || scene.caseClears(projected))
-              && scene.collectionSpace.clears(projected);
+              && (!projected.collectionRows?.length || scene.collectionSpace.clears(projected));
           })
         };
       } });
@@ -359,6 +378,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput): ReplayPlaque
     const layout = allocate(phaseIndex);
     schedule.stages[phase.stageIndex] = layout;
     phase.scenes.forEach(scene => scene.stepIndices.forEach(index => schedule.steps.set(index, layout)));
+    if (phases[phaseIndex + 1]?.stageIndex !== phase.stageIndex) stageReady?.(schedule, phase.stageIndex);
   });
   return schedule;
 }
@@ -373,8 +393,8 @@ export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, Pla
 }
 
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
-export function measureStagePlaqueSpace(input: StageLayoutInput) {
-  const { scenes, completedTree } = stageLayouts(input);
+export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
+  const { scenes, completedTree } = stageLayouts(input, geometry);
   const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
     !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
     && (!ids || ids.has(String((node as any).__vizId ?? node.data.id ?? ''))));
@@ -448,10 +468,15 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, w
 }
 
 type StageCameraInput = StageLayoutInput & {
+  /** Prepared off-thread; when supplied, camera fitting must not plan coordinates. */
+  coordinates?: MeasuredStageCoordinates;
   /** A completed Replay fits its present drawing, without earlier source positions. */
   stepIndex?: number;
   includeOverlays?: boolean; includePlaques?: boolean; includeBindingDomains?: boolean; plaqueLayout?: Map<number, PlaquePlacement>; plaqueSchedule?: ReplayPlaqueSchedule
 };
+
+/** Reserved by every stage camera, including retained fits. */
+export const STAGE_CAMERA_PADDING = { x: 220, y: 160 } as const;
 
 /** Reserve upcoming content before reveal, using one fit for a compatible layout group. */
 export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds | null {
@@ -471,7 +496,7 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
   includePlaques = includeOverlays, includeBindingDomains = false,
-  plaqueLayout, plaqueSchedule, measureCategoryText, measurePlaqueText, stepIndex }: StageCameraInput): OverlayBounds | null {
+  plaqueLayout, plaqueSchedule, coordinates, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, measurePlaqueText, stepIndex }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
     if (!next) return;
@@ -480,22 +505,27 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       maxX: Math.max(bounds.maxX, next.maxX), maxY: Math.max(bounds.maxY, next.maxY)
     } : { ...next };
   };
-  const input = { steps, stageIndex, completedCanvas, plan, width, height, direction, abstractionMode, protectedNodeIds, layoutGroups, measureCategoryText };
-  const schedule = includePlaques ? plaqueSchedule ?? (plaqueLayout ? undefined : buildReplayPlaqueSchedule(input)) : undefined;
+  const input = { steps, stageIndex, completedCanvas, plan, width, height, direction, abstractionMode, protectedNodeIds, layoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel };
+  const schedule = includePlaques ? plaqueSchedule ?? (plaqueLayout ? undefined : buildReplayPlaqueSchedule(input, coordinates)) : undefined;
   const fallbackPlacements = includePlaques ? plaqueLayout ?? schedule?.stages[stageIndex] ?? new Map() : new Map();
-  for (const { currentTree, visibleIds, stepIndices } of stageLayouts(input).scenes) {
+  if (coordinates && !coordinates.has(stageIndex) && steps.some(step => step.replayFrameIndex === stageIndex && step.replayCanvasData))
+    throw new Error('Missing prepared Replay coordinates.');
+  for (const { currentTree, visibleIds, stepIndices } of stageLayouts(input,
+    coordinates ? { reservations: coordinates.get(stageIndex) ?? new Map() } : undefined).scenes) {
     if (stepIndex !== undefined && !stepIndices.includes(stepIndex)) continue;
     const placements = includePlaques && schedule ? selectReplayPlaqueLayout(schedule, stageIndex, stepIndices[0]) : fallbackPlacements;
-    const positions = indexHierarchyNodesByIdAndAliases(currentTree.descendants());
-    const projectedPlaques = projectPlaqueLayout(placements, id => positions.get(id) ?? null);
-    projectedPlaques.forEach(rect => include({
-      minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
-    }));
     // Future syntax reserves layout coordinates, not camera space. Union the
     // actually revealed syntax across the stage to keep its microsteps stable.
     const fitNodes = currentTree.descendants().filter(node =>
       !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
       && (!visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id ?? ''))));
+    const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
+    // A hidden anchor's provisional coordinates are not a plaque position.
+    // Later scenes reserve its real placement in the same stage-wide fit.
+    const projectedPlaques = projectPlaqueLayout(placements, id => byId.get(id) ?? null);
+    projectedPlaques.forEach(rect => include({
+      minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
+    }));
     for (const node of fitNodes) {
       const label = categoryTextLayout(node.data.label || '', measureCategoryText);
       include({ minX: node.x, maxX: node.x, minY: node.y,
@@ -503,7 +533,14 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       if (label.lines.length > 1) include({ minX: node.x + label.x, maxX: node.x - label.x,
         minY: node.y + label.y, maxY: node.y });
     }
-    const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
+    // The renderer already adds the shared margin around these bounds. Extend
+    // it only where a painted label exceeds that margin, preserving short-label fits.
+    const labels = treeLabelRuns?.get(steps[stepIndices[0]].replayCanvasData!);
+    for (const rect of treeInkObstacles(fitNodes, measureCategoryText, measureTreeInk, false, labels, measureTreeLabel)) {
+      if (!rect.connectorAttachment) continue;
+      include({ minX: rect.x + STAGE_CAMERA_PADDING.x, maxX: rect.x + rect.width - STAGE_CAMERA_PADDING.x,
+        minY: rect.y + STAGE_CAMERA_PADDING.y, maxY: rect.y + rect.height - STAGE_CAMERA_PADDING.y });
+    }
     if (includeBindingDomains && plan) {
       const visible = new Set(fitNodes);
       for (const item of plan.frames[stageIndex]?.items ?? []) {

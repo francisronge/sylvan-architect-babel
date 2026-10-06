@@ -1,0 +1,3552 @@
+{
+  "cases": [
+    {
+      "key": "fresh/german-embedded/0",
+      "sentence": "Ich glaube, dass der junge Arzt den Bericht lesen wird.",
+      "inputTokens": [
+        "Ich",
+        "glaube",
+        "dass",
+        "der",
+        "junge",
+        "Arzt",
+        "den",
+        "Bericht",
+        "lesen",
+        "wird"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "objectNP",
+                "assigningVerb": "lesenV"
+              },
+              "relation": "internal theta-role and accusative Case assignment",
+              "values": {
+                "case": "accusative",
+                "thetaRole": "theme"
+              }
+            }
+          ],
+          "stageRecord": "The analysis uses classical NP structure, head-final German VP and IP structure, and head-initial CP structure. Determiners occupy Spec-NP; junge is an AP adjunct to N′ inside the embedded subject. The object den Bericht is the complement of lesen. A higher verbal projection contains the future auxiliary wird, which selects the infinitival VP den Bericht lesen. Wird is therefore an auxiliary, not a copular or lexical predicate. Ich, the complementizer dass, and the matrix verb glaube remain separate objects pending clause construction. Inflected words are represented as whole lexical terminals; no separate morphological realization is needed. Subjects will be base-generated in Spec-IP, with their external theta roles supplied by their predicates, rather than introduced inside VP.",
+          "statement": "Establish the nominal phrases and the embedded head-final verbal structure.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ichN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ich"
+                    }
+                  ],
+                  "id": "ichNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "ichNP",
+              "label": "NP",
+              "lineageId": "matrixSubject"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "derD",
+                  "label": "D (Spec-NP)",
+                  "tokenIndex": 3,
+                  "word": "der"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "youngA",
+                              "label": "A",
+                              "tokenIndex": 4,
+                              "word": "junge"
+                            }
+                          ],
+                          "id": "youngAbar",
+                          "label": "A′"
+                        }
+                      ],
+                      "id": "youngAP",
+                      "label": "AP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "doctorN",
+                          "label": "N",
+                          "tokenIndex": 5,
+                          "word": "Arzt"
+                        }
+                      ],
+                      "id": "doctorNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjectNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "denD",
+                                  "label": "D (Spec-NP)",
+                                  "tokenIndex": 6,
+                                  "word": "den"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "reportN",
+                                      "label": "N",
+                                      "tokenIndex": 7,
+                                      "word": "Bericht"
+                                    }
+                                  ],
+                                  "id": "objectNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "objectNP",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [],
+                              "id": "lesenV",
+                              "label": "V (infinitive)",
+                              "tokenIndex": 8,
+                              "word": "lesen"
+                            }
+                          ],
+                          "id": "infinitiveVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "infinitiveVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "wirdV",
+                      "label": "V (future auxiliary, finite)",
+                      "lineageId": "futureAuxiliary",
+                      "tokenIndex": 9,
+                      "word": "wird"
+                    }
+                  ],
+                  "id": "embeddedVbar",
+                  "label": "V′"
+                }
+              ],
+              "id": "embeddedVP",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "dassC",
+              "label": "C",
+              "tokenIndex": 2,
+              "word": "dass"
+            },
+            {
+              "children": [],
+              "id": "glaubeV",
+              "label": "V (finite)",
+              "lineageId": "matrixVerb",
+              "tokenIndex": 1,
+              "word": "glaube"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "predicateHead": "lesenV",
+                "subject": "subjectNP"
+              },
+              "relation": "external theta-role assignment",
+              "values": {
+                "thetaRole": "agent"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "embeddedI",
+                "subject": "subjectNP"
+              },
+              "relation": "finite subject licensing",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            }
+          ],
+          "stageRecord": "The auxiliary VP combines with a right-headed finite I, and der junge Arzt occupies Spec-IP. In this classical subject-placement analysis, lesen supplies the subject's external agent theta role through the verbal predicate; the future auxiliary introduces no additional participant theta role. Finite I licenses nominative Case and third-person singular agreement. The auxiliary remains in its previously established V position, so this workspace explicitly supplies the source for its subsequent movement to I.",
+          "statement": "Construct the embedded IP with its subject and finite inflection.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ichN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ich"
+                    }
+                  ],
+                  "id": "ichNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "ichNP",
+              "label": "NP",
+              "lineageId": "matrixSubject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "derD",
+                      "label": "D (Spec-NP)",
+                      "tokenIndex": 3,
+                      "word": "der"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "youngA",
+                                  "label": "A",
+                                  "tokenIndex": 4,
+                                  "word": "junge"
+                                }
+                              ],
+                              "id": "youngAbar",
+                              "label": "A′"
+                            }
+                          ],
+                          "id": "youngAP",
+                          "label": "AP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "doctorN",
+                              "label": "N",
+                              "tokenIndex": 5,
+                              "word": "Arzt"
+                            }
+                          ],
+                          "id": "doctorNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "subjectNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjectNP",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "denD",
+                                          "label": "D (Spec-NP)",
+                                          "tokenIndex": 6,
+                                          "word": "den"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "reportN",
+                                              "label": "N",
+                                              "tokenIndex": 7,
+                                              "word": "Bericht"
+                                            }
+                                          ],
+                                          "id": "objectNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "objectNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "lesenV",
+                                      "label": "V (infinitive)",
+                                      "tokenIndex": 8,
+                                      "word": "lesen"
+                                    }
+                                  ],
+                                  "id": "infinitiveVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "infinitiveVP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "wirdV",
+                              "label": "V (future auxiliary, finite)",
+                              "lineageId": "futureAuxiliary",
+                              "tokenIndex": 9,
+                              "word": "wird"
+                            }
+                          ],
+                          "id": "embeddedVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "embeddedVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "embeddedI",
+                      "label": "I (finite, present, third-person singular)",
+                      "silent": true
+                    }
+                  ],
+                  "id": "embeddedIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "embeddedIP",
+              "label": "IP"
+            },
+            {
+              "children": [],
+              "id": "dassC",
+              "label": "C",
+              "tokenIndex": 2,
+              "word": "dass"
+            },
+            {
+              "children": [],
+              "id": "glaubeV",
+              "label": "V (finite)",
+              "lineageId": "matrixVerb",
+              "tokenIndex": 1,
+              "word": "glaube"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHead": "embeddedI",
+                "movedHead": "wirdV",
+                "trace": "wirdTrace"
+              },
+              "priorAnchors": {
+                "sourceHead": "wirdV",
+                "targetHead": "embeddedI"
+              },
+              "relation": "V-to-I head movement",
+              "values": {
+                "dependency": "finite auxiliary head chain"
+              }
+            }
+          ],
+          "stageRecord": "Wird moves from the auxiliary V position shown in the preceding workspace to the immediately higher finite I. Its lower position becomes an unpronounced head trace, and the pronounced auxiliary is incorporated into I. Because I is right-headed, this movement preserves the surface sequence den Bericht lesen wird. Present-tense inflection belongs to the auxiliary, while the construction receives its future interpretation from the auxiliary's selection of the infinitival VP.",
+          "statement": "Raise the embedded finite auxiliary from V to I.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ichN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ich"
+                    }
+                  ],
+                  "id": "ichNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "ichNP",
+              "label": "NP",
+              "lineageId": "matrixSubject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "derD",
+                      "label": "D (Spec-NP)",
+                      "tokenIndex": 3,
+                      "word": "der"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "youngA",
+                                  "label": "A",
+                                  "tokenIndex": 4,
+                                  "word": "junge"
+                                }
+                              ],
+                              "id": "youngAbar",
+                              "label": "A′"
+                            }
+                          ],
+                          "id": "youngAP",
+                          "label": "AP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "doctorN",
+                              "label": "N",
+                              "tokenIndex": 5,
+                              "word": "Arzt"
+                            }
+                          ],
+                          "id": "doctorNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "subjectNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjectNP",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "denD",
+                                          "label": "D (Spec-NP)",
+                                          "tokenIndex": 6,
+                                          "word": "den"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "reportN",
+                                              "label": "N",
+                                              "tokenIndex": 7,
+                                              "word": "Bericht"
+                                            }
+                                          ],
+                                          "id": "objectNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "objectNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "lesenV",
+                                      "label": "V (infinitive)",
+                                      "tokenIndex": 8,
+                                      "word": "lesen"
+                                    }
+                                  ],
+                                  "id": "infinitiveVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "infinitiveVP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "wirdTrace",
+                              "label": "V (head trace)",
+                              "lineageId": "futureAuxiliary",
+                              "silent": true
+                            }
+                          ],
+                          "id": "embeddedVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "embeddedVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "wirdV",
+                          "label": "V (future auxiliary, finite)",
+                          "lineageId": "futureAuxiliary",
+                          "tokenIndex": 9,
+                          "word": "wird"
+                        }
+                      ],
+                      "id": "embeddedI",
+                      "label": "I (finite, present, third-person singular)"
+                    }
+                  ],
+                  "id": "embeddedIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "embeddedIP",
+              "label": "IP"
+            },
+            {
+              "children": [],
+              "id": "dassC",
+              "label": "C",
+              "tokenIndex": 2,
+              "word": "dass"
+            },
+            {
+              "children": [],
+              "id": "glaubeV",
+              "label": "V (finite)",
+              "lineageId": "matrixVerb",
+              "tokenIndex": 1,
+              "word": "glaube"
+            }
+          ]
+        },
+        {
+          "relations": [],
+          "stageRecord": "Dass combines with the completed IP as the overt, initial C of a declarative complement clause. Spec-CP is unfilled and therefore is not represented by an empty placeholder. The occupied C position does not attract the finite auxiliary: wird remains in final I, distinguishing this embedded clause from the matrix V2 clause. The embedded CP is now available as the propositional complement of glaube.",
+          "statement": "Complete the dass-clause as an embedded CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ichN",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Ich"
+                    }
+                  ],
+                  "id": "ichNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "ichNP",
+              "label": "NP",
+              "lineageId": "matrixSubject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "dassC",
+                      "label": "C",
+                      "tokenIndex": 2,
+                      "word": "dass"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "derD",
+                              "label": "D (Spec-NP)",
+                              "tokenIndex": 3,
+                              "word": "der"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "youngA",
+                                          "label": "A",
+                                          "tokenIndex": 4,
+                                          "word": "junge"
+                                        }
+                                      ],
+                                      "id": "youngAbar",
+                                      "label": "A′"
+                                    }
+                                  ],
+                                  "id": "youngAP",
+                                  "label": "AP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "doctorN",
+                                      "label": "N",
+                                      "tokenIndex": 5,
+                                      "word": "Arzt"
+                                    }
+                                  ],
+                                  "id": "doctorNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "subjectNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "subjectNP",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "denD",
+                                                  "label": "D (Spec-NP)",
+                                                  "tokenIndex": 6,
+                                                  "word": "den"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "reportN",
+                                                      "label": "N",
+                                                      "tokenIndex": 7,
+                                                      "word": "Bericht"
+                                                    }
+                                                  ],
+                                                  "id": "objectNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "objectNP",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "lesenV",
+                                              "label": "V (infinitive)",
+                                              "tokenIndex": 8,
+                                              "word": "lesen"
+                                            }
+                                          ],
+                                          "id": "infinitiveVbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "infinitiveVP",
+                                      "label": "VP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "wirdTrace",
+                                      "label": "V (head trace)",
+                                      "lineageId": "futureAuxiliary",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "embeddedVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "embeddedVP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "wirdV",
+                                  "label": "V (future auxiliary, finite)",
+                                  "lineageId": "futureAuxiliary",
+                                  "tokenIndex": 9,
+                                  "word": "wird"
+                                }
+                              ],
+                              "id": "embeddedI",
+                              "label": "I (finite, present, third-person singular)"
+                            }
+                          ],
+                          "id": "embeddedIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "embeddedIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "embeddedCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "embeddedCP",
+              "label": "CP",
+              "lineageId": "propositionalComplement"
+            },
+            {
+              "children": [],
+              "id": "glaubeV",
+              "label": "V (finite)",
+              "lineageId": "matrixVerb",
+              "tokenIndex": 1,
+              "word": "glaube"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "predicateHead": "glaubeV",
+                "subject": "ichNP"
+              },
+              "relation": "matrix external theta-role assignment",
+              "values": {
+                "thetaRole": "experiencer"
+              }
+            },
+            {
+              "anchors": {
+                "argument": "embeddedCP",
+                "predicateHead": "glaubeV"
+              },
+              "relation": "propositional theta-role assignment",
+              "values": {
+                "thetaRole": "propositional content"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "matrixI",
+                "subject": "ichNP"
+              },
+              "relation": "matrix finite subject licensing",
+              "values": {
+                "agreement": "first-person singular",
+                "case": "nominative"
+              }
+            }
+          ],
+          "stageRecord": "Glaube selects the embedded CP as its propositional complement. Under the uniformly head-final VP analysis adopted here, that complement is initially to the left of the matrix V. The resulting VP combines with right-headed finite I, and Ich is base-generated in Spec-IP. Glaube assigns its external experiencer theta role to Ich and its propositional theta role to the CP; matrix finite I licenses nominative Case and first-person singular agreement. This is a pre-extraposition, pre-V2 workspace, not the surface order.",
+          "statement": "Construct the matrix D-structure with the CP in its selected complement position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ichN",
+                          "label": "N",
+                          "tokenIndex": 0,
+                          "word": "Ich"
+                        }
+                      ],
+                      "id": "ichNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "ichNP",
+                  "label": "NP",
+                  "lineageId": "matrixSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "dassC",
+                                      "label": "C",
+                                      "tokenIndex": 2,
+                                      "word": "dass"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "derD",
+                                              "label": "D (Spec-NP)",
+                                              "tokenIndex": 3,
+                                              "word": "der"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "youngA",
+                                                          "label": "A",
+                                                          "tokenIndex": 4,
+                                                          "word": "junge"
+                                                        }
+                                                      ],
+                                                      "id": "youngAbar",
+                                                      "label": "A′"
+                                                    }
+                                                  ],
+                                                  "id": "youngAP",
+                                                  "label": "AP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "doctorN",
+                                                      "label": "N",
+                                                      "tokenIndex": 5,
+                                                      "word": "Arzt"
+                                                    }
+                                                  ],
+                                                  "id": "doctorNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "subjectNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "subjectNP",
+                                          "label": "NP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "denD",
+                                                                  "label": "D (Spec-NP)",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "reportN",
+                                                                      "label": "N",
+                                                                      "tokenIndex": 7,
+                                                                      "word": "Bericht"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNbar",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "objectNP",
+                                                              "label": "NP"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "lesenV",
+                                                              "label": "V (infinitive)",
+                                                              "tokenIndex": 8,
+                                                              "word": "lesen"
+                                                            }
+                                                          ],
+                                                          "id": "infinitiveVbar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "infinitiveVP",
+                                                      "label": "VP"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "wirdTrace",
+                                                      "label": "V (head trace)",
+                                                      "lineageId": "futureAuxiliary",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "embeddedVP",
+                                              "label": "VP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "wirdV",
+                                                  "label": "V (future auxiliary, finite)",
+                                                  "lineageId": "futureAuxiliary",
+                                                  "tokenIndex": 9,
+                                                  "word": "wird"
+                                                }
+                                              ],
+                                              "id": "embeddedI",
+                                              "label": "I (finite, present, third-person singular)"
+                                            }
+                                          ],
+                                          "id": "embeddedIbar",
+                                          "label": "I′"
+                                        }
+                                      ],
+                                      "id": "embeddedIP",
+                                      "label": "IP"
+                                    }
+                                  ],
+                                  "id": "embeddedCbar",
+                                  "label": "C′"
+                                }
+                              ],
+                              "id": "embeddedCP",
+                              "label": "CP",
+                              "lineageId": "propositionalComplement"
+                            },
+                            {
+                              "children": [],
+                              "id": "glaubeV",
+                              "label": "V (finite)",
+                              "lineageId": "matrixVerb",
+                              "tokenIndex": 1,
+                              "word": "glaube"
+                            }
+                          ],
+                          "id": "matrixVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixI",
+                      "label": "I (finite, present, first-person singular)",
+                      "lineageId": "matrixInflection",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "adjunctionHost": "matrixVP",
+                "movedComplement": "embeddedCP",
+                "selectingVerb": "glaubeV",
+                "trace": "complementTrace"
+              },
+              "priorAnchors": {
+                "sourceComplement": "embeddedCP"
+              },
+              "relation": "complement CP extraposition",
+              "values": {
+                "landingPosition": "right-adjoined to matrix VP",
+                "preservedThetaRole": "propositional content"
+              }
+            }
+          ],
+          "stageRecord": "The embedded CP moves from the matrix verb's complement position to a right-adjoined position on VP. Its source is the complement position explicitly shown in the preceding stage, and a silent CP trace now occupies that position. The extraposition chain preserves the CP's selected-complement status and propositional theta role: right adjunction here does not turn the dass-clause into an independently interpreted adjunct. This movement supplies the sentence's postverbal complement placement within the adopted head-final analysis.",
+          "statement": "Extrapose the selected complement CP to the right edge of the matrix VP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ichN",
+                          "label": "N",
+                          "tokenIndex": 0,
+                          "word": "Ich"
+                        }
+                      ],
+                      "id": "ichNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "ichNP",
+                  "label": "NP",
+                  "lineageId": "matrixSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "complementTrace",
+                                  "label": "CP (extraposition trace)",
+                                  "lineageId": "propositionalComplement",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "glaubeV",
+                                  "label": "V (finite)",
+                                  "lineageId": "matrixVerb",
+                                  "tokenIndex": 1,
+                                  "word": "glaube"
+                                }
+                              ],
+                              "id": "matrixVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "derD",
+                                          "label": "D (Spec-NP)",
+                                          "tokenIndex": 3,
+                                          "word": "der"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "youngA",
+                                                      "label": "A",
+                                                      "tokenIndex": 4,
+                                                      "word": "junge"
+                                                    }
+                                                  ],
+                                                  "id": "youngAbar",
+                                                  "label": "A′"
+                                                }
+                                              ],
+                                              "id": "youngAP",
+                                              "label": "AP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "doctorN",
+                                                  "label": "N",
+                                                  "tokenIndex": 5,
+                                                  "word": "Arzt"
+                                                }
+                                              ],
+                                              "id": "doctorNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "subjectNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "subjectNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "denD",
+                                                              "label": "D (Spec-NP)",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportN",
+                                                                  "label": "N",
+                                                                  "tokenIndex": 7,
+                                                                  "word": "Bericht"
+                                                                }
+                                                              ],
+                                                              "id": "objectNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "objectNP",
+                                                          "label": "NP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "lesenV",
+                                                          "label": "V (infinitive)",
+                                                          "tokenIndex": 8,
+                                                          "word": "lesen"
+                                                        }
+                                                      ],
+                                                      "id": "infinitiveVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "infinitiveVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "wirdTrace",
+                                                  "label": "V (head trace)",
+                                                  "lineageId": "futureAuxiliary",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "embeddedVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "embeddedVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "wirdV",
+                                              "label": "V (future auxiliary, finite)",
+                                              "lineageId": "futureAuxiliary",
+                                              "tokenIndex": 9,
+                                              "word": "wird"
+                                            }
+                                          ],
+                                          "id": "embeddedI",
+                                          "label": "I (finite, present, third-person singular)"
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP",
+                          "lineageId": "propositionalComplement"
+                        }
+                      ],
+                      "id": "matrixVPAdjunction",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixI",
+                      "label": "I (finite, present, first-person singular)",
+                      "lineageId": "matrixInflection",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHead": "matrixI",
+                "movedHead": "glaubeV",
+                "trace": "glaubeTrace"
+              },
+              "priorAnchors": {
+                "sourceHead": "glaubeV",
+                "targetHead": "matrixI"
+              },
+              "relation": "matrix V-to-I head movement",
+              "values": {
+                "dependency": "finite matrix verb head chain"
+              }
+            }
+          ],
+          "stageRecord": "Glaube moves from its matrix V position to finite I, leaving an unpronounced V trace. The extraposed CP and all of its internal structure remain unchanged. This intermediate workspace is required because the next head movement starts from I rather than moving directly from V to C. The already inflected lexical word glaube is pronounced at I at this stage; no additional morphological pieces are introduced.",
+          "statement": "Raise the matrix finite verb from V to I.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ichN",
+                          "label": "N",
+                          "tokenIndex": 0,
+                          "word": "Ich"
+                        }
+                      ],
+                      "id": "ichNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "ichNP",
+                  "label": "NP",
+                  "lineageId": "matrixSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "complementTrace",
+                                  "label": "CP (extraposition trace)",
+                                  "lineageId": "propositionalComplement",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "glaubeTrace",
+                                  "label": "V (head trace)",
+                                  "lineageId": "matrixVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "derD",
+                                          "label": "D (Spec-NP)",
+                                          "tokenIndex": 3,
+                                          "word": "der"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "youngA",
+                                                      "label": "A",
+                                                      "tokenIndex": 4,
+                                                      "word": "junge"
+                                                    }
+                                                  ],
+                                                  "id": "youngAbar",
+                                                  "label": "A′"
+                                                }
+                                              ],
+                                              "id": "youngAP",
+                                              "label": "AP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "doctorN",
+                                                  "label": "N",
+                                                  "tokenIndex": 5,
+                                                  "word": "Arzt"
+                                                }
+                                              ],
+                                              "id": "doctorNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "subjectNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "subjectNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "denD",
+                                                              "label": "D (Spec-NP)",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportN",
+                                                                  "label": "N",
+                                                                  "tokenIndex": 7,
+                                                                  "word": "Bericht"
+                                                                }
+                                                              ],
+                                                              "id": "objectNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "objectNP",
+                                                          "label": "NP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "lesenV",
+                                                          "label": "V (infinitive)",
+                                                          "tokenIndex": 8,
+                                                          "word": "lesen"
+                                                        }
+                                                      ],
+                                                      "id": "infinitiveVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "infinitiveVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "wirdTrace",
+                                                  "label": "V (head trace)",
+                                                  "lineageId": "futureAuxiliary",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "embeddedVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "embeddedVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "wirdV",
+                                              "label": "V (future auxiliary, finite)",
+                                              "lineageId": "futureAuxiliary",
+                                              "tokenIndex": 9,
+                                              "word": "wird"
+                                            }
+                                          ],
+                                          "id": "embeddedI",
+                                          "label": "I (finite, present, third-person singular)"
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP",
+                          "lineageId": "propositionalComplement"
+                        }
+                      ],
+                      "id": "matrixVPAdjunction",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "glaubeV",
+                          "label": "V (finite)",
+                          "lineageId": "matrixVerb",
+                          "tokenIndex": 1,
+                          "word": "glaube"
+                        }
+                      ],
+                      "id": "matrixI",
+                      "label": "I (finite, present, first-person singular)",
+                      "lineageId": "matrixInflection"
+                    }
+                  ],
+                  "id": "matrixIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "containedVerb": "glaubeV",
+                "landingHead": "matrixC",
+                "lowestVerbTrace": "glaubeTrace",
+                "movedHead": "matrixI",
+                "trace": "matrixITrace"
+              },
+              "priorAnchors": {
+                "sourceHead": "matrixI"
+              },
+              "relation": "matrix I-to-C head movement",
+              "values": {
+                "clauseType": "declarative root V2"
+              }
+            },
+            {
+              "anchors": {
+                "landingProjection": "matrixCP",
+                "movedSubject": "ichNP",
+                "trace": "ichTrace"
+              },
+              "priorAnchors": {
+                "sourceSubject": "ichNP"
+              },
+              "relation": "subject A-bar movement to Spec-CP",
+              "values": {
+                "landingPosition": "Spec-CP",
+                "preservedCase": "nominative",
+                "preservedThetaRole": "experiencer"
+              }
+            }
+          ],
+          "stageRecord": "A matrix CP is projected above IP. The finite I containing glaube moves from the I position established in the preceding stage into C, leaving an I trace. Ich then moves from Spec-IP to Spec-CP, leaving an NP trace. The first dependency implements German root-clause V2; the second fills the preverbal field with the subject. Ich retains the nominative Case and experiencer theta role licensed at its lower position, and its fronting is an A-bar dependency rather than new theta-role assignment. The embedded clause remains introduced by dass with final wird, and the CP extraposition chain remains intact. Reading only pronounced terminals yields exactly Ich glaube dass der junge Arzt den Bericht lesen wird. No binding ambiguity or competing attachment is supported by this sentence; temporal versus modal nuances of the future auxiliary do not require distinct syntactic structures.",
+          "statement": "Complete the matrix V2 clause by I-to-C movement and subject fronting.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ichN",
+                          "label": "N",
+                          "tokenIndex": 0,
+                          "word": "Ich"
+                        }
+                      ],
+                      "id": "ichNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "ichNP",
+                  "label": "NP",
+                  "lineageId": "matrixSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "glaubeV",
+                              "label": "V (finite)",
+                              "lineageId": "matrixVerb",
+                              "tokenIndex": 1,
+                              "word": "glaube"
+                            }
+                          ],
+                          "id": "matrixI",
+                          "label": "I (finite, present, first-person singular)",
+                          "lineageId": "matrixInflection"
+                        }
+                      ],
+                      "id": "matrixC",
+                      "label": "C (declarative V2)"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "ichTrace",
+                          "label": "NP (A-bar trace)",
+                          "lineageId": "matrixSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "complementTrace",
+                                          "label": "CP (extraposition trace)",
+                                          "lineageId": "propositionalComplement",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "glaubeTrace",
+                                          "label": "V (head trace)",
+                                          "lineageId": "matrixVerb",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "matrixVbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "matrixVP",
+                                  "label": "VP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dassC",
+                                          "label": "C",
+                                          "tokenIndex": 2,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "derD",
+                                                  "label": "D (Spec-NP)",
+                                                  "tokenIndex": 3,
+                                                  "word": "der"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "youngA",
+                                                              "label": "A",
+                                                              "tokenIndex": 4,
+                                                              "word": "junge"
+                                                            }
+                                                          ],
+                                                          "id": "youngAbar",
+                                                          "label": "A′"
+                                                        }
+                                                      ],
+                                                      "id": "youngAP",
+                                                      "label": "AP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "doctorN",
+                                                          "label": "N",
+                                                          "tokenIndex": 5,
+                                                          "word": "Arzt"
+                                                        }
+                                                      ],
+                                                      "id": "doctorNbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "subjectNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "subjectNP",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "denD",
+                                                                      "label": "D (Spec-NP)",
+                                                                      "tokenIndex": 6,
+                                                                      "word": "den"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportN",
+                                                                          "label": "N",
+                                                                          "tokenIndex": 7,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "objectNbar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNP",
+                                                                  "label": "NP"
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "lesenV",
+                                                                  "label": "V (infinitive)",
+                                                                  "tokenIndex": 8,
+                                                                  "word": "lesen"
+                                                                }
+                                                              ],
+                                                              "id": "infinitiveVbar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "infinitiveVP",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "wirdTrace",
+                                                          "label": "V (head trace)",
+                                                          "lineageId": "futureAuxiliary",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "wirdV",
+                                                      "label": "V (future auxiliary, finite)",
+                                                      "lineageId": "futureAuxiliary",
+                                                      "tokenIndex": 9,
+                                                      "word": "wird"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedI",
+                                                  "label": "I (finite, present, third-person singular)"
+                                                }
+                                              ],
+                                              "id": "embeddedIbar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCbar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP",
+                                  "lineageId": "propositionalComplement"
+                                }
+                              ],
+                              "id": "matrixVPAdjunction",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixITrace",
+                              "label": "I (head trace)",
+                              "lineageId": "matrixInflection",
+                              "silent": true
+                            }
+                          ],
+                          "id": "matrixIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "matrixIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "matrixCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "matrixCP",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "archive/english-negation-xbar-sol/0",
+      "sentence": "No student has ever read this book.",
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The negative quantificational determiner “No” combines with the nominal projection headed by “student,” yielding the subject DP. The demonstrative “this” combines with the nominal projection headed by “book,” yielding the object DP. “Ever” is projected as an adverbial phrase. “Read” is selected in its participial form because it will be the complement of perfect “has”; the spelling is syncretic with other forms of the verb, so no additional morphological decomposition is required.",
+          "statement": "The two determiner phrases and the lexical predicate material are projected.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "dNo",
+                      "label": "D[negative, quantificational]",
+                      "tokenIndex": 0,
+                      "word": "No"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nStudent",
+                              "label": "N",
+                              "tokenIndex": 1,
+                              "word": "student"
+                            }
+                          ],
+                          "id": "nbarStudent",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "npStudent",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "dbarSubj",
+                  "label": "D′"
+                }
+              ],
+              "id": "dpSubjBase",
+              "label": "DP",
+              "lineageId": "studentSubjectChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "advEver",
+                      "label": "Adv[NPI]",
+                      "tokenIndex": 3,
+                      "word": "ever"
+                    }
+                  ],
+                  "id": "advbarEver",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "advpEver",
+              "label": "AdvP[NPI]"
+            },
+            {
+              "children": [],
+              "id": "vRead",
+              "label": "V[participle, transitive]",
+              "tokenIndex": 4,
+              "word": "read"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "dThis",
+                      "label": "D[demonstrative]",
+                      "tokenIndex": 5,
+                      "word": "this"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nBook",
+                              "label": "N",
+                              "tokenIndex": 6,
+                              "word": "book"
+                            }
+                          ],
+                          "id": "nbarBook",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "npBook",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "dbarObject",
+                  "label": "D′"
+                }
+              ],
+              "id": "dpObject",
+              "label": "DP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "thetaAssigner": "vRead",
+                "thetaBearer": "dpObject"
+              },
+              "relation": "Internal theta-role assignment",
+              "values": {
+                "thetaRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "thetaAssigner": "vRead",
+                "thetaBearer": "dpSubjBase"
+              },
+              "relation": "External theta-role assignment",
+              "values": {
+                "thetaRole": "Agent"
+              }
+            },
+            {
+              "anchors": {
+                "caseAssigner": "vRead",
+                "caseBearer": "dpObject"
+              },
+              "relation": "Structural objective Case assignment under government",
+              "values": {
+                "case": "objective"
+              }
+            }
+          ],
+          "stageRecord": "The transitive participle “read” first merges with the object DP “this book,” assigning it the Theme role. AdvP “ever” is then left-adjoined to V′, placing it before the verb without intervening between the verb and its selected object. The subject DP “No student” is merged in Spec-VP and receives the Agent role. This VP-internal subject position is the source position required for the later A-movement analysis. The verb governs and assigns structural objective Case to its DP complement. Polarity licensing is not yet evaluated as a surface or LF condition.",
+          "statement": "The lexical VP is formed with the object as complement, “ever” as a V′ adjunct, and the subject in the external theta position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dNo",
+                          "label": "D[negative, quantificational]",
+                          "tokenIndex": 0,
+                          "word": "No"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nStudent",
+                                  "label": "N",
+                                  "tokenIndex": 1,
+                                  "word": "student"
+                                }
+                              ],
+                              "id": "nbarStudent",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npStudent",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dbarSubj",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "dpSubjBase",
+                  "label": "DP",
+                  "lineageId": "studentSubjectChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "advEver",
+                              "label": "Adv[NPI]",
+                              "tokenIndex": 3,
+                              "word": "ever"
+                            }
+                          ],
+                          "id": "advbarEver",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "advpEver",
+                      "label": "AdvP[NPI]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vRead",
+                          "label": "V[participle, transitive]",
+                          "tokenIndex": 4,
+                          "word": "read"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dThis",
+                                  "label": "D[demonstrative]",
+                                  "tokenIndex": 5,
+                                  "word": "this"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nBook",
+                                          "label": "N",
+                                          "tokenIndex": 6,
+                                          "word": "book"
+                                        }
+                                      ],
+                                      "id": "nbarBook",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npBook",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "dbarObject",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "dpObject",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarRead",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vbarEverAdj",
+                  "label": "V′"
+                }
+              ],
+              "id": "vpBase",
+              "label": "VP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "thetaAssigner": "vRead",
+                "thetaBearer": "dpObject"
+              },
+              "relation": "Internal theta-role assignment",
+              "values": {
+                "thetaRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseAssigner": "vRead",
+                "caseBearer": "dpObject"
+              },
+              "relation": "Structural objective Case assignment under government",
+              "values": {
+                "case": "objective"
+              }
+            },
+            {
+              "anchors": {
+                "selectedHead": "vRead",
+                "selectedProjection": "vpBase",
+                "selector": "iHas"
+              },
+              "relation": "Perfect auxiliary selection",
+              "values": {
+                "selectionRequirement": "participial VP"
+              }
+            },
+            {
+              "anchors": {
+                "landingProjection": "ipClause",
+                "lowerTrace": "dpSubjTrace",
+                "movedDP": "dpSubjBase"
+              },
+              "priorAnchors": {
+                "sourcePosition": "dpSubjBase"
+              },
+              "relation": "A-movement to the finite subject position",
+              "values": {
+                "movementType": "argument movement",
+                "triggers": [
+                  "Extended Projection Principle",
+                  "nominative Case"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "basePosition": "dpSubjTrace",
+                "chainHead": "dpSubjBase",
+                "thetaAssigner": "vRead"
+              },
+              "priorAnchors": {
+                "originalThetaBearer": "dpSubjBase"
+              },
+              "relation": "Theta-role preservation in the subject A-chain",
+              "values": {
+                "thetaRole": "Agent"
+              }
+            },
+            {
+              "anchors": {
+                "caseAssigner": "iHas",
+                "caseBearer": "dpSubjBase"
+              },
+              "relation": "Nominative Case assignment",
+              "values": {
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "agreementController": "dpSubjBase",
+                "finiteHead": "iHas"
+              },
+              "relation": "Finite subject agreement",
+              "values": {
+                "agreementFeatures": "third-person singular",
+                "tense": "present"
+              }
+            },
+            {
+              "anchors": {
+                "licensingDP": "dpSubjBase",
+                "negativeHead": "dNo",
+                "polarityItem": "advEver",
+                "scopeDomain": "vpBase"
+              },
+              "relation": "Negative-polarity licensing",
+              "values": {
+                "licensingConfiguration": "The negative subject DP c-commands ever in its VP scope."
+              }
+            }
+          ],
+          "stageRecord": "Finite present-perfect “has” is generated in I and selects the participial VP; this analysis therefore does not derive “has” by head movement from V. IP is projected above I′. The subject DP moves from Spec-VP to Spec-IP, leaving a silent DP trace with the same lineage. The raised DP satisfies the Extended Projection Principle and receives nominative Case from finite I. Its singular nominal head controls third-person singular agreement, yielding “has.” The Agent theta role remains associated with the lower position and is borne by the entire A-chain, so movement does not create a second theta role. In Spec-IP the negative DP c-commands the V′-adjunct “ever”; its negative quantificational force therefore licenses the polarity item. No movement of either “No” or “ever” is needed for this scope relation.",
+          "statement": "Finite perfect I is merged and the subject undergoes A-movement from Spec-VP to Spec-IP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dNo",
+                          "label": "D[negative, quantificational]",
+                          "tokenIndex": 0,
+                          "word": "No"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nStudent",
+                                  "label": "N",
+                                  "tokenIndex": 1,
+                                  "word": "student"
+                                }
+                              ],
+                              "id": "nbarStudent",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npStudent",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dbarSubj",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "dpSubjBase",
+                  "label": "DP",
+                  "lineageId": "studentSubjectChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "iHas",
+                      "label": "I[finite, present, perfect, third-person singular]",
+                      "tokenIndex": 2,
+                      "word": "has"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dpSubjTrace",
+                          "label": "DP trace",
+                          "lineageId": "studentSubjectChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "advEver",
+                                      "label": "Adv[NPI]",
+                                      "tokenIndex": 3,
+                                      "word": "ever"
+                                    }
+                                  ],
+                                  "id": "advbarEver",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "advpEver",
+                              "label": "AdvP[NPI]"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vRead",
+                                  "label": "V[participle, transitive]",
+                                  "tokenIndex": 4,
+                                  "word": "read"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dThis",
+                                          "label": "D[demonstrative]",
+                                          "tokenIndex": 5,
+                                          "word": "this"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "nBook",
+                                                  "label": "N",
+                                                  "tokenIndex": 6,
+                                                  "word": "book"
+                                                }
+                                              ],
+                                              "id": "nbarBook",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "npBook",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "dbarObject",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "dpObject",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "vbarRead",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vbarEverAdj",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vpBase",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibarClause",
+                  "label": "I′"
+                }
+              ],
+              "id": "ipClause",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "thetaAssigner": "vRead",
+                "thetaBearer": "dpObject"
+              },
+              "relation": "Internal theta-role assignment",
+              "values": {
+                "thetaRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseAssigner": "vRead",
+                "caseBearer": "dpObject"
+              },
+              "relation": "Structural objective Case assignment under government",
+              "values": {
+                "case": "objective"
+              }
+            },
+            {
+              "anchors": {
+                "selectedHead": "vRead",
+                "selectedProjection": "vpBase",
+                "selector": "iHas"
+              },
+              "relation": "Perfect auxiliary selection",
+              "values": {
+                "selectionRequirement": "participial VP"
+              }
+            },
+            {
+              "anchors": {
+                "chainHead": "dpSubjBase",
+                "lowerTrace": "dpSubjTrace"
+              },
+              "relation": "Subject A-chain",
+              "values": {
+                "chainType": "A-chain",
+                "landingPosition": "Spec-IP"
+              }
+            },
+            {
+              "anchors": {
+                "basePosition": "dpSubjTrace",
+                "chainHead": "dpSubjBase",
+                "thetaAssigner": "vRead"
+              },
+              "relation": "Theta-role preservation in the subject A-chain",
+              "values": {
+                "thetaRole": "Agent"
+              }
+            },
+            {
+              "anchors": {
+                "caseAssigner": "iHas",
+                "caseBearer": "dpSubjBase"
+              },
+              "relation": "Nominative Case assignment",
+              "values": {
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "agreementController": "dpSubjBase",
+                "finiteHead": "iHas"
+              },
+              "relation": "Finite subject agreement",
+              "values": {
+                "agreementFeatures": "third-person singular",
+                "tense": "present"
+              }
+            },
+            {
+              "anchors": {
+                "licensingDP": "dpSubjBase",
+                "negativeHead": "dNo",
+                "polarityItem": "advEver",
+                "scopeDomain": "vpBase"
+              },
+              "relation": "Negative-polarity licensing",
+              "values": {
+                "licensedInterpretation": "at any relevant time",
+                "licensingConfiguration": "The negative subject DP c-commands ever."
+              }
+            },
+            {
+              "anchors": {
+                "narrowScopeTemporalItem": "advEver",
+                "predicate": "vpBase",
+                "wideScopeQuantifier": "dpSubjBase"
+              },
+              "relation": "Surface-supported scope interpretation",
+              "values": {
+                "LFMovement": "none required",
+                "scopeOrder": "no student > ever > read this book"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "cpRoot",
+                "clauseHead": "cNull",
+                "finiteComplement": "ipClause"
+              },
+              "relation": "Declarative clause typing",
+              "values": {
+                "force": "declarative"
+              }
+            },
+            {
+              "anchors": {
+                "completedClause": "cpRoot"
+              },
+              "relation": "Government-and-Binding well-formedness assessment",
+              "values": {
+                "satisfiedConditions": [
+                  "Theta Criterion",
+                  "Case Filter",
+                  "Extended Projection Principle",
+                  "subject–finite agreement",
+                  "properly formed A-chain",
+                  "negative-polarity licensing"
+                ],
+                "status": "grammatical"
+              }
+            }
+          ],
+          "stageRecord": "A phonologically null declarative C selects the finite IP and projects CP. Because this is a declarative clause, neither subject–auxiliary inversion nor movement to Spec-CP occurs. The completed representation has one theta-marked subject A-chain, a Theme object, nominative Case on the raised subject, objective Case on the object, and finite subject–I agreement. The negative quantificational DP in Spec-IP takes scope over the VP and licenses “ever” by c-command. The V′ attachment of “ever” places its temporal existential contribution inside the perfect predicate, giving the reading that there is no student for whom a reading of this book has occurred at any relevant time. The null C contributes declarative force. No Case Filter, Theta Criterion, EPP, binding-theoretic, government, or polarity-licensing violation arises, so the exact input is grammatical in this analysis.",
+          "statement": "A null declarative C completes the CP, and the resulting representation satisfies the relevant GB conditions.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "cNull",
+                      "label": "C[declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dNo",
+                                  "label": "D[negative, quantificational]",
+                                  "tokenIndex": 0,
+                                  "word": "No"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nStudent",
+                                          "label": "N",
+                                          "tokenIndex": 1,
+                                          "word": "student"
+                                        }
+                                      ],
+                                      "id": "nbarStudent",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npStudent",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "dbarSubj",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "dpSubjBase",
+                          "label": "DP",
+                          "lineageId": "studentSubjectChain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iHas",
+                              "label": "I[finite, present, perfect, third-person singular]",
+                              "tokenIndex": 2,
+                              "word": "has"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dpSubjTrace",
+                                  "label": "DP trace",
+                                  "lineageId": "studentSubjectChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "advEver",
+                                              "label": "Adv[NPI]",
+                                              "tokenIndex": 3,
+                                              "word": "ever"
+                                            }
+                                          ],
+                                          "id": "advbarEver",
+                                          "label": "Adv′"
+                                        }
+                                      ],
+                                      "id": "advpEver",
+                                      "label": "AdvP[NPI]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "vRead",
+                                          "label": "V[participle, transitive]",
+                                          "tokenIndex": 4,
+                                          "word": "read"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "dThis",
+                                                  "label": "D[demonstrative]",
+                                                  "tokenIndex": 5,
+                                                  "word": "this"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "nBook",
+                                                          "label": "N",
+                                                          "tokenIndex": 6,
+                                                          "word": "book"
+                                                        }
+                                                      ],
+                                                      "id": "nbarBook",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "npBook",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "dbarObject",
+                                              "label": "D′"
+                                            }
+                                          ],
+                                          "id": "dpObject",
+                                          "label": "DP"
+                                        }
+                                      ],
+                                      "id": "vbarRead",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vbarEverAdj",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpBase",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarClause",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipClause",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarRoot",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpRoot",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "holdout/swahili-passive/0",
+      "sentence": "Vitabu hivi vimesomwa na watoto.",
+      "inputTokens": [
+        "Vitabu",
+        "hivi",
+        "vimesomwa",
+        "na",
+        "watoto"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "verb": "v"
+              },
+              "relation": "Lexical inflection and passive argument structure",
+              "values": {
+                "agreement": "noun class 8",
+                "aspect": "perfect",
+                "externalArgument": "not projected as a grammatical subject",
+                "morphologicalAnalysis": "vi-me-som-w-a",
+                "structuralAccusative": "unavailable",
+                "voice": "passive"
+              }
+            },
+            {
+              "anchors": {
+                "demonstrative": "dem",
+                "noun": "bookN"
+              },
+              "relation": "Nominal class concord",
+              "values": {
+                "nounClass": "8",
+                "number": "plural"
+              }
+            },
+            {
+              "anchors": {
+                "governor": "na",
+                "nominal": "childrenDP"
+              },
+              "relation": "Prepositional Case licensing",
+              "values": {
+                "case": "oblique",
+                "nominalClass": "2",
+                "number": "plural"
+              }
+            }
+          ],
+          "stageRecord": "The ordinary reading is ‘These books have been read by children.’ A lexicalist GB analysis selects vimesomwa as an already inflected passive verb: vi- expresses class-8 subject agreement, -me- perfect aspect, -som- the reading predicate, -w- passive morphology, and -a the final vowel. These are properties of one lexical terminal, not separately generated syntactic heads. The passive lacks structural accusative Case and does not project its external argument as a subject. Vitabu hivi forms a DP with a silent determiner and a demonstrative right-adjoined to N′; this preserves the noun–demonstrative order without moving the noun. Vitabu and hivi exhibit class-8 concord. Watoto forms a class-2 plural DP. Na heads a PP and licenses the children's DP with oblique Case. On this reading, that PP will identify the passive predicate's external participant. Abstract finite I carries perfect and class-8 agreement features, whose subject licensing is not yet established.",
+          "statement": "Select the passive verb and construct the nominal expressions and agentive prepositional phrase.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "booksD",
+                      "label": "D⁰",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bookN",
+                                  "label": "N⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Vitabu"
+                                }
+                              ],
+                              "id": "booksNbarInner",
+                              "label": "N′"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "dem",
+                                      "label": "Dem⁰",
+                                      "tokenIndex": 1,
+                                      "word": "hivi"
+                                    }
+                                  ],
+                                  "id": "demBar",
+                                  "label": "Dem′"
+                                }
+                              ],
+                              "id": "demP",
+                              "label": "DemP"
+                            }
+                          ],
+                          "id": "booksNbarOuter",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "booksNP",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "booksDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "booksDP",
+              "label": "DP",
+              "lineageId": "books-chain"
+            },
+            {
+              "children": [],
+              "id": "v",
+              "label": "V⁰[passive, perfect, class 8]",
+              "lineageId": "verb-chain",
+              "tokenIndex": 2,
+              "word": "vimesomwa"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "na",
+                      "label": "P⁰",
+                      "tokenIndex": 3,
+                      "word": "na"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "childrenD",
+                              "label": "D⁰",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "childrenN",
+                                      "label": "N⁰",
+                                      "tokenIndex": 4,
+                                      "word": "watoto"
+                                    }
+                                  ],
+                                  "id": "childrenNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "childrenNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "childrenDbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "childrenDP",
+                      "label": "DP"
+                    }
+                  ],
+                  "id": "pbar",
+                  "label": "P′"
+                }
+              ],
+              "id": "agentPP",
+              "label": "PP"
+            },
+            {
+              "children": [],
+              "id": "i",
+              "label": "I⁰[finite, perfect, class 8]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "booksDP",
+                "predicate": "v"
+              },
+              "relation": "Internal theta-role assignment",
+              "values": {
+                "thetaRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "agentNominal": "childrenDP",
+                "agentPhrase": "agentPP",
+                "predicate": "v"
+              },
+              "relation": "Passive agent interpretation",
+              "values": {
+                "realization": "oblique passive agent",
+                "thetaRole": "Agent"
+              }
+            }
+          ],
+          "stageRecord": "The passive verb first takes the books DP as its complement, establishing the Theme position. The agent PP is then right-adjoined to V′ within VP. Its nominal identifies the reading event's external participant, but neither the PP nor its nominal occupies the grammatical subject position. I combines with this VP to form I′ and an IP whose subject specifier is not yet filled. The books remain in the verb's complement position: they receive the Theme role there but cannot receive structural accusative from this passive verb. This unsatisfied Case requirement motivates the subsequent passive A-movement.",
+          "statement": "Establish the underlying passive clause with the books in object position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "i",
+                      "label": "I⁰[finite, perfect, class 8]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v",
+                                  "label": "V⁰[passive, perfect, class 8]",
+                                  "lineageId": "verb-chain",
+                                  "tokenIndex": 2,
+                                  "word": "vimesomwa"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "booksD",
+                                          "label": "D⁰",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "bookN",
+                                                      "label": "N⁰",
+                                                      "tokenIndex": 0,
+                                                      "word": "Vitabu"
+                                                    }
+                                                  ],
+                                                  "id": "booksNbarInner",
+                                                  "label": "N′"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "dem",
+                                                          "label": "Dem⁰",
+                                                          "tokenIndex": 1,
+                                                          "word": "hivi"
+                                                        }
+                                                      ],
+                                                      "id": "demBar",
+                                                      "label": "Dem′"
+                                                    }
+                                                  ],
+                                                  "id": "demP",
+                                                  "label": "DemP"
+                                                }
+                                              ],
+                                              "id": "booksNbarOuter",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "booksNP",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "booksDbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "booksDP",
+                                  "label": "DP",
+                                  "lineageId": "books-chain"
+                                }
+                              ],
+                              "id": "vbarCore",
+                              "label": "V′"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "na",
+                                      "label": "P⁰",
+                                      "tokenIndex": 3,
+                                      "word": "na"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "childrenD",
+                                              "label": "D⁰",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "childrenN",
+                                                      "label": "N⁰",
+                                                      "tokenIndex": 4,
+                                                      "word": "watoto"
+                                                    }
+                                                  ],
+                                                  "id": "childrenNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "childrenNP",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "childrenDbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "childrenDP",
+                                      "label": "DP"
+                                    }
+                                  ],
+                                  "id": "pbar",
+                                  "label": "P′"
+                                }
+                              ],
+                              "id": "agentPP",
+                              "label": "PP"
+                            }
+                          ],
+                          "id": "vbarOuter",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibar",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "head": "booksDP",
+                "licensingHead": "i",
+                "trace": "booksTrace"
+              },
+              "priorAnchors": {
+                "source": "booksDP"
+              },
+              "relation": "Passive A-movement chain",
+              "values": {
+                "chainThetaRole": "Theme",
+                "movement": "V-complement to Spec-IP"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "i",
+                "subject": "booksDP"
+              },
+              "relation": "Finite subject licensing",
+              "values": {
+                "agreement": "noun class 8",
+                "case": "nominative",
+                "subjectRequirement": "satisfied"
+              }
+            },
+            {
+              "anchors": {
+                "governor": "v",
+                "trace": "booksTrace"
+              },
+              "relation": "Government of the passive object trace",
+              "values": {
+                "dependency": "governed lower member of the passive A-chain"
+              }
+            }
+          ],
+          "stageRecord": "The books DP moves from the previously established complement of V to Spec-IP, leaving a silent DP trace rather than an unpronounced full copy. The resulting A-chain receives its single Theme role through the lower position and nominative Case through the upper position. Finite I licenses nominative, its subject requirement is satisfied, and its class-8 agreement is checked against Vitabu hivi. The agent DP remains inside the PP, with its independently licensed oblique Case. This derives a passive subject without assigning that subject an Agent role.",
+          "statement": "Raise the books DP to the finite subject position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "booksD",
+                          "label": "D⁰",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bookN",
+                                      "label": "N⁰",
+                                      "tokenIndex": 0,
+                                      "word": "Vitabu"
+                                    }
+                                  ],
+                                  "id": "booksNbarInner",
+                                  "label": "N′"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dem",
+                                          "label": "Dem⁰",
+                                          "tokenIndex": 1,
+                                          "word": "hivi"
+                                        }
+                                      ],
+                                      "id": "demBar",
+                                      "label": "Dem′"
+                                    }
+                                  ],
+                                  "id": "demP",
+                                  "label": "DemP"
+                                }
+                              ],
+                              "id": "booksNbarOuter",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "booksNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "booksDbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "booksDP",
+                  "label": "DP",
+                  "lineageId": "books-chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "i",
+                      "label": "I⁰[finite, perfect, class 8]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v",
+                                  "label": "V⁰[passive, perfect, class 8]",
+                                  "lineageId": "verb-chain",
+                                  "tokenIndex": 2,
+                                  "word": "vimesomwa"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "booksTrace",
+                                  "label": "DP trace",
+                                  "lineageId": "books-chain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "vbarCore",
+                              "label": "V′"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "na",
+                                      "label": "P⁰",
+                                      "tokenIndex": 3,
+                                      "word": "na"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "childrenD",
+                                              "label": "D⁰",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "childrenN",
+                                                      "label": "N⁰",
+                                                      "tokenIndex": 4,
+                                                      "word": "watoto"
+                                                    }
+                                                  ],
+                                                  "id": "childrenNbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "childrenNP",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "childrenDbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "childrenDP",
+                                      "label": "DP"
+                                    }
+                                  ],
+                                  "id": "pbar",
+                                  "label": "P′"
+                                }
+                              ],
+                              "id": "agentPP",
+                              "label": "PP"
+                            }
+                          ],
+                          "id": "vbarOuter",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibar",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "inflectionalFeatures": "iFeatures",
+                "landingHead": "i",
+                "movedHead": "v",
+                "trace": "verbTrace"
+              },
+              "priorAnchors": {
+                "source": "v",
+                "target": "i"
+              },
+              "relation": "V-to-I head movement",
+              "values": {
+                "morphologicalCommitment": "lexically inflected verb; no syntactic affix fusion",
+                "movement": "V-to-I"
+              }
+            },
+            {
+              "anchors": {
+                "lexicalGovernor": "v",
+                "lowerHead": "verbTrace",
+                "objectTrace": "booksTrace"
+              },
+              "priorAnchors": {
+                "governor": "v",
+                "objectTrace": "booksTrace"
+              },
+              "relation": "Government through the verbal head chain",
+              "values": {
+                "dependency": "government preserved through the V-to-I chain"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "ip",
+                "complementizer": "c"
+              },
+              "relation": "Declarative clause typing",
+              "values": {
+                "force": "declarative"
+              }
+            }
+          ],
+          "stageRecord": "The inflected verb raises from its established V position and adjoins to I, leaving a silent head trace. This analysis adopts overt V-to-I movement for the Swahili finite verb; movement positions the already inflected lexical word and does not manufacture its morphological spelling. The resulting complex I head contains the pronounced verb and an unpronounced inflectional feature head. The lower V trace remains connected to the moved lexical governor, preserving the government dependency of the passive object trace. A silent declarative C projects CP over the completed IP. The pronounced yield is exactly Vitabu hivi vimesomwa na watoto, with watoto interpreted as the readers.",
+          "statement": "Complete the finite declarative clause by V-to-I movement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰[declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "booksD",
+                                  "label": "D⁰",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bookN",
+                                              "label": "N⁰",
+                                              "tokenIndex": 0,
+                                              "word": "Vitabu"
+                                            }
+                                          ],
+                                          "id": "booksNbarInner",
+                                          "label": "N′"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "dem",
+                                                  "label": "Dem⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "hivi"
+                                                }
+                                              ],
+                                              "id": "demBar",
+                                              "label": "Dem′"
+                                            }
+                                          ],
+                                          "id": "demP",
+                                          "label": "DemP"
+                                        }
+                                      ],
+                                      "id": "booksNbarOuter",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "booksNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "booksDbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "booksDP",
+                          "label": "DP",
+                          "lineageId": "books-chain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v",
+                                  "label": "V⁰[passive, perfect, class 8]",
+                                  "lineageId": "verb-chain",
+                                  "tokenIndex": 2,
+                                  "word": "vimesomwa"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "iFeatures",
+                                  "label": "I⁰[finite, perfect, class 8]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "i",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verbTrace",
+                                          "label": "V⁰ trace",
+                                          "lineageId": "verb-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "booksTrace",
+                                          "label": "DP trace",
+                                          "lineageId": "books-chain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vbarCore",
+                                      "label": "V′"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "na",
+                                              "label": "P⁰",
+                                              "tokenIndex": 3,
+                                              "word": "na"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "childrenD",
+                                                      "label": "D⁰",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "childrenN",
+                                                              "label": "N⁰",
+                                                              "tokenIndex": 4,
+                                                              "word": "watoto"
+                                                            }
+                                                          ],
+                                                          "id": "childrenNbar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "childrenNP",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "childrenDbar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "childrenDP",
+                                              "label": "DP"
+                                            }
+                                          ],
+                                          "id": "pbar",
+                                          "label": "P′"
+                                        }
+                                      ],
+                                      "id": "agentPP",
+                                      "label": "PP"
+                                    }
+                                  ],
+                                  "id": "vbarOuter",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

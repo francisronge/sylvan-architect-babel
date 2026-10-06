@@ -1,3 +1,4 @@
+import {thetaLabelTarget,thetaLabelBase,treeLabelIndexAttributes} from '../replay/treeLabelRuns.ts';
 import { dependentCaseStatePlaques } from '../replay/relations/markGeometry.ts';
 import postcss from 'postcss';
 import assert from 'node:assert/strict';
@@ -14,6 +15,7 @@ import { nativeLinearizationPlateHeight, prepareNativePlaqueContent } from '../r
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { planAnchorSetLayout } from '../replay/relations/overlayGeometry.ts';
 import { availableTreeViewport, linearizationViewport } from '../components/treeViewport.ts';
+import { detachedPlaqueOrigin } from '../components/detachedPlaquePlacement.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
@@ -153,13 +155,13 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
   const g = new Selection([root]);
   const svgElement = new Element('svg');
   svgElement.rect = { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 };
-  const dependencies = {
+  const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes,
     g, svg: new Selection([svgElement]), frameItems: guarded(items), drawItems: guarded(drawItems), treeData,
     overlayNodeById: byId, resolveOverlayAnchor: (id) => byId.get(id),
     replayPlaqueLayout: new Map(items.map((_, index) => [index,
       { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
     relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
-    dependentCaseStatePlaques,
+    dependentCaseStatePlaques, detachedPlaqueOrigin, deferredRelationCamera: null,
     wrapPlaqueText, prepareThetaGridTextLayout, thetaGridPredicateLabel,
     drawPlaqueText: new Function(`${declaration('drawPlaqueText')} return draw;`)(),
     withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(text => ({ width: [...text].length * 4.2 })),
@@ -410,7 +412,7 @@ test('native dependent-case elbow uses the prepared step, including the unchange
     assert.ok(primitive);
     const root = new Element('g');
     const rectFor = (id) => ({ x: id === 'a' ? 100 : 350, y: id === 'a' ? 100 : 280, width: 50, height: 30 });
-    const dependencies = { planItem: guarded([item])[0], primitive, emphasis: null, opacity: null,
+    const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes, planItem: guarded([item])[0], primitive, emphasis: null, opacity: null,
       dependentCaseStatePlaques,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
       acceptedAnchorRect: rectFor, acceptedTerminalRect: rectFor,
@@ -555,6 +557,24 @@ test('native morphology consumes verified bundles and delinking position', () =>
   assert.deepEqual(impoverishmentSvg('babel-impoverishment-output').map((node) => node.textContent), ['person', 'number']);
 });
 
+test('a morphology panel uses the destination camera while the visible camera is still moving', () => {
+  const plan = compile({ relation: 'Fission', anchors: { outputs: ['a', 'mid'] }, values: {
+    inputFeatures: ['phi'], outputs: ['person', 'number']
+  } });
+  const svgElement = new Element('svg');
+  svgElement.rect = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+  const calls = [];
+  svgElement.getScreenCTM = () => ({ translate(x, y) {
+    calls.push(['translate', x, y]);return { scale(k) {
+      calls.push(['scale', k]);return { a: k, b: 0, inverse() { return this; } };
+    } };
+  } });
+  const drawing = drawNative('scheduleAcceptedPfMorphologyRelation', plan.frames[0].items, forest,
+    plan.frames[0].items, { svg: new Selection([svgElement]), deferredRelationCamera: { x: 90, y: 70, k: 0.5 } });
+  assert.deepEqual(calls, [['translate', 90, 70], ['scale', 0.5]]);
+  assert.equal(drawing('babel-pf-morphology-shell').length, 1);
+});
+
 test('native local dislocation paints the same changed partitions from either public tier', () => {
   const a = { id: 'a', label: 'X', word: 'a', children: [] };
   const b = { id: 'b', label: 'X', word: 'b', children: [] };
@@ -641,7 +661,7 @@ test('native cyclic badges preserve authored labels without doubling the cycle p
     const layer = new Selection([root]);
     const item = { kind: 'directed-path', fromNodeId: 'probe', toNodeId: 'goal', label: cycle,
       secondaryLabel: 'licensed' };
-    const dependencies = {
+    const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes,
       primitive: { type: 'shape-path', shapeStyle: 'agree-cyclic', itemIndex: 0, badge: { text: cycle } },
       planItem: item, queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
       emphasis: null, opacity: null, activeDerivationFrameIndex: 0, refValue: () => cycle, frameItems: [item],

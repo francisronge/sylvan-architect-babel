@@ -1,0 +1,1524 @@
+{
+  "record": {
+    "sentence": "Boken blev läst av Sara.",
+    "inputTokens": [
+      "Boken",
+      "blev",
+      "läst",
+      "av",
+      "Sara"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "book",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "agent": "sara",
+              "agentPhrase": "agentPP",
+              "predicate": "read",
+              "preposition": "by"
+            },
+            "relation": "passive agent interpretation",
+            "values": {
+              "role": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "assigner": "by",
+              "recipient": "sara"
+            },
+            "relation": "prepositional Case assignment",
+            "values": {
+              "case": "oblique"
+            }
+          },
+          {
+            "anchors": {
+              "internalArgument": "book",
+              "passiveHead": "read"
+            },
+            "relation": "passive Case suppression",
+            "values": {
+              "effect": "Structural accusative is unavailable; the internal argument must obtain Case elsewhere."
+            }
+          }
+        ],
+        "stageRecord": "The sentence contains a Swedish bli-passive: läst is the passive participle, and av Sara identifies the reader. The participle first combines with Boken in its complement position, where the noun phrase receives the Theme role. The av-phrase is right-adjoined to the participial V′ and realizes the passive predicate's Agent; it is not an ordinary direct object. Passive participial morphology suppresses structural accusative assignment, so Boken cannot receive Case in this position. A classical GB analysis with NP arguments is adopted: Boken is an already inflected definite noun, and its suffix is not represented as a separate syntactic terminal. The finite passive auxiliary blev is introduced separately as a verbal head; its projection and subsequent raising are constructed in later stages.",
+        "statement": "Construct the passive predicate with its internal argument and agent phrase.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "read",
+                        "label": "V⁰[passive participle]",
+                        "tokenIndex": 2,
+                        "word": "läst"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "bookN",
+                                "label": "N⁰[definite, singular, common gender]",
+                                "tokenIndex": 0,
+                                "word": "Boken"
+                              }
+                            ],
+                            "id": "bookBar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "book",
+                        "label": "NP",
+                        "lineageId": "book-chain"
+                      }
+                    ],
+                    "id": "partCoreBar",
+                    "label": "V′"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "by",
+                            "label": "P⁰",
+                            "tokenIndex": 3,
+                            "word": "av"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "saraN",
+                                    "label": "N⁰[proper name]",
+                                    "tokenIndex": 4,
+                                    "word": "Sara"
+                                  }
+                                ],
+                                "id": "saraBar",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "sara",
+                            "label": "NP"
+                          }
+                        ],
+                        "id": "agentPBar",
+                        "label": "P′"
+                      }
+                    ],
+                    "id": "agentPP",
+                    "label": "PP[passive agent]"
+                  }
+                ],
+                "id": "partAdjunctBar",
+                "label": "V′"
+              }
+            ],
+            "id": "partVP",
+            "label": "VP[passive participial]"
+          },
+          {
+            "children": [],
+            "id": "aux",
+            "label": "V⁰[passive auxiliary, finite past]",
+            "lineageId": "auxiliary-chain",
+            "tokenIndex": 1,
+            "word": "blev"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "selectedPredicate": "partVP",
+              "selector": "aux"
+            },
+            "relation": "auxiliary selection",
+            "values": {
+              "construction": "bli-passive"
+            }
+          },
+          {
+            "anchors": {
+              "landingOccurrence": "book",
+              "sourceTrace": "bookObjectTrace"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "book"
+            },
+            "relation": "A-movement",
+            "values": {
+              "destination": "Spec-IP",
+              "motivation": "Nominative Case and the subject requirement",
+              "source": "complement of the passive participle"
+            }
+          },
+          {
+            "anchors": {
+              "argumentPosition": "bookObjectTrace",
+              "chainHead": "book",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "licenser": "tense",
+              "recipient": "book"
+            },
+            "relation": "nominative Case licensing",
+            "values": {
+              "case": "nominative"
+            }
+          }
+        ],
+        "stageRecord": "The auxiliary selects the previously constructed participial VP and projects an upper VP. Abstract finite past I is then introduced above that VP. Boken moves from the participle's complement position to Spec-IP, leaving an NP trace in its original position. This is A-movement: the passive auxiliary introduces no competing external argument, and Spec-IP supplies no new theta role. The resulting chain retains the Theme role assigned at its foot, while finite I licenses nominative at its head. This satisfies the Case Filter and the requirement for a clausal subject. The analysis uses trace representations, not silent lexical copies. Blev remains in its verbal base position at this stage; the abstract I head is unpronounced and is not a separately pronounced tense suffix.",
+        "statement": "Project the auxiliary and finite clause, and raise Boken to the subject position.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "tense",
+                    "label": "I⁰[finite, past]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aux",
+                            "label": "V⁰[passive auxiliary, finite past]",
+                            "lineageId": "auxiliary-chain",
+                            "tokenIndex": 1,
+                            "word": "blev"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V⁰[passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "läst"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "bookObjectTraceLeaf",
+                                            "label": "t[NP]",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "bookObjectTrace",
+                                        "label": "NP",
+                                        "lineageId": "book-chain",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "partCoreBar",
+                                    "label": "V′"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "by",
+                                            "label": "P⁰",
+                                            "tokenIndex": 3,
+                                            "word": "av"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "saraN",
+                                                    "label": "N⁰[proper name]",
+                                                    "tokenIndex": 4,
+                                                    "word": "Sara"
+                                                  }
+                                                ],
+                                                "id": "saraBar",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "sara",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "agentPBar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "agentPP",
+                                    "label": "PP[passive agent]"
+                                  }
+                                ],
+                                "id": "partAdjunctBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "partVP",
+                            "label": "VP[passive participial]"
+                          }
+                        ],
+                        "id": "auxBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "auxVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHead": "finiteI",
+              "movedHead": "aux",
+              "sourceTrace": "auxTrace",
+              "target": "tense"
+            },
+            "priorAnchors": {
+              "sourceHead": "aux",
+              "target": "tense"
+            },
+            "relation": "V-to-I head movement",
+            "values": {
+              "effect": "The finite auxiliary occupies the inflectional head.",
+              "path": "V⁰ to I⁰"
+            }
+          },
+          {
+            "anchors": {
+              "caseLicenser": "finiteI",
+              "foot": "bookObjectTrace",
+              "head": "book",
+              "thetaAssigner": "read"
+            },
+            "relation": "A-chain",
+            "values": {
+              "case": "nominative",
+              "thetaRole": "Theme"
+            }
+          }
+        ],
+        "stageRecord": "Blev raises from the upper verbal head to finite I, leaving a head trace in the auxiliary VP. The resulting complex I head contains the overt, already inflected auxiliary and the silent abstract tense head. This explicitly adopts a V-to-I-to-C derivation of the Swedish finite verb rather than base-generating blev in C or skipping the intervening inflectional head. No morphological decomposition or additional surface realization is introduced: blev remains one whole-word terminal. The subject remains in Spec-IP, and its object trace remains inside the participial predicate.",
+        "statement": "Raise the finite passive auxiliary from V to I.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "aux",
+                        "label": "V⁰[passive auxiliary, finite past]",
+                        "lineageId": "auxiliary-chain",
+                        "tokenIndex": 1,
+                        "word": "blev"
+                      },
+                      {
+                        "children": [],
+                        "id": "tense",
+                        "label": "I⁰[finite, past]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "finiteI",
+                    "label": "I⁰[finite, past]",
+                    "lineageId": "finite-head-chain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxTrace",
+                            "label": "V⁰[t]",
+                            "lineageId": "auxiliary-chain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V⁰[passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "läst"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "bookObjectTraceLeaf",
+                                            "label": "t[NP]",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "bookObjectTrace",
+                                        "label": "NP",
+                                        "lineageId": "book-chain",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "partCoreBar",
+                                    "label": "V′"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "by",
+                                            "label": "P⁰",
+                                            "tokenIndex": 3,
+                                            "word": "av"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "saraN",
+                                                    "label": "N⁰[proper name]",
+                                                    "tokenIndex": 4,
+                                                    "word": "Sara"
+                                                  }
+                                                ],
+                                                "id": "saraBar",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "sara",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "agentPBar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "agentPP",
+                                    "label": "PP[passive agent]"
+                                  }
+                                ],
+                                "id": "partAdjunctBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "partVP",
+                            "label": "VP[passive participial]"
+                          }
+                        ],
+                        "id": "auxBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "auxVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHead": "finiteC",
+              "movedHead": "finiteI",
+              "sourceTrace": "iTrace",
+              "target": "cBase"
+            },
+            "priorAnchors": {
+              "sourceHead": "finiteI"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "motivation": "Matrix declarative verb-second requirement",
+              "path": "I⁰ to C⁰"
+            }
+          },
+          {
+            "anchors": {
+              "landingOccurrence": "book",
+              "sourceTrace": "bookSubjectTrace"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "book"
+            },
+            "relation": "A′-movement to the preverbal field",
+            "values": {
+              "destination": "Spec-CP",
+              "source": "Spec-IP"
+            }
+          },
+          {
+            "anchors": {
+              "casePosition": "bookSubjectTrace",
+              "finiteLicenser": "iTrace",
+              "pronouncedHead": "book",
+              "thetaAssigner": "read",
+              "thetaPosition": "bookObjectTrace"
+            },
+            "relation": "nominal chain interpretation",
+            "values": {
+              "case": "nominative",
+              "interpretation": "The book is the entity read.",
+              "thetaRole": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "highestHead": "finiteC",
+              "intermediateTrace": "iTrace",
+              "pronouncedVerb": "aux",
+              "verbalTrace": "auxTrace"
+            },
+            "relation": "finite head chain",
+            "values": {
+              "path": "V⁰–I⁰–C⁰"
+            }
+          },
+          {
+            "anchors": {
+              "agent": "sara",
+              "agentPhrase": "agentPP",
+              "caseAssigner": "by",
+              "predicate": "read"
+            },
+            "relation": "passive agent interpretation and Case",
+            "values": {
+              "case": "prepositionally licensed oblique",
+              "interpretation": "Sara is the reader.",
+              "thetaRole": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp"
+            },
+            "relation": "grammaticality judgment",
+            "values": {
+              "basis": "Passive theta-role distribution, nominal Case licensing, local movement chains, and matrix V2 order are satisfied.",
+              "judgment": "grammatical"
+            }
+          }
+        ],
+        "stageRecord": "A matrix declarative CP is projected above IP. The complex finite I head raises to C, leaving an I trace; Boken then moves from the already established Spec-IP position to Spec-CP, leaving a subject trace. This is the CP analysis of Swedish verb-second order: the initial subject occupies the preverbal field, and blev occupies C. The subject's A′-movement does not add a theta role or a new Case requirement; its nominative and Theme dependencies remain mediated by its A-position and original complement position. The head chain passes through I rather than crossing it, and the nominal dependency stays within one clause without crossing an island. The passive Agent is realized by av Sara, and läst is compatible with the singular common-gender subject. The completed structure therefore licenses the exact input as grammatical, meaning that the book was read by Sara. Subject-initial V2 is represented uniformly here; this does not require contrastive topic emphasis. The overt terminals, with all traces and abstract heads silent, yield Boken blev läst av Sara.",
+        "statement": "Complete the grammatical Swedish V2 declarative.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aux",
+                            "label": "V⁰[passive auxiliary, finite past]",
+                            "lineageId": "auxiliary-chain",
+                            "tokenIndex": 1,
+                            "word": "blev"
+                          },
+                          {
+                            "children": [],
+                            "id": "tense",
+                            "label": "I⁰[finite, past]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteI",
+                        "label": "I⁰[finite, past]",
+                        "lineageId": "finite-head-chain"
+                      },
+                      {
+                        "children": [],
+                        "id": "cBase",
+                        "label": "C⁰[declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "finiteC",
+                    "label": "C⁰[V2]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "bookSubjectTraceLeaf",
+                            "label": "t[NP]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "bookSubjectTrace",
+                        "label": "NP",
+                        "lineageId": "book-chain",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "iTrace",
+                            "label": "I⁰[t, finite]",
+                            "lineageId": "finite-head-chain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "auxTrace",
+                                    "label": "V⁰[t]",
+                                    "lineageId": "auxiliary-chain",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "read",
+                                                "label": "V⁰[passive participle]",
+                                                "tokenIndex": 2,
+                                                "word": "läst"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "bookObjectTraceLeaf",
+                                                    "label": "t[NP]",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "bookObjectTrace",
+                                                "label": "NP",
+                                                "lineageId": "book-chain",
+                                                "silent": true
+                                              }
+                                            ],
+                                            "id": "partCoreBar",
+                                            "label": "V′"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "by",
+                                                    "label": "P⁰",
+                                                    "tokenIndex": 3,
+                                                    "word": "av"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "saraN",
+                                                            "label": "N⁰[proper name]",
+                                                            "tokenIndex": 4,
+                                                            "word": "Sara"
+                                                          }
+                                                        ],
+                                                        "id": "saraBar",
+                                                        "label": "N′"
+                                                      }
+                                                    ],
+                                                    "id": "sara",
+                                                    "label": "NP"
+                                                  }
+                                                ],
+                                                "id": "agentPBar",
+                                                "label": "P′"
+                                              }
+                                            ],
+                                            "id": "agentPP",
+                                            "label": "PP[passive agent]"
+                                          }
+                                        ],
+                                        "id": "partAdjunctBar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "partVP",
+                                    "label": "VP[passive participial]"
+                                  }
+                                ],
+                                "id": "auxBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "auxVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "iBar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cBar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP[declarative]"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedFinalCoordinates": {
+    "desktop": [
+      [
+        "cp",
+        -712.9085848957975,
+        -427.69230769230717
+      ],
+      [
+        "book",
+        -1558.2888614188696,
+        -213.84615384615333
+      ],
+      [
+        "cBar",
+        132.4716916272747,
+        -213.84615384615333
+      ],
+      [
+        "bookBar",
+        -1558.2888614188696,
+        4.547473508864641e-13
+      ],
+      [
+        "finiteC",
+        -565.8546184087878,
+        5.115907697472721e-13
+      ],
+      [
+        "ip",
+        830.7980016633373,
+        5.115907697472721e-13
+      ],
+      [
+        "bookN",
+        -1558.2888614188696,
+        213.84615384615438
+      ],
+      [
+        "finiteI",
+        -789.696237300185,
+        213.84615384615438
+      ],
+      [
+        "cBase",
+        -342.01299951739065,
+        213.84615384615438
+      ],
+      [
+        "bookSubjectTrace",
+        318.136740409253,
+        212.7272727272732
+      ],
+      [
+        "iBar",
+        1343.4592629174213,
+        212.7272727272732
+      ],
+      [
+        "bookN::__leaf",
+        -1558.2888614188696,
+        427.6923076923082
+      ],
+      [
+        "aux",
+        -1013.5378561915821,
+        427.6923076923082
+      ],
+      [
+        "tense",
+        -565.8546184087878,
+        427.6923076923082
+      ],
+      [
+        "bookSubjectTraceLeaf",
+        318.136740409253,
+        426.573426573427
+      ],
+      [
+        "iTrace",
+        632.0902762378305,
+        425.45454545454584
+      ],
+      [
+        "auxVP",
+        2054.828249597012,
+        425.45454545454584
+      ],
+      [
+        "aux::__leaf",
+        -1013.5378561915821,
+        641.5384615384619
+      ],
+      [
+        "auxBar",
+        2054.828249597012,
+        638.1818181818187
+      ],
+      [
+        "auxTrace",
+        1646.2649956765454,
+        850.9090909090914
+      ],
+      [
+        "partVP",
+        2463.3915035174787,
+        850.9090909090914
+      ],
+      [
+        "partAdjunctBar",
+        2463.3915035174787,
+        1063.636363636364
+      ],
+      [
+        "partCoreBar",
+        1725.6525058624643,
+        1276.3636363636367
+      ],
+      [
+        "agentPP",
+        3201.1305011724935,
+        1276.3636363636367
+      ],
+      [
+        "read",
+        1449.0003817418337,
+        1489.0909090909095
+      ],
+      [
+        "bookObjectTrace",
+        2002.3046299830949,
+        1489.0909090909095
+      ],
+      [
+        "agentPBar",
+        3201.1305011724935,
+        1490.2097902097905
+      ],
+      [
+        "read::__leaf",
+        1449.0003817418337,
+        1702.9370629370637
+      ],
+      [
+        "bookObjectTraceLeaf",
+        2002.3046299830949,
+        1702.9370629370637
+      ],
+      [
+        "by",
+        2928.7549985588494,
+        1704.055944055945
+      ],
+      [
+        "sara",
+        3473.5060037861376,
+        1704.055944055945
+      ],
+      [
+        "by::__leaf",
+        2928.7549985588494,
+        1917.9020979020984
+      ],
+      [
+        "saraBar",
+        3473.5060037861376,
+        1917.9020979020984
+      ],
+      [
+        "saraN",
+        3473.5060037861376,
+        2131.748251748252
+      ],
+      [
+        "saraN::__leaf",
+        3473.5060037861376,
+        2345.5944055944055
+      ]
+    ],
+    "rtl": [
+      [
+        "cp",
+        4792.908584895798,
+        -427.69230769230717
+      ],
+      [
+        "book",
+        5638.2888614188705,
+        -213.84615384615333
+      ],
+      [
+        "cBar",
+        3947.5283083727263,
+        -213.84615384615333
+      ],
+      [
+        "bookBar",
+        5638.2888614188705,
+        4.547473508864641e-13
+      ],
+      [
+        "finiteC",
+        4645.854618408789,
+        5.115907697472721e-13
+      ],
+      [
+        "ip",
+        3249.2019983366636,
+        5.115907697472721e-13
+      ],
+      [
+        "bookN",
+        5638.2888614188705,
+        213.84615384615438
+      ],
+      [
+        "finiteI",
+        4869.696237300186,
+        213.84615384615438
+      ],
+      [
+        "cBase",
+        4422.012999517392,
+        213.84615384615438
+      ],
+      [
+        "bookSubjectTrace",
+        3761.8632595907475,
+        212.7272727272732
+      ],
+      [
+        "iBar",
+        2736.5407370825797,
+        212.7272727272732
+      ],
+      [
+        "bookN::__leaf",
+        5638.2888614188705,
+        427.6923076923082
+      ],
+      [
+        "aux",
+        5093.537856191584,
+        427.6923076923082
+      ],
+      [
+        "tense",
+        4645.854618408788,
+        427.6923076923082
+      ],
+      [
+        "bookSubjectTraceLeaf",
+        3761.8632595907475,
+        426.573426573427
+      ],
+      [
+        "iTrace",
+        3447.90972376217,
+        425.45454545454584
+      ],
+      [
+        "auxVP",
+        2025.1717504029884,
+        425.45454545454584
+      ],
+      [
+        "aux::__leaf",
+        5093.537856191584,
+        641.5384615384619
+      ],
+      [
+        "auxBar",
+        2025.1717504029884,
+        638.1818181818187
+      ],
+      [
+        "auxTrace",
+        2433.7350043234555,
+        850.9090909090914
+      ],
+      [
+        "partVP",
+        1616.6084964825222,
+        850.9090909090914
+      ],
+      [
+        "partAdjunctBar",
+        1616.6084964825222,
+        1063.636363636364
+      ],
+      [
+        "partCoreBar",
+        2354.347494137536,
+        1276.3636363636367
+      ],
+      [
+        "agentPP",
+        878.8694988275074,
+        1276.3636363636367
+      ],
+      [
+        "read",
+        2630.999618258167,
+        1489.0909090909095
+      ],
+      [
+        "bookObjectTrace",
+        2077.695370016906,
+        1489.0909090909095
+      ],
+      [
+        "agentPBar",
+        878.8694988275074,
+        1490.2097902097905
+      ],
+      [
+        "read::__leaf",
+        2630.999618258167,
+        1702.9370629370637
+      ],
+      [
+        "bookObjectTraceLeaf",
+        2077.695370016906,
+        1702.9370629370637
+      ],
+      [
+        "by",
+        1151.2450014411515,
+        1704.055944055945
+      ],
+      [
+        "sara",
+        606.4939962138633,
+        1704.055944055945
+      ],
+      [
+        "by::__leaf",
+        1151.2450014411515,
+        1917.9020979020984
+      ],
+      [
+        "saraBar",
+        606.4939962138633,
+        1917.9020979020984
+      ],
+      [
+        "saraN",
+        606.4939962138633,
+        2131.748251748252
+      ],
+      [
+        "saraN::__leaf",
+        606.4939962138633,
+        2345.5944055944055
+      ]
+    ],
+    "phone": [
+      [
+        "cp",
+        -712.9085848957975,
+        -427.69230769230717
+      ],
+      [
+        "book",
+        -1558.2888614188696,
+        -213.84615384615333
+      ],
+      [
+        "cBar",
+        132.4716916272747,
+        -213.84615384615333
+      ],
+      [
+        "bookBar",
+        -1558.2888614188696,
+        4.547473508864641e-13
+      ],
+      [
+        "finiteC",
+        -565.8546184087878,
+        5.115907697472721e-13
+      ],
+      [
+        "ip",
+        830.7980016633373,
+        5.115907697472721e-13
+      ],
+      [
+        "bookN",
+        -1558.2888614188696,
+        213.84615384615438
+      ],
+      [
+        "finiteI",
+        -789.696237300185,
+        213.84615384615438
+      ],
+      [
+        "cBase",
+        -342.01299951739065,
+        213.84615384615438
+      ],
+      [
+        "bookSubjectTrace",
+        318.136740409253,
+        212.7272727272732
+      ],
+      [
+        "iBar",
+        1343.4592629174213,
+        212.7272727272732
+      ],
+      [
+        "bookN::__leaf",
+        -1558.2888614188696,
+        427.6923076923082
+      ],
+      [
+        "aux",
+        -1013.5378561915821,
+        427.6923076923082
+      ],
+      [
+        "tense",
+        -565.8546184087878,
+        427.6923076923082
+      ],
+      [
+        "bookSubjectTraceLeaf",
+        318.136740409253,
+        426.573426573427
+      ],
+      [
+        "iTrace",
+        632.0902762378305,
+        425.45454545454584
+      ],
+      [
+        "auxVP",
+        2054.828249597012,
+        425.45454545454584
+      ],
+      [
+        "aux::__leaf",
+        -1013.5378561915821,
+        641.5384615384619
+      ],
+      [
+        "auxBar",
+        2054.828249597012,
+        638.1818181818187
+      ],
+      [
+        "auxTrace",
+        1646.2649956765454,
+        850.9090909090914
+      ],
+      [
+        "partVP",
+        2463.3915035174787,
+        850.9090909090914
+      ],
+      [
+        "partAdjunctBar",
+        2463.3915035174787,
+        1063.636363636364
+      ],
+      [
+        "partCoreBar",
+        1725.6525058624643,
+        1276.3636363636367
+      ],
+      [
+        "agentPP",
+        3201.1305011724935,
+        1276.3636363636367
+      ],
+      [
+        "read",
+        1449.0003817418337,
+        1489.0909090909095
+      ],
+      [
+        "bookObjectTrace",
+        2002.3046299830949,
+        1489.0909090909095
+      ],
+      [
+        "agentPBar",
+        3201.1305011724935,
+        1490.2097902097905
+      ],
+      [
+        "read::__leaf",
+        1449.0003817418337,
+        1702.9370629370637
+      ],
+      [
+        "bookObjectTraceLeaf",
+        2002.3046299830949,
+        1702.9370629370637
+      ],
+      [
+        "by",
+        2928.7549985588494,
+        1704.055944055945
+      ],
+      [
+        "sara",
+        3473.5060037861376,
+        1704.055944055945
+      ],
+      [
+        "by::__leaf",
+        2928.7549985588494,
+        1917.9020979020984
+      ],
+      [
+        "saraBar",
+        3473.5060037861376,
+        1917.9020979020984
+      ],
+      [
+        "saraN",
+        3473.5060037861376,
+        2131.748251748252
+      ],
+      [
+        "saraN::__leaf",
+        3473.5060037861376,
+        2345.5944055944055
+      ]
+    ],
+    "phone-rtl": [
+      [
+        "cp",
+        4792.908584895798,
+        -427.69230769230717
+      ],
+      [
+        "book",
+        5638.2888614188705,
+        -213.84615384615333
+      ],
+      [
+        "cBar",
+        3947.5283083727263,
+        -213.84615384615333
+      ],
+      [
+        "bookBar",
+        5638.2888614188705,
+        4.547473508864641e-13
+      ],
+      [
+        "finiteC",
+        4645.854618408789,
+        5.115907697472721e-13
+      ],
+      [
+        "ip",
+        3249.2019983366636,
+        5.115907697472721e-13
+      ],
+      [
+        "bookN",
+        5638.2888614188705,
+        213.84615384615438
+      ],
+      [
+        "finiteI",
+        4869.696237300186,
+        213.84615384615438
+      ],
+      [
+        "cBase",
+        4422.012999517392,
+        213.84615384615438
+      ],
+      [
+        "bookSubjectTrace",
+        3761.8632595907475,
+        212.7272727272732
+      ],
+      [
+        "iBar",
+        2736.5407370825797,
+        212.7272727272732
+      ],
+      [
+        "bookN::__leaf",
+        5638.2888614188705,
+        427.6923076923082
+      ],
+      [
+        "aux",
+        5093.537856191584,
+        427.6923076923082
+      ],
+      [
+        "tense",
+        4645.854618408788,
+        427.6923076923082
+      ],
+      [
+        "bookSubjectTraceLeaf",
+        3761.8632595907475,
+        426.573426573427
+      ],
+      [
+        "iTrace",
+        3447.90972376217,
+        425.45454545454584
+      ],
+      [
+        "auxVP",
+        2025.1717504029884,
+        425.45454545454584
+      ],
+      [
+        "aux::__leaf",
+        5093.537856191584,
+        641.5384615384619
+      ],
+      [
+        "auxBar",
+        2025.1717504029884,
+        638.1818181818187
+      ],
+      [
+        "auxTrace",
+        2433.7350043234555,
+        850.9090909090914
+      ],
+      [
+        "partVP",
+        1616.6084964825222,
+        850.9090909090914
+      ],
+      [
+        "partAdjunctBar",
+        1616.6084964825222,
+        1063.636363636364
+      ],
+      [
+        "partCoreBar",
+        2354.347494137536,
+        1276.3636363636367
+      ],
+      [
+        "agentPP",
+        878.8694988275074,
+        1276.3636363636367
+      ],
+      [
+        "read",
+        2630.999618258167,
+        1489.0909090909095
+      ],
+      [
+        "bookObjectTrace",
+        2077.695370016906,
+        1489.0909090909095
+      ],
+      [
+        "agentPBar",
+        878.8694988275074,
+        1490.2097902097905
+      ],
+      [
+        "read::__leaf",
+        2630.999618258167,
+        1702.9370629370637
+      ],
+      [
+        "bookObjectTraceLeaf",
+        2077.695370016906,
+        1702.9370629370637
+      ],
+      [
+        "by",
+        1151.2450014411515,
+        1704.055944055945
+      ],
+      [
+        "sara",
+        606.4939962138633,
+        1704.055944055945
+      ],
+      [
+        "by::__leaf",
+        1151.2450014411515,
+        1917.9020979020984
+      ],
+      [
+        "saraBar",
+        606.4939962138633,
+        1917.9020979020984
+      ],
+      [
+        "saraN",
+        606.4939962138633,
+        2131.748251748252
+      ],
+      [
+        "saraN::__leaf",
+        606.4939962138633,
+        2345.5944055944055
+      ]
+    ]
+  }
+}

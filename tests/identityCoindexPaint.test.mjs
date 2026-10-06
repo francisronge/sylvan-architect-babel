@@ -1,3 +1,4 @@
+import {identityLabelTarget,thetaLabelTarget,identityIndexAction,thetaLabelBase,treeLabelIndexAttributes} from '../replay/treeLabelRuns.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -72,6 +73,7 @@ assert(identityBranch);
 class Element {
   constructor(tag, attrs = {}, text = '', datum) { this.tag = tag; this.attrs = attrs; this.text = text; this.datum = datum; this.children = []; }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
+  setAttribute(name, value) { this.attrs[name] = String(value); }
   getAttribute(name) { return this.attrs[name] ?? null; }
   appendChild(child) { this.children.push(child); }
 }
@@ -98,10 +100,10 @@ function painter(workspace = forest) {
     root.children.push(new Element('text', { class: word ? 'terminal-label' : 'category-label', 'data-default-label': word ? node.data.word : node.data.label,
       [word ? 'data-node-id' : 'data-category-node-id']: node.data.id }, word ? node.data.word : node.data.label, node));
   }
+  for (const node of nodes.values()) node.__vizId = node.data.id;
   const owners = new Map(), lights = [], decorations = new Map();
-  const dependencies = {
+  const dependencies = { identityLabelTarget, thetaLabelTarget, identityIndexAction, thetaLabelBase, treeLabelIndexAttributes, terminalAmbiguities: new Map(),
     g: select(root), d3: { select }, resolveOverlayAnchor: id => nodes.get(id),
-    resolveMaterializedTerminal: node => { const leaves = node?.leaves() || []; return leaves.length === 1 && leaves[0].data.word ? leaves[0] : undefined; },
     getNodeId: node => node.data.id,
     labelBelongsToNode: (element, id) => element.getAttribute('data-node-id') === id || element.getAttribute('data-category-node-id') === id,
     extractDisplayedSubscriptIndex, mergeIdentityOwners, planItemRelationRefs,
@@ -151,7 +153,7 @@ test('repeated identity claims share exact inline notation while distinct indice
 
 test('phrase coindices stay on the phrase while lights cover its leaves; a presentation lens adds no index', () => {
   const workspace = [{ id: 'root', label: 'XP', children: [
-    { id: 'phrase', label: 'DP', children: [leaf('a'), leaf('b')] }, leaf('copy')
+    { id: 'phrase', label: 'DP', children: [leaf('a', 'first'), leaf('b', 'second')] }, leaf('copy')
   ] }];
   const item = { kind: 'coindex', familyId: 'identity.occurrences', nodeIds: ['phrase', 'copy'], index: 'k',
     relationRef: { stageIndex: 0, relationIndex: 0, relation: 'Identity', anchors: { occurrences: ['phrase', 'copy'] } } };

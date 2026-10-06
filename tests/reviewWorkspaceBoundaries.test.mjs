@@ -13,6 +13,11 @@ import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/review-workspace-boundaries.json', import.meta.url))).cases;
 const framingRecords = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/review-final-framing.json', import.meta.url))).cases;
 const point = node => ({ x: node.x, y: node.y });
+function assertSamePoint(actual, expected, message) {
+  assert([actual.x, actual.y, expected.x, expected.y].every(Number.isFinite), `${message}: finite coordinates`);
+  assert(Math.hypot(actual.x - expected.x, actual.y - expected.y) <= 1e-8,
+    `${message}: (${actual.x}, ${actual.y}) differs from (${expected.x}, ${expected.y})`);
+}
 function setup(key, width, height, direction) {
   const record = [...records, ...framingRecords].find(record => record.key === key), original = JSON.stringify(record);
   const replay = prepareReplay({ ...record, includePlayback: true }), steps = replay.playbackSteps;
@@ -37,14 +42,14 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     const before = frame(15), movement = frame(19);
     assert(!before.nodes.has('rcTProjection'));
     assert(movement.nodes.has('rcTProjection'));
-    assert.deepEqual(point(before.nodes.get('rcTP')), point(movement.nodes.get('rcTProjection')),
+    assertSamePoint(point(before.nodes.get('rcTP')), point(movement.nodes.get('rcTProjection')),
       'the earlier fork stays at the later fork with the same daughters, not at the higher landing parent');
     for (const number of [14, 16, 17, 18, 15]) {
-      assert.deepEqual(point(frame(number).nodes.get('rcTP')), point(before.nodes.get('rcTP')),
+      assertSamePoint(point(frame(number).nodes.get('rcTP')), point(before.nodes.get('rcTP')),
         `frame ${number}: the earlier fork does not jump at the stage boundary`);
     }
     for (const id of ['rcT', 'rcTemporalV']) {
-      assert.deepEqual(point(before.nodes.get(id)), point(movement.nodes.get(id)), `${id} remains stationary`);
+      assertSamePoint(point(before.nodes.get(id)), point(movement.nodes.get(id)), `${id} remains stationary`);
       assert.equal(before.nodes.get(id).parent.data.id, 'rcTP');
       assert.equal(movement.nodes.get(id).parent.data.id, 'rcTProjection');
     }
@@ -62,7 +67,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     assert.equal(next.step.replayKind, 'micro', 'ordinary construction, not authored movement');
     for (const [id, node] of previous.nodes) {
       assert(next.nodes.has(id), 'existing syntax remains visible');
-      assert.deepEqual(point(next.nodes.get(id)), point(node), `${id} must not teleport`);
+      assertSamePoint(point(next.nodes.get(id)), point(node), `${id} must not teleport`);
     }
     unchanged();
   });
@@ -72,7 +77,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     for (const number of [29, 30, 31, 32, 33, 34, 35, 36, 37, 35, 29, 28]) {
       const current = frame(number);
       for (const id of ['mT', 'mv', 'mV', 'bookArticle', 'bookN', 'rC', 'mC']) {
-        assert.deepEqual(point(current.nodes.get(id)), point(before.nodes.get(id)), `${id} in frame ${number}`);
+        assertSamePoint(point(current.nodes.get(id)), point(before.nodes.get(id)), `${id} in frame ${number}`);
       }
       for (const id of current.nodes.keys()) assert(steps[number - 1].replayVisibleNodeIds.includes(id), 'no reserved future syntax becomes visible');
     }
@@ -83,7 +88,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     const { frame } = setup('fresh/portuguese-relative/0', width, height, direction);
     const before = frame(34), after = frame(35);
     for (const id of ['rT', 'rvHeadAtT', 'rVAtT', 'qEdge', 'rV', 'qBase']) {
-      assert.deepEqual(point(before.nodes.get(id)), point(after.nodes.get(id)), `${id} stays still when the subject moves`);
+      assertSamePoint(point(before.nodes.get(id)), point(after.nodes.get(id)), `${id} stays still when the subject moves`);
     }
     assert.notDeepEqual(point(before.nodes.get('anaArticle')), point(after.nodes.get('anaArticle')), 'the authored subject movement still happens');
   });

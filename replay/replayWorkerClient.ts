@@ -10,11 +10,12 @@ export const startReplayPreparation = (
   createWorker: () => PreparationWorker = () => new Worker(new URL('./replay.worker.ts', import.meta.url), { type: 'module' })
 ): (() => void) => startWorkerJob(input, onReady, onError, createWorker);
 
-export const startWorkerJob = <Input, Result>(
-  input: Input,
+export const startWorkerJob = <Input, Result, Progress = never>(
+  input: Input | Promise<Input>,
   onReady: (result: Result) => void,
   onError: (error: Error) => void,
-  createWorker: () => PreparationWorker
+  createWorker: () => PreparationWorker,
+  onProgress?: (progress: Progress) => void
 ): (() => void) => {
   let worker: PreparationWorker | undefined;
   let active = true;
@@ -33,8 +34,13 @@ export const startWorkerJob = <Input, Result>(
   };
   try {
     worker = createWorker();
-    worker.onmessage = ({ data }: MessageEvent<{ result?: Result; error?: string }>) => {
+    worker.onmessage = ({ data }: MessageEvent<{ result?: Result; progress?: Progress; error?: string }>) => {
       if (!active) return;
+      if (data.progress !== undefined && onProgress) {
+        try { onProgress(data.progress); }
+        catch (error) { fail(error instanceof Error ? error : new Error(String(error))); }
+        return;
+      }
       if (!data.result) {
         fail(new Error(data.error || 'Replay preparation returned no result.'));
         return;
@@ -47,7 +53,13 @@ export const startWorkerJob = <Input, Result>(
       fail(new Error(event.message || 'Replay preparation failed.'));
     };
     worker.onmessageerror = () => fail(new Error('Replay preparation could not be read.'));
-    worker.postMessage(input);
+    const post = (value: Input) => {
+      if (!active) return;
+      try { worker!.postMessage(value); }
+      catch (error) { fail(error instanceof Error ? error : new Error(String(error))); }
+    };
+    if (input instanceof Promise) input.then(post, fail);
+    else post(input);
   } catch (error) {
     fail(error instanceof Error ? error : new Error(String(error)));
   }

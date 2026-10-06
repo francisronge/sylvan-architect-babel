@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as d3 from 'd3';
 import ts from 'typescript';
+import { STAGE_CAMERA_PADDING } from '../replay/stageCamera.ts';
 import { advanceFittedCamera, availableTreeViewport, containCamera } from '../components/treeViewport.ts';
 
 const source = ts.createSourceFile('TreeVisualizer.tsx',
@@ -22,7 +23,7 @@ assert.equal(declarations.size, names.size, 'execute the production containment 
 function camera(input) {
   let painted;
   const dependencies = {
-    d3, advanceFittedCamera, containCamera,
+    d3, STAGE_CAMERA_PADDING, advanceFittedCamera, containCamera,
     stageCameraBounds: input.bounds,
     stagePlaqueContainmentBounds: input.plaques ?? null,
     fitLeft: input.view.left, fitRight: input.view.right,
@@ -41,8 +42,9 @@ function camera(input) {
     applyCameraTransform: transform => { painted = transform; }
   };
   const body = [...declarations].map(([name, expression]) => `const ${name} = ${expression};`).join('\n');
-  new Function(...Object.keys(dependencies), ts.transpile(`${body}\nfitToRenderedBounds();`,
+  const deferred = new Function(...Object.keys(dependencies), ts.transpile(`let deferredRelationCamera = null;\n${body}\nfitToRenderedBounds();\nreturn deferredRelationCamera;`,
     { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+  assert.deepEqual(deferred, painted, 'deferred panels use the destination or retained manual camera');
   return painted;
 }
 

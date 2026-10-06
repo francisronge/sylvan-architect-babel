@@ -1,4 +1,5 @@
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { treeInkObstacles } from '../replay/treeInkGeometry.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -6,13 +7,57 @@ import test from 'node:test';
 import * as d3 from 'd3';
 import ts from 'typescript';
 import { availableTreeViewport } from '../components/treeViewport.ts';
-import { buildStageCameraBounds, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
+import { STAGE_CAMERA_PADDING, buildStageCameraBounds, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
+
+for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+  test(`${width}px ${direction}: future plaque anchors cannot enlarge the opening camera from hidden positions`, () => {
+    const canvas = { id: 'root', label: 'XP', children: [
+      { id: 'current', label: 'N', word: 'current' }, { id: 'future', label: 'V', word: 'future' }
+    ] };
+    const opening = structuredClone(canvas), completed = structuredClone(canvas);
+    const steps = [
+      { replayCanvasData: opening, replayFrameIndex: 0, replayStageStepIndex: 0,
+        replayKind: 'micro', replayVisibleNodeIds: ['current'] },
+      { replayCanvasData: completed, replayFrameIndex: 0, replayStageStepIndex: 1,
+        replayKind: 'macro', replayVisibleNodeIds: ['root', 'current', 'future'] }
+    ];
+    const points = hidden => new Map([
+      ['root', { x: 400, y: 200 }], ['current', { x: 300, y: 400 }],
+      ['future', hidden ? { x: -10000, y: -10000 } : { x: 500, y: 400 }]
+    ]);
+    const coordinates = new Map([[0, new Map([[opening, points(true)], [completed, points(false)]])]]);
+    const size = stageTreeLayoutSize(steps, 0, width, height);
+    const anchorX = direction === 'rtl' ? size[0] - 500 : 500;
+    const box = { x: anchorX + 250, y: 500, width: 300, height: 100, location: 'local',
+      domainId: 'root', attachmentNodeId: 'future', attachmentX: anchorX, attachmentY: 400 };
+    const placements = new Map([[0, box]]);
+    const input = { steps, stageIndex: 0, completedCanvas: completed, plan: null, width, height, direction,
+      coordinates, includeOverlays: false, includePlaques: true };
+    const original = structuredClone(coordinates);
+    for (const layout of [{ plaqueLayout: placements },
+      { plaqueSchedule: { stages: [placements], steps: new Map([[0, placements], [1, placements]]) } }]) {
+      const configured = { ...input, ...layout };
+      assert.deepEqual(buildStageCameraBounds({ ...configured, stepIndex: 0 }),
+        buildStageCameraBounds({ ...configured, stepIndex: 0, includePlaques: false }),
+        'a plaque cannot contribute a position while its attachment is hidden');
+      const wholeStage = buildStageCameraBounds(configured);
+      assert.deepEqual(wholeStage, buildStageCameraBounds({ ...configured, stepIndex: 1 }),
+        'the opening fit still reserves the later visible plaque at its real position');
+      assert(wholeStage.minX <= box.x - 24 && wholeStage.maxX >= box.x + box.width + 24);
+      assert(wholeStage.minY <= box.y - 24 && wholeStage.maxY >= box.y + box.height + 24);
+      assert.deepEqual(buildStageCameraBounds({ ...configured, steps: [...steps].reverse() }), wholeStage,
+        'rewinding cannot change the shared stage fit');
+    }
+    assert.deepEqual(coordinates, original, 'camera fitting does not move syntax');
+  });
+}
+
 const renderer = ts.createSourceFile('TreeVisualizer.tsx', fs.readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
   ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let fitFunction;
@@ -52,7 +97,13 @@ test('Astra did subtree remains stationary throughout the authored Wh-Agree stag
     const original = coordinates(before), current = coordinates(after);
     assert.equal(current.length, 4, 'test must include the head, its two children, and did');
     for (const step of steps.filter(step => step.replayFrameIndex === 6)) {
-      assert.deepEqual(coordinates(step), current, 'later relations and movement keep this unchanged complex stationary');
+      const actual = coordinates(step);
+      assert.deepEqual(actual.map(point => point.id), current.map(point => point.id),
+        'later frames preserve every subtree identity and its order');
+      for (let index = 0; index < current.length; index++) {
+        assert(Math.abs(actual[index].x - current[index].x) <= 1e-8, `${current[index].id} remains stationary horizontally`);
+        assert(Math.abs(actual[index].y - current[index].y) <= 1e-8, `${current[index].id} remains stationary vertically`);
+      }
       const tree = productionTreeLayout(step.replayCanvasData, width, height,
         stageTreeLayoutSize(steps, 6, width, height), steps);
       const visible = new Set(step.replayVisibleNodeIds);
@@ -108,7 +159,7 @@ for (const record of records) {
 }
 const fit = (bounds, viewport, width) => {
   let result;
-  const dependencies = { d3, stageCameraBounds: bounds, derivationFrameFitNodes: [{}], overlayFitBounds: null,
+  const dependencies = { d3, STAGE_CAMERA_PADDING, stageCameraBounds: bounds, derivationFrameFitNodes: [{}], overlayFitBounds: null,
     fitLeft: viewport.left, fitRight: viewport.right, fitTop: viewport.top, fitBottom: viewport.bottom,
     minimumInitialScale: width < 500 ? 0.02 : 0.06, applyFittedCamera: transform => { result = transform; } };
   const run = new Function(...Object.keys(dependencies), ts.transpile(`return (${fitFunction.getText(renderer)})();`,
@@ -242,8 +293,8 @@ test('Astra do-support reveals did without spreading existing syntax', () => {
     for (const node of oldTree.descendants()) {
       const next = byId.get(node.data.id);
       assert(next, `${node.data.id} must survive do-support`);
-      assert.equal(next.x, node.x, `${node.data.id} must not shift horizontally`);
-      assert.equal(next.y, node.y, `${node.data.id} must not shift vertically`);
+      assert(Math.abs(next.x - node.x) < 1e-8, `${node.data.id} must not shift horizontally`);
+      assert(Math.abs(next.y - node.y) < 1e-8, `${node.data.id} must not shift vertically`);
     }
     assert.equal(oldTree.descendants().some(node => node.data.id === 'raisedT::__leaf'), false);
     assert(byId.has('raisedT::__leaf'), 'did must still appear only at do-support');
@@ -261,4 +312,79 @@ test('stage dimensions reserve both width and height and tolerate a stage withou
   const steps = [shallow, deep].map(replayCanvasData => ({ replayFrameIndex: 0, replayCanvasData }));
   assert.deepEqual(stageTreeLayoutSize(steps, 0, 100, 100), treeLayoutSize(4, 3, 100, 100));
   assert.equal(stageTreeLayoutSize(steps, 1, 100, 100), null);
+});
+
+for (const [width, height] of [[390, 844], [1600, 1100]]) {
+  for (const direction of ['ltr', 'rtl']) {
+    test(`${width}px ${direction}: stage camera contains long terminal labels without changing syntax`, () => {
+      const word = 'unusually_long_terminal_'.repeat(5);
+      const analysis = { derivationStages: [{ statement: 'Select the nominal.', stageRecord: 'One nominal phrase.', relations: [],
+        workspaceForest: [{ id: 'phrase', label: 'NP', children: [{ id: 'noun', label: 'N', word }] }] }] };
+      const steps = buildReplayPlayback({ sentence: word, analyses: [analysis] }).steps;
+      const before = JSON.stringify(steps), completedCanvas = steps.at(-1).replayCanvasData;
+      const size = stageTreeLayoutSize(steps, 0, width, height);
+      const reservations = buildStageCoordinateReservations(steps, 0, size, () => size, direction);
+      const bounds = buildStageCameraBounds({ steps, stageIndex: 0, completedCanvas, plan: null, width, height, direction,
+        coordinates: new Map([[0, reservations]]) });
+      const viewport = availableTreeViewport(width, height, { headerBottom: 70, panelTop: height - 260 });
+      const fitted = fit(bounds, viewport, width);
+      for (const step of steps) {
+        const root = d3.hierarchy(step.replayCanvasData);applyVizIds(root);
+        const tree = layoutSyntaxTree(root, size, direction, reservations.get(step.replayCanvasData), new Set(step.replayVisibleNodeIds));
+        const visible = new Set(step.replayVisibleNodeIds);
+        const nodes = tree.descendants().filter(n => visible.has(n.__vizId ?? n.data.id));
+        for (const rect of treeInkObstacles(nodes).filter(rect => rect.connectorAttachment?.endsWith(':terminal'))) {
+          const left = fitted.applyX(rect.x), right = fitted.applyX(rect.x + rect.width);
+          assert(left >= viewport.left - 1e-7 && right <= viewport.right + 1e-7,
+            `The complete terminal must fit: ${left}..${right}, viewport ${viewport.left}..${viewport.right}`);
+        }
+      }
+      assert.equal(JSON.stringify(steps), before, 'Fitting must preserve Replay and syntax');
+    });
+  }
+}
+
+test('ordinary labels retain the original stage framing exactly', () => {
+  const analysis = { derivationStages: [{ statement: 'Select the nominal.', stageRecord: 'One nominal phrase.', relations: [],
+    workspaceForest: [{ id: 'phrase', label: 'NP', children: [{ id: 'noun', label: 'N', word: 'book' }] }] }] };
+  const steps = buildReplayPlayback({ sentence: 'book', analyses: [analysis] }).steps;
+  for (const [width, height] of [[390, 844], [1600, 1100]]) {
+    const size = stageTreeLayoutSize(steps, 0, width, height);
+    const reservations = buildStageCoordinateReservations(steps, 0, size, () => size);
+    const points = steps.flatMap(step => {
+      const root = d3.hierarchy(step.replayCanvasData);applyVizIds(root);
+      const visible = new Set(step.replayVisibleNodeIds);
+      return layoutSyntaxTree(root, size, 'ltr', reservations.get(step.replayCanvasData), visible).descendants()
+        .filter(n => visible.has(n.__vizId ?? n.data.id));
+    });
+    const original = { minX: Math.min(...points.map(n => n.x)), maxX: Math.max(...points.map(n => n.x)),
+      minY: Math.min(...points.map(n => n.y)), maxY: Math.max(...points.map(n => n.y + (n.children?.length ? 0 : 130))) };
+    const current = buildStageCameraBounds({ steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
+      plan: null, width, height, coordinates: new Map([[0, reservations]]) });
+    assert.deepEqual(current, original);
+  }
+});
+
+test('stage camera contains styled-label ink beyond the ordinary font envelope', () => {
+  const analysis = { derivationStages: [{ statement: 'Select the nominal.', stageRecord: 'One nominal phrase.', relations: [],
+    workspaceForest: [{ id: 'phrase', label: 'NP', children: [{ id: 'noun', label: 'N', word: 'book' }] }] }] };
+  const steps = buildReplayPlayback({ sentence: 'book', analyses: [analysis] }).steps;
+  const width = 390, height = 844, size = stageTreeLayoutSize(steps, 0, width, height);
+  const reservations = buildStageCoordinateReservations(steps, 0, size, () => size);
+  const run = { kind: 'terminal', text: 'book', indices: [{ text: '123', mode: 'theta' }] };
+  const treeLabelRuns = new Map(steps.map(step => [step.replayCanvasData, new Map([['noun::__leaf', [run]]])]));
+  const measureTreeLabel = () => ({ x: -310, y: 70, width: 1190, height: 460 });
+  const bounds = buildStageCameraBounds({ steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
+    plan: null, width, height, treeLabelRuns, measureTreeLabel, coordinates: new Map([[0, reservations]]) });
+  const viewport = availableTreeViewport(width, height, { headerBottom: 70, panelTop: 584 });
+  const fitted = fit(bounds, viewport, width);
+  const step = steps.at(-1), root = d3.hierarchy(step.replayCanvasData);applyVizIds(root);
+  const tree = layoutSyntaxTree(root, size, 'ltr', reservations.get(step.replayCanvasData), new Set(step.replayVisibleNodeIds));
+  const terminal = tree.descendants().find(n => (n.__vizId ?? n.data.id) === 'noun::__leaf');assert(terminal);
+  const ink = measureTreeLabel(run);
+  for (const [x, y] of [[ink.x, ink.y], [ink.x + ink.width, ink.y + ink.height]]) {
+    const [sx, sy] = fitted.apply([terminal.x + x, terminal.y + y]);
+    assert(sx >= viewport.left - 1e-7 && sx <= viewport.right + 1e-7);
+    assert(sy >= viewport.top - 1e-7 && sy <= viewport.bottom + 1e-7);
+  }
 });

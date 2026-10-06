@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
-import { plaquesOverlap, preparePlaqueObstacleIndex, translateObstacle } from '../replay/relations/plaqueObstacleIndex.ts';
+import { plaquesOverlap, preparePlaqueObstacleIndex, translateObstacle, prepareImmutableObstacleTranslations } from '../replay/relations/plaqueObstacleIndex.ts';
 
 test('a long diagonal connector does not occupy the empty corners of its sample rectangles', () => {
   const curve = { source: { x: 0, y: 0 }, control1: { x: 1000, y: 1000 },
@@ -39,6 +39,44 @@ test('placing a plaque beside a reserved arrow uses the same ink clearance as pl
   assert(!plaquesOverlap(translateObstacle(clear, 2000, -700), shifted));
   assert(plaquesOverlap(translateObstacle(blocked, 2000, -700), shifted));
   assert.deepEqual(obstacle.curve, curve, 'projecting a future frame cannot mutate the original curve');
+});
+
+test('stationary obstacle reuse preserves signed zero and every original curve addition', () => {
+  const points = [{ x: 1e30, y: -1e30 }, { x: -0, y: 0 }, { x: 0.125, y: -400.5 }, { x: 123, y: 456 }];
+  const curve = { source: points[0], control1: points[1], control2: points[2], target: points[3] };
+  const box = { x: 1e30, y: -0, width: 120, height: 300, curve, curvePadding: 8 };
+  const original = structuredClone(box);
+  for (const [dx, dy] of [[0, 0], [-0, -0], [1, 1], [0.125, -400.5], [1e30, -1e30]]) {
+    const point = p => ({ x: p.x + dx, y: p.y + dy });
+    const expected = { ...box, x: box.x + dx, y: box.y + dy,
+      curve: { source: point(curve.source), control1: point(curve.control1),
+        control2: point(curve.control2), target: point(curve.target) } };
+    assert.deepEqual(translateObstacle(box, dx, dy), expected);
+  }
+  assert.deepEqual(box, original);
+  const stationary = { x: 10, y: 20, width: 30, height: 40 };
+  assert.equal(translateObstacle(stationary, 0, 0), stationary);
+  assert.notEqual(translateObstacle(box, 0, 0), box, 'adding positive zero must still change the negative-zero coordinates');
+});
+
+test('scene translation reuse keeps offset signs, metadata and schedule ownership separate', () => {
+  const curve = { source: { x: -0, y: -0 }, control1: { x: 10, y: 20 },
+    control2: { x: 30, y: 40 }, target: { x: 50, y: 60 } };
+  const scene = [{ x: -0, y: -0, width: 70, height: 80, curve, curvePadding: 6, owner: 'source' }];
+  const translate = prepareImmutableObstacleTranslations();
+  for (const [dx, dy] of [[0, 0], [-0, -0], [12.5, -9.125], [NaN, Infinity]]) {
+    const actual = translate(scene, dx, dy);
+    assert.deepEqual(actual, scene.map(box => translateObstacle(box, dx, dy)));
+    assert.equal(translate(scene, dx, dy), actual);
+  }
+  assert.notEqual(translate(scene, 0, 0), translate(scene, -0, -0));
+  assert(Object.is(translate(scene, 0, 0)[0].x, 0));
+  assert(Object.is(translate(scene, -0, -0)[0].x, -0));
+  const independent = scene.map(box => ({ ...box, owner: 'independent' }));
+  assert.equal(translate(independent, 0, 0)[0].owner, 'independent');
+  scene[0].width = 200;
+  assert.equal(prepareImmutableObstacleTranslations()(scene, 0, 0)[0].width, 200,
+    'a later schedule cannot reuse a stale translated array');
 });
 
 
