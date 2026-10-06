@@ -44,6 +44,10 @@ path; denied, competing and unresolved references remain neutral.
 - Explicit nominal members with typed shared features can earn vines within
   one nominal domain. A competing directed source/controller, unresolved
   category or intervening clause blocks that reading.
+  A nominal-concord claim may supply an `agreeingItems` inventory and one
+  containing `nominal`. Every listed item must resolve uniquely to a nominal,
+  adjective, determiner or quantifier within that domain. The enclosing nominal
+  remains context; it does not become another sharing member.
 - Separately named idiom components can earn underlines without an authored
   domain bracket. Ordinary verb and noun references plus explanatory prose do
   not establish an idiom claim.
@@ -69,6 +73,10 @@ path; denied, competing and unresolved references remain neutral.
   authored features identify one dependency even when a finite head is also
   named. The finite head remains context; a repeated or ambiguous endpoint
   does not redirect the connector.
+  A uniquely named modifier or predicate can supply that feature host when no
+  target or qualified agreement host is named. Competing hosts, a mediator,
+  controllee, missing features or a nonasserted claim do not earn this recovery.
+  These roles retain their ordinary meaning outside an agreement claim.
 - An explicit focus particle and its associate can earn an association curve.
   This does not assert prosodic prominence, an accent bearer or a projection
   chain. Those drawings retain their own evidence requirements.
@@ -173,6 +181,9 @@ An inflection/realization label plus an unambiguous lexical host and literal for
 or tense values can earn the existing realization plate. Declared contributor
 groups still require the complete authored realization association. A competing
 host or partial group cannot select a convenient attachment.
+A sole anchored lexical leaf can own an asserted input-association or realization
+row without a prescribed role name. An empty leaf, container, repeated node ID
+or additional participant cannot use that fallback.
 An explicitly named inflectional or morphological domain owns a whole-form row
 only when its exact node contains the anchored lexical contributors. The stem
 alone cannot absorb a whole word's row when a separately anchored exponent is
@@ -319,13 +330,33 @@ does not select among two introducers, two assigning heads, or an unpaired list
 of assigners and arguments; those still require independent association evidence.
 Registered grids exclude the proven source from their recipient rows and retain
 the same lexical-predicate context as the equivalent recovered grid.
+An asserted theta-assignment clause with a typed role literal can establish that
+domain for generic `assigner` and `recipient` roles. It still needs one exact
+source and recipient, with no competing Case or feature interpretation. The
+literal role is preserved; generic assignment language alone supplies no theta
+meaning.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
-explicit agreement value, can establish a feature dependency. Governing heads
+explicit agreement value, can establish a feature dependency. A finite head and
+subject do not establish a controller for explicitly default agreement rows; those
+literal rows remain authored evidence unless a dependency is independently
+anchored. An explicit probe/goal claim keeps its own authority. Governing heads
 and governed complements require an explicit Case value. Controller positions
 and controlled subjects retain their explicitly named occurrences; when a direct
 controller is present, additional controller-chain descriptions remain context.
+A controller-occurrence chain without a unique controller remains an identity
+claim. Neither array order nor height in the tree selects the node that owns a
+control connector.
+A later controller-chain claim may retain the connector of one earlier complete
+control claim. Every declared chain member must resolve uniquely with the same
+nonempty root lineage, and the exact controllee must continue without a gap.
+The established controller position must also persist, or transfer to the exact
+lower witness of an already established movement. Competing earlier controllers,
+changed lineage, missing occurrences and unproved position changes fail closed.
+The retained connector gains the later relation's ownership; identity marks still
+cover the complete chain. This introduces neither a second controller nor a new
+connector route. A chain with no earlier unique owner remains neutral for control.
 An explicitly named goal occurrence is the anchored Case recipient when a
 separate licensor and Case value identify the dependency. A projection's
 parenthetical annotation does not change its category when checking an exact
@@ -534,6 +565,8 @@ these contextual pairs. These roles do not establish symmetric feature sharing.
 An explicit contributor list and one surface-form value can use the existing
 PF plate when the list exactly matches one current realization group. Partial
 matches, competing exact matches or overlapping token spans stay neutral.
+The value key `surface` has that meaning only in an asserted realization claim
+with an explicit contributor list. It remains neutral in other descriptions.
 A contributor may also participate in another group's distinct tokens.
 Every contributor anchors the plate; its geometric reference does not identify
 a linguistic source. The
@@ -636,7 +669,11 @@ roles; neither an assignment title nor an untyped recipient establishes meaning.
 Literal pairing, cardinality and
 missing-reference checks still apply, including to lists with equal lengths.
 `governor` supplies Case-source evidence only alongside an explicit Case literal
-and an independently recognized recipient role. `valuedCase` shares the Case
+and an independently recognized recipient role. An explicit government clause
+paired with the same named and typed Case can identify a unique nominal
+dependent opposite a governing head in the same workspace. It does not recover
+Case from government alone, a nonnominal dependent, competing heads or a
+different Case claim. `valuedCase` shares the Case
 literal vocabulary; explicit agreement and phi-feature values share feature-row
 handling. When both occur in one dependency, recipient-specific Case stays on
 its existing Case drawing and the other authored rows use the existing feature
@@ -702,6 +739,26 @@ subtype. Replay executes only a movement transition earned by the surviving
 claim, preserves the preceding source until that moment, and does not repeat an
 unchanged chain. This does not relax the exact Tier-1 signature safeguard.
 
+A flat receiving-head sister does not by itself classify a branching bare-labelled
+occurrence as a head. Head movement also needs evidence from the moved occurrence:
+lexical material, explicit zero-level or compound notation, or its exact preceding
+head position. A bare minimal source projection can establish that position when
+its same-category flat head stands opposite a branching, differently headed
+complement. An existing head assembly can also be proved by a unique internal
+member with a distinct same-lineage, same-category lower occurrence in that
+complement; each branching level must retain its own lexical head host. This
+preserves nested and intransitive head movement. Explicit phrase and bar
+projections remain phrasal.
+
+A chain inventory may describe an already established movement without owning
+another transition. A failed speculative movement match is not attributed to that
+inventory when its recovered identity members retain their exact preceding slots
+or their changes belong to an earlier movement. A neutral base-position reference
+can likewise describe a uniquely established same-lineage pair. Directed movement
+claims, exact registered signatures, missing members and changes without an
+earlier owner retain their diagnostics. This changes warning attribution only;
+the failed match remains available in claim evidence.
+
 For an established movement identity or an explicit preceding source, unfamiliar role names may bind
 through a unique pair of exact anchored occurrences with matching root lineage,
 the preceding source parent/child slot, and a changed landing. Conflicting roles,
@@ -716,8 +773,12 @@ higher phrase, supplies a candidate endpoint role. Existing specific context
 roles retain their meaning; a landing head does not become a second endpoint.
 Every candidate still passes the same lineage, position and ambiguity checks.
 The explicit preceding source selects the current step when other anchored lower copies remain
-unchanged; those earlier copies remain independent evidence. Category comparisons
-read trailing feature annotations separately and preserve every authored label.
+unchanged; those earlier copies remain independent evidence. Recovery does not
+count an unchanged older copy in its exact prior slot as a competing
+landing for that witnessed step. Generic plural participant fields remain
+generic: nominal concord targets alone do not assert a movement claim.
+Category comparisons read trailing feature annotations separately and preserve
+every authored label.
 Within a stage, the first supported relation owns each exact occurrence transition;
 later claims can draw or inspect it without executing the structural change again.
 Drawing dispatch may consume a replacement witness as gap notation; neutral
@@ -1458,6 +1519,10 @@ dependencies to those targets in the same relation moment; it does not become an
 undirected nominal-sharing vine. A category used as evidence for an inflectional
 head must actually be a head, not a projection whose label becomes identical
 after removing its prime.
+An explicit `agreementBearers` inventory with one controller and typed feature
+rows uses the same per-bearer dependencies. Every member must resolve uniquely;
+duplicate members or competing directed owners prevent recovery. Same-key
+surface-word values remain literal context, not additional feature rows.
 
 Operation recovery requires an asserted claim in its own clause. A denied,
 uncertain or merely mentioned operation cannot acquire positive dependency

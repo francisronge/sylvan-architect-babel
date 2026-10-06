@@ -67,6 +67,7 @@ import { buildTier2FacetEvidence, dispatchStageRelations, recoveredClaimMovement
 import { compileTier2RelationOutputs, featureDependencyRows } from './tier2RenderPlanCompiler.ts';
 import { collectionAssignment, composeFeatureBundles } from './featureComposition.ts';
 import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
+import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
 import { literalThetaRoles, sameNameValueEntries, prepareNativeFissionContent, tier2NativePlaqueRows, type Tier2VisualPrimitiveName } from './tier2FacetRecipes.ts';
 import { nativeAncestorEdges, isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent, type NativePlaqueContent } from './nativeDrawingContent.ts';
 
@@ -1535,8 +1536,9 @@ export const compileRelationRenderPlan = (
           sourceNodeId: source.nodeId,
           targetNodeId: target.nodeId,
           ...(witness ? { witnessNodeId: witness.nodeId } : {}),
-          sourceAttachment: complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
-          targetAttachment: trajectoryKind === 'head' && !isWordlessCategoryLeaf(nodes.get(target.nodeId)!) ? 'terminal' : 'shell-bottom'
+          sourceAttachment: trajectoryKind === 'head' ? headTrajectoryAttachment(nodes.get(source.nodeId)!)
+            : complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
+          targetAttachment: trajectoryKind === 'head' ? headTrajectoryAttachment(nodes.get(target.nodeId)!) : 'shell-bottom'
         });
         return true;
       };
@@ -1694,10 +1696,11 @@ export const compileRelationRenderPlan = (
             ...(witness ? { witnessNodeId: witness.nodeId } : {}),
             sourceAttachment: sideward
               ? 'shell-top'
-              : complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
+              : headSized ? headTrajectoryAttachment(nodes.get(source.nodeId)!)
+                : complexPhrase || isWordlessCategoryLeaf(nodes.get(source.nodeId)!) ? 'shell-bottom' : 'terminal',
             targetAttachment: sideward
               ? 'shell-top'
-              : headSized && !isWordlessCategoryLeaf(nodes.get(target.nodeId)!) ? 'terminal' : 'shell-bottom'
+              : headSized ? headTrajectoryAttachment(nodes.get(target.nodeId)!) : 'shell-bottom'
           });
 
           if (sideward) {

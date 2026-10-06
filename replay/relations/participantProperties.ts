@@ -1,5 +1,6 @@
 import { normalizeTier2Synonym, isRealizationDescription, relationLabelClauses } from './tier2Synonyms.ts';
 import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
 import { establishesAssignment } from './assignmentContinuity.ts';
 import { categoryLabel } from '../categoryLabel.ts';
 import { participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
@@ -226,7 +227,8 @@ export function recoverParticipantProperties(evidence: Tier2FacetEvidence) {
         && establishesAssignment(evidence)) owners = /^(?:participle|participial head)$/u;
       if (owners) candidates = anchors.filter(anchor => owners.test(normalizeTier2Synonym(anchor.key)));
       if (value.concepts.includes('case.literal') && establishesAssignment(evidence) && !candidates.length) {
-        candidates = anchors.filter(anchor => anchor.concepts.includes('feature.target'));
+        candidates = !evidence.movement || hasIndependentCaseEndpoints(evidence)
+          ? anchors.filter(anchor => anchor.concepts.includes('feature.target')) : [];
         if (!candidates.length) candidates = anchors.filter(anchor => anchor.concepts.includes('theta.arguments'));
         if (!candidates.length) {
           const roles = values.filter(entry => entry.concepts.includes('role.label')).flatMap(entry => entry.items)

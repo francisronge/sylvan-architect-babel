@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { compileRelationRenderPlan, resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlanCompiler.ts';
+import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)))
   .find(c => c.id === 'successive-trace');
@@ -78,4 +79,71 @@ test('a later description of the first hop still shares its arrow after another 
   assert.deepEqual(endpoints(arrows(plan, 2)), [['tObject', 'wh']]);
   assert.deepEqual(endpoints(arrows(plan, 3)), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
   assert(arrows(plan, 3)[0].coalescedRefs.some(ref => ref.stageIndex === 2), 'both claims retain ownership of their shared arrow');
+});
+
+const successiveUnfamiliarRoles = () => {
+  const mover = { id: 'mover', label: 'NP', lineageId: 'chain', children: [{ id: 'name', label: 'N', word: 'Mia' }] };
+  const oldCopy = { id: 'old-copy', label: 'NP', lineageId: 'chain', silent: true };
+  const lowerDomain = { id: 'predicate', label: 'VP', children: [oldCopy, { id: 'verb', label: 'V', word: 'left' }] };
+  const before = [{ id: 'clause', label: 'IP', children: [mover, lowerDomain] }];
+  const after = [{ id: 'root', label: 'CP', children: [structuredClone(mover),
+    { id: 'clause', label: 'IP', children: [{ id: 'new-copy', label: 'NP', lineageId: 'chain', silent: true }, structuredClone(lowerDomain)] }
+  ] }];
+  const relation = { relation: 'Further dependency',
+    anchors: { previousPosition: 'new-copy', earlierPosition: 'old-copy', currentPosition: 'mover', enclosingPosition: 'root' },
+    priorAnchors: { sourceOccurrence: 'mover' } };
+  return { before, after, relation };
+};
+
+test('an unchanged older copy cannot compete with the witnessed landing under unfamiliar role names', () => {
+  for (const renamed of [false, true]) {
+    const input = successiveUnfamiliarRoles();
+    if (renamed) {
+      for (const forest of [input.before, input.after]) for (const node of index(forest).values()) {
+        node.id = `other-${node.id}`;
+        if (node.lineageId) node.lineageId = `other-${node.lineageId}`;
+      }
+      for (const field of ['anchors', 'priorAnchors']) for (const key of Object.keys(input.relation[field]))
+        input.relation[field][key] = `other-${input.relation[field][key]}`;
+    }
+    const original = structuredClone(input);
+    const result = recoverMovementEvidence(input.relation, input.after, input.before);
+    const prefix = renamed ? 'other-' : '';
+    assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId, result.movement?.targetNodeId,
+      result.movement?.witnessNodeId, result.movement?.trajectoryKind, result.movement?.transition],
+    ['mover', 'new-copy', 'mover', 'new-copy'].map(id => prefix + id).concat(['phrasal', true]));
+    assert(!Object.hasOwn(result.movement.roles, 'earlier position'), 'the earlier copy is not consumed as this movement');
+    const items = compileRelationRenderPlan([
+      { statement: '', stageRecord: '', workspaceForest: input.before, relations: [] },
+      { statement: '', stageRecord: '', workspaceForest: input.after, relations: [input.relation] }
+    ]).frames[1].items;
+    assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]),
+      [[`${prefix}new-copy`, `${prefix}mover`]]);
+    assert.deepEqual(input, original);
+  }
+});
+
+test('changed or relocated older copies remain competing landing evidence', () => {
+  for (const mutate of [
+    input => { index(input.after).get('old-copy').word = 'another occurrence'; },
+    input => {
+      const predicate = index(input.after).get('predicate');
+      const oldCopy = predicate.children.shift();
+      input.after.push({ id: 'different-root', label: 'CP', children: [oldCopy, { id: 'different-bar', label: 'C′', children: [{ id: 'different-head', label: 'C' }] }] });
+    },
+    input => { input.relation.anchors.anotherCandidate = 'alternative'; input.after.push({ id: 'alternative', label: 'NP', lineageId: 'chain' }); },
+    input => { input.relation.priorAnchors = {}; },
+    input => { input.relation.priorAnchors.sourceOccurrence = ['mover', 'mover']; }
+  ]) {
+    const input = successiveUnfamiliarRoles(); mutate(input);
+    assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).movement, undefined);
+  }
+});
+
+test('generic plural participants do not turn concord into malformed movement', () => {
+  const forest = [{ id: 'noun', label: 'N' }, { id: 'determiner', label: 'D' }, { id: 'adjective', label: 'A' }];
+  const relation = { relation: 'Nominal concord', anchors: { controller: 'noun', targets: ['determiner', 'adjective'] }, values: { features: 'singular' } };
+  assert.deepEqual(recoverMovementEvidence(relation, forest), { diagnostics: [] });
+  const declared = { ...relation, relation: 'AbarMove', anchors: { source: 'noun', targets: ['determiner', 'adjective'] } };
+  assert.equal(recoverMovementEvidence(declared, forest).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
 });

@@ -170,6 +170,7 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
     && clause === `${normalizeTier2Synonym(caseValues[0].items[0])} case`
     && !/\b(?:no|not|without|denied|rejected|required|requested|expected|pending|possible|potential|hypothetical|if|unless|whether|failed|blocked|unlicensed)\b/u.test(clause);
   const assignment = /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument|nominative|accusative|genitive|dative|ergative|absolutive|instrumental|locative|oblique|vocative) )*case (?:assignment|licensing|valuation)$/u.test(clause);
+  const government = namedCase && relationLabelClauses(evidence.relationName).includes('government');
   if (!selected && !assignment && !namedCase) return [];
   if (namedCase && !hasIndependentCaseEndpoints(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
@@ -214,7 +215,7 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
       return assignment && ['I', 'T', 'Infl'].includes(category.head);
     if (role === 'case head') return assignment && category.head === 'K';
     if (role === 'localizer') return assignment && category.head === 'L';
-    if (/^(?:governor|governing head)$/u.test(role)) return assignment;
+    if (/^(?:governor|governing head)$/u.test(role)) return assignment || government;
     if (role === 'selector') return selected;
     return assignment && Boolean(thematic?.origins.anchors[entry.key]
       && thematic.evidence.currentAnchors.predicate?.includes(occurrence.node.id));

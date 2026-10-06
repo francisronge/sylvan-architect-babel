@@ -9,6 +9,7 @@ import { typedInterpretedBinding } from './interpretedBindingEvidence.ts';
 import { nominalConcordMembers } from './nominalConcord.ts';
 import { recoverParticipantProperties, recoverPairedCaseProperties, recoverNamedArgumentProperties } from './participantProperties.ts';
 import { scopeEvidence } from './evidenceScopes.ts';
+import { createControlContext, beginControlStage, rememberControlClaim, rememberControlMovement, recoverControllerChainControl, type ControlContext } from './controlEvidence.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
@@ -162,6 +163,7 @@ export type ExclusiveRelationDispatchInput = {
   priorForest?: readonly SyntaxNode[];
   activeLens?: boolean;
   assignmentContext?: AssignmentContext;
+  controlContext?: ControlContext;
   registry?: typeof productionRelationRegistry;
   synonymIndex?: Tier2SynonymIndex;
 };
@@ -643,7 +645,8 @@ export const dispatchRelationClaims = (
     kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
   });
   const continued: Tier2EvaluatedFacet[] = !registryEntry
-    ? recoverRelationScopes(relation, evidence, input.assignmentContext).flatMap(scope => {
+    ? [...recoverRelationScopes(relation, evidence, input.assignmentContext),
+        ...(input.controlContext ? recoverControllerChainControl(evidence, input.controlContext) : [])].flatMap(scope => {
         // Historical continuity can corroborate a subset of a claim already
         // recovered from this record. Its identical authored items do not
         // establish another grid or connector in the same relation moment.
@@ -1052,26 +1055,39 @@ export const dispatchRelationClaimBatch = (
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
   options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
-  return stages.map((stage, stageIndex) => stage.relations.map((relation, relationIndex) => {
-    const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext,
-      currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
-      priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest });
-    recoveredClaimMovements(dispatch).forEach(movement => rememberAssignmentMovement(assignmentContext, movement));
-    if (dispatch.primaryClaim?.tier === 1) {
-      const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
-      if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
-        for (const assignment of nativeThetaAssignments(primary).assignments ?? []) {
-          rememberAssignments(assignmentContext, 'theta-grid', { ...primary, currentAnchors: { ...primary.currentAnchors, predicate: [assignment.predicate] } },
-            { stageIndex, relationIndex }, assignment.roles);
+  const controlContext = createControlContext();
+  return stages.map((stage, stageIndex) => {
+    beginControlStage(controlContext, stage.workspaceForest);
+    return stage.relations.map((relation, relationIndex) => {
+      const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
+        currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
+        priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest });
+      recoveredClaimMovements(dispatch).forEach(movement => {
+        rememberAssignmentMovement(assignmentContext, movement);
+        rememberControlMovement(controlContext, stageIndex, movement);
+      });
+      if (dispatch.primaryClaim?.tier === 1) {
+        const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
+        if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
+          for (const assignment of nativeThetaAssignments(primary).assignments ?? []) {
+            rememberAssignments(assignmentContext, 'theta-grid', { ...primary, currentAnchors: { ...primary.currentAnchors, predicate: [assignment.predicate] } },
+              { stageIndex, relationIndex }, assignment.roles);
+          }
+        }
+        for (const facet of evaluateClaims(primary, indexTier2Forests(primary))) {
+          if (facet.evaluation.complete) {
+            rememberAssignments(assignmentContext, facet.recipe.id, primary, { stageIndex, relationIndex });
+            if (facet.recipe.id === 'control.dependency') rememberControlClaim(controlContext, primary, { stageIndex, relationIndex });
+          }
         }
       }
-      for (const facet of evaluateClaims(primary, indexTier2Forests(primary))) {
-        if (facet.evaluation.complete) rememberAssignments(assignmentContext, facet.recipe.id, primary, { stageIndex, relationIndex });
+      for (const facet of dispatch.facets) {
+        rememberAssignments(assignmentContext, facet.recipe.id, facet.evidence ?? dispatch.evidence, { stageIndex, relationIndex });
+        if (facet.recipe.id === 'control.dependency') rememberControlClaim(controlContext, facet.evidence ?? dispatch.evidence, { stageIndex, relationIndex });
       }
-    }
-    for (const facet of dispatch.facets) rememberAssignments(assignmentContext, facet.recipe.id, facet.evidence ?? dispatch.evidence, { stageIndex, relationIndex });
-    return dispatch;
-  }));
+      return dispatch;
+    });
+  });
 }
 
 /** Every exact movement in a simultaneous claim contributes to continuation. */

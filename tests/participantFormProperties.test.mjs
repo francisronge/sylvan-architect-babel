@@ -73,6 +73,24 @@ const realization = { relation: 'lexical realization across input-token boundari
   anchors: { lexicalVerb: 'verb' }, values: { form: '読んだ', inflection: 'past' } };
 const lexicalForest = [leaf('verb', 'V[past]', '読んだ')];
 
+test('an explicit lexical input association can name its sole lexical host with an open role', () => {
+  const record = { relation: 'Lexical input association', anchors: { determiner: 'd' },
+    values: { lexicalForm: 'कौन-सी', inputParts: ['कौन', 'सी'] } };
+  const nodes = [leaf('d', 'D', 'कौन-सी')];
+  const { items } = inspect(record, nodes);
+  const plates = items.filter(item => item.plaqueStyle === 'realization');
+  assert.equal(plates.length, 1);
+  assert.deepEqual(plates[0].anchorNodeIds, ['d']);
+  assert(plates[0].rows.some(row => row.label === 'lexicalForm' && row.value === 'कौन-सी'));
+  const hasPlate = (r, f = nodes) => inspect(r, f).items.some(item => item.plaqueStyle === 'realization');
+  for (const name of ['A lexical observation', 'Possible lexical input association', 'No lexical input association', 'VocabularyInsertion'])
+    assert.equal(hasPlate({ ...record, relation: name }), false, name);
+  for (const anchors of [{ determiner: ['d'] }, { determiner: 'd', context: 'd' }, { determiner: 'missing' }])
+    assert.equal(hasPlate({ ...record, anchors }), false);
+  for (const f of [[{ id: 'd', label: 'D' }], [...nodes, ...nodes],
+    [{ ...nodes[0], children: [leaf('nested', 'N', 'noun')] }]]) assert.equal(hasPlate(record, f), false);
+});
+
 test('a lexical realization plate retains the separately authored inflection row', () => {
   const { items, dispatch } = inspect(realization, lexicalForest);
   const plaques = items.filter(item => item.kind === 'node-plaque' && item.plaqueStyle === 'realization');

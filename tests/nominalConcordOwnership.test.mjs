@@ -12,6 +12,37 @@ const dispatch = record => dispatchRelationClaims({ relation: record, currentFor
 const items = record => compileRelationRenderPlan([{ statement: '', stageRecord: '', workspaceForest: forest, relations: [record] }]).frames[0].items;
 const recipes = record => dispatch(record).facets.map(facet => facet.recipe.id);
 
+test('an explicit agreeing-item inventory shares literal features within its authored nominal domain', () => {
+  const nodes = [{ ...forest[0], children: [...forest[0].children, { id: 'a', label: 'A', word: 'new' }] }];
+  const base = { relation: 'nominal concord', anchors: { agreeingItems: ['d', 'a', 'n'], nominal: 'dp' },
+    values: { features: 'plural; nominative declensional forms' } };
+  const inspect = (r, currentForest = nodes) => {
+    const result = dispatchRelationClaims({ relation: r, currentForest, stageIndex: 0, relationIndex: 0 });
+    const frame = compileRelationRenderPlan([{ statement: '', stageRecord: '', workspaceForest: currentForest, relations: [r] }]).frames[0];
+    return { result, vines: frame.items.filter(item => item.linkStyle === 'feature-sharing') };
+  };
+  const before = structuredClone(base), { result, vines } = inspect(base);
+  assert.equal(vines.length, 1);
+  assert.deepEqual(vines[0].pairs, [{ fromNodeId: 'd', toNodeId: 'a' }, { fromNodeId: 'a', toNodeId: 'n' }]);
+  assert(!result.facets.some(facet => facet.recipe.id === 'feature.dependency'));
+  assert.deepEqual(base, before);
+  assert.deepEqual(result.evidenceCoverage.fields.find(field => field.key === 'nominal').unrecoveredItemIndices, [0]);
+  for (const r of [
+    { ...base, relation: 'possible nominal concord' }, { ...base, relation: 'a nominal observation' },
+    { ...base, values: {} }, { ...base, values: { features: '' } },
+    { ...base, anchors: { ...base.anchors, controller: 'n' } },
+    { ...base, anchors: { ...base.anchors, agreeingItems: ['d', 'd', 'n'] } },
+    { ...base, anchors: { ...base.anchors, agreeingItems: ['d', 'missing'] } },
+    { ...base, anchors: { ...base.anchors, nominal: 'n' } }
+  ]) assert.equal(inspect(r).vines.length, 0, JSON.stringify(r));
+  for (const currentForest of [
+    [...nodes, { ...nodes[0].children[0] }],
+    [{ ...nodes[0], label: 'CP' }],
+    [{ ...nodes[0], children: [nodes[0].children[0], nodes[0].children[1], { id: 'clause', label: 'TP', children: [nodes[0].children[2]] }] }],
+    [{ ...nodes[0], children: nodes[0].children.slice(0, 2) }, nodes[0].children[2]]
+  ]) assert.equal(inspect(base, currentForest).vines.length, 0);
+});
+
 test('one nominal concord claim owns one vine without a second generic connector', () => {
   const before = structuredClone(relation);
   for (const record of [relation, { ...relation, values: { number: 'plural', gender: 'masculine' } },

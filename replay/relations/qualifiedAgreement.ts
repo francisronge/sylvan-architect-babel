@@ -1,9 +1,9 @@
 import { establishesAssignment } from './assignmentContinuity.ts';
-import { normalizeTier2Synonym, relationLabelClauses, namedThematicRole } from './tier2Synonyms.ts';
+import { normalizeTier2Synonym, relationLabelClauses, namedThematicRole, isDefaultAgreementLiteral, isExplicitTier2Role } from './tier2Synonyms.ts';
 import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import { resolveOutcomeLiteral, relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
 import { featureParticipantName, participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { categoryLabel } from '../categoryLabel.ts';
+import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
 import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
 import { nominalConcordMembers } from './nominalConcord.ts';
 import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
@@ -42,7 +42,14 @@ function agreementHost(entry: Tier2AuthoredEvidenceEntry, evidence: Tier2FacetEv
   evidence.currentForest.forEach(visit);
   if (matches.length !== 1 || /[′’']/u.test(matches[0].label)) return false;
   const head = categoryLabel(matches[0].label).replace(/(?:\^?0|⁰)$/u, '');
-  return head === category || normalizeTier2Synonym(entry.key) === 'agreement head' && ['T', 'I', 'Infl', 'Agr'].includes(head);
+  const shape = readCategoryLabel(matches[0].label);
+  // Conventional Agr heads may name their agreement domain (AgrO, AgrS,
+  // AgrObj). The qualified role still needs one controller and literal rows;
+  // an Agr phrase or compound does not supply this head-category evidence.
+  const agreementHeadCategory = shape?.kind === 'head' && !shape.compound
+    && /^Agr(?:[A-Z][A-Za-z]*)$/u.test(shape.category);
+  return head === category || normalizeTier2Synonym(entry.key) === 'agreement head'
+    && (['T', 'I', 'Infl', 'Agr'].includes(head) || agreementHeadCategory);
 }
 
 /** An explicitly named feature bearer inside the one authored goal corroborates
@@ -164,7 +171,7 @@ export function recoverDirectedAgreementTargets(evidence: Tier2FacetEvidence) {
   if (!assertion) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
   const controllers = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'controller');
-  const targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'agreement targets');
+  const targets = anchors.filter(entry => ['agreement targets', 'agreement bearers'].includes(normalizeTier2Synonym(entry.key)));
   const rows = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.rows'));
   if (controllers.length !== 1 || targets.length !== 1 || controllers[0].items.length !== 1 || !targets[0].items.length
     || anchors.some(entry => ![controllers[0], targets[0]].includes(entry) && entry.concepts.some(concept => ['feature.source', 'feature.target', 'controller'].includes(concept)))
@@ -194,7 +201,7 @@ export function recoverQualifiedAgreement(evidence: Tier2FacetEvidence) {
   const assertion = agreementAssertion(evidence);
   if (!assertion) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  if (anchors.some(entry => normalizeTier2Synonym(entry.key) === 'agreement targets')) return [];
+  if (anchors.some(entry => ['agreement targets', 'agreement bearers'].includes(normalizeTier2Synonym(entry.key)))) return [];
   if (anchors.some(entry => contextualParticipant(entry.key))) return [];
   const namedController = anchors.find(entry => normalizeTier2Synonym(entry.key) === 'controller');
   const namedTarget = anchors.find(entry => normalizeTier2Synonym(entry.key) === 'target');
@@ -248,6 +255,9 @@ export function recoverQualifiedAgreement(evidence: Tier2FacetEvidence) {
   return qualifiedTargets.flatMap(target => {
     if (!uniqueCurrentOwners(evidence, [...source.items, ...target.items])) return [];
     const ownedRows = [...rows, ...properties.filter(property => property.anchor === target).map(property => property.value)];
+    if (ownedRows.some(row => row.items.some(isDefaultAgreementLiteral))
+      && !isExplicitTier2Role('feature.target', target.key)
+      && !['controller', 'agreement controller'].includes(normalizeTier2Synonym(target.key))) return [];
     if (!coherentFeatureRows(ownedRows)) return [];
     return [scopeEvidence(evidence, 'feature.dependency', [
       { entry: source, concept: 'feature.source' }, { entry: target, concept: 'feature.target' }

@@ -122,3 +122,32 @@ test('an explicitly directed source keeps precedence over contextual assignment 
   const relation = { relation: 'Case licensing', anchors: { caseAssigner: 'verb', inflection: 'inflection', subject: 'subject' }, values: { case: 'accusative' } };
   assert.deepEqual(paths(relation).map(path => [path.fromNodeId, path.toNodeId]), [['verb', 'subject']]);
 });
+
+test('explicit government with a typed Case binds its unique nominal dependent', () => {
+  for (const literal of ['accusative', 'opaque value']) {
+    const relation = { relation: `government and ${literal} Case`, anchors: { governor: 'verb', dependent: 'object' }, values: { case: literal } };
+    const original = structuredClone(relation);
+    assert.deepEqual(paths(relation).map(path => [path.fromNodeId, path.toNodeId, path.label]), [['verb', 'object', literal]]);
+    assert.deepEqual(relation, original);
+  }
+  const base = { relation: 'government and accusative Case', anchors: { governor: 'verb', dependent: 'object' }, values: { case: 'accusative' } };
+  for (const relation of [
+    { ...base, relation: 'accusative Case' },
+    { ...base, relation: 'government' },
+    { ...base, relation: 'government and Case properties' },
+    { ...base, relation: 'government and nominative Case' },
+    { ...base, relation: 'possible government and accusative Case' },
+    { ...base, values: {} },
+    { ...base, values: { case: ['accusative', 'nominative'] } },
+    { ...base, anchors: { governor: 'vp', dependent: 'object' } },
+    { ...base, anchors: { governor: 'verb', dependent: 'inflection' } },
+    { ...base, anchors: { governor: 'missing', dependent: 'object' } },
+    { ...base, anchors: { governor: 'verb', dependent: 'missing' } },
+    { ...base, anchors: { governor: 'verb', dependent: ['object', 'nominal'] } },
+    { ...base, anchors: { ...base.anchors, finiteHead: 'inflection' } },
+    { ...base, relation: 'Case Assignment' }
+  ]) assert.deepEqual(paths(relation), [], JSON.stringify(relation));
+  assert.deepEqual(paths({ ...base, anchors: { ...base.anchors, object: 'theme' } }).map(path => path.toNodeId), ['theme'],
+    'an independently recognized Case recipient takes precedence over the contextual dependent');
+  assert.deepEqual(paths(base, [{ id: 'verb', label: 'V' }, { id: 'object', label: 'NP' }]), [], 'separate workspaces');
+});

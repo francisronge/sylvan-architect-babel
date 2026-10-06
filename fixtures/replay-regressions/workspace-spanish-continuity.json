@@ -1,0 +1,890 @@
+{
+  "key": "spanish-subjunctive/1",
+  "sentence": "Quiero que Ana venga mañana.",
+  "inputTokens": [
+    "Quiero",
+    "que",
+    "Ana",
+    "venga",
+    "mañana"
+  ],
+  "derivationStages": [
+    {
+      "relations": [],
+      "stageRecord": "Merge venga with silent v and introduce Ana as the subject of coming. On this reading mañana will instead modify the matrix wanting predicate, so it is not selected into the embedded structure. Ana is a third-person singular nominal D object. Venga is retained as a whole inflected lexical word. The nodes use head-based Bare Phrase Structure labels, not bar-level templates; ordered children record linearization. This is the less natural but structurally available reading in which the wanting is located tomorrow, supported by a future-oriented interpretation of the Spanish present.",
+      "statement": "Construct the embedded coming predicate without a temporal adjunct.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b_AnaLow",
+              "label": "D",
+              "lineageId": "b_Ana",
+              "tokenIndex": 2,
+              "word": "Ana"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "b_embv",
+                  "label": "v",
+                  "lineageId": "b_embvLine",
+                  "silent": true
+                },
+                {
+                  "children": [],
+                  "id": "b_vengaLow",
+                  "label": "V",
+                  "lineageId": "b_venga",
+                  "tokenIndex": 3,
+                  "word": "venga"
+                }
+              ],
+              "id": "b_embVCore",
+              "label": "v"
+            }
+          ],
+          "id": "b_embPred",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "b_vengaAtv",
+            "landingHead": "b_embHead",
+            "lowerOccurrence": "b_vengaLow"
+          },
+          "priorAnchors": {
+            "host": "b_embv",
+            "source": "b_vengaLow"
+          },
+          "relation": "head movement",
+          "values": {
+            "operation": "V-to-v",
+            "pronunciation": "pronounce the higher lexical occurrence"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge venga with its immediately higher v head and silence the original lexical occurrence. Ana stays in the initial subject position. The resulting complex v head must be established here before it can move to T in the following stage.",
+      "statement": "Raise the embedded verb to v.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b_AnaLow",
+              "label": "D",
+              "lineageId": "b_Ana",
+              "tokenIndex": 2,
+              "word": "Ana"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b_vengaAtv",
+                      "label": "V",
+                      "lineageId": "b_venga",
+                      "tokenIndex": 3,
+                      "word": "venga"
+                    },
+                    {
+                      "children": [],
+                      "id": "b_embv",
+                      "label": "v",
+                      "lineageId": "b_embvLine",
+                      "silent": true
+                    }
+                  ],
+                  "id": "b_embHead",
+                  "label": "v",
+                  "lineageId": "b_embComplexHead"
+                },
+                {
+                  "children": [],
+                  "id": "b_vengaLow",
+                  "label": "V",
+                  "lineageId": "b_venga",
+                  "silent": true,
+                  "word": "venga"
+                }
+              ],
+              "id": "b_embVCore",
+              "label": "v"
+            }
+          ],
+          "id": "b_embPred",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "b_embHeadAtT",
+            "landingHead": "b_embTHead",
+            "lowerOccurrence": "b_embHead"
+          },
+          "priorAnchors": {
+            "source": "b_embHead"
+          },
+          "relation": "head movement",
+          "values": {
+            "operation": "v-to-T",
+            "pronunciation": "pronounce only the highest verbal occurrence"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "b_AnaLow",
+            "probe": "b_embT"
+          },
+          "relation": "Agree",
+          "values": {
+            "case": "nominative",
+            "mood": "subjunctive",
+            "phi": "third-person singular",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "attractingHead": "b_embT",
+            "higherOccurrence": "b_AnaHigh",
+            "lowerOccurrence": "b_AnaLow"
+          },
+          "priorAnchors": {
+            "source": "b_AnaLow"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "pronunciation": "pronounce the higher subject occurrence",
+            "trigger": "T's subject-position requirement"
+          }
+        },
+        {
+          "anchors": {
+            "complementizer": "b_que",
+            "embeddedTense": "b_embT",
+            "selector": "b_quieroLow"
+          },
+          "relation": "complement mood licensing",
+          "values": {
+            "selection": "finite subjunctive propositional complement"
+          }
+        }
+      ],
+      "stageRecord": "Merge embedded T and raise the complex v head to it. T agrees with Ana and values nominative Case, after which Ana undergoes Internal Merge to the preverbal subject position. Both movements have sources in the preceding workspace. Merge que as subordinate C, then merge Quiero with the resulting finite CP. Adjoin mañana to this matrix verbal predicate before merging matrix v and its silent first-person singular subject pro. Thus mañana modifies the wanting, while the CP specifies what is wanted. The desiderative verb licenses subjunctive mood in its finite complement. Whole-word venga is pronounced at its highest head occurrence; silent T contributes no separate overt terminal.",
+      "statement": "Complete the embedded clause and attach mañana to the matrix predicate.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b_proLow",
+              "label": "D",
+              "lineageId": "b_pro",
+              "silent": true,
+              "word": "pro"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "b_matrixv",
+                  "label": "v",
+                  "lineageId": "b_matrixvLine",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "b_quieroLow",
+                          "label": "V",
+                          "lineageId": "b_quiero",
+                          "tokenIndex": 0,
+                          "word": "Quiero"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b_que",
+                              "label": "C",
+                              "tokenIndex": 1,
+                              "word": "que"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "b_AnaHigh",
+                                  "label": "D",
+                                  "lineageId": "b_Ana",
+                                  "tokenIndex": 2,
+                                  "word": "Ana"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "b_vengaAtT",
+                                              "label": "V",
+                                              "lineageId": "b_venga",
+                                              "tokenIndex": 3,
+                                              "word": "venga"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b_embvAtT",
+                                              "label": "v",
+                                              "lineageId": "b_embvLine",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "b_embHeadAtT",
+                                          "label": "v",
+                                          "lineageId": "b_embComplexHead"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "b_embT",
+                                          "label": "T",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "b_embTHead",
+                                      "label": "T"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b_AnaLow",
+                                          "label": "D",
+                                          "lineageId": "b_Ana",
+                                          "silent": true,
+                                          "word": "Ana"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "b_vengaAtv",
+                                                  "label": "V",
+                                                  "lineageId": "b_venga",
+                                                  "silent": true,
+                                                  "word": "venga"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "b_embv",
+                                                  "label": "v",
+                                                  "lineageId": "b_embvLine",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "b_embHead",
+                                              "label": "v",
+                                              "lineageId": "b_embComplexHead",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b_vengaLow",
+                                              "label": "V",
+                                              "lineageId": "b_venga",
+                                              "silent": true,
+                                              "word": "venga"
+                                            }
+                                          ],
+                                          "id": "b_embVCore",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "b_embPred",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "b_embTCore",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "b_embClause",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "b_embCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "b_matrixVP",
+                      "label": "V"
+                    },
+                    {
+                      "children": [],
+                      "id": "b_manana",
+                      "label": "Adv",
+                      "tokenIndex": 4,
+                      "word": "mañana"
+                    }
+                  ],
+                  "id": "b_matrixAdjunction",
+                  "label": "V"
+                }
+              ],
+              "id": "b_matrixVCore",
+              "label": "v"
+            }
+          ],
+          "id": "b_matrixPred",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "b_quieroAtv",
+            "landingHead": "b_matrixHead",
+            "lowerOccurrence": "b_quieroLow"
+          },
+          "priorAnchors": {
+            "host": "b_matrixv",
+            "source": "b_quieroLow"
+          },
+          "relation": "head movement",
+          "values": {
+            "operation": "V-to-v",
+            "pronunciation": "pronounce the higher lexical occurrence"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge Quiero with matrix v and silence the original lexical occurrence. The movement leaves the CP complement and mañana inside the matrix verbal predicate; it neither moves the adjunct nor reattaches it to the embedded clause. Pro remains in its original subject position. The complex v head is now available for movement to matrix T.",
+      "statement": "Raise the matrix verb while preserving matrix temporal attachment.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b_proLow",
+              "label": "D",
+              "lineageId": "b_pro",
+              "silent": true,
+              "word": "pro"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b_quieroAtv",
+                      "label": "V",
+                      "lineageId": "b_quiero",
+                      "tokenIndex": 0,
+                      "word": "Quiero"
+                    },
+                    {
+                      "children": [],
+                      "id": "b_matrixv",
+                      "label": "v",
+                      "lineageId": "b_matrixvLine",
+                      "silent": true
+                    }
+                  ],
+                  "id": "b_matrixHead",
+                  "label": "v",
+                  "lineageId": "b_matrixComplexHead"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "b_quieroLow",
+                          "label": "V",
+                          "lineageId": "b_quiero",
+                          "silent": true,
+                          "word": "Quiero"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b_que",
+                              "label": "C",
+                              "tokenIndex": 1,
+                              "word": "que"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "b_AnaHigh",
+                                  "label": "D",
+                                  "lineageId": "b_Ana",
+                                  "tokenIndex": 2,
+                                  "word": "Ana"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "b_vengaAtT",
+                                              "label": "V",
+                                              "lineageId": "b_venga",
+                                              "tokenIndex": 3,
+                                              "word": "venga"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b_embvAtT",
+                                              "label": "v",
+                                              "lineageId": "b_embvLine",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "b_embHeadAtT",
+                                          "label": "v",
+                                          "lineageId": "b_embComplexHead"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "b_embT",
+                                          "label": "T",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "b_embTHead",
+                                      "label": "T"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b_AnaLow",
+                                          "label": "D",
+                                          "lineageId": "b_Ana",
+                                          "silent": true,
+                                          "word": "Ana"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "b_vengaAtv",
+                                                  "label": "V",
+                                                  "lineageId": "b_venga",
+                                                  "silent": true,
+                                                  "word": "venga"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "b_embv",
+                                                  "label": "v",
+                                                  "lineageId": "b_embvLine",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "b_embHead",
+                                              "label": "v",
+                                              "lineageId": "b_embComplexHead",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b_vengaLow",
+                                              "label": "V",
+                                              "lineageId": "b_venga",
+                                              "silent": true,
+                                              "word": "venga"
+                                            }
+                                          ],
+                                          "id": "b_embVCore",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "b_embPred",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "b_embTCore",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "b_embClause",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "b_embCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "b_matrixVP",
+                      "label": "V"
+                    },
+                    {
+                      "children": [],
+                      "id": "b_manana",
+                      "label": "Adv",
+                      "tokenIndex": 4,
+                      "word": "mañana"
+                    }
+                  ],
+                  "id": "b_matrixAdjunction",
+                  "label": "V"
+                }
+              ],
+              "id": "b_matrixVCore",
+              "label": "v"
+            }
+          ],
+          "id": "b_matrixPred",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "b_matrixHeadAtT",
+            "landingHead": "b_matrixTHead",
+            "lowerOccurrence": "b_matrixHead"
+          },
+          "priorAnchors": {
+            "source": "b_matrixHead"
+          },
+          "relation": "head movement",
+          "values": {
+            "operation": "v-to-T",
+            "pronunciation": "pronounce only the highest verbal occurrence"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "b_proLow",
+            "probe": "b_matrixT"
+          },
+          "relation": "Agree",
+          "values": {
+            "case": "nominative",
+            "mood": "indicative",
+            "phi": "first-person singular",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "attractingHead": "b_matrixT",
+            "higherOccurrence": "b_proHigh",
+            "lowerOccurrence": "b_proLow"
+          },
+          "priorAnchors": {
+            "source": "b_proLow"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "pronunciation": "both occurrences of the null subject remain silent",
+            "trigger": "T's subject-position requirement"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "b_matrixT",
+            "subject": "b_proHigh"
+          },
+          "relation": "null-subject licensing",
+          "values": {
+            "interpretation": "the speaker",
+            "licensing": "Spanish finite first-person singular agreement"
+          }
+        }
+      ],
+      "stageRecord": "Merge matrix T and raise the complex v head to it. T agrees with first-person singular pro and values nominative Case; pro then moves to the matrix subject position, with both occurrences remaining silent. The highest verbal occurrence pronounces Quiero as a whole present-indicative first-person singular word. Merge a silent declarative root C to complete the sentence. The final pronounced sequence is Quiero que Ana venga mañana, but mañana is attached to the matrix wanting predicate rather than the embedded coming predicate. This reading locates the wanting tomorrow and requires a prospective use of the present; it does not itself specify tomorrow as the time of Ana’s arrival. Head and subject movements retain silent copies, and the overt complementizer introduces a finite subjunctive clause rather than an infinitival control complement.",
+      "statement": "Complete the matrix clause with matrix temporal attachment.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b_rootC",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "b_proHigh",
+                  "label": "D",
+                  "lineageId": "b_pro",
+                  "silent": true,
+                  "word": "pro"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b_quieroAtT",
+                              "label": "V",
+                              "lineageId": "b_quiero",
+                              "tokenIndex": 0,
+                              "word": "Quiero"
+                            },
+                            {
+                              "children": [],
+                              "id": "b_matrixvAtT",
+                              "label": "v",
+                              "lineageId": "b_matrixvLine",
+                              "silent": true
+                            }
+                          ],
+                          "id": "b_matrixHeadAtT",
+                          "label": "v",
+                          "lineageId": "b_matrixComplexHead"
+                        },
+                        {
+                          "children": [],
+                          "id": "b_matrixT",
+                          "label": "T",
+                          "silent": true
+                        }
+                      ],
+                      "id": "b_matrixTHead",
+                      "label": "T"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "b_proLow",
+                          "label": "D",
+                          "lineageId": "b_pro",
+                          "silent": true,
+                          "word": "pro"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "b_quieroAtv",
+                                  "label": "V",
+                                  "lineageId": "b_quiero",
+                                  "silent": true,
+                                  "word": "Quiero"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b_matrixv",
+                                  "label": "v",
+                                  "lineageId": "b_matrixvLine",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "b_matrixHead",
+                              "label": "v",
+                              "lineageId": "b_matrixComplexHead",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "b_quieroLow",
+                                      "label": "V",
+                                      "lineageId": "b_quiero",
+                                      "silent": true,
+                                      "word": "Quiero"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b_que",
+                                          "label": "C",
+                                          "tokenIndex": 1,
+                                          "word": "que"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "b_AnaHigh",
+                                              "label": "D",
+                                              "lineageId": "b_Ana",
+                                              "tokenIndex": 2,
+                                              "word": "Ana"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "b_vengaAtT",
+                                                          "label": "V",
+                                                          "lineageId": "b_venga",
+                                                          "tokenIndex": 3,
+                                                          "word": "venga"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "b_embvAtT",
+                                                          "label": "v",
+                                                          "lineageId": "b_embvLine",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "b_embHeadAtT",
+                                                      "label": "v",
+                                                      "lineageId": "b_embComplexHead"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "b_embT",
+                                                      "label": "T",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "b_embTHead",
+                                                  "label": "T"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "b_AnaLow",
+                                                      "label": "D",
+                                                      "lineageId": "b_Ana",
+                                                      "silent": true,
+                                                      "word": "Ana"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "b_vengaAtv",
+                                                              "label": "V",
+                                                              "lineageId": "b_venga",
+                                                              "silent": true,
+                                                              "word": "venga"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "b_embv",
+                                                              "label": "v",
+                                                              "lineageId": "b_embvLine",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "b_embHead",
+                                                          "label": "v",
+                                                          "lineageId": "b_embComplexHead",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "b_vengaLow",
+                                                          "label": "V",
+                                                          "lineageId": "b_venga",
+                                                          "silent": true,
+                                                          "word": "venga"
+                                                        }
+                                                      ],
+                                                      "id": "b_embVCore",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "b_embPred",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "b_embTCore",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "b_embClause",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "b_embCP",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "b_matrixVP",
+                                  "label": "V"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b_manana",
+                                  "label": "Adv",
+                                  "tokenIndex": 4,
+                                  "word": "mañana"
+                                }
+                              ],
+                              "id": "b_matrixAdjunction",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "b_matrixVCore",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "b_matrixPred",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "b_matrixTCore",
+                  "label": "T"
+                }
+              ],
+              "id": "b_matrixClause",
+              "label": "T"
+            }
+          ],
+          "id": "b_root",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

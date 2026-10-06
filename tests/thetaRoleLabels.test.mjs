@@ -15,6 +15,25 @@ const dispatch = relation => dispatchRelationClaims({ relation, currentForest: f
 const assignment = label => ({ relation: label, anchors: { predicate: 'predicate', recipient: 'argument' } });
 const roles = relation => grid(relation)?.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label }));
 
+test('explicit typed theta assignment binds generic assigner and recipient without a global alias', () => {
+  const base = { relation: 'theta-assignment', anchors: { assigner: 'predicate', recipient: 'argument' }, values: { role: 'Theme' } };
+  for (const assigner of ['predicate', 'phrase']) {
+    const relation = { ...base, anchors: { ...base.anchors, assigner } }, before = structuredClone(relation);
+    assert.deepEqual(roles(relation), [{ nodeId: 'argument', label: 'Theme' }]);
+    assert.deepEqual(grid(relation).anchorNodeIds, [assigner]);
+    assert.deepEqual(relation, before);
+  }
+  for (const relation of [
+    { ...base, relation: 'An unfamiliar assignment' }, { ...base, relation: 'possible theta-assignment' },
+    { ...base, relation: 'no theta-assignment' }, { ...base, values: {} },
+    { ...base, values: { role: ['Theme', 'Agent'] } }, { ...base, values: { prose: 'Theme' } },
+    { ...base, anchors: { assigner: ['predicate', 'phrase'], recipient: 'argument' } },
+    { ...base, anchors: { assigner: 'predicate', recipient: ['argument', 'other'] } },
+    { ...base, anchors: { assigner: 'predicate', recipient: 'missing' } },
+    { ...base, relation: 'ThetaAssignment', anchors: { assigner: 'predicate' } }
+  ]) assert(!grid(relation), JSON.stringify(relation));
+});
+
 test('a complete thematic-role clause supplies the role, not the recipient endpoint name', () => {
   for (const [label, role] of [
     ['agent theta-role', 'agent'], ['theme theta-role and object government', 'theme'],

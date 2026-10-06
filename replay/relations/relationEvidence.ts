@@ -296,15 +296,21 @@ export const buildTier2FacetEvidence = ({
         });
       }
     }
-    // Proven source context must not re-enter the recipe as a competing endpoint.
-    if ('movement.source' in priorAnchors.concepts) {
+    // Prior clause context must not re-enter as a movement endpoint or change
+    // a sibling claim's output identity. Retain fields proved as prior movement
+    // evidence even when their wording also names a current landing.
+    for (const role of ['movement.source', 'movement.landing']) {
+      if (!(role in priorAnchors.concepts)) continue;
       priorAnchors.authored.forEach(entry => {
-        if (entry.items.length !== 1 || entry.items[0] !== movement.priorSourceNodeId) {
-          entry.concepts = entry.concepts.filter(concept => concept !== 'movement.source');
+        const proved = role === 'movement.source'
+          ? entry.items.length === 1 && entry.items[0] === movement.priorSourceNodeId
+          : movement.priorAnchorKeys?.includes(entry.key);
+        if (!proved) {
+          entry.concepts = entry.concepts.filter(concept => concept !== role);
         }
       });
-      priorAnchors.concepts['movement.source'] = [...new Set(priorAnchors.authored
-        .filter(entry => entry.concepts.includes('movement.source')).flatMap(entry => entry.items))];
+      priorAnchors.concepts[role] = [...new Set(priorAnchors.authored
+        .filter(entry => entry.concepts.includes(role)).flatMap(entry => entry.items))];
     }
   }
   return {

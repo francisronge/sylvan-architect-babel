@@ -15,6 +15,28 @@ const recipes=(relation,currentForest=forest)=>dispatch(relation,currentForest).
 const paths=relation=>plan(relation).filter(item=>item.kind==='directed-path');
 const theta=relation=>plan(relation).find(item=>item.plaqueStyle==='theta-grid');
 
+test('explicit plural agreement bearers each retain their controller and typed bundle', () => {
+ const base = { relation: 'subject-controlled participial agreement',
+  anchors: { agreementBearers: ['verb', 'otherVerb'], controller: 'subject' },
+  values: { agreementBearers: ['been', 'read'], number: 'plural' } };
+ const original = structuredClone(base), result = dispatch(base);
+ assert.deepEqual(paths(base).map(path => [path.fromNodeId, path.toNodeId]), [['verb', 'subject'], ['otherVerb', 'subject']]);
+ assert.deepEqual(base, original);
+ assert.deepEqual(result.evidenceCoverage.fields.find(field => field.field === 'values' && field.key === 'agreementBearers').unrecoveredItemIndices, [0, 1]);
+ const claims = result.claims.filter(claim => claim.tier === 2 && claim.facet.recipe.id === 'feature.dependency');
+ assert.equal(claims.length, 2);
+ assert.deepEqual(claims.map(claim => claim.consumedEvidence.find(ref => ref.field === 'anchors' && ref.key === 'agreementBearers').itemIndices), [[0], [1]]);
+ for (const relation of [
+  { ...base, relation: 'possible participial agreement' }, { ...base, relation: 'a participial observation' },
+  { ...base, anchors: { ...base.anchors, probe: 'inflection' } },
+  { ...base, anchors: { ...base.anchors, agreementBearers: ['verb', 'verb'] } },
+  { ...base, anchors: { ...base.anchors, agreementBearers: ['verb', 'missing'] } },
+  { ...base, anchors: { ...base.anchors, controller: ['subject', 'object'] } },
+  { ...base, values: { agreementBearers: ['been', 'read'] } },
+  { ...base, relation: 'Agree' }
+ ]) assert.equal(paths(relation).length, 0, JSON.stringify(relation));
+});
+
 test('explicit theta scopes retain generic governors, selected complements and exact thematic occurrences',()=>{
  for(const relation of [
   {relation:'internal theta assignment',anchors:{governor:'verb',argument:'object'},values:{thetaRole:'Theme'}},

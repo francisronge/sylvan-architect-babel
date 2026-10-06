@@ -25,6 +25,22 @@ const inspect = (r = relation, realizations = [group], workspaceForest = forest)
   return { dispatch, plan, plates: plan.frames[0].items.filter(item => item.kind === 'node-plaque' && item.plaqueStyle === 'realization') };
 };
 
+test('a typed surface in an asserted realization uses the exact contributor group', () => {
+  const r = { relation: 'Finite verbal morphological realization', anchors: { contributors: [...group.nodeIds] },
+    values: { surface: '주었다', morphologicalContent: 'The authored explanation stays available.' } };
+  const { plates, dispatch } = inspect(r);
+  assert.equal(plates.length, 1);
+  assert.deepEqual(plates[0].anchorNodeIds, group.nodeIds);
+  assert.deepEqual(plates[0].rows, [{ label: 'surface', value: '주었다' }]);
+  assert.deepEqual(dispatch.evidenceCoverage.fields.find(field => field.key === 'morphologicalContent').unrecoveredItemIndices, [0]);
+  for (const name of ['An unfamiliar observation', 'Possible morphological realization', 'No morphological realization'])
+    assert.equal(inspect({ ...r, relation: name }).plates.length, 0, name);
+  for (const groups of [[], [{ nodeIds: ['x7', 'y3'], tokenIndices: [0] }], [group, group]])
+    assert.equal(inspect(r, groups).plates.length, 0);
+  assert.equal(inspect({ ...r, anchors: { items: [...group.nodeIds] } }).plates.length, 0);
+  assert.equal(inspect({ ...r, relation: 'VocabularyInsertion' }).plates.length, 0);
+});
+
 test('an exact current realization group earns one PF plate owned by every contributor', () => {
   for (const contributors of ['contributors', 'realizationContributors', 'realization_participants']) {
     for (const surface of ['surfaceForm', 'realized_form', 'surface realization', 'inputToken', 'surface_token', 'surfaceWord', 'realization']) {

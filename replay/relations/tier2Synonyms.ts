@@ -42,6 +42,10 @@ const normalizeSynonymText = boundedStringTransform((value: string) => value
 
 export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
+/** An explicitly default feature value does not identify its controller. */
+export const isDefaultAgreementLiteral = (value: unknown): boolean => typeof value === 'string'
+  && /^default(?:\s|$)/u.test(normalizeTier2Synonym(value));
+
 /** Independent authored claim clauses; words inside a clause are not claims. */
 export const relationLabelClauses = (label: string | undefined): string[] =>
   normalizeTier2Synonym(label ?? '').split(/\s*(?:[;,]|\band\b|\bbut\b)\s*/u);
@@ -358,6 +362,9 @@ export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
   context: { anchors?: Record<string, unknown>; values?: Record<string, unknown>; relation?: string } = {}): string[] => {
   const concepts = new Set(lookupTier2SynonymCandidates(index, 'value', key));
   const normalized = normalizeTier2Synonym(key);
+  if (normalized === 'surface' && isRealizationDescription(context.relation ?? '')
+    && Object.keys(context.anchors ?? {}).some(role => lookupTier2SynonymCandidates(index, 'role', role).includes('pf.contributors')))
+    concepts.add('pf.surface');
   if (isRealizationDescription(context.relation ?? '')
     && !Object.keys(context.anchors ?? {}).some(role => lookupTier2SynonymCandidates(index, 'role', role).includes('pf.contributors'))
     && (FEATURE_DIMENSION_KEYS.has(normalized) || /^(?:morphology|inflection|lexical form|inflected form|resulting stem|surface stem|surface word|surface form|surface sequence|input tokens|input pieces|input pieces in order|aspect|voice|tense aspect|features|agreement|(?:(?:verb|verbal) )?agreement specification|form|auxiliary form)$/u.test(normalized))) concepts.add('pf.rows');
@@ -402,9 +409,10 @@ export const hasAuthoredJudgment = (context: { relation?: string; values?: Recor
 /** An asserted form/inflection claim can bind a named lexical host. Requirements
  * and failed licensing are not assertions that the required form was realized. */
 export const isRealizationDescription = (name: string): boolean => {
-  const normalized = normalizeTier2Synonym(name);
-  return !/\b(?:failed|unmet|required|requirement|selection|mismatch|unlicensed|possible|hypothetical)\b/u.test(normalized)
-    && /\b(?:realization|realisation|realized|inflection|inflectional|inflected|morphological|allomorphy|allomorph|stem formation|finite tense|tense compatibility|tense form compatibility|finite form|finite lexical form|finite feature|finite auxiliary feature|voice feature compatibility|aspectual feature matching|input association)\b/u.test(normalized);
+  const claims = relationLabelClauses(name).filter(clause =>
+    /\b(?:realization|realisation|realized|inflection|inflectional|inflected|morphological|allomorphy|allomorph|stem formation|finite tense|tense compatibility|tense form compatibility|finite form|finite lexical form|finite feature|finite auxiliary feature|voice feature compatibility|aspectual feature matching|input association)\b/u.test(clause));
+  return claims.length > 0 && claims.every(clause =>
+    !/\b(?:no|not|never|without|denied|rejected|failed|blocked|unmet|required|requirement|requested|expected|selection|mismatch|unlicensed|pending|unresolved|unestablished|possible|potential|hypothetical|whether|if|unless)\b/u.test(clause));
 };
 
 export const isUnestablishedCovertMovementDescription = (name: string): boolean => relationLabelClauses(name)
@@ -477,6 +485,14 @@ export const relationRoleConcepts = (
     // named lexical contributors. Array ordering never selects a host.
     const complex = hosts.filter(([role]) => complexRole(role));
     let owner = hosts.length === 1 ? hosts[0] : undefined;
+    // One explicitly anchored lexical occurrence can own its input/form rows
+    // without a prescribed role name. Multiple participants still need a host.
+    if (!owner && !hosts.length && entries.length === 1 && typeof entries[0][1] === 'string' && context.forest) {
+      const matches: SyntaxNode[] = [];
+      const visit = (node: SyntaxNode) => { if (node.id === entries[0][1]) matches.push(node); node.children?.forEach(visit); };
+      context.forest.forEach(visit);
+      if (matches.length === 1 && !matches[0].children?.length && typeof matches[0].word === 'string' && matches[0].word.trim()) owner = entries[0];
+    }
     if (!owner && complex.length === 1 && typeof complex[0][1] === 'string' && context.forest) {
       const matches: SyntaxNode[] = [];
       const visit = (node: SyntaxNode) => { if (node.id === complex[0][1]) matches.push(node); node.children?.forEach(visit); };
@@ -504,10 +520,10 @@ export const relationRoleConcepts = (
   // Direction plus an occurrence type supplies a candidate role. The movement
   // reader must still prove exact lineage, the preceding slot and the landing.
   const movementSpelling = spelling.replace(/^(?:shared|prior) /u, '')
-    .replace(/\b(occurrences|copies|sources|heads|phrases|constituents)$/u, noun => noun === 'copies' ? 'copy' : noun.slice(0, -1));
+    .replace(/\b(occurrences|copies|sources|heads|phrases|clauses|constituents)$/u, noun => noun === 'copies' ? 'copy' : noun.slice(0, -1));
   if (movementSpelling !== normalizeTier2Synonym(key)) lookupTier2SynonymCandidates(index, 'role', movementSpelling)
     .filter(concept => concept.startsWith('movement.')).forEach(concept => concepts.add(concept));
-  const occurrence = /^(?:movement )?(source|lower|base|intermediate|landing|target|higher|upper|raised|moved) (?:[a-z]+ )?(head|phrase|constituent|occurrence|copy|complex|verb|subject|object|complement|operator|[a-z]+p)$/.exec(movementSpelling);
+  const occurrence = /^(?:movement )?(source|lower|base|intermediate|landing|target|higher|upper|raised|moved) (?:[a-z]+ )?(head|phrase|clause|constituent|occurrence|copy|complex|verb|subject|object|complement|operator|[a-z]+p)$/.exec(movementSpelling);
   if (occurrence && ![...concepts].some(concept => concept.startsWith('movement.'))) concepts.add(['source', 'lower', 'base', 'intermediate'].includes(occurrence[1])
     ? 'movement.source' : 'movement.landing');
   if (/^(?:subject|object|complement|operator|head|verb|[a-z]+p) trace$/u.test(movementSpelling)) concepts.add('movement.witness');
@@ -583,7 +599,7 @@ export const relationRoleConcepts = (
       /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey))
       && typeof literal === 'string'
       && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role));
-  const thetaDomain = namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
+  const thetaDomain = typedThetaAssignment || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
     valueNamesThematicParticipant(role) ||
     qualifiedAssignmentConcepts(role).some(concept => concept === 'predicate' || concept === 'theta.arguments'))
     || Object.entries(context.values ?? {}).some(([key, value]) => /^(theta|thematic|θ) /.test(normalizeTier2Synonym(key))
@@ -731,16 +747,27 @@ export const relationRoleConcepts = (
     && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role));
   const scalarId = (role: string) => Object.entries(context.anchors ?? {})
     .find(([key]) => normalizeTier2Synonym(key) === role)?.[1];
+  // In an asserted agreement claim the modifier or predicate can name its
+  // feature host. This does not give those roles direction outside agreement.
+  const contextualAgreementHosts = [...roles].filter(role => ['modifier', 'predicate'].includes(role));
+  const contextualAgreementAsserted = !relationLabelClauses(context.relation).some(clause => /\bagreement\b/u.test(clause)
+    && /\b(?:no|not|never|without|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether|if|unless)\b/u.test(clause));
+  const namedAgreementHost = roles.has('target') ? 'target'
+    : contextualAgreementAsserted && !hasQualifiedHost && contextualAgreementHosts.length === 1 ? contextualAgreementHosts[0] : undefined;
   const hasNamedAgreementTarget = /\bagreement\b/u.test(relationName)
-    && roles.has('controller') && roles.has('target');
+    && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
-    && scalarRole('controller') && scalarRole('target') && !hasAgreementMediator
-    && scalarId('controller') !== scalarId('target');
+    && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator
+    && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role))
+    && scalarId('controller') !== scalarId(namedAgreementHost!);
   const participialHost = (role: string) => !hasAgreementMediator && ['participle', 'participial head'].includes(role);
   const controllerEntries = Object.entries(context.anchors ?? {}).filter(([role]) => normalizeTier2Synonym(role) === 'controller');
   const headedAgreementController = !hasQualifiedHost && !hasNamedAgreementTarget && (hasInflectionHead || [...roles].some(participialHost)) && controllerEntries.length === 1
     && (Array.isArray(controllerEntries[0][1]) ? controllerEntries[0][1].length === 1 : typeof controllerEntries[0][1] === 'string')
     && !Object.keys(context.anchors ?? {}).some(role => isExplicitTier2Role('controllee', role));
+  const defaultFeatureRows = Object.entries(context.values ?? {}).some(([key, value]) =>
+    lookupTier2SynonymCandidates(index, 'value', key).includes('feature.rows')
+      && (Array.isArray(value) ? value : [value]).some(isDefaultAgreementLiteral));
   if (hasLiteral('feature.rows')) {
     if (relationLabelClauses(context.relation).some(clause =>
       /^(?:(?:finite|matrix|embedded|local|verbal) )*tense agreement$/u.test(clause))
@@ -754,7 +781,7 @@ export const relationRoleConcepts = (
       if (spelling === 'lexical verb') concepts.add('feature.target');
     }
     if (namedAgreementPair) {
-      if (spelling === 'target') {
+      if (spelling === namedAgreementHost) {
         concepts.delete('feature.target');
         concepts.delete('goal');
         concepts.add('feature.source');
@@ -804,7 +831,7 @@ export const relationRoleConcepts = (
     }
     // Literal features and complete participant roles establish collection.
     // A separate mediator prevents treating the participle as the collector.
-    if (!hasQualifiedHost && (hasAgreementController || headedAgreementController || (hasInflectionHead && [...roles].some(role => ['subject', 'subject head', 'subject position', 'subject occurrence'].includes(role))))) {
+    if (!hasQualifiedHost && (hasAgreementController || headedAgreementController || (!defaultFeatureRows && hasInflectionHead && [...roles].some(role => ['subject', 'subject head', 'subject position', 'subject occurrence'].includes(role))))) {
       if (spelling === 'agreement controller' || (spelling === 'subject' || !headedAgreementController && ['subject head', 'subject position', 'subject occurrence'].includes(spelling)) || spelling === 'controller' && headedAgreementController) concepts.add('feature.target');
       if (inflectionHead(spelling) || participialHost(spelling)) concepts.add('feature.source');
     }

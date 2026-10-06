@@ -44,8 +44,9 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
   return member;
 };
 const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = []): boolean => {
+  const landing = parent.children?.find(node => node.id === landingId);
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
-  if (readCategoryLabel(parent.label)?.kind !== 'head') return false;
+  if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
     return readCategoryLabel(landing.label)?.kind === 'head' && onlyExponents(landing);
@@ -55,7 +56,6 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
     // A previously built host remains the same head when another head adjoins;
     // its internal clitic or inflection structure need not be flat.
     if (onlyExponents(siblings[0])) return true;
-    const landing = parent.children?.find(child => child.id === landingId);
     const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
       && node.id !== landing.id && node.lineageId === landing.lineageId)
       || Boolean(node.children?.some(containsLowerOccurrence));
@@ -64,7 +64,6 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
     return !containsLowerOccurrence(siblings[0])
       && JSON.stringify(uniqueNode(previous, siblings[0].id)) === JSON.stringify(siblings[0]);
   }
-  const landing = parent.children?.find(child => child.id === landingId);
   const before = uniqueNode(previous, parent.id);
   // A retained inflectional head may acquire one moved member alongside several
   // already authored exponents. Exact ordered companions establish that landing.
@@ -84,12 +83,51 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode): boolean => {
       .every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''));
 };
 
-const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = []): 'head' | 'phrasal' | undefined => {
-  if (parent && (isHeadComplex(parent, target.id, previous) || isProjectedHead(parent, target))) return 'head';
+type PriorSourcePosition = { node?: SyntaxNode; parent?: SyntaxNode };
+
+// A nested head assembly retains a lexical host at each branching level.
+// Merely having bare labels throughout a clause does not satisfy that shape.
+const isHeadAssembly = (node: SyntaxNode): boolean => {
+  if (readCategoryLabel(node.label)?.kind !== 'head') return false;
+  const children = node.children ?? [];
+  return children.every(isHeadAssembly) && (children.length < 2
+    || children.some(child => !child.children?.length && headCategory(child) === headCategory(node)));
+};
+
+const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxNode[]): boolean => {
+  if (!source.children?.length || !sisters.length || !isHeadAssembly(source)) return false;
+  const nodes = (root: SyntaxNode): SyntaxNode[] => [root, ...(root.children ?? []).flatMap(nodes)];
+  const members = (source.children ?? []).flatMap(nodes), lower = sisters.flatMap(nodes);
+  return members.some(member => member.lineageId && member.lineageId !== source.lineageId
+    && members.filter(other => other.lineageId === member.lineageId).length === 1
+    && lower.some(witness => witness.id !== member.id && witness.lineageId === member.lineageId
+      && readCategoryLabel(witness.label)?.kind === 'head' && headCategory(witness) === headCategory(member)));
+};
+
+const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
+  priorSource: PriorSourcePosition = {}): 'head' | 'phrasal' | undefined => {
+  const shape = readCategoryLabel(target.label);
+  const oldShape = readCategoryLabel(priorSource.node?.label), oldParent = readCategoryLabel(priorSource.parent?.label);
+  // A flat receiving head also selects ordinary phrases. A branching bare
+  // occurrence therefore needs its own head evidence, not just that sister:
+  // explicit head notation/material or its preceding projected head slot.
+  // Bare projections can establish that slot too. A prior member/lower-copy
+  // pair proves an existing assembly even for an intransitive complement or a
+  // nested head; otherwise the flat head needs a branching complement.
+  const oldSisters = priorSource.parent?.children?.filter(child => child.id !== priorSource.node?.id) ?? [];
+  const projectedSource = oldShape?.kind === 'head' && oldShape.head === oldParent?.head
+    && (oldParent?.kind !== 'head'
+      ? oldSisters.every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''))
+      : Boolean(priorSource.node && (hasAssembledMemberWitness(priorSource.node, oldSisters)
+        || onlyExponents(priorSource.node) && oldSisters.length
+          && oldSisters.every(child => child.children?.length && headCategory(child) && headCategory(child) !== oldShape.head))));
+  const headUnit = !target.children?.length || Boolean(target.word?.trim()) || shape?.compound
+    || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource;
+  if (headUnit && parent && (isHeadComplex(parent, target.id, previous) || isProjectedHead(parent, target))) return 'head';
   const parentCategory = readCategoryLabel(parent?.label);
   const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
     && headCategory(n) === parentCategory.head && !onlyExponents(n));
-  if (!onlyExponents(target) || readCategoryLabel(target.label)?.kind === 'phrase' || specifier) return 'phrasal';
+  if (target.children?.length || shape?.kind === 'phrase' || specifier) return 'phrasal';
 };
 
 /** Shared exact structural check for Tier 1 and recovered movement context. */
@@ -125,7 +163,7 @@ export interface MovementEvidenceResult {
 
 const vocabulary = buildTier2SynonymIndex();
 const hasRole = (key: string, concept: string) => relationRoleConcepts(vocabulary, key).includes(concept);
-const genericRoles = new Set(['source', 'origin', 'from', 'target', 'to', 'destination', 'landing', 'landing site', 'filler', 'operator', 'head', 'variable', 'real gap']);
+const genericRoles = new Set(['source', 'sources', 'origin', 'origins', 'from', 'target', 'targets', 'to', 'destination', 'destinations', 'landing', 'landings', 'landing site', 'landing sites', 'filler', 'fillers', 'operator', 'operators', 'head', 'heads', 'variable', 'variables', 'real gap', 'real gaps']);
 
 // Recover occurrence identity from the anchored objects, never a shared descendant
 // or the relation's title. The result is renderer evidence, not authored syntax.
@@ -217,17 +255,52 @@ export function recoverMovementEvidence(
   if (!sources.length) sources = witnesses;
   let targets = pick('movement.landing');
   const sourceMembers = new Set<string>(), landingMembers = new Set<string>();
+  const phrasalHeadParticipants = new Set<string>();
   let structurallyBound = false;
   // An explicit preceding source distinguishes this step from earlier copies
   // in the same chain. Unchanged earlier copies remain separate evidence.
-  const structuralPriorSources = [...new Set(Object.values(relation.priorAnchors || {}).flat())].filter(id => {
+  let structuralPriorSources = [...new Set(Object.values(relation.priorAnchors || {}).flat())].filter(id => {
     const node = prior.nodes.get(id);
     return node?.lineageId && !prior.duplicates.has(id) && anchored.some(currentId =>
       current.nodes.get(currentId)?.lineageId === node.lineageId && samePriorSlot(currentId, id));
   });
+  // A source clause may contain the moving occurrence. It is context only
+  // when a separate lineage-matched pair proves the exact preceding source
+  // slot. Another occurrence or an unrelated clause remains a competing source.
+  const sourceClauseRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?clauses?$/.test(normalizeTier2Synonym(key));
+  const sourceClausePresent = entries.some(e => sourceClauseRole(e.key))
+    || Object.keys(relation.priorAnchors ?? {}).some(sourceClauseRole);
+  const independentPairs = (sourceClausePresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
+    const before = prior.nodes.get(priorId);
+    if (!before?.lineageId || prior.duplicates.has(priorId)) return [];
+    return anchored.filter(id => !current.duplicates.has(id) && current.nodes.get(id)?.lineageId === before.lineageId
+      && samePriorSlot(id, priorId)).flatMap(sourceId => anchored.filter(targetId => {
+      const target = current.nodes.get(targetId);
+      return targetId !== sourceId && target?.lineageId === before.lineageId && !current.duplicates.has(targetId)
+        && !contains(current.nodes.get(sourceId)!, targetId) && !contains(target, sourceId)
+        && entries.some(e => e.ids.length === 1 && e.ids[0] === targetId && hasRole(e.key, 'movement.landing'))
+        && landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }) === 'phrasal';
+    }).map(targetId => ({ priorId, sourceId, targetId })));
+  });
+  if (independentPairs.length === 1) {
+    const pair = independentPairs[0], lineage = prior.nodes.get(pair.priorId)!.lineageId;
+    const containingSource = (id: string, sourceId: string, indexed: ReturnType<typeof index>): boolean => {
+      const container = indexed.nodes.get(id);
+      return Boolean(container && id !== sourceId && !indexed.duplicates.has(id)
+        && container.lineageId !== lineage && contains(container, sourceId));
+    };
+    explicitPriorSources = explicitPriorSources.filter(id => !containingSource(id, pair.priorId, prior)
+      || Object.entries(relation.priorAnchors ?? {}).some(([key, value]) => hasRole(key, 'movement.source')
+        && (Array.isArray(value) ? value : [value]).includes(id) && !sourceClauseRole(key)));
+    structuralPriorSources = structuralPriorSources.filter(id => !containingSource(id, pair.priorId, prior));
+    sources = sources.filter(id => !containingSource(id, pair.sourceId, current)
+      || entries.some(e => hasRole(e.key, 'movement.source') && e.ids.includes(id) && !sourceClauseRole(e.key)));
+    if (!sources.length) sources = witnesses;
+  }
   const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
   const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
   const canBindStructuralEndpoints = isMovementIdentity(relation.relation) || explicitPriorSources.length === 1
+    || structuralPriorSources.length === 1 && entries.some(e => e.key === 'landing' && e.ids.length === 1)
     || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept)));
   // A named preceding complex fixes the moving unit. Its explicitly anchored
   // lexical member can describe the lower copy without becoming a competing
@@ -298,6 +371,28 @@ export function recoverMovementEvidence(
         && !current.duplicates.has(lowerMember.id)
         && headMemberPath(before, oldMember.id)?.length && headMemberPath(source, lowerMember.id)?.length);
     };
+    // A phrase's target head can be a stationary participant, not another
+    // occurrence of the phrase. Leave that field unclaimed after proving the
+    // phrase's lineage and exact preceding slot; it establishes no landing site.
+    const isHeadParticipantRole = (key: string): boolean => key === 'target'
+      || /^(?:movement )?(?:target|landing) (?:[a-z]+ )*head$/.test(key);
+    const isPhrasalHeadParticipant = (occurrence: string, id: string): boolean => {
+      const target = current.nodes.get(occurrence), head = current.nodes.get(id);
+      const precedingId = prior.nodes.has(sources[0]) ? sources[0] : priorSource;
+      const before = prior.nodes.get(precedingId ?? '');
+      return Boolean(target && head && targets.includes(occurrence)
+        && !current.duplicates.has(id) && !prior.duplicates.has(id)
+        && !current.duplicates.has(sources[0]) && !current.duplicates.has(occurrence)
+        && before?.lineageId && before.lineageId === lineage && !prior.duplicates.has(before.id)
+        && precedingId && samePriorSlot(sources[0], precedingId)
+        && landingKind(target, current.parents.get(occurrence), previous, { node: before, parent: prior.parents.get(precedingId ?? '') }) === 'phrasal'
+        && readCategoryLabel(head.label)?.kind === 'head' && !head.children?.length
+        && head.lineageId !== lineage && samePriorSlot(id, id)
+        && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(head)
+        && entries.some(e => e.ids.length === 1 && e.ids[0] === id && isHeadParticipantRole(e.key))
+        && entries.filter(e => e.ids.includes(id) && hasRole(e.key, 'movement.landing'))
+          .every(e => e.ids.length === 1 && isHeadParticipantRole(e.key)));
+    };
     const occurrences = anchored.filter(id => id !== sources[0] && lineage
       && current.nodes.get(id)?.lineageId === lineage).filter(occurrence => targets.every(id => id === occurrence
         || (targets.includes(occurrence) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrence))
@@ -305,10 +400,13 @@ export function recoverMovementEvidence(
           && entries.some(e => e.ids[0] === occurrence && !genericRoles.has(e.key) && hasRole(e.key, 'movement.landing'))
           && contains(current.nodes.get(occurrence)!, id))
         || (targets.includes(occurrence) && matchingLandingMember(occurrence, id))
+        || isPhrasalHeadParticipant(occurrence, id)
         || movementContextFailure(forest, occurrence, id, 'site', previous) === undefined
         || movementContextFailure(forest, occurrence, id, 'head-landing', previous) === undefined));
     if (occurrences.length === 1) {
       targets.filter(id => matchingLandingMember(occurrences[0], id)).forEach(id => landingMembers.add(id));
+      entries.filter(e => e.ids.length === 1 && isHeadParticipantRole(e.key)
+        && isPhrasalHeadParticipant(occurrences[0], e.ids[0])).forEach(e => phrasalHeadParticipants.add(e.authoredKey));
       structurallyBound ||= targets.length !== 1 || targets[0] !== occurrences[0];
       targets = occurrences;
     }
@@ -332,7 +430,12 @@ export function recoverMovementEvidence(
           || explicitPriorSources.some(id => id !== priorId)) continue;
         if (!samePriorSlot(sourceId, priorId)) continue;
         if (priorId === sourceId && prior.nodes.has(targetId)) continue;
-        const kind = landingKind(target, current.parents.get(targetId), previous);
+        // An earlier copy retained in its exact slot is not a second landing
+        // for this step. Keep it as authored evidence without letting it make
+        // a unique, explicitly witnessed successive movement ambiguous.
+        if (targetId !== priorId && samePriorSlot(targetId, targetId)
+          && JSON.stringify(prior.nodes.get(targetId)) === JSON.stringify(target)) continue;
+        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) });
         const expectedKind = movementIdentityKind(relation.relation);
         if (!kind || (expectedKind && expectedKind !== kind)) continue;
         pairs.push({ source: sourceId, target: targetId });
@@ -351,12 +454,14 @@ export function recoverMovementEvidence(
   // Generic roles such as head, source, or target also belong to nonmovement
   // relations. They alone are not evidence of a malformed movement claim.
   const occurrenceRoles = entries.some(e => !genericRoles.has(e.key)
+    && !/^(?:movement )?(?:source|lower|base|intermediate|landing|target|higher|upper|raised|moved) (?:[a-z]+ )?clauses?$/.test(e.key)
     && (hasRole(e.key, 'movement.landing') || hasRole(e.key, 'movement.source')));
   const sharedLineage = sources.some(sourceId => targets.some(targetId => {
     const source = current.nodes.get(sourceId);
     return source?.lineageId && source.lineageId === current.nodes.get(targetId)?.lineageId;
   }));
-  if (!occurrenceRoles && !sharedLineage && !(witnesses.length && sources.length && targets.length)) {
+  if (!occurrenceRoles && !sharedLineage && !(witnesses.length && sources.length && targets.length)
+    && !isMovementIdentity(relation.relation) && !explicitPriorSources.length) {
     return { diagnostics: [] };
   }
   if (entries.some(e => e.ids.length !== 1 && ['movement.source', 'movement.witness', 'movement.landing']
@@ -383,7 +488,9 @@ export function recoverMovementEvidence(
   const witnessId = witnesses[0] || sourceId;
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
-  const kind = landingKind(target, current.parents.get(targetId), previous);
+  const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
+  const kind = landingKind(target, current.parents.get(targetId), previous,
+    { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) });
   if (!kind) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
     : [...new Set(priorSources.length ? priorSources : [targetId])];
@@ -450,6 +557,7 @@ export function recoverMovementEvidence(
     // An operator inside the explicitly anchored landing is separate evidence,
     // not a claim that this operator is the landing's containing projection.
     if (e.key === 'operator' && e.ids.length === 1 && e.ids[0] !== targetId && contains(target, e.ids[0])) return;
+    if (phrasalHeadParticipants.has(e.authoredKey)) return;
     // A phrasal attractor is not the head-adjunction host of that phrase.
     if (kind === 'phrasal' && e.key === 'attracting head') return;
     const contextKind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'

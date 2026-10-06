@@ -32,13 +32,18 @@ function concordMembers(evidence: ConcordEvidence, directed: boolean) {
   if (relationLabelClauses(evidence.relationName).some(clause => /\bnominal concord\b/u.test(clause)
     && /\b(?:no|not|without|denied|rejected|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(clause))) return [];
   let entries = evidence.authoredCurrentAnchors ?? [];
+  const inventory = entries.filter(entry => normalizeTier2Synonym(entry.key) === 'agreeing items');
+  const nominal = entries.filter(entry => normalizeTier2Synonym(entry.key) === 'nominal');
+  const explicitInventory = !directed && normalizeTier2Synonym(evidence.relationName) === 'nominal concord'
+    && entries.length === 2 && inventory.length === 1 && inventory[0].items.length >= 2
+    && nominal.length === 1 && nominal[0].items.length === 1;
   const named = entries.length >= 2 && entries.some(entry => ['noun', 'nominal', 'nominal head'].includes(normalizeTier2Synonym(entry.key)))
     && entries.every(entry => nominalRoles.has(normalizeTier2Synonym(entry.key)));
   const controller = entries.filter(entry => normalizeTier2Synonym(entry.key) === 'controller');
   const targets = entries.filter(entry => /^targets?$/u.test(normalizeTier2Synonym(entry.key)));
   const directedInventory = /^(?:nominal|adjectival|determiner) concord$/u.test(normalizeTier2Synonym(evidence.relationName))
     && entries.length === 2 && controller.length === 1 && controller[0].items.length === 1 && targets.length === 1 && targets[0].items.length > 0;
-  if (!(directed ? directedInventory : named)) return [];
+  if (!(directed ? directedInventory : named || explicitInventory)) return [];
   const features = evidence.authoredValues?.filter(entry => entry.concepts.includes('feature.rows')) ?? [];
   if (!features.length || features.some(entry => !entry.items.length || entry.items.some(value => !value.trim()))) return [];
   const paths = new Map<string, SyntaxNode[][]>();
@@ -52,17 +57,20 @@ function concordMembers(evidence: ConcordEvidence, directed: boolean) {
   if (members.length < 2 || new Set(members).size !== members.length) return [];
   for (const entry of entries) {
     const domainContext = !directed && normalizeTier2Synonym(entry.key) === 'nominal' && entry.items.length === 1
-      && entries.some(other => normalizeTier2Synonym(other.key) === 'noun')
+      && (explicitInventory || entries.some(other => normalizeTier2Synonym(other.key) === 'noun'))
       && entries.filter(other => other !== entry).every(other => other.items.every(id => paths.get(id)?.length === 1
         && paths.get(id)![0].some(node => node.id === entry.items[0])));
+    if (explicitInventory && entry === nominal[0] && !domainContext) return [];
     const categories = directed ? entry === controller[0] ? ['N', 'NP'] : ['A', 'AP', 'Adj', 'AdjP', 'D', 'DP', 'Det', 'DetP', 'Dem', 'DemP', 'Q', 'QP']
-      : domainContext ? ['N', 'NP', 'D', 'DP', 'K', 'KP'] : nominalRoles.get(normalizeTier2Synonym(entry.key))!;
+      : domainContext ? ['N', 'NP', 'D', 'DP', 'K', 'KP'] : explicitInventory && entry === inventory[0]
+        ? ['N', 'NP', 'A', 'AP', 'Adj', 'AdjP', 'D', 'DP', 'Det', 'DetP', 'Dem', 'DemP', 'Q', 'QP']
+        : nominalRoles.get(normalizeTier2Synonym(entry.key))!;
     if (!entry.items.length || entry.items.some(id => paths.get(id)?.length !== 1
       || !categories.includes(memberCategory(paths.get(id)![0].at(-1)!)))) return [];
   }
   // A named nominal enclosing the separately declared noun and modifiers is
   // their domain context, not another feature-sharing member.
-  if (!directed && entries.some(entry => normalizeTier2Synonym(entry.key) === 'noun')) {
+  if (!directed && (explicitInventory || entries.some(entry => normalizeTier2Synonym(entry.key) === 'noun'))) {
     entries = entries.filter(entry => normalizeTier2Synonym(entry.key) !== 'nominal' || entry.items.length !== 1
       || !entries.filter(other => other !== entry).every(other => other.items.every(id =>
         paths.get(id)![0].some(node => node.id === entry.items[0]))));

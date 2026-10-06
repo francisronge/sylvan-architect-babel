@@ -171,6 +171,8 @@ export function recoverAssignmentContinuity(evidence: Tier2FacetEvidence, contex
         currentAnchors: { [sourceRole]: [source], [targetRole]: [target] },
         values: { [valueRole]: [literal], ...(outcomes.length ? { outcome: outcomes.flatMap(entry => [...entry.items]) } : {}) },
         authoredCurrentAnchors: scopedAnchors,
+        associatedAnchorKeys: Object.fromEntries([sourceRole, targetRole].map(role =>
+          [role, scopedAnchors.filter(entry => entry.concepts.includes(role)).map(entry => entry.key)])),
         authoredValues: [{ key: valueEntry.key, concepts: [valueRole], items: [literal] }, ...outcomes],
         currentForest: evidence.currentForest
       } });
