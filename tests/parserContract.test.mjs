@@ -116,9 +116,11 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
-    assert.match(instruction, /Replay derives its construction steps from workspace changes; do not add relations solely to narrate those steps\./);
+    assert.match(instruction, /Do not add relations solely to narrate construction steps recoverable from workspace changes\./);
     assert.match(instruction, /Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching\./);
     assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\./);
+    assert.match(instruction, /List relations in the order their establishing operations occur in stageRecord, even when the relations are independent\./);
+    assert.doesNotMatch(instruction, /with prerequisites before dependent relations/);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
     assert.match(instruction, /The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries\./);
@@ -127,20 +129,25 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
     assert.match(instruction, /anchors: a nonempty object with nonblank role names/);
     assert.match(instruction, /priorAnchors:.*immediately preceding stage's expanded workspace/);
-    assert.match(instruction, /Anchor-role and value-entry names are not fixed fields or a prescribed vocabulary/);
+    assert.match(instruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);
     assert.match(instruction, /Use an anchor list for nodes with the same role in this relation\. Keep distinct groups in separate entries and name their roles distinctly\./);
     assert.match(instruction, /Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation\./);
     assert.match(instruction, /Do not substitute a different occurrence introduced only by a later relation merely because it shares lineage\./);
+    const anchorTiming = 'Anchor each relation to the exact occurrences involved when it is established';
+    assert.equal(instruction.split(anchorTiming).length - 1, 1);
+    assert.ok(instruction.indexOf('- anchors:') < instruction.indexOf(anchorTiming));
+    assert.ok(instruction.indexOf(anchorTiming) < instruction.indexOf('- priorAnchors:'));
+    assert.doesNotMatch(instruction, /\b(?:examples?|walked|went|rootGo|Replay)\b|the display's/i);
   }
 });
 
 test('the model-facing contract specifies the framework and exact input without prompting for verdicts', () => {
   for (const framework of ['xbar', 'minimalism']) {
     const instruction = buildSystemInstruction(framework);
-    assert.match(instruction, /Analyze the exact input within the selected framework\./);
+    assert.match(instruction, /Analyze the exact input\./);
     assert.match(instruction, /The last stage contains the completed analysis of the input\./);
     const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
-    assert.match(relationsInstruction, /Names and roles are open; choose them to describe this analysis\./);
+    assert.match(relationsInstruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);
     assert.doesNotMatch(instruction, /\b(?:ungrammatical|illicit|grammaticality|judgment|convergence)\b/i);
     assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
     assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
