@@ -1,0 +1,2138 @@
+{
+  "sentence": "Mara glaubt, dass der erfahrene Lehrer den schwierigen Bericht sorgfältig lesen wird.",
+  "inputTokens": [
+    "Mara",
+    "glaubt",
+    "dass",
+    "der",
+    "erfahrene",
+    "Lehrer",
+    "den",
+    "schwierigen",
+    "Bericht",
+    "sorgfältig",
+    "lesen",
+    "wird"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "externalArgument": "teacherNP",
+            "internalArgument": "reportNP",
+            "predicate": "read"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "reportNP",
+            "governor": "read"
+          },
+          "relation": "structural Case assignment under government",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "maraNP",
+            "internalArgument": "embeddedCP",
+            "predicate": "believe"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Experiencer",
+            "internalRole": "propositional Content"
+          }
+        },
+        {
+          "anchors": {
+            "agreeingItems": [
+              "teacherD",
+              "experiencedA",
+              "teacherN"
+            ],
+            "nominal": "teacherNP"
+          },
+          "relation": "nominal concord",
+          "values": {
+            "features": "masculine singular; nominative declensional forms"
+          }
+        },
+        {
+          "anchors": {
+            "agreeingItems": [
+              "reportD",
+              "difficultA",
+              "reportN"
+            ],
+            "nominal": "reportNP"
+          },
+          "relation": "nominal concord",
+          "values": {
+            "features": "masculine singular accusative"
+          }
+        }
+      ],
+      "stageRecord": "The analysis uses NP, VP, IP, and CP projections in Government and Binding Theory. German VP and IP are head-final; CP has a head preceding its IP complement. In both clauses, the subject originates in Spec-VP. Glaubt selects the propositional CP introduced by dass, and the future auxiliary wird selects the infinitival VP headed by lesen. The manner adverb sorgfältig is left-adjoined to the lexical V-bar: it characterizes reading, not believing or the future auxiliary. At this base stage it precedes the object; the object's eventual position before the adverb will be derived by local scrambling. Determiners occupy nominal specifiers, while attributive APs adjoin to N-bar. The inflected words are represented as whole lexical terminals, so no separate morphological realization groups are required. Their lexical inflection does not imply that the syntactic Case and agreement dependencies have already been established. Lesen assigns the report NP its internal theta role and accusative Case in its complement position. The teacher and Mara receive external theta roles in their respective VP specifiers. Finite I heads are initially silent feature-bearing heads, and the matrix clause has not yet acquired its V2 CP structure.",
+      "statement": "Establish the head-final base structure and the lexical argument relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraN",
+                              "label": "N⁰",
+                              "tokenIndex": 0,
+                              "word": "Mara"
+                            }
+                          ],
+                          "id": "maraNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maraNP",
+                      "label": "NP",
+                      "lineageId": "maraArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C⁰",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "teacherD",
+                                                          "label": "D⁰",
+                                                          "tokenIndex": 3,
+                                                          "word": "der"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "experiencedA",
+                                                                      "label": "A⁰",
+                                                                      "tokenIndex": 4,
+                                                                      "word": "erfahrene"
+                                                                    }
+                                                                  ],
+                                                                  "id": "experiencedAbar",
+                                                                  "label": "A′"
+                                                                }
+                                                              ],
+                                                              "id": "experiencedAP",
+                                                              "label": "AP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "teacherN",
+                                                                  "label": "N⁰",
+                                                                  "tokenIndex": 5,
+                                                                  "word": "Lehrer"
+                                                                }
+                                                              ],
+                                                              "id": "teacherNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "teacherNbarOuter",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "teacherNP",
+                                                      "label": "NP",
+                                                      "lineageId": "teacherArgument"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "carefullyAdv",
+                                                                  "label": "Adv⁰",
+                                                                  "tokenIndex": 9,
+                                                                  "word": "sorgfältig"
+                                                                }
+                                                              ],
+                                                              "id": "carefullyAdvbar",
+                                                              "label": "Adv′"
+                                                            }
+                                                          ],
+                                                          "id": "carefullyAdvP",
+                                                          "label": "AdvP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportD",
+                                                                  "label": "D⁰",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "difficultA",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "difficultAbar",
+                                                                          "label": "A′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "difficultAP",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportN",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "reportNbar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "reportNbarOuter",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "reportNP",
+                                                              "label": "NP",
+                                                              "lineageId": "reportArgument"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "read",
+                                                              "label": "V⁰ [infinitive]",
+                                                              "tokenIndex": 10,
+                                                              "word": "lesen"
+                                                            }
+                                                          ],
+                                                          "id": "readingVbar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "readingVbarAdjunct",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "readingVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "futureAux",
+                                                  "label": "V⁰ [future auxiliary]",
+                                                  "lineageId": "futureVerb",
+                                                  "tokenIndex": 11,
+                                                  "word": "wird"
+                                                }
+                                              ],
+                                              "id": "auxiliaryVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "auxiliaryVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "embeddedIFeatures",
+                                          "label": "I⁰ [+finite, future, 3sg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        },
+                        {
+                          "children": [],
+                          "id": "believe",
+                          "label": "V⁰",
+                          "lineageId": "beliefVerb",
+                          "tokenIndex": 1,
+                          "word": "glaubt"
+                        }
+                      ],
+                      "id": "matrixVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixIFeatures",
+                  "label": "I⁰ [+finite, present, 3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "teacherNP",
+            "landingProjection": "embeddedIP",
+            "thetaPositionTrace": "teacherTrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "teacherNP",
+            "sourceProjection": "readingVP"
+          },
+          "relation": "subject A-movement and trace binding",
+          "values": {
+            "movement": "Spec-VP to Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "embeddedIFeatures",
+            "subject": "teacherNP"
+          },
+          "relation": "nominative Case and finite agreement",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "movedHead": "futureAux",
+            "sourceTrace": "futureTrace",
+            "targetHead": "embeddedIHead"
+          },
+          "priorAnchors": {
+            "sourceHead": "futureAux",
+            "targetFeatures": "embeddedIFeatures"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "movement": "future auxiliary to head-final finite I"
+          }
+        }
+      ],
+      "stageRecord": "The teacher NP raises from the lexical VP specifier to Spec-IP, leaving an NP trace in its theta position. Finite I licenses nominative Case and agrees with this third-person singular subject. The auxiliary then moves from its VP-final head position to the adjacent, head-final I position, leaving a head trace. This analysis adopts V-to-I movement in the German subordinate clause; it does not move the auxiliary to C because dass already heads the embedded CP. The resulting complex I contains the pronounced whole word wird and the silent finite features. Both movement origins were present in the preceding workspace. The object remains in its original complement position, so its surface order relative to the manner adverb is not yet derived.",
+      "statement": "Establish the embedded subject's nominative position and the clause-final finite auxiliary.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraN",
+                              "label": "N⁰",
+                              "tokenIndex": 0,
+                              "word": "Mara"
+                            }
+                          ],
+                          "id": "maraNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maraNP",
+                      "label": "NP",
+                      "lineageId": "maraArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C⁰",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "teacherD",
+                                          "label": "D⁰",
+                                          "tokenIndex": 3,
+                                          "word": "der"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "experiencedA",
+                                                      "label": "A⁰",
+                                                      "tokenIndex": 4,
+                                                      "word": "erfahrene"
+                                                    }
+                                                  ],
+                                                  "id": "experiencedAbar",
+                                                  "label": "A′"
+                                                }
+                                              ],
+                                              "id": "experiencedAP",
+                                              "label": "AP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "teacherN",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 5,
+                                                  "word": "Lehrer"
+                                                }
+                                              ],
+                                              "id": "teacherNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "teacherNbarOuter",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "teacherNP",
+                                      "label": "NP",
+                                      "lineageId": "teacherArgument"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "teacherTrace",
+                                                      "label": "NP trace",
+                                                      "lineageId": "teacherArgument",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "carefullyAdv",
+                                                                  "label": "Adv⁰",
+                                                                  "tokenIndex": 9,
+                                                                  "word": "sorgfältig"
+                                                                }
+                                                              ],
+                                                              "id": "carefullyAdvbar",
+                                                              "label": "Adv′"
+                                                            }
+                                                          ],
+                                                          "id": "carefullyAdvP",
+                                                          "label": "AdvP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportD",
+                                                                  "label": "D⁰",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "difficultA",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "difficultAbar",
+                                                                          "label": "A′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "difficultAP",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportN",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "reportNbar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "reportNbarOuter",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "reportNP",
+                                                              "label": "NP",
+                                                              "lineageId": "reportArgument"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "read",
+                                                              "label": "V⁰ [infinitive]",
+                                                              "tokenIndex": 10,
+                                                              "word": "lesen"
+                                                            }
+                                                          ],
+                                                          "id": "readingVbar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "readingVbarAdjunct",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "readingVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "futureTrace",
+                                                  "label": "V⁰ trace",
+                                                  "lineageId": "futureVerb",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "auxiliaryVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "auxiliaryVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "futureAux",
+                                              "label": "V⁰ [future auxiliary]",
+                                              "lineageId": "futureVerb",
+                                              "tokenIndex": 11,
+                                              "word": "wird"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "embeddedIFeatures",
+                                              "label": "I⁰ [+finite, future, 3sg]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "embeddedIHead",
+                                          "label": "I⁰"
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        },
+                        {
+                          "children": [],
+                          "id": "believe",
+                          "label": "V⁰",
+                          "lineageId": "beliefVerb",
+                          "tokenIndex": 1,
+                          "word": "glaubt"
+                        }
+                      ],
+                      "id": "matrixVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixIFeatures",
+                  "label": "I⁰ [+finite, present, 3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "adjunctionProjection": "scrambledReadingVP",
+            "complementTrace": "reportTrace",
+            "crossedAdjunct": "carefullyAdvP",
+            "governingVerb": "read",
+            "landingOccurrence": "reportNP"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "reportNP",
+            "sourceProjection": "readingVbar"
+          },
+          "relation": "local object scrambling and trace binding",
+          "values": {
+            "movement": "V-complement to left-adjoined lexical VP position",
+            "retainedCase": "accusative",
+            "retainedThetaRole": "Theme"
+          }
+        }
+      ],
+      "stageRecord": "The accusative report NP moves from the complement of lesen to a left-adjoined position on the lexical VP. Its source is replaced by an NP trace, still governed by lesen and connected to the moved NP by the scrambling chain. This is a local, clause-internal adjunction analysis of German scrambling, not movement into the embedded CP. It preserves the object's original theta role and accusative Case. Because the teacher has already raised to Spec-IP, the resulting order is der erfahrene Lehrer, den schwierigen Bericht, sorgfältig, lesen, wird. The adverb remains attached to the reading predicate; its interpretation has not been reassigned merely to obtain this order.",
+      "statement": "Derive the embedded object-before-adverb order by local scrambling.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraN",
+                              "label": "N⁰",
+                              "tokenIndex": 0,
+                              "word": "Mara"
+                            }
+                          ],
+                          "id": "maraNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maraNP",
+                      "label": "NP",
+                      "lineageId": "maraArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C⁰",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "teacherD",
+                                          "label": "D⁰",
+                                          "tokenIndex": 3,
+                                          "word": "der"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "experiencedA",
+                                                      "label": "A⁰",
+                                                      "tokenIndex": 4,
+                                                      "word": "erfahrene"
+                                                    }
+                                                  ],
+                                                  "id": "experiencedAbar",
+                                                  "label": "A′"
+                                                }
+                                              ],
+                                              "id": "experiencedAP",
+                                              "label": "AP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "teacherN",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 5,
+                                                  "word": "Lehrer"
+                                                }
+                                              ],
+                                              "id": "teacherNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "teacherNbarOuter",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "teacherNP",
+                                      "label": "NP",
+                                      "lineageId": "teacherArgument"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "reportD",
+                                                          "label": "D⁰",
+                                                          "tokenIndex": 6,
+                                                          "word": "den"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "difficultA",
+                                                                      "label": "A⁰",
+                                                                      "tokenIndex": 7,
+                                                                      "word": "schwierigen"
+                                                                    }
+                                                                  ],
+                                                                  "id": "difficultAbar",
+                                                                  "label": "A′"
+                                                                }
+                                                              ],
+                                                              "id": "difficultAP",
+                                                              "label": "AP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportN",
+                                                                  "label": "N⁰",
+                                                                  "tokenIndex": 8,
+                                                                  "word": "Bericht"
+                                                                }
+                                                              ],
+                                                              "id": "reportNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "reportNbarOuter",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "reportNP",
+                                                      "label": "NP",
+                                                      "lineageId": "reportArgument"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "teacherTrace",
+                                                          "label": "NP trace",
+                                                          "lineageId": "teacherArgument",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "carefullyAdv",
+                                                                      "label": "Adv⁰",
+                                                                      "tokenIndex": 9,
+                                                                      "word": "sorgfältig"
+                                                                    }
+                                                                  ],
+                                                                  "id": "carefullyAdvbar",
+                                                                  "label": "Adv′"
+                                                                }
+                                                              ],
+                                                              "id": "carefullyAdvP",
+                                                              "label": "AdvP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportTrace",
+                                                                  "label": "NP trace",
+                                                                  "lineageId": "reportArgument",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "read",
+                                                                  "label": "V⁰ [infinitive]",
+                                                                  "tokenIndex": 10,
+                                                                  "word": "lesen"
+                                                                }
+                                                              ],
+                                                              "id": "readingVbar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "readingVbarAdjunct",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "readingVP",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "scrambledReadingVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "futureTrace",
+                                                  "label": "V⁰ trace",
+                                                  "lineageId": "futureVerb",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "auxiliaryVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "auxiliaryVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "futureAux",
+                                              "label": "V⁰ [future auxiliary]",
+                                              "lineageId": "futureVerb",
+                                              "tokenIndex": 11,
+                                              "word": "wird"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "embeddedIFeatures",
+                                              "label": "I⁰ [+finite, future, 3sg]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "embeddedIHead",
+                                          "label": "I⁰"
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        },
+                        {
+                          "children": [],
+                          "id": "believe",
+                          "label": "V⁰",
+                          "lineageId": "beliefVerb",
+                          "tokenIndex": 1,
+                          "word": "glaubt"
+                        }
+                      ],
+                      "id": "matrixVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixIFeatures",
+                  "label": "I⁰ [+finite, present, 3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "maraNP",
+            "landingProjection": "matrixIP",
+            "thetaPositionTrace": "maraThetaTrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "maraNP",
+            "sourceProjection": "matrixVP"
+          },
+          "relation": "subject A-movement and trace binding",
+          "values": {
+            "movement": "Spec-VP to Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "matrixIFeatures",
+            "subject": "maraNP"
+          },
+          "relation": "nominative Case and finite agreement",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "movedHead": "believe",
+            "sourceTrace": "beliefTrace",
+            "targetHead": "matrixIHead"
+          },
+          "priorAnchors": {
+            "sourceHead": "believe",
+            "targetFeatures": "matrixIFeatures"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "movement": "lexical verb to head-final finite I"
+          }
+        }
+      ],
+      "stageRecord": "Mara raises from the matrix VP specifier to Spec-IP, leaving a theta-position trace. Matrix finite I assigns nominative Case and agrees with the third-person singular subject. Glaubt then moves from the head-final matrix V position into I, leaving a V trace. The whole inflected word is carried by the moved verbal head; the silent I feature head adds no separate pronounced material. The embedded CP remains the selected complement of the matrix verb and retains its completed subordinate-clause structure. This intermediate IP must be recorded because the next head movement starts from I rather than directly from the lexical V position.",
+      "statement": "Establish the matrix subject's Case position and move the finite lexical verb to I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "maraN",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Mara"
+                    }
+                  ],
+                  "id": "maraNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "maraNP",
+              "label": "NP",
+              "lineageId": "maraArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "maraThetaTrace",
+                      "label": "NP trace",
+                      "lineageId": "maraArgument",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dassC",
+                                  "label": "C⁰",
+                                  "tokenIndex": 2,
+                                  "word": "dass"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "teacherD",
+                                          "label": "D⁰",
+                                          "tokenIndex": 3,
+                                          "word": "der"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "experiencedA",
+                                                      "label": "A⁰",
+                                                      "tokenIndex": 4,
+                                                      "word": "erfahrene"
+                                                    }
+                                                  ],
+                                                  "id": "experiencedAbar",
+                                                  "label": "A′"
+                                                }
+                                              ],
+                                              "id": "experiencedAP",
+                                              "label": "AP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "teacherN",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 5,
+                                                  "word": "Lehrer"
+                                                }
+                                              ],
+                                              "id": "teacherNbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "teacherNbarOuter",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "teacherNP",
+                                      "label": "NP",
+                                      "lineageId": "teacherArgument"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "reportD",
+                                                          "label": "D⁰",
+                                                          "tokenIndex": 6,
+                                                          "word": "den"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "difficultA",
+                                                                      "label": "A⁰",
+                                                                      "tokenIndex": 7,
+                                                                      "word": "schwierigen"
+                                                                    }
+                                                                  ],
+                                                                  "id": "difficultAbar",
+                                                                  "label": "A′"
+                                                                }
+                                                              ],
+                                                              "id": "difficultAP",
+                                                              "label": "AP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportN",
+                                                                  "label": "N⁰",
+                                                                  "tokenIndex": 8,
+                                                                  "word": "Bericht"
+                                                                }
+                                                              ],
+                                                              "id": "reportNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "reportNbarOuter",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "reportNP",
+                                                      "label": "NP",
+                                                      "lineageId": "reportArgument"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "teacherTrace",
+                                                          "label": "NP trace",
+                                                          "lineageId": "teacherArgument",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "carefullyAdv",
+                                                                      "label": "Adv⁰",
+                                                                      "tokenIndex": 9,
+                                                                      "word": "sorgfältig"
+                                                                    }
+                                                                  ],
+                                                                  "id": "carefullyAdvbar",
+                                                                  "label": "Adv′"
+                                                                }
+                                                              ],
+                                                              "id": "carefullyAdvP",
+                                                              "label": "AdvP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportTrace",
+                                                                  "label": "NP trace",
+                                                                  "lineageId": "reportArgument",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "read",
+                                                                  "label": "V⁰ [infinitive]",
+                                                                  "tokenIndex": 10,
+                                                                  "word": "lesen"
+                                                                }
+                                                              ],
+                                                              "id": "readingVbar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "readingVbarAdjunct",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "readingVP",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "scrambledReadingVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "futureTrace",
+                                                  "label": "V⁰ trace",
+                                                  "lineageId": "futureVerb",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "auxiliaryVbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "auxiliaryVP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "futureAux",
+                                              "label": "V⁰ [future auxiliary]",
+                                              "lineageId": "futureVerb",
+                                              "tokenIndex": 11,
+                                              "word": "wird"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "embeddedIFeatures",
+                                              "label": "I⁰ [+finite, future, 3sg]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "embeddedIHead",
+                                          "label": "I⁰"
+                                        }
+                                      ],
+                                      "id": "embeddedIbar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        },
+                        {
+                          "children": [],
+                          "id": "beliefTrace",
+                          "label": "V⁰ trace",
+                          "lineageId": "beliefVerb",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "believe",
+                      "label": "V⁰",
+                      "lineageId": "beliefVerb",
+                      "tokenIndex": 1,
+                      "word": "glaubt"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixIFeatures",
+                      "label": "I⁰ [+finite, present, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixIHead",
+                  "label": "I⁰",
+                  "lineageId": "matrixFiniteHead"
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "movedHead": "matrixIHead",
+            "sourceTrace": "matrixITrace",
+            "targetHead": "matrixCHead"
+          },
+          "priorAnchors": {
+            "sourceHead": "matrixIHead",
+            "sourceProjection": "matrixIbar"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "clauseType": "German V2 declarative",
+            "movement": "finite I to declarative matrix C"
+          }
+        }
+      ],
+      "stageRecord": "A declarative matrix CP is projected over the existing IP. Its initially silent C head hosts the complex finite I head, which moves from the position explicitly established in the previous stage and leaves an I trace. This successive V-to-I-to-C derivation respects the intervening head position. The pronounced verb is now in the matrix left bracket, while the embedded complement remains in the matrix VP. Spec-CP is not yet filled, so this stage establishes verb placement but not the completed subject-initial V2 order. Unlike the matrix clause, the dass clause retains its overt complementizer and clause-final finite I.",
+      "statement": "Construct the matrix CP and move the finite I head to C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "believe",
+                          "label": "V⁰",
+                          "lineageId": "beliefVerb",
+                          "tokenIndex": 1,
+                          "word": "glaubt"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixIFeatures",
+                          "label": "I⁰ [+finite, present, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIHead",
+                      "label": "I⁰",
+                      "lineageId": "matrixFiniteHead"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixCFeatures",
+                      "label": "C⁰ [+declarative, V2]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixCHead",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraN",
+                              "label": "N⁰",
+                              "tokenIndex": 0,
+                              "word": "Mara"
+                            }
+                          ],
+                          "id": "maraNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maraNP",
+                      "label": "NP",
+                      "lineageId": "maraArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraThetaTrace",
+                              "label": "NP trace",
+                              "lineageId": "maraArgument",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dassC",
+                                          "label": "C⁰",
+                                          "tokenIndex": 2,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "teacherD",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 3,
+                                                  "word": "der"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "experiencedA",
+                                                              "label": "A⁰",
+                                                              "tokenIndex": 4,
+                                                              "word": "erfahrene"
+                                                            }
+                                                          ],
+                                                          "id": "experiencedAbar",
+                                                          "label": "A′"
+                                                        }
+                                                      ],
+                                                      "id": "experiencedAP",
+                                                      "label": "AP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "teacherN",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Lehrer"
+                                                        }
+                                                      ],
+                                                      "id": "teacherNbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "teacherNbarOuter",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "teacherNP",
+                                              "label": "NP",
+                                              "lineageId": "teacherArgument"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportD",
+                                                                  "label": "D⁰",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "difficultA",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "difficultAbar",
+                                                                          "label": "A′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "difficultAP",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportN",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "reportNbar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "reportNbarOuter",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "reportNP",
+                                                              "label": "NP",
+                                                              "lineageId": "reportArgument"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "teacherTrace",
+                                                                  "label": "NP trace",
+                                                                  "lineageId": "teacherArgument",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "carefullyAdv",
+                                                                              "label": "Adv⁰",
+                                                                              "tokenIndex": 9,
+                                                                              "word": "sorgfältig"
+                                                                            }
+                                                                          ],
+                                                                          "id": "carefullyAdvbar",
+                                                                          "label": "Adv′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "carefullyAdvP",
+                                                                      "label": "AdvP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportTrace",
+                                                                          "label": "NP trace",
+                                                                          "lineageId": "reportArgument",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "read",
+                                                                          "label": "V⁰ [infinitive]",
+                                                                          "tokenIndex": 10,
+                                                                          "word": "lesen"
+                                                                        }
+                                                                      ],
+                                                                      "id": "readingVbar",
+                                                                      "label": "V′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "readingVbarAdjunct",
+                                                                  "label": "V′"
+                                                                }
+                                                              ],
+                                                              "id": "readingVP",
+                                                              "label": "VP"
+                                                            }
+                                                          ],
+                                                          "id": "scrambledReadingVP",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "futureTrace",
+                                                          "label": "V⁰ trace",
+                                                          "lineageId": "futureVerb",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "auxiliaryVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "auxiliaryVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "futureAux",
+                                                      "label": "V⁰ [future auxiliary]",
+                                                      "lineageId": "futureVerb",
+                                                      "tokenIndex": 11,
+                                                      "word": "wird"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedIFeatures",
+                                                      "label": "I⁰ [+finite, future, 3sg]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "embeddedIHead",
+                                                  "label": "I⁰"
+                                                }
+                                              ],
+                                              "id": "embeddedIbar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCbar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "beliefTrace",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "beliefVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixITrace",
+                          "label": "I⁰ trace",
+                          "lineageId": "matrixFiniteHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "casePositionTrace": "maraIPTrace",
+            "landingProjection": "matrixCP",
+            "prefieldOccurrence": "maraNP",
+            "thetaPositionTrace": "maraThetaTrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "maraNP",
+            "sourceProjection": "matrixIP"
+          },
+          "relation": "matrix prefield A-bar movement and trace binding",
+          "values": {
+            "movement": "Spec-IP to Spec-CP",
+            "retainedCase": "nominative",
+            "retainedThetaRole": "Experiencer"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHeadPosition": "matrixCHead",
+            "finiteVerb": "believe",
+            "prefieldConstituent": "maraNP",
+            "selectedProposition": "embeddedCP"
+          },
+          "relation": "completed matrix V2 configuration",
+          "values": {
+            "surfaceConfiguration": "one prefield constituent followed by the finite verb in C"
+          }
+        }
+      ],
+      "stageRecord": "Mara moves from the already established Spec-IP position to Spec-CP, leaving a second NP trace. This A-bar movement fills the matrix prefield; it need not imply contrastive emphasis. Its nominative Case and theta interpretation remain inherited through the earlier A-chain. The completed matrix order is Mara followed by glaubt in C and the selected dass clause. Within that clause, the nominative subject precedes the locally scrambled accusative object, the manner adverb modifies lesen, and wird occupies final I. The trace chains preserve each argument's theta position and each moved head's source. All supplied words are pronounced exactly once in their indexed order. The comma and period belong to the written sentence but are not separate supplied tokens or syntactic terminals.",
+      "statement": "Complete the subject-initial matrix V2 clause and the full input analysis.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "maraN",
+                      "label": "N⁰",
+                      "tokenIndex": 0,
+                      "word": "Mara"
+                    }
+                  ],
+                  "id": "maraNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "maraNP",
+              "label": "NP",
+              "lineageId": "maraArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "believe",
+                          "label": "V⁰",
+                          "lineageId": "beliefVerb",
+                          "tokenIndex": 1,
+                          "word": "glaubt"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixIFeatures",
+                          "label": "I⁰ [+finite, present, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIHead",
+                      "label": "I⁰",
+                      "lineageId": "matrixFiniteHead"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixCFeatures",
+                      "label": "C⁰ [+declarative, V2]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixCHead",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "maraIPTrace",
+                      "label": "NP trace",
+                      "lineageId": "maraArgument",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maraThetaTrace",
+                              "label": "NP trace",
+                              "lineageId": "maraArgument",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dassC",
+                                          "label": "C⁰",
+                                          "tokenIndex": 2,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "teacherD",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 3,
+                                                  "word": "der"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "experiencedA",
+                                                              "label": "A⁰",
+                                                              "tokenIndex": 4,
+                                                              "word": "erfahrene"
+                                                            }
+                                                          ],
+                                                          "id": "experiencedAbar",
+                                                          "label": "A′"
+                                                        }
+                                                      ],
+                                                      "id": "experiencedAP",
+                                                      "label": "AP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "teacherN",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Lehrer"
+                                                        }
+                                                      ],
+                                                      "id": "teacherNbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "teacherNbarOuter",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "teacherNP",
+                                              "label": "NP",
+                                              "lineageId": "teacherArgument"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "reportD",
+                                                                  "label": "D⁰",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "difficultA",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "difficultAbar",
+                                                                          "label": "A′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "difficultAP",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportN",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "reportNbar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "reportNbarOuter",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "reportNP",
+                                                              "label": "NP",
+                                                              "lineageId": "reportArgument"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "teacherTrace",
+                                                                  "label": "NP trace",
+                                                                  "lineageId": "teacherArgument",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "carefullyAdv",
+                                                                              "label": "Adv⁰",
+                                                                              "tokenIndex": 9,
+                                                                              "word": "sorgfältig"
+                                                                            }
+                                                                          ],
+                                                                          "id": "carefullyAdvbar",
+                                                                          "label": "Adv′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "carefullyAdvP",
+                                                                      "label": "AdvP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportTrace",
+                                                                          "label": "NP trace",
+                                                                          "lineageId": "reportArgument",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "read",
+                                                                          "label": "V⁰ [infinitive]",
+                                                                          "tokenIndex": 10,
+                                                                          "word": "lesen"
+                                                                        }
+                                                                      ],
+                                                                      "id": "readingVbar",
+                                                                      "label": "V′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "readingVbarAdjunct",
+                                                                  "label": "V′"
+                                                                }
+                                                              ],
+                                                              "id": "readingVP",
+                                                              "label": "VP"
+                                                            }
+                                                          ],
+                                                          "id": "scrambledReadingVP",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "futureTrace",
+                                                          "label": "V⁰ trace",
+                                                          "lineageId": "futureVerb",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "auxiliaryVbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "auxiliaryVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "futureAux",
+                                                      "label": "V⁰ [future auxiliary]",
+                                                      "lineageId": "futureVerb",
+                                                      "tokenIndex": 11,
+                                                      "word": "wird"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedIFeatures",
+                                                      "label": "I⁰ [+finite, future, 3sg]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "embeddedIHead",
+                                                  "label": "I⁰"
+                                                }
+                                              ],
+                                              "id": "embeddedIbar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCbar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "beliefTrace",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "beliefVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixITrace",
+                          "label": "I⁰ trace",
+                          "lineageId": "matrixFiniteHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

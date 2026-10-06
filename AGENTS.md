@@ -91,6 +91,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 
 - Use `npm run qualification:codex` for OpenAI qualification generations with the user's Codex OAuth. Never substitute API-key requests or a paid fallback without explicit user authorization.
 - During implementation, run the smallest focused test proving the changed behavior.
+- Renderer startup has a PR performance budget. For renderer, layout, worker, or font changes, run `npm run verify:renderer-performance -- --baseline-root /path/to/base-checkout` with installed locked dependencies in both checkouts. A slowdown must be investigated and fixed before sign-off; do not weaken the fixture, timing boundary, or budget to make it pass. Intentional budget changes require explicit user approval.
 - Behavior changes require focused regression tests.
 - Run `npm run verify:all` once before completing broad, shared, contract, fixture, or release work. Documentation-only changes do not require it.
 - Wait for a real completion signal: a receipt or event, successful process exit, listening server, or rendered UI state.
