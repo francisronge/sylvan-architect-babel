@@ -1,0 +1,978 @@
+{
+  "cases": [
+    {
+      "key": "holdout/english-focused-raising/1",
+      "sentence": "Only those two students seem to have been invited.",
+      "inputTokens": [
+        "Only",
+        "those",
+        "two",
+        "students",
+        "seem",
+        "to",
+        "have",
+        "been",
+        "invited"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "bSubject",
+                "predicate": "bInvited"
+              },
+              "relation": "thematic-role assignment",
+              "values": {
+                "role": "Theme"
+              }
+            }
+          ],
+          "stageRecord": "Those heads a demonstrative DP containing the cardinal projection headed by two and the nominal projection headed by students. This DP is generated as the complement of invited and receives the Theme role. Only independently projects AdvP but is not attached to the DP. This prepares the distinct clause-adjoined analysis: Only will take the matrix proposition as its syntactic domain while associating with the subject. Invited is a whole-word passive participle, and the analysis does not introduce an unpronounced agent DP.",
+          "statement": "Construct the thematic object without Only, retaining Only as a separate clause-level focus adjunct.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bOnly",
+                      "label": "Adv [focus operator]",
+                      "tokenIndex": 0,
+                      "word": "Only"
+                    }
+                  ],
+                  "id": "bOnlyBar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "bOnlyP",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bInvited",
+                      "label": "V [passive participle]",
+                      "tokenIndex": 8,
+                      "word": "invited"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bThose",
+                              "label": "D [demonstrative]",
+                              "tokenIndex": 1,
+                              "word": "those"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bTwo",
+                                      "label": "Num [cardinal]",
+                                      "tokenIndex": 2,
+                                      "word": "two"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bStudents",
+                                              "label": "N [plural]",
+                                              "tokenIndex": 3,
+                                              "word": "students"
+                                            }
+                                          ],
+                                          "id": "bNBar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "bNP",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "bNumBar",
+                                  "label": "Num′"
+                                }
+                              ],
+                              "id": "bNumP",
+                              "label": "NumP"
+                            }
+                          ],
+                          "id": "bDBar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "bSubject",
+                      "label": "DP",
+                      "lineageId": "bThemeChain"
+                    }
+                  ],
+                  "id": "bLowerVBar",
+                  "label": "V′"
+                }
+              ],
+              "id": "bLowerVP",
+              "label": "VP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "internalArgument": "bSubject",
+                "participle": "bInvited",
+                "passiveAuxiliary": "bBeen"
+              },
+              "relation": "passive licensing",
+              "values": {
+                "externalThetaRole": "suppressed",
+                "structuralAccusative": "unavailable"
+              }
+            }
+          ],
+          "stageRecord": "The passive auxiliary been selects the participial VP, perfect have selects the VP headed by been, and infinitival I to selects the perfect VP. The resulting IP has no occupied subject position yet. Passive licensing suppresses the external argument and makes structural accusative unavailable to the Theme DP. To is nonfinite and cannot assign nominative Case. Only remains a separate active AdvP because its intended attachment domain is the matrix clause, which has not yet been constructed. All auxiliaries and participles are represented as whole words.",
+          "statement": "Build the passive-perfect infinitive while keeping the clause-level Only unattached.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bOnly",
+                      "label": "Adv [focus operator]",
+                      "tokenIndex": 0,
+                      "word": "Only"
+                    }
+                  ],
+                  "id": "bOnlyBar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "bOnlyP",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bTo",
+                      "label": "I [nonfinite]",
+                      "tokenIndex": 5,
+                      "word": "to"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bHave",
+                              "label": "V [perfect auxiliary]",
+                              "tokenIndex": 6,
+                              "word": "have"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bBeen",
+                                      "label": "V [passive auxiliary, participial]",
+                                      "tokenIndex": 7,
+                                      "word": "been"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bInvited",
+                                              "label": "V [passive participle]",
+                                              "tokenIndex": 8,
+                                              "word": "invited"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "bThose",
+                                                      "label": "D [demonstrative]",
+                                                      "tokenIndex": 1,
+                                                      "word": "those"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "bTwo",
+                                                              "label": "Num [cardinal]",
+                                                              "tokenIndex": 2,
+                                                              "word": "two"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "bStudents",
+                                                                      "label": "N [plural]",
+                                                                      "tokenIndex": 3,
+                                                                      "word": "students"
+                                                                    }
+                                                                  ],
+                                                                  "id": "bNBar",
+                                                                  "label": "N′"
+                                                                }
+                                                              ],
+                                                              "id": "bNP",
+                                                              "label": "NP"
+                                                            }
+                                                          ],
+                                                          "id": "bNumBar",
+                                                          "label": "Num′"
+                                                        }
+                                                      ],
+                                                      "id": "bNumP",
+                                                      "label": "NumP"
+                                                    }
+                                                  ],
+                                                  "id": "bDBar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "bSubject",
+                                              "label": "DP",
+                                              "lineageId": "bThemeChain"
+                                            }
+                                          ],
+                                          "id": "bLowerVBar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "bLowerVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "bPassiveVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "bPassiveVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "bPerfectVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "bPerfectVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "bEmbeddedIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "bEmbeddedIP",
+              "label": "IP [infinitival]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingProjection": "bEmbeddedIP",
+                "movedDP": "bSubject",
+                "objectTrace": "bObjectTrace"
+              },
+              "priorAnchors": {
+                "sourceDP": "bSubject",
+                "sourceProjection": "bLowerVBar"
+              },
+              "relation": "passive A-movement",
+              "values": {
+                "landingPosition": "Spec-IP of the infinitive",
+                "sourcePosition": "complement of V"
+              }
+            }
+          ],
+          "stageRecord": "The demonstrative DP moves from the previously established complement position of invited into embedded Spec-IP. Its object position is replaced by a silent DP trace with the same chain identity. Only is not part of the DP and therefore does not participate in this movement. Passive movement establishes the embedded subject but does not provide a new theta role or Case: the DP's Theme role comes from invited, and infinitival to cannot assign nominative. The independent AdvP is preserved for later matrix adjunction.",
+          "statement": "Move those two students to the embedded subject position, leaving Only outside the movement chain.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bOnly",
+                      "label": "Adv [focus operator]",
+                      "tokenIndex": 0,
+                      "word": "Only"
+                    }
+                  ],
+                  "id": "bOnlyBar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "bOnlyP",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bThose",
+                          "label": "D [demonstrative]",
+                          "tokenIndex": 1,
+                          "word": "those"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bTwo",
+                                  "label": "Num [cardinal]",
+                                  "tokenIndex": 2,
+                                  "word": "two"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bStudents",
+                                          "label": "N [plural]",
+                                          "tokenIndex": 3,
+                                          "word": "students"
+                                        }
+                                      ],
+                                      "id": "bNBar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "bNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "bNumBar",
+                              "label": "Num′"
+                            }
+                          ],
+                          "id": "bNumP",
+                          "label": "NumP"
+                        }
+                      ],
+                      "id": "bDBar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "bSubject",
+                  "label": "DP",
+                  "lineageId": "bThemeChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bTo",
+                      "label": "I [nonfinite]",
+                      "tokenIndex": 5,
+                      "word": "to"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bHave",
+                              "label": "V [perfect auxiliary]",
+                              "tokenIndex": 6,
+                              "word": "have"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bBeen",
+                                      "label": "V [passive auxiliary, participial]",
+                                      "tokenIndex": 7,
+                                      "word": "been"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bInvited",
+                                              "label": "V [passive participle]",
+                                              "tokenIndex": 8,
+                                              "word": "invited"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "bObjectTrace",
+                                              "label": "DP [A-trace]",
+                                              "lineageId": "bThemeChain",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "bLowerVBar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "bLowerVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "bPassiveVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "bPassiveVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "bPerfectVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "bPerfectVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "bEmbeddedIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "bEmbeddedIP",
+              "label": "IP [infinitival]"
+            }
+          ]
+        },
+        {
+          "relations": [],
+          "stageRecord": "Seem selects the existing infinitival IP and projects the matrix VP. Silent finite I projects matrix IP, carrying present tense and plural agreement features; its subject position is still unoccupied. Seem contributes no external theta role and does not exceptionally Case-mark the embedded subject, so that subject must raise rather than remain in the infinitive. No PRO or separate matrix thematic subject is introduced. Seem is retained as a whole-word finite form, without overt V-to-I movement or morphological decomposition. Only remains an independent AdvP until the matrix subject position is filled and its propositional attachment domain is complete.",
+          "statement": "Construct the finite raising clause that will host the clause-level focus adjunct.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bOnly",
+                      "label": "Adv [focus operator]",
+                      "tokenIndex": 0,
+                      "word": "Only"
+                    }
+                  ],
+                  "id": "bOnlyBar",
+                  "label": "Adv′"
+                }
+              ],
+              "id": "bOnlyP",
+              "label": "AdvP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bFiniteI",
+                      "label": "I [finite, present, plural]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bSeem",
+                              "label": "V [raising, present]",
+                              "tokenIndex": 4,
+                              "word": "seem"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bThose",
+                                          "label": "D [demonstrative]",
+                                          "tokenIndex": 1,
+                                          "word": "those"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "bTwo",
+                                                  "label": "Num [cardinal]",
+                                                  "tokenIndex": 2,
+                                                  "word": "two"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "bStudents",
+                                                          "label": "N [plural]",
+                                                          "tokenIndex": 3,
+                                                          "word": "students"
+                                                        }
+                                                      ],
+                                                      "id": "bNBar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "bNP",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "bNumBar",
+                                              "label": "Num′"
+                                            }
+                                          ],
+                                          "id": "bNumP",
+                                          "label": "NumP"
+                                        }
+                                      ],
+                                      "id": "bDBar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "bSubject",
+                                  "label": "DP",
+                                  "lineageId": "bThemeChain"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bTo",
+                                      "label": "I [nonfinite]",
+                                      "tokenIndex": 5,
+                                      "word": "to"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bHave",
+                                              "label": "V [perfect auxiliary]",
+                                              "tokenIndex": 6,
+                                              "word": "have"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "bBeen",
+                                                      "label": "V [passive auxiliary, participial]",
+                                                      "tokenIndex": 7,
+                                                      "word": "been"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "bInvited",
+                                                              "label": "V [passive participle]",
+                                                              "tokenIndex": 8,
+                                                              "word": "invited"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "bObjectTrace",
+                                                              "label": "DP [A-trace]",
+                                                              "lineageId": "bThemeChain",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "bLowerVBar",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "bLowerVP",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "bPassiveVBar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "bPassiveVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "bPerfectVBar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "bPerfectVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "bEmbeddedIBar",
+                                  "label": "I′"
+                                }
+                              ],
+                              "id": "bEmbeddedIP",
+                              "label": "IP [infinitival]"
+                            }
+                          ],
+                          "id": "bMatrixVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "bMatrixVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "bMatrixIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "bMatrixIP",
+              "label": "IP [finite]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingProjection": "bMatrixIP",
+                "movedDP": "bSubject",
+                "subjectTrace": "bSubjectTrace"
+              },
+              "priorAnchors": {
+                "sourceDP": "bSubject",
+                "sourceProjection": "bEmbeddedIP"
+              },
+              "relation": "raising A-movement",
+              "values": {
+                "landingPosition": "matrix Spec-IP",
+                "sourcePosition": "embedded Spec-IP"
+              }
+            },
+            {
+              "anchors": {
+                "finiteVerb": "bSeem",
+                "licensor": "bFiniteI",
+                "nominalHead": "bStudents",
+                "subject": "bSubject"
+              },
+              "relation": "nominative and finite agreement licensing",
+              "values": {
+                "agreement": "third-person plural",
+                "case": "nominative",
+                "tense": "present"
+              }
+            },
+            {
+              "anchors": {
+                "chainHead": "bSubject",
+                "intermediateTrace": "bSubjectTrace",
+                "thematicTrace": "bObjectTrace",
+                "thetaAssigningPredicate": "bInvited"
+              },
+              "relation": "A-chain licensing",
+              "values": {
+                "case": "nominative",
+                "chainType": "passive followed by raising",
+                "thetaRole": "Theme",
+                "traceLicensing": "successive A-binding through the transparent infinitival IP"
+              }
+            },
+            {
+              "anchors": {
+                "adjunctionProjection": "bOuterIP",
+                "associate": "bSubject",
+                "operator": "bOnly",
+                "scopeDomain": "bMatrixIP"
+              },
+              "relation": "focus association",
+              "values": {
+                "attachment": "IP adjunction",
+                "interpretation": "exclusive restriction on subject alternatives to the matrix proposition"
+              }
+            }
+          ],
+          "stageRecord": "First, those two students moves from the embedded Spec-IP already present to matrix Spec-IP, leaving a silent intermediate DP trace. Finite I assigns nominative Case and licenses third-person plural agreement on seem. The completed A-chain connects this Case position through the embedded subject trace to the Theme position under invited; it contains no additional theta role or control dependency. Only then adjoins as AdvP to the completed matrix IP, producing an outer IP segment. Unlike the DP-attached analysis, Only is not a member of the raised constituent: it has the matrix proposition as its structural scope domain and associates with the subject focus. Its alternatives are propositions differing in the relevant subject, so this reading can overlap truth-conditionally with nominal Only while remaining structurally distinct. It does not require an unpronounced occurrence of Only inside the infinitive. The final pronounced sequence exactly matches all nine input tokens.",
+          "statement": "Complete subject raising and adjoin Only to the finite IP with subject-focused association.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bOnly",
+                          "label": "Adv [focus operator]",
+                          "tokenIndex": 0,
+                          "word": "Only"
+                        }
+                      ],
+                      "id": "bOnlyBar",
+                      "label": "Adv′"
+                    }
+                  ],
+                  "id": "bOnlyP",
+                  "label": "AdvP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bThose",
+                              "label": "D [demonstrative]",
+                              "tokenIndex": 1,
+                              "word": "those"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bTwo",
+                                      "label": "Num [cardinal]",
+                                      "tokenIndex": 2,
+                                      "word": "two"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bStudents",
+                                              "label": "N [plural]",
+                                              "tokenIndex": 3,
+                                              "word": "students"
+                                            }
+                                          ],
+                                          "id": "bNBar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "bNP",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "bNumBar",
+                                  "label": "Num′"
+                                }
+                              ],
+                              "id": "bNumP",
+                              "label": "NumP"
+                            }
+                          ],
+                          "id": "bDBar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "bSubject",
+                      "label": "DP",
+                      "lineageId": "bThemeChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bFiniteI",
+                          "label": "I [finite, present, plural]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bSeem",
+                                  "label": "V [raising, present]",
+                                  "tokenIndex": 4,
+                                  "word": "seem"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bSubjectTrace",
+                                      "label": "DP [A-trace]",
+                                      "lineageId": "bThemeChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bTo",
+                                          "label": "I [nonfinite]",
+                                          "tokenIndex": 5,
+                                          "word": "to"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "bHave",
+                                                  "label": "V [perfect auxiliary]",
+                                                  "tokenIndex": 6,
+                                                  "word": "have"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "bBeen",
+                                                          "label": "V [passive auxiliary, participial]",
+                                                          "tokenIndex": 7,
+                                                          "word": "been"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "bInvited",
+                                                                  "label": "V [passive participle]",
+                                                                  "tokenIndex": 8,
+                                                                  "word": "invited"
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "bObjectTrace",
+                                                                  "label": "DP [A-trace]",
+                                                                  "lineageId": "bThemeChain",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "bLowerVBar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "bLowerVP",
+                                                          "label": "VP"
+                                                        }
+                                                      ],
+                                                      "id": "bPassiveVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "bPassiveVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "bPerfectVBar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "bPerfectVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "bEmbeddedIBar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "bEmbeddedIP",
+                                  "label": "IP [infinitival]"
+                                }
+                              ],
+                              "id": "bMatrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "bMatrixVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "bMatrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "bMatrixIP",
+                  "label": "IP [finite]"
+                }
+              ],
+              "id": "bOuterIP",
+              "label": "IP [adjunction segment]"
+            }
+          ]
+        }
+      ],
+      "boundary": {
+        "before": 45,
+        "after": 46,
+        "root": "bMatrixIP",
+        "parent": "bOuterIP"
+      }
+    }
+  ]
+}

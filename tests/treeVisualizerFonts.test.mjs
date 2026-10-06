@@ -20,7 +20,7 @@ test('initial font events produce one layout invalidation after all requested fa
   const fonts = fontSet();
   let calls = 0;
   const dispose = watchTreeVisualizerFonts(fonts.set, () => calls++, 'עבריתあğφ');
-  assert.equal(fonts.loads.length, 3);
+  assert.equal(fonts.loads.length, 7);
   fonts.loads.forEach(load => assert('θᵢⱼעבריתあğφ'.split('').every(character => load.text.includes(character)),
     'load each recorded script, renderer heading, and chain index before layout'));
   fonts.loads.forEach(load => load.resolve([]));
@@ -32,12 +32,31 @@ test('initial font events produce one layout invalidation after all requested fa
   await flush();
   assert.equal(calls, 1);
   fonts.emit('Crimson Pro');
-  assert.equal(calls, 1, 'unrelated text fonts do not invalidate plaque measurements');
+  assert.equal(calls, 2, 'index font changes invalidate measured syntax ink');
+  fonts.emit('Unrelated font');
+  assert.equal(calls, 2);
   fonts.emit('"Quicksand"');
-  assert.equal(calls, 2, 'later relevant font changes still update measured geometry');
+  assert.equal(calls, 3, 'later relevant font changes still update measured geometry');
   dispose();
   fonts.emit('JetBrains Mono');
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
+});
+
+test('fallback-role font settles before the first layout instead of triggering a second pass', async () => {
+  const fonts = fontSet();
+  let calls = 0;
+  const dispose = watchTreeVisualizerFonts(fonts.set, () => calls++, 'depictedIndividual');
+  const fallback = fonts.loads.find(load => /^600 12px ["']?Crimson Pro/.test(load.font));
+  assert.ok(fallback, 'request the normal semibold face used by neutral fallback roles');
+  fonts.loads.filter(load => load !== fallback).forEach(load => load.resolve([]));
+  fonts.ready();
+  await flush();
+  assert.equal(calls, 0, 'font-set readiness alone cannot bypass the pending fallback face');
+  fonts.emit('Crimson Pro');
+  fallback.resolve([]);
+  await flush();
+  assert.equal(calls, 1);
+  dispose();
 });
 
 test('a failed font request still permits layout using the browser fallback', async () => {

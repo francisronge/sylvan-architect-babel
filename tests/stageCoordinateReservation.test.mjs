@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from '../replay/currentSiblingRanks.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
 import { buildStageCameraBounds, buildReplayPlaqueLayouts, measureStagePlaqueSpace, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
@@ -90,6 +91,106 @@ for (const direction of ['ltr', 'rtl']) test(`${direction}: root growth keeps th
   assert.deepEqual(first.get('complement-clause'), last.get('complement-clause'), 'the complement stays put');
   assert.deepEqual(first, positions(laidOut(steps[1], steps, size, direction)), 'repeated frames retain the same shape');
   assert(!steps[0].replayVisibleNodeIds.includes('bar'), 'the later fork remains absent until growth');
+});
+
+for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+  test(`${width}px ${direction}: a nested unary branch keeps one rank before adjunct attachment`, () => {
+    const core = clause('core'), sister = clause('sister');
+    const before = branch('root', [branch('nominal', [core]), sister]);
+    const after = branch('root', [branch('nominal', [branch('adjunction', [core, clause('relative')])]), sister]);
+    const steps = stepsFor([before, before, after]), source = structuredClone(steps);
+    const size = stageTreeLayoutSize(steps, 0, width, height);
+    const first = positions(laidOut(steps[0], steps, size, direction));
+    const repeated = positions(laidOut(steps[1], steps, size, direction));
+    const last = positions(laidOut(steps[2], steps, size, direction));
+    assert(Math.abs((first.get('core-clause').y - first.get('nominal').y)
+      - (last.get('core-clause').y - last.get('adjunction').y)) < 1e-8, 'the unbuilt adjunct parent contributes no extra rank');
+    assert.deepEqual(first, repeated, 'waiting frames keep one shape');
+    const delta = last.get('core-clause').y - first.get('core-clause').y;
+    assert(delta > 0, 'the new rank appears at actual adjunction');
+    for (const node of d3.hierarchy(core).descendants()) {
+      const id = node.data.id;
+      assert(Math.abs(last.get(id).y - first.get(id).y - delta) < 1e-8, 'the complete current subtree keeps its vertical proportions');
+    }
+    assert.equal(first.get('nominal').y, last.get('nominal').y, 'the incoming branch is not stretched');
+    for (const node of d3.hierarchy(sister).descendants()) assert.deepEqual(first.get(node.data.id), last.get(node.data.id));
+    assert.deepEqual(steps, source, 'rank reservation cannot alter syntax or visibility');
+  });
+}
+
+test('unary rank correction leaves completed coordinates and horizontal reservations untouched', () => {
+  const core = branch('core', [leaf('word', 'books')]);
+  const scene = canvas => {
+    const root = d3.hierarchy(canvas); applyVizIds(root);
+    const tree = d3.tree().nodeSize([100, 100])(root), nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+    return { nodes, visible: new Set(nodes.keys()), coordinates: positions(tree) };
+  };
+  const current = scene(branch('parent', [core]));
+  const future = scene(branch('parent', [branch('wrapper', [core, leaf('adjunct', 'today')])]));
+  for (const [id, point] of current.coordinates) current.coordinates.set(id, { x: point.x + 23, y: future.coordinates.get(id).y + 37 });
+  const completed = structuredClone(future.coordinates), prior = structuredClone(current.coordinates);
+  retainCurrentUnaryRank(current, future);
+  assert.equal(current.coordinates.get('core').y - current.coordinates.get('parent').y, 100);
+  for (const [id, point] of current.coordinates) assert.equal(point.x, prior.get(id).x, `${id} keeps its horizontal reservation`);
+  assert.deepEqual(future.coordinates, completed, 'the completed drawing is unchanged');
+});
+
+test('unary rank correction leaves a visible island below an unavailable parent in place', () => {
+  const core = branch('core', [branch('unbuilt', [leaf('loose', 'today')])]);
+  const scene = canvas => {
+    const root = d3.hierarchy(canvas); applyVizIds(root);
+    const tree = d3.tree().nodeSize([100, 100])(root);
+    const nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+    return { nodes, visible: new Set(nodes.keys()), coordinates: positions(tree) };
+  };
+  const current = scene(branch('parent', [core]));
+  const future = scene(branch('parent', [branch('wrapper', [core])]));
+  current.visible.delete('unbuilt');
+  current.coordinates.set('core', { x: 0, y: 200 });
+  const detached = { ...current.coordinates.get('loose') };
+  const unavailable = { ...current.coordinates.get('unbuilt') };
+  retainCurrentUnaryRank(current, future);
+  assert.equal(current.coordinates.get('core').y, 100, 'the connected unary edge is corrected');
+  assert.deepEqual(current.coordinates.get('loose'), detached, 'a disconnected visible object keeps its own position');
+  assert.deepEqual(current.coordinates.get('unbuilt'), unavailable, 'the unavailable scaffold is not current syntax');
+});
+
+test('sister rank correction leaves a visible island below an unavailable parent in place', () => {
+  const core = branch('core', [branch('unbuilt', [leaf('loose', 'today')])]);
+  const sister = leaf('sister', 'books');
+  const scene = canvas => {
+    const root = d3.hierarchy(canvas); applyVizIds(root);
+    const tree = d3.tree().nodeSize([100, 100])(root);
+    const nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+    return { nodes, visible: new Set(nodes.keys()), coordinates: positions(tree) };
+  };
+  const current = scene(branch('parent', [sister, core]));
+  const future = scene(branch('parent', [sister, branch('wrapper', [core])]));
+  current.visible.delete('unbuilt');
+  current.coordinates.set('core', { ...current.coordinates.get('core'), y: 200 });
+  const detached = { ...current.coordinates.get('loose') };
+  retainCurrentSiblingRanks(current, future);
+  assert.equal(current.coordinates.get('core').y, current.coordinates.get('sister').y);
+  assert.deepEqual(current.coordinates.get('loose'), detached, 'the disconnected object is not part of the corrected sister');
+});
+
+for (const existingWrapper of [false, true]) test(`unary ranks are untouched ${existingWrapper ? 'when the future wrapper already exists' : 'without an inserted ancestor'}`, () => {
+  const core = branch('core', [leaf('word', 'books')]);
+  const currentRoot = branch('root', [branch('parent', [core]), ...(existingWrapper ? [leaf('wrapper', 'elsewhere')] : [])]);
+  const futureRoot = existingWrapper ? branch('root', [branch('parent', [branch('wrapper', [core])])]) : currentRoot;
+  const scene = canvas => {
+    const root = d3.hierarchy(canvas); applyVizIds(root);
+    const tree = d3.tree().nodeSize([100, 100])(root), nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+    const coordinates = positions(tree);
+    tree.descendants().filter(node => node.ancestors().some(ancestor => getNodeId(ancestor) === 'core')).forEach(node => {
+      const id = getNodeId(node), point = coordinates.get(id);
+      coordinates.set(id, { ...point, y: point.y + 100 });
+    });
+    return { nodes, visible: new Set(nodes.keys()), coordinates };
+  };
+  const current = scene(currentRoot), future = scene(futureRoot), before = structuredClone(current.coordinates);
+  retainCurrentUnaryRank(current, future);
+  assert.deepEqual(current.coordinates, before, 'a current branch cannot be shortened merely because it is long');
 });
 
 test('an authored relocation keeps its earlier attachment until movement while unrelated syntax stays fixed', () => {

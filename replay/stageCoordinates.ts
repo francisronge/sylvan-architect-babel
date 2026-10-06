@@ -1,13 +1,20 @@
+import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
+import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
+import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
+import { categoryMetricKey } from './categoryMetricKey.ts';
+import { treeInkMetricKey } from './treeInkMetricKey.ts';
+import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import * as d3 from 'd3';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import type { SyntaxNode } from '../types.ts';
 import type { PlaybackStep } from './replayCompiler.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
-import { caseSurfaceInitial } from '../server/babelParser/surfaceTokens.js';
+import { authoredDisplayWord } from './displayWordMaterial.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
-import { retainCurrentSiblingRanks } from './currentSiblingRanks.ts';
+import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from './currentSiblingRanks.ts';
 
 type Scene = {
   canvas: SyntaxNode;
@@ -16,7 +23,7 @@ type Scene = {
   coordinates: TreeCoordinateReservation;
   constructionForest?: boolean;
 };
-type StageReservation = { size: [number, number]; direction: TreeDirection; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
+type StageReservation = { categoryMetrics: string; treeInkMetrics: string; treeLabelMetrics: string; size: [number, number]; direction: TreeDirection; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
 const cache = new WeakMap<readonly PlaybackStep[], Map<number, StageReservation>>();
 
 const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
@@ -27,11 +34,8 @@ const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors
  * every authored field and every other display property in the signature. */
 function retainedSubtreeMaterial(node: SyntaxNode): string {
   const material = (current: SyntaxNode, parent?: SyntaxNode): SyntaxNode => {
-    const displayWord = parent?.word && current.replayOrigin?.kind === 'word'
-      && current.replayOrigin.ownerId === parent.id && !current.children?.length
-      && current.word === current.label
-      && caseSurfaceInitial(current.word, 'lower') === caseSurfaceInitial(parent.word, 'lower');
-    const next = displayWord ? { ...current, word: parent.word, label: parent.word } : current;
+    const word = authoredDisplayWord(current, parent);
+    const next = word === undefined ? current : { ...current, word, label: word };
     return current.children ? { ...next, children: current.children.map(child => material(child, current)) } : next;
   };
   return JSON.stringify(material(node));
@@ -230,7 +234,8 @@ function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] 
  * the owning moment. The same maps serve camera bounds, allocation and painting. */
 function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
-  direction: TreeDirection = 'ltr'): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   let stages = cache.get(steps);
   if (!stages) cache.set(steps, stages = new Map());
   const frames = steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
@@ -239,15 +244,14 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   const previous = frames[0]?.replayKind === 'relation' && sizeForStage && steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
   const previousSize = previous && sizeForStage!(stageIndex - 1);
   const precedingCoordinates = previous?.replayCanvasData && previousSize
-    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, direction).get(previous.replayCanvasData) : undefined;
+    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel).get(previous.replayCanvasData) : undefined;
+  const categoryMetrics = categoryMetricKey(steps, measureCategoryText);
+  const treeInkMetrics = treeInkMetricKey(steps, measureCategoryText, measureTreeInk);
+  const treeLabelMetrics = treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel);
   const cached = stages.get(stageIndex);
   if (cached && cached.size[0] === size[0] && cached.size[1] === size[1]
-    && cached.direction === direction && cached.preceding === precedingCoordinates) return cached.frames;
-  const completedCanvas = frames.find(step => step.replayKind === 'macro')?.replayCanvasData;
-  const completesSingleTree = Boolean(completedCanvas && completedCanvas.replayOrigin?.kind !== 'workspace');
-  const temporaryRootDepth = (canvas: SyntaxNode) => Number(completesSingleTree && canvas.replayOrigin?.kind === 'workspace');
-  const stageDepth = Math.max(1, ...frames.map(step =>
-    d3.hierarchy(step.replayCanvasData!).height - temporaryRootDepth(step.replayCanvasData!)));
+    && cached.direction === direction && cached.categoryMetrics === categoryMetrics && cached.treeInkMetrics === treeInkMetrics && cached.treeLabelMetrics === treeLabelMetrics && cached.preceding === precedingCoordinates) return cached.frames;
+  const { rowHeight, temporaryRootDepth } = stageVerticalGeometry(frames, size[1]);
   const scenes: Scene[] = frames.map(step => {
     const canvas = step.replayCanvasData!, root = d3.hierarchy(canvas);
     applyVizIds(root);
@@ -255,7 +259,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     // D3 sizes each canvas by its own depth. Reservations combine canvases, so
     // they need one vertical unit before any unchanged subtree is retained.
     // A temporary construction forest contributes no extra syntax level.
-    tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * (size[1] / stageDepth); });
+    tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * rowHeight; });
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
     return { canvas, nodes, visible: new Set(step.replayVisibleNodeIds ?? nodes.keys()),
       constructionForest: Boolean(temporaryRootDepth(canvas) && step.replayPendingAttachmentNodeIds),
@@ -289,7 +293,9 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     return centerParents({ ...scene, coordinates });
   });
   const resolved = preserved.every(hasValidBranches) ? preserved : reserve(new Map());
-  let finalScenes = separateWorkspaceContours(reserveContours(resolved));
+  const contours = reserveContours(resolved);
+  for (const scene of contours.slice(1)) retainCurrentUnaryRank(scene, contours[0]);
+  let finalScenes = separateWorkspaceContours(contours, measureCategoryText);
   if (frames[0]?.replayKind === 'relation' && previous?.replayCanvasData && precedingCoordinates) {
     const root = d3.hierarchy(previous.replayCanvasData); applyVizIds(root);
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(
@@ -302,7 +308,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
       coordinates: precedingCoordinates, visible: new Set(previous.replayVisibleNodeIds ?? nodes.keys()) }, originOffsetX);
   }
   const reservations = new Map(finalScenes.map(scene => [scene.canvas, scene.coordinates]));
-  stages.set(stageIndex, { size: [...size], direction, preceding: precedingCoordinates, frames: reservations });
+  stages.set(stageIndex, { size: [...size], direction, categoryMetrics, treeInkMetrics, treeLabelMetrics, preceding: precedingCoordinates, frames: reservations });
   return reservations;
 }
 
@@ -311,8 +317,9 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
  * its compatible construction lifetime without importing future branch ranks. */
 export function buildStageCoordinateReservations(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
-  direction: TreeDirection = 'ltr'): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
-  const original = buildStageLocalCoordinates(steps, stageIndex, size, sizeForStage, direction);
+  direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  const original = buildStageLocalCoordinates(steps, stageIndex, size, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   if (!sizeForStage) return original;
   const sizes = new Map<number, [number, number]>();
   for (const step of steps) {
@@ -321,6 +328,6 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
     if (stageSize) sizes.set(step.replayFrameIndex, stageSize);
   }
   const planned = reserveWorkspaceAttachments(steps, sizes, direction, (stage, stageSize) =>
-    buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage, direction));
+    buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   return new Map([...original].map(([canvas, coordinates]) => [canvas, planned.get(canvas) ?? coordinates]));
 }

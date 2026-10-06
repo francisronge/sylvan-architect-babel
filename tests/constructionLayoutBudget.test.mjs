@@ -80,10 +80,16 @@ test('a detached hidden wrapper cannot alter the completed clause horizontal spa
     const sizeFor = stage => stageTreeLayoutSize(steps, stage, width, height);
     const size = sizeFor(1);
     const actual = buildStageCoordinateReservations(steps, 1, size, sizeFor, direction).get(final.replayCanvasData);
+    const local = buildStageCoordinateReservations(steps, 1, size, undefined, direction).get(final.replayCanvasData);
     const expected = buildStageCoordinateReservations([final], 1, size).get(final.replayCanvasData);
+    const actualRoot = actual.get(final.replayCanvasData.id), expectedRoot = expected.get(final.replayCanvasData.id);
     for (const [id, point] of actual) {
-      assert(Math.abs(point.x - expected.get(id).x) < 1e-8,
-        `${id}: the temporary construction container must not change completed horizontal spacing`);
+      assert(Math.abs(local.get(id).x - expected.get(id).x) < 1e-8,
+        `${id}: the temporary construction container must not change completed stage-local coordinates`);
+      // A complete component may change its canvas origin to stay continuous.
+      // The camera follows that rigid translation; its internal spacing cannot change.
+      assert(Math.abs((point.x - actualRoot.x) - (expected.get(id).x - expectedRoot.x)) < 1e-8,
+        `${id}: attachment reservation must preserve completed horizontal spacing`);
     }
   }
 });

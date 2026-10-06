@@ -1,5 +1,5 @@
 import { categoryTextLayout, CATEGORY_LINE_HEIGHT, type CategoryTextMeasure } from '../categoryTextLayout.ts';
-import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf } from '../replayCompiler.ts';
+import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf, resolveLeafSurface } from '../replayCompiler.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { planItemRelationRefs, type RelationPlanItem } from './renderPlanCompiler.ts';
@@ -7,11 +7,12 @@ import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve, featureCollectionEdge, type CollectionEdge } from './overlayGeometry.ts';
 import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
 import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
-import { preparePlaqueObstacleIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+import { preparePlaqueObstacleIndex, preparePlaqueOverlapIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
+  terminalStemNodeId?: string;
   caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number;
   blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number } };
@@ -57,11 +58,45 @@ const union = (rects: PlaqueRect[]): PlaqueRect => {
 };
 /** Placement-only union; connector queries keep their separate attachment and ink metadata. */
 export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
-  const seen = new Set<string>();
+  type Buckets = Map<number, PlaqueRect[]>;
+  const groups = new Map<string, Buckets>();
+  const curves = new WeakMap<NonNullable<PlaqueRect['curve']>, Map<number | undefined, Buckets>>();
+  const numeric = new Float64Array(1), words = new Uint32Array(numeric.buffer);
+  const hashNumber = (value: number, hash: number) => {
+    numeric[0] = value === 0 ? 0 : Number.isNaN(value) ? NaN : value;
+    return Math.imul(Math.imul(hash ^ words[0], 16777619) ^ words[1], 16777619);
+  };
+  const same = (a: number, b: number) => a === b || Number.isNaN(a) && Number.isNaN(b);
+  const group = (key: string) => {
+    let seen = groups.get(key);
+    if (!seen) groups.set(key, seen = new Map());
+    return seen;
+  };
+  const plain = group('');
   return obstacles.filter(box => {
-    const key = `${box.x},${box.y},${box.width},${box.height},${Boolean(box.extendsDownward)},${box.curve ? JSON.stringify([box.curve, box.curvePadding]) : ''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    let seen = plain;
+    if (box.curve) {
+      let pads = curves.get(box.curve);
+      if (!pads) curves.set(box.curve, pads = new Map());
+      const cached = pads.get(box.curvePadding);
+      if (cached) seen = cached;
+      else {
+        // Equal geometry shares a group even when the curve objects differ.
+        // Avoid copying the same curve JSON into all 32 sample keys.
+        seen = group(JSON.stringify([box.curve, box.curvePadding]));
+        pads.set(box.curvePadding, seen);
+      }
+    }
+    // Hashes select a small bucket, never establish equality. Exact numeric
+    // comparison retains the old string key's treatment of signed zero and NaN.
+    let key = hashNumber(box.x, 2166136261);
+    key = hashNumber(box.y, key); key = hashNumber(box.width, key); key = hashNumber(box.height, key);
+    key ^= Number(Boolean(box.extendsDownward));
+    const bucket = seen.get(key);
+    if (bucket?.some(other => same(box.x, other.x) && same(box.y, other.y)
+      && same(box.width, other.width) && same(box.height, other.height)
+      && Boolean(box.extendsDownward) === Boolean(other.extendsDownward))) return false;
+    if (bucket) bucket.push(box); else seen.set(key, [box]);
     return true;
   });
 }
@@ -91,8 +126,36 @@ export function collectionPlaquePortX(box: PlaqueRect, sourceNodeId: string, row
     && Math.abs(row.y - rowY) < 1e-6)?.portX;
 }
 
-/** Reserve labels, words, and sampled native cubic branches, including future stage syntax. */
-export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: CategoryTextMeasure): PlaqueRect[] {
+const branchWeights = Array.from({ length: 32 }, (_, index) => {
+  const t = (index + 1) / 32, u = 1 - t;
+  return { parentX: u ** 3 + 3 * u * u * t, childX: 3 * u * t * t + t ** 3,
+    parentY: u ** 3, middleY: 3 * u * u * t + 3 * u * t * t, childY: t ** 3 };
+});
+
+/** The native D3 branch sampler, without allocating unrelated label or word
+ * obstacles. Keep the original polynomial arithmetic and sample order. */
+export function plaqueBranchObstacles(parent: { x: number; y: number }, node: { x: number; y: number }, precise = false): PlaqueRect[] {
+  const middle = (parent.y + node.y) / 2;
+  const curve = precise ? { source: { x: parent.x, y: parent.y },
+    control1: { x: parent.x, y: middle }, control2: { x: node.x, y: middle },
+    target: { x: node.x, y: node.y } } : undefined;
+  const rectangles: PlaqueRect[] = [];
+  let previous = { x: parent.x, y: parent.y };
+  for (const weight of branchWeights) {
+    const point = { x: weight.parentX * parent.x + weight.childX * node.x,
+      y: weight.parentY * parent.y + weight.middleY * middle + weight.childY * node.y };
+    const x = Math.min(previous.x, point.x) - 5, y = Math.min(previous.y, point.y) - 5;
+    const width = Math.abs(previous.x - point.x) + 10, height = Math.abs(previous.y - point.y) + 10;
+    rectangles.push(curve ? { x, y, width, height, curve, curvePadding: 5 } : { x, y, width, height });
+    previous = point;
+  }
+  return rectangles;
+}
+
+/** Reserve labels, words, and sampled native cubic branches, including future stage syntax.
+ * Optional curve metadata lets collision validation reject empty sample-box corners
+ * without changing placement rectangles or their existing safety padding. */
+export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: CategoryTextMeasure, preciseBranches = false): PlaqueRect[] {
   const rectangles: PlaqueRect[] = [];
   const included = new Set(nodes);
   for (const node of nodes.filter(visible)) {
@@ -108,26 +171,17 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
       rectangles.push({ x: node.x - lineWidth / 2 - 4, y: node.y + label.y + index * CATEGORY_LINE_HEIGHT - 4,
         width: lineWidth + 8, height: 60, blocksConnectors: true, connectorAttachment: `${idOf(node)}:category` });
     });
-    if (!node.children?.length && node.data.word) {
-      const wordWidth = Math.max(150, String(node.data.word).length * 40);
+    // The painter also draws notation stored in label, such as t or ∅.
+    // Use its terminal predicate so those glyphs and their stems reserve space.
+    if (!node.children?.length && !isWordlessCategoryLeaf(node.data)) {
+      const wordWidth = Math.max(150, String(node.data.word || resolveLeafSurface(node)).length * 40);
       rectangles.push({ x: node.x - wordWidth / 2, y: node.y + 65, width: wordWidth, height: 110,
         blocksConnectors: true, connectorAttachment: `${idOf(node)}:terminal` });
-      rectangles.push({ x: node.x - 6, y: node.y, width: 12, height: 130 });
+      rectangles.push({ x: node.x - 6, y: node.y, width: 12, height: 130, terminalStemNodeId: idOf(node) });
     }
     const parent = node.parent;
     if (!parent || !included.has(parent) || !visible(parent)) continue;
-    // d3.linkVertical uses control points at the vertical midpoint.
-    let previous = { x: parent.x, y: parent.y };
-    for (let i = 1; i <= 32; i++) {
-      const t = i / 32;
-      const u = 1 - t;
-      const middleY = (parent.y + node.y) / 2;
-      const point = { x: (u ** 3 + 3 * u * u * t) * parent.x + (3 * u * t * t + t ** 3) * node.x,
-        y: u ** 3 * parent.y + (3 * u * u * t + 3 * u * t * t) * middleY + t ** 3 * node.y };
-      rectangles.push({ x: Math.min(previous.x, point.x) - 5, y: Math.min(previous.y, point.y) - 5,
-        width: Math.abs(previous.x - point.x) + 10, height: Math.abs(previous.y - point.y) + 10 });
-      previous = point;
-    }
+    rectangles.push(...plaqueBranchObstacles(parent, node, preciseBranches));
   }
   return rectangles;
 }
@@ -235,18 +289,29 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
 
 /** Measure source labels once per allocation space, not for every candidate pocket. */
 export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRect[] = []) {
-  const attachments = new Map<string, PlaqueRect>();
-  for (const obstacle of obstacles) {
-    if (obstacle.connectorAttachment !== undefined && !attachments.has(obstacle.connectorAttachment))
-      attachments.set(obstacle.connectorAttachment, obstacle);
-  }
-  const sources = new Map(nodes.map(node => {
-    const id = idOf(node);
-    const label = (labels: PlaqueRect[]) => labels.find(rect => rect.connectorAttachment === `${id}:category`)
-      ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
-    return [id, attachments.get(`${id}:category`) ?? attachments.get(`${id}:terminal`)
-      ?? label(plaqueTreeObstacles([node]))] as const;
-  }));
+  let attachments: Map<string, PlaqueRect> | undefined;
+  let byId: Map<string, Node> | undefined;
+  const sourceCache = new Map<string, PlaqueRect | undefined>();
+  // Ordinary plaques have no collection sources. Prepare only the exact source
+  // queried by a collection row; unqueried syntax cannot affect its route.
+  const sources = { get(id: string): PlaqueRect | undefined {
+    if (sourceCache.has(id)) return sourceCache.get(id);
+    if (!attachments) {
+      attachments = new Map();
+      for (const obstacle of obstacles) if (obstacle.connectorAttachment !== undefined
+        && !attachments.has(obstacle.connectorAttachment)) attachments.set(obstacle.connectorAttachment, obstacle);
+      byId = new Map(nodes.map(node => [idOf(node), node]));
+    }
+    const node = byId!.get(id);
+    if (!node) return undefined;
+    let source = attachments.get(`${id}:category`) ?? attachments.get(`${id}:terminal`);
+    if (!source) {
+      const labels = plaqueTreeObstacles([node]);
+      source = labels.find(rect => rect.connectorAttachment === `${id}:category`)
+        ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
+    }
+    sourceCache.set(id, source); return source;
+  } };
   const blockers = obstacles.filter(rect => rect.blocksConnectors);
   const inkIndexes = new Map<string | undefined, ReturnType<typeof preparePlaqueObstacleIndex>>();
   const inkIndex = (attachment: PlaqueRect) => {
@@ -614,11 +679,21 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
-    const obstacleIndex = preparePlaqueObstacleIndex(occupied);
+    let obstacleIndex: ReturnType<typeof preparePlaqueOverlapIndex> | undefined;
+    let queriedPocket = false;
+    const overlaps = (box: PlaqueRect) => {
+      // Most nearby plaques fit their first pocket. Its exact boolean query
+      // does not need a sorted spatial hierarchy; later searches reuse one.
+      if (!queriedPocket) {
+        queriedPocket = true;
+        return occupied.some(obstacle => plaquesOverlap(box, obstacle));
+      }
+      return (obstacleIndex ??= preparePlaqueOverlapIndex(occupied)).overlaps(box);
+    };
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
     const clear = (candidate: PlaqueRect) => {
-      if (obstacleIndex.overlaps(candidate)) return undefined;
+      if (overlaps(candidate)) return undefined;
       const box = attach(candidate, request);
       const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
           : (!caseClears || caseClears(box))
@@ -647,7 +722,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchorY = terminal.length === 1 ? terminal[0].y + 140
       : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
     const prior = priorCandidates.get(request.index);
-    const priorCandidate = prior && !obstacleIndex.overlaps(prior)
+    const priorCandidate = prior && !overlaps(prior)
       && (space ? space.acceptsConnector(prior)
         : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
     const placementDistance = (box: PlaqueRect) => {

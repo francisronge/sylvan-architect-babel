@@ -158,7 +158,10 @@ authored relation changes an exact participant or effective Case source, allocat
 revalidates the previous pocket against the new geometry and may choose a nearer
 clear pocket. Valid equally near pockets remain stable. Each Replay step selects
 its scheduled placement, and the camera includes every placement in its authored
-stage. The worker, painter and camera consume the same stage and step maps.
+stage. Camera measurement projects a plaque only in scenes where its attachment
+is visible; hidden attachment coordinates do not describe painted content. The
+stage-wide union still reserves its later visible placement before reveal.
+The worker, painter and camera consume the same stage and step maps.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
@@ -185,6 +188,38 @@ Browser allocation waits for the category and plaque fonts, including
 the record's script subsets and the generated theta-grid heading. Font loading
 also includes generated chain-index glyphs before the first frame. It therefore
 does not repeat the initial allocation or stall a later relation frame.
+The normal semibold fallback-role face is requested from its shared style too:
+binding an unrevealed relation can measure that face before its drawing appears.
+
+Browser font collection probes an isolated input snapshot in yielding batches;
+it must not compute coordinate reservations or allocate plaques. The layout
+worker prepares both from those exact metrics. Its canvas ordinals are rebound
+to the initiating input's original canvas objects only after checking current
+input identity, measurement identity, stage coverage and finite node coordinates.
+Painting and both camera bounds paths consume that result. A stale or incomplete
+result fails without falling back to synchronous Replay planning. Cancelling an
+analysis removes queued work or terminates its active worker. Layout workers run
+one at a time within the page, including when the Orchard mounts all its cards.
+
+The page retains its two most recently used layout results in memory. Reopening
+still measures current fonts and requires an exact input and metric match.
+Results store canvas ordinals, never another view's canvas identities, and pass
+the same binding checks before display. Copies isolate each view from mutations
+in a later view. Failed, cancelled or mismatched results cannot populate this
+cache; a cache miss uses the ordinary worker. Nothing is written to browser or
+server storage.
+
+Within one layout job, obstacle indexes skip vertically disjoint ranges while
+preserving collision order and arithmetic. Repeated horizontal trials can reuse
+exact vertical-contact patterns within a bounded cache. Topology-only slot
+witnesses and unchanged contour frames are reused, but each trial rereads its
+current coordinates. Numeric obstacle hashes only select candidate buckets;
+exact equality determines deduplication. These optimizations retain the chosen
+geometry, candidate order and clearance rules. A contour materializes its copied
+obstacles only when a parent or accepted plan consumes them. The deferred work
+captures that contour's immutable members and children, so later accepted or
+rejected trials cannot change its geometry. Candidate scoring can discard an
+unused contour without allocating its complete obstacle array.
 
 The September 21 local production capture reduced German coordination opening
 from 27.8 seconds to 2.7 seconds at 1600×1100. Tested frame changes across German,
@@ -429,6 +464,106 @@ invalid branches, increased construction displacement or a new displacement of
 previously stationary syntax. Preserve the established placement when neither
 reservation is valid. Future syntax remains invisible.
 
+If those stage reservations still move an unchanged independent root or deform
+an identical subtree at any adjacent Replay boundary, plan the complete visible
+subtrees across Replay together. Compare complete visible material and ordered
+children; rigid translation does not count as internal deformation. Each material subtree keeps
+one internal contour throughout its lifetime. Exact temporal witnesses bind
+unchanged syntax to the same positions; only the current construction or
+movement can authorize a translation. A pronunciation or spelling change alone
+does not authorize movement. Accept the replacement only as a complete plan,
+after the renderer reproduces its coordinates and passes current rank, order
+and clearance checks. Incoming fork branches must also clear the other
+children's label envelopes. Keep the prior plan and an infeasibility diagnostic
+when those constraints cannot be satisfied. Already stable plans remain intact.
+
+A later locked fork may require more clearance than its earlier incarnation
+reserved. Carry that measured requirement back only through the same ordered
+children to a fork with a free separating side. Adjust that earlier preference,
+then revalidate the complete plan; never move a locked later child to make room.
+Apply its deficit to the realized child gap, which may already exceed the stored
+preference. Repeatedly adding that deficit to a smaller preference can leave the
+actual geometry unchanged and exhaust the correction budget.
+Bounded correction failure keeps the accepted coordinates. A new unary Project
+can attach its exact unchanged source at the same prior parent slot. Extraction
+can likewise translate the unique remaining host at that slot when it contains
+the authored source before movement and the lower witness afterward. Neither
+rule releases an unrelated branch or changes a retained subtree's internal shape.
+Movement ownership permits translation; it does not require it. Preserve an
+already stationary component across an owned boundary when the mandatory pose
+equations and clearance throughout its lifetime permit that placement. Reject an
+optional stationary tie without changing the required equations when it would
+create a collision. The same preference applies to unchanged receiving material
+outside the actual source, lower occurrence, and landing. An independent input
+to ordinary External Merge can wait at its eventual attachment position, or the
+nearest clear position if an exact tie conflicts with earlier visible material.
+For a retained host under a new ordinary wrapper, reserve its eventual horizontal
+position on the preceding current row. Inserting the new parent may lower the
+host by one rank; it must not send the host sideways to the wrapper's center.
+If the accepted layout already keeps a distinct lower
+witness at the source's attachment point, retain that position when the current
+trajectory replaces the source in the same connected, ordered parent slot.
+Measure this at the actual boundary, not from a later preferred pose. Its
+descendants retain their own authored structure.
+Use the compiler's proved source, lower occurrence and landing to authorize
+movement, including a neutral drawing whose syntactic transition is established.
+An exact newly inserted wrapper can attach its retained host through connected
+new unary ancestors to the binary receiver. Stop at an existing ancestor or a
+different ordered slot; the relation's name alone never grants motion.
+Outside current movement ownership, a topology-stable category, word or silence
+update keeps its existing point constraints. Adding or removing a generated word
+terminal also keeps its exact retained head stationary when its connected parent,
+category and silence are unchanged. Require the terminal's current owner
+provenance and matching authored word; an authored child or alias is insufficient.
+A shell containing an owned changing
+child can recenter while its unrelated descendants remain fixed. A new wrapper
+under the current movement may inherit the old fork's
+child slots only when it takes that complete ordered list of unchanged children,
+retains the fork's own material, and contains the authored lower witness while
+its sister is the current landing. The two material lifetimes remain distinct.
+
+Refinement of a feasible plan only chooses visual proportions. Stop that search
+when every point shifts horizontally by at most one percent of its final root's
+previous width, measured relative to that root, every local edge and sibling gap
+stays within ten percent, and relative vertical positions are unchanged. A small
+tree inside a large forest gets its own budget.
+When current-rank repair has already corrected legacy vertical positions,
+horizontal refinement may instead retain that complete native composition's
+relative heights. Require a copied reference for every frame, exact ordered
+topology and material lifetimes, complete finite coordinates, and full renderer
+validation before stopping. A rejected rendering continues the existing search
+and retained-plan fallback. The horizontal limits remain unchanged.
+Zero spans and edge direction must be preserved. These limits never relax
+temporal, syntax or collision constraints.
+Rank feasible candidates by their worst normalized local, root-displacement and
+width deviation before aggregate displacement. Every root retains its own width
+and displacement guards. A contraction blocked by a measured contact may pair
+with contraction of that contact's free fork, within the same bounded search.
+Retain necessary space when narrowing it would cross a current branch or label
+at any earlier frame, even if the finished tree alone could be narrower.
+Packing uses immutable obstacle pairs. Separation-only checks defer contact
+lists. A vertical index skips only obstacles that end before the current one;
+exact contact checks reject disjoint scalar bounds before copying curves.
+Sampled rectangles keep their shared curve through each rigid translation,
+without retaining geometry across calls. Contact order, arithmetic and collision
+tolerances stay unchanged.
+
+A successful composition may certify that every child slot of a fork is locked.
+Direct gap trials can then reject an X-only preference change without composing
+the same geometry again. Compare all consumed inputs with copied values from
+that accepted composition, and require unchanged roots, heights and preceding
+dependencies. Preserve the evaluation count and ordinary equal-score rejection;
+do not skip seed or paired-clearance trials, or alter the composer's cached state.
+
+Vertical rank inheritance requires the complete current children and a current
+native row, or a same-material parent identity. A future wrapper cannot lend its
+height to today's branch. Plain single-font labels use the exact displayed
+string's glyph ascent and descent at each painted baseline, retaining the full
+stroke-miter reach and existing horizontal SVG envelope. Styled indices and
+unavailable glyph metrics retain the full SVG envelope. The worker receives the
+same complete measured bounds; it does not substitute raw authored text for the
+displayed label.
+
 When a root gains a specifier and an inserted parent takes over its complete
 ordered daughter list, the earlier root keeps that fork's height until insertion.
 Its daughters remain stationary. Apply this only to visible component roots,
@@ -443,6 +578,18 @@ immediate fit. Structural micro-steps still share one authored-stage fit. Only t
 completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
+Stage framing retains its existing margins for ordinary labels. When a revealed
+label exceeds those margins, expand the shared stage envelope by only that
+excess, using the same styled text bounds as layout. Include every revealed
+label variant across the stage without reserving never-visible future syntax.
+
+Detached morphology panels retain a clear preferred position. If that position
+covers the tree, choose the nearest available position inside the space between
+the Replay header and controls. Move the complete panel in one coordinate group;
+do not resize its contents or change syntax coordinates to make room.
+During an automatic camera transition, resolve that placement against the
+destination fit. The panel then travels with the tree without being repositioned
+from an intermediate screen transform. Retained manual framing uses its own pose.
 
 After the stage contour pass, independent final workspace components receive
 one rigid translation each when their visible ink collides. The clearance
@@ -467,6 +614,11 @@ After fonts are ready, browser text measurements are captured in chunks that yie
 between stages. A second worker receives these exact metrics and allocates plaques
 across their compatible geometry phases. The serializable job uses the same
 allocator as the direct path, with no approximated replacement font metrics.
+The job snapshots its serializable input and native text metrics. Coordinate
+planning remains in the worker. A completed result can be rebound only to its
+still-current measured input and original canvas identities. The bounded recent
+result cache follows the same checks after fresh font measurement; it never
+supplies another input's coordinates or relaxes allocation checks.
 Missing measurements fail visibly. Input changes, retries and unmounting cancel
 obsolete jobs; stale results cannot supply placements for another input.
 

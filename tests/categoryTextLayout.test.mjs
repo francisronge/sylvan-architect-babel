@@ -38,3 +38,19 @@ test('casing follows resolved phrasal movement regardless of the authored operat
     assert.equal(isPhrasalReplayMovement({ operation }), false);
   }
 });
+
+test('wrapping reuse is isolated by font state and returned line arrays cannot corrupt later views', () => {
+  const text = 'V[perfect, third-person feminine singular]';
+  let probes = 0;
+  const measure = value => { probes++; return [...value].length * 20; };
+  const first = categoryTextLayout(text, measure), measured = probes;
+  const expected = structuredClone(first);
+  first.lines[0] = 'changed by caller'; first.width = -1;
+  assert.deepEqual(categoryTextLayout(text, measure), expected);
+  assert.equal(probes, measured, 'same immutable font state needs no repeated wrapping probes');
+  let newProbes = 0;
+  const wider = categoryTextLayout(text, value => { newProbes++; return [...value].length * 30; });
+  assert.ok(newProbes > 0);
+  assert.equal(wider.lines.join(''), text);
+  assert.notDeepEqual(wider.lines, expected.lines);
+});

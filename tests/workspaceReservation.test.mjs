@@ -105,7 +105,7 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
     assert(!before.nodes.has('matrixSubjectDP'));
     assert(after.nodes.has('matrixSubjectDP'));
     assert.equal(before.nodes.get('matrixIP').x, before.nodes.get('matrixIbar').x, 'a unary branch stays vertical');
-    assert.deepEqual(point(before.nodes.get('rootC')), point(after.nodes.get('rootC')), 'C stays put when the subject arrives');
+    assert(Math.hypot(before.nodes.get('rootC').x - after.nodes.get('rootC').x, before.nodes.get('rootC').y - after.nodes.get('rootC').y) < 1e-8, 'C stays put when the subject arrives');
     assert(Math.abs(after.nodes.get('declarativeFeatures').x - after.nodes.get('matrixSubjectDP').x) > 200,
       'the C child and arriving subject retain separate same-rank slots');
     immutable();

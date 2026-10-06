@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-10-01
+Status date: 2026-10-06
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -36,7 +36,52 @@ and fresh unfamiliar records. The exit conditions are:
    usable Replay should open within 2 seconds and ordinary frame changes should
    have a 95th percentile below 100ms. Measure rendered frames, not slider input.
 
-### Integrated contract and renderer pass
+### Current contract and renderer result
+
+The saved-source audit reviewed 293 analysis records from 220 returned generations:
+285 accepted records and eight preserved failures. Exact sent prompts exist for
+178 analyses; the other 115 cannot support exact historical prompt attribution.
+This was a source audit, not a new browser sweep of every frame or a claim that
+every linguistic analysis is correct. No saved authored record was rewritten.
+
+Shared fixes now preserve unchanged workspace components, recognize independently
+supported movement and feature claims, and bind realization changes to their
+owning relation moments. The three Japanese input-association timing repairs
+leave the other 282 accepted Replay projections unchanged. False prior-movement
+warnings are removed while genuine unavailable-occurrence diagnostics remain.
+Canonical behavior and limits are recorded in the renderer closeout and Tier-2
+shape-dispatch specifications.
+
+The opening-speed finding is resolved on the reference Mac. The latest native
+comparison measured 899.6 ms against 839.1 ms for the historical checkpoint,
+within the unchanged 100 ms allowance and below the two-second target. Layout
+preparation runs in a serial worker with exact font metrics, bounded in-memory
+reuse and cancellation. Completed geometry, final Replay and worker termination
+are checked separately from the first visible frame. These measurements are
+local evidence, not a promise for every device or network.
+
+The last camera correction excludes plaques whose attachment is hidden in that
+scene, while retaining their later visible position in the shared stage fit.
+Desktop and phone-width checks preserved world coordinates, stage framing and
+manual zoom. The complete assembled gate passed 4,277 tests, typechecking and
+both parse-contract fixtures. User-reviewed light intensity remains unchanged.
+
+The approved prompt cleanup removes repetition and worked language examples,
+clarifies that unchanged subtrees can be reused inside a larger structure, and
+requires relation order to match the establishing operations in the stage record,
+including independent operations. Relation and anchor names remain open. Four
+Codex OAuth requests with GPT-6.1 Sol/high returned five reviewed analyses after
+the cleanup. The final ordering sentence was approved afterward and has offline
+coverage; it has not been followed by another generation batch.
+
+Exhaustive browser sweeps and the old twelve-request schedule remain stopped.
+Original analyses, failures and review media are retained outside the source tree.
+The next step is review and merge of the focused contract, Replay, renderer and
+performance-guard PRs. Publishing a CI check does not make it a required merge
+check until repository protection is configured. No application shipment has
+occurred, and the larger launch work below remains separate.
+
+### Earlier integrated contract and renderer evidence
 
 The September 29 pass audited all 156 saved analyses and 69 new analyses,
 comprising 2,257 authored relations. It checked every declared drawing recipe
@@ -135,11 +180,12 @@ all future open-ontology wording.
 
 ### What remains before Babel can ship
 
-The requested contract/renderer closeout has no remaining measured defect in
-this corpus. R28, R29, R30 and Q3 have regression and browser evidence. The full
-human frame review is complete; the comparison and close-ups remain available
-for judgments about fitting and tight spacing. This evidence does not guarantee
-every unseen record or qualify the larger application launch.
+The reported contract/renderer defects have focused regression and visual proof.
+The current code still needs PR review and merge. Retain model-authored mistakes
+as inspectable evidence; they are not permission to silently repair analyses or
+restart qualification indefinitely. A new renderer blocker requires a reproduced
+defect. Earlier measurements below describe historical checkpoints and are
+superseded by the current result above.
 
 The larger application launch scope remains Programs 0–6 below. It is separate
 from this pass and does not supply the next contract/renderer task. No larger application launch
@@ -689,7 +735,7 @@ No new generations or prompt rules are needed for these renderer corrections.
   at desktop and 2.64 to 2.35 seconds narrow. This does not meet Q3's 2-second
   target. The full offline gate and build pass against the final source freeze.
 
-- [ ] **R28 — Repairs verified; two changed views await visual acceptance.**
+- [x] **R28 — Repairs verified and changed views accepted.**
   Francis inspected every frame in all 69 newest trees. All 355 authored Stage
   Records were checked against their syntax and relations; no additional
   definite record contradiction was found. Deliberately unconverged forests

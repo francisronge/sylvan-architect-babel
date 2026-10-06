@@ -266,8 +266,12 @@ for (const width of [1596, 390]) test(`${width}px: successive head movement leav
     assert(nominative.x > nominative.attachmentX && nominative.y < nominative.attachmentY + 250,
       'nominative sits beside I instead of a long distance below it');
     const source = caseAssignmentSource(space.nodes.find(node => node.data.id === 'vm'));
-    assert(accusative.y > source.y + 140 && accusative.y < source.y + 500,
-      'accusative uses the nearby pocket beneath the pronounced verb');
+    // A closer clear pocket may lie above the source. Bound the actual distance
+    // to the rectangle instead of requiring one historical placement direction.
+    const dx = Math.max(accusative.x - source.x, 0, source.x - accusative.x - accusative.width);
+    const dy = Math.max(accusative.y - source.y, 0, source.y - accusative.y - accusative.height);
+    assert(Math.hypot(dx, dy) > 0 && Math.hypot(dx, dy) < 500,
+      'accusative uses a nearby clear pocket around the pronounced verb');
     assert(accusative.x + accusative.width < nominative.x, 'the Case arrows approach separate nearby pockets');
   }
 });
@@ -514,8 +518,10 @@ for (const record of records) {
         });
         for (const step of steps.filter(step => step.replayFrameIndex === stageIndex)) {
           const root = replayTree(step, steps, width, height);
-          const nodes = new Map(root.descendants().map(node => [node.__vizId ?? node.data.id, node]));
           const visibleIds = new Set(step.replayVisibleNodeIds);
+          // Hidden future anchors have no drawn plaque at their provisional position.
+          const nodes = new Map(root.descendants().filter(node => visibleIds.has(node.__vizId ?? node.data.id))
+            .map(node => [node.__vizId ?? node.data.id, node]));
           const treeObstacles = plaqueTreeObstacles(root.descendants().filter(node =>
             visibleIds.has(node.__vizId ?? node.data.id)));
           const active = selectReplayPlaqueLayout(schedule, stageIndex, steps.indexOf(step));

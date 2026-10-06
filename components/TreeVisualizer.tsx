@@ -1,12 +1,15 @@
+import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
+import { prepareTreeLabelRuns } from '../replay/prepareTreeLabelRuns.ts';
+import { stagedTerminalText, treeLabelIndexAttributes, identityLabelTarget, thetaLabelTarget, identityIndexAction, thetaLabelBase } from '../replay/treeLabelRuns.ts';
 import { caseFeatureComposition, collectionAssignment, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
 import { bindingDomainEllipse, bindingDomainPlaques, bindingDomainTreeRect } from '../replay/relations/bindingDomainGeometry.ts';
 import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
-import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { useTreeDirection } from './useTreeDirection';
 import { useReplayPlaqueLayout } from './useReplayPlaqueLayout';
 import { categoryTextLayout, CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
 import { watchTreeVisualizerFonts } from './treeVisualizerFonts';
+import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Scan } from 'lucide-react';
@@ -16,12 +19,13 @@ import { initialReplayStepIndex } from '../replay/initialReplayStep.ts';
 import { caseSurfaceInitial } from '../server/babelParser/surfaceTokens.js';
 import RootLogo from './RootLogo';
 import { appendPlaqueContent } from './plaqueViewport';
+import { detachedPlaqueOrigin } from './detachedPlaquePlacement';
 import { identityLightSites, identityLightTargets, mergeIdentityOwners } from './identityForestLight';
 import { revealPlaqueCollections } from './collectionReveal';
 import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
 import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from './treeViewport';
 import { animateReplayCamera } from './replayCameraMotion';
-import { buildStageCameraBounds, buildStageLayoutGroups, selectReplayPlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
+import { STAGE_CAMERA_PADDING, buildStageCameraBounds, buildStageLayoutGroups, selectReplayPlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
 import type { PlaqueTextBlock, PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, prepareSharedFeatureTextLayout, prepareThetaGridTextLayout, reservePlaqueViewport, wrapPlaqueText } from '../replay/relations/plaqueTextLayout.ts';
 import { caseAssignmentSource, projectPlaqueLayout, thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
@@ -47,7 +51,6 @@ import {
   buildResolvedLinkTraceIndexMap,
   cloneSyntaxTree,
   collectPronouncedLeafNodeIdsInOrder,
-  extractDisplayedSubscriptIndex,
   extractMovementIndex,
   formatOperationLabel,
   formatReplayBlockLine,
@@ -266,6 +269,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       return cache.get(text)!;
     };
   }, [fontLayoutPass]);
+  const measureTreeInk = useMemo(() => createTreeInkTextMeasure(
+    typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
+  const measureTreeLabel = useMemo(() => createTreeLabelMeasure(
+    typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
   const [fitRevision, setFitRevision] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -279,6 +286,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
     [preparedReplay, derivationStages, sentence, inputTokens, animated]
   );
+  const treeLabelRuns = useMemo(() => settledFontText === fontText ? prepareTreeLabelRuns({
+    replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+    movementChainIndexCatalogue, playbackSteps
+  }, measureCategoryText, { includeRelationIndices: !disableRelationOverlay }) : undefined,
+  [playbackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+    movementChainIndexCatalogue, measureCategoryText, disableRelationOverlay, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
@@ -529,7 +542,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
   const plaqueLayoutInput = useMemo(() => {
-    if (!committedDerivationCanvasData || dimensions.width === 0 || disableRelationOverlay || settledFontText !== fontText) return null;
+    if (!committedDerivationCanvasData || dimensions.width === 0 || settledFontText !== fontText) return null;
     const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
     const measurePlaqueText: PlaqueTextMeasure = (text, style) => {
       const key = JSON.stringify([text, style]);
@@ -538,13 +551,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       return measured.get(key)!;
     };
     return { steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
-      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText };
+      plan: disableRelationOverlay ? null : relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel };
   }, [committedDerivationCanvasData, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection, settledFontText, fontText]);
-  const { schedule: replayPlaqueSchedule, ready: plaqueLayoutReady, error: plaqueLayoutError,
-    retry: retryPlaqueLayout } = useReplayPlaqueLayout(plaqueLayoutInput);
-  const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady;
+    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection, settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
+  const { schedule: replayPlaqueSchedule, coordinates: replayCoordinates, ready: plaqueLayoutReady, error: plaqueLayoutError,
+    retry: retryPlaqueLayout } = useReplayPlaqueLayout(plaqueLayoutInput, activeDerivationFrameIndex);
+  const missingReplayCoordinates = Boolean(plaqueLayoutInput && plaqueLayoutReady && usesDerivationFrames
+    && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
+  const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
   const stagePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex),
     [replayPlaqueSchedule, activeDerivationFrameIndex]);
   const activePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex,
@@ -559,11 +574,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, layoutGroups: stageLayoutGroups, measureCategoryText
+      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex, completedReplayStep,
     playbackSteps, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, replayPlaqueSchedule, stageLayoutGroups, measureCategoryText, treeDirection]);
+    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
   const stagePlaqueContainmentBounds = useMemo(() => {
     const hasBindingDomain = relationRenderPlan?.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'binding-domain');
     if (!stageCameraBounds || !activeDerivationFrame || disableRelationOverlay
@@ -574,11 +589,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: false, includePlaques: true, includeBindingDomains: true,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, layoutGroups: stageLayoutGroups, measureCategoryText
+      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst, completedReplayStep,
     playbackSteps, activeDerivationFrameIndex, relationRenderPlan, dimensions, abstractionMode,
-    movementProtectedNodeIds, stagePlaqueLayout, replayPlaqueSchedule, stageLayoutGroups, measureCategoryText, treeDirection]);
+    movementProtectedNodeIds, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -752,6 +767,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
     svg.selectAll<SVGTextElement, HierNode>('.terminal-label')
       .text(function (d) {
+        if (usesDerivationFrames && currentReplayStep?.replayCanvasData) return stagedTerminalText(d, {
+          traceIndices: layoutDerivationTraceIndexByNodeId, operatorIndices: layoutOperatorVariableIndexByNodeId,
+          rawTraceAliases: layoutRawTraceAliasByIndex
+        });
         const element = this as SVGTextElement;
         const nodeId = element.getAttribute('data-node-id') || '';
         const fallback = element.getAttribute('data-default-label') || '';
@@ -918,8 +937,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     svg.call(zoom as any);
 
     const stageCoordinates = animated && usesDerivationFrames
-      ? buildStageCoordinateReservations(playbackSteps, activeDerivationFrameIndex, [innerWidth, innerHeight],
-        index => stageTreeLayoutSize(playbackSteps, index, dimensions.width, dimensions.height, stageLayoutGroups), treeDirection).get(canvasData)
+      ? replayCoordinates?.get(activeDerivationFrameIndex)?.get(canvasData)
       : undefined;
     const treeLayout = (root: d3.HierarchyNode<SyntaxNode>) =>
       layoutSyntaxTree(root, [innerWidth, innerHeight], treeDirection, stageCoordinates,
@@ -1411,6 +1429,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     });
 
     function getReplayRenderedTerminalText(d: HierNode): string {
+      if (usesDerivationFrames && currentReplayStep?.replayCanvasData) return stagedTerminalText(d, {
+        traceIndices: derivationTraceIndexByNodeId, operatorIndices: derivationOperatorVariableIndexByNodeId,
+        rawTraceAliases: derivationRawTraceAliasByIndex
+      });
       const nodeId = getNodeId(d);
       const movedFromCopyTraceIndex = getMovementCopyTraceIndex(d);
       if (movedFromCopyTraceIndex) {
@@ -1608,6 +1630,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     let fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
     let finishFallbackPlacement: (() => void) | undefined;
     const deferredAcceptedRelationDraws: Array<() => void> = [];
+    let deferredRelationCamera: d3.ZoomTransform | null = null;
     const identityForestLightFamilies: Array<{
       occurrencePools: string[][];
       emphasis: 'active' | 'quiet' | null;
@@ -3032,7 +3055,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           queueAcceptedRelationDraw(item, emphasis, () => {
             if (item.kind !== 'node-plaque') return;
             const root = g.node();
-            const matrix = root?.getScreenCTM();
+            const outerMatrix = svg.node()?.getScreenCTM();
+            // Deferred drawing can run during a camera transition. Place the
+            // complete panel for the destination, then let it move with the tree.
+            const matrix = deferredRelationCamera && outerMatrix
+              ? outerMatrix.translate(deferredRelationCamera.x, deferredRelationCamera.y).scale(deferredRelationCamera.k)
+              : root?.getScreenCTM();
             const svgRect = svg.node()?.getBoundingClientRect();
             if (!root || !matrix || !svgRect) return;
             const inverse = matrix.inverse();
@@ -3113,6 +3141,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               return;
             }
 
+            const clearPlaqueOrigin = (preferred: { x: number; y: number }, width: number, height: number) => {
+              const safe = availableTreeViewport(svgRect.width, svgRect.height, uiBounds);
+              const topLeft = toLocal(svgRect.left + safe.left, svgRect.top + safe.top);
+              const bottomRight = toLocal(svgRect.left + safe.right, svgRect.top + safe.bottom);
+              return detachedPlaqueOrigin({ ...preferred, width, height }, {
+                left: topLeft.x, top: topLeft.y, right: bottomRight.x, bottom: bottomRight.y
+              }, [rootRect], localPx(12)) ?? preferred;
+            };
+
             if (item.familyId === 'pf.fission') {
               const content = item.nativeContent;
               if (content?.kind !== 'fission' || item.anchorNodeIds.length !== 2
@@ -3145,13 +3182,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 svgRect.right - widthPx - 12,
                 originClientY
               );
-              const origin = {
+              const origin = clearPlaqueOrigin({
                 x: Math.max(
                   viewport.left,
                   Math.min(rootRect.x + rootRect.width + localPx(32), rightAnchoredOrigin.x)
                 ),
                 y: rightAnchoredOrigin.y
-              };
+              }, width, height);
               setScreenStroke(
                 appendShell(origin.x, origin.y, width, height).attr('rx', localPx(8).toFixed(1)),
                 1.5
@@ -3234,13 +3271,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               const { features, delinkIndex } = content;
               const width = 450;
               const height = Math.max(252, 120 + (features.length - 1) * 56);
-              const origin = {
+              const origin = clearPlaqueOrigin({
                 x: Math.max(viewport.left, Math.min(rootRect.x + rootRect.width + 48, viewport.right - width)),
                 y: Math.max(
                   viewport.top,
                   Math.min(rootRect.y + rootRect.height / 2 - height / 2, viewport.bottom - height)
                 )
-              };
+              }, width, height);
               appendShell(origin.x, origin.y, width, height);
               appendText(layer, 'babel-pf-morphology-title', origin.x + 24, origin.y + 34, 'IMPOVERISHMENT');
               appendLine(
@@ -3322,7 +3359,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 plaqueY = rootRect.y + rootRect.height + localPx(6);
               }
             }
-            const origin = { x: plaqueX, y: plaqueY };
+            const origin = clearPlaqueOrigin({ x: plaqueX, y: plaqueY }, width, height);
             setScreenStroke(
               appendShell(origin.x, origin.y, width, height).attr('rx', localPx(8).toFixed(1)),
               1.5
@@ -4144,9 +4181,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 .attr('text-anchor', 'middle');
 
               const roleAnchor = resolveOverlayAnchor(role.nodeId);
-              const roleLeaves = roleAnchor?.leaves() || [];
-              const roleIsEntirelyTraces = roleLeaves.length > 0 && roleLeaves.every((leaf) =>
-                isTraceLike(resolveLeafSurface(leaf as unknown as HierNode).trim()));
+              const labelTarget = thetaLabelTarget(roleAnchor, role.nodeId);
+              const roleIsEntirelyTraces = labelTarget?.kind === 'category';
               const indexedLabel = roleIsEntirelyTraces
                 ? g.selectAll<SVGTextElement, HierNode>('.category-label')
                     .filter(function exactThetaTraceOccurrence() {
@@ -4160,7 +4196,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               indexedLabel.each(function appendThetaIndex() {
                 const label = d3.select(this);
                 const identityIndices = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index').nodes();
-                const baseLabel = label.attr('data-identity-base-label') || label.attr('data-default-label') || this.textContent || '';
+                const baseLabel = thetaLabelBase(label.attr('data-identity-base-label'), label.attr('data-default-label'), this.textContent || '');
                 label.text(baseLabel)
                   .classed('babel-theta-indexed-label', true)
                   .attr('data-theta-base-label', baseLabel);
@@ -4168,11 +4204,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 const sharedIndex = identityIndices.find(index => index.textContent === role.index);
                 const terminalIndex = sharedIndex ? d3.select(sharedIndex) : label.append('tspan')
                   .attr('class', 'babel-theta-terminal-index babel-relation-index')
-                  .attr('dx', 5)
-                  .attr('dy', roleIsEntirelyTraces ? 9 : 14)
-                  .attr('font-size', roleIsEntirelyTraces ? '22px' : '30px')
-                  .attr('font-family', 'Crimson Pro, Georgia, serif')
-                  .attr('font-style', 'italic')
+                  .each(function applyThetaIndexStyle() {
+                    for (const [name, value] of Object.entries(treeLabelIndexAttributes(roleIsEntirelyTraces ? 'category' : 'terminal', 'theta'))) this.setAttribute(name, value);
+                  })
                   .text(role.index || '');
                 if (sharedIndex) {
                   const previous = identityTerminalOwners.get(sharedIndex);
@@ -6492,8 +6526,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         if (primitive.type === 'identity-lens') {
           if (primitive.index) primitive.nodeIds.forEach((nodeId) => {
             const occurrence = resolveOverlayAnchor(nodeId);
-            const terminal = resolveMaterializedTerminal(occurrence, nodeId);
-            const labelId = terminal ? getNodeId(terminal as unknown as HierNode) : nodeId;
+            const labelTarget = identityLabelTarget(occurrence, nodeId);
+            if (labelTarget?.ambiguityCount) terminalAmbiguities.set(nodeId, labelTarget.ambiguityCount);
+            const terminal = labelTarget?.kind === 'terminal';
+            const labelId = labelTarget?.labelId || nodeId;
             const labels = g.selectAll<SVGTextElement, HierNode>(terminal ? '.terminal-label' : '.category-label')
               .filter(function exactIdentityLabel() { return labelBelongsToNode(this, labelId); });
             if (labels.size() !== 1) return;
@@ -6502,15 +6538,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               if (!label.attr('data-identity-base-label')) label.attr('data-identity-base-label', this.textContent || '');
               const existing = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index')
                 .filter(function sameOwnedIndex() { return this.textContent === primitive.index; });
-              const inlineIndex = extractDisplayedSubscriptIndex(this.textContent || '');
-              const indexElement = existing.node() || (inlineIndex === primitive.index ? this : label.append('tspan')
+              const indexAction = identityIndexAction(this.textContent || '', existing.nodes().map(node => node.textContent || ''), primitive.index);
+              const indexElement = existing.node() || (indexAction === 'inline' ? this : label.append('tspan')
                 .attr('class', 'babel-identity-index babel-relation-index')
                 .attr('data-identity-anchor', nodeId)
-                .attr('dx', 5)
-                .attr('baseline-shift', 'sub')
-                .attr('font-size', terminal ? '30px' : '22px')
-                .attr('font-family', 'Crimson Pro, Georgia, serif')
-                .attr('font-style', 'italic')
+                .each(function applyIdentityIndexStyle() {
+                  for (const [name, value] of Object.entries(treeLabelIndexAttributes(terminal ? 'terminal' : 'category', 'identity'))) this.setAttribute(name, value);
+                })
                 .text(primitive.index).node());
               if (!indexElement) return;
               const previous = identityTerminalOwners.get(indexElement);
@@ -7063,10 +7097,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const fitBottom = treeViewport.bottom;
     // Retained framing must protect the same label margin as a fresh Fit.
     const stageFitContainmentBounds = stageCameraBounds ? {
-      minX: Math.min(stagePlaqueContainmentBounds?.minX ?? Infinity, stageCameraBounds.minX - 220),
-      maxX: Math.max(stagePlaqueContainmentBounds?.maxX ?? -Infinity, stageCameraBounds.maxX + 220),
-      minY: Math.min(stagePlaqueContainmentBounds?.minY ?? Infinity, stageCameraBounds.minY - 160),
-      maxY: Math.max(stagePlaqueContainmentBounds?.maxY ?? -Infinity, stageCameraBounds.maxY + 160)
+      minX: Math.min(stagePlaqueContainmentBounds?.minX ?? Infinity, stageCameraBounds.minX - STAGE_CAMERA_PADDING.x),
+      maxX: Math.max(stagePlaqueContainmentBounds?.maxX ?? -Infinity, stageCameraBounds.maxX + STAGE_CAMERA_PADDING.x),
+      minY: Math.min(stagePlaqueContainmentBounds?.minY ?? Infinity, stageCameraBounds.minY - STAGE_CAMERA_PADDING.y),
+      maxY: Math.max(stagePlaqueContainmentBounds?.maxY ?? -Infinity, stageCameraBounds.maxY + STAGE_CAMERA_PADDING.y)
     } : null;
     const applyCameraTransform = (transform: d3.ZoomTransform) => {
       // D3 can retain a wheel sourceEvent during a programmatic fit.
@@ -7128,11 +7162,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           manual.transform.y + (containerHeight - manual.height) / 2
         ).scale(manual.transform.k);
         manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
+        deferredRelationCamera = transform;
         cameraAnimationRef.current = null;
         applyCameraTransform(transform);
         svg.attr('data-babel-camera-settled-step', activeStepIndex);
         return;
       }
+      deferredRelationCamera = fitted;
       animateFittedCamera(fitted, previousFit);
     };
     const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;
@@ -7156,8 +7192,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         );
         const availableWidth = Math.max(1, fitRight - fitLeft);
         const availableHeight = Math.max(1, fitBottom - fitTop);
-        const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
-        const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
+        const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 2 * STAGE_CAMERA_PADDING.x);
+        const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 2 * STAGE_CAMERA_PADDING.y);
         const scaleX = availableWidth / contentWidth;
         const scaleY = availableHeight / contentHeight;
         const initialScale = Math.max(minimumInitialScale, Math.min(scaleX, scaleY, 1));
@@ -7201,8 +7237,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       const maxNodeX = d3.max(visibleNodes, (node) => node.x) ?? 0;
       const minNodeY = d3.min(visibleNodes, (node) => node.y) ?? 0;
       const maxNodeY = d3.max(visibleNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0;
-      const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 440);
-      const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 320);
+      const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 2 * STAGE_CAMERA_PADDING.x);
+      const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 2 * STAGE_CAMERA_PADDING.y);
       const fallbackViewportPadLeft = fitLeft;
       const fallbackViewportPadRight = containerWidth - fitRight;
       const fallbackViewportPadTop = fitTop;
@@ -8711,6 +8747,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     };
   }, [
     layoutReady,
+    replayCoordinates,
     zoomBehavior,
     activeDerivationFrame,
     activeDerivationFrameIndex,
@@ -8728,6 +8765,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     acceptedCompositionIsTreeFirst,
     dimensions,
     fontLayoutPass,
+    treeLabelRuns,
+    measureTreeLabel,
     fitRevision,
     uiBounds,
     animated,
@@ -9109,7 +9148,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         </div>
       )}
       {!layoutReady && <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#03130e]/90">
-        {plaqueLayoutError ? <div role="alert" className="text-center text-emerald-100">
+        {plaqueLayoutError || missingReplayCoordinates ? <div role="alert" className="text-center text-emerald-100">
           <p>Could not lay out this tree.</p>
           <button type="button" onClick={retryPlaqueLayout} className="mt-3 underline">Retry</button>
         </div> : null}

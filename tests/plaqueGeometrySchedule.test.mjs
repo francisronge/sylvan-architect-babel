@@ -5,10 +5,22 @@ import {
   buildReplayPlaqueSchedule, buildStageCameraBounds, buildStageLayoutGroups, measureStagePlaqueSpace, selectReplayPlaqueLayout
 } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
 import {
   caseAssignmentClears, caseAssignmentSource, collectionPlaqueClears, plaqueIdentity,
   plaquesOverlap, projectPlaqueLayout
 } from '../replay/relations/plaquePlacement.ts';
+
+const capturedMetrics = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-font-metrics.json', import.meta.url)));
+const categoryMetrics = new Map(capturedMetrics.categories), inkMetrics = new Map(capturedMetrics.treeInk);
+const metric = (values, key) => {
+  assert(values.has(key), `the regression has a captured production font measurement for ${key}`);
+  return values.get(key);
+};
+const measuredTreeMetrics = {
+  measureCategoryText: text => metric(categoryMetrics, text),
+  measureTreeInk: (text, style) => metric(inkMetrics, JSON.stringify([text, style])) ?? undefined
+};
 
 const leaf = (id, word = id) => ({ id, label: 'N', word });
 const branch = (id, children) => ({ id, label: 'XP', children });
@@ -97,8 +109,10 @@ function auxiliaryCaseStages() {
   }];
 }
 
-for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]) {
-  test(`${width}px hidden future parents preserve the Case pocket through Fin selection`, () => {
+for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]) for (const measured of [true, false]) {
+  const behavior = measured ? 'captured font metrics preserve the lower Case pocket through Fin movement'
+    : 'conservative fallback preserves a safe Case pocket or replaces an unsafe one';
+  test(`${width}px ${direction}: ${behavior}`, () => {
     const stages = auxiliaryCaseStages();
     const replay = prepareReplay({ sentence: 'لم تكن مريم قد أرسلت الرسالة بعد.',
       derivationStages: stages, includePlayback: true });
@@ -109,7 +123,8 @@ for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]
     assert.equal(selectionIndex, beforeIndex + 1);
     assert.equal(movementIndex, selectionIndex + 1, 'Fin selection precedes the authored head movement');
     const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
-      plan: replay.relationRenderPlan, width, height, direction, layoutGroups: buildStageLayoutGroups(steps, stages) };
+      plan: replay.relationRenderPlan, width, height, direction, layoutGroups: buildStageLayoutGroups(steps, stages),
+      ...(measured ? measuredTreeMetrics : {}) };
     const original = JSON.stringify(input);
     const schedule = buildReplayPlaqueSchedule(input);
     const selected = sceneAt(input, selectionIndex);
@@ -129,7 +144,24 @@ for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]
       return layoutAt(schedule, input, index).get(itemIndex);
     });
     assertClose(pocket(boxes[1]), pocket(boxes[0]), 'selection keeps the reserved pocket relative to its source');
-    assertClose(pocket(boxes[2]), pocket(boxes[1]), 'movement of a new higher occurrence preserves the lower claim');
+    const movingScene = sceneAt(input, movementIndex), movingNodes = positions(movingScene);
+    if (measured) {
+      for (const id of ['auxiliaryLower', 'auxiliaryLower::__leaf', 'subjectLower']) {
+        const initial = positions(sceneAt(input, beforeIndex)).get(id);
+        for (const nodes of [byId, movingNodes]) assertClose([nodes.get(id).x, nodes.get(id).y], [initial.x, initial.y],
+          `${id} stays stationary through selection and the higher occurrence's movement`);
+      }
+      assertClose(pocket(boxes[2]), pocket(boxes[1]), 'movement of a new higher occurrence preserves the lower claim');
+    } else {
+      // Missing font metrics use larger ink envelopes. Retain the old pocket
+      // whenever it still clears; changed geometry must not retain a collision.
+      const carried = projectPlaqueLayout(new Map([[0, boxes[1]]]), id => movingNodes.get(id) ?? null).get(0);
+      const stillClear = movingScene.obstacles.every(obstacle => !plaquesOverlap(carried, obstacle, 0))
+        && caseAssignmentClears(movingNodes.get('auxiliaryLower'), carried, movingScene.obstacles)
+        && collectionPlaqueClears(carried, movingScene.nodes, movingScene.obstacles);
+      if (stillClear) assertClose(pocket(boxes[2]), pocket(boxes[1]), 'a safe prior pocket remains reserved');
+      else assert.notDeepEqual(pocket(boxes[2]), pocket(boxes[1]), 'an unsafe prior pocket must be replaced');
+    }
     assertClearScenes(input, schedule);
     assert.equal(JSON.stringify(input), original, 'plaque reservation does not change nodes, timing, claims, or canvas geometry');
   });
@@ -184,8 +216,9 @@ test('a collection prepass cannot replace an accepted pocket before its attachme
     return { nodes, box, scene: sceneAt(input, index) };
   };
   const before = at(selection - 1), selected = at(selection);
-  assert.ok(Math.abs(selected.nodes.get('il').x - before.nodes.get('il').x) > 1000,
-    'the enclosing structure expands without moving the assigning head within its current head complex');
+  assertClose([selected.nodes.get('il').x, selected.nodes.get('il').y],
+    [before.nodes.get('il').x, before.nodes.get('il').y],
+    'selection in another workspace leaves the existing assigning head stationary');
   assert.equal(selected.nodes.get('il').parent.data.id, before.nodes.get('il').parent.data.id);
   assertClose(pocket(selected.box), pocket(before.box),
     'the accepted pocket persists instead of resetting to the next stage prepass');
@@ -208,7 +241,12 @@ function assertClearScenes(input, schedule) {
   for (const stageIndex of new Set(input.steps.map(step => step.replayFrameIndex))) {
     for (const scene of measureStagePlaqueSpace({ ...input, stageIndex }).scenes) {
       const byId = positions(scene);
-      const layout = selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0]);
+      // Scheduling reserves later pockets before their relation is played.
+      // Only active claims require an attachment and clearance in this scene.
+      const layout = new Map([...selectReplayPlaqueLayout(schedule, stageIndex, scene.stepIndices[0])]
+        .filter(([index]) => !scene.playedRelations || planItemRelationRefs(input.plan.frames[stageIndex].items[index])
+          .some(ref => ref.stageIndex < stageIndex
+            || (ref.stageIndex === stageIndex && scene.playedRelations.has(ref.relationIndex)))));
       const projected = projectPlaqueLayout(layout, id => byId.get(id) ?? null);
       assert.equal(projected.size, layout.size, 'every reserved plaque has its actual scene attachment');
       for (const [index, box] of projected) {

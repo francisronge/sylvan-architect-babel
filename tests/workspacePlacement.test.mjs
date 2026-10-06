@@ -53,7 +53,13 @@ for (const direction of ['ltr', 'rtl']) test(`${direction}: reservation translat
   assert.deepEqual(before.get('b'), after.get('b'), 'untouched sister stays fixed');
   assert.equal(Math.abs(after.get('b').x - after.get('lower').x), 20, 'original width survives the wider future scene');
   assert.equal(after.get('b').y - after.get('r').y, 20, 'future ranks do not stretch current branches');
-  assert.deepEqual(plan.get(steps[3].replayCanvasData), originals.get(steps[3].replayCanvasData), 'a changed attachment ends reservation');
+  const attachmentPoints = points => new Map([...points].filter(([id]) => id !== 'loose'));
+  assert.deepEqual(attachmentPoints(plan.get(steps[3].replayCanvasData)),
+    attachmentPoints(originals.get(steps[3].replayCanvasData)), 'a changed attachment ends its component reservation');
+  for (let index = 1; index < steps.length; index++) {
+    assert.deepEqual(positions(index, plan, direction).get('loose'), selection.get('loose'),
+      'the separate unchanged workspace remains fixed throughout its lifetime');
+  }
   assert.deepEqual(originals, oldCoordinates, 'baseline maps are immutable');
   assert.equal(JSON.stringify(steps), unchanged, 'visibility, records and timing are immutable');
   assert.deepEqual(reserveWorkspaceAttachments([...steps].reverse(), new Map([...sizes].reverse()), direction, baseline),
@@ -65,7 +71,30 @@ for (const [name, options] of [
   ['ambiguous lower witness', { ambiguous: true }],
   ['still independent workspace', { attached: false }],
   ['ordinary construction boundary', { relation: false }]
-]) test(`${name} keeps its original geometry`, () => {
-  const { steps, sizes, originals, baseline } = scenario(options);
-  assert.deepEqual(reserveWorkspaceAttachments(steps, sizes, 'ltr', baseline), originals);
+]) test(`${name} rejects attachment reservation while keeping the independent workspace stable`, () => {
+  const { steps, sizes, originals, baseline, positions } = scenario(options);
+  const originalSteps = JSON.stringify(steps), originalCoordinates = structuredClone(originals);
+  const plan = reserveWorkspaceAttachments(steps, sizes, 'ltr', baseline);
+  const before = positions(1, plan, 'ltr'), after = positions(2, plan, 'ltr');
+  const separate = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) > 1e-6;
+  // Rejecting this correspondence must not prevent the general planner from
+  // repairing unrelated motion elsewhere in the same synthetic sequence.
+  assert(separate(before.get('a'), after.get('lower')), 'an invalid pairing cannot inherit the source slot');
+  if (options.ambiguous) assert(separate(before.get('a'), after.get('b')), 'neither ambiguous witness inherits the source slot');
+  if (options.changedChild) assert.deepEqual(before.get('a'), after.get('a'), 'the surviving source stays fixed');
+  if (options.attached === false) assert.deepEqual(before.get('b'), after.get('b'), 'the unchanged sister stays fixed');
+  if (options.ambiguous || options.relation === false) {
+    for (const [canvas, coordinates] of originals) {
+      for (const [id, point] of coordinates) if (id !== 'loose') {
+        assert.deepEqual(plan.get(canvas).get(id), point, `${name}: ${id} does not receive an attachment reservation`);
+      }
+    }
+  }
+  const source = positions(0, plan, 'ltr').get('loose');
+  for (let index = 1; index < steps.length; index++) {
+    assert.deepEqual(positions(index, plan, 'ltr').get('loose'), source,
+      'unrelated selection and topology changes cannot teleport the independent workspace');
+  }
+  assert.deepEqual(originals, originalCoordinates);
+  assert.equal(JSON.stringify(steps), originalSteps);
 });

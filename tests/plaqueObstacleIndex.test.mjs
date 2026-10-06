@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { preparePlaqueObstacleIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap } from '../replay/relations/plaqueObstacleIndex.ts';
+import { preparePlaqueObstacleIndex, preparePlaqueOverlapIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap } from '../replay/relations/plaqueObstacleIndex.ts';
 import { uniquePlaqueObstacles } from '../replay/relations/plaquePlacement.ts';
 
 test('the obstacle index preserves exact collision decisions, including unbounded stems and touching edges', () => {
@@ -27,6 +27,54 @@ test('the obstacle index preserves exact collision decisions, including unbounde
   assert.equal(preparePlaqueObstacleIndex([]).overlaps(obstacles[0]), false);
 });
 
+test('long same-axis partitions retain stable ties and exact left-first query order', () => {
+  const obstacles = Array.from({ length: 256 }, (_, i) => ({
+    x: (i * 37 % 128) * 1000, y: 0, width: 10, height: 2, owner: i
+  }));
+  const expected = [...obstacles].sort((a, b) => a.x - b.x), visited = [];
+  const index = preparePlaqueObstacleIndex(obstacles);
+  assert.equal(index.some({ x: -1, y: -1, width: 128001, height: 4 }, box => {
+    visited.push(box); return false;
+  }), false);
+  assert.deepEqual(visited, expected);
+  visited.forEach((box, i) => assert.equal(box, expected[i]));
+});
+
+test('boolean partitions preserve exact curve, edge and downward collision decisions', () => {
+  const curve = { source: { x: 0, y: 0 }, control1: { x: 0, y: 200 },
+    control2: { x: 200, y: 200 }, target: { x: 200, y: 0 } };
+  const obstacles = Array.from({ length: 256 }, (_, i) => ({
+    x: (i * 137 % 1200) - 600, y: (i * 71 % 900) - 450,
+    width: i * 17 % 140, height: i * 23 % 150, extendsDownward: i % 23 === 0
+  }));
+  obstacles.push({ x: 0, y: 0, width: 200, height: 200, curve, curvePadding: 6 });
+  const original = structuredClone(obstacles), index = preparePlaqueOverlapIndex(obstacles);
+  for (const gap of [0, 24, 24.000001, -10]) for (const base of obstacles) {
+    for (const box of [base,
+      { x: base.x + base.width + gap, y: base.y, width: 8, height: 8 },
+      { x: base.x, y: base.y + base.height + gap, width: 8, height: 8 },
+      { x: base.x - 150, y: 100000, width: 100, height: 1 },
+      { x: base.x - 10, y: base.y - 40, width: 30, height: 0, extendsDownward: true }])
+      assert.equal(index.overlaps(box, gap), obstacles.some(other => plaquesOverlap(box, other, gap)));
+  }
+  assert.deepEqual(obstacles, original);
+  assert.equal(preparePlaqueOverlapIndex([]).overlaps(obstacles[0]), false);
+});
+
+test('boolean partitions handle coincident centers, extreme edges and exceptional geometry without pruning hits', () => {
+  const ordinary = Array.from({ length: 128 }, (_, i) => ({ x: -i / 2, y: -i / 2, width: i, height: i }));
+  const extremes = [Number.MIN_VALUE, Number.MAX_VALUE / 2, -Number.MAX_VALUE / 2, 1e300, -1e300]
+    .map(x => ({ x, y: x, width: Math.abs(x) / 4, height: Math.abs(x) / 4 }));
+  for (const special of [[], [{ x: NaN, y: 0, width: 1, height: 1 }],
+    [{ x: 0, y: 0, width: Infinity, height: Infinity }], [{ x: 50, y: 50, width: -100, height: -100 }]]) {
+    const obstacles = [...ordinary, ...extremes, ...special], index = preparePlaqueOverlapIndex(obstacles);
+    for (const query of [...ordinary, ...extremes, ...special,
+      { x: -Infinity, y: 0, width: Infinity, height: 20 }, { x: 0, y: NaN, width: 10, height: 10 }])
+      for (const gap of [0, 24, Infinity, NaN])
+        assert.equal(index.overlaps(query, gap), obstacles.some(other => plaquesOverlap(query, other, gap)));
+  }
+});
+
 test('future-frame deduplication keeps first occurrence order and distinguishes downward reservations', () => {
   const finite = { x: 0, y: 10, width: 30, height: 40 };
   const stem = { ...finite, extendsDownward: true };
@@ -40,6 +88,29 @@ test('future-frame deduplication keeps first occurrence order and distinguishes 
     assert.equal(unique.some(other => plaquesOverlap(box, other)), repeated.some(other => plaquesOverlap(box, other)));
   }
 });
+
+test('numeric obstacle buckets preserve the exact union for fractional and exceptional coordinates', () => {
+  const values = [0, -0, NaN, Infinity, -Infinity, Number.MIN_VALUE, Number.MAX_VALUE,
+    Number.EPSILON, 1, 1 + Number.EPSILON, -77.3125, 9007199254740991];
+  const boxes = values.flatMap(x => values.flatMap(y => [false, true].map(extendsDownward =>
+    ({ x, y, width: 32.125, height: .000001, extendsDownward }))));
+  for (let i = 0; i < 4096; i++) boxes.push({ x: i / 17, y: (i * 37 % 941) / 11,
+    width: (i * 73 % 439) / 7, height: (i * 7 % 127) / 3 });
+  const repeated = boxes.flatMap(box => [box, { ...box }]);
+  const seen = new Set();
+  const expected = repeated.filter(box => {
+    const key = `${box.x},${box.y},${box.width},${box.height},${Boolean(box.extendsDownward)}`;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  const actual = uniquePlaqueObstacles(repeated);
+  assert.equal(actual.length, expected.length);
+  actual.forEach((box, index) => assert.strictEqual(box, expected[index], 'first occurrence identity and ordering stay exact'));
+});
+
+
+
+
 
 
 test('prepared column intervals retain strict gaps, touching endpoints and unbounded stems', () => {
@@ -170,4 +241,14 @@ test('prepared leaf edges preserve floating-point addition order at strict bound
       }
     }
   }
+});
+
+test('sampled-curve deduplication preserves value equality and observes later curve changes', () => {
+  const curve = {source:{x:0,y:0},control1:{x:0,y:30},control2:{x:40,y:30},target:{x:40,y:60}};
+  const a={x:0,y:0,width:20,height:30,curve,curvePadding:5};
+  const b={...a,curve:structuredClone(curve)}, padded={...a,curvePadding:6};
+  const samples=[a,{...a},b,padded,{...a,x:20}];
+  assert.deepEqual(uniquePlaqueObstacles(samples),[a,padded,samples[4]]);
+  curve.control1.x=2;
+  assert.deepEqual(uniquePlaqueObstacles(samples),[a,b,padded,samples[4]]);
 });

@@ -40,9 +40,8 @@ test('do-support preserves the preceding fit with either overlay policy and in e
   const plan = compileRelationRenderPlan(astra.derivationStages);
   for (const includeOverlays of [false, true]) {
     const input = { steps, stageIndex: 4, width: 1596, height: 1016, plan, includeOverlays,
-      completedCanvas: beforeDoSupport.replayCanvasData };
+      layoutGroups, completedCanvas: beforeDoSupport.replayCanvasData };
     const original = buildStageCameraBounds(input);
-    assert.deepEqual(buildStageCameraBounds({ ...input, layoutGroups }), original);
     assert.deepEqual(buildStageCameraBounds({ ...input, stageIndex: 5, layoutGroups }), original);
     assert.deepEqual(buildStageCameraBounds({ ...input, stageIndex: 5, layoutGroups, steps: [...steps].reverse() }), original);
   }

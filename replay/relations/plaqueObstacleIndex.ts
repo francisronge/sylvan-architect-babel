@@ -10,18 +10,108 @@ export const plaquesOverlap = (a: ObstacleRect, b: ObstacleRect, gap = 24): bool
   && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding ?? 0))
   && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding ?? 0));
 
-/** A lifetime reservation carries its precise curve with its bounding boxes. */
+/** Immutable lifetime obstacles carry their precise curves with their bounds.
+ * An unchanged translation retains the shared geometry of a stationary scene. */
 export function translateObstacle<T extends ObstacleRect>(box: T, dx: number, dy: number): T {
-  const point = (p: { x: number; y: number }) => ({ x: p.x + dx, y: p.y + dy });
-  return { ...box, x: box.x + dx, y: box.y + dy,
-    ...(box.curve ? { curve: { source: point(box.curve.source), control1: point(box.curve.control1),
-      control2: point(box.curve.control2), target: point(box.curve.target) } } : {}) };
+  const point = (p: { x: number; y: number }) => {
+    const x = p.x + dx, y = p.y + dy;
+    return Object.is(x, p.x) && Object.is(y, p.y) ? p : { x, y };
+  };
+  const x = box.x + dx, y = box.y + dy;
+  let curve = box.curve;
+  if (curve) {
+    const source = point(curve.source), control1 = point(curve.control1);
+    const control2 = point(curve.control2), target = point(curve.target);
+    if (source !== curve.source || control1 !== curve.control1 || control2 !== curve.control2 || target !== curve.target)
+      curve = { source, control1, control2, target };
+  }
+  return Object.is(x, box.x) && Object.is(y, box.y) && curve === box.curve ? box
+    : { ...box, x, y, ...(curve ? { curve } : {}) };
+}
+
+/** A schedule revisits immutable scene arrays at the same anchor offsets.
+ * Keep the translations local to that schedule, including signed-zero offsets. */
+export function prepareImmutableObstacleTranslations() {
+  const translated = new WeakMap<readonly ObstacleRect[], Array<{ dx: number; dy: number; boxes: ObstacleRect[] }>>();
+  return <T extends ObstacleRect>(obstacles: readonly T[], dx: number, dy: number): T[] => {
+    let offsets = translated.get(obstacles);
+    const prior = offsets?.find(entry => Object.is(entry.dx, dx) && Object.is(entry.dy, dy));
+    if (prior) return prior.boxes as T[];
+    const boxes = obstacles.map(box => translateObstacle(box, dx, dy));
+    if (!offsets) translated.set(obstacles, offsets = []);
+    offsets.push({ dx, dy, boxes });
+    return boxes;
+  };
+}
+
+/** Boolean placement queries need spatial rejection, not sorted witness order.
+ * Partition one private array in place; every leaf keeps the exact predicate. */
+export function preparePlaqueOverlapIndex(obstacles: readonly ObstacleRect[]) {
+  const linear = (box: ObstacleRect, gap: number) => obstacles.some(other => plaquesOverlap(box, other, gap));
+  const boxes = obstacles.map(obstacle => ({ obstacle,
+    right: obstacle.x + obstacle.width, bottom: obstacle.y + obstacle.height }));
+  if (boxes.some(({ obstacle, right, bottom }) =>
+    !Number.isFinite(obstacle.x) || !Number.isFinite(obstacle.y)
+    || !Number.isFinite(right) || !Number.isFinite(bottom) || obstacle.width < 0 || obstacle.height < 0))
+    return { overlaps: (box: ObstacleRect, gap = 24) => linear(box, gap) };
+  type Branch = { x: number; y: number; right: number; bottom: number; extendsDownward: boolean;
+    start: number; end: number; leaf: boolean; skip: number };
+  const branches: Branch[] = [];
+  const build = (start: number, end: number) => {
+    let x = Infinity, y = Infinity, right = -Infinity, bottom = -Infinity, extendsDownward = false;
+    for (let i = start; i < end; i++) {
+      const box = boxes[i];
+      x = Math.min(x, box.obstacle.x); y = Math.min(y, box.obstacle.y);
+      right = Math.max(right, box.right); bottom = Math.max(bottom, box.bottom);
+      extendsDownward ||= Boolean(box.obstacle.extendsDownward);
+    }
+    const branch: Branch = { x, y, right, bottom, extendsDownward, start, end, leaf: end - start <= 8, skip: 0 };
+    branches.push(branch);
+    if (!branch.leaf) {
+      const horizontal = right - x >= bottom - y;
+      // Half-sums avoid overflowing otherwise finite extreme coordinates.
+      const middle = horizontal ? x / 2 + right / 2 : y / 2 + bottom / 2;
+      let left = start, last = end - 1;
+      while (left <= last) {
+        const box = boxes[left];
+        const center = horizontal ? box.obstacle.x / 2 + box.right / 2 : box.obstacle.y / 2 + box.bottom / 2;
+        if (center < middle) left++;
+        else { const other = boxes[last]; boxes[last--] = box; boxes[left] = other; }
+      }
+      // Coincident centers still form a bounded tree without a sorting phase.
+      const split = left === start || left === end ? (start + end) >>> 1 : left;
+      build(start, split); build(split, end);
+    }
+    branch.skip = branches.length;
+  };
+  if (boxes.length) build(0, boxes.length);
+  return { overlaps: (box: ObstacleRect, gap = 24): boolean => {
+    if (box.curve || !Number.isFinite(box.x) || !Number.isFinite(box.y)
+      || !Number.isFinite(box.width) || !Number.isFinite(box.height) || box.width < 0 || box.height < 0
+      || !Number.isFinite(gap) || gap < 0) return linear(box, gap);
+    const right = box.x + box.width + gap, bottom = box.y + box.height + gap;
+    for (let index = 0; index < branches.length;) {
+      const branch = branches[index];
+      if (!(box.x < branch.right + gap && right > branch.x
+        && (branch.extendsDownward || box.y < branch.bottom + gap)
+        && (box.extendsDownward || bottom > branch.y))) { index = branch.skip; continue; }
+      if (branch.leaf) for (let i = branch.start; i < branch.end; i++) {
+        const { obstacle, right: edge, bottom: floor } = boxes[i];
+        if (box.x < edge + gap && right > obstacle.x
+          && (obstacle.extendsDownward || box.y < floor + gap)
+          && (box.extendsDownward || bottom > obstacle.y)
+          && (!obstacle.curve || cubicIntersectsRect(obstacle.curve, box, obstacle.curvePadding ?? 0))) return true;
+      }
+      index++;
+    }
+    return false;
+  } };
 }
 
 /** Immutable broad-phase lookup. Exact edge and gap rules still come from plaquesOverlap. */
 export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: readonly T[]) {
   type Branch = { bounds: ObstacleRect; boxes?: readonly T[]; left?: Branch; right?: Branch };
-  const build = (boxes: T[]): Branch | null => {
+  const build = (boxes: T[], sortedAxis?: 'x' | 'y'): Branch | null => {
     if (!boxes.length) return null;
     let x = Infinity, y = Infinity, right = -Infinity, bottom = -Infinity, extendsDownward = false;
     for (const box of boxes) {
@@ -37,9 +127,14 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
     if (boxes.length <= 8) return { bounds, boxes };
     const axis = bounds.width >= bounds.height ? 'x' : 'y';
     const extent = axis === 'x' ? 'width' : 'height';
-    boxes.sort((a, b) => (a[axis] + a[extent] / 2) - (b[axis] + b[extent] / 2));
+    if (axis !== sortedAxis) {
+      boxes.sort((a, b) => (a[axis] + a[extent] / 2) - (b[axis] + b[extent] / 2));
+      sortedAxis = boxes.every(box => Number.isFinite(box[axis] + box[extent] / 2)) ? axis : undefined;
+    }
     const mid = Math.floor(boxes.length / 2);
-    return { bounds, left: build(boxes.slice(0, mid))!, right: build(boxes.slice(mid))! };
+    // Contiguous slices retain the parent's stable finite ordering. A changed
+    // axis or exceptional center still takes the original comparator path.
+    return { bounds, left: build(boxes.slice(0, mid), sortedAxis)!, right: build(boxes.slice(mid), sortedAxis)! };
   };
   const root = build([...obstacles]);
   type Entry = { branch: Branch; right: number; bottom: number; skip: number;

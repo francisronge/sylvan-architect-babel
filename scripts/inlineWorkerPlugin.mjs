@@ -20,7 +20,21 @@ export const inlineWorkerPlugin = ({ onInputs = () => {} } = {}) => ({
         const source = JSON.stringify(worker.outputFiles[0].text);
         contents = contents.replace(match[0], () => `(() => {
           const url = URL.createObjectURL(new Blob([${source}], { type: 'text/javascript' }));
-          try { return new Worker(url); } finally { URL.revokeObjectURL(url); }
+          let released = false;
+          const release = () => {
+            if (!released) { released = true; URL.revokeObjectURL(url); }
+          };
+          try {
+            const worker = new Worker(url);
+            // WebKit may fetch the script after construction returns. Keep its
+            // URL until the job responds, fails, or is explicitly cancelled.
+            for (const event of ['message', 'error', 'messageerror']) {
+              worker.addEventListener(event, release, { once: true });
+            }
+            const terminate = worker.terminate.bind(worker);
+            worker.terminate = () => { try { terminate(); } finally { release(); } };
+            return worker;
+          } catch (error) { release(); throw error; }
         })()`);
       }
       return { contents, loader: file.endsWith('tsx') ? 'tsx' : 'ts' };

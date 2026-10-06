@@ -2143,8 +2143,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "960c13dc805524712eb6b2eadab181c884e6df87ee2c9074b4d447b8ac2a14cf",
-        "390x844": "960c13dc805524712eb6b2eadab181c884e6df87ee2c9074b4d447b8ac2a14cf"
+        "1600x1100": "d59590ba55f7265c0002a9761e82d741d23f617347595ca885b6870aabdceda7",
+        "390x844": "d59590ba55f7265c0002a9761e82d741d23f617347595ca885b6870aabdceda7"
       }
     },
     {
@@ -4751,8 +4751,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "abb08ea1c7550dc03bce9377903bf7af58267919e35899a672ee55a74854a598",
-        "390x844": "abb08ea1c7550dc03bce9377903bf7af58267919e35899a672ee55a74854a598"
+        "1600x1100": "f2d85cbe68e06996d23bacf8709de72bffb390c00932fb39b3731a8a8d095834",
+        "390x844": "f2d85cbe68e06996d23bacf8709de72bffb390c00932fb39b3731a8a8d095834"
       }
     }
   ]

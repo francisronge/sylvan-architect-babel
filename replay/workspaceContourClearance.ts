@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import type { SyntaxNode } from '../types.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import { getNodeId, applyVizIds } from './displayIdentity.ts';
@@ -13,7 +14,7 @@ type Scene = {
 
 /** Translate independent components as units using clearance throughout the stage.
  * A common final component proves membership; ambiguous attachments keep their layout. */
-export function separateWorkspaceContours<T extends Scene>(scenes: T[]): T[] {
+export function separateWorkspaceContours<T extends Scene>(scenes: T[], measureCategoryText?: CategoryTextMeasure): T[] {
   const root = [...scenes[0].nodes.values()][0];
   if (root.data.replayOrigin?.kind !== 'workspace' || !root.children || root.children.length < 2) return scenes;
   const groups = root.children.filter(node => !node.data.replayLayoutOnly);
@@ -35,7 +36,7 @@ export function separateWorkspaceContours<T extends Scene>(scenes: T[]): T[] {
       if (owners.size !== 1) return scenes;
       const owner = [...owners][0];
       members.forEach(node => membership.set(getNodeId(node), owner));
-      boxes[owner].push(...plaqueTreeObstacles(members));
+      boxes[owner].push(...plaqueTreeObstacles(members, measureCategoryText));
     }
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
       let gap = 0;
