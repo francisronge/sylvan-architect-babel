@@ -9,14 +9,18 @@ Babel must accommodate all languages. Test languages expose general limitations;
 they do not define a supported-language allowlist or authorize language-specific
 syntactic rules.
 
-## Current priority: renderer and contract qualification
+## Current priority: fresh contract checks and application foundations
 
-Complete the renderer and derivation contract before starting the application
-redesign. Desktop remains the primary experience. The work below governs this
-phase; the later programs describe subsequent product work.
+The verified contract, Replay, renderer and performance guard are merged. The
+current local work adds faithful failed-output inspection, error containment and
+behavior-preserving extraction of application responsibilities. The bounded
+ten-request Codex OAuth comparison is complete; its newly reproduced renderer
+defects have general fixes and focused evidence. Application design remains
+separate. Desktop remains the primary experience.
 
-The current pass covers every saved relation, every declared drawing recipe,
-and fresh unfamiliar records. The exit conditions are:
+The historical corpus audit and drawing inventory remain completed evidence.
+The following acceptance criteria govern any newly reproduced defect; they do
+not authorize restarting those sweeps:
 
 1. Every drawing recipe can be reached from a valid public record through
    normalization, Replay, exact-anchor binding and the production painter.
@@ -52,7 +56,7 @@ warnings are removed while genuine unavailable-occurrence diagnostics remain.
 Canonical behavior and limits are recorded in the renderer closeout and Tier-2
 shape-dispatch specifications.
 
-The opening-speed finding is resolved on the reference Mac. The latest native
+The opening-speed finding is resolved on the reference Mac. The earlier closeout
 comparison measured 899.6 ms against 839.1 ms for the historical checkpoint,
 within the unchanged 100 ms allowance and below the two-second target. Layout
 preparation runs in a serial worker with exact font metrics, bounded in-memory
@@ -72,14 +76,55 @@ requires relation order to match the establishing operations in the stage record
 including independent operations. Relation and anchor names remain open. Four
 Codex OAuth requests with GPT-6.1 Sol/high returned five reviewed analyses after
 the cleanup. The final ordering sentence was approved afterward and has offline
-coverage; it has not been followed by another generation batch.
+coverage. The matched five-case batch completed five requests with GPT-6 Astra
+and five with GPT-6.1 Sol, both at high effort through Codex OAuth. Astra returned
+six analyses and Sol seven. All ten used the same frozen source fingerprint;
+all 13 analyses were audited. One initial Sol preflight stopped before any
+provider request because local implementation changed the audited files. The
+remaining requests used the frozen starting checkout; no sent request was
+retried and no paid fallback was used.
+
+The batch found one concrete relation-ordering/interleaving error in Sol's
+German Stage Record, an under-specified sequence in Astra's German explanation,
+and minor omitted Case explanations in Astra's Japanese and Spanish records.
+These are preserved model findings, not demonstrated new prompt ambiguities.
+No authored record or model-facing prompt was changed. Every returned analysis,
+original response and diagnostic remains available in the
+[ten-request interactive review](http://127.0.0.1:8453/closeout/model-comparison-20261006/review/).
+
+Fresh records also exposed two movement-recognition gaps: an intact head
+assembly at a new receiving head, and a contextual projecting head mistaken for
+a competing phrase landing. General structural proofs recover four missing
+paths; exact Tier-1 and ambiguity controls remain protected. Focused native
+checks cover the owning moments on desktop and phone, with before/after images
+and a short recording. A Spanish governor/dependent Case claim repeated in two
+alternatives now recovers from a complete assignment label naming the exact
+separately supplied Case value, without requiring the word “Case” in that label.
+Missing values, ambiguous participants, negated claims and malformed exact
+Tier-1 claims remain neutral. This work does not restart exhaustive browser sweeps.
+
+The assembled local change passes 4,362 tests, typechecking, both parse-contract
+fixtures and the production build. All 13 returned analyses open and reach their
+final rendered Replay frame without browser errors or additional generation
+requests. This opening check is not an exhaustive visual review of every frame.
+The unchanged performance gate measures an 876.8 ms candidate median against
+876.2 ms for the starting checkout, using five alternating samples per revision.
+Both satisfy the two-second reference target; the relative comparison passes.
+Application foundations are committed at `7a8f519`, and the recognition fixes
+at `f8c29f2`. These commits and the earlier Tree Bank integration remain local
+and unmerged. Temporary verification servers and browsers are stopped; the
+existing review server remains available.
 
 Exhaustive browser sweeps and the old twelve-request schedule remain stopped.
 Original analyses, failures and review media are retained outside the source tree.
-The next step is review and merge of the focused contract, Replay, renderer and
-performance-guard PRs. Publishing a CI check does not make it a required merge
-check until repository protection is configured. No application shipment has
-occurred, and the larger launch work below remains separate.
+The focused contract, Replay, renderer, performance-guard and dependency-fix
+PRs (#18–22) are merged. Provider-free verification and renderer performance are
+required checks, with up-to-date branches and administrator enforcement. The
+new Tree Bank record integration is committed locally at `970d232`; it has not
+been merged. It passed 4,301 tests, typechecking, both parse-contract fixtures and
+a production build. Its reference startup median was 882 ms against 873 ms for
+the base, within the unchanged allowance. The Vercel application remains paused;
+no application deployment or shipment follows from these checks.
 
 ### Earlier integrated contract and renderer evidence
 
@@ -181,7 +226,8 @@ all future open-ontology wording.
 ### What remains before Babel can ship
 
 The reported contract/renderer defects have focused regression and visual proof.
-The current code still needs PR review and merge. Retain model-authored mistakes
+The contract/renderer PRs are merged; the newer Tree Bank and application-foundation
+changes still need review and merge. Retain model-authored mistakes
 as inspectable evidence; they are not permission to silently repair analyses or
 restart qualification indefinitely. A new renderer blocker requires a reproduced
 defect. Earlier measurements below describe historical checkpoints and are
@@ -194,9 +240,9 @@ date is authorized by these receipts.
 | Remaining product work | Current evidence and required result |
 | --- | --- |
 | Generation policy and provider qualification | Codex OAuth generations qualify that development transport, not the hosted API routes. Choose the public model/settings, measure its actual route, and qualify each research provider that will be offered. Keep failures and model mistakes inspectable; do not require perfect linguistic analyses. |
-| Durable Personal Tree Bank, Program 2 | `App.tsx` still saves whole bundles through the version-1 IndexedDB store in `services/treeBankStore.ts`. The `derivationalDatabase/` record/export modules are persistence-free and are not integrated into that path. Implement immutable records, atomic wrappers, integrity checks, backup/import/export and the agreed legacy-data transition. |
+| Durable Personal Tree Bank, Program 2 | Immutable local analysis records, shared generation context, atomic wrappers, integrity checks, cross-tab refresh and exact saved-view restoration are implemented in `970d232`. Old entries remain readable without migration. Import/export and its W17 adapter remain deferred to the design work; no missing evidence is invented. |
 | Shared public/research application, Program 3 | The current `App.tsx` still exposes one workspace with model controls and a Notes tab. Build the shared `/` and `/research` flows, retain Replay explanations, and safely separate application responsibilities without redesigning the verified relation drawings. |
-| Product failure inspection, Program 3 | `FailurePanel.tsx` shows diagnostics and downloads. Diagnostic Replay exists in `contractQualification/`, but is not connected to that failed-request view. Integrate faithful inspection where an output can be reconstructed; preserve the raw result when it cannot. Settle public wording and retry behavior without changing the analysis. |
+| Product failure inspection, Program 3 | Implemented locally: a failed renderer view can retry without losing the active analysis. Failed model outputs offer diagnostic stage/Replay inspection where readable structure survives; raw bytes and downloads remain available otherwise. The original input is retained, and bounded browser expansion prevents malicious or accidental reference growth from freezing inspection. Public/research presentation remains a separate design decision. |
 | Syntactician workspace, Program 4 | Collections, user notes/judgments/citations, sibling-analysis work, query needs, interchange and research exports still require product design and integration. These planned capabilities are separate from the existing flat saved-tree library. |
 | Hosted operation, Program 5 | CI and basic local request controls exist. Hosting, supported runtime conditions, public request/spend limits, research access, deployed error handling, accessibility, privacy/security, backups, monitoring and rollback still need decisions or launch proof. The recorded production application is paused. |
 | Generation Archive and reviewed corpus, Program 6 | Request provenance and pure record schemas exist; the automatic hosted archive and review/promotion/correction workflow are not integrated. Define retention, deletion, access and licensing rules before implementation. A small working reviewed set is sufficient; a large corpus is not a launch gate. |
@@ -3280,15 +3326,13 @@ version-1 entries remain readable and are not migrated or removed automatically.
 Import/export and any legacy transition interface are deferred to the later
 application design work. Automatic Generation Archive retention remains separate.
 
-1. Characterize the current IndexedDB schema, save/open/delete behavior,
-   preview snapshots, ambiguity selection, and failure recovery.
-2. Build a one-time explicit legacy export so current local saves can be
-   preserved before retirement.
-3. Decide the local persistence engine from required properties: atomic batch
-   writes, indexes, schema upgrades, backup/export, corruption isolation, and
-   browser/desktop portability. Do not choose it by familiarity alone.
-4. Francis decides whether legacy entries receive import support or only a
-   documented export-and-retire path.
+1. Complete: characterize save/open/delete, preview snapshots, ambiguity
+   selection, view restoration and failure recovery.
+2. Complete: retain IndexedDB for atomic browser-local writes, versioned
+   stores, indexed records and cross-tab updates.
+3. Deferred with application design: explicit backup/import/export. Months-old
+   entries do not require a migration project; their existing read path remains.
+4. Decide any legacy import or export-and-retire interface during that work.
 
 ### 2B. Record Integration
 
@@ -3305,21 +3349,20 @@ provider-notice references. The native-record adapter must preserve that
 distinction when import/export is designed; it must not invent missing evidence.
 Browser-local storage still depends on its origin and browser retention policy.
 
-1. Adapt the selected normalized analysis to the existing W17 record and
-   evidence schemas.
-2. Define the thin saved-work wrapper and its versioned schema.
-3. Implement one atomic save: all analysis records plus one wrapper, or no
-   visible save.
-4. Restore framework, selected analysis, view, Replay position where valid,
-   and preview without copying authored derivation bytes into the wrapper.
-5. Reopening must reconstruct the complete familiar analysis bundle from its
-   ordered record references; a rerun or competing analysis is a sibling, not a
-   silent replacement.
-6. Validate hashes on load; quarantine invalid records without blocking valid
-   work.
-7. Add explicit native export/import with duplicate and collision policy.
-8. Test crash interruption, partial writes, upgrades, corrupt imports,
-   ambiguity bundles, Unicode, large analyses, and fresh-browser recovery.
+1. Complete: immutable local analysis records, shared generation context and a
+   versioned saved-work wrapper with ordered references.
+2. Complete: atomic records/wrapper/preview writes, or no visible save.
+3. Complete: restore framework, selected analysis, view and valid Replay
+   position; load preview bytes separately.
+4. Complete: reconstruct the complete received bundle without silent replacement
+   of alternatives, reruns or authored data.
+5. Complete: validate hashes and metadata on load; preserve unreadable bytes in
+   place and report the error without blocking other entries.
+6. Complete: focused interrupted-write, quota, upgrade, ambiguity, Unicode,
+   corruption and cross-tab checks, plus browser save/reopen/reload evidence.
+7. Deferred: native import/export, duplicate/collision policy, corrupt-import
+   tests and export-based recovery in a fresh browser. The W17 adapter must
+   distinguish unavailable evidence from recorded evidence.
 
 Done when Tree Bank can round-trip a saved analysis through the durable record
 format, survive interrupted writes, and recover or quarantine every entry
@@ -3346,19 +3389,26 @@ evidence-backed additions or iteration while shipping the product.
    and current analysis state. A route changes the available controls, not the
    meaning or storage of an analysis.
 
-Preparation map, with no broad extraction started:
+Application boundaries implemented in the current local change:
 
-- `App.tsx`: isolate current IndexedDB/entry helpers and snapshot capture from
-  view state; extract bracket-notation serialization separately. Preserve the
-  existing storage shape, preview tests and save/reopen/export behavior.
-- `TreeVisualizer.tsx`: extract the React Replay controls/panel first. A later
-  SVG painter extraction needs an explicit shared drawing context so anchors,
-  camera transforms, claim ownership and emphasis stay together. Require
-  unchanged Orchard pixels, hover, zoom/Fit and motion evidence.
-- `replayCompiler.ts`: begin with pure panel and trace-index formatting. Keep
-  movement ownership, pre-movement source state and structural scheduling in
-  one coherent compiler until their dependencies are explicit. Require identical
-  frame order, visible syntax and authored-relation ownership.
+- `App.tsx`: storage lives in `services/treeBankRecords.ts` and
+  `services/treeBankStore.ts`. Snapshot capture, bracket-notation serialization
+  and generation state now have separate owners, preserving current provider
+  requests, preview pixels and save/reopen behavior.
+- `TreeVisualizer.tsx`: `ReplayPanel.tsx` now owns the existing controls and
+  detail presentation. Playback state, camera, DOM measurement and D3 painting
+  remain together. Local error boundaries and owned callback guards contain
+  rendering failures without discarding the current analysis. A later painter
+  extraction needs a shared drawing context; it is not part of this change.
+- `replayCompiler.ts`: pure panel/detail formatting and trace/index notation now
+  live in separate React-free modules. Movement ownership, pre-movement source
+  state and structural scheduling remain in one compiler. Existing exports and
+  authored fields retain their meaning.
+- Failed-output inspection shares authored-workspace and realization rules with
+  server validation. A diagnostic dialog exposes readable stages and Replay;
+  original bytes, diagnostics and downloads remain separate from accepted parses.
+  Browser-only expansion limits prevent malformed references from freezing the
+  view without weakening the server contract.
 
 ### 3B. Public Babel At `/`
 
@@ -3401,8 +3451,11 @@ Preparation map, with no broad extraction started:
 ### 3D. Product Quality
 
 1. Preserve and characterize the existing loading experience, arbitrary-count
-   parse selection, and provider transport retries. Add route-level and renderer
-   error boundaries and accessible keyboard/focus behavior. Decide separately
+   parse selection, and provider transport retries. Renderer and diagnostic
+   inspection error boundaries are implemented locally, including owned D3,
+   animation, resize and deferred callbacks. Retry remounts the view without a
+   provider request; closing inspection restores keyboard focus. Future route
+   boundaries belong with the eventual application split. Decide separately
    whether user-triggered parse cancellation or additional retry UI is useful.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
@@ -3589,8 +3642,9 @@ review authority, and correction path.
 
 ## Decisions Still Owned By Francis
 
-- Whether legacy Tree Bank data gets an importer or export-only retirement.
-- The local persistence engine after the property comparison.
+- The import/export experience, including any legacy importer or export-only
+  retirement, during application design. IndexedDB is already selected; old
+  entries remain readable without an automatic migration.
 - The detailed public/research information architecture and visual direction
   within the settled shared-application and route boundary.
 - The detailed syntactician-workspace workflows and interaction model.
