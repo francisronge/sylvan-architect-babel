@@ -290,6 +290,10 @@ compound role-and-Case assignment, the independently recovered thematic pair
 can also own the Case dependency. Case properties alone, wrong categories,
 competing heads, ambiguous participants and nonasserted claims do not earn this
 recovery. These are scoped evidence rules, not global source-role aliases.
+The word `Case` may be omitted from a single complete assignment, licensing or
+valuation label when it names the independently authored, unique Case value.
+Its governor and nominal dependent must still satisfy the same occurrence and
+ownership checks; unfamiliar Case names compare literally.
 
 For the registered theta-grid claim, an assigning head can fill the predicate
 slot. That single-occurrence slot counts distinct exact IDs, so repeating one
@@ -766,6 +770,22 @@ ambiguous endpoints and repeated endpoint lists do not select a candidate. The
 same verified lower anchor can fill required source and witness slots before
 ordinary Tier-1 validation. Optional decoration slots are not populated merely
 because they exist. Unknown movement meaning cannot be inferred from geometry.
+
+An intact head assembly can also establish direction through open endpoint
+fields when an explicit prior anchor names that assembly, its lower occurrence
+retains the exact preceding slot, and a unique new landing preserves every
+authored field and ordered child except the root ID. The landing must adjoin at
+an explicitly named, structurally verified receiving head or head complex.
+Object property order is irrelevant; child order and authored content are not.
+
+For an independently proved phrasal movement, a named target or landing head
+can remain neutral context when it projects beside the landing. The landing
+parent must have exactly two children and the same category as that head; its
+other child must lead to the named head through one unambiguous same-category
+projection spine. This permits a newly built projection or newly introduced
+head. An existing head must preserve its authored content. Broken or competing
+spines, changed heads and conflicting occurrence roles remain unresolved.
+The head field earns no separate movement endpoint or dependency.
 
 Domain-qualified movement roles reuse their existing direction word. An
 explicit direction combined with an occurrence type, such as source complex or

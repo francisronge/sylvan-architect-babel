@@ -161,15 +161,27 @@ export function recoverLabelledCaseAssignment(relation: DerivationStageRelation,
  * A governing position owns its exact occurrence, not another chain member. */
 export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, thematic?: EvidenceScope): EvidenceScope[] {
   if (!establishesAssignment(evidence)) return [];
-  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\bcase\b/u.test(clause));
+  const caseValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('case.literal'));
+  const typedCase = caseValues.length === 1 && caseValues[0].items.length === 1
+    ? normalizeTier2Synonym(caseValues[0].items[0]) : undefined;
+  const labelClauses = relationLabelClauses(evidence.relationName);
+  const assignmentStem = labelClauses.length === 1
+    ? /^(.+) (?:assignment|licensing|valuation)$/u.exec(labelClauses[0])?.[1] : undefined;
+  // Naming the separately typed Case in a complete assignment label does not
+  // require repeating the word "Case". Unknown literals still compare exactly.
+  const literalAssignment = Boolean(typedCase && assignmentStem
+    && (assignmentStem === typedCase || assignmentStem.endsWith(` ${typedCase}`)
+      && /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument) )+$/u
+        .test(assignmentStem.slice(0, -typedCase.length)))
+    && !/\b(?:no|not|without|denied|rejected|required|requested|expected|pending|possible|potential|hypothetical|if|unless|whether|failed|blocked|unlicensed)\b/u.test(labelClauses[0]));
+  const clauses = labelClauses.filter(clause => /\bcase\b/u.test(clause) || literalAssignment);
   if (clauses.length !== 1) return [];
   const clause = clauses[0].replace(/ through (?:the )?(?:(?:verbal|nominal|movement) )?chain$/u, '');
   const selected = clause === 'lexically selected case';
-  const caseValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('case.literal'));
   const namedCase = caseValues.length === 1 && caseValues[0].items.length === 1
     && clause === `${normalizeTier2Synonym(caseValues[0].items[0])} case`
     && !/\b(?:no|not|without|denied|rejected|required|requested|expected|pending|possible|potential|hypothetical|if|unless|whether|failed|blocked|unlicensed)\b/u.test(clause);
-  const assignment = /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument|nominative|accusative|genitive|dative|ergative|absolutive|instrumental|locative|oblique|vocative) )*case (?:assignment|licensing|valuation)$/u.test(clause);
+  const assignment = literalAssignment || /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument|nominative|accusative|genitive|dative|ergative|absolutive|instrumental|locative|oblique|vocative) )*case (?:assignment|licensing|valuation)$/u.test(clause);
   const government = namedCase && relationLabelClauses(evidence.relationName).includes('government');
   if (!selected && !assignment && !namedCase) return [];
   if (namedCase && !hasIndependentCaseEndpoints(evidence)) return [];

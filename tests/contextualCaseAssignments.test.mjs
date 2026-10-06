@@ -151,3 +151,59 @@ test('explicit government with a typed Case binds its unique nominal dependent',
     'an independently recognized Case recipient takes precedence over the contextual dependent');
   assert.deepEqual(paths(base, [{ id: 'verb', label: 'V' }, { id: 'object', label: 'NP' }]), [], 'separate workspaces');
 });
+
+test('an assignment label naming its independently typed Case identifies a governor and nominal dependent', () => {
+  for (const [label, literal] of [
+    ['structural accusative licensing', 'accusative'],
+    ['accusative assignment', 'accusative'],
+    ['embedded abstract unfamiliar value valuation', 'unfamiliar value'],
+    ['structural opaque (a+b) licensing', 'opaque (a+b)']
+  ]) {
+    const relation = { relation: label, anchors: { governor: 'verb', dependent: 'object' }, values: { case: literal } };
+    const original = structuredClone(relation);
+    assert.deepEqual(paths(relation).map(path => [path.fromNodeId, path.toNodeId, path.label]), [['verb', 'object', literal]]);
+    assert(dispatch(relation).facets.some(facet => facet.recipe.id === 'feature.dependency'));
+    assert(dispatch(relation).evidenceCoverage.fields.every(field => !field.unrecoveredItemIndices.length));
+    assert.deepEqual(relation, original);
+  }
+});
+
+test('a Case name without a complete matching assignment does not turn contextual endpoints into a dependency', () => {
+  const base = { relation: 'structural accusative licensing', anchors: { governor: 'verb', dependent: 'object' }, values: { case: 'accusative' } };
+  for (const relation of [
+    ...['structural nominative licensing', 'structural accusative properties', 'structural accusative marking',
+      'structural accusative', 'government', 'a note about structural accusative licensing',
+      'no structural accusative licensing', 'possible structural accusative licensing',
+      'structural accusative licensing is pending', 'structural accusative licensing if finite',
+      'structural accusative licensing; accusative licensing is blocked',
+      'structural accusative licensing and pending Case assignment'].map(relation => ({ ...base, relation })),
+    { ...base, values: {} },
+    { ...base, values: { case: ['accusative', 'nominative'] } },
+    { ...base, values: { case: 'accusative', abstractCase: 'accusative' } },
+    { ...base, values: { case: 'accusative', status: 'pending' } },
+    { ...base, relation: 'Case Assignment' }
+  ]) assert.deepEqual(paths(relation), [], JSON.stringify(relation));
+});
+
+test('typed Case assignment labels still require unique, compatible current participants', () => {
+  const base = { relation: 'structural accusative licensing', anchors: { governor: 'verb', dependent: 'object' }, values: { case: 'accusative' } };
+  for (const anchors of [
+    { governor: 'vp', dependent: 'object' },
+    { governor: 'verb', dependent: 'inflection' },
+    { governor: 'missing', dependent: 'object' },
+    { governor: 'verb', dependent: 'missing' },
+    { governor: ['verb', 'inflection'], dependent: 'object' },
+    { governor: 'verb', dependent: ['object', 'nominal'] },
+    { governor: 'verb', dependent: 'object', finiteHead: 'inflection' }
+  ]) assert.deepEqual(paths({ ...base, anchors }), [], JSON.stringify(anchors));
+  assert.deepEqual(paths(base, [...forest, { id: 'verb', label: 'V' }]), [], 'duplicate exact source');
+  assert.deepEqual(paths(base, [...forest, { id: 'object', label: 'DP' }]), [], 'duplicate exact recipient');
+  assert.deepEqual(paths(base, [{ id: 'verb', label: 'V' }, { id: 'object', label: 'DP' }]), [], 'separate workspaces');
+  assert.deepEqual(paths({ ...base, anchors: { governor: 'verb', dependent: 'object' } }, [
+    { id: 'verb', label: 'V', children: [{ id: 'object', label: 'DP' }] }
+  ]), [], 'an ancestor and descendant do not establish the governor/dependent pair');
+  assert.deepEqual(paths({ ...base, anchors: { ...base.anchors, nominal: 'nominal' } }).map(path => path.toNodeId), ['nominal'],
+    'an independently recognized recipient keeps precedence over a contextual dependent');
+  assert.deepEqual(paths({ ...base, anchors: { ...base.anchors, governingHead: 'inflection' } }).map(path => path.fromNodeId), ['inflection'],
+    'an independently recognized source keeps precedence over a contextual governor');
+});

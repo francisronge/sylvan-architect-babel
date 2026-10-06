@@ -128,3 +128,82 @@ test('generic Tier 1 landing-head context can name the exact complex without loo
     assert.equal(dispatch({ ...input, relation: { ...input.relation, anchors } }).primaryClaim.tier, 3);
   assert.equal(dispatch({ ...input, currentForest: [...input.currentForest, structuredClone(input.currentForest[0].children[0])] }).primaryClaim.tier, 3);
 });
+
+const displacedAssembly = () => {
+  const carried = { ...head('carried', 'V⁰', 'verb'), word: 'stem' };
+  const exponent = { ...head('exponent', 'T⁰', undefined), silent: true };
+  const old = head('old', 'T⁰', 'assembly', [carried, exponent]);
+  const host = { ...head('host', 'C⁰', undefined), silent: true };
+  const domain = { id: 'domain', label: 'T′', children: [head('predicate', 'VP', undefined), old] };
+  return {
+    priorForest: [{ id: 'clause', label: 'C′', children: [host, domain] }],
+    currentForest: [{ id: 'clause', label: 'C′', children: [
+      head('receiving', 'C⁰', undefined, [{ ...structuredClone(old), id: 'new' }, structuredClone(host)]),
+      { ...structuredClone(domain), children: [head('predicate', 'VP', undefined),
+        { ...head('old', 't_T', 'assembly'), silent: true }] }
+    ] }],
+    relation: { relation: 'An authored relation',
+      anchors: { itemOne: 'new', itemTwo: 'old', landingHead: 'receiving', containedMaterial: 'carried' },
+      priorAnchors: { earlierObject: 'old' }, values: { explanation: 'Keep this exact text.' } }
+  };
+};
+
+test('an intact prior head assembly adjoined at an explicit receiving head supplies structural endpoints', () => {
+  const input = displacedAssembly(), original = structuredClone(input);
+  const movement = recover(input).movement;
+  assert.equal(movement?.sourceNodeId, 'old');
+  assert.equal(movement?.targetNodeId, 'new');
+  assert.equal(movement?.priorSourceNodeId, 'old');
+  assert.equal(movement?.trajectoryKind, 'head');
+  assert.equal(movement?.transition, true);
+  const result = dispatch(input);
+  assert.equal(result.facets.filter(facet => facet.recipe.id === 'movement.path').length, 1);
+  assert(result.claims.some(claim => claim.tier === 3 && claim.consumedEvidence.some(field =>
+    field.field === 'values' && field.key === 'explanation')));
+  const stages = [input.priorForest, input.currentForest].map((workspaceForest, index) => ({
+    statement: '', stageRecord: '', workspaceForest, relations: index ? [input.relation] : [] }));
+  const paths = compileRelationRenderPlan(stages).frames[1].items.filter(item => item.kind === 'trajectory');
+  assert.equal(paths.length, 1);
+  assert.equal(paths[0].sourceNodeId, 'old'); assert.equal(paths[0].targetNodeId, 'new');
+  assert.deepEqual(input, original);
+});
+
+test('an open endpoint field cannot borrow head-adjunction evidence from changed or ambiguous structure', () => {
+  for (const mutate of [
+    input => { delete input.relation.priorAnchors; },
+    input => { input.relation.priorAnchors.earlierObject = ['old', 'old']; },
+    input => { input.relation.priorAnchors.earlierObject = ['old', 'host']; },
+    input => { input.relation.anchors.otherContext = input.relation.anchors.landingHead; delete input.relation.anchors.landingHead; },
+    input => { input.relation.anchors.itemOne = ['new', 'new']; },
+    input => { input.relation.anchors.itemTwo = ['old', 'old']; },
+    input => { find(input.currentForest, 'receiving').label = 'CP'; },
+    input => { find(input.currentForest, 'new').lineageId = 'unrelated'; },
+    input => { find(input.currentForest, 'old').lineageId = 'unrelated'; },
+    input => { find(input.currentForest, 'carried').word = 'changed'; },
+    input => { find(input.currentForest, 'new').silent = true; },
+    input => { find(input.currentForest, 'new').children.reverse(); },
+    input => { find(input.currentForest, 'domain').children.reverse(); },
+    input => { input.currentForest.push(structuredClone(find(input.currentForest, 'carried'))); },
+    input => { input.priorForest.push(structuredClone(find(input.priorForest, 'exponent'))); },
+    input => { input.currentForest.push(structuredClone(find(input.currentForest, 'old'))); },
+    input => { input.priorForest = structuredClone(input.currentForest); },
+    input => { input.relation.anchors.landingOccurrence = 'unresolved'; }
+  ]) {
+    const input = displacedAssembly(); mutate(input);
+    assert.equal(recover(input).movement, undefined, mutate.toString());
+    assert(!dispatch(input).facets.some(facet => facet.recipe.id === 'movement.path'), mutate.toString());
+  }
+});
+
+test('structural head adjunction does not rescue malformed registered movement claims', () => {
+  const input = displacedAssembly(); input.relation.relation = 'Head movement';
+  assert(!dispatch(input).facets.some(facet => facet.recipe.id === 'movement.path'));
+});
+
+test('intact head assemblies compare authored fields independently of JSON property order', () => {
+  const input = displacedAssembly();
+  const reorder = value => Array.isArray(value) ? value.map(reorder) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorder(item)])) : value;
+  input.currentForest = reorder(input.currentForest);
+  assert.equal(recover(input).movement?.targetNodeId, 'new');
+});

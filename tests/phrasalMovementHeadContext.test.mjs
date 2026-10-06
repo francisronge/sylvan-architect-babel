@@ -30,6 +30,79 @@ const prepare = (input, relations = [input.relation]) => prepareReplay({ sentenc
   derivationStages: [stage(input.priorForest), stage(input.currentForest, relations)] });
 const hasTrajectory = input => prepare(input).relationRenderPlan.frames.at(-1).items.some(item => item.kind === 'trajectory');
 
+const newProjection = (newHead = false) => {
+  const input = example();
+  const head = find(input.currentForest, 'head');
+  const base = find(input.currentForest, 'base');
+  const landing = find(input.currentForest, 'upper');
+  input.currentForest = [{ id: 'clause', label: 'TP', children: [landing,
+    { id: 'projection', label: 'T′', children: [base, head] }] }];
+  input.priorForest[0].label = 'TP';
+  if (newHead) input.priorForest[0].children.pop();
+  return input;
+};
+
+for (const newHead of [false, true]) test(`a ${newHead ? 'new' : 'retained'} projecting head stays context beside a phrase landing`, () => {
+  const input = newProjection(newHead), original = structuredClone(input);
+  const movement = recover(input).movement;
+  assert.equal(movement?.targetNodeId, 'upper');
+  assert.equal(movement?.sourceNodeId, 'foot');
+  assert.equal(movement?.trajectoryKind, 'phrasal');
+  assert.equal(movement?.roles.targetHead, undefined);
+  assert.ok(hasTrajectory(input));
+  const dispatch = dispatchRelationClaims(input);
+  assert.ok(dispatch.claims.some(claim => claim.tier === 3 && claim.consumedEvidence.some(field =>
+    field.field === 'anchors' && field.key === 'targetHead')));
+  assert.deepEqual(input, original);
+});
+
+test('a newly authored head on the unchanged projection spine stays neutral context', () => {
+  const input = example();
+  find(input.priorForest, 'head').id = 'prior-head';
+  assert.equal(recover(input).movement?.targetNodeId, 'upper');
+  assert.equal(recover(input).movement?.roles.targetHead, undefined);
+});
+
+test('a new head projection keeps the preceding source intact until its phrase movement moment', () => {
+  for (const newHead of [false, true]) {
+    const input = newProjection(newHead);
+    const steps = prepare(input, [{ relation: 'Head inspection', anchors: { participant: 'head' } }, input.relation]).playbackSteps;
+    const index = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 1);
+    assert.ok(index > 0);
+    for (const step of steps.slice(0, index).filter(step => step.replayFrameIndex === 1)) {
+      assert.ok(find([step.replayCanvasData], 'foot').children?.length);
+      assert.equal(parent([step.replayCanvasData], 'foot')?.id, 'base');
+      assert.ok(!step.replayVisibleNodeIds.includes('upper'));
+    }
+    const moment = steps[index];
+    assert.ok(moment.replayVisibleNodeIds.includes('upper'));
+    assert.equal(find([moment.replayCanvasData], 'foot').silent, true);
+    assert.equal(parent([moment.replayCanvasData], 'upper')?.id, 'clause');
+    assert.ok(moment.replayRelationLinks.some(link => link.authoredRelationKey === '1:1'
+      && link.trajectoryKind === 'phrasal' && link.sourceNodeId === 'foot' && link.targetNodeId === 'upper'));
+  }
+});
+
+for (const [name, mutate] of [
+  ['unrelated landing parent', input => { input.currentForest[0].label = 'XP'; }],
+  ['unrelated sibling projection', input => { find(input.currentForest, 'projection').label = 'XP'; }],
+  ['a broken category spine', input => {
+    const projection = find(input.currentForest, 'projection');
+    projection.children = [{ id: 'interruption', label: 'XP', children: projection.children }];
+  }],
+  ['competing projecting branches', input => {
+    find(input.currentForest, 'projection').children.push({ id: 'other-head', label: 'T', silent: true });
+  }],
+  ['duplicate projection identity', input => { input.currentForest.push(structuredClone(find(input.currentForest, 'projection'))); }],
+  ['an extra sibling beside the landing', input => { input.currentForest[0].children.push({ id: 'other', label: 'N' }); }],
+  ['changed prior head content', input => { find(input.currentForest, 'head').word = 'changed'; }],
+  ['a branching head participant', input => { find(input.currentForest, 'head').children = [{ id: 'member', label: 'T' }]; }]
+]) test(`new projection context cannot bypass structural ambiguity: ${name}`, () => {
+  const input = newProjection(); mutate(input);
+  assert.equal(recover(input).movement, undefined);
+  assert.equal(hasTrajectory(input), false);
+});
+
 for (const [role, label] of [['targetHead', 'T[past]'], ['targetFiniteHead', 'I[finite]'], ['movementTargetClauseHead', 'C'], ['target', 'T[past]']]) {
   test(`a stationary ${role} does not compete with the proven phrase landing`, () => {
     const input = example();
@@ -91,7 +164,10 @@ test('phrase, trace, attaching parent and trajectory become visible in the movem
 for (const [name, mutate] of [
   ['missing head', input => { input.relation.anchors.targetHead = 'missing'; }],
   ['duplicate head', input => { input.currentForest.push(structuredClone(find(input.currentForest, 'head'))); }],
-  ['new head', input => { find(input.priorForest, 'head').id = 'prior-head'; }],
+  ['new head outside the projecting spine', input => {
+    find(input.priorForest, 'head').id = 'prior-head';
+    find(input.currentForest, 'clause').label = 'XP';
+  }],
   ['changed head', input => { find(input.currentForest, 'head').word = 'other'; }],
   ['reparented head', input => {
     const head = find(input.currentForest, 'head');
