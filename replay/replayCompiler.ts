@@ -1,3 +1,48 @@
+import {
+  formatOperationLabel,
+  formatPlaybackOperationTitle,
+  normalizeReplayTargetLabel,
+  isGenericReplayStructuralLabel,
+  formatReplaySupportValue,
+  formatReplayLabelSeries,
+  mergeReplayDetailBlocks,
+  formatReplayInputsValue,
+  formatRelationAnchorRole,
+  buildLiteralRelationValueLines
+} from './replayPanelFormatting.ts';
+export {
+  formatOperationLabel,
+  formatPlaybackOperationTitle,
+  formatReplayBlockTitle,
+  formatReplayBlockLine,
+  buildReplayDisplayDetailBlocks
+} from './replayPanelFormatting.ts';
+import {
+  isStructuralCategorySurface,
+  isTraceLike,
+  extractMovementIndex,
+  normalizeTraceIndexForDisplay,
+  formatTraceSurfaceForDisplayValue,
+  formatAuthoredWitnessSurface,
+  isNullLike,
+  isPhraseShellLabel,
+  isHeadShellLabel
+} from './replaySurfaceNotation.ts';
+export {
+  isStructuralCategorySurface,
+  isTraceLike,
+  extractDisplayedSubscriptIndex,
+  extractMovementIndex,
+  REPLAY_GENERATED_TERMINAL_GLYPHS,
+  normalizeTraceIndexForDisplay,
+  buildTraceDisplayLabel,
+  formatIndexedSurfaceForDisplayValue,
+  formatTraceSurfaceForDisplayValue,
+  formatAuthoredWitnessSurface,
+  isDisplayTraceLabel,
+  isNullLike,
+  isDisplayTerminalSurface
+} from './replaySurfaceNotation.ts';
 import * as d3 from 'd3';
 import { categoryLabel, readCategoryLabel } from './categoryLabel.ts';
 import { constructionAttachmentUpdates, hasConstructionWrapperInsertions, preserveConstructionAttachments } from './constructionAttachments.ts';
@@ -968,14 +1013,6 @@ const pickPreferredReplayText = (...values: Array<string | undefined | null>): s
   return undefined;
 };
 
-const formatReplayLabelSeries = (labels: string[]): string => {
-  const cleaned = labels.map((label) => String(label || '').trim()).filter(Boolean);
-  if (cleaned.length === 0) return '';
-  if (cleaned.length === 1) return cleaned[0];
-  if (cleaned.length === 2) return `${cleaned[0]} and ${cleaned[1]}`;
-  return `${cleaned.slice(0, -1).join(', ')}, and ${cleaned[cleaned.length - 1]}`;
-};
-
 const buildStructuralReplayFallback = (
   operation: DerivationOperation | string | undefined,
   primaryRootLabel: string,
@@ -1712,35 +1749,6 @@ const collectNextFramePendingRootSubtreeIds = (
       })
       .flatMap((node) => collectSubtreeNodeIds(node))
   );
-};
-
-const mergeReplayDetailBlocks = (
-  ...sources: Array<ReplayDetailBlock[] | undefined>
-): ReplayDetailBlock[] | undefined => {
-  const mergedByTitle = new Map<string, ReplayDetailBlock>();
-  sources
-    .flat()
-    .filter((block): block is ReplayDetailBlock => Boolean(block && typeof block === 'object'))
-    .forEach((block) => {
-      const title = String(block.title || '').trim();
-      if (!title) return;
-      const normalizedTitle = normalizeReplayBlockTitleKey(title);
-      const lines = (Array.isArray(block.lines) ? block.lines : [])
-        .map((line) => String(line || '').trim())
-        .filter(Boolean);
-      if (lines.length === 0) return;
-      const existing = mergedByTitle.get(normalizedTitle);
-      if (!existing) {
-        mergedByTitle.set(normalizedTitle, {
-          title,
-          lines: Array.from(new Set(lines))
-        });
-        return;
-      }
-      existing.lines = Array.from(new Set([...(existing.lines || []), ...lines]));
-    });
-  const merged = Array.from(mergedByTitle.values());
-  return merged.length > 0 ? merged : undefined;
 };
 
 const getReplayPlanStage = (
@@ -5568,30 +5576,7 @@ const filterResolvedRelationLinks = (
   return sourceLinks.filter((link) => !matchesSuppressedLink(link));
 };
 
-const PRIME_CATEGORY_LABEL_RE = /[′’'](?:\s*\[[^\[\]]*\])*$/u;
 const normalizeStructuralLabel = categoryLabel;
-
-const HEAD_LIKE_LABEL_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
-
-const isPhraseShellLabel = (label?: string): boolean => {
-  const normalized = normalizeStructuralLabel(label);
-  if (!normalized) return false;
-  return /P$/i.test(normalized);
-};
-
-const isHeadShellLabel = (label?: string): boolean => {
-  const raw = String(label || '').trim();
-  if (!raw || PRIME_CATEGORY_LABEL_RE.test(raw)) return false;
-  const normalized = normalizeStructuralLabel(raw);
-  if (!normalized) return false;
-  return HEAD_LIKE_LABEL_RE.test(normalized);
-};
-
-export const isStructuralCategorySurface = (surface?: string): boolean => {
-  const normalized = normalizeStructuralLabel(surface);
-  if (!normalized) return false;
-  return isHeadShellLabel(normalized) || isPhraseShellLabel(normalized);
-};
 
 /**
  * A wordless leaf is an abstract category whatever its label spells, unless
@@ -5771,7 +5756,6 @@ export const resolveDerivationMovementTransitions = (
 };
 const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
 export const resolveLeafSurface = (node: HierNode): string => (node.data.word || node.data.label || '').trim();
-const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
 const EXPLICIT_NULL_TERMINAL = '∅';
 const buildSyntheticReplayLeafId = (parent: SyntaxNode, suffix: string, word?: string): string => {
   const parentId = typeof parent?.id === 'string' ? parent.id : '';
@@ -5780,47 +5764,6 @@ const buildSyntheticReplayLeafId = (parent: SyntaxNode, suffix: string, word?: s
   const stem = parentId || `${parentLabel}__${leafWord || 'leaf'}`;
   return `${stem}::__${suffix}`;
 };
-const SUBSCRIPT_MAP: Record<string, string> = {
-  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
-  'ᵢ': 'i', 'ⱼ': 'j', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm',
-  'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't', 'ᵥ': 'v'
-};
-const DIGIT_TO_SUBSCRIPT: Record<string, string> = {
-  '0': '₀',
-  '1': '₁',
-  '2': '₂',
-  '3': '₃',
-  '4': '₄',
-  '5': '₅',
-  '6': '₆',
-  '7': '₇',
-  '8': '₈',
-  '9': '₉'
-};
-const INDEX_TO_SUBSCRIPT: Record<string, string> = Object.fromEntries(
-  Object.entries(SUBSCRIPT_MAP).map(([subscript, plain]) => [plain, subscript])
-);
-
-export const isTraceLike = (label: string): boolean => {
-  const text = label.trim();
-  if (!text) return false;
-  const sourceUnwrapped = text.replace(/^[\s([{<⟨"']+|[\s)\]}>⟩"']+$/g, '');
-  const normalized = [...text].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
-  const unwrapped = normalized.replace(/^[\s([{<⟨"']+|[\s)\]}>⟩"']+$/g, '');
-  if (isStructuralCategorySurface(unwrapped) && unwrapped === unwrapped.toUpperCase()) {
-    return false;
-  }
-  return (
-    /^t\d*$/.test(unwrapped) ||
-    /^t[ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜᵥ]+$/u.test(sourceUnwrapped) ||
-    /^t(?:[_-](?:\{?[A-Za-z0-9]+\}?|\[[A-Za-z0-9]+\]|\([A-Za-z0-9]+\)))+$/.test(unwrapped) ||
-    /^trace\b/i.test(unwrapped) ||
-    /^copy$/i.test(unwrapped) ||
-    /^<[^>]+>$/.test(normalized) ||
-    /^⟨[^⟩]+⟩$/.test(normalized)
-  );
-};
-
 export const normalizeToken = (value: string): string => {
   return value
     .trim()
@@ -5834,98 +5777,6 @@ export const normalizeToken = (value: string): string => {
 
 export const tokenizeReplaySentenceSurface = (sentence: string, inputTokens?: string[]): string[] =>
   resolveSavedInputTokens(sentence, inputTokens);
-
-/** Only a visible subscript proves notation is already present in painted text. */
-export const extractDisplayedSubscriptIndex = (label: string): string | null => {
-  const suffix = label.trim().match(/([₀-₉ᵢⱼₐₑₒₓₕₖₗₘₙₚₛₜᵥ]+)$/)?.[1];
-  return suffix ? [...suffix].map(ch => SUBSCRIPT_MAP[ch] || ch).join('').toLowerCase() : null;
-};
-
-export const extractMovementIndex = (label: string): string | null => {
-  const text = [...label.trim()].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
-  const braced = text.match(/_(?:\{|\[|\()([A-Za-z0-9]+)(?:\}|\]|\))$/);
-  if (braced?.[1]) return braced[1].toLowerCase();
-  const plain = text.match(/_([A-Za-z0-9]+)$/);
-  if (plain?.[1]) return plain[1].toLowerCase();
-  const traceDigits = text.match(/^t(\d+)$/i);
-  if (traceDigits?.[1]) return traceDigits[1];
-  return extractDisplayedSubscriptIndex(label);
-};
-
-const toSubscriptDigits = (value: string): string =>
-  value
-    .split('')
-    .map((ch) => DIGIT_TO_SUBSCRIPT[ch] || INDEX_TO_SUBSCRIPT[ch.toLowerCase()] || ch)
-    .join('');
-
-/** Every glyph the terminal formatter can append or substitute. */
-export const REPLAY_GENERATED_TERMINAL_GLYPHS = [...new Set(`t∅${toSubscriptDigits('abcdefghijklmnopqrstuvwxyz0123456789')}`)].join('');
-
-export const normalizeTraceIndexForDisplay = (index?: string | null): string => {
-  const normalized = [...String(index || '').trim()]
-    .map((ch) => SUBSCRIPT_MAP[ch] || ch)
-    .join('')
-    .toLowerCase();
-  if (!normalized) return '';
-  const numeric = /^\d+$/.test(normalized)
-    ? Number(normalized)
-    : NaN;
-  if (Number.isFinite(numeric)) return numeric >= 1 ? String(numeric) : '';
-  return /^[a-z]+$/.test(normalized) ? normalized : '';
-};
-
-export const buildTraceDisplayLabel = (index?: string | null): string => {
-  const normalized = normalizeTraceIndexForDisplay(index);
-  const suffix = /^\d+$/.test(normalized) ? normalized : '';
-  return suffix ? `t${toSubscriptDigits(suffix)}` : 't';
-};
-
-export const formatIndexedSurfaceForDisplayValue = (
-  surface: string,
-  index?: string | null
-): string => {
-  if (extractMovementIndex(surface)) return surface;
-  const suffix = normalizeTraceIndexForDisplay(index);
-  return suffix ? `${surface}${toSubscriptDigits(suffix)}` : surface;
-};
-
-export const formatTraceSurfaceForDisplayValue = (
-  surface: string,
-  fallbackIndex?: string | null
-): string => {
-  const raw = String(surface || '').trim();
-  if (!raw) return buildTraceDisplayLabel(fallbackIndex);
-  if (!isTraceLike(raw)) return raw;
-  const authoredIndex = normalizeTraceIndexForDisplay(extractMovementIndex(raw));
-  return buildTraceDisplayLabel(/^\d+$/.test(authoredIndex) ? authoredIndex : fallbackIndex || authoredIndex);
-};
-
-const DISPLAY_TRACE_LABEL_RE = /^t(?:[₀₁₂₃₄₅₆₇₈₉]+)?$/;
-
-/**
- * The authored-witness formatter is additive only: an authored trace surface
- * (`t`, `t₁`, …) may gain its derived index, while authored `∅` and lexical
- * material keep their surface. Occupant-as-authored ruling: silent movement
- * copies also keep their authored words — resolveLexicalMovementTraceDisplayIndex
- * supplies only the chain index for their subscript, never a trace conversion.
- * Trace display belongs solely to occupants the model authored as traces.
- */
-export const formatAuthoredWitnessSurface = (
-  surface: string,
-  inheritedTraceIndex?: string | null,
-  aliasedTraceIndex?: string | null
-): string => {
-  const resolvedIndex = normalizeTraceIndexForDisplay(
-    inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(surface)
-  );
-  if (isTraceLike(surface)) {
-    return formatTraceSurfaceForDisplayValue(surface, resolvedIndex || extractMovementIndex(surface));
-  }
-  return surface;
-};
-
-export const isDisplayTraceLabel = (value?: string): boolean =>
-  DISPLAY_TRACE_LABEL_RE.test(String(value || '').trim());
 
 export const resolveLexicalMovementTraceDisplayIndex = (
   _node: HierNode,
@@ -5945,8 +5796,6 @@ export const resolveLexicalMovementTraceDisplayIndex = (
   // Membership in an established movement chain is independent of pronunciation.
   return normalizeTraceIndexForDisplay(traceIndex);
 };
-
-export const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
 
 /**
  * Pronunciation is decided by authored fields (nodePronunciation.js). The
@@ -5979,12 +5828,6 @@ export const hasSilentOrGhostAncestor = (node: HierNode | null): boolean => {
 export const isPronouncedHierLeaf = (node: HierNode): boolean =>
   isPronouncedLeaf(node.data) && !hasSilentOrGhostAncestor(node);
 
-/** A rendered leaf is terminal material even when `t` also resembles T. */
-export const isDisplayTerminalSurface = (surface?: string): boolean => {
-  const trimmed = String(surface || '').trim();
-  return Boolean(trimmed)
-    && (isTraceLike(trimmed) || isNullLike(trimmed) || !isStructuralCategorySurface(trimmed));
-};
 const isIndexedSurface = (label: string): boolean => {
   const trimmed = label.trim();
   return Boolean(trimmed) && !isTraceLike(trimmed) && !isNullLike(trimmed) && Boolean(extractMovementIndex(trimmed));
@@ -7230,223 +7073,6 @@ export const buildMovementCopyTraceIndexByTerminalId = (
   return traceIndexByTerminalId;
 };
 
-export const formatOperationLabel = (operation?: DerivationOperation): string => {
-  if (!operation) return 'Derivation';
-  if (operation === 'Other') return 'Derivation';
-  if (operation === 'LexicalSelect') return 'Select';
-  if (operation === 'HeadMove') return 'Head Movement';
-  if (operation === 'A-Move') return 'A-Movement';
-  if (operation === 'AbarMove') return 'A-bar Move';
-  if (operation === 'ExternalMerge') return 'External Merge';
-  if (operation === 'InternalMerge') return 'Internal Merge';
-  if (operation === 'StageRecord') return 'Stage Record';
-  return String(operation);
-};
-
-export const formatPlaybackOperationTitle = (step?: PlaybackStep | null): string => {
-  if (step?.replayKind === 'relation') return String(step.operation || '');
-  const operation = formatOperationLabel(step?.operation);
-  const target = String(step?.targetLabel || '').trim();
-  return target && (step?.operation === 'LexicalSelect' || step?.operation === 'Project')
-    ? `${operation} ${target}`
-    : operation;
-};
-
-const REPLAY_IDENTIFIER_OVERRIDES: Record<string, string> = {
-  chain_wh: 'Wh',
-  chain_subj: 'Subject',
-  chain_v_to_c: 'V to C',
-  dp_obj: 'object DP',
-  dp_subj: 'subject DP',
-  infl_p: 'InflP',
-  foc_p: 'FocP',
-  phase_edge: 'Phase edge',
-  'phase-edge': 'Phase edge'
-};
-
-const REPLAY_STRUCTURAL_IDENTIFIER_MAP: Record<string, string> = {
-  c: 'C',
-  cp: 'CP',
-  d: 'D',
-  dp: 'DP',
-  foc: 'Foc',
-  focp: 'FocP',
-  infl: 'Infl',
-  inflp: 'InflP',
-  ip: 'IP',
-  n: 'N',
-  np: 'NP',
-  prt: 'Prt',
-  t: 'T',
-  tp: 'TP',
-  v: 'v',
-  vp: 'vP',
-  wh: 'Wh'
-};
-
-const toReplayTitleCase = (value?: string): string =>
-  String(value || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => {
-      if (/^[A-Z]{2,}$/.test(word)) return word;
-      const lower = word.toLowerCase();
-      return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
-    })
-    .join(' ');
-
-const splitReplayPrimeSuffix = (value?: string): { core: string; suffix: string } => {
-  const trimmed = String(value || '').trim();
-  if (!trimmed) return { core: '', suffix: '' };
-  const match = trimmed.match(/^(.*?)(['′]+)$/);
-  if (!match) return { core: trimmed, suffix: '' };
-  return {
-    core: String(match[1] || '').trim(),
-    suffix: match[2]
-  };
-};
-
-const preserveCommittedReplayLabelCasing = (value?: string): string => {
-  const trimmed = String(value || '').trim();
-  if (!trimmed) return '';
-  if (/^[A-Z]$/.test(trimmed)) return trimmed;
-  if (/^[A-Z]{2,}$/.test(trimmed)) return trimmed;
-  if (/[A-Z]/.test(trimmed.slice(1))) return trimmed;
-  return '';
-};
-
-const formatReplayIdentifierWord = (value?: string): string => {
-  const { core, suffix } = splitReplayPrimeSuffix(value);
-  const trimmed = core;
-  if (!trimmed) return suffix;
-  const preserved = preserveCommittedReplayLabelCasing(trimmed);
-  if (preserved) return `${preserved}${suffix}`;
-  const normalized = trimmed.toLowerCase();
-  if (REPLAY_IDENTIFIER_OVERRIDES[normalized]) return `${REPLAY_IDENTIFIER_OVERRIDES[normalized]}${suffix}`;
-  if (REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]) return `${REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]}${suffix}`;
-  if (/^\d+$/.test(trimmed)) return `${trimmed}${suffix}`;
-  if (normalized === 'obj') return `object${suffix}`;
-  if (normalized === 'subj') return `subject${suffix}`;
-  if (normalized === 'wh') return `wh${suffix}`;
-  if (normalized === 'to') return `to${suffix}`;
-  if (trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) return `${trimmed}${suffix}`;
-  if (/^[A-Z][a-z]+$/.test(trimmed)) return `${trimmed}${suffix}`;
-  return `${trimmed.toLowerCase()}${suffix}`;
-};
-
-const formatReplayIdentifier = (value?: string): string => {
-  const { core, suffix } = splitReplayPrimeSuffix(value);
-  const trimmed = core;
-  if (!trimmed) return suffix;
-  const preserved = preserveCommittedReplayLabelCasing(trimmed);
-  if (preserved) return `${preserved}${suffix}`;
-  const normalized = trimmed.toLowerCase();
-  if (REPLAY_IDENTIFIER_OVERRIDES[normalized]) return `${REPLAY_IDENTIFIER_OVERRIDES[normalized]}${suffix}`;
-  if (REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]) return `${REPLAY_STRUCTURAL_IDENTIFIER_MAP[normalized]}${suffix}`;
-  const parts = trimmed.split(/[_-]+/).filter(Boolean);
-  if (parts.length === 1) return formatReplayIdentifierWord(`${trimmed}${suffix}`);
-  const joined = parts.map((part) => formatReplayIdentifierWord(part)).join(' ');
-  const cased = /^[a-z]/.test(joined) ? joined : toReplayTitleCase(joined);
-  return `${cased}${suffix}`;
-};
-
-export const formatReplayBlockTitle = (title?: string): string => {
-  return String(title ?? '');
-};
-
-export const formatReplayBlockLine = (
-  _title: string,
-  line: string,
-  _steps: PlaybackStep[] = []
-): string => {
-  return String(line ?? '');
-};
-
-const normalizeReplayBlockTitleKey = (title?: string): string =>
-  String(title || '').trim().toUpperCase();
-
-const normalizeReplayTargetLabel = (label?: string): string =>
-  String(label || '')
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, '');
-
-const isGenericReplayStructuralLabel = (label?: string): boolean => {
-  const normalized = normalizeReplayTargetLabel(label);
-  if (!normalized) return true;
-  return new Set([
-    'WORKSPACE',
-    'CP',
-    'C',
-    'TP',
-    'T',
-    "T'",
-    'TBAR',
-    'VP',
-    'V',
-    "V'",
-    'VBAR',
-    'DP',
-    'D',
-    "D'",
-    'DBAR',
-    'NP',
-    'N',
-    "N'",
-    'NBAR',
-    'PP',
-    'P',
-    "P'",
-    'PBAR',
-    'IP',
-    'FP',
-    'XP'
-  ]).has(normalized);
-};
-
-const formatReplaySupportValue = (value?: string): string =>
-  String(value ?? '').trim();
-
-const normalizeReplayInventoryLabel = (value?: string): string =>
-  normalizeReplayTargetLabel(value).replace(/['′]+/g, '');
-
-const detectReplayInflectionInventory = (steps: PlaybackStep[] = []): 't' | 'infl' | null => {
-  const labels = new Set<string>();
-  steps.forEach((step) => {
-    [step?.targetLabel, ...(Array.isArray(step?.sourceLabels) ? step.sourceLabels : [])]
-      .map((label) => normalizeReplayInventoryLabel(label))
-      .filter(Boolean)
-      .forEach((label) => labels.add(label));
-  });
-  const usesT = labels.has('T') || labels.has('TP');
-  const usesInfl = labels.has('INFL') || labels.has('INFLP') || labels.has('IP');
-  if (usesT && !usesInfl) return 't';
-  if (usesInfl && !usesT) return 'infl';
-  return null;
-};
-
-const normalizeReplayTextForCommittedInventory = (
-  value?: string,
-  steps: PlaybackStep[] = []
-): string => {
-  const text = String(value || '');
-  if (!text) return '';
-  const inventory = detectReplayInflectionInventory(steps);
-  if (inventory === 't') {
-    return text
-      .replace(/\bInflP\b/gi, 'TP')
-      .replace(/\bIP\b/g, 'TP')
-      .replace(/\bInfl\b/gi, 'T');
-  }
-  if (inventory === 'infl') {
-    return text
-      .replace(/\bTP\b/g, 'InflP')
-      .replace(/\bT\b/g, 'Infl');
-  }
-  return text;
-};
-
 const findReplayNodePathById = (
   root: SyntaxNode | null | undefined,
   nodeId: string,
@@ -7504,12 +7130,6 @@ const describeReplayNodePosition = (
   }
   return parentLabel && parentLabel !== nodeLabel ? `${nodeLabel || 'node'} in ${parentLabel}` : nodeLabel;
 };
-
-const formatReplayInputsValue = (labels?: string[]): string =>
-  (Array.isArray(labels) ? labels : [])
-    .map((label) => formatReplaySupportValue(label))
-    .filter(Boolean)
-    .join(' + ');
 
 const getReplayNodeDisplayFromCanvas = (
   root: SyntaxNode | null | undefined,
@@ -8137,14 +7757,6 @@ const formatRelationAnchorValue = (
     .join(', ');
 };
 
-const formatRelationAnchorRole = (role: string): string =>
-  toReplayTitleCase(
-    String(role || '')
-      .trim()
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/[_-]+/g, ' ')
-  );
-
 const getRegisteredRelationAnchorRoleOrder = (relationName: string): string[] => {
   const entry = findRelationRegistryEntry(productionRelationRegistry, relationName);
   if (!entry) return [];
@@ -8260,14 +7872,6 @@ const buildRelationParticipantSupportLines = (step: PlaybackStep): ReplaySupport
 
   return lines;
 };
-
-const buildLiteralRelationValueLines = (
-  values: DerivationStageRelation['values']
-): ReplaySupportLine[] => Object.entries(values ?? {}).flatMap(([label, value]) => (
-  Array.isArray(value)
-    ? (value.length ? value.map(item => ({ label, value: item })) : [{ label, value: '[]', emptyList: true as const }])
-    : [{ label, value }]
-));
 
 const buildAuthoredRelationAnchorLines = (
   step: PlaybackStep,
@@ -8575,38 +8179,6 @@ export const buildReplayPanelContent = (
 
 
 
-
-export const buildReplayDisplayDetailBlocks = (
-  steps: PlaybackStep[]
-): Map<number, ReplayDetailBlock[]> => {
-  const byStep = new Map<number, ReplayDetailBlock[]>();
-  const pushBlockLine = (stepIndex: number, title: string, line: string) => {
-    if (!line) return;
-    const bucket = byStep.get(stepIndex) || [];
-    const normalizedTitle = normalizeReplayBlockTitleKey(title);
-    const existing = bucket.find((block) => normalizeReplayBlockTitleKey(block.title) === normalizedTitle);
-    if (existing) {
-      existing.lines.push(line);
-    } else {
-      bucket.push({ title, lines: [line] });
-    }
-    byStep.set(stepIndex, bucket);
-  };
-
-  // Detail blocks come from the Stage Record and the authored relations of
-  // their own step. Nothing here reads prose to move a line elsewhere.
-  steps.forEach((step, sourceIndex) => {
-    const blocks = Array.isArray(step.detailBlocks) ? step.detailBlocks : [];
-    blocks.forEach((block) => {
-      const title = String(block?.title || '').trim();
-      const lines = Array.isArray(block?.lines) ? block.lines.filter(Boolean) : [];
-      if (!title || lines.length === 0) return;
-      lines.forEach((line) => pushBlockLine(sourceIndex, title, line));
-    });
-  });
-
-  return byStep;
-};
 
 const getTerminalWords = (node: SyntaxNode): string[] => {
   if (!node.children || node.children.length === 0) {

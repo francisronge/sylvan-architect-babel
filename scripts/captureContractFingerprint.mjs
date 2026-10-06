@@ -19,6 +19,8 @@ const explicitSections = {
   ],
   requestBoundary: [
     'App.tsx',
+    'hooks/useGeneration.ts',
+    'services/generationState.ts',
     'api/parse.js',
     'server/parseApi.js',
     'server/index.js',
@@ -52,7 +54,8 @@ const explicitSections = {
     'server/babelParser/surfaceTokens.js',
     'server/babelParser/syntaxTree.js',
     'server/babelParser/treeBasics.js',
-    'server/babelParser/validationErrors.js'
+    'server/babelParser/validationErrors.js',
+    'server/babelParser/failureRecord.js'
   ],
   dependencyLock: [
     'package.json',

@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../components/AsyncTreeVisualizer.tsx', imp
 const parsed = ts.createSourceFile('AsyncTreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const body = parsed.statements.filter(node => !ts.isImportDeclaration(node) && !ts.isExportAssignment(node))
   .map(node => node.getText(parsed)).join('\n');
-const code = ts.transpile(body + '\nreturn AsyncTreeVisualizer;', { target: ts.ScriptTarget.ES2023, jsx: ts.JsxEmit.React });
+const code = ts.transpile(body + '\nreturn PreparedTreeVisualizer;', { target: ts.ScriptTarget.ES2023, jsx: ts.JsxEmit.React });
 
 // Deterministic hook scheduling lets a new input render before effect cleanup,
 // and lets worker completions arrive in either order without browser timing.
@@ -39,8 +39,8 @@ const mount = () => {
     return () => { job.cancelled = true; };
   };
   const React = { createElement: (type, props, ...children) => ({ type, props, children }) };
-  const component = new Function('React', 'useEffect', 'useMemo', 'useRef', 'useState', 'TreeVisualizer', 'startReplayPreparation', 'LoadingMark', code)(
-    React, useEffect, useMemo, useRef, useState, 'tree', start, 'loading-mark'
+  const component = new Function('React', 'useEffect', 'useMemo', 'useRef', 'useState', 'TreeVisualizer', 'startReplayPreparation', 'LoadingMark', 'ViewFailure', code)(
+    React, useEffect, useMemo, useRef, useState, 'tree', start, 'loading-mark', 'view-failure'
   );
   return { jobs, render: props => { cursor = 0; return component(props); }, flush: () => { while (effects.length) effects.shift()(); } };
 };
@@ -81,10 +81,9 @@ test('preparation failures expose retry and keep stale results hidden during ret
   const app = mount(), props = { derivationStages: [], animated: true };
   app.render(props); app.flush(); app.jobs[0].error(new Error('failed'));
   const failed = app.render(props);
-  const find = (node, predicate) => !node || typeof node !== 'object' ? undefined
-    : predicate(node) ? node : node.children?.flat(Infinity).map(child => find(child, predicate)).find(Boolean);
-  assert(find(failed, node => node.props?.role === 'alert'));
-  find(failed, node => node.type === 'button').props.onClick();
+  assert.equal(failed.type, 'view-failure');
+  assert.equal(failed.props.error.message, 'failed');
+  failed.props.onRetry();
   assert.notEqual(app.render(props).type, 'tree');
   app.flush(); assert(app.jobs[0].cancelled);
   app.jobs[1].ready({ playbackSteps: ['frame'] });

@@ -3,8 +3,11 @@ import TreeVisualizer, { type TreeCameraState, type TreeVisualizerProps } from '
 import LoadingMark from './LoadingMark';
 import { startReplayPreparation } from '../replay/replayWorkerClient.ts';
 import type { PreparedReplay, ReplayPreparationInput } from '../replay/prepareReplay.ts';
+import ViewErrorBoundary, { ViewFailure } from './ViewErrorBoundary';
 
-const AsyncTreeVisualizer: React.FC<Omit<TreeVisualizerProps, 'preparedReplay' | 'manualCameraState'>> = (props) => {
+type AsyncTreeVisualizerProps = Omit<TreeVisualizerProps, 'preparedReplay' | 'manualCameraState'>;
+
+const PreparedTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
   const manualCameraState = useRef<TreeCameraState | null>(null);
   const input = useMemo<ReplayPreparationInput>(() => ({
     derivationStages: props.derivationStages,
@@ -23,14 +26,18 @@ const AsyncTreeVisualizer: React.FC<Omit<TreeVisualizerProps, 'preparedReplay' |
   // An old analysis must disappear immediately, before effect cleanup runs.
   const current = state?.input === input && state.attempt === attempt ? state : null;
   if (current?.result) return <TreeVisualizer {...props} preparedReplay={current.result} manualCameraState={manualCameraState} />;
+  if (current?.error) return <ViewFailure error={current.error} title="Could not prepare this view."
+    onRetry={() => setAttempt(value => value + 1)} />;
   return <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-emerald-200">
-    {current?.error ? <>
-      <p role="alert">Could not prepare this view. Your analysis is unchanged.</p>
-      <button className="rounded-xl border border-emerald-500/30 px-4 py-2" onClick={() => setAttempt(value => value + 1)}>Retry</button>
-    </> : <div role="status" aria-label="Loading">
+    <div role="status" aria-label="Loading">
       <div className="babel-preparation-mark"><LoadingMark compact /></div>
-    </div>}
+    </div>
   </div>;
+};
+
+const AsyncTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
+  const resetKey = useMemo(() => ({}), [props.data, props.derivationStages, props.sentence, props.inputTokens, props.animated]);
+  return <ViewErrorBoundary resetKey={resetKey}><PreparedTreeVisualizer {...props} /></ViewErrorBoundary>;
 };
 
 export default AsyncTreeVisualizer;

@@ -1,49 +1,7 @@
 import { createHash } from 'node:crypto';
 
-export const FAILURE_CLASSES = Object.freeze({
-  TRANSPORT_SERIALIZATION: 'transport_serialization',
-  INCOMPLETE_GENERATION: 'incomplete_generation',
-  CONTRACT_MISUNDERSTANDING: 'contract_misunderstanding',
-  LINGUISTIC_FAILURE: 'linguistic_failure',
-  DETERMINISTIC_ENGINE_FAILURE: 'deterministic_engine_failure',
-  VALID_BUT_UNEXPECTED: 'valid_but_unexpected'
-});
-
-export const FAILURE_RULES = Object.freeze({
-  REQUEST_BODY_OBJECT: 'REQUEST_BODY_OBJECT',
-  REQUEST_SENTENCE_REQUIRED: 'REQUEST_SENTENCE_REQUIRED',
-  REQUEST_SENTENCE_LENGTH: 'REQUEST_SENTENCE_LENGTH',
-  REQUEST_FRAMEWORK_SUPPORTED: 'REQUEST_FRAMEWORK_SUPPORTED',
-  REQUEST_MODEL_ROUTE_SUPPORTED: 'REQUEST_MODEL_ROUTE_SUPPORTED',
-  TRANSPORT_JSON_OBJECT: 'TRANSPORT_JSON_OBJECT',
-  GENERATION_LENGTH_STOP: 'GENERATION_LENGTH_STOP',
-  GENERATION_COMPLETED_STOP_FAILURE: 'GENERATION_COMPLETED_STOP_FAILURE',
-  GENERATION_DID_NOT_CONVERGE: 'GENERATION_DID_NOT_CONVERGE',
-  PAYLOAD_ENVELOPE_EXACT: 'PAYLOAD_ENVELOPE_EXACT',
-  ANALYSIS_OBJECT: 'ANALYSIS_OBJECT',
-  ANALYSES_NONEMPTY: 'ANALYSES_NONEMPTY',
-  DERIVATION_STAGE_OBJECT: 'DERIVATION_STAGE_OBJECT',
-  DERIVATION_STAGE_FIELDS_EXACT: 'DERIVATION_STAGE_FIELDS_EXACT',
-  DERIVATION_STAGE_STATEMENT_NONEMPTY: 'DERIVATION_STAGE_STATEMENT_NONEMPTY',
-  DERIVATION_STAGE_RECORD_NONEMPTY: 'DERIVATION_STAGE_RECORD_NONEMPTY',
-  DERIVATION_STAGE_RELATIONS_ARRAY: 'DERIVATION_STAGE_RELATIONS_ARRAY',
-  DERIVATION_STAGE_RELATION_EXACT: 'DERIVATION_STAGE_RELATION_EXACT',
-  RELATION_OBJECT: 'RELATION_OBJECT',
-  RELATION_FIELDS_EXACT: 'RELATION_FIELDS_EXACT',
-  RELATION_NAME_NONEMPTY: 'RELATION_NAME_NONEMPTY',
-  RELATION_ANCHORS_OBJECT: 'RELATION_ANCHORS_OBJECT',
-  DERIVATION_STAGE_WORKSPACE_FOREST_PRESENT: 'DERIVATION_STAGE_WORKSPACE_FOREST_PRESENT',
-  DERIVATION_WORKSPACE_VALID: 'DERIVATION_WORKSPACE_VALID',
-  DERIVATION_NODE_OPTIONAL_FIELD: 'DERIVATION_NODE_OPTIONAL_FIELD',
-  DERIVATION_TOKEN_INDEX_UNIQUE: 'DERIVATION_TOKEN_INDEX_UNIQUE',
-  DERIVATION_RELATION_ANCHOR_RESOLUTION: 'DERIVATION_RELATION_ANCHOR_RESOLUTION',
-  DERIVATION_TOKEN_ALIGNMENT: 'DERIVATION_TOKEN_ALIGNMENT',
-  DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS: 'DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS',
-  SURFACE_ORDER_EXACT: 'SURFACE_ORDER_EXACT',
-  PROVIDER_TRANSPORT: 'PROVIDER_TRANSPORT',
-  PROVIDER_CONFIGURATION: 'PROVIDER_CONFIGURATION',
-  DETERMINISTIC_ENGINE: 'DETERMINISTIC_ENGINE'
-});
+import { FAILURE_CLASSES, FAILURE_RULES, createFailureRecord } from './failureRecord.js';
+export { FAILURE_CLASSES, FAILURE_RULES } from './failureRecord.js';
 
 export const MAX_RAW_OUTPUT_BODY_BYTES = 2 * 1024 * 1024;
 export const MAX_INLINE_OFFENDING_VALUE_BYTES = 64 * 1024;
@@ -101,36 +59,7 @@ export const createRawOutputArtifact = (rawOutput) => {
   };
 };
 
-export const createFailure = (input = {}) => {
-  const {
-    failureClass,
-    ruleId,
-    stageIndex = null,
-    fieldPath = '$',
-    offendingValue,
-    analysisIndex,
-    processingStep,
-    expectedForm,
-    message,
-    resolution,
-    requiredStageIndex
-  } = input;
-  return {
-    class: FAILURE_CLASS_VALUES.has(failureClass)
-      ? failureClass
-      : FAILURE_CLASSES.DETERMINISTIC_ENGINE_FAILURE,
-    ruleId: String(ruleId || FAILURE_RULES.DETERMINISTIC_ENGINE),
-    stageIndex: Number.isInteger(stageIndex) && stageIndex >= 0 ? stageIndex : null,
-    fieldPath: String(fieldPath || '$'),
-    offendingValue: normalizeOffendingValue(Object.hasOwn(input, 'offendingValue') ? offendingValue : null),
-    ...(Number.isInteger(analysisIndex) && analysisIndex >= 0 ? { analysisIndex } : {}),
-    ...(processingStep ? { processingStep } : {}),
-    ...(expectedForm ? { expectedForm } : {}),
-    ...(message ? { message } : {}),
-    ...(resolution ? { resolution } : {}),
-    ...(Number.isInteger(requiredStageIndex) ? { requiredStageIndex } : {})
-  };
-};
+export const createFailure = (input = {}) => createFailureRecord(input, normalizeOffendingValue);
 
 const inferFailureClass = (code, details = {}) => {
   if (details?.failureClass && FAILURE_CLASS_VALUES.has(details.failureClass)) {

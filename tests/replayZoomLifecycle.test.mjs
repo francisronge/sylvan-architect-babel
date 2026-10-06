@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
 import * as d3 from 'd3';
+import { guardViewCallback, rethrowViewError } from '../components/viewErrorHandling.ts';
 
 const source = ts.createSourceFile('TreeVisualizer.tsx', readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const initializer = name => {
@@ -28,7 +29,7 @@ const setup = () => {
   const effects = { revealsFinished: 0, lightRefreshes: 0 };
   const bind = group => {
     const behavior = createBehavior().extent([[0, 0], [1000, 800]]).touchable(false);
-    return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', 'effects', `
+    return new Function('zoomBehavior', 'g', 'manualCameraRef', 'data', 'derivationStagesSignature', 'containerWidth', 'containerHeight', 'updateScreenStableText', 'svg', 'effects', 'guardViewCallback', 'reportViewError', `
       let applyingCameraTransform = false;
       let cancelCameraAnimation;
       const cameraAnimationRef = { current: null }, activeStepIndex = 0;
@@ -38,7 +39,8 @@ const setup = () => {
       const zoom = (() => { ${initializer('zoom')} })();
       const applyCameraTransform = (() => { ${initializer('applyCameraTransform')} })();
       return { zoom, applyCameraTransform };
-    `)(behavior, group, camera, 'same analysis', 'same stages', 1000, 800, () => {}, d3.select(svg), effects);
+    `)(behavior, group, camera, 'same analysis', 'same stages', 1000, 800, () => {}, d3.select(svg), effects,
+    guardViewCallback, rethrowViewError);
   };
   const group = () => ({ transform: null, attr(_name, value) { this.transform = value; return this; }, selectAll() { return { attr() {} }; } });
   const wheel = () => listeners.get('wheel').call(svg, { type: 'wheel', deltaY: -100, deltaMode: 0, clientX: 200, clientY: 200, preventDefault() {}, stopImmediatePropagation() {} });
