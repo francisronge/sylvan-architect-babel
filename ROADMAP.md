@@ -3273,6 +3273,13 @@ backend generation retention.
 
 ### 2A. Inventory And Decision
 
+IndexedDB is the selected browser-local engine. New saves use immutable,
+content-addressed analysis records and one shared generation-context record;
+the saved-work wrapper holds their ordered references and view state. Existing
+version-1 entries remain readable and are not migrated or removed automatically.
+Import/export and any legacy transition interface are deferred to the later
+application design work. Automatic Generation Archive retention remains separate.
+
 1. Characterize the current IndexedDB schema, save/open/delete behavior,
    preview snapshots, ambiguity selection, and failure recovery.
 2. Build a one-time explicit legacy export so current local saves can be
@@ -3284,6 +3291,19 @@ backend generation retention.
    documented export-and-retire path.
 
 ### 2B. Record Integration
+
+The current Tree Bank integration preserves the complete received analysis and
+generation JSON, commits records, wrapper, and preview atomically, validates
+integrity when opening, and restores the selected analysis, view, and Replay
+position. Invalid data stays in place and reports an error without blocking
+other saves. Preview bytes load separately; identical content can be shared
+across explicit saves. Cross-tab changes refresh the library.
+
+These local records are explicitly not W17 export envelopes. Current runtime
+responses do not supply every required W17 evidence field, including dated
+provider-notice references. The native-record adapter must preserve that
+distinction when import/export is designed; it must not invent missing evidence.
+Browser-local storage still depends on its origin and browser retention policy.
 
 1. Adapt the selected normalized analysis to the existing W17 record and
    evidence schemas.

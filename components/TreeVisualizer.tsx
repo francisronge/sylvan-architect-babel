@@ -207,6 +207,9 @@ export interface TreeVisualizerProps {
   autoPlay?: boolean;
   /** Open a demonstration at one authored relation; ordinary Replay starts at frame one. */
   initialReplayMoment?: { stageIndex: number; relationIndex: number };
+  /** Restore a saved position against the current compiled Replay length. */
+  initialReplayStep?: number;
+  onReplayStepChange?: (step: number) => void;
   derivationStages?: DerivationStage[];
   abstractionMode?: boolean;
   sentence?: string;
@@ -230,6 +233,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   animated = false,
   autoPlay = true,
   initialReplayMoment,
+  initialReplayStep,
+  onReplayStepChange,
   derivationStages,
   abstractionMode = false,
   sentence = '',
@@ -292,7 +297,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, measureCategoryText, { includeRelationIndices: !disableRelationOverlay }) : undefined,
   [playbackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, measureCategoryText, disableRelationOverlay, settledFontText, fontText]);
-  const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment);
+  const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const collectionRevealRef = useRef<{ steps: typeof playbackSteps; stepIndex: number; startedAt: number } | null>(null);
@@ -649,6 +654,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   useEffect(() => {
     setHoveredRelationMoment(null);
   }, [activeStepIndex]);
+
+  useEffect(() => {
+    if (animated && playbackSteps.length > 0) onReplayStepChange?.(activeStepIndex);
+  }, [animated, playbackSteps, activeStepIndex, onReplayStepChange]);
 
   useEffect(() => () => {
     if (relationHoverResolutionFrameRef.current !== null) {

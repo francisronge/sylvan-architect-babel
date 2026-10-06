@@ -74,3 +74,26 @@ Calling the pure function is the explicit export action. The module writes
 nothing, persists nothing, and has no product, Tree Bank, server, publication,
 license-selection, or alternate-carrier path. Final-tree-only interchange
 formats remain outside this package.
+
+## Browser-local Tree Bank
+
+`services/treeBankRecords.ts` preserves received analyses and generation context
+as immutable local records using this package's canonical JSON helpers. It does
+not claim W17 export compatibility: current runtime responses do not provide all
+the contract-artifact and dated provider-notice evidence required above. Missing
+metadata remains missing. Native import/export adaptation is separate work.
+
+`services/treeBankStore.ts` owns IndexedDB version 2. A save commits its ordered
+analysis references, shared generation context, view state, and preview in one
+transaction. Hashes are calculated before starting that transaction and checked
+before reopening a saved analysis. Invalid bytes remain in storage and produce
+an explicit error; other entries remain accessible. Listing reads thin wrappers,
+and previews load separately as cards enter view. Version-1 entries remain in
+their original store and retain the existing read/delete path without migration.
+
+An explicit delete removes the selected saved-work wrapper and any content or
+preview that no remaining wrapper references. When malformed references prevent
+that determination, content is retained. Concurrent tabs share the database and
+receive change notifications. Data remains browser-local and origin-specific;
+atomic writes and integrity hashes do not provide a remote backup or prevent
+browser storage eviction.

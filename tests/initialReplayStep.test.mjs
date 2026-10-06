@@ -15,6 +15,15 @@ test('ordinary Replay keeps its first frame when no initial relation is requeste
   assert.equal(initialReplayStepIndex([]), 0);
 });
 
+test('saved Replay position restores structural steps and clamps to the current schedule', () => {
+  assert.equal(initialReplayStepIndex(steps, undefined, 3), 3);
+  assert.equal(initialReplayStepIndex(steps, undefined, 999), 4);
+  assert.equal(initialReplayStepIndex([], undefined, 3), 0);
+  assert.equal(initialReplayStepIndex(steps, undefined, -1), 0);
+  assert.equal(initialReplayStepIndex(steps, undefined, NaN), 0);
+  assert.equal(initialReplayStepIndex(steps, undefined, 1.5), 0);
+});
+
 test('initial relation selection distinguishes authored stages and relation order', () => {
   assert.equal(initialReplayStepIndex(steps, { stageIndex: 0, relationIndex: 0 }), 1);
   assert.equal(initialReplayStepIndex(steps, { stageIndex: 1, relationIndex: 0 }), 2);

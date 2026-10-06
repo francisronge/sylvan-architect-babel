@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { parseSentence, ParseServiceError } from './services/parseService';
-import { readTreeBankEntries, saveTreeBankEntry, removeTreeBankEntry } from './services/treeBankStore';
+import { listTreeBankEntries, saveTreeBankEntry, loadTreeBankEntry, removeTreeBankEntry, subscribeTreeBankChanges, type TreeBankEntrySummary } from './services/treeBankStore';
+import TreeBankPreview from './components/TreeBankPreview';
 import {
   ParseBundle,
   GenerationRecord,
@@ -17,10 +18,6 @@ import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { collectPronouncedTerminalSequence } from './replay/pronouncedTerminals.ts';
 import { displayTreeForAnalysis, finalForestForAnalysis } from './replay/finalForest.ts';
-import {
-  createTreeBankBundleSnapshot,
-  loadTreeBankBundleSnapshot
-} from './treeBankSnapshot.js';
 import { 
   RotateCcw, 
   Sparkles,
@@ -159,19 +156,15 @@ interface DevBundleConfig {
   captureMode: boolean;
 }
 
-interface TreeBankEntry {
-  id: string;
-  sentence: string;
-  framework: 'xbar' | 'minimalism';
-  activeParseIndex: number;
-  createdAt: string;
-  updatedAt: string;
-  bundle: ParseBundle;
-  treeSnapshotDataUrl?: string;
-}
+const compareTreeBankEntries = (a: TreeBankEntrySummary, b: TreeBankEntrySummary): number =>
+  b.updatedAt.localeCompare(a.updatedAt);
 
-const compareTreeBankEntries = (a: TreeBankEntry, b: TreeBankEntry): number =>
-  new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+const treeBankFailureMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+    return 'Browser storage is full. This save did not complete; your analysis is still open.';
+  }
+  return error instanceof Error ? `${fallback} ${error.message}` : fallback;
+};
 
 const createTreeBankId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -276,39 +269,6 @@ const captureVisibleTreeSnapshot = (): string | undefined => {
   return `data:image/svg+xml;base64,${encodeUtf8ToBase64(serialized)}`;
 };
 
-const normalizeTreeBankEntry = (value: unknown): TreeBankEntry | null => {
-  if (!value || typeof value !== 'object') return null;
-
-  const candidate = value as Record<string, unknown>;
-  const id = String(candidate.id || '').trim();
-  const sentence = String(candidate.sentence || '').trim();
-  const framework = candidate.framework === 'minimalism' ? 'minimalism' : candidate.framework === 'xbar' ? 'xbar' : null;
-  const activeParseIndexRaw = Number(candidate.activeParseIndex);
-  const activeParseIndex = Number.isInteger(activeParseIndexRaw) && activeParseIndexRaw >= 0 ? activeParseIndexRaw : 0;
-  const createdAt = String(candidate.createdAt || '').trim();
-  const updatedAt = String(candidate.updatedAt || '').trim();
-  const bundle = candidate.bundle
-    ? loadTreeBankBundleSnapshot(candidate.bundle) as ParseBundle
-    : undefined;
-  const snapshotRaw = typeof candidate.treeSnapshotDataUrl === 'string' ? candidate.treeSnapshotDataUrl : '';
-  const treeSnapshotDataUrl = snapshotRaw.startsWith('data:image/') ? snapshotRaw : undefined;
-
-  if (!id || !sentence || !framework || !bundle || !Array.isArray(bundle.analyses) || bundle.analyses.length === 0) {
-    return null;
-  }
-
-  return {
-    id,
-    sentence,
-    framework,
-    activeParseIndex,
-    createdAt: createdAt || updatedAt || new Date().toISOString(),
-    updatedAt: updatedAt || createdAt || new Date().toISOString(),
-    bundle,
-    treeSnapshotDataUrl
-  };
-};
-
 const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, unknown>;
@@ -324,12 +284,6 @@ const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
     ? candidate as unknown as ParseBundle
     : null;
 };
-
-const listTreeBankEntries = async (): Promise<TreeBankEntry[]> =>
-  (await readTreeBankEntries())
-    .map(normalizeTreeBankEntry)
-    .filter((entry): entry is TreeBankEntry => Boolean(entry))
-    .sort(compareTreeBankEntries);
 
 const KNOWN_CATEGORY_LABELS = new Set([
   'A',
@@ -493,13 +447,32 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('arboretum');
-  const [treeBankEntries, setTreeBankEntries] = useState<TreeBankEntry[]>([]);
+  const [treeBankEntries, setTreeBankEntries] = useState<TreeBankEntrySummary[]>([]);
   const [treeBankLoading, setTreeBankLoading] = useState(false);
   const [treeBankError, setTreeBankError] = useState<string | null>(null);
   const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
   const [treeBankSaving, setTreeBankSaving] = useState(false);
-  const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntry | null>(null);
+  const [treeBankOpening, setTreeBankOpening] = useState(false);
+  const replayPositions = useRef(new WeakMap<ParseResult, number>());
+  const [initialReplayPosition, setInitialReplayPosition] = useState<number | null>(null);
+  const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntrySummary | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
+  const rememberReplayPosition = useCallback((step: number) => {
+    if (activeParse) replayPositions.current.set(activeParse, step);
+  }, [activeParse]);
+  const changeTab = (tab: AppTab) => {
+    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
+    setActiveTab(tab);
+  };
+  const changeParse = (index: number) => {
+    const analysis = analysisBundle?.analyses[index];
+    setInitialReplayPosition(analysis ? replayPositions.current.get(analysis) ?? null : null);
+    setActiveParseIndex(index);
+  };
+  const toggleTreeBank = () => {
+    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
+    setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
+  };
   const activeFinalForest = useMemo(() => finalForestForAnalysis(activeParse), [activeParse]);
   const activeDisplayTree = useMemo(() => displayTreeForAnalysis(activeParse), [activeParse]);
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
@@ -532,6 +505,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       modelRoute?: ModelMode;
       reasoningEffort?: ReasoningEffort;
     } = {}) => {
+      setInitialReplayPosition(null);
       setAnalysisBundle(bundle);
       const nextSentence = String(options.sentence || '').trim();
       if (nextSentence) {
@@ -622,6 +596,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
         const coercedModelRoute = coerceModelRoute(nextModelRoute);
         const nextReasoningEffort = String(requestRecord.reasoningEffort || bundle.requestedReasoningEffort || '').trim();
 
+        setInitialReplayPosition(null);
         setAnalysisBundle(bundle);
         setParsedSentence(nextSentence);
         setInput(nextSentence);
@@ -706,31 +681,29 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
   useEffect(() => {
     let cancelled = false;
-
-    const loadTreeBank = async () => {
+    let revision = 0;
+    const refresh = async () => {
+      const currentRevision = ++revision;
       setTreeBankLoading(true);
       try {
-        const entries = await listTreeBankEntries();
-        if (!cancelled) {
+        const { entries, issues } = await listTreeBankEntries();
+        if (!cancelled && currentRevision === revision) {
           setTreeBankEntries(entries);
-          setTreeBankError(null);
+          setTreeBankError(issues.length
+            ? `${issues.length} saved ${issues.length === 1 ? 'entry could' : 'entries could'} not be read. Their data is preserved; other saves remain available.`
+            : null);
         }
-      } catch (err) {
-        console.error('Tree Bank load failed', err);
-        if (!cancelled) {
-          setTreeBankError('Tree Bank could not be loaded.');
+      } catch (error) {
+        if (!cancelled && currentRevision === revision) {
+          setTreeBankError(treeBankFailureMessage(error, 'Tree Bank could not be loaded.'));
         }
       } finally {
-        if (!cancelled) {
-          setTreeBankLoading(false);
-        }
+        if (!cancelled && currentRevision === revision) setTreeBankLoading(false);
       }
     };
-
-    loadTreeBank();
-    return () => {
-      cancelled = true;
-    };
+    void refresh();
+    const unsubscribe = subscribeTreeBankChanges(() => { void refresh(); });
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -756,6 +729,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       const data = await parseSentence(input, framework, modelRoute, {
         [selectedModel.controls[0].id]: activeReasoningEffort
       });
+      setInitialReplayPosition(null);
       setAnalysisBundle(data);
       const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
       setModelRoute(nextModelRoute);
@@ -782,25 +756,26 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (!sentence) return;
 
     const now = new Date().toISOString();
-    const snapshot = createTreeBankBundleSnapshot(analysisBundle) as ParseBundle;
-    const treeSnapshotDataUrl = captureVisibleTreeSnapshot();
-    const entry: TreeBankEntry = {
+    const entry = {
       id: createTreeBankId(),
       sentence,
       framework: parsedFramework,
       activeParseIndex,
       createdAt: now,
       updatedAt: now,
-      bundle: snapshot,
-      treeSnapshotDataUrl
+      bundle: analysisBundle,
+      view: activeTab,
+      replayStep: activeParse ? replayPositions.current.get(activeParse) ?? null : null,
+      abstractionMode,
+      treeSnapshotDataUrl: captureVisibleTreeSnapshot()
     };
 
     setTreeBankSaveSuccess(false);
     setTreeBankError(null);
     setTreeBankSaving(true);
     try {
-      await saveTreeBankEntry(entry);
-      setTreeBankEntries((current) => [entry, ...current].sort(compareTreeBankEntries));
+      const saved = await saveTreeBankEntry(entry);
+      setTreeBankEntries(current => [saved, ...current.filter(item => item.id !== saved.id)].sort(compareTreeBankEntries));
       setTreeBankSaveSuccess(true);
       setTreeBankError(null);
       if (treeBankSaveSuccessTimeoutRef.current !== null) {
@@ -812,35 +787,43 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       }, 2200);
     } catch (err) {
       console.error('Tree Bank save failed', err);
-      setTreeBankError('Unable to save this tree to Tree Bank.');
+      setTreeBankError(treeBankFailureMessage(err, 'Unable to save this tree to Tree Bank.'));
     } finally {
       setTreeBankSaving(false);
     }
   };
 
-  const handleOpenTreeBankEntry = (entry: TreeBankEntry) => {
-    const restoredBundle = JSON.parse(JSON.stringify(entry.bundle)) as ParseBundle;
-    const parseCount = restoredBundle.analyses?.length ?? 0;
-    const nextParseIndex = parseCount > 0
-      ? Math.min(Math.max(entry.activeParseIndex, 0), parseCount - 1)
-      : 0;
-
-    setAnalysisBundle(restoredBundle);
-    setParsedSentence(entry.sentence);
-    setInput(entry.sentence);
-    setFramework(entry.framework);
-    setParsedFramework(entry.framework);
-    const nextModelRoute = coerceModelRoute(entry.bundle.requestedModelId || inferModelRouteFromModel(entry.bundle.modelUsed));
-    setModelRoute(nextModelRoute);
-    setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, entry.bundle.requestedReasoningEffort || reasoningEffort));
-    setActiveParseIndex(nextParseIndex);
-    setActiveTab('tree');
-    setError(null);
-    setCopiedCodeKey(null);
-    setNeedsKey(false);
-    setIsInputVisible(true);
-    setIsInputExpanded(true);
-    setWorkspaceView('arboretum');
+  const handleOpenTreeBankEntry = async (summary: TreeBankEntrySummary) => {
+    if (treeBankOpening || loading) return;
+    setTreeBankOpening(true);
+    try {
+      const { entry, bundle, view, replayStep, abstractionMode: savedAbstraction } = await loadTreeBankEntry(summary.id);
+      const selected = bundle.analyses[entry.activeParseIndex];
+      if (replayStep !== null) replayPositions.current.set(selected, replayStep);
+      setInitialReplayPosition(replayStep);
+      setAnalysisBundle(bundle);
+      setParsedSentence(entry.sentence);
+      setInput(entry.sentence);
+      setFramework(entry.framework);
+      setParsedFramework(entry.framework);
+      const nextModelRoute = coerceModelRoute(bundle.requestedModelId || inferModelRouteFromModel(bundle.modelUsed));
+      setModelRoute(nextModelRoute);
+      setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, bundle.requestedReasoningEffort || reasoningEffort));
+      setActiveParseIndex(entry.activeParseIndex);
+      setActiveTab(view);
+      setAbstractionMode(savedAbstraction);
+      setTreeBankError(null);
+      setError(null);
+      setCopiedCodeKey(null);
+      setNeedsKey(false);
+      setIsInputVisible(true);
+      setIsInputExpanded(true);
+      setWorkspaceView('arboretum');
+    } catch (error) {
+      setTreeBankError(treeBankFailureMessage(error, 'This saved entry could not be opened. Its data has been preserved.'));
+    } finally {
+      setTreeBankOpening(false);
+    }
   };
 
   const handleDeleteTreeBankEntry = async () => {
@@ -852,7 +835,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setEntryPendingDelete(null);
     } catch (err) {
       console.error('Tree Bank delete failed', err);
-      setTreeBankError('Unable to delete this saved tree.');
+      setTreeBankError(treeBankFailureMessage(err, 'Unable to delete this saved tree.'));
     }
   };
 
@@ -982,7 +965,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   )}
 
                   <button
-                    onClick={() => setWorkspaceView((current) => (current === 'treeBank' ? 'arboretum' : 'treeBank'))}
+                    onClick={toggleTreeBank}
                     className={`flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap ${
                       isTreeBankView
                         ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
@@ -1112,12 +1095,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {treeBankEntries.map((entry) => {
-                    const safeParseIndex = Math.min(
-                      Math.max(entry.activeParseIndex, 0),
-                      Math.max((entry.bundle.analyses?.length ?? 1) - 1, 0)
-                    );
-                    const activeSavedParse = entry.bundle.analyses?.[safeParseIndex];
-                    const stageCount = activeSavedParse?.derivationStages?.length ?? 0;
+                    const stageCount = entry.stageCount;
 
                     return (
                       <div
@@ -1139,7 +1117,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
                         <div className="mt-6 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.18em]">
                           <span className="px-3 py-1.5 rounded-full border border-emerald-500/25 text-emerald-300/80 bg-emerald-500/10">
-                            {(entry.bundle.analyses?.length ?? 0)} {(entry.bundle.analyses?.length ?? 0) === 1 ? 'Parse' : 'Parses'}
+                            {entry.analysisCount} {entry.analysisCount === 1 ? 'Parse' : 'Parses'}
                           </span>
                           <span className="px-3 py-1.5 rounded-full border border-white/15 text-white/70 bg-white/5">
                             {stageCount} {stageCount === 1 ? 'Stage' : 'Stages'}
@@ -1147,23 +1125,13 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                         </div>
 
                         <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-[#020806] overflow-hidden h-56">
-                          {entry.treeSnapshotDataUrl ? (
-                            <img
-                              src={entry.treeSnapshotDataUrl}
-                              alt={`Tree snapshot for "${entry.sentence}"`}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-emerald-400/50 text-[10px] font-black uppercase tracking-[0.28em]">
-                              Tree preview unavailable
-                            </div>
-                          )}
+                          <TreeBankPreview previewId={entry.previewId} sentence={entry.sentence} />
                         </div>
 
                         <div className="mt-7 flex items-center gap-3">
                           <button
-                            onClick={() => handleOpenTreeBankEntry(entry)}
+                            onClick={() => void handleOpenTreeBankEntry(entry)}
+                            disabled={treeBankOpening}
                             className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
                           >
                             <FolderOpen size={13} />
@@ -1193,7 +1161,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                 <button
                   key={`parse-choice-${parseIndex}`}
                   aria-pressed={activeParseIndex === parseIndex}
-                  onClick={() => setActiveParseIndex(parseIndex)}
+                  onClick={() => changeParse(parseIndex)}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     activeParseIndex === parseIndex
                       ? 'moss-gradient text-white border border-emerald-400/50'
@@ -1220,7 +1188,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           )}
 
           {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
-            <TreeVisualizer 
+            <TreeVisualizer
+              initialReplayStep={initialReplayPosition ?? undefined}
+              autoPlay={initialReplayPosition === null}
+              onReplayStepChange={rememberReplayPosition}
               data={activeDisplayTree}
               animated={activeTab === 'derivation'}
               derivationStages={activeParse.derivationStages}
@@ -1350,7 +1321,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                 <button
                   key={tab.id}
                   disabled={!activeParse}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => changeTab(tab.id)}
                   className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
                     activeTab === tab.id
                     ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
