@@ -1416,7 +1416,8 @@ test('the repaired locality cards keep movement, judgment, and real syntax separ
 
 test('Roll-up builds each modifier complement before selecting the head that merges with it', async (t) => {
   const { rawCases } = await loadAtlasCases(t);
-  const rollUpSteps = playback(cardNamed(rawCases, 'Roll-up Movement'));
+  const rollUp = cardNamed(rawCases, 'Roll-up Movement');
+  const rollUpSteps = playback(rollUp);
   const baseStageSteps = rollUpSteps.filter((step) => step.replayFrameIndex === 0);
   const baseMicrosteps = baseStageSteps
     .filter((step) => step.replayKind === 'micro')
@@ -1449,9 +1450,33 @@ test('Roll-up builds each modifier complement before selecting the head that mer
     ['Project', 'ap_big_ru'],
     ['LexicalSelect', 'dem_ru::__leaf'],
     ['Project', 'dem_ru'],
-    ['ExternalMerge', 'dembar_ru'],
-    ['Project', 'demp_ru']
+    ['ExternalMerge', 'dembar_ru']
   ]);
+
+  const finalMovementIndex = exactRelationStepIndex(rollUpSteps, 3, 0);
+  assert.ok(finalMovementIndex > 0);
+  for (const step of rollUpSteps.slice(0, finalMovementIndex)) {
+    assert.equal(step.replayVisibleNodeIds.includes('demp_ru'), false,
+      'the unused unary top shell waits for its owning specifier movement');
+  }
+  assert.equal(rollUpSteps.some(step => step.replayKind === 'micro'
+    && step.targetNodeId === 'demp_ru'), false);
+  for (let stageIndex = 0; stageIndex < 3; stageIndex += 1) {
+    const completed = rollUpSteps.find(step => step.replayFrameIndex === stageIndex
+      && step.replayKind === 'macro');
+    assert.ok(completed);
+    for (const root of rollUp.derivationStages[stageIndex].workspaceForest) {
+      for (const node of collectNodes(root, [])) {
+        if (node.id === 'demp_ru') continue;
+        assert.ok(completed.replayVisibleNodeIds.includes(node.id),
+          `stage ${stageIndex}: deferring the shell must preserve ${node.id}`);
+      }
+    }
+  }
+  const finalMovement = rollUpSteps[finalMovementIndex];
+  assert.ok(finalMovement.replayVisibleNodeIds.includes('demp_ru'));
+  assert.deepEqual(findNode([finalMovement.replayCanvasData], 'demp_ru').children.map(node => node.id),
+    ['ap_big_ru_hi', 'dembar_ru']);
 });
 
 test('across-the-board chains share one index across every conjunct gap', async (t) => {

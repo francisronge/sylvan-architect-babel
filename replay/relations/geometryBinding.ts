@@ -140,6 +140,8 @@ export type BoundFallbackMark = {
   role: string;
   text: string;
   textWidth: number;
+  /** Measured ascent plus descent; absent when only conservative metrics are available. */
+  textHeight?: number;
   /** Measured witness label including its local outline, when present. */
   labelRect: Rect;
   allocationOrder: number;
@@ -473,10 +475,13 @@ export const FALLBACK_ROLE_STYLE: PlaqueTextStyle = {
   fontFamily: '"Crimson Pro", Georgia, serif', fontSize: 12, fontWeight: 600, letterSpacing: 0
 };
 
-const fallbackLabelRect = (mark: Pick<BoundFallbackMark, 'x' | 'y' | 'textWidth'>, scale: number): Rect => ({
-  x: mark.x - (mark.textWidth / 2 + 4) * scale, y: mark.y - 12 * scale,
-  width: (mark.textWidth + 8) * scale, height: 24 * scale
-});
+const fallbackLabelRect = (mark: Pick<BoundFallbackMark, 'x' | 'y' | 'textWidth' | 'textHeight'>, scale: number): Rect => {
+  // Roles use a central baseline. Two units per side cover their three-unit
+  // round outline; unmeasured callers retain the conservative reservation.
+  const height = mark.textHeight === undefined ? 24 : mark.textHeight + 4;
+  return { x: mark.x - (mark.textWidth / 2 + 4) * scale, y: mark.y - height / 2 * scale,
+    width: (mark.textWidth + 8) * scale, height: height * scale };
+};
 
 // Keep straight connectors intact outside the measured label rectangles.
 export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = []): string {
@@ -586,7 +591,7 @@ export type FallbackMeasurements = {
 };
 
 /** Accepted Orchard side placement, reserving all marks before any relation is revealed. */
-const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth'>,
+const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth' | 'textHeight'>,
   scale: number, occupied: Rect[], viewport?: Rect): Point => {
   const rect = mark.labelRect;
   const leftExtent = (mark.textWidth / 2 + 4) * scale;
@@ -2271,8 +2276,13 @@ export const bindRelationPlanFrame = (
         const labelRect = outlinedLabels.has(mark.witness) ? fongEdgeOutlineRect(measuredLabel) : measuredLabel;
         const text = spaceAuthoredName(mark.role) + (mark.position === null ? '' : `[${mark.position}]`);
         const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
-        const textWidth = measure(text, FALLBACK_ROLE_STYLE).width;
-        const shape = { labelRect, backward: mark.backward, numeral: mark.position, role: mark.role, text, textWidth };
+        const metrics = measure(text, FALLBACK_ROLE_STYLE);
+        const textHeight = options.plaqueTextLayout?.measureText
+          && Number.isFinite(metrics.ascent) && metrics.ascent! >= 0
+          && Number.isFinite(metrics.descent) && metrics.descent! >= 0
+          && metrics.ascent! + metrics.descent! > 0 ? metrics.ascent! + metrics.descent! : undefined;
+        const shape = { labelRect, backward: mark.backward, numeral: mark.position, role: mark.role, text,
+          textWidth: metrics.width, ...(textHeight === undefined ? {} : { textHeight }) };
         const center = placeFallbackMark(shape, markerScale, occupied);
         markCenters.set(mark.witness, center);
         const bound: BoundFallbackMark = { type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,

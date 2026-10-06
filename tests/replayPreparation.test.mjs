@@ -7,11 +7,17 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { startReplayPreparation } from '../replay/replayWorkerClient.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import {
+  adaptDerivationStagesForReplay,
   applyPreFrontingSentenceInitialCasing,
+  buildAuthoredRelationLinksForFrames,
+  buildMovementChainIndexCatalogueForFrames,
+  buildPlaybackStepsFromDerivationFrames,
   buildResolvedLinkTraceIndexMap,
+  createFrameRelationResolver,
   decoratePlaybackStepsWithTraceIndices,
   hidePendingInflSpecifierWrappersInStep
 } from '../replay/replayCompiler.ts';
+import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const freeze = value => {
@@ -21,6 +27,26 @@ const freeze = value => {
   }
   return value;
 };
+
+test('preparation consumers share frozen relation recovery without mutating it', () => {
+  for (const { derivationStages } of saved) {
+    const frames = adaptDerivationStagesForReplay(derivationStages);
+    const plan = buildDerivationReplayPlan({ derivationStages });
+    const resolve = createFrameRelationResolver(frames, plan);
+    const relations = frames.map((_, index) => freeze(resolve(index)));
+    const snapshot = structuredClone(relations);
+    const shared = index => relations[index];
+    const final = frames.length - 1;
+    assert.deepEqual(buildAuthoredRelationLinksForFrames(frames, plan, final,
+      frames[final].workspaceForest, Infinity, shared),
+      buildAuthoredRelationLinksForFrames(frames, plan, final, frames[final].workspaceForest));
+    assert.deepEqual(buildMovementChainIndexCatalogueForFrames(frames, plan, shared),
+      buildMovementChainIndexCatalogueForFrames(frames, plan));
+    assert.deepEqual(buildPlaybackStepsFromDerivationFrames(frames, 'Which book did John buy?', plan, undefined, shared),
+      buildPlaybackStepsFromDerivationFrames(frames, 'Which book did John buy?', plan));
+    assert.deepEqual(relations, snapshot);
+  }
+});
 
 test('worker preparation preserves all archived frames, decorations and render plans', async () => {
   const worker = new Worker(new URL('./support/replayWorkerBridge.mjs', import.meta.url));

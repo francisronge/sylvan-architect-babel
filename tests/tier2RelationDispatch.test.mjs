@@ -216,9 +216,16 @@ test('explicit assignment domains interpret generic directions without relation-
 
 test('assignment context cannot guess a domain or choose between competing interpretations', () => {
   const forest = [leaf('a', 'read'), leaf('b', 'books'), leaf('c', 'Ada')];
+  const anchors = { assigner: 'a', recipient: 'b' };
+  for (const values of [{ role: 'Theme' }, { functionLabel: 'administrator' }]) {
+    const relation = { relation: 'theta-assignment', anchors, values };
+    assert.ok(facetIds(dispatch(relation, forest)).includes('theta-grid'), JSON.stringify(relation));
+    for (const title of ['Open claim', 'possible theta-assignment', 'no theta-assignment']) {
+      const incomplete = { ...relation, relation: title };
+      assert.ok(!facetIds(dispatch(incomplete, forest)).includes('theta-grid'), JSON.stringify(incomplete));
+    }
+  }
   for (const [anchors, values] of [
-    [{ assigner: 'a', recipient: 'b' }, { role: 'Theme' }],
-    [{ assigner: 'a', recipient: 'b' }, { functionLabel: 'administrator' }],
     [{ assigner: 'a', recipient: 'b' }, { thetaRole: 'Theme', case: 'Accusative' }],
     [{ assigner: 'a', recipient: 'b', target: 'c' }, { thetaRole: 'Theme' }],
     [{ assigner: 'a', recipient: ['b', 'c'] }, { thetaRole: 'Theme' }],
@@ -226,7 +233,10 @@ test('assignment context cannot guess a domain or choose between competing inter
     [{ assigner: 'a', recipient: 'b' }, { thetaRole: '', functionLabel: 'administrator' }],
     [{ assigner: 'a', recipient: 'missing' }, { thetaRole: 'Theme' }],
     [{ governor: 'a', recipient: 'b' }, { thetaRole: 'Theme' }]
-  ]) assert.ok(!facetIds(dispatch({ relation: 'theta-assignment', anchors, values }, forest)).includes('theta-grid'));
+  ]) {
+    const relation = { relation: 'theta-assignment', anchors, values };
+    assert.ok(!facetIds(dispatch(relation, forest)).includes('theta-grid'), JSON.stringify(relation));
+  }
 });
 
 test('assignment interpretation cannot fill missing literals or turn government and licensing into Agree', () => {

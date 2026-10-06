@@ -20,7 +20,7 @@ import { isNativeProjectionPath, prepareNativeDependentCaseStep, prepareNativeLi
 import { prepareRewriteRows, pfRewriteLabelDenial, ownedPFRewriteOutcomes } from './rewriteLiterals.ts';
 import { prepareLocalDislocationContent } from './localDislocationContent.ts';
 import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
-import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
+import { hasIndependentCaseEndpoints, isUnestablishedCaseValue } from './featureEvidence.ts';
 import { establishesAssignment } from './assignmentContinuity.ts';
 
 export const TIER2_VISUAL_PRIMITIVE_NAMES = [
@@ -1505,7 +1505,8 @@ const evaluateStructuralCheck = (
         return 'independent-feature-outcomes-require-scoped-claims';
       if (caseDetail.status === 'unequal' || caseDetail.status === 'unpaired' || caseDetail.status === 'ambiguous') return unpairedReason('feature.target', 'case.literal', caseDetail.status);
       const caseValues = caseDetail.literals;
-      if (caseValues.length && valueLiterals(evidence, 'feature.rows').length && !hasIndependentCaseEndpoints(evidence))
+      if (caseValues.some(isUnestablishedCaseValue)) return 'case-value-not-established';
+      if (caseValues.length && !hasIndependentCaseEndpoints(evidence))
         return 'case-direction-requires-independent-participant-evidence';
       if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
       if (valueLiterals(evidence, 'feature.rows').length) return true;

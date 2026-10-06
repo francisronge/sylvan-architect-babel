@@ -19,7 +19,8 @@ import type {
   Tier2VisualPrimitiveName
 } from './tier2FacetRecipes.ts';
 import { literalThetaRoles, pairedLiterals, prepareNativeFissionContent, tier2NativePlaqueRows } from './tier2FacetRecipes.ts';
-import { isWordlessCategoryLeaf } from '../replayCompiler.ts';
+import { extractMovementIndex, isTraceLike, isWordlessCategoryLeaf } from '../replayCompiler.ts';
+import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
 import { nativeAncestorEdges, prepareNativeDependentCaseStep, prepareNativeLinearizationContent, prepareNativePlaqueContent } from './nativeDrawingContent.ts';
 import { prepareRewriteRows } from './rewriteLiterals.ts';
 import { prepareLocalDislocationContent } from './localDislocationContent.ts';
@@ -73,6 +74,14 @@ const leafCount = (node?: SyntaxNode): number => {
   if (!node) return 0;
   if ((node.children || []).length === 0) return 1;
   return (node.children || []).reduce((count, child) => count + leafCount(child), 0);
+};
+
+const gapBadgeText = (surface: string, index?: string): string => {
+  if (!index?.trim()) return surface;
+  // The index can already be carried by a trace inside a category annotation.
+  const authored = [surface, ...Array.from(surface.matchAll(/\[([^\[\]]+)\]/gu), match => match[1])
+    .filter(isTraceLike)].map(extractMovementIndex);
+  return authored.includes(index.trim().toLowerCase()) ? surface : `${surface}_${index}`;
 };
 
 const unique = (items: readonly string[]): string[] => (
@@ -312,7 +321,7 @@ export const compileTier2RelationOutputs = ({
             ? 'shell-top'
             : leafCount(nodes.get(source)) > 1 || isWordlessCategoryLeaf(nodes.get(source)!) ? 'shell-bottom' : 'terminal',
           targetAttachment: crossWorkspace ? 'shell-top'
-            : evidence.movement?.trajectoryKind === 'head' && !isWordlessCategoryLeaf(nodes.get(landing)!) ? 'terminal' : 'shell-bottom'
+            : evidence.movement?.trajectoryKind === 'head' ? headTrajectoryAttachment(nodes.get(landing)!) : 'shell-bottom'
         });
         return;
       }
@@ -339,7 +348,7 @@ export const compileTier2RelationOutputs = ({
           badgeStyle: 'gap-notation',
           badges: many('gap').map((nodeId, index) => ({ nodeId,
             text: labels[index]?.trim() ? labels[index]
-              : String(nodes.get(nodeId)?.word || nodes.get(nodeId)?.label || '') + (indices[index]?.trim() ? `_${indices[index]}` : ''), shape: 'plain' }))
+              : gapBadgeText(String(nodes.get(nodeId)?.word || nodes.get(nodeId)?.label || ''), indices[index]), shape: 'plain' }))
         });
         return;
       }

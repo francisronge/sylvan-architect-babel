@@ -241,6 +241,50 @@ test('an enclosing projection can be built for an earlier claim using the indepe
   assert.ok(visible(movement, 't_did_hi'));
 });
 
+const labelledReceivingHead = (label, anchor = 'higher_phrase') => {
+  const record = mixedHeadStage(anchor);
+  record.derivationStages[3].workspaceForest.flatMap(nodes).forEach(node => {
+    if (node.id === 'c_complex' || node.id === 'c_q') node.label = label;
+  });
+  return record;
+};
+
+test('open head categories allow an earlier claim to use the receiving projection before adjunction', () => {
+  for (const label of ['Foc', 'AgrO', 'Asp⁰', 'Mood [irrealis]', 'NovelHead']) {
+    const record = labelledReceivingHead(label), original = structuredClone(record);
+    const [ordinary, movement] = moments(play(record), 3);
+    assert.deepEqual([ordinary, movement].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+    for (const id of ['higher_phrase', 'higher_head', 'cp1', 'c_q', 'tp_full']) assert.ok(visible(ordinary, id), `${label}: ${id}`);
+    for (const id of ['t_did_hi', 'c_complex']) assert.ok(!visible(ordinary, id), `${label}: ${id} remains pending`);
+    assert.deepEqual(nodes(ordinary.replayCanvasData).find(node => node.id === 'cp1').children.map(node => node.id), ['c_q', 'tp_full']);
+    assert.equal(ordinary.movementDiagnostics?.length || 0, 0, label);
+    assert.equal(movement.movementDiagnostics?.length || 0, 0, label);
+    for (const id of ['c_complex', 't_did_hi']) assert.ok(visible(movement, id), `${label}: ${id}`);
+    assert.deepEqual(record, original);
+  }
+});
+
+test('open receiving-head notation does not release a future landing or complex for an earlier claim', () => {
+  for (const label of ['Foc', 'AgrO', 'NovelHead']) for (const anchor of ['t_did_hi', 'c_complex']) {
+    const record = labelledReceivingHead(label, anchor), original = structuredClone(record);
+    const [ordinary, movement] = moments(play(record), 3);
+    assert.ok(!visible(ordinary, anchor), `${label}: ${anchor}`);
+    assert.match(ordinary.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 4, relation 1.*before relation 2/);
+    assert.ok(visible(movement, anchor), `${label}: ${anchor}`);
+    assert.deepEqual(record, original);
+  }
+});
+
+test('phrases and intermediate projections do not become head hosts merely through matching labels', () => {
+  for (const label of ['FocP', 'Foc′', 'Foc (projection)', 'Foc broken notation']) {
+    const record = labelledReceivingHead(label), original = structuredClone(record);
+    const [ordinary, movement] = moments(play(record), 3);
+    assert.match(movement.movementDiagnostics.join('\n'), /MOVEMENT_CONTEXT_UNRESOLVED/);
+    assert.deepEqual(nodes(ordinary.replayCanvasData).find(node => node.id === 'c_complex').children.map(node => node.id), ['t_did_hi', 'c_q']);
+    assert.deepEqual(record, original);
+  }
+});
+
 test('a known relation does not run early merely because its anchors exist', () => {
   const record = copy('astra-minimalism');
   const steps = play(record);
@@ -313,6 +357,37 @@ test('two movements and intervening relations retain order before a higher merge
   assert.ok(!visible(relations[2], 'b_hi'));
   assert.ok(visible(relations[3], 'b_hi'));
   assert.ok(steps.findIndex(s => s.targetNodeId === 'root') > steps.indexOf(relations[3]));
+});
+
+test('movement diagnoses future contextual anchors without changing its own transition', () => {
+  const phrase = (id, lineageId, silent = false) => ({ id, label: 'DP', lineageId, word: lineageId, silent });
+  const record = transitionRecord([phrase('a', 'A'), phrase('b', 'B')], [{
+    id: 'root', label: 'XP', children: [
+      { id: 'host_a', label: 'XP', children: [phrase('a_hi', 'A'), phrase('a', 'A', true)] },
+      { id: 'host_b', label: 'XP', children: [phrase('b_hi', 'B'), phrase('b', 'B', true)] }
+    ]
+  }], [
+    { relation: 'Internal Merge', anchors: { lowerCopy: 'a', higherCopy: 'a_hi' }, priorAnchors: { source: 'a' } },
+    { relation: 'Internal Merge', anchors: { lowerCopy: 'b', higherCopy: 'b_hi' }, priorAnchors: { source: 'b' } }
+  ]);
+  const base = play(record);
+  const geometry = steps => steps.map(step => ({ kind: step.replayKind, identity: step.replayRelationIdentity,
+    target: step.targetNodeId, canvas: step.replayCanvasData, visible: step.replayVisibleNodeIds }));
+  for (const context of ['future', 'existing', 'own landing', 'prior']) {
+    const current = structuredClone(record), early = current.derivationStages[1].relations[0];
+    if (context === 'prior') early.priorAnchors.context = 'b';
+    else early.anchors.context = context === 'future' ? 'b_hi' : context === 'existing' ? 'b' : 'a_hi';
+    const original = structuredClone(current), steps = play(current), [first, second] = moments(steps, 1);
+    assert.deepEqual(moments(steps, 1).map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+    assert.ok(visible(first, 'a_hi'));
+    assert.ok(!visible(first, 'b_hi'));
+    assert.ok(visible(second, 'b_hi'));
+    if (context === 'future') assert.match(first.movementDiagnostics.join('\n'),
+      /RELATION_TIMING_CONFLICT: Stage 2, relation 1.*unavailable authored context: b_hi before relation 2/);
+    else assert.ok(!first.movementDiagnostics?.some(message => message.includes('unavailable authored context')), context);
+    assert.deepEqual(geometry(steps), geometry(base), context);
+    assert.deepEqual(current, original);
+  }
 });
 
 test('a relation-owned merge is not preceded by an empty structural step', () => {

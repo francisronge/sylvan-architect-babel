@@ -1,10 +1,11 @@
 import * as d3 from 'd3';
-import { categoryLabel } from './categoryLabel.ts';
+import { categoryLabel, readCategoryLabel } from './categoryLabel.ts';
 import { constructionAttachmentUpdates, hasConstructionWrapperInsertions, preserveConstructionAttachments } from './constructionAttachments.ts';
 import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims, dispatchStageRelations, recoveredClaimMovements, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
+import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwnership.ts';
 import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
 import { attachReplayRealizations, cloneRealizations } from './realizationReplay.ts';
@@ -71,6 +72,12 @@ export interface PlaybackStep {
    * reveal and focus plan items from this exact identity.
    */
   replayRelationIdentity?: { stageIndex: number; relationIndex: number };
+  /** Exact compiler-owned neutral rewrite witnesses; these do not establish a movement chain. */
+  replayTreeTransition?: {
+    relationKey: string;
+    currentNodeIds: string[];
+    priorNodeIds: string[];
+  };
   replayProgressLabel?: string;
   targetNodeId: string;
   targetLabel: string;
@@ -1899,9 +1906,13 @@ const buildPreMovementStructuralForest = (
     const siblings = grandparent?.children || structuralForest;
     // Before adjunction, the receiving head is independently selected, whether
     // it came from the preceding stage or this stage's ordinary construction.
-    const newReceivingHead = !prior && isHeadShellLabel(parent.label)
-      && isHeadShellLabel(host.label)
-      && normalizeStructuralLabel(parent.label) === normalizeStructuralLabel(host.label);
+    const parentCategory = readCategoryLabel(parent.label);
+    const hostCategory = readCategoryLabel(host.label);
+    // Use the same open category notation that proved the head movement.
+    // An independently selected Foc, Agr or other head is still available
+    // before the later adjunction creates its complex.
+    const newReceivingHead = !prior && parentCategory?.kind === 'head'
+      && hostCategory?.kind === 'head' && parentCategory.head === hostCategory.head;
     if (newReceivingHead || (prior && prior.parentId === (grandparent?.id || '')
       && (grandparent ? prior.childIndex : prior.rootIndex) === siblings.indexOf(parent))) {
       replaceStructuralNode(parent.id, host);
@@ -2671,12 +2682,13 @@ export const buildPlaybackStepsFromDerivationFrames = (
   frames: ReplayDerivationFrame[],
   sentence?: string,
   replayPlan?: DerivationReplayPlan | null,
-  inputTokens?: string[]
+  inputTokens?: string[],
+  frameRelations?: (frameIndex: number) => DerivationReplayPlanStep[]
 ): PlaybackStep[] => {
   const identity = createReplayIdentityContext(frames.flatMap(frame => frame.workspaceForest || []));
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
   const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
-  const resolveFrameRelations = createFrameRelationResolver(frames, replayPlan);
+  const resolveFrameRelations = frameRelations ?? createFrameRelationResolver(frames, replayPlan);
   const pendingProjectionReveals: Array<{
     nodeId: string;
     firstStageIndex: number;
@@ -3686,8 +3698,16 @@ export const buildPlaybackStepsFromDerivationFrames = (
           const resolvedSourceNodeIds = placement.renderableTrajectory
             ? placement.sourceNodeIds
             : placement.relationAnchorNodeIds.filter((nodeId) => nodeId !== resolvedTargetNodeId);
+          const neutralOwnership = fallbackTransitionOwnership.get(placement.relationIndex);
+          const authoredRelationIndex = Number.isInteger(placement.relation.authoredRelationIndex)
+            ? placement.relation.authoredRelationIndex : placement.relationIndex;
           return {
             ...frameSemanticStep,
+            ...(neutralOwnership ? { replayTreeTransition: {
+              relationKey: `${index}:${authoredRelationIndex}`,
+              currentNodeIds: [...neutralOwnership.currentNodeIds],
+              priorNodeIds: [...neutralOwnership.priorNodeIds]
+            } } : {}),
             operation: placement.relationLabel as DerivationOperation,
             replayKind: 'relation',
             replayRelationIdentity: {
@@ -4021,13 +4041,19 @@ export const buildPlaybackStepsFromDerivationFrames = (
           availableNodeIds.add(step.targetNodeId);
           pendingStructuralStepEntries[stepIndex].introducedVisibleNodeIds.forEach(id => availableNodeIds.add(id));
           const lastVisible = stagePlaybackSteps.at(-1)?.replayVisibleNodeIds || [];
-          const rebuilt = rebuildStructuralStepForActiveRelations({
+          // A prerequisite can be pulled ahead of its original construction
+          // position. Rebuild from available syntax so a still-pending wrapper
+          // cannot replace a current edge and then be hidden after the rebuild.
+          const availableStep = withPendingStructureHidden({
             ...step,
             replayVisibleNodeIds: Array.from(new Set([
               ...(step.replayVisibleNodeIds || []),
               ...lastVisible,
               step.targetNodeId
             ]))
+          });
+          const rebuilt = rebuildStructuralStepForActiveRelations({
+            ...step, replayVisibleNodeIds: availableStep.replayVisibleNodeIds
           }, activeRelationIndexes);
           stagePlaybackSteps.push(withPendingStructureHidden(rebuilt));
           emittedStructuralSteps.add(stepIndex);
@@ -4078,6 +4104,25 @@ export const buildPlaybackStepsFromDerivationFrames = (
             relationProducers.forEach((owner, nodeId) => {
               if (owner === placement.relationIndex) availableNodeIds.add(nodeId);
             });
+            // A recovered movement can stand independently of its envelope's
+            // contextual claims. Diagnose unavailable current context without
+            // delaying that movement or pulling a later occurrence forward.
+            const unavailableContext = (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+              ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(nodeId =>
+                  !placement.relationAnchorNodeIds.includes(nodeId) && !missing.includes(nodeId)
+                  && findExactNodeByIdInForest(workspaceRoots, nodeId) && !availableNodeIds.has(nodeId))
+              : [];
+            if (unavailableContext.length) {
+              const descriptions = unavailableContext.map(nodeId => {
+                const owner = relationProducers.get(nodeId);
+                return owner === undefined ? `${nodeId} before its structural prerequisites are available`
+                  : `${nodeId} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
+              });
+              placement.relation = { ...placement.relation, movementDiagnostics: [
+                ...(placement.relation.movementDiagnostics || []),
+                `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. Its proven movement and independent claims retain authored order; unavailable context is not introduced early.`
+              ] };
+            }
             const baseStep = stagePlaybackSteps.at(-1) ?? {
               ...frameSemanticStep,
               replayVisibleNodeIds: Array.from(availableNodeIds),
@@ -4357,7 +4402,8 @@ export const buildPlaybackStepsFromDerivationFrames = (
   const projectionSteps = deferPendingMovementProjections(landingMergeExpandedSteps, pendingProjectionReveals);
   const countedSteps = recountReplayProgress(projectionSteps, replayPlan);
   const positionedSteps = orderDetachedReplayWorkspaces(countedSteps, frames);
-  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(positionedSteps, sentenceInitialSurface), frames);
+  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(positionedSteps, sentenceInitialSurface), frames,
+    tokenizeReplaySentenceSurface(sentence, inputTokens));
 };
 
 const deferPendingMovementProjections = (
@@ -5811,6 +5857,9 @@ const toSubscriptDigits = (value: string): string =>
     .split('')
     .map((ch) => DIGIT_TO_SUBSCRIPT[ch] || INDEX_TO_SUBSCRIPT[ch.toLowerCase()] || ch)
     .join('');
+
+/** Every glyph the terminal formatter can append or substitute. */
+export const REPLAY_GENERATED_TERMINAL_GLYPHS = [...new Set(`t∅${toSubscriptDigits('abcdefghijklmnopqrstuvwxyz0123456789')}`)].join('');
 
 export const normalizeTraceIndexForDisplay = (index?: string | null): string => {
   const normalized = [...String(index || '').trim()]
@@ -7634,7 +7683,9 @@ const getAuthoredFrameRelations = (
     .filter((relation): relation is DerivationReplayPlanStep => relation !== null);
 };
 
-const createFrameRelationResolver = (frames: ReplayDerivationFrame[], replayPlan?: DerivationReplayPlan | null) => {
+/** One immutable preparation request can share its ordered relation recovery
+ * across the final links, chain catalogue, and playback construction. */
+export const createFrameRelationResolver = (frames: ReplayDerivationFrame[], replayPlan?: DerivationReplayPlan | null) => {
   const dispatches = dispatchStageRelations(frames.map((frame, i) => ({
     workspaceForest: frame.workspaceForest || [],
     realizations: frame.after?.realizations ?? getReplayPlanStage(replayPlan, i)?.realizations,
@@ -7670,6 +7721,7 @@ export const getFrameRelations = (
     };
   });
   const ownedMovements = new Set<string>();
+  const earlierMovements: RecoveredMovement[] = [];
   const recovered = authored.map((authoredStep, relationIndex) => {
     const input = {
       relation: authoredStep as DerivationStageRelation,
@@ -7770,7 +7822,10 @@ export const getFrameRelations = (
           && item.evidence?.movement === movement);
         const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
         const transition = !ownedMovements.has(key) && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
-        if (transition) ownedMovements.add(key);
+        if (transition) {
+          ownedMovements.add(key);
+          earlierMovements.push(movement);
+        }
         return { ...movement, transition, drawTrajectory: Boolean(owner) };
       });
       const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
@@ -7779,7 +7834,8 @@ export const getFrameRelations = (
         sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId };
     }
     if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
-    const { movementDiagnostics } = evidence;
+    const movementDiagnostics = isPriorMovementContextFailure(input.relation, dispatch, earlierMovements)
+      ? [] : evidence.movementDiagnostics;
     const movement: RecoveredMovement | undefined = covert ? {
       priorSourceNodeId: evidence.currentAnchors['scope.source'][0],
       sourceNodeId: evidence.currentAnchors['scope.source'][0],
@@ -7794,7 +7850,8 @@ export const getFrameRelations = (
     }
     // A proved tree transition and permission to draw a trajectory are separate.
     // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
-    const registeredKind = registeredEntry ? PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind : undefined;
+    // Specialized drawing kinds still prove either a head or a phrasal transition.
+    const registeredKind = registeredTrajectoryDisplayKind(step.relation);
     if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind) return {
       ...step,
       recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
@@ -7811,7 +7868,10 @@ export const getFrameRelations = (
     const transition = !ownedMovements.has(movementKey)
       && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
     // Later claims may inspect the same dependency; its structural change occurs once.
-    if (transition) ownedMovements.add(movementKey);
+    if (transition) {
+      ownedMovements.add(movementKey);
+      earlierMovements.push(movement);
+    }
     return {
       ...step,
       ...((priorDiagnostics.length || drawingDiagnostics.length)
@@ -8010,7 +8070,7 @@ export const buildAuthoredRelationLinksForFrames = (
         authoredRelationIndex,
         authoredRelationKey: `${frameIndex}:${authoredRelationIndex}`,
         ...(relation.recoveredMovement
-          ? { priorSourceNodeId: relation.recoveredMovement.priorSourceNodeId }
+          ? { priorSourceNodeId: relation.recoveredMovement.priorSourceNodeId, movementTransition: relation.recoveredMovement.transition }
           : {}),
         ...(targetAnchor
           ? {
@@ -8046,9 +8106,10 @@ export const buildAuthoredRelationLinksForFrames = (
 
 export const buildMovementChainIndexCatalogueForFrames = (
   frames: ReplayDerivationFrame[],
-  replayPlan: DerivationReplayPlan | null | undefined
+  replayPlan: DerivationReplayPlan | null | undefined,
+  frameRelations?: (frameIndex: number) => DerivationReplayPlanStep[]
 ): MovementChainIndexCatalogue => {
-  const resolveRelations = createFrameRelationResolver(frames, replayPlan);
+  const resolveRelations = frameRelations ?? createFrameRelationResolver(frames, replayPlan);
   const links = frames.flatMap((frame, stageIndex) => {
     const relations = resolveRelations(stageIndex);
     return buildAuthoredRelationLinksForFrames(frames, replayPlan, stageIndex, frame.workspaceForest || [],

@@ -7,6 +7,7 @@ import {
   buildMovementChainIndexCatalogueForFrames,
   buildPlaybackStepsFromDerivationFrames,
   buildResolvedLinkTraceIndexMap,
+  createFrameRelationResolver,
   decoratePlaybackStepsWithTraceIndices,
   hidePendingInflSpecifierWrappersInStep,
   type DerivationReplayPlan,
@@ -33,18 +34,20 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
   const relationRenderPlan = hasStages ? compileRelationRenderPlan(derivationStages) : null;
   const finalIndex = replayDerivationFrames.length - 1;
   const finalFrame = replayDerivationFrames[finalIndex];
+  const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan);
   const committedDerivationVisualLinks = finalFrame
-    ? buildAuthoredRelationLinksForFrames(replayDerivationFrames, derivationReplayPlan, finalIndex, finalFrame.workspaceForest || [])
+    ? buildAuthoredRelationLinksForFrames(replayDerivationFrames, derivationReplayPlan, finalIndex,
+      finalFrame.workspaceForest || [], Number.POSITIVE_INFINITY, frameRelations)
     : [];
   const movementChainIndexCatalogue = buildMovementChainIndexCatalogueForFrames(
-    replayDerivationFrames, derivationReplayPlan);
+    replayDerivationFrames, derivationReplayPlan, frameRelations);
   let playbackSteps: PlaybackStep[] = [];
   if (includePlayback && finalFrame) {
     const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
       finalFrame.workspaceForest || [], movementChainIndexCatalogue.links, Number.MAX_SAFE_INTEGER,
       movementChainIndexCatalogue
     );
-    const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan, inputTokens)
+    const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan, inputTokens, frameRelations)
       .map(hidePendingInflSpecifierWrappersInStep);
     playbackSteps = applyPreFrontingSentenceInitialCasing(
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens

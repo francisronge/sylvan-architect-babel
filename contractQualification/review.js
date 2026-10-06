@@ -3,7 +3,7 @@ import {
   compileRelationRenderPlan,
   planItemRelationRefs
 } from '../replay/relations/renderPlanCompiler.ts';
-import { dispatchRelationClaimBatch } from '../replay/relations/tier2RelationDispatch.ts';
+import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 
 const relationKey = ({ stageIndex, relationIndex }) => `${stageIndex}:${relationIndex}`;
 
@@ -86,22 +86,12 @@ export const buildQualificationAnalysisEvidence = (analysisBundle) => {
   const analysis = analysisBundle?.analyses?.[0];
   if (!analysis) throw new Error('Qualification evidence requires one analysis.');
   const stages = Array.isArray(analysis.derivationStages) ? analysis.derivationStages : [];
-  const relationEntries = stages.flatMap((stage, stageIndex) => (
-    dispatchRelationClaimBatch({
-      relations: Array.isArray(stage.relations) ? stage.relations : [],
-      stageIndex,
-      currentForest: Array.isArray(stage.workspaceForest) ? stage.workspaceForest : [],
-      ...(stageIndex > 0
-        ? {
-            priorForest: Array.isArray(stages[stageIndex - 1]?.workspaceForest)
-              ? stages[stageIndex - 1].workspaceForest
-              : []
-          }
-        : {})
-    }).map(({ relation, dispatch }) => ({
+  // Share realization and prior-assignment context with the production render plan.
+  const relationEntries = dispatchStageRelations(stages).flatMap((dispatches, stageIndex) => (
+    dispatches.map((dispatch) => ({
       stageIndex,
       relationIndex: dispatch.relationInstance.relationIndex,
-      relation: relation.relation,
+      relation: stages[stageIndex].relations[dispatch.relationInstance.relationIndex].relation,
       claims: dispatch.claims.map(compactClaim),
       diagnostics: dispatch.diagnostics
     }))

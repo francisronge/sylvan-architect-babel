@@ -519,11 +519,52 @@ Replay opens in 1.83 seconds instead of 3.3 seconds, with no recorded main-threa
 long task. This is a local measurement, not a slower-device or remote-loading
 promise.
 
+Replay preparation shares one ordered relation resolver between its final links,
+movement-chain catalogue and playback construction. The resolver belongs to one
+immutable preparation request; independent calls still resolve their own input.
+This removes duplicate claim recovery without caching across analyses or changing
+recognition, relation order, or the prepared Replay output.
+
 Realization changes appear at a relation moment only when its exact current and
 prior references uniquely cover the change. Complete direct coverage takes
 precedence over continuity inferred through a movement's containing domains.
-Competing direct owners remain ambiguous; inferred owners are considered only
-when there is no direct owner. Replay retains the earlier association through
+Realization ownership follows recovered claims, not participant overlap alone.
+An exact recovered PF output can exclude proved non-PF context that merely
+shares its heads, such as Case licensing, or a conditioner of another output.
+Neutral descriptive values remain in their residual claim; they do not turn a
+recovered movement, Case or focus claim into a competing PF operation.
+An explicit input sequence must match the actual input tokens at the declared
+positions before it can distinguish token association from a separate spelling
+rewrite. It does not override another PF association, an explicit unsupported
+PF assertion, an unknown relevant participant role or a malformed exact claim.
+A pronunciation transfer can have its own later relation moment when
+exact pronounced/unpronounced anchors, lineage and authored pronunciation states
+prove ownership; movement and pronunciation remain separate operations.
+
+A receiving-head role can remain movement context across head adjunction when
+the new complex replaces that exact prior head slot and retains one unique host.
+The host's nonword fields, parent state and sibling order must be unchanged;
+an arbitrary role naming the same host does not inherit that proof. An unchanged
+enclosing rewrite domain is context only when its changed terminals are proved
+rewrite outputs and every other terminal is an explicit unchanged conditioner.
+These proofs do not consume an independent PF or input-association assertion.
+A scalar `inputAssociation` can be proved disjoint from another change only
+when its entire value matches `<word> corresponds collectively to <piece> and
+<piece> ...`, corroborated by one unique recovered PF output occurrence and its
+sole authored realization group. The consecutive input positions must supply
+the exact ordered pieces, whose concatenation equals the current terminal word.
+Repeated forms, overlapping mappings, missing tokens, extra prose, and competing
+claims retain ambiguity. Both previous and current changed groups must be
+disjoint in occurrence IDs and token positions. This bounds only the assertion's
+scope; it grants no new owner or priority and preserves the original residual
+text. No particular script, sentence, relation index, or occurrence ID is special.
+
+When no relation directly names the complete change, a proved phrase movement
+can carry renamed descendant associations through its exact source and landing.
+Their ordered content and topology must be unchanged, with unique correspondence
+and no contradictory lineage. Similar words elsewhere, changed content and
+indistinguishable unproved siblings are insufficient. Unsupported ownership and
+multiple PF owners retain their ambiguity. Replay retains the earlier association through
 ambiguous moments and shows the completed association at the Stage Record. It
 does not choose from prose, relation names or linguistic expectations.
 Diagnostics list the candidate relation numbers. A direct owner whose
@@ -602,6 +643,12 @@ At that moment, the proven receiving container takes its current own label and
 silence state. This does not transfer ownership of its other children or later
 realization claims. A later exact realization owner still controls that
 container's word and token metadata.
+
+A movement envelope may also contain contextual claims. If a current contextual
+anchor is introduced only by a later relation, report the timing conflict while
+preserving the independently proved movement and its authored moment. Do not
+reveal that context early or delay valid sibling claims. Prior-stage witnesses
+remain prior evidence and need not be present in the current drawing.
 
 Restoring a prior source also restores its effective pronunciation before its
 owning moment, including silence inherited from its preceding ancestors. A

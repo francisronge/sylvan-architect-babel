@@ -15,6 +15,9 @@ export interface ResolvedRelationLink {
   authoredRelationKey?: string;
   /** Source occurrence in the preceding completed stage, before replacement. */
   priorSourceNodeId?: string;
+  /** Derived proof that this exact authored moment owns the structural movement.
+   * This is independent of the primitive chosen to display the relation. */
+  movementTransition?: boolean;
   relationIndex?: string;
   relation?: string;
   anchors?: ResolvedRelationAnchor[];

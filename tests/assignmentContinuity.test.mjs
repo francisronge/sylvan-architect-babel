@@ -100,3 +100,36 @@ test('failed or unknown assignments do not establish history or silently become 
     assert.equal(continued([stage(before, [assignment()]), stage(after, [movement, denied])]).length, 0);
   }
 });
+
+test('Case continuity keeps independently proven roles through production stage dispatch and render plans', () => {
+  const initial = { relation: 'Initial licensing', anchors: { assigner: 'v', recipient: 'object' },
+    values: { Case: 'unfamiliar Case' } };
+  const repeated = { relation: 'Head-chain licensing', anchors: { raisedHead: 'raised', previousPosition: 'trace', bearer: 'object' },
+    values: { Case: 'unfamiliar Case' } };
+  const stages = [stage(before, [initial]), stage(after, [movement, repeated])];
+  const original = structuredClone(stages);
+  const facet = dispatchStageRelations(stages)[1][1].facets.find(f => f.recipe.id === 'feature.dependency');
+  assert(facet, 'the established assignment follows its lower occurrence');
+  assert.deepEqual(facet.evidence.currentAnchors, { 'feature.source': ['trace'], 'feature.target': ['object'] });
+  assert.deepEqual(facet.evaluation.consumedEvidence.filter(ref => ref.field === 'anchors').map(ref => ref.key).sort(),
+    ['bearer', 'previousPosition']);
+  const plan = compileRelationRenderPlan(stages);
+  const path = plan.frames[1].items.find(item => item.pathStyle === 'case-assignment'
+    && planItemRelationRefs(item).some(ref => ref.stageIndex === 1 && ref.relationIndex === 1));
+  assert(path);
+  assert.deepEqual([path.fromNodeId, path.toNodeId, path.label], ['trace', 'object', 'unfamiliar Case']);
+  assert.deepEqual(stages, original);
+
+  for (const invalid of [
+    [stage(before, []), stage(after, [movement, repeated])],
+    [stage(before, [initial]), stage(after, [repeated, movement])],
+    [stage(before, [initial]), stage(after, [movement, { ...repeated, values: { Case: 'still unvalued' } }])],
+    [stage(before, [{ ...initial, values: { Case: 'still unvalued' } }]),
+      stage(after, [movement, { ...repeated, values: { Case: 'still unvalued' } }])]
+  ]) {
+    assert(!dispatchStageRelations(invalid)[1].find((_, i) => invalid[1].relations[i] !== movement)
+      .facets.some(f => f.recipe.id === 'feature.dependency'));
+    assert(!compileRelationRenderPlan(invalid).frames[1].items.some(item => item.pathStyle === 'case-assignment'
+      && planItemRelationRefs(item).some(ref => ref.stageIndex === 1)));
+  }
+});
