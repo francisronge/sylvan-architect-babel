@@ -1,5 +1,5 @@
-import { authoredWord } from '../server/babelParser/nodePronunciation.js';
-import { normalizeSurfaceToken } from '../server/babelParser/surfaceTokens.js';
+import { authoredWord } from './nodePronunciation.js';
+import { normalizeSurfaceToken } from './surfaceTokens.js';
 
 export const createRealizationHelpers = ({ createFailure }) => {
   const reporter = (diagnostics, { stageIndex = null, fieldPath = '$' }) =>

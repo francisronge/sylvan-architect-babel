@@ -18,6 +18,7 @@ test('qualification fingerprints include Replay inspection, regression inputs an
     '--out', currentManifestPath], { cwd: repoRoot, stdio: 'pipe' });
   const current = JSON.parse(fs.readFileSync(currentManifestPath, 'utf8'));
   const controls = [
+    ['deterministicIngress', 'server/babelParser/realizationContract.js'],
     ['requestBoundary', 'hooks/useGeneration.ts'],
     ['requestBoundary', 'services/generationState.ts'],
     ['qualificationHarness', 'contractQualification/diagnosticReplay.ts'],

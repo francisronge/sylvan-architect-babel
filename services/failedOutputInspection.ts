@@ -1,6 +1,6 @@
 import type { DerivationStage, RawOutputArtifact, SyntaxNode } from '../types.ts';
-import { createAuthoredWorkspaceHelpers } from '../replay/authoredWorkspaceInspection.js';
-import { createRealizationHelpers } from '../replay/surfaceRealizations.js';
+import { createAuthoredWorkspaceHelpers } from '../server/babelParser/derivationCompiler.js';
+import { createRealizationHelpers } from '../server/babelParser/realizationContract.js';
 import { createFailureRecord } from '../server/babelParser/failureRecord.js';
 import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { diagnosticReplayProjection } from '../replay/diagnosticReplay.ts';
