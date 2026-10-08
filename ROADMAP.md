@@ -12,7 +12,7 @@ syntactic rules.
 ## Current priority: fresh contract checks and application foundations
 
 The verified contract, Replay, renderer and performance guard are merged. The
-current local work adds faithful failed-output inspection, error containment and
+current closeout adds faithful failed-output inspection, error containment and
 behavior-preserving extraction of application responsibilities. The bounded
 ten-request Codex OAuth comparison is complete; its newly reproduced renderer
 defects have general fixes and focused evidence. Application design remains
@@ -180,8 +180,8 @@ Focused before/after images and a movement recording are uploaded to
 [PR #25](https://github.com/francisronge/sylvan-architect-babel/pull/25).
 The renderer was adapted after this batch, so these corrected drawings are
 regression evidence rather than an untouched holdout result. No further prompt
-change is justified by this batch. Packaging and required CI remain the next
-steps before merging the accumulated local changes. Automated review also
+change is justified by this batch. The changes are packaged in PRs #23–26;
+required checks and automated review govern their merge. Automated review also
 identified parser ownership displaced into Replay during the application
 extraction. The correction restores canonical authored-stage rules to the
 derivation compiler and keeps realization rules with the parser. Browser
@@ -289,8 +289,8 @@ all future open-ontology wording.
 ### What remains before Babel can ship
 
 The reported contract/renderer defects have focused regression and visual proof.
-The contract/renderer PRs are merged; the newer Tree Bank and application-foundation
-changes still need review and merge. Retain model-authored mistakes
+The newer Tree Bank and application-foundation changes are merged in PRs #23–24.
+The Replay and prompt closeout is tracked in PRs #25–26. Retain model-authored mistakes
 as inspectable evidence; they are not permission to silently repair analyses or
 restart qualification indefinitely. A new renderer blocker requires a reproduced
 defect. Earlier measurements below describe historical checkpoints and are
@@ -303,9 +303,9 @@ date is authorized by these receipts.
 | Remaining product work | Current evidence and required result |
 | --- | --- |
 | Generation policy and provider qualification | Codex OAuth generations qualify that development transport, not the hosted API routes. Choose the public model/settings, measure its actual route, and qualify each research provider that will be offered. Keep failures and model mistakes inspectable; do not require perfect linguistic analyses. |
-| Durable Personal Tree Bank, Program 2 | Immutable local analysis records, shared generation context, atomic wrappers, integrity checks, cross-tab refresh and exact saved-view restoration are implemented in `970d232`. Old entries remain readable without migration. Import/export and its W17 adapter remain deferred to the design work; no missing evidence is invented. |
+| Durable Personal Tree Bank, Program 2 | Immutable local analysis records, shared generation context, atomic wrappers, integrity checks, cross-tab refresh and exact saved-view restoration are merged in [PR #23](https://github.com/francisronge/sylvan-architect-babel/pull/23). Old entries remain readable without migration. Import/export and its W17 adapter remain deferred to the design work; no missing evidence is invented. |
 | Shared public/research application, Program 3 | The current `App.tsx` still exposes one workspace with model controls and a Notes tab. Build the shared `/` and `/research` flows, retain Replay explanations, and safely separate application responsibilities without redesigning the verified relation drawings. |
-| Product failure inspection, Program 3 | Implemented locally: a failed renderer view can retry without losing the active analysis. Failed model outputs offer diagnostic stage/Replay inspection where readable structure survives; raw bytes and downloads remain available otherwise. The original input is retained, and bounded browser expansion prevents malicious or accidental reference growth from freezing inspection. Public/research presentation remains a separate design decision. |
+| Product failure inspection, Program 3 | Merged in [PR #24](https://github.com/francisronge/sylvan-architect-babel/pull/24): a failed renderer view can retry without losing the active analysis. Failed model outputs offer diagnostic stage/Replay inspection where readable structure survives; raw bytes and downloads remain available otherwise. The original input is retained, and bounded browser expansion prevents malicious or accidental reference growth from freezing inspection. Public/research presentation remains a separate design decision. |
 | Syntactician workspace, Program 4 | Collections, user notes/judgments/citations, sibling-analysis work, query needs, interchange and research exports still require product design and integration. These planned capabilities are separate from the existing flat saved-tree library. |
 | Hosted operation, Program 5 | CI and basic local request controls exist. Hosting, supported runtime conditions, public request/spend limits, research access, deployed error handling, accessibility, privacy/security, backups, monitoring and rollback still need decisions or launch proof. The recorded production application is paused. |
 | Generation Archive and reviewed corpus, Program 6 | Request provenance and pure record schemas exist; the automatic hosted archive and review/promotion/correction workflow are not integrated. Define retention, deletion, access and licensing rules before implementation. A small working reviewed set is sufficient; a large corpus is not a launch gate. |
