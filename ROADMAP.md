@@ -1,6 +1,6 @@
 # Babel Master Roadmap
 
-Status date: 2026-10-06
+Status date: 2026-10-08
 
 This is Babel's only active implementation plan. Dated plans, audits, handoffs,
 and research notebooks are evidence or history, not competing roadmaps.
@@ -125,6 +125,60 @@ been merged. It passed 4,301 tests, typechecking, both parse-contract fixtures a
 a production build. Its reference startup median was 882 ms against 873 ms for
 the base, within the unchanged allowance. The Vercel application remains paused;
 no application deployment or shipment follows from these checks.
+
+The latest varied qualification batch contains 14 analyses from ten Codex OAuth
+requests, split between GPT-6 Astra and GPT-6.1 Sol across French, Hindi, Japanese,
+Korean and Hungarian. General fixes now recover complete joint-realization
+groups, explicit probe/controller agreement, causee Case and focus associations.
+Nested phrasal movement builds independently available receiving context before
+an earlier landing needs it, while preserving the later movement's own moment.
+Trace display now preserves the model's notation verbatim. No authored analysis
+or prompt changed during these repairs.
+
+The assembled repairs pass 4,465 tests, typechecking and both parse-contract
+fixtures. All 656 Replay frames were exercised at desktop width, with 73 phone
+states and selected before/after, zoom and movement captures. No browser errors,
+invalid geometry or movement timing conflicts remain in that batch. Geometry
+checks also cover both text directions. Reference startup measures 922 ms versus
+921 ms before the repairs, within the unchanged budget. The native comparison is
+available in the [current fixes review](http://127.0.0.1:8453/closeout/fresh-diverse-20261007/comparison/).
+This is bounded verification, not a claim of universal renderer correctness.
+The French construction order does not establish a need for a scheduling change:
+building a wrapper around an existing subtree does not activate its later
+licensing relation. The prompt now names the basic construction display Babel
+derives and excludes only entries that merely announce those construction events.
+Additional relational claims still require records, including claims established
+through construction; relation names and theoretical choices remain open. Fresh
+generation evidence for this clarification is recorded below. Diminishing
+returns have not been established by these selected samples.
+
+The October 8 qualification used five new sentences in Italian, Portuguese,
+Russian, Irish and Indonesian, each sent once to GPT-6 Astra and GPT-6.1 Sol at
+high effort through Codex OAuth. All ten requests completed without retries or
+paid fallbacks and returned 13 analyses, 65 stages and 143 relations. All requests
+used the frozen contract fingerprint
+`384879130559a035c79fdd4da06c0a78f065c00480e6abf322fe1f8641efe68c`.
+Review of every Stage Record and relation found no definite recurrence of the
+construction-exemption, explanation or relation-ordering defects. This result
+does not establish universal linguistic correctness or a stable error rate.
+
+The fresh records exposed ten missed drawings across seven analyses. Shared
+evidence rules now recover two clitic paths, six theta-role assignments and two
+modifier attachments. They require exact occurrence or structural evidence,
+retain ambiguity and negation controls, and leave authored records unchanged.
+The same comparison leaves drawing assignments and Replay sequences unchanged
+in all 285 older accepted analyses. The assembled gate passes 4,487 tests,
+typechecking and both parse-contract fixtures. Native verification exercised
+all 526 desktop frames and 78 phone states, followed by focused captures of the
+last two role recoveries. No browser errors or invalid geometry were found.
+The unchanged startup gate measured 932 ms against 927 ms for the frozen source.
+All returned analyses are available in the
+[October 8 native review](http://127.0.0.1:8453/closeout/construction-contract-20261008/review/),
+with focused [before/after comparisons](http://127.0.0.1:8453/closeout/construction-contract-20261008/comparison/).
+The renderer was adapted after this batch, so these corrected drawings are
+regression evidence rather than an untouched holdout result. No further prompt
+change is justified by this batch. Packaging and required CI remain the next
+steps before merging the accumulated local changes.
 
 ### Earlier integrated contract and renderer evidence
 
