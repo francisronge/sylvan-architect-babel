@@ -189,6 +189,8 @@ only when its exact node contains the anchored lexical contributors. The stem
 alone cannot absorb a whole word's row when a separately anchored exponent is
 present. An ordered surface sequence may use one exact realization group; its
 nonempty pieces must correspond in count to that group's token positions.
+Ordered surface-token and input-token fields use this same association proof.
+The field spelling cannot replace a missing, partial or competing group.
 
 Explicit absence and pending status remain distinct from a failed attempt.
 Agreement or binding that is not established cannot earn a successful-looking
@@ -294,6 +296,11 @@ The word `Case` may be omitted from a single complete assignment, licensing or
 valuation label when it names the independently authored, unique Case value.
 Its governor and nominal dependent must still satisfy the same occurrence and
 ownership checks; unfamiliar Case names compare literally.
+Paired nominal fields may supply their same-name Case literals when a complete
+Case-licensing clause establishes that domain. A conventional Case named in a
+licensing clause must match the supplied literals. Arbitrary nominal properties
+cannot become Case merely because a governor or licenser is present; existing
+unique structural pairing and competing-field checks still apply.
 
 For the registered theta-grid claim, an assigning head can fill the predicate
 slot. That single-occurrence slot counts distinct exact IDs, so repeating one
@@ -339,6 +346,13 @@ domain for generic `assigner` and `recipient` roles. It still needs one exact
 source and recipient, with no competing Case or feature interpretation. The
 literal role is preserved; generic assignment language alone supplies no theta
 meaning.
+
+An explicit complement can receive a typed theta role when it is the named
+assigner's actual sister. A named predicate and its lexical verb are not two
+assigners when a unique same-category projection spine proves their connection;
+the verb remains context. Explicit internal/external argument interpretations
+can supply their stated role through an independently named assigning head.
+Missing, competing, denied and provisional evidence stays unresolved.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
@@ -414,9 +428,21 @@ A restrictor and one restricted constituent with an explicit focus value earn
 the existing focus-association curve. Generic restriction or a scope value alone
 does not establish focus association. No lexical list or relation title is used.
 
+An asserted focus-association claim can also pair an explicitly named exclusive,
+restrictive or additive modifier with its focused constituent. If it names a
+restriction inside a containing focused phrase, the restriction and operator
+must both resolve inside that phrase. Competing associates stay neutral; lexical
+word identity is never used to select one.
+
 Single-participant record plaques also bind an exact same-name prior anchor.
 This lets a revised claim replace its preceding rows at the authored moment;
 unrelated prior fields remain neutral, and backward Replay retains the old rows.
+Otherwise unclassified grammatical properties use that same literal plaque when
+there is one unique current participant. This does not supply assignment roles.
+Unqualified form and inflection fields still require their existing realization
+and lexical-host proof; a sole participant cannot establish realized form.
+Asserted concord can include Case among the shared properties after the existing
+nominal membership proof; that row creates no directed Case assignment.
 
 Ordered stage dispatch retains earlier complete theta and Case assignments.
 A later open relation can restate that assignment when it supplies the same
@@ -539,10 +565,27 @@ covert path.
 
 A relative modifier and its named nominal host can use the existing attachment
 overlay when those exact occurrences are sisters. A deep lexical head cannot
-replace the actual attachment host. An explicit ellipsis antecedent or overt
+replace the actual attachment host. The same rule accepts an explicit modifier
+and modified clause or domain, preserving the authored interpretation as text.
+An explicit ellipsis antecedent or overt
 identity source paired with one elided domain similarly establishes the existing
 correspondence curve. Silence is established separately; counterpart recovery
 does not invent deletion or pair unordered lists.
+Explicit PF and LF occurrence lists pair by unique exact root lineage. An
+ambiguous lineage family remains neutral without suppressing independent,
+uniquely paired families. Denied or provisional correspondence earns no curve;
+uninterpreted values and unresolved participants remain visible as neutral text.
+For a partly recovered array, each entry's organizational mark inherits the
+claim that consumes that exact authored field and item index. Recovered entries
+retain their owning claim's lifetime and witness dependencies; unresolved entries
+follow the neutral fallback's relation-only lifetime. Preserve authored ordinals.
+Combine only organizational pieces that are co-visible after their owners have
+passed lifecycle checks. A fallback remainder cannot shorten a recovered claim,
+and a recovered sibling cannot make unsupported entries persistent.
+Full-stage geometry reservation does not confer visibility. A rail may reuse a
+neutral numeral only while that numeral is drawn; otherwise its joins attach
+to its own persistent badges. Composing visible organization must preserve the
+item indices used by reserved plaques and other independent drawings.
 
 An explicitly selected participial form can be printed on its exact current
 lexical head when that head's annotation confirms the form. Square brackets
@@ -566,6 +609,14 @@ explicit mediator makes that attachment uncertain. Competing heads or goals,
 a controlled subject, and prose-only participant descriptions do not complete
 these contextual pairs. These roles do not establish symmetric feature sharing.
 
+When agreement separately names a probe, an expression target and a controller,
+the probe and controller own the collection drawing. The expression target stays
+context; it does not compete with the explicit probe. A scalar combined
+probe-and-target role has the same ownership. Competing probes, missing owners
+and absent feature values do not establish collection. A nominal causee can
+receive an explicitly valued Case assignment from a separately anchored giver;
+the role alone establishes neither assignment nor value.
+
 An explicit contributor list and one surface-form value can use the existing
 PF plate when the list exactly matches one current realization group. Partial
 matches, competing exact matches or overlapping token spans stay neutral.
@@ -582,6 +633,12 @@ claim whose declared anchors overlap that recovered evidence.
 When every member of an exact realization group is explicitly anchored, the
 complete group owns its surface row even if one participant is also recognized
 as a stem. A stem role cannot reduce that established group to one contributor.
+An explicitly anchored containing constituent may instead own the exact group,
+provided every named contributor resolves inside it. An asserted realization or
+contraction can name its literal spelling as output, form, input word or input
+spelling. A separate realization description remains a literal row rather than
+a second spelling. Incomplete, competing, denied and provisional groups do not
+earn the collective plate.
 An exact prior contributor block can prove the corresponding previous group
 over the same input positions, regardless of its authored role spelling. Both
 groups must resolve uniquely and have no competing or overlapping association.
@@ -677,7 +734,12 @@ and an independently recognized recipient role. An explicit government clause
 paired with the same named and typed Case can identify a unique nominal
 dependent opposite a governing head in the same workspace. It does not recover
 Case from government alone, a nonnominal dependent, competing heads or a
-different Case claim. `valuedCase` shares the Case
+different Case claim. A Case-under-government assertion can identify an explicit
+governing position only with a separately typed matching Case and a nominal
+sibling. A named head with the same exact lineage may corroborate the slot's
+category; it does not replace that slot as the Case source. Competing chain
+heads, nonlocal recipients and unestablished outcomes remain neutral.
+`valuedCase` shares the Case
 literal vocabulary; explicit agreement and phi-feature values share feature-row
 handling. When both occur in one dependency, recipient-specific Case stays on
 its existing Case drawing and the other authored rows use the existing feature
@@ -701,6 +763,18 @@ existing. Covert Replay timing requires a preceding source, new landing and
 consistent prior-source references; its drawing remains the covert path, not
 an overt movement arrow. Existing exact Tier-1 signatures are unchanged,
 including optional fields already present in those signatures.
+
+An asserted Quantifier Raising clause, including one combined with variable
+binding, can establish the covert claim. Open participant names do not require
+new endpoint aliases: exact anchored root lineage, the preceding source slot and
+a distinct new landing must still prove the movement. An explicitly supplied
+adjunction domain is checked as a scope domain and must contain the lower
+occurrence. Denied, failed and provisional covert claims cannot earn a successful
+QR drawing or an ordinary movement arrow instead.
+The covert transition retains the exact proved prior source, including when PF
+and LF workspaces contain other occurrences of the same lineage. It must not
+replace that source with the newly introduced lower trace or redo the association
+by searching every workspace for the lineage.
 
 Previous-stage references are not automatically current-stage drawing roles. A
 movement's prior source can identify its current lower endpoint when that exact
@@ -792,6 +866,9 @@ explicit direction combined with an occurrence type, such as source complex or
 higher phrase, supplies a candidate endpoint role. Existing specific context
 roles retain their meaning; a landing head does not become a second endpoint.
 Every candidate still passes the same lineage, position and ambiguity checks.
+Clitic occurrences and qualified trace roles follow those same rules. A named
+source phrase remains context only when an independent exact occurrence pair
+proves movement from inside it; the phrase does not inherit its member's movement.
 The explicit preceding source selects the current step when other anchored lower copies remain
 unchanged; those earlier copies remain independent evidence. Recovery does not
 count an unchanged older copy in its exact prior slot as a competing
@@ -851,11 +928,12 @@ display timing only; it does not earn a movement drawing or rewrite the stage.
 Movement indices identify connected established occurrences, not relation-list
 positions. A complete history catalogue resolves links against their own stages
 and reserves numbering before playback; active links control index visibility.
-Both lower and landing occurrences show their chain membership independently of
-pronunciation. Numeric authored indices take precedence and reserve their numbers;
-conflicts remain authored rather than receiving a generated resolution. Existing
-alphabetic trace formatting, other dependency letters and Tier-3 locators retain
-their separate conventions. Shared words or lineage alone do not prove movement.
+Lexical occurrences can show their chain membership independently of pronunciation.
+Authored trace notation remains verbatim, including category suffixes and indices;
+Babel does not replace it with generated trace numbering. Numeric authored indices
+take precedence and reserve their numbers; conflicts remain authored rather than
+receiving a generated resolution. Other dependency letters and Tier-3 locators
+retain their separate conventions. Shared words or lineage alone do not prove movement.
 
 Theta-grid letters are allocated by the shared plan, not restarted in each grid.
 The exact argument ID, or its explicit root lineage, retains one letter across
@@ -1165,10 +1243,10 @@ The geometry follows the resolved structure:
 - an independently recovered constituent region around that carrier:
   `Gradient enclosure`.
 
-Tier 2 preserves the model's lower occupant. An authored trace receives
-Babel's house trace typography and indexing. A silent full word remains that
-word, `null`/empty symbols remain those symbols, and no lower occupant is
-converted into a trace.
+Tier 2 preserves the model's lower occupant and its notation verbatim. A silent
+full word remains that word, `null`/empty symbols remain those symbols, and no
+lower occupant is converted into a trace. Derived chain identities still bind
+movement paths without replacing the authored trace label or index.
 
 ### Silence And Deletion
 
@@ -1251,9 +1329,12 @@ Persistence has three forms:
 - `inherit-parent`: organizational badges and rails use the completed parent
   facet's lifetime.
 
-Every claim uses `while-witnesses-resolve`. An unknown relation is therefore
-never presumed temporary. A later movement can explicitly replace an exact
-prior occurrence with its authored lower witness. An earlier mark stays at that
+Every completed Tier-1 or Tier-2 claim uses `while-witnesses-resolve`.
+Tier-3 fallback ink appears only at its owning relation moment; the authored
+relation remains inspectable in Replay history. This temporary fallback ink
+must not shorten a recovered sibling claim or its owned organizational marks.
+A later movement can explicitly replace an exact prior occurrence with its
+authored lower witness. An earlier mark stays at that
 position, using the old occurrence before the movement and the lower witness
 afterward. Preserve its original claim references and ownership. This requires
 one proved replacement at each intervening stage; matching lineage alone is
@@ -1375,6 +1456,19 @@ name must not reject a complete compound shape that the registered reader suppor
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
 renderer ranks the distinct operator-domain facets that are visible together.
+
+An asserted relative interpretation, abstraction or restriction can recover that
+same binding path from an explicit operator and a qualified variable role. Both
+occurrences must be unique, share exact lineage, and stand in a c-command
+configuration. A relative-head interpretation without an explicit variable,
+shared lineage across separate workspaces, or a provisional assertion supplies
+no binding path. This recovery does not imply movement.
+
+A qualified universal, existential, indefinite or quantifier scope role earns
+the same binding drawing only for an explicitly named variable with one unique
+lineage match and c-command proof. An exactly matching domain qualifier must
+contain both occurrences. Other ranked quantifiers without a supplied variable
+and their domains remain neutral; scope ordering alone creates no binding.
 
 A binding restatement without the optional domain shares the existing path when
 its dispatch-attached path identity matches, including exact occurrences, lineage,

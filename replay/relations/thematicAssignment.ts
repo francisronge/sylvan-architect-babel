@@ -15,7 +15,9 @@ export function typedThematicAssignment(evidence: Tier2FacetEvidence): {
   const licensingClauses = relationLabelClauses(evidence.relationName).filter(clause => /\b(?:argument|clitic) licensing\b/u.test(clause));
   const typedLicensing = licensingClauses.length === 1
     && /^(?:(?:subject|object|internal|external) )?(?:argument|clitic) licensing$/u.test(licensingClauses[0]);
-  const qualifiedTarget = (evidence.authoredCurrentAnchors ?? []).some(entry => qualifiedAssignmentConcepts(entry.key).includes('theta.arguments') && / (?:position|occurrence)$/u.test(normalizeTier2Synonym(entry.key)));
+  const argumentInterpretation = relationLabelClauses(evidence.relationName).some(clause => /^(?:internal|external) argument interpretation$/u.test(clause));
+  const qualifiedTarget = (evidence.authoredCurrentAnchors ?? []).some(entry => qualifiedAssignmentConcepts(entry.key).includes('theta.arguments') && / (?:position|occurrence)$/u.test(normalizeTier2Synonym(entry.key))
+    || argumentInterpretation && /^(?:internal|external) argument$/u.test(normalizeTier2Synonym(entry.key)));
   if (!values.length || (!clauses.length && !qualifiedTarget && !typedLicensing)) return { applies: false };
   // A conditional role assertion remains a typed but unresolved claim. It
   // cannot fall through to a generic grid that ignores the condition.
@@ -23,8 +25,9 @@ export function typedThematicAssignment(evidence: Tier2FacetEvidence): {
   const typedClause = /^(?:(?:matrix|embedded|local) )?(?:(?:subject|object|internal|external) )?(?:[\p{L}\p{N}]+ )?(?:(?:theta|thematic|θ) )?role(?: (?:assignment|introduction|licensing))?$/u;
   if (!qualifiedTarget && !typedLicensing && !clauses.some(clause => typedClause.test(clause.replace(/^(?:no|not|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unlicensed) /u, '')))) return { applies: false };
   const unresolved = { applies: true };
+  if (/^(?:no|not|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unlicensed) /u.test(normalizeTier2Synonym(evidence.relationName))) return unresolved;
   const assertionClauses = clauses.length ? clauses : typedLicensing ? licensingClauses : relationLabelClauses(evidence.relationName).filter(clause => /\b(?:argument|theta|thematic|θ)\b/u.test(clause));
-  const qualifiedClause = /^(?:(?:matrix|embedded|local|internal|external) )*argument(?: chain)? (?:dependency|licensing|assignment|introduction)$/u;
+  const qualifiedClause = /^(?:(?:matrix|embedded|local|internal|external) )*argument(?: chain)? (?:dependency|licensing|assignment|introduction|interpretation)$/u;
   if ((!qualifiedTarget && !typedLicensing && clauses.length !== 1)
     || !establishesAssignment(evidence)
     || assertionClauses.some(clause => /\b(?:no|not|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unlicensed)\b/u.test(clause))
@@ -37,13 +40,42 @@ export function typedThematicAssignment(evidence: Tier2FacetEvidence): {
   const literal = normalizeTier2Synonym(values[0].items[0]);
   const anchors = evidence.authoredCurrentAnchors ?? [];
   const introduced = anchors.some(entry => thematicIntroducer(normalizeTier2Synonym(entry.key)));
-  const sources = anchors.filter(entry => !(introduced && entry.concepts.includes('predicate.context')) && (entry.concepts.includes('predicate')
+  let sources = anchors.filter(entry => !(introduced && entry.concepts.includes('predicate.context')) && (entry.concepts.includes('predicate')
     || qualifiedTarget && qualifiedAssignmentConcepts(`theta ${normalizeTier2Synonym(entry.key).replace(/^(?:lexical|finite|matrix|embedded|local) /u, '')}`).includes('predicate')
     || typedLicensing && participantName(entry.key) === 'verb'
     || participantName(entry.key) === 'predicate'
     || /^assigning (?:verb|head)$/u.test(normalizeTier2Synonym(entry.key))
-    || /^(?:predicate|lexical predicate|assigner|source|introducer|verb|(?:active|passive|causative|applicative|verbal|nominal|adjectival) head)$/u.test(normalizeTier2Synonym(entry.key))));
+    || /^(?:predicate|lexical predicate|assigner|source|introducer|verb|(?:active|passive|agentive|causative|applicative|verbal|nominal|adjectival) head)$/u.test(normalizeTier2Synonym(entry.key))));
+  const explicitPredicates = sources.filter(entry => normalizeTier2Synonym(entry.key) === 'predicate' && entry.items.length === 1);
+  const nodes = evidence.currentForest.flatMap(function visit(node): typeof evidence.currentForest {
+    return [node, ...(node.children ?? []).flatMap(visit)];
+  });
+  // A named predicate can include its lexical head as context. Only the
+  // exact, unique projection spine proves that the extra verb is not another
+  // assigner. Competing predicates and embedded verbs remain ambiguous.
+  if (explicitPredicates.length === 1) {
+    const predicate = explicitPredicates[0];
+    sources = sources.filter(entry => {
+      if (normalizeTier2Synonym(entry.key) !== 'verb' || entry.items.length !== 1
+        || !uniqueCurrentOwners(evidence, [...predicate.items, ...entry.items])) return true;
+      let node = nodes.find(n => n.id === predicate.items[0]);
+      const head = readCategoryLabel(node?.label)?.head;
+      if (!head || node?.id === entry.items[0]) return true;
+      while (node?.children?.length) {
+        const spine = node.children.filter(child => readCategoryLabel(child.label)?.head === head);
+        if (spine.length !== 1) return true;
+        node = spine[0];
+        if (node.id === entry.items[0]) return Boolean(node.children?.length);
+      }
+      return true;
+    });
+  }
+  const complementSister = (entry: typeof anchors[number]): boolean => normalizeTier2Synonym(entry.key) === 'complement'
+    && sources.length === 1 && sources[0].items.length === 1 && entry.items.length === 1
+    && nodes.some(node => node.children?.some(child => child.id === entry.items[0])
+      && node.children.some(child => child.id === sources[0].items[0]));
   const targets = anchors.filter(entry => !sources.includes(entry) && (entry.concepts.includes('theta.arguments')
+    || complementSister(entry)
     || typedLicensing && /^(?:pronominal|nominal|clitic) argument$/u.test(normalizeTier2Synonym(entry.key))
     || /^(?:recipient|goal|argument)$/u.test(normalizeTier2Synonym(entry.key))
     || Boolean(namedThematicRole(entry.key)) || normalizeTier2Synonym(entry.key) === literal));

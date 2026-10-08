@@ -1610,11 +1610,24 @@ const landingAlreadyOccupiedSamePosition = (
     === [...(currentIndex.workspaceIds.get(id) ?? [])].sort().join('\u0000')
 ));
 
+/** Covert drawing endpoints may replace an existing LF occurrence while an
+ * independent PF occurrence shares its lineage. Retain the exact movement
+ * proof instead of resolving that lineage across every workspace again. */
+export const recoveredCovertMovement = (evidence: Tier2FacetEvidence): Tier2FacetEvidence['movement'] => {
+  const movement = evidence.movement;
+  const sources = anchorIds(evidence, 'scope.source'), landings = anchorIds(evidence, 'scope.landing');
+  return movement?.trajectoryKind === 'phrasal' && sources.length === 1 && landings.length === 1
+    && sources[0] === movement.witnessNodeId && landings[0] === movement.targetNodeId ? movement : undefined;
+};
+
 const covertMovementTransition = (
   evidence: Tier2FacetEvidence,
   currentIndex: TreeIndex,
   priorIndex: TreeIndex
 ): boolean => {
+  const recovered = recoveredCovertMovement(evidence);
+  if (recovered) return recovered.transition;
+  if (evidence.movementFailure && evidence.movementFailure !== 'MOVEMENT_PRIOR_SOURCE_UNPROVEN') return false;
   const sourceIds = anchorIds(evidence, 'scope.source');
   const lineage = sharedRootLineage(currentIndex, [...sourceIds, ...anchorIds(evidence, 'scope.landing')]);
   return Boolean(evidence.priorForest && lineage

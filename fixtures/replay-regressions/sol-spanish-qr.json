@@ -1,0 +1,1625 @@
+{
+  "provenance": {
+    "model": "openai:gpt-6.1-sol",
+    "harness": "qualification:codex",
+    "source": "relation-order-20261006/sol-spanish-scope/attempts/parse/bundle.json",
+    "extraction": "Exact saved derivationStages; derived trees omitted."
+  },
+  "sentence": "Una profesora revisó cada informe.",
+  "analyses": [
+    {
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "sdp",
+                "predicate": "v",
+                "theme": "odp"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "agent": "Agent",
+                "theme": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseBearer": "odp",
+                "governor": "v"
+              },
+              "relation": "government and structural Case",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "The subject is a DP headed by Una, with profesora projecting NP; the object is a DP headed by distributive cada, with informe projecting NP. Each DP contains a D′, and each noun projects N′. Revisó is initially the V head: its finite spelling is already present, while its syntactic association with I will be established by head movement. The object occupies the complement of V, and the subject is generated in Spec-VP under the VP-internal subject hypothesis. An initially unfilled subject position is available in IP. Silent I carries preterite indicative tense and third-person singular agreement features; silent declarative C selects IP. First, the verb's argument structure assigns the external Agent role to the subject and the internal Theme role to the object. Second, V governs its object and licenses structural accusative Case, although this Case has no separate overt exponent on cada informe. The indefinite subject introduces an existential interpretation, while cada supplies distributive universal quantification; their relative scope is not yet fixed.",
+          "statement": "Establish the base-generated clause and its argument structure.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "i",
+                              "label": "I⁰ [preterite, indicative, 3sg]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰",
+                                      "lineageId": "verb",
+                                      "tokenIndex": 2,
+                                      "word": "revisó"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "governingHead": "icomplex",
+                "raisedHead": "vh",
+                "trace": "v"
+              },
+              "priorAnchors": {
+                "source": "v",
+                "target": "i"
+              },
+              "relation": "V-to-I movement chain and trace licensing",
+              "values": {
+                "licensing": "proper head government",
+                "movement": "V-to-I head adjunction"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "i",
+                "verb": "vh"
+              },
+              "relation": "finite feature checking",
+              "values": {
+                "features": [
+                  "preterite",
+                  "indicative",
+                  "third-person singular"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "Revisó moves from its previously established V position and left-adjoins to I, creating a complex I head. Its original position becomes a silent head trace. The movement chain connects the pronounced verb in I with that trace; movement to the immediately higher inflectional head respects the Head Movement Constraint. The raised complex head properly governs the V trace. The finite lexical form revisó checks the preterite indicative and third-person singular features of I. This analysis does not split the input word into separately realized stem and suffix terminals: the abstract inflectional head remains silent.",
+          "statement": "Raise the finite verb from V to I.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "raisedSubject": "sh",
+                "trace": "sdp"
+              },
+              "priorAnchors": {
+                "source": "sdp"
+              },
+              "relation": "subject A-chain and trace licensing",
+              "values": {
+                "licensing": "antecedent government",
+                "movement": "Spec-VP to Spec-IP",
+                "thetaPosition": "Spec-VP"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "icomplex",
+                "subject": "sh"
+              },
+              "relation": "nominative Case, agreement, and subject requirement",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative",
+                "subjectRequirement": "Spec-IP filled"
+              }
+            }
+          ],
+          "stageRecord": "The subject DP moves from Spec-VP to Spec-IP, leaving a silent DP trace in its external theta position. Its determiner and nominal restriction move together, preserving Una profesora as one constituent. The resulting A-chain connects the raised subject to its theta-marked trace and licenses that trace by antecedent government. Finite I then licenses nominative Case on the raised subject and agrees with its third-person singular features; the filled Spec-IP satisfies the subject requirement of the finite clause. The subject receives no additional theta role in Spec-IP. The resulting pronounced order is exactly Una profesora revisó cada informe. No reflexive or pronominal antecedent dependency requires an additional Binding Theory relation.",
+          "statement": "Raise the subject to Spec-IP and establish the overt sentence.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sd",
+                                  "label": "D⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sn",
+                                          "label": "N⁰",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "snbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "snp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "sdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "sh",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sdp",
+                                  "label": "DP trace",
+                                  "lineageId": "subject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "adjunctionDomain": "vpadj",
+                "lowerOccurrence": "odp",
+                "operator": "oq"
+              },
+              "priorAnchors": {
+                "source": "odp"
+              },
+              "relation": "Quantifier Raising and variable binding",
+              "values": {
+                "chainType": "A′",
+                "interpretation": "upper quantifier binds lower argument variable",
+                "movement": "LF adjunction to VP",
+                "pronunciation": "lower copy"
+              }
+            },
+            {
+              "anchors": {
+                "narrowScope": "oq",
+                "wideScope": "sh"
+              },
+              "relation": "quantifier scope",
+              "values": {
+                "logicalForm": "∃x[profesora(x) ∧ ∀y[informe(y) → revisó(x,y)]]",
+                "reading": "There is a female teacher who reviewed every report.",
+                "scopeOrder": "existential subject > universal object"
+              }
+            }
+          ],
+          "stageRecord": "At LF, cada informe undergoes Quantifier Raising from its established object position to a VP-adjoined position. The upper occurrence c-commands the object position but remains below the subject in Spec-IP. To retain both LF scope and the exact overt input in one workspace, the QR chain uses copy notation: its upper DP is silent at PF, while its lower lexical copy remains pronounced and is interpreted as the bound argument variable rather than as a second quantifier. This is a notational representation of the GB operator–variable dependency, not overt object fronting. First, the QR relation establishes the A′-chain and variable binding between the upper operator and lower object occurrence; the lower occurrence retains the object's theta and Case licensing. Second, the scope relation places the existential subject above the universal object. The reading is that there is a female teacher who reviewed every report; the same teacher satisfies the claim for all relevant reports. Scope variation does not require distinct lexical structures for Una or cada, and no additional referential coindexation is introduced.",
+          "statement": "Complete the subject-wide-scope reading by VP-level Quantifier Raising.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sd",
+                                  "label": "D⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sn",
+                                          "label": "N⁰",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "snbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "snp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "sdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "sh",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oqd",
+                                          "label": "D⁰ [distributive]",
+                                          "lineageId": "object-determiner",
+                                          "silent": true,
+                                          "word": "cada"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "oqn",
+                                                  "label": "N⁰",
+                                                  "lineageId": "object-noun",
+                                                  "silent": true,
+                                                  "word": "informe"
+                                                }
+                                              ],
+                                              "id": "oqnbar",
+                                              "label": "N′",
+                                              "lineageId": "object-nbar",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "oqnp",
+                                          "label": "NP",
+                                          "lineageId": "object-np",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "oqdbar",
+                                      "label": "D′",
+                                      "lineageId": "object-dbar",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "oq",
+                                  "label": "DP [LF quantifier]",
+                                  "lineageId": "object",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sdp",
+                                      "label": "DP trace",
+                                      "lineageId": "subject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "v",
+                                          "label": "V⁰ trace",
+                                          "lineageId": "verb",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "od",
+                                                  "label": "D⁰ [distributive]",
+                                                  "lineageId": "object-determiner",
+                                                  "tokenIndex": 3,
+                                                  "word": "cada"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "on",
+                                                          "label": "N⁰",
+                                                          "lineageId": "object-noun",
+                                                          "tokenIndex": 4,
+                                                          "word": "informe"
+                                                        }
+                                                      ],
+                                                      "id": "onbar",
+                                                      "label": "N′",
+                                                      "lineageId": "object-nbar"
+                                                    }
+                                                  ],
+                                                  "id": "onp",
+                                                  "label": "NP",
+                                                  "lineageId": "object-np"
+                                                }
+                                              ],
+                                              "id": "odbar",
+                                              "label": "D′",
+                                              "lineageId": "object-dbar"
+                                            }
+                                          ],
+                                          "id": "odp",
+                                          "label": "DP",
+                                          "lineageId": "object"
+                                        }
+                                      ],
+                                      "id": "vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "vpadj",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "sdp",
+                "predicate": "v",
+                "theme": "odp"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "agent": "Agent",
+                "theme": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseBearer": "odp",
+                "governor": "v"
+              },
+              "relation": "government and structural Case",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "The subject is a DP headed by Una, with profesora projecting NP; the object is a DP headed by distributive cada, with informe projecting NP. Each DP contains a D′, and each noun projects N′. Revisó is initially the V head: its finite spelling is already present, while its syntactic association with I will be established by head movement. The object occupies the complement of V, and the subject is generated in Spec-VP under the VP-internal subject hypothesis. An initially unfilled subject position is available in IP. Silent I carries preterite indicative tense and third-person singular agreement features; silent declarative C selects IP. First, the verb's argument structure assigns the external Agent role to the subject and the internal Theme role to the object. Second, V governs its object and licenses structural accusative Case, although this Case has no separate overt exponent on cada informe. The indefinite subject introduces an existential interpretation, while cada supplies distributive universal quantification; their relative scope is not yet fixed.",
+          "statement": "Establish the base-generated clause and its argument structure.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "i",
+                              "label": "I⁰ [preterite, indicative, 3sg]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰",
+                                      "lineageId": "verb",
+                                      "tokenIndex": 2,
+                                      "word": "revisó"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "governingHead": "icomplex",
+                "raisedHead": "vh",
+                "trace": "v"
+              },
+              "priorAnchors": {
+                "source": "v",
+                "target": "i"
+              },
+              "relation": "V-to-I movement chain and trace licensing",
+              "values": {
+                "licensing": "proper head government",
+                "movement": "V-to-I head adjunction"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "i",
+                "verb": "vh"
+              },
+              "relation": "finite feature checking",
+              "values": {
+                "features": [
+                  "preterite",
+                  "indicative",
+                  "third-person singular"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "Revisó moves from its previously established V position and left-adjoins to I, creating a complex I head. Its original position becomes a silent head trace. The movement chain connects the pronounced verb in I with that trace; movement to the immediately higher inflectional head respects the Head Movement Constraint. The raised complex head properly governs the V trace. The finite lexical form revisó checks the preterite indicative and third-person singular features of I. This analysis does not split the input word into separately realized stem and suffix terminals: the abstract inflectional head remains silent.",
+          "statement": "Raise the finite verb from V to I.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "raisedSubject": "sh",
+                "trace": "sdp"
+              },
+              "priorAnchors": {
+                "source": "sdp"
+              },
+              "relation": "subject A-chain and trace licensing",
+              "values": {
+                "licensing": "antecedent government",
+                "movement": "Spec-VP to Spec-IP",
+                "thetaPosition": "Spec-VP"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "icomplex",
+                "subject": "sh"
+              },
+              "relation": "nominative Case, agreement, and subject requirement",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative",
+                "subjectRequirement": "Spec-IP filled"
+              }
+            }
+          ],
+          "stageRecord": "The subject DP moves from Spec-VP to Spec-IP, leaving a silent DP trace in its external theta position. Its determiner and nominal restriction move together, preserving Una profesora as one constituent. The resulting A-chain connects the raised subject to its theta-marked trace and licenses that trace by antecedent government. Finite I then licenses nominative Case on the raised subject and agrees with its third-person singular features; the filled Spec-IP satisfies the subject requirement of the finite clause. The subject receives no additional theta role in Spec-IP. The resulting pronounced order is exactly Una profesora revisó cada informe. No reflexive or pronominal antecedent dependency requires an additional Binding Theory relation.",
+          "statement": "Raise the subject to Spec-IP and establish the overt sentence.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sd",
+                                  "label": "D⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sn",
+                                          "label": "N⁰",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "snbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "snp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "sdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "sh",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sdp",
+                                  "label": "DP trace",
+                                  "lineageId": "subject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "adjunctionDomain": "ipadj",
+                "lowerOccurrence": "odp",
+                "operator": "oq"
+              },
+              "priorAnchors": {
+                "source": "odp"
+              },
+              "relation": "Quantifier Raising and variable binding",
+              "values": {
+                "chainType": "A′",
+                "interpretation": "upper quantifier binds lower argument variable",
+                "movement": "LF adjunction to IP",
+                "pronunciation": "lower copy"
+              }
+            },
+            {
+              "anchors": {
+                "narrowScope": "sh",
+                "wideScope": "oq"
+              },
+              "relation": "quantifier scope",
+              "values": {
+                "logicalForm": "∀y[informe(y) → ∃x[profesora(x) ∧ revisó(x,y)]]",
+                "reading": "For every report, there is a female teacher who reviewed it; the teacher may differ across reports.",
+                "scopeOrder": "universal object > existential subject"
+              }
+            }
+          ],
+          "stageRecord": "At LF, cada informe undergoes Quantifier Raising from its established object position to an IP-adjoined position below C but above the subject in Spec-IP. To retain both LF scope and the exact overt input in one workspace, the QR chain uses copy notation: its upper DP is silent at PF, while its lower lexical copy remains pronounced and is interpreted as the bound argument variable rather than as a second quantifier. This is a notational representation of the GB operator–variable dependency, not overt object fronting. First, the QR relation establishes an A′-chain whose upper operator c-commands and binds the lower object occurrence; the lower occurrence retains the object's theta and Case licensing. The movement remains within the same finite clause and crosses no island. Second, the scope relation places the universal object above the existential subject. The reading is that every report was reviewed by a female teacher, with the teacher potentially differing from report to report. The inverse reading differs structurally from VP-level QR in the height of the landing site, not in the overt word order or lexical interpretation of the determiners. No additional referential coindexation is introduced.",
+          "statement": "Complete the object-wide-scope reading by IP-level Quantifier Raising.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "oqd",
+                                  "label": "D⁰ [distributive]",
+                                  "lineageId": "object-determiner",
+                                  "silent": true,
+                                  "word": "cada"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oqn",
+                                          "label": "N⁰",
+                                          "lineageId": "object-noun",
+                                          "silent": true,
+                                          "word": "informe"
+                                        }
+                                      ],
+                                      "id": "oqnbar",
+                                      "label": "N′",
+                                      "lineageId": "object-nbar",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "oqnp",
+                                  "label": "NP",
+                                  "lineageId": "object-np",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "oqdbar",
+                              "label": "D′",
+                              "lineageId": "object-dbar",
+                              "silent": true
+                            }
+                          ],
+                          "id": "oq",
+                          "label": "DP [LF quantifier]",
+                          "lineageId": "object",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sd",
+                                      "label": "D⁰",
+                                      "tokenIndex": 0,
+                                      "word": "Una"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "sn",
+                                              "label": "N⁰",
+                                              "tokenIndex": 1,
+                                              "word": "profesora"
+                                            }
+                                          ],
+                                          "id": "snbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "snp",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "sdbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "sh",
+                              "label": "DP",
+                              "lineageId": "subject"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vh",
+                                      "label": "V⁰",
+                                      "lineageId": "verb",
+                                      "tokenIndex": 2,
+                                      "word": "revisó"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "i",
+                                      "label": "I⁰ [preterite, indicative, 3sg]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "icomplex",
+                                  "label": "I⁰"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sdp",
+                                      "label": "DP trace",
+                                      "lineageId": "subject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "v",
+                                          "label": "V⁰ trace",
+                                          "lineageId": "verb",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "od",
+                                                  "label": "D⁰ [distributive]",
+                                                  "lineageId": "object-determiner",
+                                                  "tokenIndex": 3,
+                                                  "word": "cada"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "on",
+                                                          "label": "N⁰",
+                                                          "lineageId": "object-noun",
+                                                          "tokenIndex": 4,
+                                                          "word": "informe"
+                                                        }
+                                                      ],
+                                                      "id": "onbar",
+                                                      "label": "N′",
+                                                      "lineageId": "object-nbar"
+                                                    }
+                                                  ],
+                                                  "id": "onp",
+                                                  "label": "NP",
+                                                  "lineageId": "object-np"
+                                                }
+                                              ],
+                                              "id": "odbar",
+                                              "label": "D′",
+                                              "lineageId": "object-dbar"
+                                            }
+                                          ],
+                                          "id": "odp",
+                                          "label": "DP",
+                                          "lineageId": "object"
+                                        }
+                                      ],
+                                      "id": "vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "ibar",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "ip",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "ipadj",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "provenance": {
+    "source": "/tmp/babel-ten-model-comparison-20261006/astra-spanish-scope/attempts/parse/bundle.json",
+    "model": "openai:gpt-6-astra",
+    "harness": "qualification:codex",
+    "extraction": "Exact first stages of the two saved Spanish alternatives."
+  },
+  "stages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "arguments": [
+              "subj0",
+              "obj0"
+            ],
+            "predicate": "v0"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "dependent": "obj0",
+            "governor": "v0"
+          },
+          "relation": "structural accusative licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i0"
+          },
+          "relation": "finite feature specification",
+          "values": {
+            "agreement": "third-person singular",
+            "mood": "indicative",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "The verb revisó selects cada informe as its internal argument and assigns it the Theme role. Una profesora is introduced in the specifier of VP as the external Agent argument. Both nominal expressions are DPs: Una and cada occupy D, and each selects an NP containing a singular noun. The finite clause is projected as IP, with an initially unfilled subject position. I contains abstract past-tense and third-person singular features. Revisó is represented as an already inflected lexical word rather than decomposed into a stem and an affix; subsequent V-to-I movement will associate that word with finite I. The root is represented directly as IP because the input provides no complementizer or evidence requiring an additional CP layer.",
+      "statement": "Establish the underlying argument structure and finite inflection.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i0",
+                  "label": "I⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "una",
+                              "label": "D⁰",
+                              "tokenIndex": 0,
+                              "word": "Una"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "profesora",
+                                      "label": "N⁰",
+                                      "tokenIndex": 1,
+                                      "word": "profesora"
+                                    }
+                                  ],
+                                  "id": "subjnbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "subjnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "subjdbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subj0",
+                      "label": "DP",
+                      "lineageId": "subject-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v0",
+                          "label": "V⁰",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "revisó"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cada",
+                                  "label": "D⁰",
+                                  "tokenIndex": 3,
+                                  "word": "cada"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "informe",
+                                          "label": "N⁰",
+                                          "tokenIndex": 4,
+                                          "word": "informe"
+                                        }
+                                      ],
+                                      "id": "objnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "objnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "objdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "obj0",
+                          "label": "DP",
+                          "lineageId": "object-quantifier-chain"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "arguments": [
+              "subj0",
+              "obj0"
+            ],
+            "predicate": "v0"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "dependent": "obj0",
+            "governor": "v0"
+          },
+          "relation": "structural accusative licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i0"
+          },
+          "relation": "finite feature specification",
+          "values": {
+            "agreement": "third-person singular",
+            "mood": "indicative",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "The verb revisó selects cada informe as its internal Theme argument. Una profesora is introduced in Spec-VP as the external Agent argument. Una and cada are determiners heading DPs, each with an NP complement containing a singular noun. The finite clause is projected as IP with an initially unfilled subject position. Its abstract I head bears past-tense and third-person singular features. Revisó is treated as an already inflected lexical word; the analysis therefore does not posit separately pronounced stem and tense terminals. The root is represented directly as IP because no overt complementizer or other property of this input requires an additional CP layer.",
+      "statement": "Establish the underlying argument structure and finite inflection.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i0",
+                  "label": "I⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "una",
+                              "label": "D⁰",
+                              "tokenIndex": 0,
+                              "word": "Una"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "profesora",
+                                      "label": "N⁰",
+                                      "tokenIndex": 1,
+                                      "word": "profesora"
+                                    }
+                                  ],
+                                  "id": "subjnbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "subjnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "subjdbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subj0",
+                      "label": "DP",
+                      "lineageId": "subject-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v0",
+                          "label": "V⁰",
+                          "lineageId": "verb-chain",
+                          "tokenIndex": 2,
+                          "word": "revisó"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cada",
+                                  "label": "D⁰",
+                                  "tokenIndex": 3,
+                                  "word": "cada"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "informe",
+                                          "label": "N⁰",
+                                          "tokenIndex": 4,
+                                          "word": "informe"
+                                        }
+                                      ],
+                                      "id": "objnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "objnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "objdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "obj0",
+                          "label": "DP",
+                          "lineageId": "object-quantifier-chain"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

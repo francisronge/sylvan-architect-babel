@@ -1,0 +1,1058 @@
+{
+  "cases": [
+    {
+      "id": "sol-irish-vso-0-0-0",
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "complement": "objectDP",
+              "verb": "vBase"
+            },
+            "relation": "Complement selection and internal theta-role assignment",
+            "values": {
+              "selectedCategory": "DP",
+              "thetaRole": "Theme"
+            }
+          }
+        ],
+        "stageRecord": "Cheannaigh is the finite past form of the transitive verb ‘buy’. Its lexical terminal is retained as a whole word; the analysis does not decompose its inflection or initial mutation into separately pronounced morphemes. The verb combines with the DP an leabhar, headed by the definite article an, and licenses that DP as its Theme complement. Máire is a separate proper-name DP with an unpronounced determiner. The temporal adverb inné and an unpronounced past-tense I head remain separate. Tense licensing, subject integration, and Case assignment have not yet been established.",
+        "statement": "Establish the transitive predicate, its object, and the remaining independent constituents.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "vBase",
+                "label": "V⁰",
+                "lineageId": "buyVerb",
+                "tokenIndex": 0,
+                "word": "Cheannaigh"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "objectD",
+                    "label": "D⁰",
+                    "tokenIndex": 2,
+                    "word": "an"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "objectN",
+                            "label": "N⁰",
+                            "tokenIndex": 3,
+                            "word": "leabhar"
+                          }
+                        ],
+                        "id": "objectNPrime",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "objectNP",
+                    "label": "NP"
+                  }
+                ],
+                "id": "objectDP",
+                "label": "DP"
+              }
+            ],
+            "id": "vPrime",
+            "label": "V′"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "subjectD",
+                "label": "D⁰",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "subjectN",
+                        "label": "N⁰",
+                        "tokenIndex": 1,
+                        "word": "Máire"
+                      }
+                    ],
+                    "id": "subjectNPrime",
+                    "label": "N′"
+                  }
+                ],
+                "id": "subjectNP",
+                "label": "NP"
+              }
+            ],
+            "id": "subjectDP",
+            "label": "DP"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "yesterdayAdv",
+                    "label": "Adv⁰",
+                    "tokenIndex": 4,
+                    "word": "inné"
+                  }
+                ],
+                "id": "yesterdayAdvPrime",
+                "label": "Adv′"
+              }
+            ],
+            "id": "yesterdayAdvP",
+            "label": "AdvP"
+          },
+          {
+            "children": [],
+            "id": "iTense",
+            "label": "I⁰ [finite, past]",
+            "silent": true
+          }
+        ]
+      },
+      "relationIndex": 0,
+      "expectedFamily": "theta-grid"
+    },
+    {
+      "id": "sol-irish-vso-0-1-0",
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "predicate": "coreVP",
+              "subject": "subjectDP",
+              "verb": "vBase"
+            },
+            "relation": "External theta-role assignment",
+            "values": {
+              "subjectPosition": "Spec-VP",
+              "thetaRole": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "adjunctionResult": "eventVP",
+              "modifiedPredicate": "coreVP",
+              "modifier": "yesterdayAdvP"
+            },
+            "relation": "Event-level temporal modification",
+            "values": {
+              "attachment": "Right adjunction to VP",
+              "interpretation": "The buying event occurs on the day before the utterance day."
+            }
+          }
+        ],
+        "stageRecord": "Máire is placed in Spec-VP and receives the external Agent role of the buying predicate. This position is its theta-position; it has not been reached by movement. The resulting VP is then right-adjoined by AdvP inné. On this reading, inné directly restricts the buying event to yesterday. The lower VP supplies the event description, while the outer VP preserves the predicate's category. Subject integration precedes temporal modification, as shown by the nested VP structure.",
+        "statement": "Introduce the VP-internal subject and attach inné as an event-level adjunct.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "subjectD",
+                        "label": "D⁰",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "subjectN",
+                                "label": "N⁰",
+                                "tokenIndex": 1,
+                                "word": "Máire"
+                              }
+                            ],
+                            "id": "subjectNPrime",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "subjectNP",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "subjectDP",
+                    "label": "DP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "vBase",
+                        "label": "V⁰",
+                        "lineageId": "buyVerb",
+                        "tokenIndex": 0,
+                        "word": "Cheannaigh"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "objectD",
+                            "label": "D⁰",
+                            "tokenIndex": 2,
+                            "word": "an"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "objectN",
+                                    "label": "N⁰",
+                                    "tokenIndex": 3,
+                                    "word": "leabhar"
+                                  }
+                                ],
+                                "id": "objectNPrime",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "objectNP",
+                            "label": "NP"
+                          }
+                        ],
+                        "id": "objectDP",
+                        "label": "DP"
+                      }
+                    ],
+                    "id": "vPrime",
+                    "label": "V′"
+                  }
+                ],
+                "id": "coreVP",
+                "label": "VP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "yesterdayAdv",
+                        "label": "Adv⁰",
+                        "tokenIndex": 4,
+                        "word": "inné"
+                      }
+                    ],
+                    "id": "yesterdayAdvPrime",
+                    "label": "Adv′"
+                  }
+                ],
+                "id": "yesterdayAdvP",
+                "label": "AdvP"
+              }
+            ],
+            "id": "eventVP",
+            "label": "VP"
+          },
+          {
+            "children": [],
+            "id": "iTense",
+            "label": "I⁰ [finite, past]",
+            "silent": true
+          }
+        ]
+      },
+      "relationIndex": 0,
+      "expectedFamily": "theta-grid"
+    },
+    {
+      "id": "sol-portuguese-inflected-infinitive-0-1-1",
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "studentsLower",
+              "predicate": "arrivalLower"
+            },
+            "relation": "Internal-argument interpretation",
+            "values": {
+              "thetaRole": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "modifiedDomain": "arrivalVP",
+              "modifier": "early"
+            },
+            "relation": "Event modification",
+            "values": {
+              "interpretation": "The arrival occurs early."
+            }
+          },
+          {
+            "anchors": {
+              "goal": "studentsLower",
+              "probe": "infinitivalT"
+            },
+            "relation": "Personal-infinitival Agree and Case licensing",
+            "values": {
+              "case": "nominative",
+              "number": "plural",
+              "person": "third"
+            }
+          }
+        ],
+        "stageRecord": "First, the definite determiner merges with alunos, forming the plural nominal argument. Chegarem merges with that nominal as its internal argument and assigns it the Theme role: the students are the entities arriving. Cedo then adjoins to the resulting V object and modifies the arrival event, not the matrix evaluation. Nonagentive little v merges above this structure, and infinitival T merges above little v. T agrees with the accessible nominal argument, obtaining third-person plural features and licensing its nominative Case. This is the personal-infinitive configuration that permits the overt subject os alunos; an obligatorily controlled, uninflected infinitive is not assumed.",
+        "statement": "Build the embedded verbal domain and establish personal-infinitival agreement.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "infinitivalT",
+                "label": "T[personal-infinitive]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "embeddedLittleV",
+                    "label": "v[nonagentive]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "arrivalLower",
+                            "label": "V[unaccusative,personal-infinitive]",
+                            "lineageId": "arrivalChain",
+                            "tokenIndex": 4,
+                            "word": "chegarem"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "determinerLower",
+                                "label": "D[definite,plural]",
+                                "lineageId": "determinerChain",
+                                "tokenIndex": 2,
+                                "word": "os"
+                              },
+                              {
+                                "children": [],
+                                "id": "nounLower",
+                                "label": "N[plural]",
+                                "lineageId": "nounChain",
+                                "tokenIndex": 3,
+                                "word": "alunos"
+                              }
+                            ],
+                            "id": "studentsLower",
+                            "label": "D",
+                            "lineageId": "studentsChain"
+                          }
+                        ],
+                        "id": "arrivalVP",
+                        "label": "V"
+                      },
+                      {
+                        "children": [],
+                        "id": "early",
+                        "label": "Adv",
+                        "tokenIndex": 5,
+                        "word": "cedo"
+                      }
+                    ],
+                    "id": "modifiedArrival",
+                    "label": "V"
+                  }
+                ],
+                "id": "embeddedVDomain",
+                "label": "v"
+              }
+            ],
+            "id": "embeddedTCore",
+            "label": "T"
+          },
+          {
+            "children": [],
+            "id": "important",
+            "label": "A[evaluative]",
+            "tokenIndex": 1,
+            "word": "importante"
+          },
+          {
+            "children": [],
+            "id": "copulaLower",
+            "label": "V[copular]",
+            "lineageId": "copulaChain",
+            "tokenIndex": 0,
+            "word": "É"
+          },
+          {
+            "children": [],
+            "id": "infinitivalC",
+            "label": "C[infinitival,declarative]",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "matrixLittleV",
+            "label": "v[nonagentive]",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "finiteT",
+            "label": "T[present,indicative]",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "expletiveLower",
+            "label": "D[expletive]",
+            "lineageId": "expletiveChain",
+            "silent": true
+          }
+        ]
+      },
+      "relationIndex": 1,
+      "expectedFamily": "pair-merge"
+    },
+    {
+      "id": "sol-irish-vso-1-2-1",
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "finiteClause": "clauseIP",
+              "predicate": "coreVP",
+              "tenseHead": "iTense"
+            },
+            "relation": "Finite tense interpretation",
+            "values": {
+              "finiteness": "Finite",
+              "temporalInterpretation": "The event precedes the utterance time.",
+              "tense": "Past"
+            }
+          },
+          {
+            "anchors": {
+              "adjunctionResult": "framedIP",
+              "modifiedClause": "clauseIP",
+              "modifier": "yesterdayAdvP"
+            },
+            "relation": "Clause-level temporal framing",
+            "values": {
+              "attachment": "Right adjunction to IP",
+              "interpretation": "Yesterday supplies the temporal frame for the finite proposition."
+            }
+          }
+        ],
+        "stageRecord": "The silent finite past I head takes VP as its complement, forming I′ and an inner IP. Past tense places the buying event before the utterance time. AdvP inné then right-adjoins to that IP, yielding an outer IP and setting yesterday as the temporal frame for the finite proposition. Thus temporal modification is established only after the finite clause has been projected. This high attachment differs structurally from direct event-level VP modification, although the simple affirmative sentence can make their ordinary truth conditions coincide. The selected Irish V-to-I analysis leaves the subject in Spec-VP and Spec-IP unfilled; no expletive or subject-raising chain is introduced. The verb still occupies V at this stage.",
+        "statement": "Project the finite clause and attach inné as a clause-level temporal frame.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "iTense",
+                        "label": "I⁰ [finite, past]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "subjectD",
+                                "label": "D⁰",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "subjectN",
+                                        "label": "N⁰",
+                                        "tokenIndex": 1,
+                                        "word": "Máire"
+                                      }
+                                    ],
+                                    "id": "subjectNPrime",
+                                    "label": "N′"
+                                  }
+                                ],
+                                "id": "subjectNP",
+                                "label": "NP"
+                              }
+                            ],
+                            "id": "subjectDP",
+                            "label": "DP"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "vBase",
+                                "label": "V⁰",
+                                "lineageId": "buyVerb",
+                                "tokenIndex": 0,
+                                "word": "Cheannaigh"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "objectD",
+                                    "label": "D⁰",
+                                    "tokenIndex": 2,
+                                    "word": "an"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "objectN",
+                                            "label": "N⁰",
+                                            "tokenIndex": 3,
+                                            "word": "leabhar"
+                                          }
+                                        ],
+                                        "id": "objectNPrime",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "objectNP",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "objectDP",
+                                "label": "DP"
+                              }
+                            ],
+                            "id": "vPrime",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "coreVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "iPrime",
+                    "label": "I′"
+                  }
+                ],
+                "id": "clauseIP",
+                "label": "IP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "yesterdayAdv",
+                        "label": "Adv⁰",
+                        "tokenIndex": 4,
+                        "word": "inné"
+                      }
+                    ],
+                    "id": "yesterdayAdvPrime",
+                    "label": "Adv′"
+                  }
+                ],
+                "id": "yesterdayAdvP",
+                "label": "AdvP"
+              }
+            ],
+            "id": "framedIP",
+            "label": "IP"
+          }
+        ]
+      },
+      "relationIndex": 1,
+      "expectedFamily": "pair-merge"
+    },
+    {
+      "id": "sol-indonesian-applicative-0-4-0",
+      "expectedFamily": "theta-grid",
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_v_head"
+            ],
+            "tokenIndices": [
+              1
+            ]
+          },
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "h_appl_head_upper",
+              "lowerOccurrence": "h_appl_head_lower",
+              "resultingHead": "h_v_head",
+              "targetHead": "h_men"
+            },
+            "priorAnchors": {
+              "source": "h_appl_head_lower",
+              "target": "h_men"
+            },
+            "relation": "Appl-to-v head movement",
+            "values": {
+              "pronunciation": "lower complex head suppressed",
+              "representation": "copy"
+            }
+          },
+          {
+            "anchors": {
+              "agentiveHead": "h_men",
+              "domain": "h_v_phrase",
+              "externalArgument": "h_rina_lower"
+            },
+            "relation": "external argument interpretation",
+            "values": {
+              "role": "agent of reading"
+            }
+          },
+          {
+            "anchors": {
+              "activePrefix": "h_men",
+              "applicativeSuffix": "h_kan_upper",
+              "domain": "h_v_head",
+              "verbStem": "h_baca_upper"
+            },
+            "relation": "verbal morphological realization",
+            "values": {
+              "operation": "joint realization of the highest complex head",
+              "output": "membacakan",
+              "prefixAllomorph": "mem-"
+            }
+          }
+        ],
+        "stageRecord": "Merge active agentive v above ApplP. Copy the previously established complex applicative head into v, leaving its source occurrence silent. The highest head orders the active prefix before baca and -kan. Next Merge Rina as the external argument of v, establishing Rina as the reader; this subject position is distinct from the applied beneficiary. Finally establish the joint realization of meN-, baca, and -kan as membacakan, including the mem- allomorph of the active prefix before baca. This morphological realization does not fuse or replace the authored syntactic nodes. The retained applicative and V copies are unpronounced.",
+        "statement": "Build the active agentive layer and realize the verbal complex.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_rina_lower",
+                "label": "D: proper name",
+                "lineageId": "h_RINA",
+                "tokenIndex": 0,
+                "word": "Rina"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_men",
+                        "label": "v: active agentive",
+                        "word": "meN-"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_baca_upper",
+                            "label": "V",
+                            "lineageId": "h_BACA",
+                            "word": "baca"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_kan_upper",
+                            "label": "Appl: event-related benefactive",
+                            "lineageId": "h_KAN",
+                            "word": "-kan"
+                          }
+                        ],
+                        "id": "h_appl_head_upper",
+                        "label": "Appl: complex head",
+                        "lineageId": "h_APPL_HEAD"
+                      }
+                    ],
+                    "id": "h_v_head",
+                    "label": "v: complex active head"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_adik",
+                            "label": "N: relational kinship noun",
+                            "word": "adik"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_nya",
+                            "label": "D: third-person possessive",
+                            "word": "-nya"
+                          }
+                        ],
+                        "id": "h_sibling",
+                        "label": "DP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "h_baca_middle",
+                                "label": "V",
+                                "lineageId": "h_BACA",
+                                "silent": true,
+                                "word": "baca"
+                              },
+                              {
+                                "children": [],
+                                "id": "h_kan_lower",
+                                "label": "Appl: event-related benefactive",
+                                "lineageId": "h_KAN",
+                                "silent": true,
+                                "word": "-kan"
+                              }
+                            ],
+                            "id": "h_appl_head_lower",
+                            "label": "Appl: complex head",
+                            "lineageId": "h_APPL_HEAD",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "h_baca_lower",
+                                "label": "V",
+                                "lineageId": "h_BACA",
+                                "silent": true,
+                                "word": "baca"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "h_sebuah",
+                                    "label": "D: indefinite numeral-classifier",
+                                    "tokenIndex": 3,
+                                    "word": "sebuah"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "h_cerita",
+                                    "label": "N",
+                                    "tokenIndex": 4,
+                                    "word": "cerita"
+                                  }
+                                ],
+                                "id": "h_theme",
+                                "label": "DP"
+                              }
+                            ],
+                            "id": "h_lexical_vp",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "h_appl_base",
+                        "label": "ApplP"
+                      }
+                    ],
+                    "id": "h_appl_phrase",
+                    "label": "ApplP"
+                  }
+                ],
+                "id": "h_v_base",
+                "label": "vP"
+              }
+            ],
+            "id": "h_v_phrase",
+            "label": "vP"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      "relationIndex": 1
+    },
+    {
+      "id": "sol-indonesian-applicative-1-4-0",
+      "expectedFamily": "theta-grid",
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "l_v_head"
+            ],
+            "tokenIndices": [
+              1
+            ]
+          },
+          {
+            "nodeIds": [
+              "l_adik",
+              "l_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "l_v_lexical_head_upper",
+              "lowerOccurrence": "l_v_lexical_head_lower",
+              "resultingHead": "l_v_head",
+              "targetHead": "l_men"
+            },
+            "priorAnchors": {
+              "source": "l_v_lexical_head_lower",
+              "target": "l_men"
+            },
+            "relation": "V-to-v head movement",
+            "values": {
+              "pronunciation": "lower complex V suppressed",
+              "representation": "copy"
+            }
+          },
+          {
+            "anchors": {
+              "agentiveHead": "l_men",
+              "domain": "l_v_phrase",
+              "externalArgument": "l_rina_lower"
+            },
+            "relation": "external argument interpretation",
+            "values": {
+              "role": "agent of communicative reading"
+            }
+          },
+          {
+            "anchors": {
+              "activePrefix": "l_men",
+              "applicativeSuffix": "l_kan_upper",
+              "domain": "l_v_head",
+              "verbStem": "l_baca_upper"
+            },
+            "relation": "verbal morphological realization",
+            "values": {
+              "operation": "joint realization of the highest complex head",
+              "output": "membacakan",
+              "prefixAllomorph": "mem-"
+            }
+          }
+        ],
+        "stageRecord": "Merge active agentive v above VP. Copy the complex V established in the preceding stage into v and suppress its lower occurrence. The resulting highest head orders meN- before baca and -kan. Next Merge Rina as v's external argument, establishing the reader independently of the recipient-theme relation inside VP. Finally establish the collective realization of the highest verbal head as membacakan, with mem- as the prefix allomorph before baca. The lower complex V and original applicative suffix remain silent copies. The recipient precedes the theme because it occupies the edge of the low applicative phrase, not because either object has undergone an unrecorded movement.",
+        "statement": "Introduce the agent and realize the active applicative verb.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "l_rina_lower",
+                "label": "D: proper name",
+                "lineageId": "l_RINA",
+                "tokenIndex": 0,
+                "word": "Rina"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "l_men",
+                        "label": "v: active agentive",
+                        "word": "meN-"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "l_baca_upper",
+                            "label": "V",
+                            "lineageId": "l_BACA",
+                            "word": "baca"
+                          },
+                          {
+                            "children": [],
+                            "id": "l_kan_upper",
+                            "label": "Appl: content recipient",
+                            "lineageId": "l_KAN",
+                            "word": "-kan"
+                          }
+                        ],
+                        "id": "l_v_lexical_head_upper",
+                        "label": "V: complex head",
+                        "lineageId": "l_V_HEAD"
+                      }
+                    ],
+                    "id": "l_v_head",
+                    "label": "v: complex active head"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "l_baca_lower",
+                            "label": "V",
+                            "lineageId": "l_BACA",
+                            "silent": true,
+                            "word": "baca"
+                          },
+                          {
+                            "children": [],
+                            "id": "l_kan_middle",
+                            "label": "Appl: content recipient",
+                            "lineageId": "l_KAN",
+                            "silent": true,
+                            "word": "-kan"
+                          }
+                        ],
+                        "id": "l_v_lexical_head_lower",
+                        "label": "V: complex head",
+                        "lineageId": "l_V_HEAD",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "l_adik",
+                                "label": "N: relational kinship noun",
+                                "word": "adik"
+                              },
+                              {
+                                "children": [],
+                                "id": "l_nya",
+                                "label": "D: third-person possessive",
+                                "word": "-nya"
+                              }
+                            ],
+                            "id": "l_sibling",
+                            "label": "DP"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "l_kan_lower",
+                                "label": "Appl: content recipient",
+                                "lineageId": "l_KAN",
+                                "silent": true,
+                                "word": "-kan"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "l_sebuah",
+                                    "label": "D: indefinite numeral-classifier",
+                                    "tokenIndex": 3,
+                                    "word": "sebuah"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "l_cerita",
+                                    "label": "N",
+                                    "tokenIndex": 4,
+                                    "word": "cerita"
+                                  }
+                                ],
+                                "id": "l_theme",
+                                "label": "DP"
+                              }
+                            ],
+                            "id": "l_appl_base",
+                            "label": "ApplP"
+                          }
+                        ],
+                        "id": "l_appl_phrase",
+                        "label": "ApplP"
+                      }
+                    ],
+                    "id": "l_lexical_vp",
+                    "label": "VP"
+                  }
+                ],
+                "id": "l_v_base",
+                "label": "vP"
+              }
+            ],
+            "id": "l_v_phrase",
+            "label": "vP"
+          },
+          {
+            "children": [],
+            "id": "l_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "l_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      "relationIndex": 1
+    }
+  ]
+}

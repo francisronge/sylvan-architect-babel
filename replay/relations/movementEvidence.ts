@@ -1,7 +1,8 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { buildTier2SynonymIndex, relationRoleConcepts, normalizeTier2Synonym, isUnestablishedCovertMovementDescription } from './tier2Synonyms.ts';
+import { buildTier2SynonymIndex, relationRoleConcepts, normalizeTier2Synonym, isCovertMovementDescription, isUnestablishedCovertMovementDescription } from './tier2Synonyms.ts';
 import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
+import { hasUnestablishedCovertMovementOutcome } from './outcomeResolver.ts';
 
 export interface RecoveredMovement {
   /** The actual preceding occurrence; its ID may persist at either current endpoint. */
@@ -182,7 +183,9 @@ export function recoverMovementEvidence(
   previous: readonly SyntaxNode[] = []
 ): MovementEvidenceResult {
   const fail = (code: string, reason: string): MovementEvidenceResult => ({ failure: code, diagnostics: [`${code}: ${reason}`] });
-  if (isUnestablishedCovertMovementDescription(relation.relation))
+  const covertDescription = isCovertMovementDescription(relation.relation);
+  const covertOutcomeUnestablished = covertDescription && hasUnestablishedCovertMovementOutcome(relation.values);
+  if (isUnestablishedCovertMovementDescription(relation.relation) || covertOutcomeUnestablished)
     return fail('MOVEMENT_NOT_ESTABLISHED', 'The covert operation is denied or provisional; its endpoints do not establish an ordinary movement instead.');
   const index = (roots: readonly SyntaxNode[]) => {
     const nodes = new Map<string, SyntaxNode>();
@@ -273,13 +276,13 @@ export function recoverMovementEvidence(
     return node?.lineageId && !prior.duplicates.has(id) && anchored.some(currentId =>
       current.nodes.get(currentId)?.lineageId === node.lineageId && samePriorSlot(currentId, id));
   });
-  // A source clause may contain the moving occurrence. It is context only
+  // A source phrase may contain the moving occurrence. It is context only
   // when a separate lineage-matched pair proves the exact preceding source
-  // slot. Another occurrence or an unrelated clause remains a competing source.
-  const sourceClauseRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?clauses?$/.test(normalizeTier2Synonym(key));
-  const sourceClausePresent = entries.some(e => sourceClauseRole(e.key))
-    || Object.keys(relation.priorAnchors ?? {}).some(sourceClauseRole);
-  const independentPairs = (sourceClausePresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
+  // slot. Another occurrence or an unrelated phrase remains a competing source.
+  const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|[a-z]+p)$/.test(normalizeTier2Synonym(key));
+  const sourceContainerPresent = entries.some(e => sourceContainerRole(e.key))
+    || Object.keys(relation.priorAnchors ?? {}).some(sourceContainerRole);
+  const independentPairs = (sourceContainerPresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
     const before = prior.nodes.get(priorId);
     if (!before?.lineageId || prior.duplicates.has(priorId)) return [];
     return anchored.filter(id => !current.duplicates.has(id) && current.nodes.get(id)?.lineageId === before.lineageId
@@ -288,7 +291,7 @@ export function recoverMovementEvidence(
       return targetId !== sourceId && target?.lineageId === before.lineageId && !current.duplicates.has(targetId)
         && !contains(current.nodes.get(sourceId)!, targetId) && !contains(target, sourceId)
         && entries.some(e => e.ids.length === 1 && e.ids[0] === targetId && hasRole(e.key, 'movement.landing'))
-        && landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }) === 'phrasal';
+        && Boolean(landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }));
     }).map(targetId => ({ priorId, sourceId, targetId })));
   });
   if (independentPairs.length === 1) {
@@ -300,10 +303,10 @@ export function recoverMovementEvidence(
     };
     explicitPriorSources = explicitPriorSources.filter(id => !containingSource(id, pair.priorId, prior)
       || Object.entries(relation.priorAnchors ?? {}).some(([key, value]) => hasRole(key, 'movement.source')
-        && (Array.isArray(value) ? value : [value]).includes(id) && !sourceClauseRole(key)));
+        && (Array.isArray(value) ? value : [value]).includes(id) && !sourceContainerRole(key)));
     structuralPriorSources = structuralPriorSources.filter(id => !containingSource(id, pair.priorId, prior));
     sources = sources.filter(id => !containingSource(id, pair.sourceId, current)
-      || entries.some(e => hasRole(e.key, 'movement.source') && e.ids.includes(id) && !sourceClauseRole(e.key)));
+      || entries.some(e => hasRole(e.key, 'movement.source') && e.ids.includes(id) && !sourceContainerRole(e.key)));
     if (!sources.length) sources = witnesses;
   }
   const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
@@ -341,7 +344,11 @@ export function recoverMovementEvidence(
     });
     return landings.length === 1;
   };
-  const canBindStructuralEndpoints = isMovementIdentity(relation.relation) || explicitPriorSources.length === 1
+  // An asserted covert operation permits structural endpoint recovery without
+  // prescribed participant names. The checks below still require shared root
+  // lineage, an exact preceding source slot and a distinct new landing.
+  const canBindStructuralEndpoints = isMovementIdentity(relation.relation) || covertDescription
+    || explicitPriorSources.length === 1
     || structuralPriorSources.length === 1 && entries.some(e => e.key === 'landing' && e.ids.length === 1)
     || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept)))
     || hasPreservedHeadAdjunction();

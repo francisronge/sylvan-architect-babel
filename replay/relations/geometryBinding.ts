@@ -46,6 +46,7 @@ import {
   transferAccessLanePath,
   vineConvergence
 } from './markGeometry.ts';
+import { planItemRelationRefs } from './renderPlanCompiler.ts';
 import type {
   PlanRelationRef,
   RelationPlanItem,
@@ -1040,6 +1041,8 @@ export type BindGeometryOptions = {
   fallbackMeasurements?: FallbackMeasurements;
   /** Replay reveals neutral relations separately; static comparison plates may show them together. */
   separateFallbackMoments?: boolean;
+  /** Full-frame allocation may include hidden owners; only revealed numerals can supply visible rail joins. */
+  isItemRevealed?: (itemIndex: number) => boolean;
   /** Rendering supplies exact occurrence-text matching, including its existing subscript formatting. */
   hasExistingGapNotation?: (nodeId: string, text: string) => boolean;
   /**
@@ -2357,20 +2360,32 @@ export const bindRelationPlanFrame = (
         y: badge.y,
         numeral: badge.arrayIndex + 1,
         stackIndex: badge.stackIndex,
-        badgeSize: item.badgeSize,
+        badgeSize: item.badgeEntries?.find(entry => entry.roleIndex === item.set.roles.find(role => role.role === badge.role)?.roleIndex
+          && entry.arrayIndex === badge.arrayIndex)?.badgeSize ?? item.badgeSize,
         itemIndex
       }));
-      if (item.showBadges) primitives.push(...badges);
+      const ownsBadge = (badge: typeof layout.badges[number]): boolean => item.badgeEntries
+        ? item.badgeEntries.some(entry => entry.roleIndex === item.set.roles.find(role => role.role === badge.role)?.roleIndex
+          && entry.arrayIndex === badge.arrayIndex)
+        : item.showBadges;
+      const neutralBadge = (badge: typeof layout.badges[number]): BoundFallbackMark | undefined => {
+        const matches = primitives.filter((mark): mark is BoundFallbackMark => {
+          if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId || mark.role !== badge.role
+            || options.isItemRevealed && !options.isItemRevealed(mark.itemIndex)) return false;
+          return planItemRelationRefs(frame.items[mark.itemIndex]).some(owner =>
+            owner.stageIndex === item.relationRef.stageIndex && owner.relationIndex === item.relationRef.relationIndex);
+        });
+        return matches.length === 1 ? matches[0] : undefined;
+      };
+      // A neutral remainder may include supported participants as context.
+      // Its exact same-role numeral already organizes that entry at this moment.
+      const neutralBadges = layout.badges.map(neutralBadge);
+      primitives.push(...badges.filter((_badge, index) => ownsBadge(layout.badges[index]) && !neutralBadges[index]));
       layout.rails.forEach((rail) => {
-        const anchors = layout.badges.flatMap((badge, index) => {
+        const anchors = layout.badges.flatMap<BoundFallbackMark | BoundAnchorSetBadge>((badge, index) => {
           if (badge.role !== rail.role) return [];
-          if (item.showBadges) return [badges[index]];
-          const matches = primitives.filter((mark): mark is BoundFallbackMark | BoundAnchorSetBadge => {
-            if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId) return false;
-            const owner = frame.items[mark.itemIndex].relationRef;
-            return owner.stageIndex === item.relationRef.stageIndex && owner.relationIndex === item.relationRef.relationIndex;
-          });
-          return matches.length === 1 ? matches : [];
+          if (neutralBadges[index]) return [neutralBadges[index]];
+          return ownsBadge(badge) ? [badges[index]] : [];
         });
         if (anchors.length < 2) return;
         primitives.push({

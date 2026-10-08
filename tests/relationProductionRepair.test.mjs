@@ -30,8 +30,8 @@ const gridProvider = (positions) => (nodeId) => positions.get(nodeId) || null;
  * Blocker 2: authored witness kind is authoritative.
  * ------------------------------------------------------------------ */
 
-test('display indexing is additive only: t gains its index; ∅, silent lexical, and overt stay authored', () => {
-  assert.equal(formatAuthoredWitnessSurface('t', '2'), 't₂');
+test('authored trace, null and lexical notation remains unchanged by display indexing', () => {
+  assert.equal(formatAuthoredWitnessSurface('t', '2'), 't');
   assert.match(formatAuthoredWitnessSurface('t₁'), /^t₁$/);
   assert.equal(formatAuthoredWitnessSurface('∅', '1'), '∅', 'authored ∅ stays ∅ even inside a movement chain');
   assert.equal(formatAuthoredWitnessSurface('someone', '3'), 'someone', 'silent lexical material stays lexical');

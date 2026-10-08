@@ -1,0 +1,1403 @@
+{
+  "provenance": {
+    "harness": "Codex OAuth qualification",
+    "note": "Exact saved model-authored stages. No node, relation, or realization repair."
+  },
+  "examples": [
+    {
+      "id": "new/sol-japanese-relative-clause/1/2/1",
+      "source": "/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/relation-order-20261006/sol-japanese-relative-clause/attempts/parse/bundle.json",
+      "sourceSha256": "5003961dd2906d95f0ec6a4556c011272669d53d5dc545796ecf3d8a54637cdc",
+      "sentence": "太郎は花子が読んだ本を買った。",
+      "analysisIndex": 0,
+      "stageIndex": 1,
+      "relationIndex": 0,
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "a-read",
+              "a-rT"
+            ],
+            "tokenIndices": [
+              4,
+              5,
+              6
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "stem": "a-read",
+              "tense": "a-rT"
+            },
+            "relation": "contextual past realization",
+            "values": {
+              "process": "nasal onbin with voiced past exponent",
+              "surfaceTokens": [
+                "読",
+                "ん",
+                "だ"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "Merge a silent transitive little v with the VP, then merge 花子が as its external argument. Merge past T above that constituent. This analysis does not require Japanese subjects to raise to a separate TP specifier. Establish a contextual spell-out relation between 読 and past T: the stem's nasal onbin form and the voiced past exponent jointly realize 読・ん・だ. The underlying past item is retained as た in the syntax. The realization group records the combined inflectional output; it neither makes ん an independent syntactic head nor entails V-to-T movement across little v.",
+        "statement": "Build the relative TP and establish 読んだ.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a-hanako",
+                        "label": "D[proper name]",
+                        "tokenIndex": 2,
+                        "word": "花子"
+                      },
+                      {
+                        "children": [],
+                        "id": "a-ga",
+                        "label": "K[nominative]",
+                        "tokenIndex": 3,
+                        "word": "が"
+                      }
+                    ],
+                    "id": "a-hanakoKP",
+                    "label": "KP[nominative]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "a-op0",
+                            "label": "D[relative operator]",
+                            "lineageId": "a-operator",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "a-read",
+                            "label": "V",
+                            "tokenIndex": 4,
+                            "word": "読"
+                          }
+                        ],
+                        "id": "a-rVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [],
+                        "id": "a-rv",
+                        "label": "v[transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "a-rvPrime",
+                    "label": "v"
+                  }
+                ],
+                "id": "a-rvP",
+                "label": "vP"
+              },
+              {
+                "children": [],
+                "id": "a-rT",
+                "label": "T[past]",
+                "word": "た"
+              }
+            ],
+            "id": "a-rTP",
+            "label": "TP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new/sol-japanese-relative-clause/1/5/1",
+      "source": "/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/relation-order-20261006/sol-japanese-relative-clause/attempts/parse/bundle.json",
+      "sourceSha256": "5003961dd2906d95f0ec6a4556c011272669d53d5dc545796ecf3d8a54637cdc",
+      "sentence": "太郎は花子が読んだ本を買った。",
+      "analysisIndex": 0,
+      "stageIndex": 4,
+      "relationIndex": 0,
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "a-read",
+              "a-rT"
+            ],
+            "tokenIndices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "nodeIds": [
+              "a-buy",
+              "a-mT"
+            ],
+            "tokenIndices": [
+              9,
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "stem": "a-buy",
+              "tense": "a-mT"
+            },
+            "relation": "contextual past realization",
+            "values": {
+              "process": "geminate onbin with past exponent",
+              "surfaceTokens": [
+                "買",
+                "っ",
+                "た"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "Merge silent transitive little v with the matrix VP, and merge the already constructed 太郎は phrase as the matrix external argument. Merge past T above this vP. The subject is topic-marked rather than overtly nominative; は is not analyzed as a second thematic argument or as the matrix predicate's object. Establish the contextual inflectional realization of 買 and past T as 買・っ・た, with the geminate onbin segment supplied by their combined realization. As in the relative clause, the realization does not require syntactic verb movement. The workspace now contains the source position from which subject topicalization can proceed.",
+        "statement": "Construct the matrix TP with 太郎 as its external argument.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a-taro0",
+                        "label": "D[proper name]",
+                        "lineageId": "a-taro",
+                        "tokenIndex": 0,
+                        "word": "太郎"
+                      },
+                      {
+                        "children": [],
+                        "id": "a-wa0",
+                        "label": "K[topic]",
+                        "lineageId": "a-wa",
+                        "tokenIndex": 1,
+                        "word": "は"
+                      }
+                    ],
+                    "id": "a-taroKP0",
+                    "label": "KP[topic]",
+                    "lineageId": "a-taroKP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "a-op1",
+                                            "label": "D[relative operator]",
+                                            "lineageId": "a-operator",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "a-hanako",
+                                                            "label": "D[proper name]",
+                                                            "tokenIndex": 2,
+                                                            "word": "花子"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "a-ga",
+                                                            "label": "K[nominative]",
+                                                            "tokenIndex": 3,
+                                                            "word": "が"
+                                                          }
+                                                        ],
+                                                        "id": "a-hanakoKP",
+                                                        "label": "KP[nominative]"
+                                                      },
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "a-op0",
+                                                                "label": "D[relative operator]",
+                                                                "lineageId": "a-operator",
+                                                                "silent": true
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "a-read",
+                                                                "label": "V",
+                                                                "tokenIndex": 4,
+                                                                "word": "読"
+                                                              }
+                                                            ],
+                                                            "id": "a-rVP",
+                                                            "label": "VP"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "a-rv",
+                                                            "label": "v[transitive]",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "a-rvPrime",
+                                                        "label": "v"
+                                                      }
+                                                    ],
+                                                    "id": "a-rvP",
+                                                    "label": "vP"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "a-rT",
+                                                    "label": "T[past]",
+                                                    "word": "た"
+                                                  }
+                                                ],
+                                                "id": "a-rTP",
+                                                "label": "TP"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "a-rC",
+                                                "label": "C[relative]",
+                                                "silent": true
+                                              }
+                                            ],
+                                            "id": "a-rCPrime",
+                                            "label": "C"
+                                          }
+                                        ],
+                                        "id": "a-rCP",
+                                        "label": "CP[relative]"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "a-book",
+                                        "label": "N",
+                                        "tokenIndex": 7,
+                                        "word": "本"
+                                      }
+                                    ],
+                                    "id": "a-bookNP",
+                                    "label": "NP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "a-bookD",
+                                    "label": "D",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "a-objectDP",
+                                "label": "DP"
+                              },
+                              {
+                                "children": [],
+                                "id": "a-wo",
+                                "label": "K[accusative]",
+                                "tokenIndex": 8,
+                                "word": "を"
+                              }
+                            ],
+                            "id": "a-objectKP",
+                            "label": "KP[accusative]"
+                          },
+                          {
+                            "children": [],
+                            "id": "a-buy",
+                            "label": "V",
+                            "tokenIndex": 9,
+                            "word": "買"
+                          }
+                        ],
+                        "id": "a-mVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [],
+                        "id": "a-mv",
+                        "label": "v[transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "a-mvPrime",
+                    "label": "v"
+                  }
+                ],
+                "id": "a-mvP",
+                "label": "vP"
+              },
+              {
+                "children": [],
+                "id": "a-mT",
+                "label": "T[past]",
+                "tokenIndex": 11,
+                "word": "た"
+              }
+            ],
+            "id": "a-mTP",
+            "label": "TP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new/sol-japanese-relative-clause/2/2/1",
+      "source": "/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/relation-order-20261006/sol-japanese-relative-clause/attempts/parse/bundle.json",
+      "sourceSha256": "5003961dd2906d95f0ec6a4556c011272669d53d5dc545796ecf3d8a54637cdc",
+      "sentence": "太郎は花子が読んだ本を買った。",
+      "analysisIndex": 1,
+      "stageIndex": 1,
+      "relationIndex": 0,
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "b-read",
+              "b-rT"
+            ],
+            "tokenIndices": [
+              4,
+              5,
+              6
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "stem": "b-read",
+              "tense": "b-rT"
+            },
+            "relation": "contextual past realization",
+            "values": {
+              "process": "nasal onbin with voiced past exponent",
+              "surfaceTokens": [
+                "読",
+                "ん",
+                "だ"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "Merge silent transitive little v with the VP, merge 花子が as the external argument, and then merge past T. No additional subject-raising step is imposed. Establish contextual realization of 読 and underlying past た as 読・ん・だ. Nasal onbin and voicing are properties of this joint inflectional output, not evidence that each supplied token must be a separate syntactic terminal. The grouping records this realization without adding a syntactic head-movement chain.",
+        "statement": "Build the embedded TP and realize its past predicate.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "b-hanako",
+                        "label": "D[proper name]",
+                        "tokenIndex": 2,
+                        "word": "花子"
+                      },
+                      {
+                        "children": [],
+                        "id": "b-ga",
+                        "label": "K[nominative]",
+                        "tokenIndex": 3,
+                        "word": "が"
+                      }
+                    ],
+                    "id": "b-hanakoKP",
+                    "label": "KP[nominative]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "b-op0",
+                            "label": "D[relative operator]",
+                            "lineageId": "b-operator",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "b-read",
+                            "label": "V",
+                            "tokenIndex": 4,
+                            "word": "読"
+                          }
+                        ],
+                        "id": "b-rVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [],
+                        "id": "b-rv",
+                        "label": "v[transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "b-rvPrime",
+                    "label": "v"
+                  }
+                ],
+                "id": "b-rvP",
+                "label": "vP"
+              },
+              {
+                "children": [],
+                "id": "b-rT",
+                "label": "T[past]",
+                "word": "た"
+              }
+            ],
+            "id": "b-rTP",
+            "label": "TP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new/sol-japanese-relative-clause/2/5/1",
+      "source": "/Users/francisronge/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/relation-order-20261006/sol-japanese-relative-clause/attempts/parse/bundle.json",
+      "sourceSha256": "5003961dd2906d95f0ec6a4556c011272669d53d5dc545796ecf3d8a54637cdc",
+      "sentence": "太郎は花子が読んだ本を買った。",
+      "analysisIndex": 1,
+      "stageIndex": 4,
+      "relationIndex": 0,
+      "stage": {
+        "realizations": [
+          {
+            "nodeIds": [
+              "b-read",
+              "b-rT"
+            ],
+            "tokenIndices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "nodeIds": [
+              "b-buy",
+              "b-mT"
+            ],
+            "tokenIndices": [
+              9,
+              10,
+              11
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "stem": "b-buy",
+              "tense": "b-mT"
+            },
+            "relation": "contextual past realization",
+            "values": {
+              "process": "geminate onbin with past exponent",
+              "surfaceTokens": [
+                "買",
+                "っ",
+                "た"
+              ]
+            }
+          }
+        ],
+        "stageRecord": "Merge silent transitive little v with the matrix VP, then merge pro as the external argument. Merge past T above that vP. 太郎は remains a separate object because it has not occupied the external-argument position. Establish contextual realization of 買 and past T as 買・っ・た, with geminate onbin rather than an independently selected syntactic っ head. This gives a complete past-tense comment clause with a contextually recoverable buyer while leaving the overt topic available for external Merge.",
+        "statement": "Build a matrix TP whose buyer is the null subject.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "b-pro",
+                    "label": "D[pro]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "b-op1",
+                                            "label": "D[relative operator]",
+                                            "lineageId": "b-operator",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "b-hanako",
+                                                            "label": "D[proper name]",
+                                                            "tokenIndex": 2,
+                                                            "word": "花子"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "b-ga",
+                                                            "label": "K[nominative]",
+                                                            "tokenIndex": 3,
+                                                            "word": "が"
+                                                          }
+                                                        ],
+                                                        "id": "b-hanakoKP",
+                                                        "label": "KP[nominative]"
+                                                      },
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "b-op0",
+                                                                "label": "D[relative operator]",
+                                                                "lineageId": "b-operator",
+                                                                "silent": true
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "b-read",
+                                                                "label": "V",
+                                                                "tokenIndex": 4,
+                                                                "word": "読"
+                                                              }
+                                                            ],
+                                                            "id": "b-rVP",
+                                                            "label": "VP"
+                                                          },
+                                                          {
+                                                            "children": [],
+                                                            "id": "b-rv",
+                                                            "label": "v[transitive]",
+                                                            "silent": true
+                                                          }
+                                                        ],
+                                                        "id": "b-rvPrime",
+                                                        "label": "v"
+                                                      }
+                                                    ],
+                                                    "id": "b-rvP",
+                                                    "label": "vP"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "b-rT",
+                                                    "label": "T[past]",
+                                                    "word": "た"
+                                                  }
+                                                ],
+                                                "id": "b-rTP",
+                                                "label": "TP"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "b-rC",
+                                                "label": "C[relative]",
+                                                "silent": true
+                                              }
+                                            ],
+                                            "id": "b-rCPrime",
+                                            "label": "C"
+                                          }
+                                        ],
+                                        "id": "b-rCP",
+                                        "label": "CP[relative]"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "b-book",
+                                        "label": "N",
+                                        "tokenIndex": 7,
+                                        "word": "本"
+                                      }
+                                    ],
+                                    "id": "b-bookNP",
+                                    "label": "NP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "b-bookD",
+                                    "label": "D",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "b-objectDP",
+                                "label": "DP"
+                              },
+                              {
+                                "children": [],
+                                "id": "b-wo",
+                                "label": "K[accusative]",
+                                "tokenIndex": 8,
+                                "word": "を"
+                              }
+                            ],
+                            "id": "b-objectKP",
+                            "label": "KP[accusative]"
+                          },
+                          {
+                            "children": [],
+                            "id": "b-buy",
+                            "label": "V",
+                            "tokenIndex": 9,
+                            "word": "買"
+                          }
+                        ],
+                        "id": "b-mVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [],
+                        "id": "b-mv",
+                        "label": "v[transitive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "b-mvPrime",
+                    "label": "v"
+                  }
+                ],
+                "id": "b-mvP",
+                "label": "vP"
+              },
+              {
+                "children": [],
+                "id": "b-mT",
+                "label": "T[past]",
+                "tokenIndex": 11,
+                "word": "た"
+              }
+            ],
+            "id": "b-mTP",
+            "label": "TP"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "b-taro",
+                "label": "D[proper name]",
+                "tokenIndex": 0,
+                "word": "太郎"
+              },
+              {
+                "children": [],
+                "id": "b-wa",
+                "label": "K[topic]",
+                "tokenIndex": 1,
+                "word": "は"
+              }
+            ],
+            "id": "b-taroKP",
+            "label": "KP[topic]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "old/sol-spanish-scope/1/3/2",
+      "source": "/tmp/babel-ten-model-comparison-20261006/sol-spanish-scope/attempts/parse/bundle.json",
+      "sourceSha256": "a3b0513f867c4d3d5cb74310d975f1a47dc3fd953c8c423024014b0897414753",
+      "sentence": "Una profesora revisó cada informe.",
+      "analysisIndex": 0,
+      "stageIndex": 2,
+      "relationIndex": 1,
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "logical_branch": "lip",
+              "phonological_branch": "ip"
+            },
+            "relation": "interface_branching",
+            "values": {
+              "architecture": "GB PF/LF branching",
+              "pronunciation": "only the PF branch supplies input tokens"
+            }
+          },
+          {
+            "anchors": {
+              "LF_occurrences": [
+                "lsub",
+                "lobj",
+                "lv",
+                "ltv",
+                "li"
+              ],
+              "PF_occurrences": [
+                "sub",
+                "obj",
+                "v",
+                "tv",
+                "i"
+              ]
+            },
+            "relation": "cross_interface_correspondence",
+            "values": {
+              "identity": "corresponding occurrences preserve argument, head-chain, and inflectional identity"
+            }
+          }
+        ],
+        "stageRecord": "The GB architecture branches the established surface syntax toward PF and LF. The existing IP is retained as the PF-facing representation, accounting for Una profesora revisó cada informe in that order. A distinct, entirely unpronounced LF representation preserves the same subject position, object position, and V-to-I chain before quantifier raising. Corresponding DP and head occurrences share identity across the branches. This separate LF workspace is necessary because the next operation moves the object only at LF, not in the pronunciation-bearing tree.",
+        "statement": "Branch the surface representation into PF and an initially unmoved LF representation.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "una",
+                        "label": "D",
+                        "lineageId": "indefinite-determiner",
+                        "tokenIndex": 0,
+                        "word": "Una"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "prof",
+                                "label": "N",
+                                "lineageId": "subject-noun",
+                                "tokenIndex": 1,
+                                "word": "profesora"
+                              }
+                            ],
+                            "id": "subnbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "subnp",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "subbar",
+                    "label": "D′"
+                  }
+                ],
+                "id": "sub",
+                "label": "DP",
+                "lineageId": "subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "v",
+                        "label": "V",
+                        "lineageId": "verb",
+                        "tokenIndex": 2,
+                        "word": "revisó"
+                      },
+                      {
+                        "children": [],
+                        "id": "i",
+                        "label": "I [finite, past, 3sg]",
+                        "lineageId": "inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "ihead",
+                    "label": "I"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "tv",
+                            "label": "V-trace",
+                            "lineageId": "verb",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "cada",
+                                    "label": "D [universal]",
+                                    "lineageId": "universal-determiner",
+                                    "tokenIndex": 3,
+                                    "word": "cada"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "inf",
+                                            "label": "N",
+                                            "lineageId": "object-noun",
+                                            "tokenIndex": 4,
+                                            "word": "informe"
+                                          }
+                                        ],
+                                        "id": "objnbar",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "objnp",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "objbar",
+                                "label": "D′"
+                              }
+                            ],
+                            "id": "obj",
+                            "label": "DP",
+                            "lineageId": "object"
+                          }
+                        ],
+                        "id": "vbar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "VP",
+                    "lineageId": "predicate"
+                  }
+                ],
+                "id": "ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP",
+            "lineageId": "clause"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "luna",
+                        "label": "D",
+                        "lineageId": "indefinite-determiner",
+                        "silent": true,
+                        "word": "Una"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "lprof",
+                                "label": "N",
+                                "lineageId": "subject-noun",
+                                "silent": true,
+                                "word": "profesora"
+                              }
+                            ],
+                            "id": "lsubnbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "lsubnp",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "lsubbar",
+                    "label": "D′"
+                  }
+                ],
+                "id": "lsub",
+                "label": "DP",
+                "lineageId": "subject",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "lv",
+                        "label": "V",
+                        "lineageId": "verb",
+                        "silent": true,
+                        "word": "revisó"
+                      },
+                      {
+                        "children": [],
+                        "id": "li",
+                        "label": "I [finite, past, 3sg]",
+                        "lineageId": "inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "lihead",
+                    "label": "I"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "ltv",
+                            "label": "V-trace",
+                            "lineageId": "verb",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "lcada",
+                                    "label": "D [universal]",
+                                    "lineageId": "universal-determiner",
+                                    "silent": true,
+                                    "word": "cada"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "linf",
+                                            "label": "N",
+                                            "lineageId": "object-noun",
+                                            "silent": true,
+                                            "word": "informe"
+                                          }
+                                        ],
+                                        "id": "lobjnbar",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "lobjnp",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "lobjbar",
+                                "label": "D′"
+                              }
+                            ],
+                            "id": "lobj",
+                            "label": "DP",
+                            "lineageId": "object",
+                            "silent": true
+                          }
+                        ],
+                        "id": "lvbar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "lvp",
+                    "label": "VP",
+                    "lineageId": "predicate"
+                  }
+                ],
+                "id": "libar",
+                "label": "I′"
+              }
+            ],
+            "id": "lip",
+            "label": "IP [LF]",
+            "lineageId": "clause",
+            "silent": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "old/sol-spanish-scope/2/3/2",
+      "source": "/tmp/babel-ten-model-comparison-20261006/sol-spanish-scope/attempts/parse/bundle.json",
+      "sourceSha256": "a3b0513f867c4d3d5cb74310d975f1a47dc3fd953c8c423024014b0897414753",
+      "sentence": "Una profesora revisó cada informe.",
+      "analysisIndex": 1,
+      "stageIndex": 2,
+      "relationIndex": 1,
+      "stage": {
+        "relations": [
+          {
+            "anchors": {
+              "logical_branch": "lip",
+              "phonological_branch": "ip"
+            },
+            "relation": "interface_branching",
+            "values": {
+              "architecture": "GB PF/LF branching",
+              "pronunciation": "only the PF branch supplies input tokens"
+            }
+          },
+          {
+            "anchors": {
+              "LF_occurrences": [
+                "lsub",
+                "lobj",
+                "lv",
+                "ltv",
+                "li"
+              ],
+              "PF_occurrences": [
+                "sub",
+                "obj",
+                "v",
+                "tv",
+                "i"
+              ]
+            },
+            "relation": "cross_interface_correspondence",
+            "values": {
+              "identity": "corresponding occurrences preserve argument, head-chain, and inflectional identity"
+            }
+          }
+        ],
+        "stageRecord": "The established surface representation branches toward PF and LF in the GB architecture. The retained IP is the PF-facing tree and supplies every input word exactly once. The new LF tree is entirely unpronounced and initially reproduces the same argument positions and verbal head chain. Corresponding occurrences preserve identity across the two interfaces. Creating this unmoved LF workspace before quantifier raising makes the object's source position explicit and prevents the upcoming covert movement from changing surface word order.",
+        "statement": "Establish separate PF and LF branches before inverse-scope movement.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "una",
+                        "label": "D",
+                        "lineageId": "indefinite-determiner",
+                        "tokenIndex": 0,
+                        "word": "Una"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "prof",
+                                "label": "N",
+                                "lineageId": "subject-noun",
+                                "tokenIndex": 1,
+                                "word": "profesora"
+                              }
+                            ],
+                            "id": "subnbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "subnp",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "subbar",
+                    "label": "D′"
+                  }
+                ],
+                "id": "sub",
+                "label": "DP",
+                "lineageId": "subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "v",
+                        "label": "V",
+                        "lineageId": "verb",
+                        "tokenIndex": 2,
+                        "word": "revisó"
+                      },
+                      {
+                        "children": [],
+                        "id": "i",
+                        "label": "I [finite, past, 3sg]",
+                        "lineageId": "inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "ihead",
+                    "label": "I"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "tv",
+                            "label": "V-trace",
+                            "lineageId": "verb",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "cada",
+                                    "label": "D [universal]",
+                                    "lineageId": "universal-determiner",
+                                    "tokenIndex": 3,
+                                    "word": "cada"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "inf",
+                                            "label": "N",
+                                            "lineageId": "object-noun",
+                                            "tokenIndex": 4,
+                                            "word": "informe"
+                                          }
+                                        ],
+                                        "id": "objnbar",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "objnp",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "objbar",
+                                "label": "D′"
+                              }
+                            ],
+                            "id": "obj",
+                            "label": "DP",
+                            "lineageId": "object"
+                          }
+                        ],
+                        "id": "vbar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "VP",
+                    "lineageId": "predicate"
+                  }
+                ],
+                "id": "ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP",
+            "lineageId": "clause"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "luna",
+                        "label": "D",
+                        "lineageId": "indefinite-determiner",
+                        "silent": true,
+                        "word": "Una"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "lprof",
+                                "label": "N",
+                                "lineageId": "subject-noun",
+                                "silent": true,
+                                "word": "profesora"
+                              }
+                            ],
+                            "id": "lsubnbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "lsubnp",
+                        "label": "NP"
+                      }
+                    ],
+                    "id": "lsubbar",
+                    "label": "D′"
+                  }
+                ],
+                "id": "lsub",
+                "label": "DP",
+                "lineageId": "subject",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "lv",
+                        "label": "V",
+                        "lineageId": "verb",
+                        "silent": true,
+                        "word": "revisó"
+                      },
+                      {
+                        "children": [],
+                        "id": "li",
+                        "label": "I [finite, past, 3sg]",
+                        "lineageId": "inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "lihead",
+                    "label": "I"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "ltv",
+                            "label": "V-trace",
+                            "lineageId": "verb",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "lcada",
+                                    "label": "D [universal]",
+                                    "lineageId": "universal-determiner",
+                                    "silent": true,
+                                    "word": "cada"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "linf",
+                                            "label": "N",
+                                            "lineageId": "object-noun",
+                                            "silent": true,
+                                            "word": "informe"
+                                          }
+                                        ],
+                                        "id": "lobjnbar",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "lobjnp",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "lobjbar",
+                                "label": "D′"
+                              }
+                            ],
+                            "id": "lobj",
+                            "label": "DP",
+                            "lineageId": "object",
+                            "silent": true
+                          }
+                        ],
+                        "id": "lvbar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "lvp",
+                    "label": "VP",
+                    "lineageId": "predicate"
+                  }
+                ],
+                "id": "libar",
+                "label": "I′"
+              }
+            ],
+            "id": "lip",
+            "label": "IP [LF]",
+            "lineageId": "clause",
+            "silent": true
+          }
+        ]
+      }
+    }
+  ]
+}

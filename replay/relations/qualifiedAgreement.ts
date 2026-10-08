@@ -153,7 +153,10 @@ export function recoverRelativeConcord(evidence: Tier2FacetEvidence) {
 /** A nominal concord inventory shares each explicitly supplied property.
  * Case in this inventory is concord, never an external assignment direction. */
 export function recoverQualifiedNominalConcord(evidence: Tier2FacetEvidence) {
-  if (normalizeTier2Synonym(evidence.relationName) !== 'nominal concord' || !establishesAssignment(evidence)) return [];
+  const clauses = relationLabelClauses(evidence.relationName);
+  if (clauses.length !== 1 || !/^(?:[\p{L}]+ )?concord$/u.test(clauses[0])
+    || !agreementAssertion(evidence) || relationAssertionFailure(evidence.relationName, 'agreement')
+    || !establishesAssignment(evidence)) return [];
   const rows = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.rows')
     || entry.concepts.includes('case.literal') || /^(?:definiteness|noun class)$/u.test(normalizeTier2Synonym(entry.key)));
   if (!rows.some(entry => !entry.concepts.includes('feature.rows')) || rows.some(entry => !entry.items.length || entry.items.some(item => !item.trim()))) return [];

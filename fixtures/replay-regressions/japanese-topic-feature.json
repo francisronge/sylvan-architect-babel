@@ -1,0 +1,319 @@
+{
+  "provenance": {
+    "harness": "Codex OAuth qualification",
+    "source": "/tmp/babel-ten-model-comparison-20261006/astra-japanese-relative-clause/attempts/parse/bundle.json",
+    "model": "gpt-6-astra",
+    "analysisIndex": 0,
+    "stageIndex": 5,
+    "relationIndex": 1,
+    "note": "Exact model-authored stage; no output repair."
+  },
+  "sentence": "太郎は花子が読んだ本を買った。",
+  "stage": {
+    "realizations": [
+      {
+        "nodeIds": [
+          "read",
+          "rT"
+        ],
+        "tokenIndices": [
+          4,
+          5,
+          6
+        ]
+      },
+      {
+        "nodeIds": [
+          "buy",
+          "mT"
+        ],
+        "tokenIndices": [
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "anchors": {
+          "attractingHead": "top",
+          "higherOccurrence": "taroK1",
+          "lowerOccurrence": "taroK0"
+        },
+        "relation": "Internal Merge of the subject-topic",
+        "values": {
+          "dependency": "subject topicalization",
+          "pronouncedOccurrence": "higher copy"
+        }
+      },
+      {
+        "anchors": {
+          "licenser": "top",
+          "particle": "wa1",
+          "topic": "taroK1"
+        },
+        "relation": "topic-feature licensing",
+        "values": {
+          "feature": "topic"
+        }
+      },
+      {
+        "anchors": {
+          "pronouncedCopy": "taroK1",
+          "unpronouncedCopy": "taroK0"
+        },
+        "priorAnchors": {
+          "previouslyPronouncedOccurrence": "taroK0"
+        },
+        "relation": "copy pronunciation",
+        "values": {
+          "rule": "pronounce the highest topic-chain occurrence"
+        }
+      }
+    ],
+    "stageRecord": "A silent Top head merges with the matrix T constituent. Internal Merge copies the already present 太郎は constituent to its edge, where its topic feature is licensed. The higher occurrence is pronounced and the lower occurrence is silenced; the lower copy retains the structure that received the buyer role and nominative licensing. A silent declarative C closes the clause. The resulting pronunciation is 太郎は花子が読んだ本を買った, with the object relative contained entirely inside the matrix object. The interpretation is that, as for Taro, he bought the book or books Hanako read; Japanese 本 does not itself specify number or definiteness. The final 。 is sentence punctuation, not an additional member of the supplied token list.",
+    "statement": "Complete the topic dependency and the declarative sentence.",
+    "workspaceForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "taro1",
+                    "label": "N",
+                    "lineageId": "taroNominal",
+                    "tokenIndex": 0,
+                    "word": "太郎"
+                  },
+                  {
+                    "children": [],
+                    "id": "wa1",
+                    "label": "K[topic]",
+                    "lineageId": "topicParticle",
+                    "tokenIndex": 1,
+                    "word": "は"
+                  }
+                ],
+                "id": "taroK1",
+                "label": "K[topic]",
+                "lineageId": "taroTopic"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "taro0",
+                                "label": "N",
+                                "lineageId": "taroNominal",
+                                "silent": true,
+                                "word": "太郎"
+                              },
+                              {
+                                "children": [],
+                                "id": "wa0",
+                                "label": "K[topic]",
+                                "lineageId": "topicParticle",
+                                "silent": true,
+                                "word": "は"
+                              }
+                            ],
+                            "id": "taroK0",
+                            "label": "K[topic]",
+                            "lineageId": "taroTopic",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "rop1",
+                                                "label": "D[relative operator]",
+                                                "lineageId": "relativeOperator",
+                                                "silent": true
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [],
+                                                                "id": "hanako",
+                                                                "label": "N",
+                                                                "tokenIndex": 2,
+                                                                "word": "花子"
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "ga",
+                                                                "label": "K[nominative]",
+                                                                "tokenIndex": 3,
+                                                                "word": "が"
+                                                              }
+                                                            ],
+                                                            "id": "hanakoK",
+                                                            "label": "K"
+                                                          },
+                                                          {
+                                                            "children": [
+                                                              {
+                                                                "children": [
+                                                                  {
+                                                                    "children": [],
+                                                                    "id": "rop0",
+                                                                    "label": "D[relative operator]",
+                                                                    "lineageId": "relativeOperator",
+                                                                    "silent": true
+                                                                  },
+                                                                  {
+                                                                    "children": [],
+                                                                    "id": "read",
+                                                                    "label": "V",
+                                                                    "word": "読む"
+                                                                  }
+                                                                ],
+                                                                "id": "readVP",
+                                                                "label": "V"
+                                                              },
+                                                              {
+                                                                "children": [],
+                                                                "id": "rv",
+                                                                "label": "v[transitive]",
+                                                                "silent": true
+                                                              }
+                                                            ],
+                                                            "id": "rvcore",
+                                                            "label": "v"
+                                                          }
+                                                        ],
+                                                        "id": "rvp",
+                                                        "label": "v"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "rT",
+                                                        "label": "T[past]",
+                                                        "word": "た"
+                                                      }
+                                                    ],
+                                                    "id": "relativeTP",
+                                                    "label": "T"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "rC",
+                                                    "label": "C[relative]",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "relativeCcore",
+                                                "label": "C"
+                                              }
+                                            ],
+                                            "id": "relativeCP",
+                                            "label": "C"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "book",
+                                            "label": "N",
+                                            "tokenIndex": 7,
+                                            "word": "本"
+                                          }
+                                        ],
+                                        "id": "modifiedBook",
+                                        "label": "N"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "wo",
+                                        "label": "K[accusative]",
+                                        "tokenIndex": 8,
+                                        "word": "を"
+                                      }
+                                    ],
+                                    "id": "bookK",
+                                    "label": "K"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "buy",
+                                    "label": "V",
+                                    "word": "買う"
+                                  }
+                                ],
+                                "id": "buyVP",
+                                "label": "V"
+                              },
+                              {
+                                "children": [],
+                                "id": "mv",
+                                "label": "v[transitive]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "mvcore",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "mvp",
+                        "label": "v"
+                      },
+                      {
+                        "children": [],
+                        "id": "mT",
+                        "label": "T[past]",
+                        "word": "た"
+                      }
+                    ],
+                    "id": "matrixTP",
+                    "label": "T"
+                  },
+                  {
+                    "children": [],
+                    "id": "top",
+                    "label": "Top",
+                    "silent": true
+                  }
+                ],
+                "id": "topCore",
+                "label": "Top"
+              }
+            ],
+            "id": "topP",
+            "label": "Top"
+          },
+          {
+            "children": [],
+            "id": "mC",
+            "label": "C[declarative]",
+            "silent": true
+          }
+        ],
+        "id": "matrixCP",
+        "label": "C"
+      }
+    ]
+  }
+}

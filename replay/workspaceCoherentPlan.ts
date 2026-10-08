@@ -1,3 +1,4 @@
+import { earlierWorkspaceForks, prepareWorkspaceHistoryGuard, WORKSPACE_HISTORY_EVALUATION_LIMIT } from './workspaceHistoryRefinement.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { workspaceVisualScore, compareWorkspaceVisualScores, workspaceGapProposals, adjustWorkspaceGapPreference, workspaceRealizedGap, workspaceFinalWidth, keepsWorkspaceFinalWidth, keepsWorkspaceFinalExtent, workspaceVisualSummary, type WorkspaceVisualSummary, type WorkspaceVisualScore } from './workspaceVisualScore.ts';
 import { withinWorkspaceVisualPreference } from './workspaceVisualPreference.ts';
@@ -51,6 +52,8 @@ export type CoherentWorkspaceDiagnostic = {
   detail?: string;
   evaluations: number;
   pairedEvaluations?: number;
+  historyEvaluations?: number;
+  historyCorrections?: number;
   alternateSeedEvaluations?: number;
   alternateSeedCorrections?: number;
   corrections: number;
@@ -316,6 +319,47 @@ export function planCoherentWorkspace(scenes: readonly Scene[], baseline: Reserv
     compose.retainOnlyBaseline(best.frames);
     if (!accepted)
       break;
+  }
+  diagnostic.historyEvaluations = 0;
+  diagnostic.historyCorrections = 0;
+  // Final-frame refinement cannot distinguish an unnecessary earlier span from
+  // an equally good compact history. Try only expanded completed-stage forks,
+  // keeping the final contour and every completed stage's current geometry safe.
+  const earlier = earlierWorkspaceForks(best.frames, parts.values(), referencePreferences);
+  for (const { part, index, reference } of earlier) {
+    if (diagnostic.historyEvaluations >= WORKSPACE_HISTORY_EVALUATION_LIMIT) break;
+    const initial = best, initialPreferences = preferred;
+    const current = initial.frames[part.last].nodes.get(part.id)!;
+    const currentGap = current.members.get(part.children[index].id)!.x - current.members.get(part.children[index - 1].id)!.x;
+    const guard = prepareWorkspaceHistoryGuard(initial.frames, references, placement.coordinates);
+    let low = reference, high = currentGap;
+    let selected: { preferences: typeof preferred; plan: typeof acceptedPlans[number] } | undefined;
+    for (let attempt = 0; diagnostic.historyEvaluations < WORKSPACE_HISTORY_EVALUATION_LIMIT; attempt++) {
+      const wanted = attempt ? (low + high) / 2 : low;
+      if (high - wanted <= 1e-6) break;
+      const points = adjustWorkspaceGapPreference(initialPreferences.get(part.incarnation)!, part.children.map(child => child.id), index, currentGap, wanted);
+      if (!points) break;
+      const preferences = new Map(initialPreferences).set(part.incarnation, points);
+      const trial = { frames: initial.frames, incarnation: part.incarnation, split: index };
+      if (compose.preservesLockedGap(initial.frames, preferences, trial)) break;
+      diagnostic.historyEvaluations++;
+      const candidate = evaluate(preferences, undefined, trial);
+      const composed = candidate?.frames[part.last].nodes.get(part.id);
+      const gap = composed && composed.members.get(part.children[index].id)!.x - composed.members.get(part.children[index - 1].id)!.x;
+      if (!candidate || gap === undefined || gap >= high - 1e-6 || !guard.contours(candidate.frames)) { low = wanted; continue; }
+      const next = placeRigidGroups(candidate.graph, referenceFrames);
+      if (next.accepted === false || !guard.placement(next.coordinates)) { low = wanted; continue; }
+      high = wanted;
+      selected = { preferences, plan: { candidate, placement: next, finalWidth: workspaceFinalWidth(next.coordinates.at(-1)!) } };
+      if (!attempt) break;
+    }
+    if (selected) {
+      preferred = selected.preferences; best = selected.plan.candidate; placement = selected.plan.placement;
+      acceptedPlans.push(selected.plan);
+      diagnostic.corrections++; diagnostic.historyCorrections++;
+      validatedStop = undefined;
+    }
+    compose.retainOnlyBaseline(best.frames);
   }
   const searchedAt = performance.now();
   diagnostic.pairedEvaluations = pairBudget.evaluations;

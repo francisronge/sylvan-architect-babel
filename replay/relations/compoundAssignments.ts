@@ -137,7 +137,7 @@ export function recoverCompoundAssignments(evidence: Tier2FacetEvidence): Assign
       scopes.push({ kind, origins: {
         anchors: { [source.key]: [index], [target.key]: [index] },
         values: { [value.key]: [valueIndex], ...Object.fromEntries(outcomes.map(entry => [entry.key, entry.items.map((_, i) => i)])) }
-      }, evidence: { currentForest: evidence.currentForest,
+      }, evidence: { relationName: evidence.relationName, currentForest: evidence.currentForest,
         currentAnchors: { [sourceRole]: [source.items[index]], [targetRole]: [target.items[index]] },
         values: { [valueRole]: [literal], ...(outcomes.length ? { outcome: outcomes.flatMap(entry => [...entry.items]) } : {}) },
         authoredCurrentAnchors: scopedAnchors, authoredValues: [scopedValue, ...outcomes] } });

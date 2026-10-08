@@ -545,14 +545,30 @@ test('Tier-2 large-array organization preserves unrelated envelope evidence as T
     }], chorusForest(true)),
     stage([], chorusForest(false))
   ]);
-  const stageOneKinds = plan.frames[0].items.map((item) => item.kind).sort();
-  assert.deepEqual(stageOneKinds, ['anchor-set', 'coindex', 'fallback']);
+  const atMoment = visiblePlanFrameItems(plan, 0, new Set([0]), 0);
+  assert.deepEqual(atMoment.map(item => item.kind).sort(), ['anchor-set', 'coindex', 'fallback']);
   const residual = plan.frames[0].items.find((item) => item.kind === 'fallback');
   assert.deepEqual(residual?.drawing.marks.map(({ witness }) => witness), [...members, ...members, 'anno_ch']);
   assert.deepEqual(residual.relationRef.anchors, { annotation: 'anno_ch' });
-  const stageTwoKinds = plan.frames[1].items.map((item) => item.kind);
-  assert.deepEqual(stageTwoKinds.sort(), ['anchor-set', 'coindex'],
-    'the identity claim and its own rail persist; the neutral remainder marks its own stage only');
+  const afterMoment = visiblePlanFrameItems(plan, 0, new Set([0]));
+  const nextStage = visiblePlanFrameItems(plan, 1, new Set());
+  for (const [frameIndex, items] of [[0, atMoment], [0, afterMoment], [1, nextStage]]) {
+    const organization = items.filter(item => item.kind === 'anchor-set');
+    assert.equal(organization.length, 1, 'co-visible claims compose their role organization after lifetime filtering');
+    assert.deepEqual(organization[0].set.roles.map(role => [role.role, role.roleIndex, role.anchors.map(anchor => anchor.arrayIndex)]),
+      [['members', 0, [0, 1, 2, 3, 4]], ['occurrences', 1, [0, 1, 2, 3, 4]]]);
+    const projected = { ...plan, frames: plan.frames.map((frame, index) => index === frameIndex ? { ...frame, items } : frame) };
+    const bound = bindRelationPlanFrame(projected, frameIndex, id => ({ x: members.indexOf(id) * 140, y: 0 }));
+    const rails = bound.primitives.filter(mark => mark.type === 'anchor-set-rail');
+    assert.equal(rails.length, 2, 'each authored role earns exactly one rail, including the identity-owned role');
+    assert(rails.every(rail => JSON.stringify(rail.anchors.map(anchor => anchor.numeral)) === '[1,2,3,4,5]'));
+    assert.notEqual(rails[0].lane, rails[1].lane, 'roles sharing nodes occupy distinct organizational lanes');
+    assert(rails[0].anchors.every(anchor => !rails[1].anchors.includes(anchor)), 'distinct roles keep distinct exact marks');
+    assert.deepEqual(bound.failed, []);
+  }
+  assert.deepEqual(nextStage.map(item => item.kind).sort(), ['anchor-set', 'coindex'],
+    'both supported roles persist, while the unrelated neutral annotation expires');
+  assert(!afterMoment.some(item => item.kind === 'fallback'));
   assert.equal(plan.diagnostics.some((diagnostic) => diagnostic.kind === 'anchor-vanished'), false);
   const membershipOnly = compileRelationRenderPlan([
     stage([{ relation: 'OpenChorus', anchors: { members, annotation: 'anno_ch' } }], chorusForest(true))

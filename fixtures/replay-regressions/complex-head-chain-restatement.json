@@ -1,0 +1,1283 @@
+{
+  "provenance": {
+    "model": "openai:gpt-6.1-sol",
+    "harness": "qualification:codex",
+    "source": "relation-order-20261006/sol-german-embedded-auxiliary/attempts/parse/bundle.json",
+    "sourceSha256": "9835eda5d69f8ffd854047904e6ec49864d3a990be312c2460150646874aad12",
+    "extraction": "Exact saved derivationStages; derived trees omitted."
+  },
+  "sentence": "Der Forscher sagte, dass die Studentin den schwierigen Bericht gelesen hat.",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "arguments": [
+              "s0",
+              "ecp"
+            ],
+            "predicate": "v0"
+          },
+          "relation": "Matrix theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "propositional Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "es",
+              "od"
+            ],
+            "predicate": "ev"
+          },
+          "relation": "Embedded theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "governors": [
+              "i0",
+              "ei"
+            ],
+            "subjects": [
+              "s0",
+              "es"
+            ]
+          },
+          "relation": "Finite nominative licensing",
+          "values": {
+            "subjects": [
+              "nominative",
+              "nominative"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "governor": "ev",
+            "object": "od"
+          },
+          "relation": "Object case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "oa",
+            "determiner": "odd",
+            "noun": "on"
+          },
+          "relation": "Attributive concord",
+          "values": {
+            "adjectiveInflection": "weak",
+            "case": "accusative",
+            "gender": "masculine",
+            "number": "singular"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "ei",
+            "participle": "ev",
+            "selectedPredicate": "evp"
+          },
+          "relation": "Perfect auxiliary selection",
+          "values": {
+            "auxiliaryTense": "present",
+            "construction": "perfect",
+            "selectedVerbForm": "past participle"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i0",
+            "subject": "s0",
+            "verb": "v0"
+          },
+          "relation": "Matrix finite-feature compatibility",
+          "values": {
+            "number": "singular",
+            "person": "third",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "The matrix predicate selects the dass-clause as its propositional complement and assigns its external argument to Der Forscher in Spec-IP. This analysis uses the classical GB option of base-generating external subjects in Spec-IP, rather than deriving them from VP-internal positions. German VP and IP are head-final: the matrix complement precedes sagte in VP, and the matrix inflectional position follows VP. The initially empty matrix C will host the finite verb in the declarative V2 derivation. Within the embedded CP, overt dass occupies C, die Studentin occupies Spec-IP, and den schwierigen Bericht is the complement of participial gelesen. The finite perfect auxiliary hat is base-generated in embedded I; this analysis does not introduce a separate auxiliary VP. Determiners head DPs, and schwierigen is an AP left-adjoined to the object's N-bar, modifying Bericht. First, sagte assigns the researcher the Agent role and the embedded CP the propositional Theme role. Next, gelesen assigns the student the Agent role and the report the Theme role. Finite matrix I and embedded hat then license nominative on their respective subjects, while gelesen licenses accusative on its object. The object's determiner, adjective, and noun exhibit masculine singular accusative concord, with weak adjectival inflection after den. Finally, hat selects the participial predicate to establish the present perfect embedded construction. Matrix I carries past and third-person singular features compatible with the whole-word form sagte. No morphological decomposition of the supplied words is assumed, and punctuation is not introduced as an additional token.",
+      "statement": "Establish the head-final base structure and the argument, case, and perfect-construction dependencies.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c0",
+                  "label": "C⁰ [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sd0",
+                          "label": "D⁰",
+                          "lineageId": "subject-determiner",
+                          "tokenIndex": 0,
+                          "word": "Der"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sn0",
+                                  "label": "N⁰",
+                                  "lineageId": "subject-noun",
+                                  "tokenIndex": 1,
+                                  "word": "Forscher"
+                                }
+                              ],
+                              "id": "snbar0",
+                              "label": "N'",
+                              "lineageId": "subject-nbar"
+                            }
+                          ],
+                          "id": "snp0",
+                          "label": "NP",
+                          "lineageId": "subject-np"
+                        }
+                      ],
+                      "id": "s0",
+                      "label": "DP",
+                      "lineageId": "matrix-subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "ec",
+                                          "label": "C⁰",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "esd",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 4,
+                                                  "word": "die"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "esn",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Studentin"
+                                                        }
+                                                      ],
+                                                      "id": "esnbar",
+                                                      "label": "N'"
+                                                    }
+                                                  ],
+                                                  "id": "esnp",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "es",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "odd",
+                                                              "label": "D⁰",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "oa",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "oabar",
+                                                                          "label": "A'"
+                                                                        }
+                                                                      ],
+                                                                      "id": "oap",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "on",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "onbarinner",
+                                                                      "label": "N'"
+                                                                    }
+                                                                  ],
+                                                                  "id": "onbar",
+                                                                  "label": "N'"
+                                                                }
+                                                              ],
+                                                              "id": "onp",
+                                                              "label": "NP"
+                                                            }
+                                                          ],
+                                                          "id": "od",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "ev",
+                                                          "label": "V⁰ [participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "evbar",
+                                                      "label": "V'"
+                                                    }
+                                                  ],
+                                                  "id": "evp",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "ei",
+                                                  "label": "I⁰ [finite auxiliary]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "eibar",
+                                              "label": "I'"
+                                            }
+                                          ],
+                                          "id": "eip",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "ecbar",
+                                      "label": "C'"
+                                    }
+                                  ],
+                                  "id": "ecp",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "v0",
+                                  "label": "V⁰ [finite]",
+                                  "lineageId": "matrix-verb",
+                                  "tokenIndex": 2,
+                                  "word": "sagte"
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "V'"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "i0",
+                          "label": "I⁰ [finite, past, third-person singular]",
+                          "lineageId": "matrix-inflection-host",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mibar",
+                      "label": "I'"
+                    }
+                  ],
+                  "id": "mip",
+                  "label": "IP"
+                }
+              ],
+              "id": "mcbar",
+              "label": "C'"
+            }
+          ],
+          "id": "mcp",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "inflectionHost": "i0",
+            "lowerTrace": "tv",
+            "raisedVerb": "v1",
+            "resultingHead": "i1"
+          },
+          "priorAnchors": {
+            "sourceVerb": "v0",
+            "targetInflection": "i0"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "dependency": "finite lexical verb to I",
+            "operation": "head adjunction"
+          }
+        }
+      ],
+      "stageRecord": "The matrix verb moves from its previously represented VP-final position and adjoins to finite I. Its lower V position is now an unpronounced head trace, while the occurrence in the complex I head bears the pronunciation sagte. The head-movement relation connects that trace, the raised lexical head, and its inflectional host. This movement creates the finite I constituent that can subsequently move to C; recording this intermediate workspace makes V-to-I precede I-to-C. The matrix subject remains in Spec-IP, and the embedded clause is unchanged. In particular, dass remains in embedded C and hat remains in embedded I, so no embedded V2 movement is posited.",
+      "statement": "Raise the matrix lexical verb from V to I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c0",
+                  "label": "C⁰ [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sd0",
+                          "label": "D⁰",
+                          "lineageId": "subject-determiner",
+                          "tokenIndex": 0,
+                          "word": "Der"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sn0",
+                                  "label": "N⁰",
+                                  "lineageId": "subject-noun",
+                                  "tokenIndex": 1,
+                                  "word": "Forscher"
+                                }
+                              ],
+                              "id": "snbar0",
+                              "label": "N'",
+                              "lineageId": "subject-nbar"
+                            }
+                          ],
+                          "id": "snp0",
+                          "label": "NP",
+                          "lineageId": "subject-np"
+                        }
+                      ],
+                      "id": "s0",
+                      "label": "DP",
+                      "lineageId": "matrix-subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "ec",
+                                          "label": "C⁰",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "esd",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 4,
+                                                  "word": "die"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "esn",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Studentin"
+                                                        }
+                                                      ],
+                                                      "id": "esnbar",
+                                                      "label": "N'"
+                                                    }
+                                                  ],
+                                                  "id": "esnp",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "es",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "odd",
+                                                              "label": "D⁰",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "oa",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "oabar",
+                                                                          "label": "A'"
+                                                                        }
+                                                                      ],
+                                                                      "id": "oap",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "on",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "onbarinner",
+                                                                      "label": "N'"
+                                                                    }
+                                                                  ],
+                                                                  "id": "onbar",
+                                                                  "label": "N'"
+                                                                }
+                                                              ],
+                                                              "id": "onp",
+                                                              "label": "NP"
+                                                            }
+                                                          ],
+                                                          "id": "od",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "ev",
+                                                          "label": "V⁰ [participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "evbar",
+                                                      "label": "V'"
+                                                    }
+                                                  ],
+                                                  "id": "evp",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "ei",
+                                                  "label": "I⁰ [finite auxiliary]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "eibar",
+                                              "label": "I'"
+                                            }
+                                          ],
+                                          "id": "eip",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "ecbar",
+                                      "label": "C'"
+                                    }
+                                  ],
+                                  "id": "ecp",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tv",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "matrix-verb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "V'"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "V⁰ [finite]",
+                              "lineageId": "matrix-verb",
+                              "tokenIndex": 2,
+                              "word": "sagte"
+                            },
+                            {
+                              "children": [],
+                              "id": "i0",
+                              "label": "I⁰ [finite, past, third-person singular]",
+                              "lineageId": "matrix-inflection-host",
+                              "silent": true
+                            }
+                          ],
+                          "id": "i1",
+                          "label": "I⁰",
+                          "lineageId": "matrix-finite-head"
+                        }
+                      ],
+                      "id": "mibar",
+                      "label": "I'"
+                    }
+                  ],
+                  "id": "mip",
+                  "label": "IP"
+                }
+              ],
+              "id": "mcbar",
+              "label": "C'"
+            }
+          ],
+          "id": "mcp",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complementizerHost": "c0",
+            "lowerTrace": "ti",
+            "raisedInflection": "i2",
+            "resultingHead": "c1"
+          },
+          "priorAnchors": {
+            "sourceInflection": "i1",
+            "targetComplementizer": "c0"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "clauseType": "declarative V2",
+            "operation": "head adjunction"
+          }
+        },
+        {
+          "anchors": {
+            "intermediateInflectionTrace": "ti",
+            "originalVerbTrace": "tv",
+            "raisedVerb": "v2"
+          },
+          "priorAnchors": {
+            "originalVerbTrace": "tv",
+            "previousRaisedVerb": "v1"
+          },
+          "relation": "Updated lexical-verb head chain",
+          "values": {
+            "headMovementPath": [
+              "V",
+              "I",
+              "C"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "i2",
+            "licensingPosition": "ti",
+            "subject": "s0"
+          },
+          "priorAnchors": {
+            "inflectionHost": "i0",
+            "subject": "s0"
+          },
+          "relation": "Matrix nominative licensing through the finite-head chain",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "The complex I head established in the preceding stage moves as a unit and adjoins to the empty matrix C. Its previous I position becomes an unpronounced I trace; the moved constituent contains the overt lexical verb and the silent inflectional host. This I-to-C dependency supplies the head component of German declarative V2. Next, the lexical verb's dependency is updated to connect the C-contained verb with its original V trace, mediated by the I-head chain. Finally, matrix nominative licensing is preserved through the finite I chain: the I trace identifies the subject's case-licensing position, supported by the raised finite head. Der Forscher has not yet moved, so the present workspace intentionally has the finite verb before the in-situ subject and is not yet the input's completed surface structure.",
+      "statement": "Raise the complex finite I head to matrix C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "V⁰ [finite]",
+                          "lineageId": "matrix-verb",
+                          "tokenIndex": 2,
+                          "word": "sagte"
+                        },
+                        {
+                          "children": [],
+                          "id": "ibase2",
+                          "label": "I⁰ [finite, past, third-person singular]",
+                          "lineageId": "matrix-inflection-host",
+                          "silent": true
+                        }
+                      ],
+                      "id": "i2",
+                      "label": "I⁰",
+                      "lineageId": "matrix-finite-head"
+                    },
+                    {
+                      "children": [],
+                      "id": "c0",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "c1",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sd0",
+                          "label": "D⁰",
+                          "lineageId": "subject-determiner",
+                          "tokenIndex": 0,
+                          "word": "Der"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sn0",
+                                  "label": "N⁰",
+                                  "lineageId": "subject-noun",
+                                  "tokenIndex": 1,
+                                  "word": "Forscher"
+                                }
+                              ],
+                              "id": "snbar0",
+                              "label": "N'",
+                              "lineageId": "subject-nbar"
+                            }
+                          ],
+                          "id": "snp0",
+                          "label": "NP",
+                          "lineageId": "subject-np"
+                        }
+                      ],
+                      "id": "s0",
+                      "label": "DP",
+                      "lineageId": "matrix-subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "ec",
+                                          "label": "C⁰",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "esd",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 4,
+                                                  "word": "die"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "esn",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Studentin"
+                                                        }
+                                                      ],
+                                                      "id": "esnbar",
+                                                      "label": "N'"
+                                                    }
+                                                  ],
+                                                  "id": "esnp",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "es",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "odd",
+                                                              "label": "D⁰",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "oa",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "oabar",
+                                                                          "label": "A'"
+                                                                        }
+                                                                      ],
+                                                                      "id": "oap",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "on",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "onbarinner",
+                                                                      "label": "N'"
+                                                                    }
+                                                                  ],
+                                                                  "id": "onbar",
+                                                                  "label": "N'"
+                                                                }
+                                                              ],
+                                                              "id": "onp",
+                                                              "label": "NP"
+                                                            }
+                                                          ],
+                                                          "id": "od",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "ev",
+                                                          "label": "V⁰ [participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "evbar",
+                                                      "label": "V'"
+                                                    }
+                                                  ],
+                                                  "id": "evp",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "ei",
+                                                  "label": "I⁰ [finite auxiliary]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "eibar",
+                                              "label": "I'"
+                                            }
+                                          ],
+                                          "id": "eip",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "ecbar",
+                                      "label": "C'"
+                                    }
+                                  ],
+                                  "id": "ecp",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tv",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "matrix-verb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "V'"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "ti",
+                          "label": "I⁰ trace",
+                          "lineageId": "matrix-finite-head",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mibar",
+                      "label": "I'"
+                    }
+                  ],
+                  "id": "mip",
+                  "label": "IP"
+                }
+              ],
+              "id": "mcbar",
+              "label": "C'"
+            }
+          ],
+          "id": "mcp",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "frontedSubject": "s1",
+            "landingProjection": "mcp",
+            "subjectTrace": "ts"
+          },
+          "priorAnchors": {
+            "sourceSubject": "s0"
+          },
+          "relation": "Subject A-bar movement to the prefield",
+          "values": {
+            "landingPosition": "Spec-CP",
+            "movementType": "A-bar movement",
+            "sourcePosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "argumentPosition": "ts",
+            "caseLicensingPosition": "ti",
+            "finiteHead": "i2",
+            "frontedSubject": "s1",
+            "predicate": "v2"
+          },
+          "priorAnchors": {
+            "previousSubject": "s0"
+          },
+          "relation": "Subject-chain case and theta inheritance",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative",
+            "thetaRole": "Agent"
+          }
+        }
+      ],
+      "stageRecord": "Der Forscher moves from the Spec-IP position represented in the preceding workspace to matrix Spec-CP, leaving an unpronounced DP trace. This is A-bar movement to the declarative prefield, not a second theta-position; it does not require a contrastive-topic interpretation. The movement relation connects the pronounced prefield DP and its subject-position trace. The resulting subject chain retains the Agent role and nominative case associated with its lower position, with case licensed through the finite I chain. The final matrix CP therefore places exactly one constituent before sagte in C. Its VP contains the selected dass-clause, whose overt complementizer blocks the matrix-style V2 derivation and whose head-final IP yields die Studentin den schwierigen Bericht gelesen hat. The adjective remains inside the object DP, and the embedded subject remains in Spec-IP. Reading the pronounced terminals gives exactly Der Forscher sagte dass die Studentin den schwierigen Bericht gelesen hat; the head and subject traces are silent. The completed analysis contains no anaphoric or pronominal dependency requiring an additional Binding Theory relation.",
+      "statement": "Front the matrix subject to Spec-CP and complete the V2 sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "sd1",
+                  "label": "D⁰",
+                  "lineageId": "subject-determiner",
+                  "tokenIndex": 0,
+                  "word": "Der"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sn1",
+                          "label": "N⁰",
+                          "lineageId": "subject-noun",
+                          "tokenIndex": 1,
+                          "word": "Forscher"
+                        }
+                      ],
+                      "id": "snbar1",
+                      "label": "N'",
+                      "lineageId": "subject-nbar"
+                    }
+                  ],
+                  "id": "snp1",
+                  "label": "NP",
+                  "lineageId": "subject-np"
+                }
+              ],
+              "id": "s1",
+              "label": "DP",
+              "lineageId": "matrix-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "V⁰ [finite]",
+                          "lineageId": "matrix-verb",
+                          "tokenIndex": 2,
+                          "word": "sagte"
+                        },
+                        {
+                          "children": [],
+                          "id": "ibase2",
+                          "label": "I⁰ [finite, past, third-person singular]",
+                          "lineageId": "matrix-inflection-host",
+                          "silent": true
+                        }
+                      ],
+                      "id": "i2",
+                      "label": "I⁰",
+                      "lineageId": "matrix-finite-head"
+                    },
+                    {
+                      "children": [],
+                      "id": "c0",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "c1",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ts",
+                      "label": "DP trace",
+                      "lineageId": "matrix-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "ec",
+                                          "label": "C⁰",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "esd",
+                                                  "label": "D⁰",
+                                                  "tokenIndex": 4,
+                                                  "word": "die"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "esn",
+                                                          "label": "N⁰",
+                                                          "tokenIndex": 5,
+                                                          "word": "Studentin"
+                                                        }
+                                                      ],
+                                                      "id": "esnbar",
+                                                      "label": "N'"
+                                                    }
+                                                  ],
+                                                  "id": "esnp",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "es",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "odd",
+                                                              "label": "D⁰",
+                                                              "tokenIndex": 6,
+                                                              "word": "den"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "oa",
+                                                                              "label": "A⁰",
+                                                                              "tokenIndex": 7,
+                                                                              "word": "schwierigen"
+                                                                            }
+                                                                          ],
+                                                                          "id": "oabar",
+                                                                          "label": "A'"
+                                                                        }
+                                                                      ],
+                                                                      "id": "oap",
+                                                                      "label": "AP"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "on",
+                                                                          "label": "N⁰",
+                                                                          "tokenIndex": 8,
+                                                                          "word": "Bericht"
+                                                                        }
+                                                                      ],
+                                                                      "id": "onbarinner",
+                                                                      "label": "N'"
+                                                                    }
+                                                                  ],
+                                                                  "id": "onbar",
+                                                                  "label": "N'"
+                                                                }
+                                                              ],
+                                                              "id": "onp",
+                                                              "label": "NP"
+                                                            }
+                                                          ],
+                                                          "id": "od",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "ev",
+                                                          "label": "V⁰ [participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "evbar",
+                                                      "label": "V'"
+                                                    }
+                                                  ],
+                                                  "id": "evp",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "ei",
+                                                  "label": "I⁰ [finite auxiliary]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "eibar",
+                                              "label": "I'"
+                                            }
+                                          ],
+                                          "id": "eip",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "ecbar",
+                                      "label": "C'"
+                                    }
+                                  ],
+                                  "id": "ecp",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tv",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "matrix-verb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "V'"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "ti",
+                          "label": "I⁰ trace",
+                          "lineageId": "matrix-finite-head",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mibar",
+                      "label": "I'"
+                    }
+                  ],
+                  "id": "mip",
+                  "label": "IP"
+                }
+              ],
+              "id": "mcbar",
+              "label": "C'"
+            }
+          ],
+          "id": "mcp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

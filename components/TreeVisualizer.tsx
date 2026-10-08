@@ -87,6 +87,7 @@ import {
   resolveDisplayedTrajectoryAttachments,
   planItemOwnsRelationMoment,
   isPlanItemRevealed,
+  projectVisibleAnchorSetOrganization,
   planItemRelationRefs,
   planItemsShareAuthoredStage,
   planItemDependencyNodeIds,
@@ -1962,9 +1963,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         subtreeFor: (id: string) => fallbackRectFor(id, true),
         bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
       };
-      const frameItems = (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
-        resolveDisplayedTrajectoryAttachments(projectThetaGrid(item, activeDerivationFrameIndex, playedRelationIndices), (nodeId) => overlayNodeById.get(nodeId)?.data,
-          { stageIndex: activeDerivationFrameIndex, playedRelationIndices }));
+      const frameItems = projectVisibleAnchorSetOrganization(
+        (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
+          resolveDisplayedTrajectoryAttachments(projectThetaGrid(item, activeDerivationFrameIndex, playedRelationIndices), (nodeId) => overlayNodeById.get(nodeId)?.data,
+            { stageIndex: activeDerivationFrameIndex, playedRelationIndices })),
+        item => isPlanItemRevealed(item, activeDerivationFrameIndex, playedRelationIndices,
+          activeRelationMoment?.relationIndex ?? null)
+          && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
+      const revealedItemIndices = new Set<number>();
+      frameItems.forEach((planItem, planItemIndex) => {
+        const revealed = isPlanItemRevealed(planItem, activeDerivationFrameIndex,
+          playedRelationIndices, activeRelationMoment?.relationIndex ?? null);
+        if (revealed) revealedItemIndices.add(planItemIndex);
+      });
       const displayedRelationPlan = {
         ...relationRenderPlan,
         frames: relationRenderPlan.frames.map((frame, index) => index === activeDerivationFrameIndex
@@ -2008,6 +2019,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           plaqueTextLayout: { measureText: measurePlaqueText },
           fallbackMeasurements,
           separateFallbackMoments: animated && usesDerivationFrames,
+          isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
           trajectoryCeilingY: measuredTreeTextTopY() - 90,
           trajectoryFloorY: frameMaxNodeY + 180,
           // Frame-stable measured baselines: connector lanes just below the
@@ -2052,12 +2064,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         relationInkObstacles = measureRelationInkObstacles(root);
         fitFallbackOverlays?.(lastFallbackFit.zoom, lastFallbackFit.viewport);
       };
-      const revealedItemIndices = new Set<number>();
-      frameItems.forEach((planItem, planItemIndex) => {
-        const revealed = isPlanItemRevealed(planItem, activeDerivationFrameIndex,
-          playedRelationIndices, activeRelationMoment?.relationIndex ?? null);
-        if (revealed) revealedItemIndices.add(planItemIndex);
-      });
+
       const witnessVisibilityCache = new Map<number, boolean>();
       const itemWitnessesVisible = (planItemIndex: number): boolean => {
         const cached = witnessVisibilityCache.get(planItemIndex);
@@ -5069,7 +5076,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           const acceptedDeletion = planItem.familyId === 'ellipsis.deletion';
           const acceptedEllipsisStyle = acceptedDeletion
             || planItem.familyId === 'ellipsis.ghosting'
-            || planItem.ellipsisStyle === 'recoverability';
+            || planItem.kind === 'ellipsis-site' && planItem.ellipsisStyle === 'recoverability';
           const nodeIds = acceptedDeletion && planItem.kind === 'ellipsis-site'
             ? planItem.siteSubtreeNodeIds
             : primitive.nodeIds;

@@ -1,0 +1,1271 @@
+{
+  "provenance": {
+    "model": "openai:gpt-6-astra",
+    "harness": "qualification:codex",
+    "source": "relation-order-20261006/astra-spanish-scope/attempts/parse/bundle.json",
+    "extraction": "Exact saved derivationStages; derived trees omitted."
+  },
+  "sentence": "Una profesora revisó cada informe.",
+  "analyses": [
+    {
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "aS0",
+                "predicate": "aV0",
+                "theme": "aO0"
+              },
+              "relation": "Theta-role assignment",
+              "values": {
+                "agentRole": "Agent",
+                "themeRole": "Theme"
+              }
+            }
+          ],
+          "stageRecord": "The verb revisó selects the direct-object DP cada informe. Its external argument, Una profesora, is first merged in Spec-VP under the VP-internal subject hypothesis. Both nominals are DPs: Una and cada head D projections whose complements are NPs. The verb assigns the Agent theta-role to the subject DP and the Theme theta-role to the object DP. A separate, phonologically null I head carries past indicative and third-person singular features. Revisó is introduced as an already inflected lexical terminal; the analysis does not split this input word into separately realized morphemes.",
+          "statement": "Construct the thematic VP and the finite inflectional head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aSD",
+                          "label": "D",
+                          "lineageId": "aSubjectD",
+                          "tokenIndex": 0,
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aSN",
+                                  "label": "N",
+                                  "lineageId": "aSubjectN",
+                                  "tokenIndex": 1,
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "aSNbar",
+                              "label": "N′",
+                              "lineageId": "aSubjectNbar"
+                            }
+                          ],
+                          "id": "aSNP",
+                          "label": "NP",
+                          "lineageId": "aSubjectNP"
+                        }
+                      ],
+                      "id": "aSDbar",
+                      "label": "D′",
+                      "lineageId": "aSubjectDbar"
+                    }
+                  ],
+                  "id": "aS0",
+                  "label": "DP",
+                  "lineageId": "aSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aV0",
+                      "label": "V",
+                      "lineageId": "aVerb",
+                      "tokenIndex": 2,
+                      "word": "revisó"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "aOD",
+                              "label": "D",
+                              "lineageId": "aObjectD",
+                              "tokenIndex": 3,
+                              "word": "cada"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aON",
+                                      "label": "N",
+                                      "lineageId": "aObjectN",
+                                      "tokenIndex": 4,
+                                      "word": "informe"
+                                    }
+                                  ],
+                                  "id": "aONbar",
+                                  "label": "N′",
+                                  "lineageId": "aObjectNbar"
+                                }
+                              ],
+                              "id": "aONP",
+                              "label": "NP",
+                              "lineageId": "aObjectNP"
+                            }
+                          ],
+                          "id": "aODbar",
+                          "label": "D′",
+                          "lineageId": "aObjectDbar"
+                        }
+                      ],
+                      "id": "aO0",
+                      "label": "DP",
+                      "lineageId": "aObject"
+                    }
+                  ],
+                  "id": "aVbar",
+                  "label": "V′"
+                }
+              ],
+              "id": "aVP",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "aI0",
+              "label": "I [past, indicative, 3sg]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "aS1",
+                "trace": "aST"
+              },
+              "priorAnchors": {
+                "source": "aS0"
+              },
+              "relation": "Subject A-movement",
+              "values": {
+                "chainType": "A-chain",
+                "path": "Spec-VP to Spec-IP"
+              }
+            },
+            {
+              "anchors": {
+                "host": "aI0",
+                "landing": "aV1",
+                "trace": "aVT"
+              },
+              "priorAnchors": {
+                "source": "aV0"
+              },
+              "relation": "V-to-I head movement",
+              "values": {
+                "path": "V to I"
+              }
+            },
+            {
+              "anchors": {
+                "licensor": "aI0",
+                "subject": "aS1"
+              },
+              "relation": "Nominative Case and finite agreement",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "governingPosition": "aVT",
+                "object": "aO0",
+                "verbalHead": "aV1"
+              },
+              "relation": "Accusative Case under verbal government",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "I takes the constructed VP as its complement. Una profesora raises from Spec-VP to Spec-IP, leaving an A-trace in its theta-position; this satisfies the finite clause's subject requirement without introducing a null pro. Revisó raises from V to I, leaving a head trace and forming a complex inflectional head. Its lexical spelling remains unchanged. Finite I licenses nominative Case on the raised subject and agrees with it in third-person singular features. The verbal chain licenses accusative Case on cada informe in the complement position governed by its V position. The resulting pronounced order is exactly Una profesora revisó cada informe. IP suffices as the root of this unembedded declarative; no complementizer or interrogative movement is required.",
+          "statement": "Establish the finite SVO clause through subject raising and V-to-I movement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aSD",
+                          "label": "D",
+                          "lineageId": "aSubjectD",
+                          "tokenIndex": 0,
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aSN",
+                                  "label": "N",
+                                  "lineageId": "aSubjectN",
+                                  "tokenIndex": 1,
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "aSNbar",
+                              "label": "N′",
+                              "lineageId": "aSubjectNbar"
+                            }
+                          ],
+                          "id": "aSNP",
+                          "label": "NP",
+                          "lineageId": "aSubjectNP"
+                        }
+                      ],
+                      "id": "aSDbar",
+                      "label": "D′",
+                      "lineageId": "aSubjectDbar"
+                    }
+                  ],
+                  "id": "aS1",
+                  "label": "DP",
+                  "lineageId": "aSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aV1",
+                          "label": "V",
+                          "lineageId": "aVerb",
+                          "tokenIndex": 2,
+                          "word": "revisó"
+                        },
+                        {
+                          "children": [],
+                          "id": "aI0",
+                          "label": "I [past, indicative, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "aIcomplex",
+                      "label": "I"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aST",
+                          "label": "DP trace",
+                          "lineageId": "aSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "aVT",
+                              "label": "V trace",
+                              "lineageId": "aVerb",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aOD",
+                                      "label": "D",
+                                      "lineageId": "aObjectD",
+                                      "tokenIndex": 3,
+                                      "word": "cada"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "aON",
+                                              "label": "N",
+                                              "lineageId": "aObjectN",
+                                              "tokenIndex": 4,
+                                              "word": "informe"
+                                            }
+                                          ],
+                                          "id": "aONbar",
+                                          "label": "N′",
+                                          "lineageId": "aObjectNbar"
+                                        }
+                                      ],
+                                      "id": "aONP",
+                                      "label": "NP",
+                                      "lineageId": "aObjectNP"
+                                    }
+                                  ],
+                                  "id": "aODbar",
+                                  "label": "D′",
+                                  "lineageId": "aObjectDbar"
+                                }
+                              ],
+                              "id": "aO0",
+                              "label": "DP",
+                              "lineageId": "aObject"
+                            }
+                          ],
+                          "id": "aVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "aVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "aIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "aIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "lower": "aO0",
+                "upper": "aOQ"
+              },
+              "relation": "LF Quantifier Raising",
+              "values": {
+                "chainType": "A′ operator-variable chain",
+                "interpretation": "universal quantification over reports",
+                "pronunciation": "lower occurrence only"
+              }
+            },
+            {
+              "anchors": {
+                "lower": "aS1",
+                "upper": "aSQ"
+              },
+              "relation": "LF Quantifier Raising",
+              "values": {
+                "chainType": "A′ operator-variable chain",
+                "interpretation": "existential quantification over professors",
+                "pronunciation": "lower occurrence only"
+              }
+            },
+            {
+              "anchors": {
+                "narrow": "aOQ",
+                "predicate": "aV1",
+                "wide": "aSQ"
+              },
+              "relation": "Quantifier scope",
+              "values": {
+                "scopeOrder": "existential > universal",
+                "truthConditions": "There is a professor x such that, for every contextually relevant report y, x reviewed y."
+              }
+            }
+          ],
+          "stageRecord": "At LF, cada informe undergoes clause-local Quantifier Raising to an IP-adjoined position. Una profesora then undergoes Quantifier Raising from its established Spec-IP position to an outer IP-adjoined position. The forest uses PF-retaining chain notation for these GB LF dependencies: upper DP occurrences are silent, lower occurrences retain their pronunciation, and the lower positions are interpreted as bound variables rather than as additional quantifiers. This notation preserves the exact input while displaying LF scope. The outer existential DP c-commands the universal DP, establishing existential-over-universal scope: there is a professor who reviewed every contextually relevant report. The professor is the same across reports, but the indefinite does not assert that only one professor exists or participated. Both raising chains are clause-local, and their lower positions remain Case-licensed. No anaphor or pronoun introduces an additional Binding Theory dependency.",
+          "statement": "Complete the subject-wide-scope reading: one professor reviewed every report.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aSQD",
+                          "label": "D",
+                          "lineageId": "aSubjectD",
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aSQN",
+                                  "label": "N",
+                                  "lineageId": "aSubjectN",
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "aSQNbar",
+                              "label": "N′",
+                              "lineageId": "aSubjectNbar"
+                            }
+                          ],
+                          "id": "aSQNP",
+                          "label": "NP",
+                          "lineageId": "aSubjectNP"
+                        }
+                      ],
+                      "id": "aSQDbar",
+                      "label": "D′",
+                      "lineageId": "aSubjectDbar"
+                    }
+                  ],
+                  "id": "aSQ",
+                  "label": "DP",
+                  "lineageId": "aSubject",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "aOQD",
+                              "label": "D",
+                              "lineageId": "aObjectD",
+                              "word": "cada"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aOQN",
+                                      "label": "N",
+                                      "lineageId": "aObjectN",
+                                      "word": "informe"
+                                    }
+                                  ],
+                                  "id": "aOQNbar",
+                                  "label": "N′",
+                                  "lineageId": "aObjectNbar"
+                                }
+                              ],
+                              "id": "aOQNP",
+                              "label": "NP",
+                              "lineageId": "aObjectNP"
+                            }
+                          ],
+                          "id": "aOQDbar",
+                          "label": "D′",
+                          "lineageId": "aObjectDbar"
+                        }
+                      ],
+                      "id": "aOQ",
+                      "label": "DP",
+                      "lineageId": "aObject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aSD",
+                                  "label": "D",
+                                  "lineageId": "aSubjectD",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "aSN",
+                                          "label": "N",
+                                          "lineageId": "aSubjectN",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "aSNbar",
+                                      "label": "N′",
+                                      "lineageId": "aSubjectNbar"
+                                    }
+                                  ],
+                                  "id": "aSNP",
+                                  "label": "NP",
+                                  "lineageId": "aSubjectNP"
+                                }
+                              ],
+                              "id": "aSDbar",
+                              "label": "D′",
+                              "lineageId": "aSubjectDbar"
+                            }
+                          ],
+                          "id": "aS1",
+                          "label": "DP",
+                          "lineageId": "aSubject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aV1",
+                                  "label": "V",
+                                  "lineageId": "aVerb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "aI0",
+                                  "label": "I [past, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "aIcomplex",
+                              "label": "I"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aST",
+                                  "label": "DP trace",
+                                  "lineageId": "aSubject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aVT",
+                                      "label": "V trace",
+                                      "lineageId": "aVerb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "aOD",
+                                              "label": "D",
+                                              "lineageId": "aObjectD",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "aON",
+                                                      "label": "N",
+                                                      "lineageId": "aObjectN",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "aONbar",
+                                                  "label": "N′",
+                                                  "lineageId": "aObjectNbar"
+                                                }
+                                              ],
+                                              "id": "aONP",
+                                              "label": "NP",
+                                              "lineageId": "aObjectNP"
+                                            }
+                                          ],
+                                          "id": "aODbar",
+                                          "label": "D′",
+                                          "lineageId": "aObjectDbar"
+                                        }
+                                      ],
+                                      "id": "aO0",
+                                      "label": "DP",
+                                      "lineageId": "aObject"
+                                    }
+                                  ],
+                                  "id": "aVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "aVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "aIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "aIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "aLFinner",
+                  "label": "IP"
+                }
+              ],
+              "id": "aLFouter",
+              "label": "IP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "bS0",
+                "predicate": "bV0",
+                "theme": "bO0"
+              },
+              "relation": "Theta-role assignment",
+              "values": {
+                "agentRole": "Agent",
+                "themeRole": "Theme"
+              }
+            }
+          ],
+          "stageRecord": "Revisó selects cada informe as its direct-object DP, while Una profesora is merged as the external argument in Spec-VP. The determiners Una and cada head D projections taking NP complements. The verb assigns the Agent theta-role to Una profesora and the Theme theta-role to cada informe. A separate silent I head bears past indicative and third-person singular features. The verb is introduced with its inflected lexical spelling revisó, so this analysis posits no separately realized tense or agreement morpheme. This initial argument structure is shared with the subject-wide-scope reading; the alternative interpretation will arise only at LF.",
+          "statement": "Construct the thematic VP and the finite inflectional head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bSD",
+                          "label": "D",
+                          "lineageId": "bSubjectD",
+                          "tokenIndex": 0,
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bSN",
+                                  "label": "N",
+                                  "lineageId": "bSubjectN",
+                                  "tokenIndex": 1,
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "bSNbar",
+                              "label": "N′",
+                              "lineageId": "bSubjectNbar"
+                            }
+                          ],
+                          "id": "bSNP",
+                          "label": "NP",
+                          "lineageId": "bSubjectNP"
+                        }
+                      ],
+                      "id": "bSDbar",
+                      "label": "D′",
+                      "lineageId": "bSubjectDbar"
+                    }
+                  ],
+                  "id": "bS0",
+                  "label": "DP",
+                  "lineageId": "bSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bV0",
+                      "label": "V",
+                      "lineageId": "bVerb",
+                      "tokenIndex": 2,
+                      "word": "revisó"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bOD",
+                              "label": "D",
+                              "lineageId": "bObjectD",
+                              "tokenIndex": 3,
+                              "word": "cada"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bON",
+                                      "label": "N",
+                                      "lineageId": "bObjectN",
+                                      "tokenIndex": 4,
+                                      "word": "informe"
+                                    }
+                                  ],
+                                  "id": "bONbar",
+                                  "label": "N′",
+                                  "lineageId": "bObjectNbar"
+                                }
+                              ],
+                              "id": "bONP",
+                              "label": "NP",
+                              "lineageId": "bObjectNP"
+                            }
+                          ],
+                          "id": "bODbar",
+                          "label": "D′",
+                          "lineageId": "bObjectDbar"
+                        }
+                      ],
+                      "id": "bO0",
+                      "label": "DP",
+                      "lineageId": "bObject"
+                    }
+                  ],
+                  "id": "bVbar",
+                  "label": "V′"
+                }
+              ],
+              "id": "bVP",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "bI0",
+              "label": "I [past, indicative, 3sg]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "bS1",
+                "trace": "bST"
+              },
+              "priorAnchors": {
+                "source": "bS0"
+              },
+              "relation": "Subject A-movement",
+              "values": {
+                "chainType": "A-chain",
+                "path": "Spec-VP to Spec-IP"
+              }
+            },
+            {
+              "anchors": {
+                "host": "bI0",
+                "landing": "bV1",
+                "trace": "bVT"
+              },
+              "priorAnchors": {
+                "source": "bV0"
+              },
+              "relation": "V-to-I head movement",
+              "values": {
+                "path": "V to I"
+              }
+            },
+            {
+              "anchors": {
+                "licensor": "bI0",
+                "subject": "bS1"
+              },
+              "relation": "Nominative Case and finite agreement",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "governingPosition": "bVT",
+                "object": "bO0",
+                "verbalHead": "bV1"
+              },
+              "relation": "Accusative Case under verbal government",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "I combines with VP, after which Una profesora raises from Spec-VP to Spec-IP and leaves an A-trace in its original theta-position. Revisó raises from its established V position to I, leaving a head trace. The resulting complex I head contains the overt verb and the silent inflectional head. I licenses nominative Case on Una profesora and agrees with this singular third-person subject. The verbal chain licenses accusative Case on cada informe through its governed complement position. The pronounced yield is Una profesora revisó cada informe. An overt subject occupies Spec-IP, so no null pro is introduced. The root is a declarative IP; the inverse interpretation requires no different overt attachment or word order.",
+          "statement": "Derive the overt finite clause without yet fixing quantifier scope.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bSD",
+                          "label": "D",
+                          "lineageId": "bSubjectD",
+                          "tokenIndex": 0,
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bSN",
+                                  "label": "N",
+                                  "lineageId": "bSubjectN",
+                                  "tokenIndex": 1,
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "bSNbar",
+                              "label": "N′",
+                              "lineageId": "bSubjectNbar"
+                            }
+                          ],
+                          "id": "bSNP",
+                          "label": "NP",
+                          "lineageId": "bSubjectNP"
+                        }
+                      ],
+                      "id": "bSDbar",
+                      "label": "D′",
+                      "lineageId": "bSubjectDbar"
+                    }
+                  ],
+                  "id": "bS1",
+                  "label": "DP",
+                  "lineageId": "bSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bV1",
+                          "label": "V",
+                          "lineageId": "bVerb",
+                          "tokenIndex": 2,
+                          "word": "revisó"
+                        },
+                        {
+                          "children": [],
+                          "id": "bI0",
+                          "label": "I [past, indicative, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "bIcomplex",
+                      "label": "I"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bST",
+                          "label": "DP trace",
+                          "lineageId": "bSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bVT",
+                              "label": "V trace",
+                              "lineageId": "bVerb",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bOD",
+                                      "label": "D",
+                                      "lineageId": "bObjectD",
+                                      "tokenIndex": 3,
+                                      "word": "cada"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bON",
+                                              "label": "N",
+                                              "lineageId": "bObjectN",
+                                              "tokenIndex": 4,
+                                              "word": "informe"
+                                            }
+                                          ],
+                                          "id": "bONbar",
+                                          "label": "N′",
+                                          "lineageId": "bObjectNbar"
+                                        }
+                                      ],
+                                      "id": "bONP",
+                                      "label": "NP",
+                                      "lineageId": "bObjectNP"
+                                    }
+                                  ],
+                                  "id": "bODbar",
+                                  "label": "D′",
+                                  "lineageId": "bObjectDbar"
+                                }
+                              ],
+                              "id": "bO0",
+                              "label": "DP",
+                              "lineageId": "bObject"
+                            }
+                          ],
+                          "id": "bVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "bVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "bIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "bIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "lower": "bS1",
+                "upper": "bSQ"
+              },
+              "relation": "LF Quantifier Raising",
+              "values": {
+                "chainType": "A′ operator-variable chain",
+                "interpretation": "existential quantification over professors",
+                "pronunciation": "lower occurrence only"
+              }
+            },
+            {
+              "anchors": {
+                "lower": "bO0",
+                "upper": "bOQ"
+              },
+              "relation": "LF Quantifier Raising",
+              "values": {
+                "chainType": "A′ operator-variable chain",
+                "interpretation": "universal quantification over reports",
+                "pronunciation": "lower occurrence only"
+              }
+            },
+            {
+              "anchors": {
+                "narrow": "bSQ",
+                "predicate": "bV1",
+                "wide": "bOQ"
+              },
+              "relation": "Quantifier scope",
+              "values": {
+                "scopeOrder": "universal > existential",
+                "truthConditions": "For every contextually relevant report y, there is a professor x such that x reviewed y; x need not be the same professor for all reports."
+              }
+            }
+          ],
+          "stageRecord": "At LF, Una profesora first undergoes Quantifier Raising from Spec-IP to an IP-adjoined position. Cada informe then raises from its established object position to an outer IP-adjoined position. As in the other analysis, PF-retaining chain notation displays silent upper DP occurrences while retaining pronunciation at the lower occurrences; the lower positions receive bound-variable interpretation. The universal DP now c-commands the existential DP, establishing universal-over-existential scope. For each relevant report there is a professor who reviewed it, and the choice of professor may vary with the report. Variation is permitted, not required. This is a genuine LF scope alternative rather than a different thematic or Case structure. Its availability can be less salient than the subject-wide reading and is sensitive to speaker and context; the clause contains no syntactic island blocking the clause-local raising assumed here. The completed chains remain compatible with the previously established Case and theta dependencies, and no additional anaphoric Binding Theory relation is introduced.",
+          "statement": "Complete the object-wide-scope reading: every report was reviewed by some professor, possibly a different one.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bOQD",
+                          "label": "D",
+                          "lineageId": "bObjectD",
+                          "word": "cada"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bOQN",
+                                  "label": "N",
+                                  "lineageId": "bObjectN",
+                                  "word": "informe"
+                                }
+                              ],
+                              "id": "bOQNbar",
+                              "label": "N′",
+                              "lineageId": "bObjectNbar"
+                            }
+                          ],
+                          "id": "bOQNP",
+                          "label": "NP",
+                          "lineageId": "bObjectNP"
+                        }
+                      ],
+                      "id": "bOQDbar",
+                      "label": "D′",
+                      "lineageId": "bObjectDbar"
+                    }
+                  ],
+                  "id": "bOQ",
+                  "label": "DP",
+                  "lineageId": "bObject",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bSQD",
+                              "label": "D",
+                              "lineageId": "bSubjectD",
+                              "word": "Una"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bSQN",
+                                      "label": "N",
+                                      "lineageId": "bSubjectN",
+                                      "word": "profesora"
+                                    }
+                                  ],
+                                  "id": "bSQNbar",
+                                  "label": "N′",
+                                  "lineageId": "bSubjectNbar"
+                                }
+                              ],
+                              "id": "bSQNP",
+                              "label": "NP",
+                              "lineageId": "bSubjectNP"
+                            }
+                          ],
+                          "id": "bSQDbar",
+                          "label": "D′",
+                          "lineageId": "bSubjectDbar"
+                        }
+                      ],
+                      "id": "bSQ",
+                      "label": "DP",
+                      "lineageId": "bSubject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bSD",
+                                  "label": "D",
+                                  "lineageId": "bSubjectD",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bSN",
+                                          "label": "N",
+                                          "lineageId": "bSubjectN",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "bSNbar",
+                                      "label": "N′",
+                                      "lineageId": "bSubjectNbar"
+                                    }
+                                  ],
+                                  "id": "bSNP",
+                                  "label": "NP",
+                                  "lineageId": "bSubjectNP"
+                                }
+                              ],
+                              "id": "bSDbar",
+                              "label": "D′",
+                              "lineageId": "bSubjectDbar"
+                            }
+                          ],
+                          "id": "bS1",
+                          "label": "DP",
+                          "lineageId": "bSubject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bV1",
+                                  "label": "V",
+                                  "lineageId": "bVerb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "bI0",
+                                  "label": "I [past, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "bIcomplex",
+                              "label": "I"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bST",
+                                  "label": "DP trace",
+                                  "lineageId": "bSubject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bVT",
+                                      "label": "V trace",
+                                      "lineageId": "bVerb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bOD",
+                                              "label": "D",
+                                              "lineageId": "bObjectD",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "bON",
+                                                      "label": "N",
+                                                      "lineageId": "bObjectN",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "bONbar",
+                                                  "label": "N′",
+                                                  "lineageId": "bObjectNbar"
+                                                }
+                                              ],
+                                              "id": "bONP",
+                                              "label": "NP",
+                                              "lineageId": "bObjectNP"
+                                            }
+                                          ],
+                                          "id": "bODbar",
+                                          "label": "D′",
+                                          "lineageId": "bObjectDbar"
+                                        }
+                                      ],
+                                      "id": "bO0",
+                                      "label": "DP",
+                                      "lineageId": "bObject"
+                                    }
+                                  ],
+                                  "id": "bVbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "bVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "bIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "bIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "bLFinner",
+                  "label": "IP"
+                }
+              ],
+              "id": "bLFouter",
+              "label": "IP"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

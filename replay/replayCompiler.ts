@@ -50,6 +50,7 @@ import { spaceAuthoredName } from './displayText.ts';
 import { applyVizIds, getNodeId, createReplayIdentityContext, isReplayDisplayChild, replayOwnerId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { dispatchRelationClaims, dispatchStageRelations, recoveredClaimMovements, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
 import type { RecoveredMovement } from './relations/movementEvidence.ts';
+import { recoveredCovertMovement } from './relations/tier2FacetRecipes.ts';
 import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwnership.ts';
 import type { DerivationStageRelation } from '../types.ts';
 import type { DerivationOperation, DerivationStage, ReplayDetailBlock, SurfaceRealization, SyntaxNode } from '../types.ts';
@@ -1921,7 +1922,10 @@ const buildPreMovementStructuralForest = (
     // before the later adjunction creates its complex.
     const newReceivingHead = !prior && parentCategory?.kind === 'head'
       && hostCategory?.kind === 'head' && parentCategory.head === hostCategory.head;
-    if (newReceivingHead || (prior && prior.parentId === (grandparent?.id || '')
+    const independentlySelectedHead = prior && !prior.parentId
+      && parentCategory?.kind === 'head' && hostCategory?.kind === 'head'
+      && parentCategory.head === hostCategory.head;
+    if (newReceivingHead || independentlySelectedHead || (prior && prior.parentId === (grandparent?.id || '')
       && (grandparent ? prior.childIndex : prior.rootIndex) === siblings.indexOf(parent))) {
       replaceStructuralNode(parent.id, host);
     }
@@ -3244,7 +3248,7 @@ export const buildPlaybackStepsFromDerivationFrames = (
             const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
             // Keep the attachment atomic by default. An earlier authored claim
             // can require this independently buildable receiving context first.
-            if (trajectoryDisplayKind === 'head' && hostIds.length > 0 && structuralParent
+            if ((trajectoryDisplayKind === 'head' && hostIds.length > 0 || trajectoryDisplayKind === 'phrasal') && structuralParent
               && !(structuralParent.children || []).some(child => child.id === branchNodeId)
               && earlierRelationNeedsContext(parentNodeId)) return hostIds;
             hostIds.push(parentNodeId);
@@ -7319,6 +7323,48 @@ export const createFrameRelationResolver = (frames: ReplayDerivationFrame[], rep
   };
 };
 
+/** A later chain can describe a member already carried inside an earlier
+ * head movement. Only an unchanged lower witness and an unchanged, ordered
+ * head assembly establish this ownership; containment alone does not. */
+const isCarriedHeadMemberTransition = (
+  movement: RecoveredMovement,
+  earlierMovements: readonly RecoveredMovement[],
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): boolean => {
+  if (movement.trajectoryKind !== 'head'
+    || !earlierMovements.some(earlier => earlier.transition && earlier.trajectoryKind === 'head')) return false;
+  const previous = indexExactForestNodeLocations(previousForest);
+  const current = indexExactForestNodeLocations(currentForest);
+  const lowerBefore = previous.get(movement.sourceNodeId);
+  const lowerAfter = current.get(movement.sourceNodeId);
+  if (!lowerBefore || !lowerAfter || lowerBefore.parentId !== lowerAfter.parentId
+    || lowerBefore.childIndex !== lowerAfter.childIndex
+    || !lowerBefore.parentId && lowerBefore.rootIndex !== lowerAfter.rootIndex
+    || JSON.stringify(lowerBefore.node) !== JSON.stringify(lowerAfter.node)) return false;
+  const matchesCarriedAssembly = (before: SyntaxNode, after: SyntaxNode): boolean => {
+    if (readCategoryLabel(before.label)?.kind !== 'head' || readCategoryLabel(after.label)?.kind !== 'head'
+      || before.id !== after.id && (!before.lineageId || before.lineageId !== after.lineageId)) return false;
+    const keys = Object.keys(before).filter(key => key !== 'id' && key !== 'children');
+    if (keys.length !== Object.keys(after).filter(key => key !== 'id' && key !== 'children').length
+      || !keys.every(key => JSON.stringify(before[key as keyof SyntaxNode]) === JSON.stringify(after[key as keyof SyntaxNode]))) return false;
+    const beforeChildren = before.children || [], afterChildren = after.children || [];
+    return beforeChildren.length === afterChildren.length
+      && beforeChildren.every((child, index) => matchesCarriedAssembly(child, afterChildren[index]));
+  };
+  const containsCarriedMember = (before: SyntaxNode, after: SyntaxNode): boolean =>
+    after.id === movement.targetNodeId && Boolean(before.lineageId && before.lineageId === after.lineageId)
+      || Boolean(before.children?.some((child, index) => containsCarriedMember(child, after.children![index])));
+  return earlierMovements.some(earlier => {
+    if (!earlier.transition || earlier.trajectoryKind !== 'head'
+      || earlier.priorSourceNodeId === movement.priorSourceNodeId) return false;
+    const before = previous.get(earlier.priorSourceNodeId)?.node;
+    const after = current.get(earlier.targetNodeId)?.node;
+    return Boolean(before && after && after.id !== movement.targetNodeId
+      && matchesCarriedAssembly(before, after) && containsCarriedMember(before, after));
+  });
+};
+
 export const getFrameRelations = (
   frame?: ReplayDerivationFrame | null,
   plannedStage?: DerivationReplayPlanStage | null,
@@ -7441,7 +7487,9 @@ export const getFrameRelations = (
         const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
           && item.evidence?.movement === movement);
         const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-        const transition = !ownedMovements.has(key) && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
+        const transition = !ownedMovements.has(key)
+          && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
+          && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
         if (transition) {
           ownedMovements.add(key);
           earlierMovements.push(movement);
@@ -7456,7 +7504,8 @@ export const getFrameRelations = (
     if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet) return step;
     const movementDiagnostics = isPriorMovementContextFailure(input.relation, dispatch, earlierMovements)
       ? [] : evidence.movementDiagnostics;
-    const movement: RecoveredMovement | undefined = covert ? {
+    const covertEvidence = facet?.evidence ?? evidence;
+    const movement: RecoveredMovement | undefined = covert ? recoveredCovertMovement(covertEvidence) ?? {
       priorSourceNodeId: evidence.currentAnchors['scope.source'][0],
       sourceNodeId: evidence.currentAnchors['scope.source'][0],
       targetNodeId: evidence.currentAnchors['scope.landing'][0],
@@ -7486,6 +7535,7 @@ export const getFrameRelations = (
       ] : [];
     const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
     const transition = !ownedMovements.has(movementKey)
+      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
       && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
     // Later claims may inspect the same dependency; its structural change occurs once.
     if (transition) {

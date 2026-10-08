@@ -261,8 +261,8 @@ test('movement trace display accepts numeric indices only', async (t) => {
   assert.equal(isTraceLike('tᵥ'), true, 'legacy letter-subscript surfaces must still be recognized as traces');
   assert.equal(buildTraceDisplayLabel('v'), 't', 'the renderer must never synthesize a letter-indexed trace');
   assert.equal(buildTraceDisplayLabel('ᵥ'), 't');
-  assert.equal(formatAuthoredWitnessSurface('tᵥ'), 't');
-  assert.equal(formatAuthoredWitnessSurface('tᵥ', '2'), 't₂');
+  assert.equal(formatAuthoredWitnessSurface('tᵥ'), 'tᵥ');
+  assert.equal(formatAuthoredWitnessSurface('tᵥ', '2'), 'tᵥ');
   assert.equal(isDisplayTraceLabel('tᵥ'), false);
   assert.equal(isDisplayTraceLabel('t₂'), true);
 
