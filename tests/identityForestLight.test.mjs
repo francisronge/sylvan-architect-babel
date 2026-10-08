@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { identityLightSites, identityLightTargets, mergeIdentityOwners } from '../components/identityForestLight.ts';
+import { guardViewCallback, rethrowViewError } from '../components/viewErrorHandling.ts';
 
 test('shared terminal ownership keeps both relation moments after repeated decoration', () => {
   const first = { stageIndex: 0, relationIndex: 1, relation: 'First chain' };
@@ -63,7 +64,7 @@ test('production lighting stays idle and coalesces camera and resize invalidatio
     requestAnimationFrame: fn => { pending.set(++nextId, fn); return nextId; } };
   const Observer = class { constructor(callback) { resize = callback; } observe() {} };
   const start = new Function('containerRef', 'svgRef', 'identityForestLightFamilies', 'identityLightTargets',
-    'identityLightSites', 'document', 'window', 'ResizeObserver', ts.transpile(`
+    'identityLightSites', 'document', 'window', 'ResizeObserver', 'guardViewCallback', 'reportViewError', ts.transpile(`
       let forestLightFrame = null, forestLightCanvas = null, forestLightResize = null, refreshIdentityForestLight = null;
       const start = ${initializer.getText(tree)};
       start();
@@ -71,7 +72,8 @@ test('production lighting stays idle and coalesces camera and resize invalidatio
     `, { target: ts.ScriptTarget.ES2023 }));
   const refresh = start({ current: mount }, { current: svg }, [
     { occurrencePools: [['word']], emphasis: 'active' }
-  ], identityLightTargets, () => [[{ x: 200, y: 300 }]], { createElement: () => canvas }, window, Observer);
+  ], identityLightTargets, () => [[{ x: 200, y: 300 }]], { createElement: () => canvas }, window, Observer,
+  guardViewCallback, rethrowViewError);
   assert.equal(paints, 1);
   assert.equal(pending.size, 0, 'a static identity frame schedules no recurring work');
   refresh(); refresh(); resize();

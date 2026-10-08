@@ -1,14 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { parseSentence, ParseServiceError } from './services/parseService';
+import { useGeneration } from './hooks/useGeneration';
+import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
+import { buildMilesNotation } from './services/milesNotation';
 import { listTreeBankEntries, saveTreeBankEntry, loadTreeBankEntry, removeTreeBankEntry, subscribeTreeBankChanges, type TreeBankEntrySummary } from './services/treeBankStore';
 import TreeBankPreview from './components/TreeBankPreview';
 import {
   ParseBundle,
-  GenerationRecord,
-  ParseFailure,
-  ParseResult,
-  RawOutputArtifact,
-  SyntaxNode
+  ParseResult
 } from './types';
 import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
@@ -50,47 +48,6 @@ const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>
   { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
   { id: 'notes', icon: FileText, label: 'Notes' },
 ];
-
-const KEY_ERROR_CODES = new Set(['API_KEY_EXPIRED', 'API_KEY_MISSING', 'API_KEY_INVALID']);
-
-interface UiErrorState {
-  message: string;
-  code?: string;
-  failure?: ParseFailure;
-  rawOutput?: RawOutputArtifact;
-  generationRecord?: GenerationRecord;
-}
-
-const resolveUiError = (err: unknown): {
-  needsKey: boolean;
-  error: UiErrorState;
-} => {
-  const message = err instanceof Error ? err.message : String(err || '');
-  const code = err instanceof ParseServiceError ? err.code : '';
-  if (KEY_ERROR_CODES.has(code || message)) {
-    return {
-      needsKey: true,
-      error: {
-        message: 'The selected provider API key is missing or invalid on the server.',
-        code: code || message,
-        ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {}),
-        ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {}),
-        ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {})
-      }
-    };
-  }
-
-  return {
-    needsKey: false,
-    error: {
-      message: message || 'Derivation interrupted.',
-      ...(code ? { code } : {}),
-      ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {}),
-      ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {}),
-      ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {})
-    }
-  };
-};
 
 const formatModelLabel = (modelUsed: string | undefined, models = GENERATION_MODEL_IDS.map(id => getResearchModel(id)!)): string => {
   const model = String(modelUsed || '').trim();
@@ -144,7 +101,6 @@ const coerceReasoningEffortForRoute = (route: ModelMode, value?: string): Reason
   return (control.values.includes(value || '') ? value : control.qualificationDefault) as ReasoningEffort;
 };
 
-type MilesMode = 'canopy' | 'derivation';
 type CopyCodeKey = 'canopy' | 'derivation';
 type WorkspaceView = 'arboretum' | 'treeBank';
 type DevReplayTarget = number | 'last' | null;
@@ -179,96 +135,6 @@ const formatTreeBankDate = (iso: string): string => {
   return parsed.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-const encodeUtf8ToBase64 = (value: string): string => {
-  const bytes = new TextEncoder().encode(value);
-  let binary = '';
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary);
-};
-
-const captureVisibleTreeSnapshot = (): string | undefined => {
-  if (typeof document === 'undefined') return undefined;
-
-  const svg = document.querySelector('svg[data-babel-tree="true"]') as SVGSVGElement | null;
-  if (!svg) return undefined;
-
-  const SNAPSHOT_WIDTH = 1600;
-  const SNAPSHOT_HEIGHT = 980;
-  const SNAPSHOT_PADDING = 72;
-
-  const clone = svg.cloneNode(true) as SVGSVGElement;
-  // An SVG used as an image cannot inherit the application's stylesheet.
-  // Keep geometry attributes intact so the snapshot can still be fitted below.
-  const paintProperties = [
-    'color', 'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-opacity',
-    'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
-    'stroke-dasharray', 'stroke-dashoffset', 'opacity', 'visibility', 'display',
-    'font-family', 'font-size', 'font-weight', 'font-style', 'letter-spacing',
-    'word-spacing', 'text-anchor', 'dominant-baseline', 'text-transform',
-    'text-decoration', 'paint-order', 'vector-effect', 'filter', 'rx', 'ry'
-  ];
-  const liveElements = [svg, ...svg.querySelectorAll<SVGElement>('*')];
-  const clonedElements = [clone, ...clone.querySelectorAll<SVGElement>('*')];
-  liveElements.forEach((element, index) => {
-    const computed = getComputedStyle(element);
-    paintProperties.forEach((property) => {
-      clonedElements[index].style.setProperty(property, computed.getPropertyValue(property));
-    });
-  });
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-  clone.setAttribute('width', String(SNAPSHOT_WIDTH));
-  clone.setAttribute('height', String(SNAPSHOT_HEIGHT));
-  clone.setAttribute('viewBox', `0 0 ${SNAPSHOT_WIDTH} ${SNAPSHOT_HEIGHT}`);
-  clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bgRect.setAttribute('x', '0');
-  bgRect.setAttribute('y', '0');
-  bgRect.setAttribute('width', '100%');
-  bgRect.setAttribute('height', '100%');
-  bgRect.setAttribute('fill', '#020806');
-  clone.insertBefore(bgRect, clone.firstChild);
-
-  const liveGroup = svg.querySelector('g');
-  const clonedGroup = clone.querySelector('g');
-  if (liveGroup && clonedGroup) {
-    try {
-      let bbox = liveGroup.getBBox();
-      if (liveGroup.querySelector('[data-babel-plaque-viewport]')) {
-        // SVG getBBox includes clipped text. Measure the visible viewport boxes
-        // on a disposable copy, leaving every authored row in the saved image.
-        const measurement = clone.cloneNode(true) as SVGSVGElement;
-        measurement.style.cssText = 'position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none';
-        measurement.querySelectorAll<SVGSVGElement>('[data-babel-plaque-viewport]').forEach(viewport => {
-          const box = viewport.viewBox.baseVal;
-          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          for (const key of ['x', 'y', 'width', 'height'] as const) rect.setAttribute(key, String(box[key]));
-          viewport.replaceChildren(rect);
-        });
-        document.body.appendChild(measurement);
-        try { bbox = measurement.querySelector<SVGGElement>('g')!.getBBox(); }
-        finally { measurement.remove(); }
-      }
-      if (Number.isFinite(bbox.width) && Number.isFinite(bbox.height) && bbox.width > 0 && bbox.height > 0) {
-        const availableWidth = Math.max(1, SNAPSHOT_WIDTH - SNAPSHOT_PADDING * 2);
-        const availableHeight = Math.max(1, SNAPSHOT_HEIGHT - SNAPSHOT_PADDING * 2);
-        const scale = Math.min(availableWidth / bbox.width, availableHeight / bbox.height);
-        const translateX = (SNAPSHOT_WIDTH - bbox.width * scale) / 2 - bbox.x * scale;
-        const translateY = (SNAPSHOT_HEIGHT - bbox.height * scale) / 2 - bbox.y * scale;
-        clonedGroup.setAttribute('transform', `translate(${translateX},${translateY}) scale(${scale})`);
-      }
-    } catch {
-      // Use the current rendered transform when SVG bounds are unavailable.
-    }
-  }
-
-  const serialized = new XMLSerializer().serializeToString(clone);
-  return `data:image/svg+xml;base64,${encodeUtf8ToBase64(serialized)}`;
-};
-
 const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, unknown>;
@@ -283,101 +149,6 @@ const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
   return Array.isArray((candidate as unknown as ParseBundle).analyses)
     ? candidate as unknown as ParseBundle
     : null;
-};
-
-const KNOWN_CATEGORY_LABELS = new Set([
-  'A',
-  "A'",
-  'ADJ',
-  'ADJP',
-  'ADVP',
-  'ASP',
-  "ASP'",
-  'ASPP',
-  'C',
-  "C'",
-  'CP',
-  'D',
-  "D'",
-  'DP',
-  'I',
-  "I'",
-  'IP',
-  'INFL',
-  "INFL'",
-  'INFLP',
-  'N',
-  "N'",
-  'NEG',
-  "NEG'",
-  'NEGP',
-  'NP',
-  'P',
-  "P'",
-  'PP',
-  'PRT',
-  'PRTP',
-  'T',
-  "T'",
-  'TP',
-  'V',
-  "V'",
-  'VP'
-]);
-
-const normalizeCategoryToken = (token: string): string =>
-  token
-    .trim()
-    .replace(/’/g, "'")
-    .replace(/\s+/g, '')
-    .toUpperCase();
-
-const isLikelySyntacticCategory = (label: string): boolean => {
-  const raw = label.trim();
-  if (!raw) return false;
-  const normalized = normalizeCategoryToken(raw);
-  if (KNOWN_CATEGORY_LABELS.has(normalized)) return true;
-  return /^[A-Z][A-Z0-9]*(?:P|')?$/.test(raw);
-};
-
-const sanitizeMilesToken = (token: string): string =>
-  token
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/\[/g, '(')
-    .replace(/\]/g, ')');
-
-const serializeMilesNode = (node: SyntaxNode): string => {
-  if (!node || typeof node !== 'object') return '';
-  const label = String(node.label || '').trim();
-  const word = String(node.word || '').trim();
-  const children = Array.isArray(node.children)
-    ? node.children.filter((child): child is SyntaxNode => Boolean(child && typeof child === 'object'))
-    : [];
-
-  if (children.length === 0) {
-    const rawSurface = (word || label || '∅').trim();
-    const token = sanitizeMilesToken(rawSurface || '∅');
-    if (word) return token;
-    if (label && isLikelySyntacticCategory(label)) {
-      return `[${sanitizeMilesToken(label)} ${token === sanitizeMilesToken(label) ? '∅' : token}]`;
-    }
-    return token;
-  }
-
-  const serializedChildren = children
-    .map((child) => serializeMilesNode(child))
-    .filter((value) => value.length > 0);
-  const nodeLabel = sanitizeMilesToken(label || word || 'X');
-  if (serializedChildren.length === 0) return `[${nodeLabel}]`;
-  return `[${nodeLabel} ${serializedChildren.join(' ')}]`;
-};
-
-const buildMilesNotation = (
-  forest: SyntaxNode[],
-  _mode: MilesMode
-): string => {
-  return forest.map((root) => serializeMilesNode(root).trim()).filter(Boolean).join('\n');
 };
 
 interface AppProps {
@@ -429,15 +200,13 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     []
   );
   const [input, setInput] = useState('The farmer eats the pig');
-  const [loading, setLoading] = useState(false);
+  const { loading, error, needsKey, generate, clearError, clearFailure, resetGeneration, reportError } = useGeneration();
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
-  const [error, setError] = useState<UiErrorState | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [devCaptureMode, setDevCaptureMode] = useState(false);
-  const [needsKey, setNeedsKey] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
@@ -486,11 +255,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const canopyMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeFinalForest, 'canopy');
+    return buildMilesNotation(activeFinalForest);
   }, [activeParse, activeFinalForest]);
   const derivationMilesNotation = useMemo(() => {
     if (!activeParse) return '';
-    return buildMilesNotation(activeFinalForest, 'derivation');
+    return buildMilesNotation(activeFinalForest);
   }, [activeParse, activeFinalForest]);
   const derivationalNoteParagraphs = useMemo(() => {
     if (!activeParse) return [];
@@ -523,13 +292,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       }
       setActiveParseIndex(0);
       setActiveTab('tree');
-      setError(null);
       setCopiedCodeKey(null);
-      setNeedsKey(false);
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
-      setLoading(false);
+      resetGeneration();
     };
     target.__BABEL_DEV_SET_TAB__ = (tab: AppTab) => {
       if (tab === 'tree' || tab === 'derivation' || tab === 'notes') {
@@ -606,18 +373,16 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
         setReasoningEffort(coerceReasoningEffortForRoute(coercedModelRoute, nextReasoningEffort || reasoningEffort));
         setActiveParseIndex(0);
         setActiveTab(devBundleConfig.tab);
-        setError(null);
         setCopiedCodeKey(null);
-        setNeedsKey(false);
         setWorkspaceView('arboretum');
-        setLoading(false);
+        resetGeneration();
         setDevCaptureMode(devBundleConfig.captureMode);
         setIsInputVisible(!(showcaseMode || devBundleConfig.captureMode));
         setIsInputExpanded(!(showcaseMode || devBundleConfig.captureMode));
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : String(err || 'Unknown error');
-        setError({ message: `Unable to load preview bundle: ${message}` });
+        reportError({ message: `Unable to load preview bundle: ${message}` });
       }
     };
 
@@ -722,13 +487,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (loading) return;
     if (!input.trim()) return;
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await parseSentence(input, framework, modelRoute, {
-        [selectedModel.controls[0].id]: activeReasoningEffort
-      });
+    await generate({
+      sentence: input,
+      framework,
+      modelId: modelRoute,
+      settings: { [selectedModel.controls[0].id]: activeReasoningEffort }
+    }, data => {
       setInitialReplayPosition(null);
       setAnalysisBundle(data);
       const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
@@ -739,14 +503,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveParseIndex(0);
       setActiveTab('tree');
       setCopiedCodeKey(null);
-      setNeedsKey(false);
-    } catch (err: unknown) {
-      const uiError = resolveUiError(err);
-      setNeedsKey(uiError.needsKey);
-      setError(uiError.error);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleSaveCurrentTree = async () => {
@@ -813,9 +570,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveTab(view);
       setAbstractionMode(savedAbstraction);
       setTreeBankError(null);
-      setError(null);
+      clearFailure();
       setCopiedCodeKey(null);
-      setNeedsKey(false);
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
@@ -1003,8 +759,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           onChange={(event) => {
                             setModelRoute(event.target.value);
                             setReasoningEffort('high');
-                            setError(null);
-                            setNeedsKey(false);
+                            clearFailure();
                           }}
                           className="w-40 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
@@ -1023,7 +778,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           disabled={loading}
                           onChange={(event) => {
                             setReasoningEffort(event.target.value as ReasoningEffort);
-                            setError(null);
+                            clearError();
                           }}
                           className="w-24 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
@@ -1376,6 +1131,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           failure={error.failure}
                           rawOutput={error.rawOutput}
                           generationRecord={error.generationRecord}
+                          sentence={error.request?.sentence}
                         >
                           {needsKey && (
                             <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200">

@@ -1,19 +1,13 @@
-import { createFailure, withFailureDetails } from './validationErrors.js';
-import { resolveRealizations, validateRealizations } from './realizations.js';
-import { tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
-
 // The complete node contract: required id/label/children, the optional
 // authored fields, and the server-derived surfaceSpan.
 const DERIVATION_NODE_FIELDS = new Set(['id', 'label', 'children', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan']);
 
-export const createDerivationCompilerHelpers = ({
-  ParseApiError,
-  normalizeOptionalText,
-  collectNodeReferencesById,
-  collectOvertTerminalNodes,
-  authoredWord,
-  sameTokenSequence,
-  deriveCanonicalSurfaceSpans
+/** Canonical authored-stage rules. The server supplies error-envelope policy;
+ * browser inspection reuses this pure factory without importing provider or
+ * Node runtimes. Inspection never accepts or repairs a failed analysis. */
+export const createAuthoredWorkspaceHelpers = ({
+  ParseApiError, createFailure, withFailureDetails,
+  resolveRealizations, validateRealizations, tokenizeSentenceSurfaceOrder
 }) => {
   const REQUIRED_STAGE_FIELDS = Object.freeze([
     'statement',
@@ -236,7 +230,8 @@ export const createDerivationCompilerHelpers = ({
     stageIndex,
     integrityFlags,
     diagnostics,
-    nodeFieldPaths
+    nodeFieldPaths,
+    inspectionBudget
   ) => {
     const throwMalformedWorkspace = (message, fieldPath, offendingValue, expectedForm, inspectable = false) => {
       const details = withFailureDetails({}, {
@@ -262,7 +257,26 @@ export const createDerivationCompilerHelpers = ({
     const stageNodeIds = new Set();
     const resolvingRefIds = new Set();
 
-    const expandNode = (rawNode, path, carriedFrom = null) => {
+    const throwInspectionLimit = (path, reason) => {
+      const message = `Diagnostic drawing stopped: ${reason}. The original output and authored stage remain available.`;
+      throw new ParseApiError('INSPECTION_LIMIT', message, 422, withFailureDetails({}, {
+        failureClass: 'valid_but_unexpected', ruleId: 'INSPECTION_WORKSPACE_LIMIT',
+        stageIndex, fieldPath: path, offendingValue: null,
+        expectedForm: 'an expanded workspace within the local diagnostic drawing limits',
+        processingStep: 'diagnostic-inspection', message
+      }));
+    };
+    const cloneInspectedField = (value, path) => {
+      if (--inspectionBudget.remainingFieldValues < 0) throwInspectionLimit(path, 'expanded node fields exceed the inspection limit');
+      if (Array.isArray(value)) return value.map(item => cloneInspectedField(item, path));
+      if (!value || typeof value !== 'object') return value;
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneInspectedField(item, path)]));
+    };
+
+    const expandNode = (rawNode, path, carriedFrom = null, depth = 0) => {
+      if (inspectionBudget && depth >= inspectionBudget.maxDepth) {
+        throwInspectionLimit(path, `expanded tree depth exceeds ${inspectionBudget.maxDepth} levels`);
+      }
       if (!rawNode || typeof rawNode !== 'object' || Array.isArray(rawNode)) {
         throwMalformedWorkspace(`Malformed syntax node at ${path}: expected an object.`,
           path, rawNode, 'a complete syntax node or a refId object');
@@ -298,10 +312,14 @@ export const createDerivationCompilerHelpers = ({
         resolvingRefIds.add(refId);
         try {
           integrityFlags.push(`prior_stage_refid_expanded:${stageIndex + 1}:${refId}`);
-          return expandNode(referencedNode, path, { fieldPath: `${path}.refId`, refId: rawNode.refId });
+          return expandNode(referencedNode, path, { fieldPath: `${path}.refId`, refId: rawNode.refId }, depth);
         } finally {
           resolvingRefIds.delete(refId);
         }
+      }
+
+      if (inspectionBudget && --inspectionBudget.remainingOccurrences < 0) {
+        throwInspectionLimit(path, 'expanded occurrences exceed the inspection limit');
       }
 
       for (const field of ['id', 'label', 'children']) {
@@ -332,10 +350,16 @@ export const createDerivationCompilerHelpers = ({
           integrityFlags.push(`node_field_ignored:${stageIndex + 1}:${path}.${field}`);
         }
       });
+      // Inspection checks descendants before allocating them. Cloning the whole
+      // referenced subtree here would allocate unchecked descendants first.
+      const fields = inspectionBudget
+        ? Object.fromEntries(Object.entries(rawNode).filter(([key]) => key !== 'children')
+          .map(([key, item]) => [key, cloneInspectedField(item, `${path}.${key}`)]))
+        : cloneJson(rawNode);
       const expanded = {
-        ...cloneJson(rawNode),
+        ...fields,
         children: rawNode.children.map((child, childIndex) => (
-          expandNode(child, `${path}.children[${childIndex}]`, carriedFrom)
+          expandNode(child, `${path}.children[${childIndex}]`, carriedFrom, depth + 1)
         ))
       };
       if (nodeFieldPaths) {
@@ -420,7 +444,7 @@ export const createDerivationCompilerHelpers = ({
       }
       const workspaceDiagnostics = [];
       try {
-        const workspaceForest = expandWorkspaceForest(stage?.workspaceForest, priorNodes, stageIndex, [], workspaceDiagnostics);
+        const workspaceForest = expandWorkspaceForest(stage?.workspaceForest, priorNodes, stageIndex, [], workspaceDiagnostics, undefined, options.inspectionBudget);
         entry.workspaceForest = workspaceForest;
         const nodes = new Map();
         const visit = (node, authoredNode, path, carriedFrom = null, underSilentAncestor = false) => {
@@ -464,7 +488,9 @@ export const createDerivationCompilerHelpers = ({
           rest.every(({ node }) => sameExpandedBody(first.node, node))
         ));
         if (unambiguousBodies) {
-          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, cloneJson(node)));
+          // Inspection only reads cached nodes and expansion always copies them.
+          // Reusing those immutable inputs avoids a second subtree copy per ID.
+          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, options.inspectionBudget ? node : cloneJson(node)));
         } else {
           priorNodes.clear();
         }
@@ -560,6 +586,23 @@ export const createDerivationCompilerHelpers = ({
     });
     return entries;
   };
+
+  return { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, inspectDerivationWorkspaces };
+};
+
+export const createDerivationCompilerHelpers = ({
+  ParseApiError,
+  createFailure, withFailureDetails, resolveRealizations, validateRealizations, tokenizeSentenceSurfaceOrder,
+  normalizeOptionalText,
+  collectNodeReferencesById,
+  collectOvertTerminalNodes,
+  authoredWord,
+  sameTokenSequence,
+  deriveCanonicalSurfaceSpans
+}) => {
+  const { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, inspectDerivationWorkspaces } =
+    createAuthoredWorkspaceHelpers({ ParseApiError, createFailure, withFailureDetails,
+      resolveRealizations, validateRealizations, tokenizeSentenceSurfaceOrder });
 
   const normalizeDerivationFrames = (value, options = {}) => {
     if (!Array.isArray(value)) return [];

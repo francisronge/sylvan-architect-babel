@@ -2,17 +2,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+import { captureVisibleTreeSnapshot } from '../services/treeSnapshot.ts';
 
 const parse = path => ts.createSourceFile(path, readFileSync(new URL(path, import.meta.url), 'utf8'),
   ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const app = parse('../App.tsx');
 const visualizer = parse('../components/TreeVisualizer.tsx');
 const find = (root, predicate) => {
   if (predicate(root)) return root;
   return ts.forEachChild(root, node => find(node, predicate));
 };
-const initializer = name => find(app, node => ts.isVariableDeclaration(node)
-  && node.name.getText(app) === name)?.initializer.getText(app);
 const treeSvg = find(visualizer, node => ts.isJsxSelfClosingElement(node)
   && node.tagName.getText(visualizer) === 'svg'
   && node.attributes.properties.some(prop => prop.name?.getText(visualizer) === 'ref'
@@ -79,9 +77,17 @@ const capture = (nodes, serialized = [], body = element('body', {}, '')) => {
   };
   const XMLSerializer = class { serializeToString(node) { serialized.push(node); return node.textContent; } };
   const getComputedStyle = node => ({ getPropertyValue: property => node.computed[property] || '' });
-  const code = ts.transpile(`const encodeUtf8ToBase64 = ${initializer('encodeUtf8ToBase64')};
-    return (${initializer('captureVisibleTreeSnapshot')})();`, { target: ts.ScriptTarget.ES2023 });
-  return new Function('document', 'XMLSerializer', 'getComputedStyle', code)(document, XMLSerializer, getComputedStyle);
+  const globals = { XMLSerializer, getComputedStyle };
+  const originals = Object.fromEntries(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  try {
+    for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { value, configurable: true });
+    return captureVisibleTreeSnapshot(document);
+  } finally {
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
 };
 
 test('Tree Bank preview captures syntax when Replay toolbar icons precede it', () => {
@@ -141,4 +147,37 @@ test('Tree Bank fits the visible plaque viewport without dropping its clipped ro
   assert.equal(body.children.length, 0, 'the measurement copy is removed');
   assert.equal(group.attrs.transform, undefined, 'the live tree remains untouched');
   assert.equal(viewport.children.length, 1);
+});
+
+test('Tree Bank preview is unavailable outside a browser', () => {
+  assert.equal(captureVisibleTreeSnapshot(), undefined);
+});
+
+test('Tree Bank preview keeps the current transform when SVG bounds are unavailable', () => {
+  const tree = element('svg', treeAttributes, 'tree');
+  const group = element('g', { transform: 'translate(4,5) scale(0.8)' }, '', tree);
+  group.getBBox = () => { throw new Error('SVG is detached'); };
+  tree.children = [group];
+  const saved = [];
+  capture([tree], saved);
+  assert.equal(saved[0].querySelector('g').attrs.transform, group.attrs.transform);
+});
+
+test('Tree Bank removes its measurement copy even when plaque measurement fails', () => {
+  const tree = element('svg', treeAttributes, 'tree');
+  const group = element('g', { transform: 'translate(4,5)' }, '', tree);
+  const viewport = element('svg', { 'data-babel-plaque-viewport': 'true', viewBox: '4 4 582 552' }, '', group);
+  viewport.children = [element('text', {}, 'Authored row', viewport)];
+  group.children = [viewport];
+  tree.children = [group];
+  group.getBBox = function () {
+    if (!this.querySelector('text')) throw new Error('Measurement unavailable');
+    return { x: 0, y: 0, width: 1000, height: 6000 };
+  };
+  const body = element('body', {}, '');
+  const saved = [];
+  capture([tree], saved, body);
+  assert.equal(body.children.length, 0);
+  assert.equal(saved[0].querySelector('text').textContent, 'Authored row');
+  assert.equal(saved[0].querySelector('g').attrs.transform, group.attrs.transform);
 });

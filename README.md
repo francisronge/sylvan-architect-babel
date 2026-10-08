@@ -33,6 +33,26 @@ official names and logo are not licensed for use as fork branding; see
 4. Browse the [Babel Relation Orchard](./docs/research/relation-orchard/orchard.html).
 5. Production-facing environment guidance lives in [.env.example](./.env.example).
 
+## Source ownership
+
+- `App.tsx` composes the workspace and owns the current analysis and view selection.
+  `hooks/useGeneration.ts` and `services/generationState.ts` own request progress
+  and retained failures; `services/parseService.ts` owns the browser HTTP call.
+- `services/treeBankRecords.ts` and `services/treeBankStore.ts` own immutable local
+  records and atomic saves. Snapshot capture and bracket serialization live in
+  `services/treeSnapshot.ts` and `services/milesNotation.ts`.
+- `replay/` contains React-free construction and inspection. The compiler retains
+  movement ownership and scheduling; panel formatting and surface notation have
+  separate pure modules. Authored workspace and realization rules are shared by
+  server validation and browser diagnostic inspection.
+- `components/AsyncTreeVisualizer.tsx` owns preparation and view recovery.
+  `TreeVisualizer.tsx` owns D3 drawing, camera and playback state;
+  `ReplayPanel.tsx` owns the existing controls and detail presentation.
+- `FailurePanel.tsx` preserves request diagnostics and downloads. Its diagnostic
+  dialog can inspect readable failed stages without accepting or repairing them.
+  Error boundaries sit below analysis ownership, so retrying a view does not
+  generate another analysis.
+
 ## Why Babel exists
 
 This section will be rewritten for Babel's full public launch.
