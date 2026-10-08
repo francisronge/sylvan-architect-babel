@@ -1,6 +1,7 @@
 ﻿import { buildSystemInstruction } from './babelParser/systemInstruction.js';
 import { ParseApiError } from './babelParser/error.js';
-import { withFailureDetails } from './babelParser/validationErrors.js';
+import { createFailure, withFailureDetails } from './babelParser/validationErrors.js';
+import { resolveRealizations, validateRealizations } from './babelParser/realizations.js';
 import {
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder
@@ -45,6 +46,7 @@ const {
   buildCanonicalDerivationFromDerivationFrames
 } = createDerivationCompilerHelpers({
   ParseApiError,
+  createFailure, withFailureDetails, resolveRealizations, validateRealizations, tokenizeSentenceSurfaceOrder,
   normalizeOptionalText,
   collectNodeReferencesById,
   collectOvertTerminalNodes,
