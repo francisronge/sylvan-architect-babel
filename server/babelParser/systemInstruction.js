@@ -11,7 +11,7 @@ For structural ambiguity, the only top-level field is analyses, a nonempty array
 
 Stages
 Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input.
-An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage when their order is recoverable from the workspace changes and the required relations. Do not add relations solely to narrate construction steps recoverable from workspace changes. If the required order depends on an intermediate workspace, record that workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
+An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage when their order is recoverable from the workspace changes and the required relations. If the required order depends on an intermediate workspace, record that workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these four required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
@@ -49,7 +49,8 @@ Groups record the complete current state. Repeat every nontrivial association th
 Keep the authored tree and lexical forms. A grouped leaf may keep tokenIndex only if its own word independently matches that whole input token and the token belongs to a group covering it; this redundant index does not count the token twice. Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.
 
 Relations
-Record relations that are not fully expressed by the forest's ordinary mother-daughter or sisterhood branching. Explain them in stageRecord. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
+Babel derives the basic construction display from workspaceForest states: introducing a syntax object, adding a projection, and combining objects under a parent. Do not add a relation solely to announce one of these construction events. Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
+Explain every relation introduced or changed in this stage within stageRecord, stating what it establishes and which participants it connects. Present these explanations in establishment order and list relations in the same order. One relation entry contains claims established together; claims established at different points need separate entries. For independent relations with no required relative order, choose one presentation order and use it consistently in both fields.
 Each relation has exactly these required fields:
 - relation: a nonblank string naming the relation.
 - anchors: a nonempty object with nonblank role names. Each entry is an exact node-id string or a nonempty array of node-id strings. Every id resolves in the current stage's workspace after expanding refId references, even if the node is written later in the same stage's JSON.
@@ -60,7 +61,6 @@ It may also contain these optional fields:
 Keep array order and repeated entries when they are part of the analysis.
 When a values entry lists one literal per item of an anchor entry, give both entries the same name and the same length. When two entries pair their items one by one, give them the same length and order.
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
-List relations in the order their establishing operations occur in stageRecord, even when the relations are independent.
 
 Input words
 In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
