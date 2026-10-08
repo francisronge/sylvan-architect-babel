@@ -89,6 +89,29 @@ and translate the wrapped daughter’s current subtree as a unit. Retained entry
 coordinates must be accounted for before this translation. This changes neither
 construction timing nor the ordinary branch spacing inside the subtree.
 
+A current top fork need not reserve a future movement landing by stretching its
+head branch. Its receiving component may use one rigid inward translation
+throughout its compatible construction lifetime. The head stays fixed; the
+proved movement opens the additional space. This applies both to a new wrapper
+and an exact landing that turns an existing unary projection into a binary fork
+around its sole retained child. Adding a daughter to an existing fork does not
+release unrelated peers. Ordinary merges retain all internal subtree offsets.
+
+An unbranched moving source must not sit farther out than its replacement lower
+occurrence when both occupy the same parent slot beside stationary siblings.
+The compact lower slot may be reserved throughout the source's construction.
+An existing unbranched receiving head may likewise retain its movement-time
+center. Current labels and pronunciation remain unchanged; new children appear
+only at movement. Recenter affected ancestors, keep retained interiors rigid,
+and reject the whole proposal if measured ink, earlier construction, or motion
+ownership would conflict. This applies at inner forks as well as outer ones.
+
+Compaction is bounded by measured current ink across that lifetime. It must
+preserve branch direction and sibling order, clear the current fork, and add no
+unowned motion or unchanged-subtree reflow. Camera fitting, painting and plaque
+allocation continue to consume the same stage reservations and existing fit
+policy.
+
 ### Plaque lifetime placement
 
 Compound Case/feature claims reveal the plaque immediately, then draw its new
@@ -105,6 +128,13 @@ authored relation has one moment; if that one claim licenses both a plaque and
 a connector, the connector reveal runs within that moment. It does not imply
 that one claim can supply D6's distinct number and gender dependencies without
 their source and target evidence.
+
+An asserted feature-licensing claim may name its recipient by an open role.
+One explicit licenser, one unambiguous current recipient, and an independently
+authored feature literal earn the existing feature plaque and dotted connector.
+The plaque preserves the literal without a Case or agreement heading. A
+particle/exponent remains context; it does not become another recipient. Missing
+values, competing endpoints, denied claims and Case notation do not qualify.
 
 Level Case-plaque side entries retain a bounded curve above the gap, keeping the
 word exit and plaque approach clear. Allocation and painting use the same curve.
@@ -445,6 +475,21 @@ constraints. Camera bounds, plaque allocation and painting use these same
 coordinates. A new authored stage can require a new reservation; its subsequent
 micro-steps keep unchanged syntax stationary.
 
+A previously selected standalone head can build the receiving projection needed
+by an earlier movement before a later relation adjoins another head to it. The
+later adjunction owns its complex head and lower occurrence, not the earlier
+receiving projection. A complete moving head carries its unchanged ordered
+members at the same moment. A later chain description of one carried member
+keeps its own relation drawing but cannot withhold that member or introduce its
+trace early. This requires exact prior and current head assemblies and an
+unchanged lower witness in the same parent and child slot.
+
+The same receiving-context rule applies to nested phrasal movements. When an
+earlier movement needs a new projection that will later receive another landing,
+Replay first builds that projection from its available child. The later landing
+and its lower occurrence still appear together at their own relation moment.
+This keeps the earlier landing attached without exposing the later movement.
+
 Canvases in one stage share a vertical rank unit before retaining coordinates.
 A movement that changes canvas depth must not mix two D3 height scales across
 current siblings. Ordinary equal-depth stages retain their existing geometry.
@@ -541,6 +586,13 @@ and displacement guards. A contraction blocked by a measured contact may pair
 with contraction of that contact's free fork, within the same bounded search.
 Retain necessary space when narrowing it would cross a current branch or label
 at any earlier frame, even if the finished tree alone could be narrower.
+An expanded completed-stage fork that ends at a proved movement may receive a
+bounded earlier-stage refinement after the final-frame search. Its own current
+children define the reference span. Accept a reduction only if no completed root
+or forest widens, no completed-stage edge or sibling gap moves farther from its
+own reference, and the final contour and relative root placement stay unchanged.
+The candidate still passes the shared continuity and paint-clearance checks.
+Retain remaining space when further contraction would worsen another stage.
 Packing uses immutable obstacle pairs. Separation-only checks defer contact
 lists. A vertical index skips only obstacles that end before the current one;
 exact contact checks reject disjoint scalar bounds before copying curves.

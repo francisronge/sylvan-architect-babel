@@ -2,7 +2,7 @@ import { buildTier2FacetEvidence } from '../relations/relationEvidence.ts';
 import { nativeThetaAssignments } from '../relations/compoundAssignments.ts';
 import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from '../relations/tier2Synonyms.ts';
 import { movementContextFailure, recoverMovementEvidence } from '../relations/movementEvidence.ts';
-import { authoredOutcomeLiterals, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
+import { authoredOutcomeLiterals, hasUnestablishedCovertMovementOutcome, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 import { productionValueRules } from './productionRoleConcepts.js';
@@ -153,6 +153,10 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
       registeredKind: 'head', structuralKind: movement.trajectoryKind,
       sourceNodeId: movement.sourceNodeId, targetNodeId: movement.targetNodeId
     });
+  }
+  if (entry.id === 'qr.covert' && hasUnestablishedCovertMovementOutcome(relation.values)) {
+    issues.push({ kind: 'covert-movement-not-established', field: 'values',
+      reason: 'The QR primitive requires an established dependency; the authored outcome denies or defers it.' });
   }
   if (entry.signature.anchors.allowContext) {
     const family = PRODUCTION_RENDER_FAMILIES[entry.id]?.family;

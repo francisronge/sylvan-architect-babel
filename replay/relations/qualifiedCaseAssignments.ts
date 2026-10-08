@@ -161,17 +161,32 @@ export function recoverLabelledCaseAssignment(relation: DerivationStageRelation,
  * A governing position owns its exact occurrence, not another chain member. */
 export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, thematic?: EvidenceScope): EvidenceScope[] {
   if (!establishesAssignment(evidence)) return [];
-  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\bcase\b/u.test(clause));
+  const caseValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('case.literal'));
+  const typedCase = caseValues.length === 1 && caseValues[0].items.length === 1
+    ? normalizeTier2Synonym(caseValues[0].items[0]) : undefined;
+  const labelClauses = relationLabelClauses(evidence.relationName);
+  const assignmentStem = labelClauses.length === 1
+    ? /^(.+) (?:assignment|licensing|valuation)$/u.exec(labelClauses[0])?.[1] : undefined;
+  // Naming the separately typed Case in a complete assignment label does not
+  // require repeating the word "Case". Unknown literals still compare exactly.
+  const literalAssignment = Boolean(typedCase && assignmentStem
+    && (assignmentStem === typedCase || assignmentStem.endsWith(` ${typedCase}`)
+      && /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument) )+$/u
+        .test(assignmentStem.slice(0, -typedCase.length)))
+    && !/\b(?:no|not|without|denied|rejected|required|requested|expected|pending|possible|potential|hypothetical|if|unless|whether|failed|blocked|unlicensed)\b/u.test(labelClauses[0]));
+  const clauses = labelClauses.filter(clause => /\bcase\b/u.test(clause) || literalAssignment);
   if (clauses.length !== 1) return [];
   const clause = clauses[0].replace(/ through (?:the )?(?:(?:verbal|nominal|movement) )?chain$/u, '');
   const selected = clause === 'lexically selected case';
-  const caseValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('case.literal'));
   const namedCase = caseValues.length === 1 && caseValues[0].items.length === 1
     && clause === `${normalizeTier2Synonym(caseValues[0].items[0])} case`
     && !/\b(?:no|not|without|denied|rejected|required|requested|expected|pending|possible|potential|hypothetical|if|unless|whether|failed|blocked|unlicensed)\b/u.test(clause);
-  const assignment = /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument|nominative|accusative|genitive|dative|ergative|absolutive|instrumental|locative|oblique|vocative) )*case (?:assignment|licensing|valuation)$/u.test(clause);
-  const government = namedCase && relationLabelClauses(evidence.relationName).includes('government');
-  if (!selected && !assignment && !namedCase) return [];
+  const governmentClause = /^(.*?)case under (?:(verbal|nominal|local) )?government$/u.exec(clause);
+  const governedCase = Boolean(typedCase && governmentClause
+    && ['', `${typedCase} `].includes(governmentClause[1]));
+  const assignment = literalAssignment || /^(?:(?:matrix|embedded|local|structural|abstract|inherent|dependent|nominal|subject|object|internal argument|external argument|nominative|accusative|genitive|dative|ergative|absolutive|instrumental|locative|oblique|vocative) )*case (?:assignment|licensing|valuation)$/u.test(clause);
+  const government = governedCase || namedCase && relationLabelClauses(evidence.relationName).includes('government');
+  if (!selected && !assignment && !namedCase && !governedCase) return [];
   if (namedCase && !hasIndependentCaseEndpoints(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
   // An explicitly typed source remains the source. Contextual aliases cannot
@@ -208,7 +223,18 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
     if (!occurrence) return false;
     if (explicitSources.length) return explicitSources.includes(entry);
     const category = readCategoryLabel(occurrence.node.label);
-    if (role === 'governing position') return assignment;
+    if (role === 'governing position') {
+      if (assignment) return true;
+      if (!governedCase || occurrence.node.children?.length) return false;
+      // A trace's category need not be encoded in its display label. Its one
+      // explicitly named chain head can corroborate the category by lineage.
+      const heads = anchors.filter(anchor => /^(?:chain|verbal|nominal) head$/u.test(normalizeTier2Synonym(anchor.key))
+        && occurrence.node.lineageId && nodeFor(anchor)?.node.lineageId === occurrence.node.lineageId);
+      const shape = category ?? (heads.length === 1 ? readCategoryLabel(nodeFor(heads[0])?.node.label) : undefined);
+      return shape?.kind === 'head' && !shape.compound
+        && (!governmentClause?.[2] || governmentClause[2] === 'local'
+          || shape.head === (governmentClause[2] === 'verbal' ? 'V' : 'N'));
+    }
     if (!category || category.compound || category.kind !== 'head') return false;
     if (namedCase && role === `${normalizeTier2Synonym(literals[0])} head`) return ['P', 'K'].includes(category.head);
     if (/^(?:finite head|inflection|inflectional head)$/u.test(role))
@@ -224,12 +250,18 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
   const source = sources[0], sourceNode = nodeFor(source)!;
   if (sourceNode.node.id === targetNode.node.id || sourceNode.root !== targetNode.root
     || sourceNode.ancestors.includes(targetNode.node.id) || targetNode.ancestors.includes(sourceNode.node.id)) return [];
+  // The government wording identifies a local licensing configuration. Its
+  // explicitly named slot must be the target's sibling, not an arbitrary head
+  // elsewhere in the same clause.
+  if (governedCase && (normalizeTier2Synonym(source.key) !== 'governing position'
+    || sourceNode.ancestors.at(-1) !== targetNode.ancestors.at(-1))) return [];
   // Another contextual head could own the Case claim. A named chain head is
   // only context when its exact occurrence shares the governing slot's lineage.
   const competing = anchors.some(entry => {
     if (entry === source || entry === target) return false;
     const role = normalizeTier2Synonym(entry.key), occurrence = nodeFor(entry);
-    if (role === 'chain head' && normalizeTier2Synonym(source.key) === 'governing position'
+    if ((role === 'chain head' || governedCase && /^(?:verbal|nominal) head$/u.test(role))
+      && normalizeTier2Synonym(source.key) === 'governing position'
       && occurrence && sourceNode.node.lineageId && occurrence.node.lineageId === sourceNode.node.lineageId) return false;
     return /(?:^| )(?:head|inflection|selector|governing position|verb|predicate|localizer)$/u.test(role);
   });

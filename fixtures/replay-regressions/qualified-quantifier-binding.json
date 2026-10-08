@@ -1,0 +1,667 @@
+{
+  "provenance": {
+    "source": "/tmp/babel-ten-model-comparison-20261006/sol-spanish-scope/attempts/parse/bundle.json",
+    "model": "openai:gpt-6.1-sol",
+    "harness": "qualification:codex",
+    "extraction": "Exact fourth stages of both saved analyses."
+  },
+  "stages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "adjunction_site": "lvpadj",
+            "raised_quantifier": "lobj",
+            "trace": "lto"
+          },
+          "priorAnchors": {
+            "source_DP": "lobj",
+            "source_V_projection": "lvbar",
+            "target_VP": "lvp"
+          },
+          "relation": "quantifier_raising",
+          "values": {
+            "chain_properties": "the raised DP binds its governed object trace and inherits its theta-role and Case",
+            "operation": "LF A-bar adjunction to VP"
+          }
+        },
+        {
+          "anchors": {
+            "bound_object_variable": "lto",
+            "existential_domain": "lip",
+            "narrow_scope_universal": "lobj",
+            "universal_domain": "lvpadj",
+            "wide_scope_indefinite": "lsub"
+          },
+          "relation": "quantifier_scope",
+          "values": {
+            "interpretation": "There is a professor who reviewed every relevant report.",
+            "logical_form": "∃x[profesora(x) ∧ ∀y[informe(y) → revisar_past(x,y)]]",
+            "scope_order": "existential > universal"
+          }
+        }
+      ],
+      "stageRecord": "At LF, cada informe moves from the previously displayed object position and adjoins to VP, leaving a bound DP-trace in its theta-position. The raised object c-commands that trace but remains below the subject in Spec-IP. The indefinite subject receives existential interpretation at the clause level, outside the universal quantifier's VP scope. Consequently, a single professor satisfies the predicate for every relevant report. The object chain retains the theta-role and Case licensed at its original position; its trace is lexically governed by the verbal chain and bound by the raised quantifier. The movement crosses no island or intervening clause. PF remains unchanged, so this LF operation has no effect on the input's pronunciation.",
+      "statement": "Complete the subject-wide-scope reading: one professor reviewed every report.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "una",
+                      "label": "D",
+                      "lineageId": "indefinite-determiner",
+                      "tokenIndex": 0,
+                      "word": "Una"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "prof",
+                              "label": "N",
+                              "lineageId": "subject-noun",
+                              "tokenIndex": 1,
+                              "word": "profesora"
+                            }
+                          ],
+                          "id": "subnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "subnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "subbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sub",
+              "label": "DP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "V",
+                      "lineageId": "verb",
+                      "tokenIndex": 2,
+                      "word": "revisó"
+                    },
+                    {
+                      "children": [],
+                      "id": "i",
+                      "label": "I [finite, past, 3sg]",
+                      "lineageId": "inflection",
+                      "silent": true
+                    }
+                  ],
+                  "id": "ihead",
+                  "label": "I"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tv",
+                          "label": "V-trace",
+                          "lineageId": "verb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cada",
+                                  "label": "D [universal]",
+                                  "lineageId": "universal-determiner",
+                                  "tokenIndex": 3,
+                                  "word": "cada"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "inf",
+                                          "label": "N",
+                                          "lineageId": "object-noun",
+                                          "tokenIndex": 4,
+                                          "word": "informe"
+                                        }
+                                      ],
+                                      "id": "objnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "objnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "objbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "obj",
+                          "label": "DP",
+                          "lineageId": "object"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP",
+                  "lineageId": "predicate"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP",
+          "lineageId": "clause"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "luna",
+                      "label": "D",
+                      "lineageId": "indefinite-determiner",
+                      "silent": true,
+                      "word": "Una"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "lprof",
+                              "label": "N",
+                              "lineageId": "subject-noun",
+                              "silent": true,
+                              "word": "profesora"
+                            }
+                          ],
+                          "id": "lsubnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "lsubnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "lsubbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "lsub",
+              "label": "DP",
+              "lineageId": "subject",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lv",
+                      "label": "V",
+                      "lineageId": "verb",
+                      "silent": true,
+                      "word": "revisó"
+                    },
+                    {
+                      "children": [],
+                      "id": "li",
+                      "label": "I [finite, past, 3sg]",
+                      "lineageId": "inflection",
+                      "silent": true
+                    }
+                  ],
+                  "id": "lihead",
+                  "label": "I"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "lcada",
+                              "label": "D [universal]",
+                              "lineageId": "universal-determiner",
+                              "silent": true,
+                              "word": "cada"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "linf",
+                                      "label": "N",
+                                      "lineageId": "object-noun",
+                                      "silent": true,
+                                      "word": "informe"
+                                    }
+                                  ],
+                                  "id": "lobjnbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "lobjnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "lobjbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "lobj",
+                      "label": "DP",
+                      "lineageId": "object",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "ltv",
+                              "label": "V-trace",
+                              "lineageId": "verb",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "lto",
+                              "label": "DP-trace [quantifier variable]",
+                              "lineageId": "object",
+                              "silent": true
+                            }
+                          ],
+                          "id": "lvbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "lvp",
+                      "label": "VP",
+                      "lineageId": "predicate"
+                    }
+                  ],
+                  "id": "lvpadj",
+                  "label": "VP [QR adjunction]"
+                }
+              ],
+              "id": "libar",
+              "label": "I′"
+            }
+          ],
+          "id": "lip",
+          "label": "IP [LF]",
+          "lineageId": "clause",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "adjunction_site": "lipadj",
+            "raised_quantifier": "lobj",
+            "trace": "lto"
+          },
+          "priorAnchors": {
+            "source_DP": "lobj",
+            "source_V_projection": "lvbar",
+            "target_IP": "lip"
+          },
+          "relation": "quantifier_raising",
+          "values": {
+            "chain_properties": "the raised DP binds its governed object trace and inherits its theta-role and Case",
+            "operation": "LF A-bar adjunction to IP"
+          }
+        },
+        {
+          "anchors": {
+            "bound_object_variable": "lto",
+            "existential_domain": "lip",
+            "narrow_scope_indefinite": "lsub",
+            "universal_domain": "lipadj",
+            "wide_scope_universal": "lobj"
+          },
+          "relation": "quantifier_scope",
+          "values": {
+            "interpretation": "For every relevant report, there is a professor who reviewed it; the professor need not be the same for all reports.",
+            "logical_form": "∀y[informe(y) → ∃x[profesora(x) ∧ revisar_past(x,y)]]",
+            "scope_order": "universal > existential"
+          }
+        }
+      ],
+      "stageRecord": "At LF, cada informe moves from the previously displayed object position directly to an IP-adjoined position, leaving a bound DP-trace as the verb's complement. This higher landing site places the universal quantifier above the subject, unlike VP adjunction in the subject-wide-scope analysis. The indefinite subject receives existential interpretation within the universal quantifier's scope, so the professor may vary with the report. Nothing in this reading requires different professors: it permits that possibility without asserting it. The raised DP binds its object trace, and its chain preserves the theta-role and accusative Case established at the base position. The trace remains lexically governed through the verbal chain, and the movement crosses no island or intervening clause. PF is unchanged; the scope difference belongs solely to LF.",
+      "statement": "Complete the object-wide-scope reading: every report was reviewed by some professor, potentially a different one.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "una",
+                      "label": "D",
+                      "lineageId": "indefinite-determiner",
+                      "tokenIndex": 0,
+                      "word": "Una"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "prof",
+                              "label": "N",
+                              "lineageId": "subject-noun",
+                              "tokenIndex": 1,
+                              "word": "profesora"
+                            }
+                          ],
+                          "id": "subnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "subnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "subbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "sub",
+              "label": "DP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "V",
+                      "lineageId": "verb",
+                      "tokenIndex": 2,
+                      "word": "revisó"
+                    },
+                    {
+                      "children": [],
+                      "id": "i",
+                      "label": "I [finite, past, 3sg]",
+                      "lineageId": "inflection",
+                      "silent": true
+                    }
+                  ],
+                  "id": "ihead",
+                  "label": "I"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tv",
+                          "label": "V-trace",
+                          "lineageId": "verb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cada",
+                                  "label": "D [universal]",
+                                  "lineageId": "universal-determiner",
+                                  "tokenIndex": 3,
+                                  "word": "cada"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "inf",
+                                          "label": "N",
+                                          "lineageId": "object-noun",
+                                          "tokenIndex": 4,
+                                          "word": "informe"
+                                        }
+                                      ],
+                                      "id": "objnbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "objnp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "objbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "obj",
+                          "label": "DP",
+                          "lineageId": "object"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP",
+                  "lineageId": "predicate"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP",
+          "lineageId": "clause"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lcada",
+                      "label": "D [universal]",
+                      "lineageId": "universal-determiner",
+                      "silent": true,
+                      "word": "cada"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "linf",
+                              "label": "N",
+                              "lineageId": "object-noun",
+                              "silent": true,
+                              "word": "informe"
+                            }
+                          ],
+                          "id": "lobjnbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "lobjnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "lobjbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "lobj",
+              "label": "DP",
+              "lineageId": "object",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "luna",
+                          "label": "D",
+                          "lineageId": "indefinite-determiner",
+                          "silent": true,
+                          "word": "Una"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "lprof",
+                                  "label": "N",
+                                  "lineageId": "subject-noun",
+                                  "silent": true,
+                                  "word": "profesora"
+                                }
+                              ],
+                              "id": "lsubnbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "lsubnp",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "lsubbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "lsub",
+                  "label": "DP",
+                  "lineageId": "subject",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "lv",
+                          "label": "V",
+                          "lineageId": "verb",
+                          "silent": true,
+                          "word": "revisó"
+                        },
+                        {
+                          "children": [],
+                          "id": "li",
+                          "label": "I [finite, past, 3sg]",
+                          "lineageId": "inflection",
+                          "silent": true
+                        }
+                      ],
+                      "id": "lihead",
+                      "label": "I"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "ltv",
+                              "label": "V-trace",
+                              "lineageId": "verb",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "lto",
+                              "label": "DP-trace [quantifier variable]",
+                              "lineageId": "object",
+                              "silent": true
+                            }
+                          ],
+                          "id": "lvbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "lvp",
+                      "label": "VP",
+                      "lineageId": "predicate"
+                    }
+                  ],
+                  "id": "libar",
+                  "label": "I′"
+                }
+              ],
+              "id": "lip",
+              "label": "IP [LF]",
+              "lineageId": "clause",
+              "silent": true
+            }
+          ],
+          "id": "lipadj",
+          "label": "IP [LF, QR adjunction]",
+          "silent": true
+        }
+      ]
+    }
+  ]
+}

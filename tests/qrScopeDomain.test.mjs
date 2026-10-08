@@ -16,7 +16,7 @@ test('recovered QR boxes the named scope body, matching Orchard with its landing
   const shape = ({ kind, pronouncedNodeId, lfNodeId, scopeDomainNodeId, index }) =>
     ({ kind, pronouncedNodeId, lfNodeId, scopeDomainNodeId, index });
   assert.equal(native.length, 1);
-  for (const role of ['scopeDomain', 'scopeHost']) {
+  for (const role of ['scopeDomain', 'scopeHost', 'adjunctionDomain']) {
     const recovered = draw({ relation: 'covert object Internal Merge',
       anchors: { higherOccurrence: 'high', lowerOccurrence: 'low', [role]: 'body' },
       values: { motivation: 'inverse quantifier scope' } });
@@ -30,10 +30,11 @@ test('a QR scope box is optional, but a supplied domain must contain the lower o
   const relation = { relation: 'covert object Internal Merge',
     anchors: { higherOccurrence: 'high', lowerOccurrence: 'low' }, values: { motivation: 'inverse quantifier scope' } };
   assert.equal(draw(relation)[0].scopeDomainNodeId, undefined);
-  for (const scopeDomain of ['high', 'other', 'missing']) {
-    const items = draw({ ...relation, anchors: { ...relation.anchors, scopeDomain } });
-    assert(!items.some(item => item.scopeDomainNodeId === scopeDomain));
-  }
+  for (const role of ['scopeDomain', 'adjunctionDomain'])
+    for (const scopeDomain of ['high', 'other', 'missing']) {
+      const items = draw({ ...relation, anchors: { ...relation.anchors, [role]: scopeDomain } });
+      assert(!items.some(item => item.scopeDomainNodeId === scopeDomain));
+    }
   assert.equal(draw({ ...relation, anchors: { ...relation.anchors, scopeDomain: 'root' } })[0].scopeDomainNodeId, 'root');
 });
 

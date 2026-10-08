@@ -11,7 +11,9 @@ test('formatted terminal measures all generated digits and preserves authored li
  assert.equal(stagedTerminalText(leaf('猫'),context({w:'10'})),'猫₁₀');
  assert.equal(stagedTerminalText(leaf('Book_12'),context({w:'10'})),'Book_12');
  assert.equal(stagedTerminalText(leaf('Book₁₂'),context({w:'10'})),'Book₁₂');
- assert.equal(stagedTerminalText(leaf('t'),context({w:'12'})),'t₁₂');
+ assert.equal(stagedTerminalText(leaf('t'),context({w:'12'})),'t');
+ assert.equal(stagedTerminalText(leaf('t_V'),context({w:'12'})),'t_V');
+ assert.equal(stagedTerminalText(leaf('t_i'),context({w:'12'})),'t_i');
  assert.equal(stagedTerminalText(leaf('∅'),context({w:'12'})),'∅');
 });
 test('silent/ghost lexical copies retain their lexical display and exact casing',()=>{

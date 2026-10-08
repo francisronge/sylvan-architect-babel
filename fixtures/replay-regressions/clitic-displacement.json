@@ -1,0 +1,2021 @@
+{
+  "provenance": {
+    "transport": "Codex OAuth",
+    "models": [
+      "gpt-6-astra",
+      "gpt-6.1-sol"
+    ],
+    "contractSha256": "384879130559a035c79fdd4da06c0a78f065c00480e6abf322fe1f8641efe68c"
+  },
+  "fixtures": [
+    {
+      "model": "astra",
+      "sentence": "Giulia lo vuole leggere.",
+      "inputTokens": [
+        "Giulia",
+        "lo",
+        "vuole",
+        "leggere"
+      ],
+      "analysis": {
+        "derivationStages": [
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "argument": "object",
+                  "assigner": "read"
+                },
+                "relation": "Internal theta-role and accusative Case assignment",
+                "values": {
+                  "case": "accusative",
+                  "thetaRole": "Theme"
+                }
+              },
+              {
+                "anchors": {
+                  "argument": "pro",
+                  "predicate": "embeddedVP"
+                },
+                "relation": "Infinitival external theta-role assignment",
+                "values": {
+                  "thetaRole": "Agent"
+                }
+              },
+              {
+                "anchors": {
+                  "complement": "embeddedIP",
+                  "externalArgument": "giuliaNP",
+                  "externalPredicate": "matrixVP",
+                  "selector": "want"
+                },
+                "relation": "Matrix selection and theta-role assignment",
+                "values": {
+                  "complementCategory": "infinitival IP",
+                  "complementRole": "propositional Theme",
+                  "externalRole": "Experiencer or desirer"
+                }
+              },
+              {
+                "anchors": {
+                  "controlPredicate": "want",
+                  "controlledSubject": "pro",
+                  "controller": "giuliaNP",
+                  "nonfiniteInflection": "nonfiniteI"
+                },
+                "relation": "Obligatory subject control and PRO licensing",
+                "values": {
+                  "interpretation": "Giulia is the understood subject of leggere",
+                  "licensing": "PRO occupies an ungoverned nonfinite subject position"
+                }
+              },
+              {
+                "anchors": {
+                  "finiteInflection": "finiteI",
+                  "subject": "giuliaNP"
+                },
+                "relation": "Nominative Case and subject agreement",
+                "values": {
+                  "agreement": "third-person singular",
+                  "case": "nominative"
+                }
+              }
+            ],
+            "stageRecord": "The sentence has a clitic-climbing reading: Giulia wants to read the entity represented by accusative lo. Whether lo refers to a masculine individual or a masculine thing does not change the syntax. This analysis adopts a GB restructuring treatment that retains an infinitival IP with controlled PRO; restructuring will make that complement transparent specifically for clitic displacement. First, leggere selects lo as its internal argument and assigns it the Theme role and accusative Case. The clitic is represented as a minimal pronominal NP, capable of occupying a clitic position at its eventual host. Second, the infinitival predicate assigns its external role to PRO. Third, vuole selects the infinitival IP as its propositional argument and assigns its external role to Giulia through VP predication. Fourth, Giulia obligatorily controls PRO, identifying the intended reader with the person who wants. PRO is unpronounced and ungoverned in the nonfinite subject position; it is not a trace of Giulia. Finally, finite I licenses nominative Case on Giulia and agrees with it in the third-person singular. The lexical form vuole is entered already inflected; this analysis does not decompose its spelling into separate terminals. Giulia is base-generated in the matrix subject position, following the classical GB subject configuration rather than a VP-internal-subject derivation. The current order is a pre-movement representation, not the surface order.",
+            "statement": "Establish the argument structure and the controlled infinitival complement before movement.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "giulia",
+                            "label": "N⁰",
+                            "tokenIndex": 0,
+                            "word": "Giulia"
+                          }
+                        ],
+                        "id": "giuliaNbar",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "giuliaNP",
+                    "label": "NP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "finiteI",
+                        "label": "I⁰ [+finite, present, third-person singular]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "want",
+                                "label": "V⁰",
+                                "lineageId": "wantChain",
+                                "tokenIndex": 2,
+                                "word": "vuole"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "pro",
+                                    "label": "NP [PRO]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "nonfiniteI",
+                                        "label": "I⁰ [−finite]",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "read",
+                                                "label": "V⁰ [infinitive]",
+                                                "tokenIndex": 3,
+                                                "word": "leggere"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "object",
+                                                "label": "NP [accusative clitic]",
+                                                "lineageId": "objectChain",
+                                                "tokenIndex": 1,
+                                                "word": "lo"
+                                              }
+                                            ],
+                                            "id": "embeddedVbar",
+                                            "label": "V′"
+                                          }
+                                        ],
+                                        "id": "embeddedVP",
+                                        "label": "VP"
+                                      }
+                                    ],
+                                    "id": "embeddedIbar",
+                                    "label": "I′"
+                                  }
+                                ],
+                                "id": "embeddedIP",
+                                "label": "IP [infinitival]"
+                              }
+                            ],
+                            "id": "matrixVbar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "matrixVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "matrixIbar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "matrixIP",
+                "label": "IP"
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "inflection": "finiteI",
+                  "landingHead": "finiteHost",
+                  "raisedVerb": "want",
+                  "sourceTrace": "wantTrace"
+                },
+                "priorAnchors": {
+                  "sourceVerb": "want",
+                  "targetInflection": "finiteI"
+                },
+                "relation": "V-to-I head movement",
+                "values": {
+                  "chainInterpretation": "the raised finite verb and its V-position trace form one chain",
+                  "movementType": "head movement"
+                }
+              },
+              {
+                "anchors": {
+                  "finiteHost": "finiteHost",
+                  "infinitivalComplement": "embeddedIP",
+                  "lowerPredicate": "read",
+                  "potentialClimber": "object",
+                  "predicateTrace": "wantTrace",
+                  "restructuringPredicate": "want",
+                  "retainedSubject": "pro"
+                },
+                "relation": "Restructuring transparency",
+                "values": {
+                  "licensedDependency": "clitic climbing from the infinitival object position to the matrix finite host",
+                  "scopeOfTransparency": "clitic displacement, not government of the embedded subject",
+                  "structuralCommitment": "the controlled infinitival IP is retained and no embedded CP barrier intervenes"
+                }
+              }
+            ],
+            "stageRecord": "First, vuole raises from the matrix V position shown previously and adjoins to finite I, leaving a silent verbal trace. This is ordinary V-to-I head movement: the finite verb locally supports the tense and agreement specification, while its trace preserves the lexical predicate's complement relation. The movement does not create a new spelling or fuse separately pronounced morphemes; vuole remains the same whole-word terminal. Second, the restructuring use of volere licenses the matrix predicate and its infinitival complement as a single domain for clitic placement. This is a construction-specific transparency relation, not a claim that every infinitival complement permits climbing. The analysis retains the embedded IP and the control dependency rather than deleting PRO or reassigning its theta-role. Transparency for clitic displacement is distinguished from government into the embedded subject position, so PRO remains ungoverned. No embedded CP barrier is projected. The object clitic is still in the complement position of leggere, making its source explicit before its displacement.",
+            "statement": "Raise the finite verb to I and establish the restructuring domain for clitic climbing.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "giulia",
+                            "label": "N⁰",
+                            "tokenIndex": 0,
+                            "word": "Giulia"
+                          }
+                        ],
+                        "id": "giuliaNbar",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "giuliaNP",
+                    "label": "NP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "want",
+                            "label": "V⁰",
+                            "lineageId": "wantChain",
+                            "tokenIndex": 2,
+                            "word": "vuole"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteI",
+                            "label": "I⁰ [+finite, present, third-person singular]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteHost",
+                        "label": "I⁰"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantTrace",
+                                "label": "V⁰ [trace]",
+                                "lineageId": "wantChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "pro",
+                                    "label": "NP [PRO]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "nonfiniteI",
+                                        "label": "I⁰ [−finite]",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "read",
+                                                "label": "V⁰ [infinitive]",
+                                                "tokenIndex": 3,
+                                                "word": "leggere"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "object",
+                                                "label": "NP [accusative clitic]",
+                                                "lineageId": "objectChain",
+                                                "tokenIndex": 1,
+                                                "word": "lo"
+                                              }
+                                            ],
+                                            "id": "embeddedVbar",
+                                            "label": "V′"
+                                          }
+                                        ],
+                                        "id": "embeddedVP",
+                                        "label": "VP"
+                                      }
+                                    ],
+                                    "id": "embeddedIbar",
+                                    "label": "I′"
+                                  }
+                                ],
+                                "id": "embeddedIP",
+                                "label": "IP [infinitival]"
+                              }
+                            ],
+                            "id": "matrixVbar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "matrixVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "matrixIbar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "matrixIP",
+                "label": "IP"
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "clitic": "object",
+                  "crossedComplement": "embeddedIP",
+                  "finiteHost": "finiteHost",
+                  "landingHead": "cliticizedI",
+                  "sourceTrace": "objectTrace",
+                  "thetaAndCaseAssigner": "read"
+                },
+                "priorAnchors": {
+                  "sourceClitic": "object",
+                  "targetHost": "finiteHost"
+                },
+                "relation": "Clitic climbing",
+                "values": {
+                  "chainCase": "accusative",
+                  "chainThetaRole": "Theme of leggere",
+                  "movementType": "restructuring-licensed clitic adjunction"
+                }
+              },
+              {
+                "anchors": {
+                  "governedTrace": "objectTrace",
+                  "lexicalGovernor": "read"
+                },
+                "relation": "Proper government of the object trace",
+                "values": {
+                  "licensing": "the object trace is lexically governed in the complement position of leggere"
+                }
+              },
+              {
+                "anchors": {
+                  "hostHead": "cliticizedI",
+                  "hostVerb": "want",
+                  "proclitic": "object"
+                },
+                "relation": "Finite proclitic hosting",
+                "values": {
+                  "placement": "lo precedes and depends on finite vuole",
+                  "surfaceForm": "lo vuole"
+                }
+              },
+              {
+                "anchors": {
+                  "argumentPosition": "objectTrace",
+                  "localDomain": "embeddedIP",
+                  "localSubject": "pro",
+                  "pronominalClitic": "object",
+                  "subjectController": "giuliaNP"
+                },
+                "relation": "Binding Principle B",
+                "values": {
+                  "bindingRequirement": "the pronominal object is free in its local embedded domain",
+                  "excludedInterpretation": "lo is not a reflexive object bound by PRO or its controller Giulia"
+                }
+              }
+            ],
+            "stageRecord": "First, lo moves from the complement of leggere to a left-adjoined clitic position at matrix I, leaving a silent NP trace. This analysis uses the GB clitic-adjunction convention: the minimal pronominal NP occupies a position attached to the inflectional head. It treats this as a special clitic-chain dependency licensed by restructuring, not as ordinary V-to-I movement or as movement of the infinitive. The earlier restructuring relation permits the dependency across the retained infinitival IP. The chain receives its Theme interpretation and accusative Case at its lower position; lo is therefore the object of leggere, not an independently selected object of vuole. Second, the lower trace is properly governed by the adjacent lexical verb leggere, satisfying the relevant empty-category requirement. Third, the displaced clitic is licensed as a proclitic on the finite host vuole, which gives lo vuole rather than an enclitic form on leggere. Finally, the referential clitic is free in its local embedded binding domain: PRO does not bind it, and obligatory control consequently excludes an interpretation on which lo is a reflexive object referring back to Giulia. Giulia and PRO remain distinct thematic arguments linked by control. The resulting pronounced sequence is exactly Giulia lo vuole leggere.",
+            "statement": "Climb the object clitic to the finite host and complete the surface structure.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "giulia",
+                            "label": "N⁰",
+                            "tokenIndex": 0,
+                            "word": "Giulia"
+                          }
+                        ],
+                        "id": "giuliaNbar",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "giuliaNP",
+                    "label": "NP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "object",
+                            "label": "NP [accusative clitic]",
+                            "lineageId": "objectChain",
+                            "tokenIndex": 1,
+                            "word": "lo"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "want",
+                                "label": "V⁰",
+                                "lineageId": "wantChain",
+                                "tokenIndex": 2,
+                                "word": "vuole"
+                              },
+                              {
+                                "children": [],
+                                "id": "finiteI",
+                                "label": "I⁰ [+finite, present, third-person singular]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "finiteHost",
+                            "label": "I⁰"
+                          }
+                        ],
+                        "id": "cliticizedI",
+                        "label": "I⁰ [clitic-adjoined]"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantTrace",
+                                "label": "V⁰ [trace]",
+                                "lineageId": "wantChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "pro",
+                                    "label": "NP [PRO]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "nonfiniteI",
+                                        "label": "I⁰ [−finite]",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "read",
+                                                "label": "V⁰ [infinitive]",
+                                                "tokenIndex": 3,
+                                                "word": "leggere"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "objectTrace",
+                                                "label": "NP [clitic trace]",
+                                                "lineageId": "objectChain",
+                                                "silent": true
+                                              }
+                                            ],
+                                            "id": "embeddedVbar",
+                                            "label": "V′"
+                                          }
+                                        ],
+                                        "id": "embeddedVP",
+                                        "label": "VP"
+                                      }
+                                    ],
+                                    "id": "embeddedIbar",
+                                    "label": "I′"
+                                  }
+                                ],
+                                "id": "embeddedIP",
+                                "label": "IP [infinitival]"
+                              }
+                            ],
+                            "id": "matrixVbar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "matrixVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "matrixIbar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "matrixIP",
+                "label": "IP"
+              }
+            ]
+          }
+        ],
+        "finalForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "giulia",
+                        "label": "N⁰",
+                        "surfaceSpan": [
+                          0,
+                          0
+                        ],
+                        "tokenIndex": 0,
+                        "word": "Giulia"
+                      }
+                    ],
+                    "id": "giuliaNbar",
+                    "label": "N′",
+                    "surfaceSpan": [
+                      0,
+                      0
+                    ]
+                  }
+                ],
+                "id": "giuliaNP",
+                "label": "NP",
+                "surfaceSpan": [
+                  0,
+                  0
+                ]
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "object",
+                        "label": "NP [accusative clitic]",
+                        "lineageId": "objectChain",
+                        "surfaceSpan": [
+                          1,
+                          1
+                        ],
+                        "tokenIndex": 1,
+                        "word": "lo"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "want",
+                            "label": "V⁰",
+                            "lineageId": "wantChain",
+                            "surfaceSpan": [
+                              2,
+                              2
+                            ],
+                            "tokenIndex": 2,
+                            "word": "vuole"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteI",
+                            "label": "I⁰ [+finite, present, third-person singular]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteHost",
+                        "label": "I⁰",
+                        "surfaceSpan": [
+                          2,
+                          2
+                        ]
+                      }
+                    ],
+                    "id": "cliticizedI",
+                    "label": "I⁰ [clitic-adjoined]",
+                    "surfaceSpan": [
+                      1,
+                      2
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "wantTrace",
+                            "label": "V⁰ [trace]",
+                            "lineageId": "wantChain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "pro",
+                                "label": "NP [PRO]",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "nonfiniteI",
+                                    "label": "I⁰ [−finite]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "read",
+                                            "label": "V⁰ [infinitive]",
+                                            "surfaceSpan": [
+                                              3,
+                                              3
+                                            ],
+                                            "tokenIndex": 3,
+                                            "word": "leggere"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "objectTrace",
+                                            "label": "NP [clitic trace]",
+                                            "lineageId": "objectChain",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "embeddedVbar",
+                                        "label": "V′",
+                                        "surfaceSpan": [
+                                          3,
+                                          3
+                                        ]
+                                      }
+                                    ],
+                                    "id": "embeddedVP",
+                                    "label": "VP",
+                                    "surfaceSpan": [
+                                      3,
+                                      3
+                                    ]
+                                  }
+                                ],
+                                "id": "embeddedIbar",
+                                "label": "I′",
+                                "surfaceSpan": [
+                                  3,
+                                  3
+                                ]
+                              }
+                            ],
+                            "id": "embeddedIP",
+                            "label": "IP [infinitival]",
+                            "surfaceSpan": [
+                              3,
+                              3
+                            ]
+                          }
+                        ],
+                        "id": "matrixVbar",
+                        "label": "V′",
+                        "surfaceSpan": [
+                          3,
+                          3
+                        ]
+                      }
+                    ],
+                    "id": "matrixVP",
+                    "label": "VP",
+                    "surfaceSpan": [
+                      3,
+                      3
+                    ]
+                  }
+                ],
+                "id": "matrixIbar",
+                "label": "I′",
+                "surfaceSpan": [
+                  1,
+                  3
+                ]
+              }
+            ],
+            "id": "matrixIP",
+            "label": "IP",
+            "surfaceSpan": [
+              0,
+              3
+            ]
+          }
+        ],
+        "provenance": {
+          "framework": "xbar",
+          "hasDerivationStages": true,
+          "modelRoute": "gpt",
+          "payloadIntegrityFlags": [
+            "derivation_stages_compiled_to_derivation_frames",
+            "prior_stage_refid_expanded:2:giuliaNP",
+            "prior_stage_refid_expanded:2:want",
+            "prior_stage_refid_expanded:2:finiteI",
+            "prior_stage_refid_expanded:2:embeddedIP",
+            "prior_stage_refid_expanded:3:giuliaNP",
+            "prior_stage_refid_expanded:3:object",
+            "prior_stage_refid_expanded:3:finiteHost",
+            "prior_stage_refid_expanded:3:wantTrace",
+            "prior_stage_refid_expanded:3:pro",
+            "prior_stage_refid_expanded:3:nonfiniteI",
+            "prior_stage_refid_expanded:3:read"
+          ],
+          "treeSource": "derivationStages"
+        },
+        "tree": {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "giulia",
+                      "label": "N⁰",
+                      "surfaceSpan": [
+                        0,
+                        0
+                      ],
+                      "tokenIndex": 0,
+                      "word": "Giulia"
+                    }
+                  ],
+                  "id": "giuliaNbar",
+                  "label": "N′",
+                  "surfaceSpan": [
+                    0,
+                    0
+                  ]
+                }
+              ],
+              "id": "giuliaNP",
+              "label": "NP",
+              "surfaceSpan": [
+                0,
+                0
+              ]
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "object",
+                      "label": "NP [accusative clitic]",
+                      "lineageId": "objectChain",
+                      "surfaceSpan": [
+                        1,
+                        1
+                      ],
+                      "tokenIndex": 1,
+                      "word": "lo"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "want",
+                          "label": "V⁰",
+                          "lineageId": "wantChain",
+                          "surfaceSpan": [
+                            2,
+                            2
+                          ],
+                          "tokenIndex": 2,
+                          "word": "vuole"
+                        },
+                        {
+                          "children": [],
+                          "id": "finiteI",
+                          "label": "I⁰ [+finite, present, third-person singular]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "finiteHost",
+                      "label": "I⁰",
+                      "surfaceSpan": [
+                        2,
+                        2
+                      ]
+                    }
+                  ],
+                  "id": "cliticizedI",
+                  "label": "I⁰ [clitic-adjoined]",
+                  "surfaceSpan": [
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "wantTrace",
+                          "label": "V⁰ [trace]",
+                          "lineageId": "wantChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pro",
+                              "label": "NP [PRO]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nonfiniteI",
+                                  "label": "I⁰ [−finite]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "read",
+                                          "label": "V⁰ [infinitive]",
+                                          "surfaceSpan": [
+                                            3,
+                                            3
+                                          ],
+                                          "tokenIndex": 3,
+                                          "word": "leggere"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "objectTrace",
+                                          "label": "NP [clitic trace]",
+                                          "lineageId": "objectChain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "embeddedVbar",
+                                      "label": "V′",
+                                      "surfaceSpan": [
+                                        3,
+                                        3
+                                      ]
+                                    }
+                                  ],
+                                  "id": "embeddedVP",
+                                  "label": "VP",
+                                  "surfaceSpan": [
+                                    3,
+                                    3
+                                  ]
+                                }
+                              ],
+                              "id": "embeddedIbar",
+                              "label": "I′",
+                              "surfaceSpan": [
+                                3,
+                                3
+                              ]
+                            }
+                          ],
+                          "id": "embeddedIP",
+                          "label": "IP [infinitival]",
+                          "surfaceSpan": [
+                            3,
+                            3
+                          ]
+                        }
+                      ],
+                      "id": "matrixVbar",
+                      "label": "V′",
+                      "surfaceSpan": [
+                        3,
+                        3
+                      ]
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP",
+                  "surfaceSpan": [
+                    3,
+                    3
+                  ]
+                }
+              ],
+              "id": "matrixIbar",
+              "label": "I′",
+              "surfaceSpan": [
+                1,
+                3
+              ]
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP",
+          "surfaceSpan": [
+            0,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "model": "sol",
+      "sentence": "Giulia lo vuole leggere.",
+      "inputTokens": [
+        "Giulia",
+        "lo",
+        "vuole",
+        "leggere"
+      ],
+      "analysis": {
+        "derivationStages": [
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "agent": "subjectDP",
+                  "predicate": "readV",
+                  "theme": "objectDP"
+                },
+                "relation": "theta assignment",
+                "values": {
+                  "agentRole": "Agent",
+                  "themeRole": "Theme"
+                }
+              },
+              {
+                "anchors": {
+                  "governor": "readV",
+                  "object": "objectDP"
+                },
+                "relation": "government and accusative Case",
+                "values": {
+                  "case": "accusative"
+                }
+              },
+              {
+                "anchors": {
+                  "clitic": "objectD"
+                },
+                "relation": "pronominal clitic specification",
+                "values": {
+                  "category": "direct-object pronominal clitic",
+                  "features": "third person, masculine singular"
+                }
+              }
+            ],
+            "stageRecord": "Build the lower VP with Giulia in its external-argument position and the pronominal DP lo as the complement of leggere. Leggere assigns the Agent role to Giulia and the Theme role to lo, and governs its object DP for accusative Case. Lo is a masculine singular direct-object clitic, not an article: it has no following nominal complement. Introduce vuole and a silent finite I as separate objects. This analysis selects the restructuring use of volere; its combination with the lower predicate is established in the next stage. The lexical terminals retain the input's whole-word forms, so no decomposition of vuole or leggere into separately realized morphemes is required.",
+            "statement": "Establish the lexical predicate and its arguments.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "subjectName",
+                        "label": "D: proper name",
+                        "tokenIndex": 0,
+                        "word": "Giulia"
+                      }
+                    ],
+                    "id": "subjectDP",
+                    "label": "DP",
+                    "lineageId": "subjectChain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "readV",
+                        "label": "V: infinitival",
+                        "tokenIndex": 3,
+                        "word": "leggere"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "objectD",
+                            "label": "D: object clitic",
+                            "lineageId": "objectCliticChain",
+                            "tokenIndex": 1,
+                            "word": "lo"
+                          }
+                        ],
+                        "id": "objectDP",
+                        "label": "DP"
+                      }
+                    ],
+                    "id": "lowerVBar",
+                    "label": "V′"
+                  }
+                ],
+                "id": "lowerVP",
+                "label": "VP"
+              },
+              {
+                "children": [],
+                "id": "wantV",
+                "label": "V: restructuring volere",
+                "lineageId": "finiteVerbChain",
+                "tokenIndex": 2,
+                "word": "vuole"
+              },
+              {
+                "children": [],
+                "id": "finiteI",
+                "label": "I: finite, present, third-person singular",
+                "silent": true
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "complement": "lowerVP",
+                  "complexPredicate": "higherVP",
+                  "selector": "wantV"
+                },
+                "relation": "restructuring selection",
+                "values": {
+                  "clausalStatus": "one clause; no embedded CP, IP, or PRO",
+                  "selectedCategory": "infinitival VP",
+                  "transparency": "the lower object is accessible to matrix clitic placement"
+                }
+              },
+              {
+                "anchors": {
+                  "externalArgument": "subjectDP",
+                  "predicateHeads": [
+                    "wantV",
+                    "readV"
+                  ]
+                },
+                "relation": "complex-predicate external argument",
+                "values": {
+                  "interpretation": "Giulia is the volitional participant and the reader",
+                  "thetaCommitment": "one shared external-argument position, not two independently assigned subject roles"
+                }
+              }
+            ],
+            "stageRecord": "Combine vuole with the lower VP as its complement, project the higher VP, and place that VP under finite I. Volere selects an infinitival VP rather than a separate CP or IP in this restructuring analysis. Consequently, there is no embedded subject position occupied by PRO and no embedded finite Case assigner. The resulting complex predicate shares one external-argument position: Giulia is the reader and the volitional participant, rather than receiving two independently assigned subject theta roles. The lower object remains the argument of leggere, not an additional matrix object of vuole. The absence of an intervening clausal boundary makes that object accessible to the later clitic-climbing operation. This is a theoretical commitment to a monoclausal restructuring derivation, not a claim that the sentence has an additional meaning merely because biclausal theories of restructuring also exist.",
+            "statement": "Form a monoclausal restructuring configuration.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "finiteI",
+                        "label": "I: finite, present, third-person singular",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantV",
+                                "label": "V: restructuring volere",
+                                "lineageId": "finiteVerbChain",
+                                "tokenIndex": 2,
+                                "word": "vuole"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "subjectName",
+                                        "label": "D: proper name",
+                                        "tokenIndex": 0,
+                                        "word": "Giulia"
+                                      }
+                                    ],
+                                    "id": "subjectDP",
+                                    "label": "DP",
+                                    "lineageId": "subjectChain"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "readV",
+                                        "label": "V: infinitival",
+                                        "tokenIndex": 3,
+                                        "word": "leggere"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "objectD",
+                                            "label": "D: object clitic",
+                                            "lineageId": "objectCliticChain",
+                                            "tokenIndex": 1,
+                                            "word": "lo"
+                                          }
+                                        ],
+                                        "id": "objectDP",
+                                        "label": "DP"
+                                      }
+                                    ],
+                                    "id": "lowerVBar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "lowerVP",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "higherVBar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "higherVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "finiteIBar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "clauseIP",
+                "label": "IP"
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "raisedVerb": "wantV",
+                  "resultingHead": "finiteComplexI",
+                  "sourceTrace": "wantTrace",
+                  "target": "finiteI"
+                },
+                "priorAnchors": {
+                  "sourceVerb": "wantV",
+                  "target": "finiteI"
+                },
+                "relation": "V-to-I head movement",
+                "values": {
+                  "chainType": "head-movement chain",
+                  "licensing": "finite verb realization in I"
+                }
+              }
+            ],
+            "stageRecord": "Move vuole from the higher V position to finite I, leaving a silent V trace in its earlier position. The raised lexical head and the abstract finite head form a complex I head. This is local V-to-I movement: no lower head is crossed, because leggere remains inside the VP complement of volere. The lexical terminal vuole already supplies the complete finite word; the silent I carries its syntactic tense and agreement features rather than supplying a separately pronounced affix. The movement establishes the finite verbal host to which lo will subsequently attach.",
+            "statement": "Raise the finite restructuring verb to I.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "wantV",
+                            "label": "V: restructuring volere",
+                            "lineageId": "finiteVerbChain",
+                            "tokenIndex": 2,
+                            "word": "vuole"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteI",
+                            "label": "I: finite, present, third-person singular",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteComplexI",
+                        "label": "I"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantTrace",
+                                "label": "V: trace",
+                                "lineageId": "finiteVerbChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "subjectName",
+                                        "label": "D: proper name",
+                                        "tokenIndex": 0,
+                                        "word": "Giulia"
+                                      }
+                                    ],
+                                    "id": "subjectDP",
+                                    "label": "DP",
+                                    "lineageId": "subjectChain"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "readV",
+                                        "label": "V: infinitival",
+                                        "tokenIndex": 3,
+                                        "word": "leggere"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "objectD",
+                                            "label": "D: object clitic",
+                                            "lineageId": "objectCliticChain",
+                                            "tokenIndex": 1,
+                                            "word": "lo"
+                                          }
+                                        ],
+                                        "id": "objectDP",
+                                        "label": "DP"
+                                      }
+                                    ],
+                                    "id": "lowerVBar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "lowerVP",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "higherVBar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "higherVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "finiteIBar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "clauseIP",
+                "label": "IP"
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "landingProjection": "clauseIP",
+                  "raisedSubject": "subjectDP",
+                  "sourceTrace": "subjectTrace"
+                },
+                "priorAnchors": {
+                  "sourceSubject": "subjectDP"
+                },
+                "relation": "subject A-movement",
+                "values": {
+                  "chainType": "A-chain",
+                  "landingPosition": "Spec-IP",
+                  "thetaPosition": "external-argument position of the lower VP"
+                }
+              },
+              {
+                "anchors": {
+                  "clause": "clauseIP",
+                  "finiteHead": "finiteI",
+                  "subject": "subjectDP"
+                },
+                "relation": "finite subject licensing",
+                "values": {
+                  "agreement": "third-person singular",
+                  "case": "nominative",
+                  "subjectRequirement": "Spec-IP is occupied"
+                }
+              }
+            ],
+            "stageRecord": "Move the DP Giulia from the lower VP's external-argument position to Spec-IP, leaving a silent DP trace. This A-movement preserves the external theta role at the lower position while placing the pronounced DP in the finite clause's subject position. Finite I then licenses nominative Case and third-person singular agreement on Giulia. The raised subject satisfies the clause's subject-position requirement. No control relation is introduced, because this restructuring derivation contains a subject trace rather than an embedded PRO.",
+            "statement": "Raise Giulia to the finite subject position.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "subjectName",
+                        "label": "D: proper name",
+                        "tokenIndex": 0,
+                        "word": "Giulia"
+                      }
+                    ],
+                    "id": "subjectDP",
+                    "label": "DP",
+                    "lineageId": "subjectChain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "wantV",
+                            "label": "V: restructuring volere",
+                            "lineageId": "finiteVerbChain",
+                            "tokenIndex": 2,
+                            "word": "vuole"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteI",
+                            "label": "I: finite, present, third-person singular",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteComplexI",
+                        "label": "I"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantTrace",
+                                "label": "V: trace",
+                                "lineageId": "finiteVerbChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "subjectTrace",
+                                    "label": "DP: subject trace",
+                                    "lineageId": "subjectChain",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "readV",
+                                        "label": "V: infinitival",
+                                        "tokenIndex": 3,
+                                        "word": "leggere"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "objectD",
+                                            "label": "D: object clitic",
+                                            "lineageId": "objectCliticChain",
+                                            "tokenIndex": 1,
+                                            "word": "lo"
+                                          }
+                                        ],
+                                        "id": "objectDP",
+                                        "label": "DP"
+                                      }
+                                    ],
+                                    "id": "lowerVBar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "lowerVP",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "higherVBar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "higherVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "finiteIBar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "clauseIP",
+                "label": "IP"
+              }
+            ]
+          },
+          {
+            "relations": [
+              {
+                "anchors": {
+                  "attachmentHead": "cliticComplexI",
+                  "raisedClitic": "objectD",
+                  "sourceDP": "objectDP",
+                  "sourceTrace": "objectTrace",
+                  "transparentDomain": "higherVP",
+                  "verbalHost": "wantV"
+                },
+                "priorAnchors": {
+                  "finiteHost": "finiteComplexI",
+                  "sourceClitic": "objectD",
+                  "sourceDP": "objectDP"
+                },
+                "relation": "restructuring clitic climbing",
+                "values": {
+                  "licensing": "monoclausal restructuring",
+                  "operation": "dedicated clitic displacement with left adjunction to finite I",
+                  "surfacePlacement": "proclitic to vuole"
+                }
+              },
+              {
+                "anchors": {
+                  "argumentPosition": "objectDP",
+                  "clitic": "objectD",
+                  "thetaAndCaseAssigner": "readV",
+                  "trace": "objectTrace"
+                },
+                "relation": "clitic-chain argument and Case inheritance",
+                "values": {
+                  "case": "accusative",
+                  "interpretation": "lo is the object of leggere, not an independently selected object of vuole",
+                  "thetaRole": "Theme"
+                }
+              },
+              {
+                "anchors": {
+                  "argumentPosition": "objectDP",
+                  "localDomain": "clauseIP",
+                  "localSubject": "subjectDP",
+                  "pronoun": "objectD"
+                },
+                "relation": "Binding Principle B",
+                "values": {
+                  "reference": "lo is not coindexed with Giulia",
+                  "requirement": "the pronominal chain is locally free"
+                }
+              }
+            ],
+            "stageRecord": "Displace the pronominal clitic lo from the D head of leggere's object DP and left-adjoin it to the finite I head containing vuole. Leave a silent D trace inside the lower object DP. This analysis treats clitic placement as a dedicated clitic-chain operation licensed by restructuring, not as ordinary V-to-I head movement that skips intervening verbal heads. The previously established single-clause configuration supplies the required transparent domain, and the preceding stage supplies the finite verbal host. The clitic chain retains the Theme role and accusative Case assigned at leggere's complement position; attachment to vuole does not make lo a separately selected object of volere. The pronoun is locally free, as required by Binding Principle B: its referent is not identified with the subject Giulia. The completed IP is a declarative clause; no overt complementizer or additional CP layer is needed for the analysis. Its pronounced terminals occur in exactly the input order Giulia, lo, vuole, leggere.",
+            "statement": "Complete clitic climbing and the surface clause.",
+            "workspaceForest": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "subjectName",
+                        "label": "D: proper name",
+                        "tokenIndex": 0,
+                        "word": "Giulia"
+                      }
+                    ],
+                    "id": "subjectDP",
+                    "label": "DP",
+                    "lineageId": "subjectChain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "objectD",
+                            "label": "D: object clitic",
+                            "lineageId": "objectCliticChain",
+                            "tokenIndex": 1,
+                            "word": "lo"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantV",
+                                "label": "V: restructuring volere",
+                                "lineageId": "finiteVerbChain",
+                                "tokenIndex": 2,
+                                "word": "vuole"
+                              },
+                              {
+                                "children": [],
+                                "id": "finiteI",
+                                "label": "I: finite, present, third-person singular",
+                                "silent": true
+                              }
+                            ],
+                            "id": "finiteComplexI",
+                            "label": "I"
+                          }
+                        ],
+                        "id": "cliticComplexI",
+                        "label": "I"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "wantTrace",
+                                "label": "V: trace",
+                                "lineageId": "finiteVerbChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "subjectTrace",
+                                    "label": "DP: subject trace",
+                                    "lineageId": "subjectChain",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "readV",
+                                        "label": "V: infinitival",
+                                        "tokenIndex": 3,
+                                        "word": "leggere"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "objectTrace",
+                                            "label": "D: clitic trace",
+                                            "lineageId": "objectCliticChain",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "objectDP",
+                                        "label": "DP"
+                                      }
+                                    ],
+                                    "id": "lowerVBar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "lowerVP",
+                                "label": "VP"
+                              }
+                            ],
+                            "id": "higherVBar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "higherVP",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "finiteIBar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "clauseIP",
+                "label": "IP"
+              }
+            ]
+          }
+        ],
+        "finalForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "subjectName",
+                    "label": "D: proper name",
+                    "surfaceSpan": [
+                      0,
+                      0
+                    ],
+                    "tokenIndex": 0,
+                    "word": "Giulia"
+                  }
+                ],
+                "id": "subjectDP",
+                "label": "DP",
+                "lineageId": "subjectChain",
+                "surfaceSpan": [
+                  0,
+                  0
+                ]
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "objectD",
+                        "label": "D: object clitic",
+                        "lineageId": "objectCliticChain",
+                        "surfaceSpan": [
+                          1,
+                          1
+                        ],
+                        "tokenIndex": 1,
+                        "word": "lo"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "wantV",
+                            "label": "V: restructuring volere",
+                            "lineageId": "finiteVerbChain",
+                            "surfaceSpan": [
+                              2,
+                              2
+                            ],
+                            "tokenIndex": 2,
+                            "word": "vuole"
+                          },
+                          {
+                            "children": [],
+                            "id": "finiteI",
+                            "label": "I: finite, present, third-person singular",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteComplexI",
+                        "label": "I",
+                        "surfaceSpan": [
+                          2,
+                          2
+                        ]
+                      }
+                    ],
+                    "id": "cliticComplexI",
+                    "label": "I",
+                    "surfaceSpan": [
+                      1,
+                      2
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "wantTrace",
+                            "label": "V: trace",
+                            "lineageId": "finiteVerbChain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "subjectTrace",
+                                "label": "DP: subject trace",
+                                "lineageId": "subjectChain",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "readV",
+                                    "label": "V: infinitival",
+                                    "surfaceSpan": [
+                                      3,
+                                      3
+                                    ],
+                                    "tokenIndex": 3,
+                                    "word": "leggere"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "objectTrace",
+                                        "label": "D: clitic trace",
+                                        "lineageId": "objectCliticChain",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "objectDP",
+                                    "label": "DP"
+                                  }
+                                ],
+                                "id": "lowerVBar",
+                                "label": "V′",
+                                "surfaceSpan": [
+                                  3,
+                                  3
+                                ]
+                              }
+                            ],
+                            "id": "lowerVP",
+                            "label": "VP",
+                            "surfaceSpan": [
+                              3,
+                              3
+                            ]
+                          }
+                        ],
+                        "id": "higherVBar",
+                        "label": "V′",
+                        "surfaceSpan": [
+                          3,
+                          3
+                        ]
+                      }
+                    ],
+                    "id": "higherVP",
+                    "label": "VP",
+                    "surfaceSpan": [
+                      3,
+                      3
+                    ]
+                  }
+                ],
+                "id": "finiteIBar",
+                "label": "I′",
+                "surfaceSpan": [
+                  1,
+                  3
+                ]
+              }
+            ],
+            "id": "clauseIP",
+            "label": "IP",
+            "surfaceSpan": [
+              0,
+              3
+            ]
+          }
+        ],
+        "provenance": {
+          "framework": "xbar",
+          "hasDerivationStages": true,
+          "modelRoute": "gpt",
+          "payloadIntegrityFlags": [
+            "derivation_stages_compiled_to_derivation_frames",
+            "prior_stage_refid_expanded:2:finiteI",
+            "prior_stage_refid_expanded:2:wantV",
+            "prior_stage_refid_expanded:2:lowerVP",
+            "prior_stage_refid_expanded:3:wantV",
+            "prior_stage_refid_expanded:3:finiteI",
+            "prior_stage_refid_expanded:3:lowerVP",
+            "prior_stage_refid_expanded:4:subjectDP",
+            "prior_stage_refid_expanded:4:finiteComplexI",
+            "prior_stage_refid_expanded:4:wantTrace",
+            "prior_stage_refid_expanded:4:lowerVBar",
+            "prior_stage_refid_expanded:5:subjectDP",
+            "prior_stage_refid_expanded:5:objectD",
+            "prior_stage_refid_expanded:5:finiteComplexI",
+            "prior_stage_refid_expanded:5:wantTrace",
+            "prior_stage_refid_expanded:5:subjectTrace",
+            "prior_stage_refid_expanded:5:readV"
+          ],
+          "treeSource": "derivationStages"
+        },
+        "tree": {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectName",
+                  "label": "D: proper name",
+                  "surfaceSpan": [
+                    0,
+                    0
+                  ],
+                  "tokenIndex": 0,
+                  "word": "Giulia"
+                }
+              ],
+              "id": "subjectDP",
+              "label": "DP",
+              "lineageId": "subjectChain",
+              "surfaceSpan": [
+                0,
+                0
+              ]
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "objectD",
+                      "label": "D: object clitic",
+                      "lineageId": "objectCliticChain",
+                      "surfaceSpan": [
+                        1,
+                        1
+                      ],
+                      "tokenIndex": 1,
+                      "word": "lo"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "wantV",
+                          "label": "V: restructuring volere",
+                          "lineageId": "finiteVerbChain",
+                          "surfaceSpan": [
+                            2,
+                            2
+                          ],
+                          "tokenIndex": 2,
+                          "word": "vuole"
+                        },
+                        {
+                          "children": [],
+                          "id": "finiteI",
+                          "label": "I: finite, present, third-person singular",
+                          "silent": true
+                        }
+                      ],
+                      "id": "finiteComplexI",
+                      "label": "I",
+                      "surfaceSpan": [
+                        2,
+                        2
+                      ]
+                    }
+                  ],
+                  "id": "cliticComplexI",
+                  "label": "I",
+                  "surfaceSpan": [
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "wantTrace",
+                          "label": "V: trace",
+                          "lineageId": "finiteVerbChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectTrace",
+                              "label": "DP: subject trace",
+                              "lineageId": "subjectChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "readV",
+                                  "label": "V: infinitival",
+                                  "surfaceSpan": [
+                                    3,
+                                    3
+                                  ],
+                                  "tokenIndex": 3,
+                                  "word": "leggere"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "objectTrace",
+                                      "label": "D: clitic trace",
+                                      "lineageId": "objectCliticChain",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "objectDP",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "lowerVBar",
+                              "label": "V′",
+                              "surfaceSpan": [
+                                3,
+                                3
+                              ]
+                            }
+                          ],
+                          "id": "lowerVP",
+                          "label": "VP",
+                          "surfaceSpan": [
+                            3,
+                            3
+                          ]
+                        }
+                      ],
+                      "id": "higherVBar",
+                      "label": "V′",
+                      "surfaceSpan": [
+                        3,
+                        3
+                      ]
+                    }
+                  ],
+                  "id": "higherVP",
+                  "label": "VP",
+                  "surfaceSpan": [
+                    3,
+                    3
+                  ]
+                }
+              ],
+              "id": "finiteIBar",
+              "label": "I′",
+              "surfaceSpan": [
+                1,
+                3
+              ]
+            }
+          ],
+          "id": "clauseIP",
+          "label": "IP",
+          "surfaceSpan": [
+            0,
+            3
+          ]
+        }
+      }
+    }
+  ]
+}

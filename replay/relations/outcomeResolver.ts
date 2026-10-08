@@ -135,12 +135,13 @@ const unestablishedOutcomes = new Set([
 export const isUnestablishedOutcomeLiteral = (value: unknown): boolean =>
   unestablishedOutcomes.has(normalizeOutcomeLiteral(value));
 
-export type AssertionFamily = 'agreement' | 'binding' | 'case' | 'feature-sharing' | 'movement';
+export type AssertionFamily = 'agreement' | 'binding' | 'case' | 'correspondence' | 'feature-sharing' | 'movement';
 
 const assertionSubjects: Record<AssertionFamily, RegExp> = {
   agreement: /^(?:(?:t|i|infl|inflection|finite|subject|object|verbal|nominal|local|phi|φ|feature) )*(?:agree|agreement|concord)(?: dependency| relation)?$/u,
   binding: /^(?:(?:a|a bar|operator variable|variable|anaphoric|local) )?binding(?: dependency| relation)?$/u,
   case: /^(?:(?:structural|abstract|inherent|dependent|nominative|accusative|dative|genitive|ergative|absolutive) )?case(?: assignment| valuation| licensing| marking)?$/u,
+  correspondence: /^(?:(?:cross[ –—]interface|interfacial|pf[ –—]lf|pf|lf|interpretive) )?correspondence(?: alignment| relation)?$/u,
   movement: /^(?:(?:interrogative|relative|phrasal|head|wh|successive cyclic) )*(?:internal merge|movement)(?: dependency| relation)?$/u,
   'feature-sharing': /^(?:shared features?|feature sharing|feature concord|nominal concord)$/u
 };
@@ -168,7 +169,8 @@ export function relationAssertionFailure(relationName: string | undefined, famil
   for (const clause of clauses) {
     const prefix = /^(?:no|absence of|lack of|without|pending|possible|potential|hypothetical|unestablished|unresolved|failed|blocked|unsuccessful|rejected|unlicensed) (.+)$/u.exec(clause);
     const suffix = /^(.+?)(?: is)? (?:absent|pending|unresolved|unestablished|not established|not yet established|failed|blocked|unsuccessful|rejected|unlicensed|failure|violation)$/u.exec(clause);
-    if ([prefix?.[1], suffix?.[1]].some(subject => subject && assertionSubjects[family].test(subject)))
+    const denied = family === 'correspondence' ? /^(?:denied (.+)|(.+?)(?: is)? denied)$/u.exec(clause) : undefined;
+    if ([prefix?.[1], suffix?.[1], denied?.[1], denied?.[2]].some(subject => subject && assertionSubjects[family].test(subject)))
       return `${family}-not-established`;
   }
   return undefined;
@@ -189,6 +191,14 @@ export const authoredOutcomeLiterals = (values: Record<string, string | string[]
   Object.entries(values ?? {}).filter(([key]) => outcomeRoles.has(normalizeTier2Synonym(key)))
     .flatMap(([key, value]) => (Array.isArray(value) ? value : [value]).filter(literal =>
       !['judgment', 'verdict'].includes(normalizeTier2Synonym(key)) || resolveOutcomeLiteral(literal)?.concept));
+
+/** The QR primitive depicts an established dependency and has no failed-path
+ * variant. Its Tier-1 and recovered forms therefore share this refusal. */
+export const hasUnestablishedCovertMovementOutcome = (values: Record<string, string | string[]> | undefined): boolean =>
+  authoredOutcomeLiterals(values).some(literal => isUnestablishedOutcomeLiteral(literal)
+    || normalizeOutcomeLiteral(literal) === 'denied'
+    || ['blocked', 'failed', 'crashed', 'illicit', 'rejected', 'unlicensed', 'impossible', 'violation']
+      .includes(resolveOutcomeLiteral(literal)?.concept ?? ''));
 
 /** A blocking drawing needs an authored negative claim, not just a possible obstacle. */
 export const negativeClaimFailure = (

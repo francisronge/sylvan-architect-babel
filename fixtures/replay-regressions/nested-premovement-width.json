@@ -1,0 +1,1248 @@
+{
+  "sentence": "Der Forscher sagte, dass die Studentin den schwierigen Bericht gelesen hat.",
+  "framework": "xbar",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "matrixSubject",
+            "content": "embeddedCP",
+            "predicate": "matrixVerbBase"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "contentRole": "propositional Content"
+          }
+        },
+        {
+          "anchors": {
+            "agent": "embeddedSubject",
+            "predicate": "participle",
+            "theme": "objectDP"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "themeRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "licensers": [
+              "matrixI",
+              "embeddedI"
+            ],
+            "subjects": [
+              "matrixSubject",
+              "embeddedSubject"
+            ]
+          },
+          "relation": "finite nominative Case licensing",
+          "values": {
+            "case": "nominative",
+            "pairing": "Each finite I licenses the corresponding subject in Spec-IP."
+          }
+        },
+        {
+          "anchors": {
+            "governor": "participle",
+            "object": "objectDP"
+          },
+          "relation": "government and accusative Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "stageRecord": "The analysis adopts a DP version of X-bar Theory and the GB convention that subjects are base-generated in Spec-IP. Both clauses have head-final VP and I′ structures. The matrix verb selects the embedded CP as its propositional complement; dass occupies the embedded C position. Within that clause, gelesen heads VP, the accusative object precedes it, and the finite perfect auxiliary hat is generated in I. The adjective schwierigen is an AP adjunct to N′ inside the object DP, not a clause-level modifier. Matrix C is initially empty, and matrix I contains abstract finite past and agreement features. The inflected lexical form sagte is already present under V; this analysis does not decompose its spelling into separately realized morphemes. First, sagte assigns the reporting Agent role to Der Forscher and the propositional Content role to the dass clause. Second, gelesen assigns the reading Agent role to die Studentin and the Theme role to den schwierigen Bericht. Third, the two finite I heads license nominative Case on their respective subjects. Fourth, gelesen governs and assigns accusative Case to its object. These are two independent finite subjects: no control, raising, or PRO dependency is posited.",
+      "statement": "Establish the head-final base structure and the embedded dass clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixC",
+                  "label": "C[declarative, V2]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixSubjectD",
+                              "label": "D",
+                              "tokenIndex": 0,
+                              "word": "Der"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrixSubjectN",
+                                      "label": "N",
+                                      "tokenIndex": 1,
+                                      "word": "Forscher"
+                                    }
+                                  ],
+                                  "id": "matrixSubjectNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixSubjectNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "matrixSubjectDBar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "matrixSubject",
+                      "label": "DP",
+                      "lineageId": "researcherDP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedC",
+                                          "label": "C",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedSubjectD",
+                                                      "label": "D",
+                                                      "tokenIndex": 4,
+                                                      "word": "die"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedSubjectN",
+                                                              "label": "N",
+                                                              "tokenIndex": 5,
+                                                              "word": "Studentin"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedSubjectNBar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedSubjectNP",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedSubjectDBar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "embeddedSubject",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "objectD",
+                                                                  "label": "D",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "adjectiveA",
+                                                                                  "label": "A",
+                                                                                  "tokenIndex": 7,
+                                                                                  "word": "schwierigen"
+                                                                                }
+                                                                              ],
+                                                                              "id": "adjectiveABar",
+                                                                              "label": "A′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "adjectiveAP",
+                                                                          "label": "AP"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "objectN",
+                                                                              "label": "N",
+                                                                              "tokenIndex": 8,
+                                                                              "word": "Bericht"
+                                                                            }
+                                                                          ],
+                                                                          "id": "objectNBar",
+                                                                          "label": "N′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "modifiedNBar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNP",
+                                                                  "label": "NP"
+                                                                }
+                                                              ],
+                                                              "id": "objectDBar",
+                                                              "label": "D′"
+                                                            }
+                                                          ],
+                                                          "id": "objectDP",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "participle",
+                                                          "label": "V[participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[finite, present, perfect auxiliary, 3sg]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "matrixVerbBase",
+                                  "label": "V",
+                                  "lineageId": "sayVerb",
+                                  "tokenIndex": 2,
+                                  "word": "sagte"
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixI",
+                          "label": "I[finite, past, 3sg]",
+                          "lineageId": "matrixFiniteHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteFeatures": "matrixIFeatures",
+            "landingHead": "matrixI",
+            "raisedVerb": "matrixVerbInI",
+            "sourceTrace": "matrixVerbTrace"
+          },
+          "priorAnchors": {
+            "sourceVerb": "matrixVerbBase",
+            "targetHead": "matrixI"
+          },
+          "relation": "V-to-I head movement and finite-feature licensing",
+          "values": {
+            "features": [
+              "finite",
+              "past",
+              "third-person singular"
+            ],
+            "movement": "V-to-I head adjunction",
+            "traceLicensing": "The raised head antecedent-governs its V trace."
+          }
+        }
+      ],
+      "stageRecord": "Sagte moves from the previously established matrix V position and adjoins to the immediately higher I head. Its source becomes an unpronounced V trace, and the pronounced occurrence is now inside the complex I head. The abstract finite past and third-person singular features remain unpronounced within that head. The V-to-I chain connects the raised verb with its governed source trace, preserving the predicate's original theta and complement relations while checking its finite form against I. This intermediate workspace is necessary because subsequent movement to C must proceed from I rather than skip it. No comparable movement is required for the embedded auxiliary: hat was generated in I, and the overt complementizer dass keeps that clause outside the matrix V2 derivation.",
+      "statement": "Raise the matrix verb from V to I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixC",
+                  "label": "C[declarative, V2]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixSubjectD",
+                              "label": "D",
+                              "tokenIndex": 0,
+                              "word": "Der"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrixSubjectN",
+                                      "label": "N",
+                                      "tokenIndex": 1,
+                                      "word": "Forscher"
+                                    }
+                                  ],
+                                  "id": "matrixSubjectNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixSubjectNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "matrixSubjectDBar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "matrixSubject",
+                      "label": "DP",
+                      "lineageId": "researcherDP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedC",
+                                          "label": "C",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedSubjectD",
+                                                      "label": "D",
+                                                      "tokenIndex": 4,
+                                                      "word": "die"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedSubjectN",
+                                                              "label": "N",
+                                                              "tokenIndex": 5,
+                                                              "word": "Studentin"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedSubjectNBar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedSubjectNP",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedSubjectDBar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "embeddedSubject",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "objectD",
+                                                                  "label": "D",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "adjectiveA",
+                                                                                  "label": "A",
+                                                                                  "tokenIndex": 7,
+                                                                                  "word": "schwierigen"
+                                                                                }
+                                                                              ],
+                                                                              "id": "adjectiveABar",
+                                                                              "label": "A′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "adjectiveAP",
+                                                                          "label": "AP"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "objectN",
+                                                                              "label": "N",
+                                                                              "tokenIndex": 8,
+                                                                              "word": "Bericht"
+                                                                            }
+                                                                          ],
+                                                                          "id": "objectNBar",
+                                                                          "label": "N′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "modifiedNBar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNP",
+                                                                  "label": "NP"
+                                                                }
+                                                              ],
+                                                              "id": "objectDBar",
+                                                              "label": "D′"
+                                                            }
+                                                          ],
+                                                          "id": "objectDP",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "participle",
+                                                          "label": "V[participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[finite, present, perfect auxiliary, 3sg]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "matrixVerbTrace",
+                                  "label": "V trace",
+                                  "lineageId": "sayVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixVerbInI",
+                              "label": "V",
+                              "lineageId": "sayVerb",
+                              "tokenIndex": 2,
+                              "word": "sagte"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixIFeatures",
+                              "label": "I[finite, past, 3sg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "matrixI",
+                          "label": "I[finite, past, 3sg]",
+                          "lineageId": "matrixFiniteHead"
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "carriedVerb": "matrixVerbInI",
+            "landingHead": "matrixC",
+            "lowerVerbTrace": "matrixVerbTrace",
+            "raisedHead": "matrixIInC",
+            "sourceTrace": "matrixITrace"
+          },
+          "priorAnchors": {
+            "sourceHead": "matrixI",
+            "targetHead": "matrixC"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "headMovementPath": "V to I to C",
+            "movement": "I-to-C head adjunction",
+            "traceLicensing": "The raised I head antecedent-governs its I trace; the lower V dependency is maintained through the I position."
+          }
+        }
+      ],
+      "stageRecord": "The complex I head established in the preceding stage moves to the empty declarative C position, leaving an unpronounced I trace. The lexical verb and the silent inflectional feature head are carried with it; there is no second independent movement of the lexical verb. The new I-to-C dependency antecedent-governs the I trace and extends the existing head-movement path from the theta-bearing V position through I to C. This local succession satisfies the Head Movement Constraint. The finite verb now occupies the matrix left bracket, but Spec-CP is still empty, so the matrix subject remains after the verb at this intermediate point. The embedded dass clause stays in the matrix verb's original complement domain; its postverbal surface position will therefore not require extraposition.",
+      "statement": "Move the finite matrix head from I to C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixVerbInI",
+                          "label": "V",
+                          "lineageId": "sayVerb",
+                          "tokenIndex": 2,
+                          "word": "sagte"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixIFeatures",
+                          "label": "I[finite, past, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIInC",
+                      "label": "I[finite, past, 3sg]",
+                      "lineageId": "matrixFiniteHead"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixCFeatures",
+                      "label": "C[declarative, V2]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixC",
+                  "label": "C[declarative, V2]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixSubjectD",
+                              "label": "D",
+                              "tokenIndex": 0,
+                              "word": "Der"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "matrixSubjectN",
+                                      "label": "N",
+                                      "tokenIndex": 1,
+                                      "word": "Forscher"
+                                    }
+                                  ],
+                                  "id": "matrixSubjectNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixSubjectNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "matrixSubjectDBar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "matrixSubject",
+                      "label": "DP",
+                      "lineageId": "researcherDP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedC",
+                                          "label": "C",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedSubjectD",
+                                                      "label": "D",
+                                                      "tokenIndex": 4,
+                                                      "word": "die"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedSubjectN",
+                                                              "label": "N",
+                                                              "tokenIndex": 5,
+                                                              "word": "Studentin"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedSubjectNBar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedSubjectNP",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedSubjectDBar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "embeddedSubject",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "objectD",
+                                                                  "label": "D",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "adjectiveA",
+                                                                                  "label": "A",
+                                                                                  "tokenIndex": 7,
+                                                                                  "word": "schwierigen"
+                                                                                }
+                                                                              ],
+                                                                              "id": "adjectiveABar",
+                                                                              "label": "A′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "adjectiveAP",
+                                                                          "label": "AP"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "objectN",
+                                                                              "label": "N",
+                                                                              "tokenIndex": 8,
+                                                                              "word": "Bericht"
+                                                                            }
+                                                                          ],
+                                                                          "id": "objectNBar",
+                                                                          "label": "N′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "modifiedNBar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNP",
+                                                                  "label": "NP"
+                                                                }
+                                                              ],
+                                                              "id": "objectDBar",
+                                                              "label": "D′"
+                                                            }
+                                                          ],
+                                                          "id": "objectDP",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "participle",
+                                                          "label": "V[participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[finite, present, perfect auxiliary, 3sg]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "matrixVerbTrace",
+                                  "label": "V trace",
+                                  "lineageId": "sayVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixITrace",
+                          "label": "I trace",
+                          "lineageId": "matrixFiniteHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "caseLicensingPosition": "matrixITrace",
+            "frontedSubject": "frontedMatrixSubject",
+            "sourceTrace": "matrixSubjectTrace",
+            "targetProjection": "matrixCP",
+            "thetaPredicateTrace": "matrixVerbTrace"
+          },
+          "priorAnchors": {
+            "sourceSubject": "matrixSubject"
+          },
+          "relation": "subject A′ movement to the prefield",
+          "values": {
+            "chainCase": "nominative",
+            "chainThetaRole": "Agent",
+            "movement": "Spec-IP to Spec-CP",
+            "traceLicensing": "The fronted subject antecedent-governs its Spec-IP trace."
+          }
+        },
+        {
+          "anchors": {
+            "finiteCHead": "matrixC",
+            "finiteVerb": "matrixVerbInI",
+            "prefieldConstituent": "frontedMatrixSubject"
+          },
+          "relation": "matrix V2 satisfaction",
+          "values": {
+            "configuration": "One constituent in Spec-CP precedes the finite verb in C."
+          }
+        }
+      ],
+      "stageRecord": "Der Forscher moves from its established Spec-IP position to Spec-CP, leaving an unpronounced DP trace. This is A′ movement into the German prefield, not movement to a new theta position. The resulting chain retains the Agent interpretation and nominative Case licensed at its Spec-IP source, and the fronted DP antecedent-governs that trace. Prefield occupation does not by itself force a contrastive-topic interpretation. With one constituent in Spec-CP and sagte in C, the matrix clause satisfies V2; second position counts constituents, not individual words. The embedded clause remains complementizer-initial and verb-final, with the sequence object–participle–finite auxiliary. All pronounced terminals now appear in exactly the supplied order. The comma and final period in the displayed sentence have no separate terminals because neither is included in the supplied token list.",
+      "statement": "Front the matrix subject and complete the subject-initial V2 sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixSubjectD",
+                      "label": "D",
+                      "tokenIndex": 0,
+                      "word": "Der"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixSubjectN",
+                              "label": "N",
+                              "tokenIndex": 1,
+                              "word": "Forscher"
+                            }
+                          ],
+                          "id": "matrixSubjectNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "matrixSubjectNP",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "matrixSubjectDBar",
+                  "label": "D′"
+                }
+              ],
+              "id": "frontedMatrixSubject",
+              "label": "DP",
+              "lineageId": "researcherDP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixVerbInI",
+                          "label": "V",
+                          "lineageId": "sayVerb",
+                          "tokenIndex": 2,
+                          "word": "sagte"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixIFeatures",
+                          "label": "I[finite, past, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIInC",
+                      "label": "I[finite, past, 3sg]",
+                      "lineageId": "matrixFiniteHead"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixCFeatures",
+                      "label": "C[declarative, V2]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixC",
+                  "label": "C[declarative, V2]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixSubjectTrace",
+                      "label": "DP trace",
+                      "lineageId": "researcherDP",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedC",
+                                          "label": "C",
+                                          "tokenIndex": 3,
+                                          "word": "dass"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedSubjectD",
+                                                      "label": "D",
+                                                      "tokenIndex": 4,
+                                                      "word": "die"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedSubjectN",
+                                                              "label": "N",
+                                                              "tokenIndex": 5,
+                                                              "word": "Studentin"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedSubjectNBar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedSubjectNP",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedSubjectDBar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "embeddedSubject",
+                                              "label": "DP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "objectD",
+                                                                  "label": "D",
+                                                                  "tokenIndex": 6,
+                                                                  "word": "den"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "adjectiveA",
+                                                                                  "label": "A",
+                                                                                  "tokenIndex": 7,
+                                                                                  "word": "schwierigen"
+                                                                                }
+                                                                              ],
+                                                                              "id": "adjectiveABar",
+                                                                              "label": "A′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "adjectiveAP",
+                                                                          "label": "AP"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "objectN",
+                                                                              "label": "N",
+                                                                              "tokenIndex": 8,
+                                                                              "word": "Bericht"
+                                                                            }
+                                                                          ],
+                                                                          "id": "objectNBar",
+                                                                          "label": "N′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "modifiedNBar",
+                                                                      "label": "N′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "objectNP",
+                                                                  "label": "NP"
+                                                                }
+                                                              ],
+                                                              "id": "objectDBar",
+                                                              "label": "D′"
+                                                            }
+                                                          ],
+                                                          "id": "objectDP",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "participle",
+                                                          "label": "V[participle]",
+                                                          "tokenIndex": 9,
+                                                          "word": "gelesen"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[finite, present, perfect auxiliary, 3sg]",
+                                                  "tokenIndex": 10,
+                                                  "word": "hat"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "matrixVerbTrace",
+                                  "label": "V trace",
+                                  "lineageId": "sayVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixITrace",
+                          "label": "I trace",
+                          "lineageId": "matrixFiniteHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

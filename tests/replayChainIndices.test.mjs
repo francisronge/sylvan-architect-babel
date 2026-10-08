@@ -71,7 +71,7 @@ test('numeric authored indices take precedence and generated indices avoid their
   assert.equal(map.get('b-low'), '2');
   assert.equal(map.get('b-high'), '2');
   assert.equal(formatIndexedSurfaceForDisplayValue('John₄', '2'), 'John₄');
-  assert.equal(formatTraceSurfaceForDisplayValue('t_4', '2'), 't₄');
+  assert.equal(formatTraceSurfaceForDisplayValue('t_4', '2'), 't_4');
 });
 
 test('conflicting authored chain indices are preserved without synthesizing a resolution', () => {

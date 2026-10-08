@@ -3,7 +3,7 @@ import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 import type { SyntaxNode } from '../../types.ts';
 
 /** Exact authored owners must occur once in the current workspace. */
-export function uniqueCurrentOwners(evidence: Tier2FacetEvidence, ids: readonly string[]): boolean {
+export function uniqueCurrentOwners(evidence: Pick<Tier2FacetEvidence, 'currentForest'>, ids: readonly string[]): boolean {
   const counts = new Map<string, number>();
   const visit = (node: SyntaxNode) => {
     counts.set(node.id, (counts.get(node.id) ?? 0) + 1); node.children?.forEach(visit);
@@ -75,9 +75,19 @@ export const featureParticipantName = (key: string): string =>
   /^(?:(?:quirky|pronominal|null|overt) )?(subject|object)(?: (?:determiner|nominal|dp|np|phrase|constituent))?$/u.exec(normalizeTier2Synonym(key))?.[1]
     ?? participantName(key);
 
+const participantPropertyNames = 'features|feature bundle|agreement specification|agreement|person|number|gender|case|tense|form|inflection|class|mood|aspect|polarity|voice|definiteness|finiteness';
+const qualifiedParticipantProperty = new RegExp(`^(.*?) (${participantPropertyNames})$`, 'u');
+const unqualifiedParticipantProperty = new RegExp(`^(?:${participantPropertyNames})$`, 'u');
+/** Lexical form and inflection fields need their own realization and host
+ * proof. A sole participant does not establish that a form was realized. */
+export const isUnqualifiedGrammaticalProperty = (key: string): boolean => {
+  const property = normalizeTier2Synonym(key);
+  return unqualifiedParticipantProperty.test(property) && property !== 'form' && property !== 'inflection';
+};
+
 export function participantProperties(evidence: Tier2FacetEvidence) {
   return (evidence.authoredValues ?? []).flatMap(value => {
-    const match = /^(.*?) (features|feature bundle|agreement specification|agreement|person|number|gender|case|tense|form|inflection|class|mood|aspect|polarity|voice|definiteness|finiteness)$/u.exec(normalizeTier2Synonym(value.key));
+    const match = qualifiedParticipantProperty.exec(normalizeTier2Synonym(value.key));
     if (!match) return [];
     const [, qualifier, property] = match;
     // A selected or required form needs independent realization evidence;

@@ -63,6 +63,34 @@ test('an exact new extraction wrapper owns its retained host, never its outside 
   assert.deepEqual(result.stationary, ['subject']);
 });
 
+test('a new movement daughter on an existing projection owns only that receiving interior', () => {
+  const before = view(fork('clause', atom('head'), fork('host', fork('bar', atom('source'), atom('object')))));
+  const current = view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('witness'), atom('object')))));
+  const result = motion(before, current, relation());
+  assert.deepEqual(names(result.owned), ['bar', 'host', 'landing', 'object', 'source', 'witness']);
+  assert.deepEqual(result.stationary, ['head']);
+  for (const override of [{ authoredRelationKey: '0:0' }, { movementTransition: false }, { priorSourceNodeId: 'head' }]) {
+    const invalid = motion(before, current, relation(override));
+    assert(!invalid.owned.has('object'), 'an unrelated or unproved insertion cannot release the existing interior');
+  }
+  const extra = view(fork('clause', atom('head'), fork('host', atom('landing'), atom('unrelated'), fork('bar', atom('witness'), atom('object')))));
+  assert(!motion(before, extra, relation()).owned.has('object'), 'unexplained sibling insertion is not movement-owned');
+  const preexisting = view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('source'), atom('object')))));
+  assert(!motion(preexisting, current, relation()).owned.has('object'), 'a persistent landing does not reopen its host');
+});
+
+test('adding a landing beside an existing fork does not release unrelated retained siblings', () => {
+  for (const position of [0, 1, 2]) {
+    const before = view(fork('host', atom('source'), atom('peer')));
+    const children = [atom('witness'), atom('peer')]; children.splice(position, 0, atom('landing'));
+    const current = view(fork('host', ...children));
+    const result = motion(before, current, relation());
+    assert(result.owned.has('source')); assert(result.owned.has('witness'));
+    assert(!result.owned.has('peer')); assert(result.stationary.includes('peer'));
+    assert(!result.owned.has('host'));
+  }
+});
+
 for (const invalid of [
   { authoredRelationKey: '0:0' }, { renderFamily: 'authored-anchor-link' },
   { priorSourceNodeId: 'missing' }, { witnessNodeId: 'missing' }, { targetNodeId: 'missing' },

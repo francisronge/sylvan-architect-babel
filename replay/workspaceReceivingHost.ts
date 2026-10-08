@@ -15,6 +15,17 @@ export function extractionReceivingHosts(
   const result = new Set<string>();
   for (const link of currentWorkspaceMovements(step, before, current)) {
     const source = link.priorSourceNodeId, witness = link.witnessNodeId, landing = link.targetNodeId;
+    const parent = current.parent(landing);
+    const retained = parent && current.children(parent).filter(child => child !== landing);
+    if (parent && before.has(parent) && !before.has(landing)
+      && before.children(parent).length === 1 && retained?.length === 1
+      && retained[0] === before.children(parent)[0]
+      && before.contains(retained[0], source) && current.contains(retained[0], witness)) {
+      // A unary projection can become a binary fork around its sole retained
+      // child. Adding a daughter to an existing fork must not release peers
+      // unrelated to movement. Unchanged subtree shapes remain rigid.
+      result.add(parent);
+    }
     for (let owner = current.parent(landing); owner && !before.has(owner); owner = current.parent(owner)) {
       const hosts = current.children(owner).filter(id => before.has(id)
         && before.parent(id) === current.parent(owner));

@@ -1,0 +1,2461 @@
+{
+  "cases": [
+    {
+      "key": "compact-movement/astra-english",
+      "sentence": "Which report did the student say that the editor had revised?",
+      "framework": "minimalism",
+      "inputTokens": [
+        "Which",
+        "report",
+        "did",
+        "the",
+        "student",
+        "say",
+        "that",
+        "the",
+        "editor",
+        "had",
+        "revised"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "External Merge combines Which with report, forming a nominal object headed by the interrogative determiner. Revised then merges with that object and projects its verbal label. Labels identify projecting heads rather than independently supplied phrase-structure templates; ordered children encode the intended linearization. Revised is entered as a whole-word participial verb, without decomposing its inflection. The object begins in the selected complement position, not in its eventual interrogative position.",
+          "statement": "Construct the embedded participial predicate and its interrogative object.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "revised",
+                  "label": "V[participle]",
+                  "tokenIndex": 10,
+                  "word": "revised"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whichObject",
+                      "label": "D[wh]",
+                      "lineageId": "which",
+                      "tokenIndex": 0,
+                      "word": "Which"
+                    },
+                    {
+                      "children": [],
+                      "id": "reportObject",
+                      "label": "N",
+                      "lineageId": "report",
+                      "tokenIndex": 1,
+                      "word": "report"
+                    }
+                  ],
+                  "id": "whObject",
+                  "label": "D[wh]",
+                  "lineageId": "whPhrase"
+                }
+              ],
+              "id": "embeddedVP",
+              "label": "V[participle]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "licenser": "embeddedLittleV",
+                "object": "whObject"
+              },
+              "relation": "accusative Case licensing",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "A silent transitive little-v head merges with the participial predicate, and the editor merges as its external argument. This establishes the editor as the reviser and licenses the object's accusative Case. Had then merges above this domain. This analysis treats had as a finite perfect auxiliary occupying T and selecting the participial predicate; it does not posit an additional auxiliary-head movement or a separately realized perfect head. The embedded subject remains in its first-merged position at this stage.",
+          "statement": "Introduce the embedded external argument and finite perfect auxiliary.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "had",
+                  "label": "T[past, perfect]",
+                  "tokenIndex": 9,
+                  "word": "had"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "editorTheLow",
+                          "label": "D",
+                          "lineageId": "editorDeterminer",
+                          "tokenIndex": 7,
+                          "word": "the"
+                        },
+                        {
+                          "children": [],
+                          "id": "editorNLow",
+                          "label": "N",
+                          "lineageId": "editorNoun",
+                          "tokenIndex": 8,
+                          "word": "editor"
+                        }
+                      ],
+                      "id": "editorLow",
+                      "label": "D",
+                      "lineageId": "editorPhrase"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "embeddedLittleV",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "revised",
+                              "label": "V[participle]",
+                              "tokenIndex": 10,
+                              "word": "revised"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whichObject",
+                                  "label": "D[wh]",
+                                  "lineageId": "which",
+                                  "tokenIndex": 0,
+                                  "word": "Which"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "reportObject",
+                                  "label": "N",
+                                  "lineageId": "report",
+                                  "tokenIndex": 1,
+                                  "word": "report"
+                                }
+                              ],
+                              "id": "whObject",
+                              "label": "D[wh]",
+                              "lineageId": "whPhrase"
+                            }
+                          ],
+                          "id": "embeddedVP",
+                          "label": "V[participle]"
+                        }
+                      ],
+                      "id": "embeddedVCore",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "embeddedVPhase",
+                  "label": "v"
+                }
+              ],
+              "id": "embeddedTBase",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "whEmbeddedV",
+                "phaseHead": "embeddedLittleV",
+                "source": "whObject"
+              },
+              "relation": "successive-cyclic wh movement",
+              "values": {
+                "trigger": "phase-edge feature"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "editorLow",
+                "probe": "had"
+              },
+              "relation": "finite subject agreement and Case",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "attractor": "had",
+                "landing": "editorHigh",
+                "source": "editorLow"
+              },
+              "relation": "subject Internal Merge",
+              "values": {
+                "trigger": "T subject-edge requirement"
+              }
+            }
+          ],
+          "stageRecord": "Before the embedded verbal phase becomes inaccessible, its edge feature internally merges the interrogative object at the outer edge of little-v. The lower object occurrence is retained but unpronounced. Finite T agrees with the editor, values nominative Case, and internally merges that subject at its edge to satisfy its subject requirement. The subject's lower occurrence also remains silent. These operations draw on distinct positions already present in the preceding workspace. The verbal edge step is required here because subsequent extraction must cross both the embedded verbal phase and the embedded clause boundary.",
+          "statement": "Raise the embedded subject and make the object accessible at the embedded phase edge.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "editorTheHigh",
+                      "label": "D",
+                      "lineageId": "editorDeterminer",
+                      "tokenIndex": 7,
+                      "word": "the"
+                    },
+                    {
+                      "children": [],
+                      "id": "editorNHigh",
+                      "label": "N",
+                      "lineageId": "editorNoun",
+                      "tokenIndex": 8,
+                      "word": "editor"
+                    }
+                  ],
+                  "id": "editorHigh",
+                  "label": "D",
+                  "lineageId": "editorPhrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "had",
+                      "label": "T[past, perfect]",
+                      "tokenIndex": 9,
+                      "word": "had"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whichEmbeddedV",
+                              "label": "D[wh]",
+                              "lineageId": "which",
+                              "tokenIndex": 0,
+                              "word": "Which"
+                            },
+                            {
+                              "children": [],
+                              "id": "reportEmbeddedV",
+                              "label": "N",
+                              "lineageId": "report",
+                              "tokenIndex": 1,
+                              "word": "report"
+                            }
+                          ],
+                          "id": "whEmbeddedV",
+                          "label": "D[wh]",
+                          "lineageId": "whPhrase"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "editorTheLow",
+                                  "label": "D",
+                                  "lineageId": "editorDeterminer",
+                                  "silent": true,
+                                  "word": "the"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "editorNLow",
+                                  "label": "N",
+                                  "lineageId": "editorNoun",
+                                  "silent": true,
+                                  "word": "editor"
+                                }
+                              ],
+                              "id": "editorLow",
+                              "label": "D",
+                              "lineageId": "editorPhrase",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "embeddedLittleV",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "revised",
+                                      "label": "V[participle]",
+                                      "tokenIndex": 10,
+                                      "word": "revised"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "whichObject",
+                                          "label": "D[wh]",
+                                          "lineageId": "which",
+                                          "silent": true,
+                                          "word": "Which"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "reportObject",
+                                          "label": "N",
+                                          "lineageId": "report",
+                                          "silent": true,
+                                          "word": "report"
+                                        }
+                                      ],
+                                      "id": "whObject",
+                                      "label": "D[wh]",
+                                      "lineageId": "whPhrase",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "embeddedVP",
+                                  "label": "V[participle]"
+                                }
+                              ],
+                              "id": "embeddedVCore",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "embeddedVPhase",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "embeddedVEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "embeddedTBase",
+                  "label": "T"
+                }
+              ],
+              "id": "embeddedTP",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "whEmbeddedC",
+                "phaseHead": "that",
+                "source": "whEmbeddedV"
+              },
+              "relation": "successive-cyclic wh movement",
+              "values": {
+                "interpretation": "intermediate escape position without interrogative scope",
+                "trigger": "declarative C edge feature"
+              }
+            }
+          ],
+          "stageRecord": "The declarative complementizer that merges with the embedded T projection. Its edge feature internally merges the interrogative phrase from the already established verbal edge to the clause edge. This occurrence is an intermediate escape position, not the scope position of an embedded question: that remains declarative, and had remains below the embedded subject. Extraction is from the object position, so retaining overt that does not create the subject-extraction configuration associated with the that-trace restriction. The previous verbal-edge copy becomes unpronounced.",
+          "statement": "Build the declarative complement clause and its wh escape edge.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whichEmbeddedC",
+                      "label": "D[wh]",
+                      "lineageId": "which",
+                      "tokenIndex": 0,
+                      "word": "Which"
+                    },
+                    {
+                      "children": [],
+                      "id": "reportEmbeddedC",
+                      "label": "N",
+                      "lineageId": "report",
+                      "tokenIndex": 1,
+                      "word": "report"
+                    }
+                  ],
+                  "id": "whEmbeddedC",
+                  "label": "D[wh]",
+                  "lineageId": "whPhrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "that",
+                      "label": "C[declarative]",
+                      "tokenIndex": 6,
+                      "word": "that"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "editorTheHigh",
+                              "label": "D",
+                              "lineageId": "editorDeterminer",
+                              "tokenIndex": 7,
+                              "word": "the"
+                            },
+                            {
+                              "children": [],
+                              "id": "editorNHigh",
+                              "label": "N",
+                              "lineageId": "editorNoun",
+                              "tokenIndex": 8,
+                              "word": "editor"
+                            }
+                          ],
+                          "id": "editorHigh",
+                          "label": "D",
+                          "lineageId": "editorPhrase"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "had",
+                              "label": "T[past, perfect]",
+                              "tokenIndex": 9,
+                              "word": "had"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whichEmbeddedV",
+                                      "label": "D[wh]",
+                                      "lineageId": "which",
+                                      "silent": true,
+                                      "word": "Which"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "reportEmbeddedV",
+                                      "label": "N",
+                                      "lineageId": "report",
+                                      "silent": true,
+                                      "word": "report"
+                                    }
+                                  ],
+                                  "id": "whEmbeddedV",
+                                  "label": "D[wh]",
+                                  "lineageId": "whPhrase",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "editorTheLow",
+                                          "label": "D",
+                                          "lineageId": "editorDeterminer",
+                                          "silent": true,
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "editorNLow",
+                                          "label": "N",
+                                          "lineageId": "editorNoun",
+                                          "silent": true,
+                                          "word": "editor"
+                                        }
+                                      ],
+                                      "id": "editorLow",
+                                      "label": "D",
+                                      "lineageId": "editorPhrase",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedLittleV",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "revised",
+                                              "label": "V[participle]",
+                                              "tokenIndex": 10,
+                                              "word": "revised"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "whichObject",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "which",
+                                                  "silent": true,
+                                                  "word": "Which"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "reportObject",
+                                                  "label": "N",
+                                                  "lineageId": "report",
+                                                  "silent": true,
+                                                  "word": "report"
+                                                }
+                                              ],
+                                              "id": "whObject",
+                                              "label": "D[wh]",
+                                              "lineageId": "whPhrase",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "embeddedVP",
+                                          "label": "V[participle]"
+                                        }
+                                      ],
+                                      "id": "embeddedVCore",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "embeddedVPhase",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "embeddedVEdge",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "embeddedTBase",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "embeddedTP",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "embeddedCCore",
+                  "label": "C"
+                }
+              ],
+              "id": "embeddedCP",
+              "label": "C"
+            }
+          ]
+        },
+        {
+          "relations": [],
+          "stageRecord": "Say selects the completed declarative C projection as its complement. A silent matrix little-v head merges with this predicate, and the student merges as the external argument of saying. Say is a bridge predicate in this construction: its finite clausal complement supports extraction through the complement's accessible edge. Which report is therefore the object of revised, not an additional nominal object of say. The matrix subject is still in its first-merged position.",
+          "statement": "Merge the bridge predicate and its matrix external argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "studentTheLow",
+                      "label": "D",
+                      "lineageId": "studentDeterminer",
+                      "tokenIndex": 3,
+                      "word": "the"
+                    },
+                    {
+                      "children": [],
+                      "id": "studentNLow",
+                      "label": "N",
+                      "lineageId": "studentNoun",
+                      "tokenIndex": 4,
+                      "word": "student"
+                    }
+                  ],
+                  "id": "studentLow",
+                  "label": "D",
+                  "lineageId": "studentPhrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixLittleV",
+                      "label": "v[agentive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "say",
+                          "label": "V[bare]",
+                          "tokenIndex": 5,
+                          "word": "say"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whichEmbeddedC",
+                                  "label": "D[wh]",
+                                  "lineageId": "which",
+                                  "tokenIndex": 0,
+                                  "word": "Which"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "reportEmbeddedC",
+                                  "label": "N",
+                                  "lineageId": "report",
+                                  "tokenIndex": 1,
+                                  "word": "report"
+                                }
+                              ],
+                              "id": "whEmbeddedC",
+                              "label": "D[wh]",
+                              "lineageId": "whPhrase"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "that",
+                                  "label": "C[declarative]",
+                                  "tokenIndex": 6,
+                                  "word": "that"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "editorTheHigh",
+                                          "label": "D",
+                                          "lineageId": "editorDeterminer",
+                                          "tokenIndex": 7,
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "editorNHigh",
+                                          "label": "N",
+                                          "lineageId": "editorNoun",
+                                          "tokenIndex": 8,
+                                          "word": "editor"
+                                        }
+                                      ],
+                                      "id": "editorHigh",
+                                      "label": "D",
+                                      "lineageId": "editorPhrase"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "had",
+                                          "label": "T[past, perfect]",
+                                          "tokenIndex": 9,
+                                          "word": "had"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "whichEmbeddedV",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "which",
+                                                  "silent": true,
+                                                  "word": "Which"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "reportEmbeddedV",
+                                                  "label": "N",
+                                                  "lineageId": "report",
+                                                  "silent": true,
+                                                  "word": "report"
+                                                }
+                                              ],
+                                              "id": "whEmbeddedV",
+                                              "label": "D[wh]",
+                                              "lineageId": "whPhrase",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "editorTheLow",
+                                                      "label": "D",
+                                                      "lineageId": "editorDeterminer",
+                                                      "silent": true,
+                                                      "word": "the"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "editorNLow",
+                                                      "label": "N",
+                                                      "lineageId": "editorNoun",
+                                                      "silent": true,
+                                                      "word": "editor"
+                                                    }
+                                                  ],
+                                                  "id": "editorLow",
+                                                  "label": "D",
+                                                  "lineageId": "editorPhrase",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedLittleV",
+                                                      "label": "v[transitive]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "revised",
+                                                          "label": "V[participle]",
+                                                          "tokenIndex": 10,
+                                                          "word": "revised"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "whichObject",
+                                                              "label": "D[wh]",
+                                                              "lineageId": "which",
+                                                              "silent": true,
+                                                              "word": "Which"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "reportObject",
+                                                              "label": "N",
+                                                              "lineageId": "report",
+                                                              "silent": true,
+                                                              "word": "report"
+                                                            }
+                                                          ],
+                                                          "id": "whObject",
+                                                          "label": "D[wh]",
+                                                          "lineageId": "whPhrase",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVP",
+                                                      "label": "V[participle]"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVCore",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "embeddedVPhase",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "embeddedVEdge",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "embeddedTBase",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "embeddedTP",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "embeddedCCore",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "matrixVCore",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixVPhase",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "whMatrixV",
+                "phaseHead": "matrixLittleV",
+                "source": "whEmbeddedC"
+              },
+              "relation": "successive-cyclic wh movement",
+              "values": {
+                "trigger": "phase-edge feature"
+              }
+            },
+            {
+              "anchors": {
+                "finiteAuxiliary": "didLow",
+                "lexicalPredicate": "say"
+              },
+              "relation": "do-support",
+              "values": {
+                "commitment": "finite do in T; lexical verb remains bare and does not raise to T",
+                "tense": "past"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "studentLow",
+                "probe": "didLow"
+              },
+              "relation": "finite subject agreement and Case",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "attractor": "didLow",
+                "landing": "studentHigh",
+                "source": "studentLow"
+              },
+              "relation": "subject Internal Merge",
+              "values": {
+                "trigger": "T subject-edge requirement"
+              }
+            }
+          ],
+          "stageRecord": "The matrix verbal edge feature first internally merges which report from the embedded clause edge to the outer edge of matrix little-v, preserving accessibility across the matrix verbal phase. Past T is then merged, with auxiliary do supplied in its whole-word finite form did. This is the do-support commitment of the analysis: lexical say stays in the verbal domain, and the question's tense-bearing auxiliary is independently available in T for inversion. T agrees with the student, licenses nominative Case, and internally merges the subject at its edge. The earlier wh occurrence and lower subject occurrence are retained silently. The matrix verbal-edge wh occurrence remains pronounced provisionally until the scope position is built.",
+          "statement": "Establish the matrix verbal escape edge and finite subject position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "studentTheHigh",
+                      "label": "D",
+                      "lineageId": "studentDeterminer",
+                      "tokenIndex": 3,
+                      "word": "the"
+                    },
+                    {
+                      "children": [],
+                      "id": "studentNHigh",
+                      "label": "N",
+                      "lineageId": "studentNoun",
+                      "tokenIndex": 4,
+                      "word": "student"
+                    }
+                  ],
+                  "id": "studentHigh",
+                  "label": "D",
+                  "lineageId": "studentPhrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "didLow",
+                      "label": "T[past, auxiliary]",
+                      "lineageId": "finiteDo",
+                      "tokenIndex": 2,
+                      "word": "did"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whichMatrixV",
+                              "label": "D[wh]",
+                              "lineageId": "which",
+                              "tokenIndex": 0,
+                              "word": "Which"
+                            },
+                            {
+                              "children": [],
+                              "id": "reportMatrixV",
+                              "label": "N",
+                              "lineageId": "report",
+                              "tokenIndex": 1,
+                              "word": "report"
+                            }
+                          ],
+                          "id": "whMatrixV",
+                          "label": "D[wh]",
+                          "lineageId": "whPhrase"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "studentTheLow",
+                                  "label": "D",
+                                  "lineageId": "studentDeterminer",
+                                  "silent": true,
+                                  "word": "the"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "studentNLow",
+                                  "label": "N",
+                                  "lineageId": "studentNoun",
+                                  "silent": true,
+                                  "word": "student"
+                                }
+                              ],
+                              "id": "studentLow",
+                              "label": "D",
+                              "lineageId": "studentPhrase",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "matrixLittleV",
+                                  "label": "v[agentive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "say",
+                                      "label": "V[bare]",
+                                      "tokenIndex": 5,
+                                      "word": "say"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "whichEmbeddedC",
+                                              "label": "D[wh]",
+                                              "lineageId": "which",
+                                              "silent": true,
+                                              "word": "Which"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "reportEmbeddedC",
+                                              "label": "N",
+                                              "lineageId": "report",
+                                              "silent": true,
+                                              "word": "report"
+                                            }
+                                          ],
+                                          "id": "whEmbeddedC",
+                                          "label": "D[wh]",
+                                          "lineageId": "whPhrase",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "that",
+                                              "label": "C[declarative]",
+                                              "tokenIndex": 6,
+                                              "word": "that"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "editorTheHigh",
+                                                      "label": "D",
+                                                      "lineageId": "editorDeterminer",
+                                                      "tokenIndex": 7,
+                                                      "word": "the"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "editorNHigh",
+                                                      "label": "N",
+                                                      "lineageId": "editorNoun",
+                                                      "tokenIndex": 8,
+                                                      "word": "editor"
+                                                    }
+                                                  ],
+                                                  "id": "editorHigh",
+                                                  "label": "D",
+                                                  "lineageId": "editorPhrase"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "had",
+                                                      "label": "T[past, perfect]",
+                                                      "tokenIndex": 9,
+                                                      "word": "had"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "whichEmbeddedV",
+                                                              "label": "D[wh]",
+                                                              "lineageId": "which",
+                                                              "silent": true,
+                                                              "word": "Which"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "reportEmbeddedV",
+                                                              "label": "N",
+                                                              "lineageId": "report",
+                                                              "silent": true,
+                                                              "word": "report"
+                                                            }
+                                                          ],
+                                                          "id": "whEmbeddedV",
+                                                          "label": "D[wh]",
+                                                          "lineageId": "whPhrase",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "editorTheLow",
+                                                                  "label": "D",
+                                                                  "lineageId": "editorDeterminer",
+                                                                  "silent": true,
+                                                                  "word": "the"
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "editorNLow",
+                                                                  "label": "N",
+                                                                  "lineageId": "editorNoun",
+                                                                  "silent": true,
+                                                                  "word": "editor"
+                                                                }
+                                                              ],
+                                                              "id": "editorLow",
+                                                              "label": "D",
+                                                              "lineageId": "editorPhrase",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "embeddedLittleV",
+                                                                  "label": "v[transitive]",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "revised",
+                                                                      "label": "V[participle]",
+                                                                      "tokenIndex": 10,
+                                                                      "word": "revised"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "whichObject",
+                                                                          "label": "D[wh]",
+                                                                          "lineageId": "which",
+                                                                          "silent": true,
+                                                                          "word": "Which"
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "reportObject",
+                                                                          "label": "N",
+                                                                          "lineageId": "report",
+                                                                          "silent": true,
+                                                                          "word": "report"
+                                                                        }
+                                                                      ],
+                                                                      "id": "whObject",
+                                                                      "label": "D[wh]",
+                                                                      "lineageId": "whPhrase",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedVP",
+                                                                  "label": "V[participle]"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedVCore",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedVPhase",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVEdge",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedTBase",
+                                                  "label": "T"
+                                                }
+                                              ],
+                                              "id": "embeddedTP",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "embeddedCCore",
+                                          "label": "C"
+                                        }
+                                      ],
+                                      "id": "embeddedCP",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "matrixVP",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "matrixVCore",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "matrixVPhase",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "matrixVEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "matrixTBase",
+                  "label": "T"
+                }
+              ],
+              "id": "matrixTP",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "attractor": "questionC",
+                "landing": "didHigh",
+                "resultingHead": "invertedC",
+                "source": "didLow"
+              },
+              "relation": "T-to-C head movement",
+              "values": {
+                "pronunciation": "higher auxiliary copy only",
+                "trigger": "matrix interrogative inversion"
+              }
+            },
+            {
+              "anchors": {
+                "attractor": "questionC",
+                "landing": "whMatrixC",
+                "source": "whMatrixV"
+              },
+              "relation": "interrogative Internal Merge",
+              "values": {
+                "pronunciation": "highest wh copy only",
+                "scope": "matrix question",
+                "trigger": "interrogative wh-edge requirement"
+              }
+            },
+            {
+              "anchors": {
+                "argumentOccurrence": "whObject",
+                "intermediateOccurrences": [
+                  "whMatrixV",
+                  "whEmbeddedC",
+                  "whEmbeddedV"
+                ],
+                "scopeOccurrence": "whMatrixC",
+                "selectingPredicate": "revised"
+              },
+              "relation": "completed wh dependency",
+              "values": {
+                "chainOrder": "from highest scope occurrence through successive phase edges to the selected object",
+                "interpretation": "interrogative report variable interpreted as the embedded object's argument"
+              }
+            }
+          ],
+          "stageRecord": "A silent interrogative C merges with the matrix T projection. Its inversion requirement attracts the finite auxiliary from the previously established T position, forming a C-headed complex with did and leaving a silent lower auxiliary copy. Its interrogative edge requirement then internally merges which report from the matrix verbal edge into the matrix clause edge. The highest wh occurrence receives pronunciation and matrix interrogative scope; all earlier wh copies remain silent, with the lowest copy preserving the selected object position of revised. Both subjects are pronounced only in their finite T-edge positions. The completed structure asks for the report such that the student said that the editor had revised it. The past perfect remains inside the declarative complement, and no embedded subject–auxiliary inversion occurs. Reading the pronounced terminals yields exactly the supplied tokens.",
+          "statement": "Complete matrix inversion and the long-distance interrogative dependency.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whichMatrixC",
+                      "label": "D[wh]",
+                      "lineageId": "which",
+                      "tokenIndex": 0,
+                      "word": "Which"
+                    },
+                    {
+                      "children": [],
+                      "id": "reportMatrixC",
+                      "label": "N",
+                      "lineageId": "report",
+                      "tokenIndex": 1,
+                      "word": "report"
+                    }
+                  ],
+                  "id": "whMatrixC",
+                  "label": "D[wh]",
+                  "lineageId": "whPhrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "didHigh",
+                          "label": "T[past, auxiliary]",
+                          "lineageId": "finiteDo",
+                          "tokenIndex": 2,
+                          "word": "did"
+                        },
+                        {
+                          "children": [],
+                          "id": "questionC",
+                          "label": "C[interrogative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "invertedC",
+                      "label": "C"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "studentTheHigh",
+                              "label": "D",
+                              "lineageId": "studentDeterminer",
+                              "tokenIndex": 3,
+                              "word": "the"
+                            },
+                            {
+                              "children": [],
+                              "id": "studentNHigh",
+                              "label": "N",
+                              "lineageId": "studentNoun",
+                              "tokenIndex": 4,
+                              "word": "student"
+                            }
+                          ],
+                          "id": "studentHigh",
+                          "label": "D",
+                          "lineageId": "studentPhrase"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "didLow",
+                              "label": "T[past, auxiliary]",
+                              "lineageId": "finiteDo",
+                              "silent": true,
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whichMatrixV",
+                                      "label": "D[wh]",
+                                      "lineageId": "which",
+                                      "silent": true,
+                                      "word": "Which"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "reportMatrixV",
+                                      "label": "N",
+                                      "lineageId": "report",
+                                      "silent": true,
+                                      "word": "report"
+                                    }
+                                  ],
+                                  "id": "whMatrixV",
+                                  "label": "D[wh]",
+                                  "lineageId": "whPhrase",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "studentTheLow",
+                                          "label": "D",
+                                          "lineageId": "studentDeterminer",
+                                          "silent": true,
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "studentNLow",
+                                          "label": "N",
+                                          "lineageId": "studentNoun",
+                                          "silent": true,
+                                          "word": "student"
+                                        }
+                                      ],
+                                      "id": "studentLow",
+                                      "label": "D",
+                                      "lineageId": "studentPhrase",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "matrixLittleV",
+                                          "label": "v[agentive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "say",
+                                              "label": "V[bare]",
+                                              "tokenIndex": 5,
+                                              "word": "say"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "whichEmbeddedC",
+                                                      "label": "D[wh]",
+                                                      "lineageId": "which",
+                                                      "silent": true,
+                                                      "word": "Which"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "reportEmbeddedC",
+                                                      "label": "N",
+                                                      "lineageId": "report",
+                                                      "silent": true,
+                                                      "word": "report"
+                                                    }
+                                                  ],
+                                                  "id": "whEmbeddedC",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "whPhrase",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "that",
+                                                      "label": "C[declarative]",
+                                                      "tokenIndex": 6,
+                                                      "word": "that"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "editorTheHigh",
+                                                              "label": "D",
+                                                              "lineageId": "editorDeterminer",
+                                                              "tokenIndex": 7,
+                                                              "word": "the"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "editorNHigh",
+                                                              "label": "N",
+                                                              "lineageId": "editorNoun",
+                                                              "tokenIndex": 8,
+                                                              "word": "editor"
+                                                            }
+                                                          ],
+                                                          "id": "editorHigh",
+                                                          "label": "D",
+                                                          "lineageId": "editorPhrase"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "had",
+                                                              "label": "T[past, perfect]",
+                                                              "tokenIndex": 9,
+                                                              "word": "had"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "whichEmbeddedV",
+                                                                      "label": "D[wh]",
+                                                                      "lineageId": "which",
+                                                                      "silent": true,
+                                                                      "word": "Which"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "reportEmbeddedV",
+                                                                      "label": "N",
+                                                                      "lineageId": "report",
+                                                                      "silent": true,
+                                                                      "word": "report"
+                                                                    }
+                                                                  ],
+                                                                  "id": "whEmbeddedV",
+                                                                  "label": "D[wh]",
+                                                                  "lineageId": "whPhrase",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "editorTheLow",
+                                                                          "label": "D",
+                                                                          "lineageId": "editorDeterminer",
+                                                                          "silent": true,
+                                                                          "word": "the"
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "editorNLow",
+                                                                          "label": "N",
+                                                                          "lineageId": "editorNoun",
+                                                                          "silent": true,
+                                                                          "word": "editor"
+                                                                        }
+                                                                      ],
+                                                                      "id": "editorLow",
+                                                                      "label": "D",
+                                                                      "lineageId": "editorPhrase",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "embeddedLittleV",
+                                                                          "label": "v[transitive]",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "revised",
+                                                                              "label": "V[participle]",
+                                                                              "tokenIndex": 10,
+                                                                              "word": "revised"
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "whichObject",
+                                                                                  "label": "D[wh]",
+                                                                                  "lineageId": "which",
+                                                                                  "silent": true,
+                                                                                  "word": "Which"
+                                                                                },
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "reportObject",
+                                                                                  "label": "N",
+                                                                                  "lineageId": "report",
+                                                                                  "silent": true,
+                                                                                  "word": "report"
+                                                                                }
+                                                                              ],
+                                                                              "id": "whObject",
+                                                                              "label": "D[wh]",
+                                                                              "lineageId": "whPhrase",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "embeddedVP",
+                                                                          "label": "V[participle]"
+                                                                        }
+                                                                      ],
+                                                                      "id": "embeddedVCore",
+                                                                      "label": "v"
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedVPhase",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedVEdge",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedTBase",
+                                                          "label": "T"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedTP",
+                                                      "label": "T"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedCCore",
+                                                  "label": "C"
+                                                }
+                                              ],
+                                              "id": "embeddedCP",
+                                              "label": "C"
+                                            }
+                                          ],
+                                          "id": "matrixVP",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "matrixVCore",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "matrixVPhase",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "matrixVEdge",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "matrixTBase",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "matrixTP",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "matrixCCore",
+                  "label": "C"
+                }
+              ],
+              "id": "matrixCP",
+              "label": "C"
+            }
+          ]
+        }
+      ],
+      "provenance": {
+        "source": "model-comparison-20261006/astra-english-long-question/attempts/parse/bundle.json",
+        "sha256": "c798dd964fd3a01da349552765ea683fb105f2cf124070686fa94e77d44ba9ea",
+        "analysisIndex": 0
+      }
+    },
+    {
+      "key": "compact-movement/sol-spanish",
+      "sentence": "Una profesora revisó cada informe.",
+      "framework": "xbar",
+      "inputTokens": [
+        "Una",
+        "profesora",
+        "revisó",
+        "cada",
+        "informe"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "sdp",
+                "predicate": "v",
+                "theme": "odp"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "agent": "Agent",
+                "theme": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseBearer": "odp",
+                "governor": "v"
+              },
+              "relation": "government and structural Case",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "The subject is a DP headed by Una, with profesora projecting NP; the object is a DP headed by distributive cada, with informe projecting NP. Each DP contains a D′, and each noun projects N′. Revisó is initially the V head: its finite spelling is already present, while its syntactic association with I will be established by head movement. The object occupies the complement of V, and the subject is generated in Spec-VP under the VP-internal subject hypothesis. An initially unfilled subject position is available in IP. Silent I carries preterite indicative tense and third-person singular agreement features; silent declarative C selects IP. First, the verb's argument structure assigns the external Agent role to the subject and the internal Theme role to the object. Second, V governs its object and licenses structural accusative Case, although this Case has no separate overt exponent on cada informe. The indefinite subject introduces an existential interpretation, while cada supplies distributive universal quantification; their relative scope is not yet fixed.",
+          "statement": "Establish the base-generated clause and its argument structure.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "i",
+                              "label": "I⁰ [preterite, indicative, 3sg]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰",
+                                      "lineageId": "verb",
+                                      "tokenIndex": 2,
+                                      "word": "revisó"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "governingHead": "icomplex",
+                "raisedHead": "vh",
+                "trace": "v"
+              },
+              "priorAnchors": {
+                "source": "v",
+                "target": "i"
+              },
+              "relation": "V-to-I movement chain and trace licensing",
+              "values": {
+                "licensing": "proper head government",
+                "movement": "V-to-I head adjunction"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "i",
+                "verb": "vh"
+              },
+              "relation": "finite feature checking",
+              "values": {
+                "features": [
+                  "preterite",
+                  "indicative",
+                  "third-person singular"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "Revisó moves from its previously established V position and left-adjoins to I, creating a complex I head. Its original position becomes a silent head trace. The movement chain connects the pronounced verb in I with that trace; movement to the immediately higher inflectional head respects the Head Movement Constraint. The raised complex head properly governs the V trace. The finite lexical form revisó checks the preterite indicative and third-person singular features of I. This analysis does not split the input word into separately realized stem and suffix terminals: the abstract inflectional head remains silent.",
+          "statement": "Raise the finite verb from V to I.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sd",
+                                          "label": "D⁰",
+                                          "tokenIndex": 0,
+                                          "word": "Una"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sn",
+                                                  "label": "N⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "profesora"
+                                                }
+                                              ],
+                                              "id": "snbar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "snp",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "sdbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "sdp",
+                                  "label": "DP",
+                                  "lineageId": "subject"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "raisedSubject": "sh",
+                "trace": "sdp"
+              },
+              "priorAnchors": {
+                "source": "sdp"
+              },
+              "relation": "subject A-chain and trace licensing",
+              "values": {
+                "licensing": "antecedent government",
+                "movement": "Spec-VP to Spec-IP",
+                "thetaPosition": "Spec-VP"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "icomplex",
+                "subject": "sh"
+              },
+              "relation": "nominative Case, agreement, and subject requirement",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative",
+                "subjectRequirement": "Spec-IP filled"
+              }
+            }
+          ],
+          "stageRecord": "The subject DP moves from Spec-VP to Spec-IP, leaving a silent DP trace in its external theta position. Its determiner and nominal restriction move together, preserving Una profesora as one constituent. The resulting A-chain connects the raised subject to its theta-marked trace and licenses that trace by antecedent government. Finite I then licenses nominative Case on the raised subject and agrees with its third-person singular features; the filled Spec-IP satisfies the subject requirement of the finite clause. The subject receives no additional theta role in Spec-IP. The resulting pronounced order is exactly Una profesora revisó cada informe. No reflexive or pronominal antecedent dependency requires an additional Binding Theory relation.",
+          "statement": "Raise the subject to Spec-IP and establish the overt sentence.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sd",
+                                  "label": "D⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sn",
+                                          "label": "N⁰",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "snbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "snp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "sdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "sh",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sdp",
+                                  "label": "DP trace",
+                                  "lineageId": "subject",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "V⁰ trace",
+                                      "lineageId": "verb",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰ [distributive]",
+                                              "lineageId": "object-determiner",
+                                              "tokenIndex": 3,
+                                              "word": "cada"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "on",
+                                                      "label": "N⁰",
+                                                      "lineageId": "object-noun",
+                                                      "tokenIndex": 4,
+                                                      "word": "informe"
+                                                    }
+                                                  ],
+                                                  "id": "onbar",
+                                                  "label": "N′",
+                                                  "lineageId": "object-nbar"
+                                                }
+                                              ],
+                                              "id": "onp",
+                                              "label": "NP",
+                                              "lineageId": "object-np"
+                                            }
+                                          ],
+                                          "id": "odbar",
+                                          "label": "D′",
+                                          "lineageId": "object-dbar"
+                                        }
+                                      ],
+                                      "id": "odp",
+                                      "label": "DP",
+                                      "lineageId": "object"
+                                    }
+                                  ],
+                                  "id": "vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "adjunctionDomain": "vpadj",
+                "lowerOccurrence": "odp",
+                "operator": "oq"
+              },
+              "priorAnchors": {
+                "source": "odp"
+              },
+              "relation": "Quantifier Raising and variable binding",
+              "values": {
+                "chainType": "A′",
+                "interpretation": "upper quantifier binds lower argument variable",
+                "movement": "LF adjunction to VP",
+                "pronunciation": "lower copy"
+              }
+            },
+            {
+              "anchors": {
+                "narrowScope": "oq",
+                "wideScope": "sh"
+              },
+              "relation": "quantifier scope",
+              "values": {
+                "logicalForm": "∃x[profesora(x) ∧ ∀y[informe(y) → revisó(x,y)]]",
+                "reading": "There is a female teacher who reviewed every report.",
+                "scopeOrder": "existential subject > universal object"
+              }
+            }
+          ],
+          "stageRecord": "At LF, cada informe undergoes Quantifier Raising from its established object position to a VP-adjoined position. The upper occurrence c-commands the object position but remains below the subject in Spec-IP. To retain both LF scope and the exact overt input in one workspace, the QR chain uses copy notation: its upper DP is silent at PF, while its lower lexical copy remains pronounced and is interpreted as the bound argument variable rather than as a second quantifier. This is a notational representation of the GB operator–variable dependency, not overt object fronting. First, the QR relation establishes the A′-chain and variable binding between the upper operator and lower object occurrence; the lower occurrence retains the object's theta and Case licensing. Second, the scope relation places the existential subject above the universal object. The reading is that there is a female teacher who reviewed every report; the same teacher satisfies the claim for all relevant reports. Scope variation does not require distinct lexical structures for Una or cada, and no additional referential coindexation is introduced.",
+          "statement": "Complete the subject-wide-scope reading by VP-level Quantifier Raising.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰ [declarative]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sd",
+                                  "label": "D⁰",
+                                  "tokenIndex": 0,
+                                  "word": "Una"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sn",
+                                          "label": "N⁰",
+                                          "tokenIndex": 1,
+                                          "word": "profesora"
+                                        }
+                                      ],
+                                      "id": "snbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "snp",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "sdbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "sh",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vh",
+                                  "label": "V⁰",
+                                  "lineageId": "verb",
+                                  "tokenIndex": 2,
+                                  "word": "revisó"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i",
+                                  "label": "I⁰ [preterite, indicative, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "icomplex",
+                              "label": "I⁰"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oqd",
+                                          "label": "D⁰ [distributive]",
+                                          "lineageId": "object-determiner",
+                                          "silent": true,
+                                          "word": "cada"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "oqn",
+                                                  "label": "N⁰",
+                                                  "lineageId": "object-noun",
+                                                  "silent": true,
+                                                  "word": "informe"
+                                                }
+                                              ],
+                                              "id": "oqnbar",
+                                              "label": "N′",
+                                              "lineageId": "object-nbar",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "oqnp",
+                                          "label": "NP",
+                                          "lineageId": "object-np",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "oqdbar",
+                                      "label": "D′",
+                                      "lineageId": "object-dbar",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "oq",
+                                  "label": "DP [LF quantifier]",
+                                  "lineageId": "object",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sdp",
+                                      "label": "DP trace",
+                                      "lineageId": "subject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "v",
+                                          "label": "V⁰ trace",
+                                          "lineageId": "verb",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "od",
+                                                  "label": "D⁰ [distributive]",
+                                                  "lineageId": "object-determiner",
+                                                  "tokenIndex": 3,
+                                                  "word": "cada"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "on",
+                                                          "label": "N⁰",
+                                                          "lineageId": "object-noun",
+                                                          "tokenIndex": 4,
+                                                          "word": "informe"
+                                                        }
+                                                      ],
+                                                      "id": "onbar",
+                                                      "label": "N′",
+                                                      "lineageId": "object-nbar"
+                                                    }
+                                                  ],
+                                                  "id": "onp",
+                                                  "label": "NP",
+                                                  "lineageId": "object-np"
+                                                }
+                                              ],
+                                              "id": "odbar",
+                                              "label": "D′",
+                                              "lineageId": "object-dbar"
+                                            }
+                                          ],
+                                          "id": "odp",
+                                          "label": "DP",
+                                          "lineageId": "object"
+                                        }
+                                      ],
+                                      "id": "vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "vpadj",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ],
+      "provenance": {
+        "source": "relation-order-20261006/sol-spanish-scope/attempts/parse/bundle.json",
+        "sha256": "0e46d330c949fa2fc7a1b0b4774ead0c77d9d8fbe725d7c3b0538364843540b1",
+        "analysisIndex": 0
+      }
+    }
+  ]
+}

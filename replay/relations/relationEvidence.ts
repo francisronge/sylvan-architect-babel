@@ -2,8 +2,9 @@ import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '..
 import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
 import { recoverMovementEvidence } from './movementEvidence.ts';
 import { nominalConcordMembers, directedNominalConcordMembers } from './nominalConcord.ts';
+import { isUnqualifiedGrammaticalProperty, uniqueCurrentOwners } from './evidenceScopes.ts';
 import { resolveOutcomeLiteral, isUnestablishedOutcomeLiteral, relationAssertionFailure, relationLabelOutcome, negativeClaimFailure } from './outcomeResolver.ts';
-import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, independentFeatureDimensions, independentThetaArgumentFields, independentIdiomMemberFields, sameNameValueEntries,
+import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, POSITIVE_OUTCOMES, independentFeatureDimensions, independentThetaArgumentFields, independentIdiomMemberFields, sameNameValueEntries,
   type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts, relationValueConcepts,
   hasAuthoredJudgment, isCovertMovementDescription, type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
@@ -170,13 +171,16 @@ export const buildTier2FacetEvidence = ({
   const declaredContributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
   const contributors = declaredContributors.length ? declaredContributors : currentAnchors.authored;
   const surfaces = values.authored.filter(entry => entry.concepts.includes('pf.surface'));
-  const surfaceSequence = surfaces.length === 1 && ['surface sequence', 'surface pieces', 'input pieces in order']
+  const surfaceSequence = surfaces.length === 1 && ['surface sequence', 'surface pieces', 'surface tokens', 'input tokens', 'input pieces in order', 'input spelling']
     .includes(normalizeTier2Synonym(surfaces[0].key));
   let realizationGroupAnchorKeys: string[] | undefined;
   let priorRealizationGroupAnchorKeys: string[] | undefined;
+  const realizationEstablished = values.authored.filter(entry => entry.concepts.includes('outcome')
+    || /^(?:status|outcome|result|verdict|judgment)$/u.test(normalizeTier2Synonym(entry.key)))
+    .every(entry => entry.items.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
   // The entire authored realization group owns the plate. No member is chosen
   // as a lexical source, output head or morphological controller.
-  if ((!declaredContributors.length || declaredContributors.length === 1) && surfaces.length === 1
+  if (realizationEstablished && (!declaredContributors.length || declaredContributors.length === 1) && surfaces.length === 1
     && surfaces[0].items.length > 0 && (surfaces[0].items.length === 1 || surfaceSequence)
     && surfaces[0].items.every(item => item.trim())) {
     const ids = contributors.flatMap(entry => entry.items);
@@ -193,8 +197,8 @@ export const buildTier2FacetEvidence = ({
         && ids.every(id => group.nodeIds.includes(id))) return [{ group, carriers: [] as Tier2AuthoredEvidenceEntry[] }];
       // A realization may name the whole constituent while its relation names
       // the contained contributors. The carrier must also be explicitly anchored.
-      if (!declaredContributors.length || group.nodeIds.length !== 1) return [];
-      const carriers = currentAnchors.authored.filter(entry => !contributors.includes(entry)
+      if (group.nodeIds.length !== 1) return [];
+      const carriers = currentAnchors.authored.filter(entry => (!declaredContributors.length || !contributors.includes(entry))
         && entry.items.length === 1 && entry.items[0] === group.nodeIds[0]);
       const carrier = nodes.get(group.nodeIds[0]);
       return carriers.length === 1 && carrier?.length === 1 && ids.every(id => contains(carrier[0], id))
@@ -209,7 +213,7 @@ export const buildTier2FacetEvidence = ({
       && (currentAnchors.concepts['rewrite.output'] ?? []).every(id =>
         [...ids, ...match!.carriers.flatMap(entry => entry.items)].includes(id));
     if (exactGroup) {
-      const owners = [...match!.carriers, ...contributors];
+      const owners = [...new Set([...match!.carriers, ...contributors])];
       realizationGroupAnchorKeys = owners.map(entry => entry.key);
       currentAnchors.concepts['rewrite.output'] = [...new Set(owners.flatMap(entry => entry.items))];
       owners.forEach(entry => {
@@ -246,6 +250,21 @@ export const buildTier2FacetEvidence = ({
   // interpreting its role or the relation title. Multiple participants still
   // need an authored recipient; this rule never earns a dependency.
   const participant = currentAnchors.authored.length === 1 ? currentAnchors.authored[0] : undefined;
+  // With one exact participant, an otherwise unclassified grammatical property
+  // has an unambiguous owner. It earns a literal row, never an assignment role.
+  if (participant?.items.length === 1
+    && uniqueCurrentOwners({ currentForest }, participant.items)
+    && !values.authored.filter(entry => entry.concepts.includes('outcome')
+      || /^(?:status|outcome|result|verdict|judgment)$/u.test(normalizeTier2Synonym(entry.key)))
+      .some(entry => entry.items.some(value => !POSITIVE_OUTCOMES.some(outcome => outcome === resolveOutcomeLiteral(value)?.concept)))
+    && !/\b(?:no|not|without|denied|rejected|failed|blocked|unlicensed|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(normalizeTier2Synonym(relation.relation))) {
+    values.authored.filter(entry => !entry.concepts.length && isUnqualifiedGrammaticalProperty(entry.key)
+      && entry.items.length && entry.items.every(item => item.trim())).forEach(entry => {
+      entry.concepts = ['plaque.rows'];
+      entry.conceptItemIndices = { 'plaque.rows': entry.items.map((_, index) => index) };
+      appendItems(values.concepts, 'plaque.rows', entry.items);
+    });
+  }
   if (participant?.items.length === 1 && (values.concepts['plaque.rows']?.length || values.concepts['feature.rows']?.length)) {
     currentAnchors.concepts['plaque.anchor'] = [...participant.items];
     participant.concepts = [...new Set([...participant.concepts, 'plaque.anchor'])];

@@ -15,6 +15,8 @@ import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from './currentSiblingRanks.ts';
+import { compactCurrentRootForks } from './currentRootCompaction.ts';
+import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
 
 type Scene = {
   canvas: SyntaxNode;
@@ -329,5 +331,7 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   }
   const planned = reserveWorkspaceAttachments(steps, sizes, direction, (stage, stageSize) =>
     buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-  return new Map([...original].map(([canvas, coordinates]) => [canvas, planned.get(canvas) ?? coordinates]));
+  const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  const continuous = retainMovementSourceSlots(steps, sizes, compact, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  return new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates]));
 }

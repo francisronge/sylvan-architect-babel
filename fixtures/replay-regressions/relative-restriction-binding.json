@@ -1,0 +1,190 @@
+{
+  "provenance": {
+    "model": "openai:gpt-6.1-sol",
+    "harness": "qualification:codex",
+    "source": "/tmp/babel-ten-model-comparison-20261006/sol-turkish-relative-clause/attempts/parse/bundle.json",
+    "extraction": "Exact saved stage 4; no authored fields changed."
+  },
+  "sentence": "Öğrenciler öğretmenin okuduğu kitabı dikkatle inceledi.",
+  "stage": {
+    "relations": [
+      {
+        "anchors": {
+          "externalHead": "bookN",
+          "objectVariable": "objectOperatorBase",
+          "operator": "objectOperatorEdge",
+          "relativeClause": "relativeCP"
+        },
+        "relation": "Externally headed relative restriction",
+        "values": {
+          "interpretation": "the book that the teacher read",
+          "strategy": "external head with operator abstraction"
+        }
+      }
+    ],
+    "stageRecord": "The relative CP merges as a prenominal restrictor of the noun kitabı, and a silent D closes the resulting nominal expression. This is an externally headed operator analysis: the book noun is not raised from inside the relative clause, but supplies the restriction on the object variable abstracted over by the operator. Here kitabı is the accusative form of kitap, not a third-person possessive nominal. An external genitive possessor reading would require the possessive-plus-accusative form kitabını in this definite direct-object position. Separately, dikkatle merges as a manner adjunct to the matrix verbal predicate inceledi before that predicate combines with its object DP. The adjunct merge retains the V label, so the following object merge yields the ordered structure object–manner–verb without object scrambling. Dikkatle modifies the examining event, not the reading event inside the already constructed prenominal relative clause.",
+    "statement": "Build the externally headed relative nominal and the manner-modified matrix predicate.",
+    "workspaceForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "objectOperatorEdge",
+                        "label": "DP[relative operator]",
+                        "lineageId": "relativeObjectOperator",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "teacherN",
+                                    "label": "N[genitive]",
+                                    "tokenIndex": 1,
+                                    "word": "öğretmenin"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "teacherD",
+                                    "label": "D",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "teacherHigh",
+                                "label": "DP[genitive]",
+                                "lineageId": "teacherDP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "teacherBase",
+                                        "label": "DP[subject trace]",
+                                        "lineageId": "teacherDP",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "objectOperatorBase",
+                                                "label": "DP[operator trace]",
+                                                "lineageId": "relativeObjectOperator",
+                                                "silent": true
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "relativeVerb",
+                                                "label": "V[nominalized; agreement:3sg]",
+                                                "tokenIndex": 2,
+                                                "word": "okuduğu"
+                                              }
+                                            ],
+                                            "id": "relativeVP",
+                                            "label": "VP"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "relativev",
+                                            "label": "v[transitive]",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "relativevProjection",
+                                        "label": "v"
+                                      }
+                                    ],
+                                    "id": "relativevP",
+                                    "label": "vP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "relativeT",
+                                    "label": "T[nominal clause; subject licensing]",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "relativeTProjection",
+                                "label": "T"
+                              }
+                            ],
+                            "id": "relativeTP",
+                            "label": "TP[nominal clause]"
+                          },
+                          {
+                            "children": [],
+                            "id": "relativeC",
+                            "label": "C[relative; operator edge]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "relativeCProjection",
+                        "label": "C"
+                      }
+                    ],
+                    "id": "relativeCP",
+                    "label": "CP[relative]"
+                  },
+                  {
+                    "children": [],
+                    "id": "bookN",
+                    "label": "N[accusative]",
+                    "tokenIndex": 3,
+                    "word": "kitabı"
+                  }
+                ],
+                "id": "bookNP",
+                "label": "NP"
+              },
+              {
+                "children": [],
+                "id": "bookD",
+                "label": "D",
+                "silent": true
+              }
+            ],
+            "id": "bookDP",
+            "label": "DP[accusative]"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "mannerAdverb",
+                "label": "AdvP[manner]",
+                "tokenIndex": 4,
+                "word": "dikkatle"
+              },
+              {
+                "children": [],
+                "id": "matrixVerb",
+                "label": "V[past; surface agreement:3sg]",
+                "tokenIndex": 5,
+                "word": "inceledi"
+              }
+            ],
+            "id": "matrixModifiedPredicate",
+            "label": "V"
+          }
+        ],
+        "id": "matrixVP",
+        "label": "VP"
+      }
+    ]
+  },
+  "relationIndex": 0
+}

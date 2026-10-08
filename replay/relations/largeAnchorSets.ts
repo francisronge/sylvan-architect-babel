@@ -14,9 +14,9 @@
  * from the relation name, and the rendered marks are ordered participation
  * badges and organizational role rails only — never a semantic connector.
  *
- * The badges/rails are additive organization for their parent relation
- * instance and inherit that compiled instance's persistence; they own no
- * independent persistence policy.
+ * Badges and rails organize the authored array entries additively. The plan
+ * compiler binds each entry to its owning recovered or neutral claim and
+ * inherits that claim's persistence; organization has no independent lifetime.
  */
 import type { DerivationStage, SyntaxNode } from '../../types.ts';
 

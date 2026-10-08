@@ -8,13 +8,18 @@ import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts'
  * head cannot stand in for the actual attachment host. */
 export function recoverModifierAttachment(evidence: Tier2FacetEvidence) {
   if (!establishesAssignment(evidence)) return [];
-  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\brelative (?:clause|head|adjunction)\b|\bmodification$|^event time interpretation$/u.test(clause));
+  const anchors = evidence.authoredCurrentAnchors ?? [];
+  const qualifiedHost = (key: string) => /^modified (?:clause|domain)$/u.test(normalizeTier2Synonym(key));
+  const explicitAttachment = anchors.some(entry => qualifiedHost(entry.key))
+    && anchors.some(entry => /^(?:modifier|adjunct)$/u.test(normalizeTier2Synonym(entry.key)));
+  const clauses = relationLabelClauses(evidence.relationName).filter(clause => explicitAttachment
+    || /\brelative (?:clause|head|adjunction)\b|\bmodification$|^event time interpretation$/u.test(clause));
   if (clauses.length !== 1 || /\b(?:no|not|without|denied|rejected|required|requested|expected|possible|potential|hypothetical|conditional|pending|unresolved|failed|blocked|unlicensed|if|unless|whether)\b/u.test(clauses[0])) return [];
   const relative = /^(?:(?:restrictive|nonrestrictive) )?relative (?:clause (?:restriction|modification|attachment|adjunction)|head interpretation|adjunction)$/u.test(clauses[0]);
-  const modification = /^(?:[\p{L}\p{N}]+ )*modification$|^event time interpretation$/u.test(clauses[0]);
+  const modification = explicitAttachment || /^(?:[\p{L}\p{N}]+ )*modification$|^event time interpretation$/u.test(clauses[0]);
   if (!relative && !modification) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [];
   const hosts = anchors.filter(entry => entry.concepts.includes('host') || /^nominal (?:head|host)$/u.test(normalizeTier2Synonym(entry.key))
+    || qualifiedHost(entry.key)
     || modification && /^(?:scope|head|predicate|event predicate)$/u.test(normalizeTier2Synonym(entry.key)));
   const modifiers = anchors.filter(entry => entry.concepts.includes('pair.member') || /^(?:relative )?(?:modifier|adjunct)$/u.test(normalizeTier2Synonym(entry.key))
     || clauses[0] === 'event time interpretation' && normalizeTier2Synonym(entry.key) === 'temporal expression');

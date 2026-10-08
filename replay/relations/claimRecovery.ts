@@ -16,6 +16,7 @@ import { recoverModifierAttachment } from './modifierEvidence.ts';
 import { recoverExplicitCoreference, recoverNamedBinding } from './explicitCoreference.ts';
 import { typedThematicAssignment, recoverClauseComplementTheta, recoverQualifiedThetaLicensing, recoverQualifiedRoleInterpretation } from './thematicAssignment.ts';
 import { recoverFocusAssociation } from './focusAssociationEvidence.ts';
+import { recoverNamedFeatureLicensing } from './featureLicensingEvidence.ts';
 import { recoverSubjectChainControl } from './controlEvidence.ts';
 import { recoverInterpretedOperatorBinding } from './interpretedBindingEvidence.ts';
 import type { EvidenceScope } from './evidenceScopes.ts';
@@ -49,6 +50,7 @@ export function recoverRelationScopes(
     ...recoverSubjectChainControl(evidence),
     ...recoverInterpretedOperatorBinding(evidence),
     ...recoverFocusAssociation(evidence),
+    ...recoverNamedFeatureLicensing(evidence),
     ...(thematic ? [thematic] : []),
     ...recoverClauseComplementTheta(evidence),
     ...recoverQualifiedThetaLicensing(evidence),

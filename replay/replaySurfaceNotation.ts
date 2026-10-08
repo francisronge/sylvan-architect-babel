@@ -122,36 +122,22 @@ export const formatIndexedSurfaceForDisplayValue = (
 
 export const formatTraceSurfaceForDisplayValue = (
   surface: string,
-  fallbackIndex?: string | null
+  _fallbackIndex?: string | null
 ): string => {
-  const raw = String(surface || '').trim();
-  if (!raw) return buildTraceDisplayLabel(fallbackIndex);
-  if (!isTraceLike(raw)) return raw;
-  const authoredIndex = normalizeTraceIndexForDisplay(extractMovementIndex(raw));
-  return buildTraceDisplayLabel(/^\d+$/.test(authoredIndex) ? authoredIndex : fallbackIndex || authoredIndex);
+  return surface;
 };
 
 const DISPLAY_TRACE_LABEL_RE = /^t(?:[₀₁₂₃₄₅₆₇₈₉]+)?$/;
 
 /**
- * The authored-witness formatter is additive only: an authored trace surface
- * (`t`, `t₁`, …) may gain its derived index, while authored `∅` and lexical
- * material keep their surface. Occupant-as-authored ruling: silent movement
- * copies also keep their authored words — resolveLexicalMovementTraceDisplayIndex
- * supplies only the chain index for their subscript, never a trace conversion.
- * Trace display belongs solely to occupants the model authored as traces.
+ * Witness notation belongs to the author. Derived chain identities still bind
+ * arrows and lexical occurrence indices, but do not replace or renumber traces.
  */
 export const formatAuthoredWitnessSurface = (
   surface: string,
-  inheritedTraceIndex?: string | null,
-  aliasedTraceIndex?: string | null
+  _inheritedTraceIndex?: string | null,
+  _aliasedTraceIndex?: string | null
 ): string => {
-  const resolvedIndex = normalizeTraceIndexForDisplay(
-    inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(surface)
-  );
-  if (isTraceLike(surface)) {
-    return formatTraceSurfaceForDisplayValue(surface, resolvedIndex || extractMovementIndex(surface));
-  }
   return surface;
 };
 

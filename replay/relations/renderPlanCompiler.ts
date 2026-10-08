@@ -548,6 +548,10 @@ export type AnchorSetPlanItem = PlanItemBase & {
   /** Fallback already numbers its own witnesses; in that case add only the rail. */
   showBadges: boolean;
   badgeSize: 'standard' | 'compact';
+  /** Exact claims whose already-materialized entries this organization follows. */
+  organizationOwners?: string[];
+  /** Mixed visible sets preserve supported entries and each owner's badge size. */
+  badgeEntries?: Array<{ roleIndex: number; arrayIndex: number; badgeSize?: 'standard' | 'compact' }>;
 };
 
 export type RelationPlanItem =
@@ -3280,58 +3284,70 @@ export const compileRelationRenderPlan = (
     });
   });
 
-  /*
-   * Large-anchor organization: additive, inheriting the parent instance's
-   * compiled persistence. Full-array exemption derives from live production
-   * ownership only.
-   */
+  // Organization follows each entry's proved owner, including its complete
+  // witness set and replacement timing. It is materialized alongside that
+  // owner's output rather than choosing one parent for a mixed relation.
+  const organizationCompanions = new Map<RelationPlanItem, AnchorSetPlanItem[]>();
   const isFullArrayOwned = (relationName: string, role: string): boolean => {
     const ownedEntry = findRelationRegistryEntry(registry, relationName);
-    if (!ownedEntry) return false;
-    if (!families[ownedEntry.id]) return false;
+    if (!ownedEntry || !families[ownedEntry.id]) return false;
     return (FULL_ARRAY_OWNED_ROLES[ownedEntry.id] || []).includes(role);
   };
   const largeSets = compileLargeAnchorSets(stageList, isFullArrayOwned);
   largeSets.diagnostics.forEach((detail) => {
-    diagnostics.push({
-      stageIndex: -1,
-      relationIndex: -1,
-      relation: '',
-      kind: 'large-array-anchor-unresolved',
-      detail
-    });
+    diagnostics.push({ stageIndex: -1, relationIndex: -1, relation: '',
+      kind: 'large-array-anchor-unresolved', detail });
   });
   largeSets.sets.forEach((set) => {
-    const stage = stageList[set.stageIndex];
-    const relations = Array.isArray(stage?.relations) ? stage.relations : [];
-    const relationIndex = set.relationIndex;
-    const parentRelation = relationIndex >= 0 ? relations[relationIndex] : undefined;
-    const parentItem = items.find((item) =>
+    const parentRelation = stageList[set.stageIndex].relations[set.relationIndex];
+    const relationItems = items.filter((item) =>
       item.relationRef.stageIndex === set.stageIndex
-      && item.relationRef.relationIndex === relationIndex);
-    const tier2OrganizationAlreadyCompiled = items.some((item) =>
-      item.kind === 'anchor-set'
-      && item.tier2FacetId === 'organization.large-anchor-set'
-      && item.relationRef.stageIndex === set.stageIndex
-      && item.relationRef.relationIndex === relationIndex);
-    if (tier2OrganizationAlreadyCompiled) return;
-    items.push({
-      kind: 'anchor-set',
-      relationRef: {
-        stageIndex: set.stageIndex,
-        relationIndex,
-        relation: set.relation,
-        anchors: parentRelation?.anchors ?? {},
-        ...(parentRelation?.priorAnchors ? { priorAnchors: parentRelation.priorAnchors } : {}),
-        ...(parentRelation?.values ? { values: parentRelation.values } : {})
-      },
-      appearsAtStage: set.stageIndex,
-      persistence: parentItem?.persistence ?? 'stage-only',
-      backward: parentItem?.backward ?? false,
-      priorWitnessNodeIds: parentItem?.priorWitnessNodeIds ?? [],
-      showBadges: parentItem?.kind !== 'fallback',
-      badgeSize: parentItem?.familyId === 'pf.cyclic-linearization' ? 'compact' : 'standard',
-      set
+      && item.relationRef.relationIndex === set.relationIndex);
+    const existingOrganization = relationItems.filter((item): item is AnchorSetPlanItem =>
+      item.kind === 'anchor-set' && item.tier2FacetId === 'organization.large-anchor-set');
+    existingOrganization.forEach(item => {
+      item.organizationOwners = [item.tier2ClaimIdentity!];
+      // A scoped organization recipe may omit other authored roles. Keep its
+      // role ordinals from the complete instance when composing their rails.
+      item.set = { ...item.set, roles: item.set.roles.map(role => ({ ...role,
+        roleIndex: set.roles.find(authoredRole => authoredRole.role === role.role)!.roleIndex })) };
+    });
+    const dispatch = stageDispatches[set.stageIndex][set.relationIndex];
+    dispatch.claims.forEach(claim => {
+      const roles = set.roles.flatMap(role => {
+        if (!role.large) return [];
+        const consumed = claim.consumedEvidence.filter(ref => ref.field === 'anchors' && ref.key === role.role);
+        const anchors = role.anchors.filter(anchor => consumed.some(ref =>
+          !ref.itemIndices || ref.itemIndices.includes(anchor.arrayIndex))
+          && !existingOrganization.some(item => item.set.roles.some(existingRole =>
+            existingRole.large && existingRole.role === role.role && existingRole.anchors.some(existingAnchor =>
+              existingAnchor.arrayIndex === anchor.arrayIndex && existingAnchor.nodeId === anchor.nodeId))));
+        return anchors.length ? [{ ...role, anchors }] : [];
+      });
+      if (!roles.length) return;
+      const owners = relationItems.filter(item => item.kind !== 'anchor-set' && (claim.tier === 1
+        ? item.claimTier === 1 || item.kind === 'fallback' && item.canonicalClaimIdentity === claim.canonicalClaimIdentity
+        : claim.tier === 2 ? item.tier2ClaimIdentity === claim.facet.facetIdentity
+          : item.kind === 'fallback' && item.canonicalClaimIdentity === claim.canonicalClaimIdentity));
+      owners.forEach(owner => {
+        const companion: AnchorSetPlanItem = {
+          kind: 'anchor-set',
+          relationRef: { ...parentRelation, stageIndex: set.stageIndex, relationIndex: set.relationIndex },
+          appearsAtStage: owner.appearsAtStage,
+          persistence: owner.persistence,
+          backward: owner.backward,
+          priorWitnessNodeIds: owner.priorWitnessNodeIds,
+          tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
+          claimTier: owner.claimTier ?? claim.tier,
+          organizationOwners: [claim.canonicalClaimIdentity],
+          showBadges: owner.kind !== 'fallback',
+          badgeSize: owner.familyId === 'pf.cyclic-linearization' ? 'compact' : 'standard',
+          set: { ...set, roles }
+        };
+        const companions = organizationCompanions.get(owner) ?? [];
+        companions.push(companion);
+        organizationCompanions.set(owner, companions);
+      });
     });
   });
 
@@ -3519,11 +3535,25 @@ export const compileRelationRenderPlan = (
       });
     }
     frames[frameIndex].items.push(frameLocal);
+    for (const companion of organizationCompanions.get(item) ?? []) {
+      let projectedCompanion = transferOccurrences(companion, frameIndex);
+      // Also use the owner's exact transfers for a moving landing whose ID
+      // survives; the rail must follow the same proved lower occurrence.
+      for (const transfer of projected.occurrenceTransfers ?? []) {
+        projectedCompanion = remapPlanOccurrence(projectedCompanion, transfer.fromNodeId, transfer.toNodeId);
+      }
+      if (vanishedAnchorIds(projectedCompanion, frameIndex).length) continue;
+      const occurrenceTransfers = [...new Map([...(projectedCompanion.occurrenceTransfers ?? []),
+        ...(projected.occurrenceTransfers ?? [])].map(transfer => [JSON.stringify(transfer), transfer])).values()];
+      frames[frameIndex].items.push({ ...projectedCompanion,
+        ...(occurrenceTransfers.length ? { occurrenceTransfers } : {}),
+        ...(supersededAt ? { supersededAt } : {}) });
+    }
   };
   items.forEach((item) => {
     if (item.appearsAtStage >= stageCount) return;
     if (item.persistence === 'stage-only' || item.persistence === 'relation-only') {
-      frames[item.appearsAtStage].items.push({ ...item });
+      materializeIntoFrame(item, item.appearsAtStage);
       return;
     }
     if (item.persistence === 'replace-prior-stage') {
@@ -3781,8 +3811,8 @@ export const compileRelationRenderPlan = (
           && candidate.relationIndex === ref.relationIndex) === index);
       rest.forEach(item => { item.bindingPathSuppressed = true; });
     });
-    frame.items = composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
-      stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId));
+    frame.items = mergeAnchorSetOrganization(composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
+      stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId)), false);
   });
 
   return {
@@ -3821,14 +3851,102 @@ export const isPlanItemRevealed = (
     ref.stageIndex === frameIndex && playedRelationIndices.has(ref.relationIndex));
 };
 
+/** Combine organization only after each owner has earned this frame. Before
+ * Replay filtering, different lifetimes remain separate; afterward their
+ * co-visible entries share one rail per exact authored role. */
+const mergeAnchorSetOrganization = (items: RelationPlanItem[], visible: boolean): RelationPlanItem[] => {
+  const result: RelationPlanItem[] = [];
+  const groups = new Map<string, AnchorSetPlanItem>();
+  for (const item of items) {
+    if (item.kind !== 'anchor-set' || !item.organizationOwners) { result.push(item); continue; }
+    const key = JSON.stringify([item.set.stageIndex, item.set.relationIndex, item.set.instanceIndex,
+      ...(visible ? [] : [item.persistence, item.supersededAt, item.backward, item.showBadges, item.badgeSize])]);
+    const ownBadges = item.badgeEntries ?? (item.showBadges ? item.set.roles.flatMap(role =>
+      role.anchors.map(anchor => ({ roleIndex: role.roleIndex, arrayIndex: anchor.arrayIndex, badgeSize: item.badgeSize }))) : []);
+    let holder = groups.get(key);
+    if (!holder) {
+      holder = { ...item, organizationOwners: [...item.organizationOwners], badgeEntries: ownBadges.map(entry => ({ ...entry })),
+        tier2WitnessNodeIds: [...(item.tier2WitnessNodeIds ?? [])],
+        set: { ...item.set, roles: item.set.roles.map(role => ({ ...role, anchors: [...role.anchors] })) } };
+      groups.set(key, holder);
+      result.push(holder);
+      continue;
+    }
+    for (const role of item.set.roles) {
+      const existing = holder.set.roles.find(candidate => candidate.roleIndex === role.roleIndex);
+      if (!existing) { holder.set.roles.push({ ...role, anchors: [...role.anchors] }); continue; }
+      for (const anchor of role.anchors) {
+        if (!existing.anchors.some(candidate => candidate.arrayIndex === anchor.arrayIndex && candidate.nodeId === anchor.nodeId)) {
+          existing.anchors.push(anchor);
+        }
+      }
+      existing.anchors.sort((left, right) => left.arrayIndex - right.arrayIndex);
+    }
+    holder.set.roles.sort((left, right) => left.roleIndex - right.roleIndex);
+    for (const badge of ownBadges) {
+      const existingBadge = holder.badgeEntries!.find(candidate => candidate.roleIndex === badge.roleIndex && candidate.arrayIndex === badge.arrayIndex);
+      if (!existingBadge) holder.badgeEntries!.push({ ...badge });
+      else if (badge.badgeSize === 'standard') existingBadge.badgeSize = 'standard';
+    }
+    holder.badgeEntries!.sort((a, b) => a.roleIndex - b.roleIndex || a.arrayIndex - b.arrayIndex);
+    holder.organizationOwners = [...new Set([...holder.organizationOwners!, ...item.organizationOwners])].sort();
+    holder.tier2WitnessNodeIds = [...new Set([...holder.tier2WitnessNodeIds!, ...(item.tier2WitnessNodeIds ?? [])])];
+    holder.priorWitnessNodeIds = [...new Set([...holder.priorWitnessNodeIds, ...item.priorWitnessNodeIds])];
+    holder.occurrenceTransfers = [...new Map([...(holder.occurrenceTransfers ?? []), ...(item.occurrenceTransfers ?? [])]
+      .map(transfer => [JSON.stringify(transfer), transfer])).values()];
+    holder.showBadges ||= item.showBadges;
+    if ((item.claimTier ?? 4) < (holder.claimTier ?? 4)) {
+      holder.claimTier = item.claimTier;
+      holder.persistence = item.persistence;
+    }
+  }
+  for (const item of result) {
+    if (item.kind !== 'anchor-set' || !item.organizationOwners || !item.badgeEntries) continue;
+    const entryCount = item.set.roles.reduce((count, role) => count + role.anchors.length, 0);
+    item.showBadges = item.badgeEntries.length > 0;
+    if (!item.showBadges || item.badgeEntries.length === entryCount
+      && item.badgeEntries.every(entry => !entry.badgeSize || entry.badgeSize === item.badgeSize)) delete item.badgeEntries;
+  }
+  return result;
+};
+
+/** Native painting binds the complete frame to retain allocation and plaque
+ * indices. Compose only its visible organization in place; hidden items keep
+ * their allocation, and emptied companion slots never shift another index. */
+export const projectVisibleAnchorSetOrganization = (
+  items: RelationPlanItem[],
+  isVisible: (item: RelationPlanItem, itemIndex: number) => boolean
+): RelationPlanItem[] => {
+  const groups = new Map<string, number[]>();
+  items.forEach((item, index) => {
+    if (item.kind !== 'anchor-set' || !item.organizationOwners || !isVisible(item, index)) return;
+    const key = JSON.stringify([item.set.stageIndex, item.set.relationIndex, item.set.instanceIndex]);
+    const group = groups.get(key) ?? [];
+    group.push(index);
+    groups.set(key, group);
+  });
+  const projected = [...items];
+  groups.forEach(indices => {
+    if (indices.length < 2) return;
+    const [holder, ...companions] = indices;
+    projected[holder] = mergeAnchorSetOrganization(indices.map(index => items[index]), true)[0];
+    for (const index of companions) {
+      const item = items[index] as AnchorSetPlanItem;
+      projected[index] = { ...item, set: { ...item.set, roles: [] },
+        tier2WitnessNodeIds: [], badgeEntries: [], organizationOwners: [] };
+    }
+  });
+  return projected;
+};
+
 export const visiblePlanFrameItems = (
   plan: RelationRenderPlan,
   frameIndex: number,
   playedRelationIndices: ReadonlySet<number> | null,
   activeRelationIndex: number | null = null
-): RelationPlanItem[] => (plan.frames[frameIndex]?.items ?? []).filter(item =>
+): RelationPlanItem[] => mergeAnchorSetOrganization((plan.frames[frameIndex]?.items ?? []).filter(item =>
   isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex))
-  .map(item => projectThetaGrid(item, frameIndex, playedRelationIndices));
+  .map(item => projectThetaGrid(item, frameIndex, playedRelationIndices)), true);
 
 /** Whether this visible item represents the authored relation moment in focus. */
 export const planItemOwnsRelationMoment = (
