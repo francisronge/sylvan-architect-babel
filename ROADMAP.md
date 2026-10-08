@@ -88,9 +88,9 @@ The batch found one concrete relation-ordering/interleaving error in Sol's
 German Stage Record, an under-specified sequence in Astra's German explanation,
 and minor omitted Case explanations in Astra's Japanese and Spanish records.
 These are preserved model findings, not demonstrated new prompt ambiguities.
-No authored record or model-facing prompt was changed. Every returned analysis,
-original response and diagnostic remains available in the
-[ten-request interactive review](http://127.0.0.1:8453/closeout/model-comparison-20261006/review/).
+No authored record or model-facing prompt was changed during that audit. Every
+returned analysis, original response and diagnostic is retained outside the
+source tree. The subsequent prompt clarification is recorded below.
 
 Fresh records also exposed two movement-recognition gaps: an intact head
 assembly at a new receiving head, and a contextual projecting head mistaken for
@@ -110,18 +110,20 @@ requests. This opening check is not an exhaustive visual review of every frame.
 The unchanged performance gate measures an 876.8 ms candidate median against
 876.2 ms for the starting checkout, using five alternating samples per revision.
 Both satisfy the two-second reference target; the relative comparison passes.
-Application foundations are committed at `7a8f519`, and the recognition fixes
-at `f8c29f2`. These commits and the earlier Tree Bank integration remain local
-and unmerged. Temporary verification servers and browsers are stopped; the
-existing review server remains available.
+Application foundations and recognition fixes were local at that checkpoint.
+Their current closeout is tracked in [PR #24](https://github.com/francisronge/sylvan-architect-babel/pull/24)
+and [PR #25](https://github.com/francisronge/sylvan-architect-babel/pull/25).
+Temporary verification servers and browsers were stopped; the existing local
+review server remains available.
 
 Exhaustive browser sweeps and the old twelve-request schedule remain stopped.
 Original analyses, failures and review media are retained outside the source tree.
 The focused contract, Replay, renderer, performance-guard and dependency-fix
 PRs (#18–22) are merged. Provider-free verification and renderer performance are
 required checks, with up-to-date branches and administrator enforcement. The
-new Tree Bank record integration is committed locally at `970d232`; it has not
-been merged. It passed 4,301 tests, typechecking, both parse-contract fixtures and
+new Tree Bank record integration is merged in
+[PR #23](https://github.com/francisronge/sylvan-architect-babel/pull/23).
+It passed 4,301 tests, typechecking, both parse-contract fixtures and
 a production build. Its reference startup median was 882 ms against 873 ms for
 the base, within the unchanged allowance. The Vercel application remains paused;
 no application deployment or shipment follows from these checks.
@@ -140,8 +142,9 @@ fixtures. All 656 Replay frames were exercised at desktop width, with 73 phone
 states and selected before/after, zoom and movement captures. No browser errors,
 invalid geometry or movement timing conflicts remain in that batch. Geometry
 checks also cover both text directions. Reference startup measures 922 ms versus
-921 ms before the repairs, within the unchanged budget. The native comparison is
-available in the [current fixes review](http://127.0.0.1:8453/closeout/fresh-diverse-20261007/comparison/).
+921 ms before the repairs, within the unchanged budget. Native before/after
+captures and Replay recordings accompany
+[the renderer PR](https://github.com/francisronge/sylvan-architect-babel/pull/25).
 This is bounded verification, not a claim of universal renderer correctness.
 The French construction order does not establish a need for a scheduling change:
 building a wrapper around an existing subtree does not activate its later
@@ -172,13 +175,19 @@ typechecking and both parse-contract fixtures. Native verification exercised
 all 526 desktop frames and 78 phone states, followed by focused captures of the
 last two role recoveries. No browser errors or invalid geometry were found.
 The unchanged startup gate measured 932 ms against 927 ms for the frozen source.
-All returned analyses are available in the
-[October 8 native review](http://127.0.0.1:8453/closeout/construction-contract-20261008/review/),
-with focused [before/after comparisons](http://127.0.0.1:8453/closeout/construction-contract-20261008/comparison/).
+All returned analyses remain in the local generation archive and native review.
+Focused before/after images and a movement recording are uploaded to
+[PR #25](https://github.com/francisronge/sylvan-architect-babel/pull/25).
 The renderer was adapted after this batch, so these corrected drawings are
 regression evidence rather than an untouched holdout result. No further prompt
 change is justified by this batch. Packaging and required CI remain the next
-steps before merging the accumulated local changes.
+steps before merging the accumulated local changes. Automated review also
+identified parser ownership displaced into Replay during the application
+extraction. The correction restores canonical authored-stage rules to the
+derivation compiler and keeps realization rules with the parser. Browser
+inspection reuses the pure rules with its own diagnostic policy. Rule bodies
+are unchanged; all 4,488 tests, typechecking and both contract fixtures pass.
+The original generation fingerprints remain intact.
 
 ### Earlier integrated contract and renderer evidence
 
