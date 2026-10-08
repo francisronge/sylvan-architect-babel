@@ -109,7 +109,7 @@ test('browser inspection dependency graph contains no Node or provider runtime',
   const result = await build({ entryPoints: ['services/failedOutputInspection.ts'], bundle: true, platform: 'browser', format: 'esm', write: false, metafile: true, logLevel: 'silent' });
   const paths = Object.keys(result.metafile.inputs);
   assert.ok(!paths.some(path => /contractQualification|parseRoutes|modelRuntime|routeConfig|validationErrors\.js/.test(path)));
-  assert.ok(paths.includes('replay/authoredWorkspaceInspection.js'));
+  assert.ok(paths.includes('server/babelParser/derivationCompiler.js'));
 });
 
 test('existing malformed Hindi output keeps all authored copies in app inspection', async () => {
