@@ -51,7 +51,7 @@ export function availableTreeViewport(
   };
 }
 
-/** Centre the plate beside the tree, or stack it above the tree on narrow canvases. */
+/** Keep the existing two-column plate beside the tree, or fit both vertically on narrow canvases. */
 export function linearizationViewport(view: ViewportRect, plateHeight: number) {
   const width = Math.max(1, view.right - view.left);
   const height = Math.max(1, view.bottom - view.top);
@@ -60,7 +60,7 @@ export function linearizationViewport(view: ViewportRect, plateHeight: number) {
   return {
     scale,
     left: stacked ? view.left + (width - 350 * scale) / 2 : view.right - 350 * scale,
-    top: stacked ? view.top : view.top + (height - plateHeight * scale) / 2,
+    top: view.top,
     treeTop: stacked ? view.top + plateHeight * scale + 24 : view.top,
     treeRight: stacked ? view.right : view.right - 350 * scale - 24
   };
