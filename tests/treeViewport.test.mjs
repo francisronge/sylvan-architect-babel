@@ -51,8 +51,13 @@ test('cyclic columns and tree use the same remaining viewport instead of project
     assert.ok(layout.left + 350 * layout.scale <= view.right);
     assert.ok(layout.treeTop < view.bottom);
     assert.ok(layout.treeRight > view.left);
-    if (width === 390) assert.ok(layout.treeTop >= layout.top + 155 * layout.scale);
-    else assert.ok(layout.treeRight < layout.left);
+    if (width === 390) {
+      assert.equal(layout.top, view.top);
+      assert.ok(layout.treeTop >= layout.top + 155 * layout.scale);
+    } else {
+      assert.ok(layout.treeRight < layout.left);
+      assert.equal(layout.top + 155 * layout.scale / 2, (view.top + view.bottom) / 2);
+    }
   }
 });
 

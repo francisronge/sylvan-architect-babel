@@ -62,7 +62,7 @@ test('corrected visual precedents expose the actual relation', () => {
     H: 'f37-many-to-many-pf-plate-source.png',
     I1: 'quantifier-raising-wang-example14.png',
     I1b: 'operator-variable-baumann-figure2-32.png',
-    L1: 'remnant-wiland-example62.png',
+    L1: 'murphy-remnant-example5.png',
     M1: 'moortgat-sadrzadeh-wijnholds-figure7.png',
     O5: 'jou-2026-case-stacking-example125.png',
     O6: 'pdt-coreference-overlay-cmpr9413-006.png'

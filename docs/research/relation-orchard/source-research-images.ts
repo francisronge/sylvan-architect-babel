@@ -50,7 +50,7 @@ export const orchardResearchImages: Readonly<Record<string, readonly OrchardRese
   I2: [precedent('reconstruction-vp-phase.png', 'Secondary reconstruction illustration with higher and lower copies in a syntax tree; not the source of Babel’s LF emphasis'), precedent('source-recovery-2026-07-26/reconstruction-copy-neglect-poole-keine-2024-ex2.png', 'Poole and Keine example (2): interpretive contrast, shown as brackets rather than a tree')],
   J: [cited('source-recovery-2026-07-30/theta-grid-cas-lx522-slide33.jpg', 'Theta-grid slide')],
   K: [precedent('source-recovery-2026-09-24/intervention-maeda-miyamoto-example9b.png', 'Maeda and Miyamoto example (9b): wh intervention blocks a longer dependency')],
-  L1: [precedent('source-recovery-2026-09-24/remnant-wiland-example62.png', 'Wiland example (62): two explicit trajectories for extraction and remnant fronting')],
+  L1: [cited('source-recovery-2026-10-14/murphy-remnant-example5.png', 'Murphy example (5), page 295: evacuation followed by movement of the boxed remnant NP')],
   L2: [cited('source-recovery-2026-08-06/fable-audit/shlonsky-2004-roll-up-figure39.png', 'Shlonsky roll-up figure 39')],
   L3: [cited('belletti-smuggling-example-7.png', 'Belletti smuggling derivation, example 7')],
   M2: [cited('atb-torr-movement-schema.png', 'Torr across-the-board movement schema')],
