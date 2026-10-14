@@ -14,9 +14,7 @@ export function orchardSourcePreviewPath(path: string): string {
 }
 
 export const orchardResearchImages: Readonly<Record<string, readonly OrchardResearchImage[]>> = {
-  A2: [cited('head-movement-subject-aux-inversion.png', 'Head movement between T and C')],
   A3: [cited('glossa-before-k-lowering.png', 'Before K lowering'), cited('glossa-after-k-lowering.png', 'After K lowering')],
-  B: [precedent('source-recovery-2026-08-04/final-stretch/f67-copy-identity-source-tree.png', 'Copy-identity derivation; not a source for Forest light'), precedent('source-recovery-2026-08-04/final-stretch/f67-copy-cancellation-source-tree.png', 'Copy cancellation; not a source for Forest light')],
   C: [cited('mit-control-raising.png', 'Richards, trees (8)–(9): squared dashed control/raising connectors and controller-to-PRO link')],
   C2: [cited('source-recovery-2026-08-06/fable-audit/hagstrom-2012-principle-a-binding-domains.png', 'Principle A binding-domain slide')],
   C4: [precedent('co-indexation.png', 'Coindexation notation')],

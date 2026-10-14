@@ -30,15 +30,9 @@ const unverified = (note: string): OrchardSourceCitation =>
 // capture map is separate and does not add third-party images to the release.
 export const orchardSourceCitations: Readonly<Record<string, OrchardSourceCitation>> = {
   A1: composed('The curved phrasal trajectory and its Replay timing combine standard movement notation with Babel’s tree layout. No single source figure is claimed.'),
-  A2: adapted('The Science of Syntax, Head Movement', 'Head-movement trees', 'https://opentext.ku.edu/syntax/chapter/head-movement/', 'The source establishes movement between heads. Babel routes the curve and animates the copies.'),
+  A2: composed('Head movement uses the same original trajectory drawing as phrasal movement, applied to heads.', 'Head movement — original Babel drawing by Francis Ronge'),
   A3: adapted('Gong, Postsyntactic Lowering and linear relations in Dagur noun phrases', 'Lowering derivations', 'https://www.glossa-journal.org/article/id/5422/', 'The source motivates downward, postsyntactic displacement; Babel draws the path on its own authored tree.'),
-  B: {
-    kind: 'Babel composition',
-    citation: 'Forest light — original Babel drawing by Francis Ronge',
-    location: 'Conceptual reference: Marcolli, Chomsky and Berwick, Mathematical Structure of Syntactic Merge, pages 80–82',
-    url: 'https://www.its.caltech.edu/~matilde/MergeMCB-MITPress-LI.pdf#page=96',
-    note: 'Francis Ronge designed the Forest light presentation for Babel. The cited work distinguishes a copied occurrence from an independently repeated object; its tree diagrams do not contain Forest light and are shown only as background for the linguistic identity claim.'
-  },
+  B: composed('Francis Ronge designed the Forest light presentation for Babel.', 'Forest light — original Babel drawing by Francis Ronge'),
   C: figure('Norvin Richards, Control (MIT 24.902)', 'Trees (8)–(9)', 'https://web.mit.edu/norvin/www/24.902/control.html', 'The original control/raising plate selected in Babel Reborn draws orthogonal dashed links, an arrow to the controller, and squared empty-position outlines. The left tree explicitly connects John with PRO; the right contrasts raising.'),
   C2: adapted('Paul Hagstrom, CAS LX 522 Syntax I: c-command and binding', 'Principle A and binding-domain slides', 'https://ling-blogs.bu.edu/lx522f12/files/2012/09/lx522f12-08-ccmd.pdf', 'The course source supports coindexing and domains. The former colored-circle image is unavailable, so the present circle must not be called an exact copy.'),
   C4: composed('Shared indices are a standard coreference notation. This particular line and fixture were composed for Babel; there is no one source figure to reproduce.'),

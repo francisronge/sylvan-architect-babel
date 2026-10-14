@@ -100,14 +100,6 @@ test('parasitic-gap fork credits the published Frobenius copy drawing separately
   assert.equal(orchardSourceCitations.O2.citation, 'Colin Phillips, The Real-Time Status of Island Phenomena');
 });
 
-test('identity-source diagrams are conceptual precedents, not credited with Forest light', () => {
-  const source = orchardSourceCitations.B;
-  assert.equal(source.kind, 'Babel composition');
-  assert.match(source.citation, /Forest light.*Francis Ronge/);
-  assert.match(source.note, /tree diagrams do not contain Forest light/);
-  assert.ok(orchardResearchImages.B.every((image) => image.role === 'visual precedent'));
-});
-
 test('case stacking and split antecedence retain their recovered original source drawings', () => {
   const stacking = orchardSourceCitations.O5;
   assert.match(stacking.citation, /Eunsun Jou.*successive-cyclic dependent case/);
