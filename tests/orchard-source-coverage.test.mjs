@@ -62,7 +62,7 @@ test('corrected visual precedents expose the actual relation', () => {
     H: 'f37-many-to-many-pf-plate-source.png',
     I1: 'quantifier-raising-wang-example14.png',
     I1b: 'operator-variable-baumann-figure2-32.png',
-    L1: 'remnant-wiland-example62.png',
+    L1: 'murphy-remnant-example5.png',
     M1: 'moortgat-sadrzadeh-wijnholds-figure7.png',
     O5: 'jou-2026-case-stacking-example125.png',
     O6: 'pdt-coreference-overlay-cmpr9413-006.png'
@@ -98,14 +98,6 @@ test('parasitic-gap fork credits the published Frobenius copy drawing separately
   assert.equal(orchardResearchImages.M1.length, 2);
   assert.match(orchardResearchImages.M1[1].path, /moortgat-sadrzadeh-wijnholds-figure12\.png$/);
   assert.equal(orchardSourceCitations.O2.citation, 'Colin Phillips, The Real-Time Status of Island Phenomena');
-});
-
-test('identity-source diagrams are conceptual precedents, not credited with Forest light', () => {
-  const source = orchardSourceCitations.B;
-  assert.equal(source.kind, 'Babel composition');
-  assert.match(source.citation, /Forest light.*Francis Ronge/);
-  assert.match(source.note, /tree diagrams do not contain Forest light/);
-  assert.ok(orchardResearchImages.B.every((image) => image.role === 'visual precedent'));
 });
 
 test('case stacking and split antecedence retain their recovered original source drawings', () => {

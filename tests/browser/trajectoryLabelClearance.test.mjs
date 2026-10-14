@@ -2,7 +2,8 @@ import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
+import { readFile } from 'node:fs/promises';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 
@@ -71,4 +72,58 @@ test('movement keeps its curve and puts visible labels in front through zoom and
     assert((await inspect()).clear);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
+});
+
+test('cyclic ordering captions stay clear of Replay in desktop and narrow views', async () => {
+  const orchardHtml = await readFile(new URL('../../docs/research/relation-orchard/orchard.html', import.meta.url), 'utf8');
+  const orchardStyles = [...orchardHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(match => match[1]).join('\n');
+  const runtime = await buildQualificationReviewRuntime({ entrySource: `
+    import React from 'react'; import {createRoot} from 'react-dom/client';
+    import TreeVisualizer from './components/TreeVisualizer';
+    import {canonicalCases} from './docs/design/visual-relations-current-lab';
+    import './styles.css';
+    const item = canonicalCases.find(item => item.archetype.startsWith('H6.'));
+    createRoot(document.getElementById('caption-test')).render(<TreeVisualizer data={item.data}
+      derivationStages={item.rendererStages} sentence={item.sentence} animated autoPlay={false} initialReplayStep={Number.MAX_SAFE_INTEGER} />);
+  ` });
+  for (const [engine, browserType] of [['Chromium', chromium], ['WebKit', webkit]]) {
+    const browser = await browserType.launch({ headless: true });
+    try {
+      const errors = [];
+      for (const [width, height] of [[1280, 720], [390, 900]]) {
+        const page = await browser.newPage({ viewport: { width, height } });
+        page.on('pageerror', error => errors.push(String(error)));
+        await page.setContent(`<style>${runtime.css}\n${orchardStyles}</style>
+          <article class="babel-render-card babel-render-card--wide"><div id="caption-test" class="babel-render-mount"></div></article>
+          <script>${runtime.js}</script>`);
+        const timeline = page.locator('input[type=range]');
+        await timeline.waitFor({ state: 'attached' });
+        await page.evaluate(() => document.fonts.ready);
+        const last = await timeline.getAttribute('max');
+        const settled = () => page.waitForFunction(index => {
+          const svg = document.querySelector('svg[data-babel-tree]');
+          return svg?.getAttribute('data-babel-rendered-step') === index
+            && svg.getAttribute('data-babel-camera-settled-step') === index
+            && svg.querySelector('.babel-anchor-set-rail-label');
+        }, last);
+        await settled();
+        await page.getByRole('button', { name: 'Fit tree', exact: true }).click();
+        await settled();
+        const clearance = await page.evaluate(() => {
+          const svg = document.querySelector('svg[data-babel-tree]');
+          const caption = svg.querySelector('.babel-anchor-set-rail-label');
+          const label = caption.getBoundingClientRect();
+          const canvas = svg.getBoundingClientRect();
+          const panel = document.querySelector('[data-babel-replay-panel]').getBoundingClientRect();
+          return { text: caption.textContent, bottom: panel.top - label.bottom,
+            left: label.left - canvas.left, right: canvas.right - label.right };
+        });
+        assert.equal(clearance.text, 'CyclicLinearization · order');
+        assert.ok(clearance.bottom >= 15.9, `${engine} ${width}×${height}: caption needs 16px above Replay, got ${clearance.bottom}`);
+        assert.ok(clearance.left >= 0 && clearance.right >= 0, `${engine}: caption must fit inside the canvas`);
+        await page.close();
+      }
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  }
 });

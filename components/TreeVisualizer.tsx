@@ -3446,6 +3446,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               new DOMPoint(clientX, clientY).matrixTransform(inverse);
             const screenScale = Math.max(0.001, Math.hypot(matrix.a, matrix.b));
             const localPx = (pixels: number) => pixels / screenScale;
+            const viewport = availableTreeViewport(svgRect.width, svgRect.height, uiBounds);
             const treeLocalRect = exactScreenTreeLabelRectNow(
               getNodeId(treeData as unknown as HierNode),
               true
@@ -3472,6 +3473,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 : Math.max(...anchorPlan.badges.map((badge) => badge.y))) + localPx(52);
               const railYFor = (lane: number) => railBase + lane * localPx(26);
               const railLabelMinX = toLocal(svgRect.left + 18, svgRect.top).x;
+              // Screen-sized captions are painted after fitting; retain the measured UI clearance.
+              const canvasTop = svg.node()?.parentElement?.getBoundingClientRect().top ?? svgRect.top;
+              const railLabelBottom = canvasTop + viewport.bottom;
               anchorPlan.rails.forEach((rail) => {
                 const y = railYFor(rail.lane);
                 anchorLayer.append('line')
@@ -3480,7 +3484,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .attr('x2', rail.x2.toFixed(1))
                   .attr('y1', y.toFixed(1))
                   .attr('y2', y.toFixed(1));
-                anchorLayer.append('text')
+                const caption = anchorLayer.append('text')
                   .attr('class', 'babel-anchor-set-rail-label')
                   .attr('x', Math.max(rail.x1, railLabelMinX).toFixed(1))
                   .attr('y', (y - localPx(6)).toFixed(1))
@@ -3488,6 +3492,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   .text(`${anchorSetItem.set.relation}${anchorSetItem.set.instanceIndex > 0
                     ? ` (${anchorSetItem.set.instanceIndex + 1})`
                     : ''} · ${rail.role}`);
+                const overflow = (caption.node()?.getBoundingClientRect().bottom ?? 0) - railLabelBottom;
+                if (overflow > 0) {
+                  caption.attr('y', (y - localPx(6) - localPx(overflow)).toFixed(1));
+                }
                 anchorPlan.badges
                   .filter((badge) => badge.setIndex === rail.setIndex && badge.role === rail.role)
                   .forEach((badge) => {
@@ -3523,7 +3531,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const heightPx = nativeLinearizationPlateHeight(content);
             const width = localPx(widthPx);
             const height = localPx(heightPx);
-            const placement = linearizationViewport(availableTreeViewport(svgRect.width, svgRect.height, uiBounds), heightPx);
+            const placement = linearizationViewport(viewport, heightPx);
             const origin = toLocal(
               svgRect.left + placement.left,
               svgRect.top + placement.top
