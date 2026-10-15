@@ -2,13 +2,8 @@
 
 Sylvan Architect Babel is a syntax tree generator built for research and learning.
 
-Production app: temporarily paused; deployment history and configuration are retained.
+Production app: temporarily paused.
 Research site: [francisronge.github.io/sylvan-architect-babel/research](https://francisronge.github.io/sylvan-architect-babel/research/)
-
-Development status: the renderer and Replay have extensive local verification;
-remaining qualification and the unfinished application work are tracked in the
-[Babel Master Roadmap](./ROADMAP.md). Babel is not yet qualified for public launch.
-The documentation authority map is in [docs/README.md](./docs/README.md).
 
 Babel logo design by Lona Noury.
 
@@ -28,34 +23,10 @@ official names and logo are not licensed for use as fork branding; see
 ## Start Here
 
 1. For local use, install dependencies and run `npm run dev`; the former public Vercel app is temporarily paused.
-2. For development status and dependencies, read [ROADMAP.md](./ROADMAP.md).
-3. For current documentation authority, read [docs/README.md](./docs/README.md).
-4. Browse the [Babel Relation Orchard](./docs/research/relation-orchard/orchard.html).
-5. Production-facing environment guidance lives in [.env.example](./.env.example).
-
-## Source ownership
-
-- `App.tsx` composes the workspace and owns the current analysis and view selection.
-  `hooks/useGeneration.ts` and `services/generationState.ts` own request progress
-  and retained failures; `services/parseService.ts` owns the browser HTTP call.
-- `services/treeBankRecords.ts` and `services/treeBankStore.ts` own immutable local
-  records and atomic saves. Snapshot capture and bracket serialization live in
-  `services/treeSnapshot.ts` and `services/milesNotation.ts`.
-- `replay/` contains React-free construction and inspection. The compiler retains
-  movement ownership and scheduling; panel formatting and surface notation have
-  separate pure modules. Authored workspace and realization rules are shared by
-  server validation and browser diagnostic inspection.
-- `components/AsyncTreeVisualizer.tsx` owns preparation and view recovery.
-  `TreeVisualizer.tsx` owns D3 drawing, camera and playback state;
-  `ReplayPanel.tsx` owns the existing controls and detail presentation.
-- `FailurePanel.tsx` preserves request diagnostics and downloads. Its diagnostic
-  dialog can inspect readable failed stages without accepting or repairing them.
-  Error boundaries sit below analysis ownership, so retrying a view does not
-  generate another analysis.
+2. Configure provider keys using [.env.example](./.env.example).
+3. Browse the [Babel Relation Orchard](./docs/research/relation-orchard/orchard.html).
 
 ## Why Babel exists
-
-This section will be rewritten for Babel's full public launch.
 
 Many tree tools either use rigid templates or return black-box output with little transparency.
 
@@ -144,77 +115,10 @@ Babel's local model menu selects an exact model:
 The adjacent effort menu offers the selected model's supported settings, starting
 at `high`. Meta and GLM are on hold; Gemini is not offered in the menu.
 
-Configure server-side keys using `.env.example`. The app sends `modelId` and
-native `settings` to `/api/parse`; the server rejects unsupported choices without
-switching models. Older `modelRoute` API callers remain unchanged. Their environment
-overrides do not change an explicitly selected model.
-
-These integrations have offline transport and parser tests, not live model
-qualification. The model-facing derivation contract and renderer are unchanged.
-Generation records preserve the selected and returned model, settings, request
-hash, timing, token usage, stop state, and raw provider response. Raw artifacts use
-the existing bounded-copy format, with byte counts, a hash, and an explicit
-truncation flag. Tree Bank retains this evidence; failed requests offer a
-downloadable failure record.
-
-#### Subscription-funded development checks
-
-To enter sentences manually in Babel's normal app interface:
-
-```sh
-npm run qualification:codex:app
-```
-
-Open `http://127.0.0.1:8454/`. The sentence box, framework selector, Canopy,
-Replay, Notes and browser-local Tree Bank are the actual app components.
-GPT-6.1 Sol / high is selected initially; Astra and Sol are also available.
-Each Parse invokes the existing OAuth qualification runner once and saves its
-usual artifacts under `~/Library/Application Support/Babel/codex-qualification`.
-The app explicitly fingerprints the working tree, including uncommitted changes;
-the receipt records whether those sources match the named commit.
-Use `-- --out DIRECTORY --port NUMBER` to change the archive or local port.
-Closing the page cancels its unfinished request and retains received output.
-This local interface does not enable OAuth on Babel's public provider routes.
-
-`npm run qualification:codex` sends Babel's exact prompts directly to the Codex
-Responses endpoint using a ChatGPT subscription login. It does not launch an
-agent or load Codex instructions, history, tools, skills, project files or profile
-configuration. It reads only the login credential file, in memory, without
-copying or changing it. It never uses API keys or retries a request.
-
-From a checkout with committed contract sources:
-
-```sh
-npm run qualification:codex -- --sentence 'Mia laughed.' --framework xbar \
-  --out /tmp/babel-sol-check --run
-npm run qualification:review -- --run /tmp/babel-sol-check
-```
-
-Omit `--run` to save and inspect the request without authentication or network
-access. Add `--working-tree` to explicitly fingerprint current uncommitted sources;
-without it, the CLI still requires committed contract sources.
-Each invocation requires a new output directory. The subscription default
-is GPT-6.1 Sol at high reasoning effort. An explicit `--model` selects a retained
-alternative. Astra uses
-`--model openai:gpt-6-astra`. An explicit `--auth-file` can select a separate Codex
-login; the default is `$CODEX_HOME/auth.json` or `~/.codex/auth.json`. An expired
-token requires a fresh `codex login`; the runner does not manage the account.
-Keep credentials out of artifacts, repositories and public CI.
-
-Artifacts include the exact request, source fingerprint, received SSE bytes,
-terminal provider response and usage, extracted output, and the usual Babel
-inspection, normalization, repairs and Replay evidence. Only a provider-confirmed
-complete response enters Babel processing. Partial output remains available in
-`output.txt` and `response.sse`. Cancellation saves what has arrived. There is no
-client-imposed generation time limit.
-
-The subscription endpoint requires streaming and `store: false`; background
-polling and the API output-token limit are omitted and recorded as transport
-differences. These are subscription development checks, not verification of the
-public API request route or proof that the backend behaves identically to the
-paid API. No application provider route is changed. The runner works from a
-local or private remote checkout with Node 24 and `npm ci`; it does not provision
-a remote machine or copy a login there.
+Babel uses the selected model and settings without silently switching models.
+Generation records retain model information, timing, token usage and the provider
+response. Tree Bank saves that evidence alongside the analysis. Failed requests
+offer a downloadable failure record.
 
 ### 3) Constituent Glyphing toggle
 
@@ -298,17 +202,13 @@ These outputs are intended for both human reading and downstream inspection work
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 
-The current implementation is the legacy IndexedDB v1 workspace. It is
-functional, but the master roadmap replaces whole-bundle saves with immutable
-per-analysis durable records and a thin saved-work wrapper.
-
 It includes:
 
 - Save current parse state from the header (`Save to Tree Bank`)
 - Reopen saved analyses with their active framework and parse selection
 - Store rendered tree snapshot previews for quick browsing
 - Delete saved entries directly from the Tree Bank panel
-- Keep data local to the current browser/device (IndexedDB-backed)
+- Keep data local to the current browser/device
 
 ## Practical research workflow
 
@@ -332,5 +232,4 @@ Babel is being built as an open resource for linguistics and AI interpretability
 The current dependency order is maintained in [ROADMAP.md](./ROADMAP.md):
 contract qualification, durable Tree Bank integration, the new workbench,
 syntactician workspace features, benchmark releases, and a governed public
-derivational database. Provider tests are a separate empirical program from
-default renderer and engine verification.
+derivational database.
