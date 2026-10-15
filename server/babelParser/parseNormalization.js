@@ -9,6 +9,7 @@ import {
 } from './derivationCompiler.js';
 import { collectOvertTerminalNodes } from './syntaxTree.js';
 import { authoredWord } from './nodePronunciation.js';
+import { omitMismatchedOptionalTokenIndices } from './tokenIndexRecovery.js';
 
 const normalizeOptionalText = (value) => {
   const text = String(value || '').trim();
@@ -166,6 +167,26 @@ const normalizeParseResult = (
   };
 };
 
+const normalizeWithTokenIndexRecovery = (analysis, framework, sentence, modelRoute, options, fieldPath) => {
+  try {
+    return normalizeParseResult(analysis, framework, sentence, modelRoute, options);
+  } catch (error) {
+    if (!(error instanceof ParseApiError) || error.failure.ruleId !== 'DERIVATION_TOKEN_ALIGNMENT'
+      || !error.failure.fieldPath.endsWith('.tokenIndex')) throw error;
+    const recovery = omitMismatchedOptionalTokenIndices(analysis, options.inputTokens, fieldPath);
+    if (!recovery) throw error;
+    let normalized;
+    try {
+      normalized = normalizeParseResult(recovery.candidate, framework, sentence, modelRoute, options);
+    } catch (candidateError) {
+      if (!(candidateError instanceof ParseApiError)) throw candidateError;
+      throw error;
+    }
+    normalized.provenance.tokenIndexCorrections = recovery.corrections;
+    return normalized;
+  }
+};
+
 export const normalizeParseBundle = (
   value,
   framework = 'xbar',
@@ -223,8 +244,9 @@ export const normalizeParseBundle = (
   let firstError;
   const analyses = analysesSource.map((analysis, analysisIndex) => {
     try {
-      const normalized = normalizeParseResult(
-        analysis, framework, sentence, modelRoute, { ...options, inputTokens }
+      const normalized = normalizeWithTokenIndexRecovery(
+        analysis, framework, sentence, modelRoute, { ...options, inputTokens },
+        Array.isArray(parsed?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
       );
       options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
       return normalized;

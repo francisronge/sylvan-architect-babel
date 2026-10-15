@@ -9,6 +9,7 @@ const CURRENT_PROVENANCE_FIELDS = [
   'uiVersion',
   'payloadIntegrityFlags',
   'payloadRepairDiagnostics',
+  'tokenIndexCorrections',
   'hasDerivationStages',
   'parsePromptTokenCount',
   'parseOutputTokenCount',

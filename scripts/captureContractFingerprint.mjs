@@ -61,6 +61,7 @@ const explicitSections = {
     'server/babelParser/error.js',
     'server/babelParser/inventionDetector.js',
     'server/babelParser/parseNormalization.js',
+    'server/babelParser/tokenIndexRecovery.js',
     'server/babelParser/provenance.js',
     'server/babelParser/strictJson.js',
     'server/babelParser/surfaceTokens.js',

@@ -224,6 +224,34 @@ test('repair diagnostics and original bytes survive the new generation path', as
   assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
 });
 
+test('all active routes render recoverable token metadata and retain silent corrections and original bytes', async t => {
+  isolate(t);
+  const payload = { derivationStages: [{ statement: 'Construct Mia smiled.', stageRecord: 'Mia is the subject of smiled.',
+    relations: [], workspaceForest: [{ id: 'clause', label: 'TP', children: [
+      { id: 'subject', label: 'N', word: 'Mia', tokenIndex: 1, children: [] },
+      { id: 'verb', label: 'V', word: 'smiled', tokenIndex: 0, children: [] }
+    ] }] }] };
+  const raw = JSON.stringify(payload);
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const model = getResearchModel(modelId), response = JSON.stringify(envelopeFor(model, raw));
+    const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(response));
+    const bundle = await parseFromBody({ sentence: 'Mia smiled.', modelId });
+    assert.equal(fetch.mock.callCount(), 1, 'recovery never regenerates');
+    assert.equal(decode(bundle.rawModelOutput), raw);
+    assert.equal(decode(bundle.generationRecord.rawProviderResponse), response);
+    const corrections = bundle.analyses[0].provenance.tokenIndexCorrections;
+    assert.equal(corrections.length, 2);
+    assert.deepEqual(corrections.map(({ authoredTokenIndex }) => authoredTokenIndex), [1, 0]);
+    assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, [], 'this is not a JSON syntax repair');
+    assert.equal(bundle.generationRecord.processing.normalization.failure, undefined);
+    const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
+    assert.deepEqual(restored.analyses[0].provenance.tokenIndexCorrections, corrections);
+    assert.equal(decode(restored.rawModelOutput), raw);
+    assert.deepEqual(buildReplaySnapshotProjection(restored), buildReplaySnapshotProjection(bundle));
+    fetch.mock.restore();
+  }
+});
+
 test('all active routes keep a malformed relation neutral without replacing the generation', async (t) => {
   isolate(t);
   const payload = structuredClone(fixture.payload);

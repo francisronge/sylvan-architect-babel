@@ -10,6 +10,7 @@ import { ParseApiError } from '../../server/babelParser/error.js';
 import { parseModelJson } from '../../server/babelParser/modelJson.js';
 import { attachGenerationFailureEvidence } from '../../server/babelParser/routeErrors.js';
 import { formatApiError } from '../../server/parseApi.js';
+import { createRawOutputArtifact } from '../../server/babelParser/validationErrors.js';
 import { waitForCanopyPaint, waitForReplayPaint, waitForNotesPaint } from '../../scripts/captureReadiness.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
@@ -18,6 +19,69 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const saved = JSON.parse(await readFile(new URL('../../fixtures/normalized/mia-laughed.xbar.json', import.meta.url), 'utf8'));
 const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laughed', '.'],
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
+
+test('recovered optional word addresses render quietly and survive Tree Bank reload', { timeout: 120_000 }, async () => {
+  const sentence = 'Mia smiled.';
+  const analysis = prefix => ({ derivationStages: [
+    { statement: 'Select the words.', stageRecord: 'Mia and smiled enter the workspace.', relations: [], workspaceForest: [
+      { id: `${prefix}subject`, label: 'N', word: 'Mia', tokenIndex: 1, children: [] },
+      { id: `${prefix}verb`, label: 'V', word: 'smiled', tokenIndex: 0, children: [] }
+    ] },
+    { statement: 'Construct the clause.', stageRecord: 'Mia is the subject of smiled.', relations: [], workspaceForest: [
+      { id: `${prefix}clause`, label: prefix === 'a' ? 'TP' : 'IP', children: [
+        { refId: `${prefix}subject` }, { refId: `${prefix}verb` }
+      ] }
+    ] }
+  ] });
+  const payload = { analyses: [analysis('a'), analysis('b')] }, raw = JSON.stringify(payload);
+  const recovered = { ...normalizeParseBundle(payload, 'xbar', sentence, 'gpt', true),
+    sentence, rawModelOutput: createRawOutputArtifact(raw) };
+  const server = await startBrowserTestServer({ root });
+  const output = process.env.BABEL_WORKFLOW_EVIDENCE || await mkdtemp(path.join(os.tmpdir(), 'babel-token-recovery-'));
+  await mkdir(output, { recursive: true });
+  try {
+    for (const [name, engine, width] of [['chromium', chromium, 1440], ['webkit', webkit, 390]]) {
+      const browser = await engine.launch({ headless: true });
+      let context;
+      try {
+        context = await browser.newContext({ viewport: { width, height: 1000 } });
+        const page = await context.newPage(), errors = [];
+        let requests = 0;
+        page.on('pageerror', error => errors.push(String(error)));
+        await context.route('**/api/parse', route => { requests++; return route.fulfill({ status: 200, json: recovered }); });
+        await page.goto(server.url);
+        await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(sentence);
+        await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+        await waitForCanopyPaint(page);
+        assert.equal(await page.getByRole('alert').count(), 0);
+        await page.getByRole('button', { name: 'Parse 2', exact: true }).click();
+        await waitForCanopyPaint(page);
+        assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
+        await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
+        await page.getByRole('button', { name: 'Pause', exact: true }).click();
+        const slider = page.getByRole('slider', { name: 'Replay frame' });
+        const finalFrame = Number(await slider.getAttribute('max'));
+        await slider.fill(String(finalFrame));
+        await waitForReplayPaint(page, finalFrame);
+        await page.screenshot({ path: path.join(output, `token-recovery-${name}-${width}.png`) });
+        await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
+        await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
+        const stored = await readTreeBankSnapshot(page), work = stored.savedWorks[0];
+        assert.deepEqual(work.analysisIds.map(id => stored.records.find(record => record.id === id).payload.provenance.tokenIndexCorrections),
+          recovered.analyses.map(result => result.provenance.tokenIndexCorrections));
+        const savedContext = stored.records.find(record => record.id === work.contextId).payload;
+        assert.equal(Buffer.from(savedContext.rawModelOutput.data, 'base64').toString(), raw);
+        await page.reload();
+        await page.getByTitle('Open Tree Bank', { exact: true }).click();
+        await page.getByRole('button', { name: 'Open Tree', exact: true }).click();
+        await waitForReplayPaint(page, finalFrame);
+        assert.equal(await page.getByRole('alert').count(), 0);
+        assert.equal(requests, 1, 'recovery and saved reopening never request a replacement');
+        assert.deepEqual(errors, []);
+      } finally { await context?.close(); await browser.close(); }
+    }
+  } finally { await server.close(); }
+});
 
 test('failed submissions preserve the selected analysis and paused Replay, then a new submission recovers', { timeout: 180_000 }, async t => {
   const stages = structuredClone(saved.analyses[0].derivationStages);
