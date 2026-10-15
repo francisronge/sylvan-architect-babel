@@ -199,6 +199,7 @@ try {
 }
 
 const untrackedAuditedPaths = execFileSync(
+  'git',
   ['ls-files', '--others', '--exclude-standard', '--', ...auditedSourcePaths],
   { cwd: repoRoot, encoding: 'utf8' }
 ).trim();
